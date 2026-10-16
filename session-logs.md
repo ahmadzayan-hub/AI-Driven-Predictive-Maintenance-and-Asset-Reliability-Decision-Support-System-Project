@@ -131,3 +131,18 @@ The first entries were written from the commit history and the session's own rec
     - A2, column mapping, with ADR 0025.
     - Interface phase 2: preview, a sheet picker, deep links.
 - **Blockers:** none.
+
+## 2026-10-16 · `7ba0117d` · claude/agentic-os-final-project-53j6ql (Codex brief)
+
+**Goal:** draft a prompt for Codex to design and build the agentic interface in React, based on current agentic UI trends on GitHub.
+
+- **Done:**
+    - Surveyed agentic interface work on GitHub as of 16 Oct 2026: AG-UI events and interrupts, A2UI v0.9.1, MCP Apps (stable 2026-01-26), assistant-ui, CopilotKit, AI Elements (deprecated end of Nov 2026), React 19.3.1.
+    - Wrote `docs/CODEX_UI_PROMPT.md`: a shared brief and six tasks, with the patterns mapped onto Agentic OS. Cross-linked the two older UI prompts.
+    - Published the same text as a private page with copy buttons: https://claude.ai/artifact/9XAZ9BZP3Q95vHyTuFpo5T
+- **Verified:** docs tests pass. The page rendered at 1366 px (light) and 390 px (dark) with no sideways scroll and no script errors.
+- **Decisions:**
+    - Take the patterns, not the packages: no CopilotKit, AI Elements or shadcn/ui, per ADR 0023.
+    - The run engine stays polling. The interface gets an AG-UI-shaped client adapter, so a streaming transport could replace polling later without UI changes.
+    - No reasoning display.
+- **Open / next:** run Codex Task 1, the specification, and review it. Consider an `AGENTS.md` pointing Codex to `CLAUDE.md`. Confirm CI on `50babcc`.
