@@ -58,6 +58,9 @@ def sample_dataset():
 # ---------------------------------------------------------------------------
 
 REPORT_LANGUAGES = ("en", "ar")
+# Periods are uneven when the quietest holds under three quarters of the
+# busiest's records (ADR 0026): totals over time then need a per-record view.
+UNEVEN_PERIODS = 0.75
 
 
 def report_language(ctx):
@@ -69,6 +72,12 @@ def _say(ctx, en, ar):
     """The reader's sentence. Both are written out in full at the call
     site, so each can be read, and reviewed, as a sentence."""
     return ar if report_language(ctx) == "ar" else en
+
+
+def _first_upper(name):
+    """A column name at the start of a sentence: "Production_Loss_USD" stays
+    as written, where str.capitalize() would give "Production_loss_usd"."""
+    return name[:1].upper() + name[1:]
 
 
 def _claim(ctx, claim_id, kind, en, ar, evidence):
@@ -815,19 +824,24 @@ def preparer(ctx):
                          ("month", "date", "period", "week", "year")), None)
         group_col = next((c for c in columns
                           if c not in numeric_columns and c != date_col), None)
-    groups = {}
+    # Each total keeps the number of records behind it, so a reader can
+    # compare per record when groups or periods differ in size (ADR 0026).
+    groups, group_counts = {}, {}
     if group_col:
         for row in rows:
             value = row.get(measure)
             if value is not None:
                 groups[row[group_col]] = groups.get(row[group_col], 0.0) + value
-    trend = {}
+                group_counts[row[group_col]] = group_counts.get(row[group_col], 0) + 1
+    trend, trend_counts = {}, {}
     if date_col:
         for row in rows:
             value = row.get(measure)
             if value is not None and not (mapping and row[date_col] is None):
                 trend[row[date_col]] = trend.get(row[date_col], 0.0) + value
+                trend_counts[row[date_col]] = trend_counts.get(row[date_col], 0) + 1
         trend = dict(sorted(trend.items()))
+        trend_counts = {k: trend_counts[k] for k in trend}
     total = round(sum(r[measure] for r in rows if r.get(measure) is not None), 2)
     grain = ctx["cleaner"].get("date_grain") if mapping else None
     grain_ar = {"day": "اليوم", "month": "الشهر", "quarter": "الربع", "year": "السنة"}
@@ -847,7 +861,9 @@ def preparer(ctx):
         output={"measure": measure, "group_col": group_col, "date_col": date_col,
                 "date_grain": grain,
                 "groups": {k: round(v, 2) for k, v in groups.items()},
+                "group_counts": group_counts,
                 "trend": {k: round(v, 2) for k, v in trend.items()},
+                "trend_counts": trend_counts,
                 "total": total},
         calculations=[{"id": "c_total", "name": f"total_{measure}", "value": total,
                        "method": f"sum({measure}) over cleaned rows"}],
@@ -915,6 +931,40 @@ def descriptive(ctx):
             f"{'ارتفع' if change >= 0 else 'انخفض'} {measure} بنسبة "
             f"{abs(change):.1%} من الفترة الأولى إلى الأخيرة.",
             ["c_change"]))
+    # A period with fewer records has a smaller total for that reason alone
+    # (ADR 0026). When the busiest period holds more than a third more
+    # records than the quietest, the change is also given per record.
+    counts = prep.get("trend_counts") or {}
+    per_record = None
+    if change is not None and counts and min(counts.values()) < UNEVEN_PERIODS * max(counts.values()):
+        periods = list(prep["trend"])
+        fewest, most = min(counts.values()), max(counts.values())
+        first_rate = series[0] / counts[periods[0]]
+        last_rate = series[-1] / counts[periods[-1]]
+        per_record = round((last_rate - first_rate) / first_rate, 4) if first_rate else None
+        calcs += [{"id": "c_period_records_min", "name": "fewest_records_in_a_period", "value": fewest,
+                   "method": "min(records with a value, per period)"},
+                  {"id": "c_period_records_max", "name": "most_records_in_a_period", "value": most,
+                   "method": "max(records with a value, per period)"}]
+        evidence = ["c_period_records_min", "c_period_records_max"]
+        if per_record is not None:
+            calcs.append({"id": "c_change_per_record", "name": "period_change_per_record", "value": per_record,
+                          "method": "(last period total ÷ its records − first period total ÷ its records)"
+                                    " / (first period total ÷ its records)"})
+            evidence.append("c_change_per_record")
+            moved_en = f"has {'risen' if per_record >= 0 else 'fallen'} {abs(per_record):.1%}"
+            moved_ar = f"{'ارتفع' if per_record >= 0 else 'انخفض'} بنسبة {abs(per_record):.1%}"
+        claims.append(_claim(
+            ctx, "cl_uneven_periods", "limitation",
+            f"Periods hold different numbers of records, from {fewest:,} to {most:,}, so a change "
+            "in the total partly reflects how many records each period holds."
+            + (f" Per record, {measure} {moved_en} from the first period to the last."
+               if per_record is not None else ""),
+            f"تضم الفترات أعداداً مختلفة من السجلات، من {fewest:,} إلى {most:,}، لذا يعكس التغير "
+            "في الإجمالي جزئياً عدد السجلات في كل فترة."
+            + (f" ولكل سجل، {moved_ar} {measure} من الفترة الأولى إلى الأخيرة."
+               if per_record is not None else ""),
+            evidence))
     top = max(prep["groups"], key=prep["groups"].get) if prep["groups"] else None
     share = None
     if top is not None and prep["total"]:
@@ -933,7 +983,10 @@ def descriptive(ctx):
             (f"{'ارتفع' if change >= 0 else 'انخفض'} {measure} بنسبة "
              f"{abs(change):.0%} خلال الفترة، وبلغ إجماليه {prep['total']:,.0f}."
              if change is not None else f"بلغ إجمالي {measure} {prep['total']:,.0f}.")
-            + (f" و«{top}» هو الأكبر ضمن {prep['group_col']}." if top is not None else ""))
+            + (f" و«{top}» هو الأكبر ضمن {prep['group_col']}." if top is not None else "")
+            + (f" تضم الفترات أعداداً مختلفة من السجلات؛ ولكل سجل "
+               f"{'ارتفع' if per_record >= 0 else 'انخفض'} بنسبة {abs(per_record):.0%}."
+               if per_record is not None else ""))
         body = [
             f"إجمالي {measure} هو **{prep['total']:,.2f}** على مدى "
             f"{_ar_n(len(prep['trend']) or 1, 'period')} و"
@@ -949,11 +1002,14 @@ def descriptive(ctx):
                              "النموذجية.")]
     else:
         headline = (
-            f"{measure.capitalize()} "
+            f"{_first_upper(measure)} "
             + (f"{'is up' if change >= 0 else 'is down'} {abs(change):.0%} over the period, "
                f"at {prep['total']:,.0f} in total."
                if change is not None else f"totals {prep['total']:,.0f}.")
-            + (f" “{top}” is the biggest {prep['group_col']}." if top is not None else ""))
+            + (f" “{top}” is the biggest {prep['group_col']}." if top is not None else "")
+            + (f" Periods hold different numbers of records; per record it is "
+               f"{'up' if per_record >= 0 else 'down'} {abs(per_record):.0%}."
+               if per_record is not None else ""))
         body = [
             f"Total {measure} is **{prep['total']:,.2f}** across "
             f"{len(prep['trend']) or 1} period(s) and {ctx['cleaner']['rows_after']} records.",
@@ -970,7 +1026,7 @@ def descriptive(ctx):
     return _result(
         "succeeded", headline,
         output={"headline": headline,
-                "change": change, "top_group": top, "top_share": share,
+                "change": change, "change_per_record": per_record, "top_group": top, "top_share": share,
                 "unusual": unusual, "mean": round(mean, 2), "median": round(median, 2),
                 "report_markdown": report},
         calculations=calcs, claims=claims,
@@ -1028,9 +1084,11 @@ def diagnostic(ctx):
                 f"{total_change:,.2f}. وهذا يحدد أين وقع التغير، لا ما الذي "
                 "سبّبه.",
                 ["c_totalchange", "c_contrib_0"]))
-        decliners = [c for c in contributions if c["change"] < 0]
-        if decliners:
-            worst = min(decliners, key=lambda c: c["change"])
+        # Against the overall direction means the opposite sign to the total
+        # change: a group that fell while the total fell moved with it.
+        against = [c for c in contributions if c["change"] * total_change < 0]
+        if against:
+            worst = max(against, key=lambda c: abs(c["change"]))
             index = contributions.index(worst)
             claims.append(_claim(
                 ctx, "cl_decline", "finding",
@@ -1038,7 +1096,7 @@ def diagnostic(ctx):
                 f"{worst['change']:,.2f} between the first and last period.",
                 f"تحرك «{worst['group']}» عكس الاتجاه العام، إذ تغير بمقدار "
                 f"{worst['change']:,.2f} بين الفترة الأولى والأخيرة.",
-                [f"c_contrib_{index}"] if index < 5 else ["c_totalchange"]))
+                [f"c_contrib_{index}", "c_totalchange"] if index < 5 else ["c_totalchange"]))
 
     # Which other numeric columns move together with the measure?
     associations = []
@@ -1128,7 +1186,7 @@ def diagnostic(ctx):
                              "أول ما ينبغي النظر فيه.")
     elif associations:
         headline = _say(ctx,
-                        f"{measure.capitalize()} moves closely with "
+                        f"{_first_upper(measure)} moves closely with "
                         f"{associations[0]['column']}, which is where to look first.",
                         f"يتحرك {measure} بشكل وثيق مع {associations[0]['column']}، "
                         "وهو أول ما ينبغي النظر فيه.")
@@ -2427,6 +2485,15 @@ def visuals(ctx):
         # The diagnostic answer as a picture: who moved the number, and
         # which way. This is the chart an executive acts on.
         items = contributions[:8]
+        # The contributions sum to the total change, so their sign is the
+        # overall direction; the bars on the other side of zero moved against it.
+        overall = sum(item["change"] for item in contributions)
+        against_en = ("bars above zero moved against the overall fall." if overall < 0
+                      else "bars below zero moved against the overall rise." if overall > 0
+                      else "the changes cancel out, with no net movement.")
+        against_ar = ("والأعمدة فوق الصفر تحركت عكس الانخفاض العام." if overall < 0
+                      else "والأعمدة تحت الصفر تحركت عكس الارتفاع العام." if overall > 0
+                      else "والتغيرات يلغي بعضها بعضاً دون صافي تحرك.")
         charts.append({"id": "chart_contributions", "type": "bar",
                        "title": _say(ctx,
                                      f"Who moved {measure}: change by {group_col}",
@@ -2437,11 +2504,9 @@ def visuals(ctx):
                        "alt": _say(ctx,
                                    f"Bar chart of the change in {measure} for each "
                                    f"{group_col} between the first and last period, "
-                                   "largest mover first; bars below zero moved "
-                                   "against the overall direction.",
+                                   f"largest mover first; {against_en}",
                                    f"مخطط أعمدة للتغير في {measure} لكل {group_col} "
-                                   "بين الفترة الأولى والأخيرة، من الأكثر تحركاً؛ "
-                                   "والأعمدة تحت الصفر تحركت عكس الاتجاه العام.")})
+                                   f"بين الفترة الأولى والأخيرة، من الأكثر تحركاً؛ {against_ar}")})
     if forecast:
         # History and forecast on one axis, with the boundary named in the
         # alt text so nobody mistakes a projection for a measurement.
