@@ -251,3 +251,48 @@ The first entries were written from the commit history and the session's own rec
     - The capstone briefing clip is being rendered by an agent following the `motion-designer` instructions. Subagents load at session start, so `motion-designer` is callable by name from the next session.
     - Confirm CI on `550ae22`.
 - **Blockers:** none.
+
+## 2026-10-16 · `7ba0117d` · claude/agentic-os-final-project-53j6ql (agent team, review loop, dashboards)
+
+**Goal:**
+- a review super-agent that loops until deliverables are 100% validated, with the subagents it needs;
+- free open-source models and tools wherever they do the job, to keep cost near zero;
+- Claude Dashboards (Anthropic, 8 October 2026) as an agent for deep analysis and dashboards.
+
+- **Done:**
+    - `c63ae28`, the agent team (`docs/AGENT_TEAM.md`):
+        - Five read-only reviewer subagents, each on Haiku or Sonnet by job, and `dashboard-analyst`.
+        - The `review-loop` skill, with `scripts/review_gate.py` (rounds, stop rules, archived resets) and `scripts/figures_check.py` (glued cells, CSV cells, worked arithmetic).
+        - `scripts/analyse.py` and the `dashboards` skill, with an offline renderer.
+        - `scripts/consult.py` for free local models.
+        - The motion skill's transcripts keep sources apart, and a clip can name its poster.
+    - `8e1a177`, ADR 0026: uneven periods are read per record. Also fixed the "against the overall direction" claim and the headline casing; the capstone dashboard run found all three.
+    - `61cd23a`, the docs:
+        - README, AGENTS.md, CLAUDE.md, the playbook and limitations 22 and 23;
+        - a new brain note, *Agent team*;
+        - corrections to *Weighted KPIs* and *Team 3 Capstone*.
+    - **Capstone review (outside the repository).** Four reviewers ran in round 1; one Haiku reviewer confirmed the fixes in round 2.
+        - Gates: 50.0% → 56.2% → 62.5% → 62.5% (16 gates). All ten the session could act on pass; six are the team's.
+        - Rebuilt: a tagged PDF with bookmarks and alt text, titled slides with readable alt text and correct metadata, and the clip with associative wording and reader-facing sources.
+        - The Power BI guide gained a landing decision, a trend and cards.
+        - `Team3_Review_Round1_Corrections.md` went to the user: verified figures and replacement wording, with owners.
+    - **Dashboards.** Both were built from aggregates only, with zero unsourced figures:
+        - an offline capstone dashboard;
+        - a private Claude Dashboard, https://claude.ai/artifact/Q36TKj9qBNYv7o9qZTCH3V, made with the Dashboard artifact type and four attached aggregate files.
+- **Verified:**
+    - `scripts/verify.py` with PostgreSQL: 818 Python tests, 16 skipped; brain check clean (25 notes); type check; 60 frontend unit tests; build; interface budget (JS 96.7 of 100 KB).
+    - End-to-end was not rerun, because no interface changed.
+    - Every figure the analytics reviewer cited was recomputed from the dataset before it went in the memo. Two of its numbers differed slightly; the memo uses the recomputed ones.
+    - The Claude Dashboard was not rendered, as the artifact type instructs, and no reader has opened it yet.
+- **Decisions:**
+    - **The loop:** it is a skill, not an agent, because subagents cannot start subagents.
+    - **Team text:** the team's shared report and deck are theirs to edit. Corrections go as a memo, not silent edits.
+    - **Findings:** each finding a pattern can check becomes a gate.
+    - **ADR numbers:** 0026 is uneven periods, so A3 moves to 0027.
+- **Open / next:**
+    - **The team** (memo): build the `.pbix`; apply the two headline corrections and their highlighted items; then rerun the gates and the analytics and brief reviewers.
+    - **Confirm CI** on these commits.
+    - **Agent loading:** the new agents load by name from the next session start.
+- **Blockers:**
+    - `.pbix` needs Power BI Desktop.
+    - Ollama models cannot be downloaded here, so local consultation is untested live.
