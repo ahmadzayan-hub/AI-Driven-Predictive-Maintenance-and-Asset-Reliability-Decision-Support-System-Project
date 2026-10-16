@@ -6,7 +6,10 @@ Last updated: 2026-10-16, session `7ba0117d`. The session-end skill keeps this f
 
 ## Now
 
-- **Capstone, due 22 Oct (upload 21 Oct):** fill the report draft's `[Add: …]` figures, build the Power BI file, replace the provisional model numbers, rehearse on 20, 23 and 24 Oct. The drafts are private documents shared with the team.
+- **Capstone, due 22 Oct (upload 21 Oct):**
+    - The report and the 15-slide deck carry figures computed from the final dataset on 16 Oct, and a Power BI kit is delivered.
+    - Still open: build the `.pbix` from the kit; the team-owned `[Add]` items (screenshots, notebook names, the instructor email); owners rerunning their own figures; rehearsals on 20, 23 and 24 Oct.
+    - The drafts are private documents shared with the team.
 - **Operating system for this repository: done 2026-10-16.** CLAUDE.md, Memory.md, this board, session-logs.md, the second brain in `brain/`, and session hooks and skills in `.claude/`. Next: confirm the hooks fire in a fresh session.
 - **Next build: A1, dataset API and picker.** Write ADR 0023 first.
 

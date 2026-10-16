@@ -16,9 +16,9 @@ The course capstone of the [[User]]'s team: an executive analytics package on pr
 
 | Deliverable | Format | State on 2026-10-16 |
 | --- | --- | --- |
-| Executive dashboard | Power BI `.pbix` | Designed; not yet built |
-| Executive presentation | `.pptx`, 12 to 15 slides | Draft of 14 slides with speaker notes |
-| Analytical report | `.pdf`, 20 to 25 pages | Full draft; figures still marked to add |
+| Executive dashboard | Power BI `.pbix` | Build kit ready: Power Query, DAX, theme, 30 expected values. Not yet built |
+| Executive presentation | `.pptx`, 12 to 15 slides | 15 slides with speaker notes and final figures |
+| Analytical report | `.pdf`, 20 to 25 pages | Full draft with computed figures; team-owned items still to add |
 
 - Moodle submission closes on 22 October 2026, and the team uploads on 21 October 2026 to keep a buffer.
 - The team presents to the instructors on 25 October 2026.
@@ -29,7 +29,8 @@ The plan, the report draft and the deck draft are private documents shared with 
 
 - **Measuring correctly:** averaging row rates overstated SLA compliance by 29.7 points. This is the [[Weighted KPIs]] rule.
 - **Checking identity before analysis:** the dataset's asset IDs repeat every 180 rows, so the record, not the asset, is the unit of analysis.
-- **Honest models:** a classifier beat the supplied score by only 0.02 AUC, so the recommendation is a pilot, not a rollout ([[Soul]]).
+- **Honest models:** a classifier beat the supplied score by only 0.02 AUC, and in the top 10% of the queue condition score alone did as well (86% against 85%). So the recommendation is a pilot, not a rollout ([[Soul]]).
+- **Look past the obvious cut:** failure modes were a flat Pareto, but stockouts doubled outages, and reactive maintenance was worst at the same asset age.
 - **Dashboard expectations:** landing page, slicers, drill-through and a ranked action queue, which feed the [[Analytics OS roadmap]].
 
 ## Related

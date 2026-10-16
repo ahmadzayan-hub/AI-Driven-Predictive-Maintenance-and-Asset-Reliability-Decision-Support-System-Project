@@ -21,6 +21,10 @@ The course-supplied dataset behind the [[Team 3 Capstone]]: synthetic maintenanc
 - Loss is 4.5 times maintenance spend: $228.9M against $50.4M. Loss per downtime hour is about $2,500 in every criticality band.
 - Age is the strongest gradient: MTBF falls from 460 h to 204 h, and loss per record rises from $26,501 to $83,610.
 - There is no trend across the 12 quarters.
+- No failure mode dominates: each causes 18.9% to 20.6% of downtime.
+- Stockouts double the outage: 44.5 h against 22.2 h of downtime per corrective record, from 84 records. Lead time has no link to downtime (r = 0.04).
+- Reactive maintenance is worst at the same average age of 8.1 years: MTBF 219 h against 363 h for condition-based maintenance, and 57% more loss per record.
+- Critical equipment meets its SLA in 29.1% of records, against about 49% for other levels. Team A's night shift is the weakest team-shift cell, at 42.9%.
 
 ## Why it matters beyond the course
 

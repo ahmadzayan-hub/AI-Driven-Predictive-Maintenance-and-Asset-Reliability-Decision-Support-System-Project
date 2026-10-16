@@ -49,7 +49,9 @@ The first entries were written from the commit history and the session's own rec
     - Merged `main` into the working branch (`253ea07`) and cleared the source-map-js advisory (`8a8b376`).
     - Added CONTRIBUTING.md, a PR template and a git-ignored `private/` folder (`7091b76`).
     - Drafted the capstone report and the 14-slide deck as private shared documents.
-    - Set up CLAUDE.md, Memory.md, project-progress.md, this log, the second brain (`brain/`), `scripts/brain_check.py`, and the session hooks and skills in `.claude/`.
+    - Set up CLAUDE.md, Memory.md, project-progress.md, this log, the second brain (`brain/`), `scripts/brain_check.py`, and the session hooks and skills in `.claude/` (`fe9ef8a`, CI run 44 green).
+    - Digested the re-uploaded course files, which were identical to the originals. Computed the remaining capstone analyses: failure-mode Pareto; stockouts and lead time; SLA by team, shift and criticality; strategy and class; final models with baselines, a bootstrap interval, top-10% precision, calibration and permutation importance.
+    - Filled the report draft, rebuilt five slides and added a strategy slide (15 in total), and delivered a Power BI kit with Power Query, DAX, a theme and 30 expected values. All of it stays outside the repository.
 - **Verified:**
     - Before the operating-system work: 616 Python tests with PostgreSQL (16 optional skips); 37 frontend unit tests; 51 of 52 end-to-end checks run and passed (1 desktop-only skip). CI run 43 green on `7091b76`.
     - After it: 646 Python tests with PostgreSQL (16 optional skips), including 30 new tests for the brain checker and the hooks; docs tests pass; brain check strict-clean; each hook exercised by hand against this repository.
@@ -57,5 +59,7 @@ The first entries were written from the commit history and the session's own rec
     - Loss per downtime hour is about $2,500 (ratio of sums), not the plan's $2,000 (a row average).
     - Brain notes are public project knowledge; private notes go in `brain/private/`.
     - Hooks only record and remind; the skills edit.
-- **Open / next:** capstone `[Add]` figures and the Power BI build; A1 dataset API with ADR 0023; confirm the hooks fire in a fresh session.
-- **Blockers:** the course dataset is not in this container (upload again to compute the remaining figures); inviting collaborators is an owner action on GitHub.
+    - Capstone recommendation 8: move reactive equipment to condition-based maintenance (MTBF 219 h against 363 h at the same average age of 8.1 years).
+    - The inspection pilot starts with the free condition-score ranking, because the model only matches it in the top 10% of the queue (85% against 86%).
+- **Open / next:** build the `.pbix` from the kit; team-owned `[Add]` items; owners rerun their figures; A1 dataset API with ADR 0023; confirm the hooks fire in a fresh session.
+- **Blockers:** inviting collaborators is an owner action on GitHub. Power BI Desktop is needed for the `.pbix`.
