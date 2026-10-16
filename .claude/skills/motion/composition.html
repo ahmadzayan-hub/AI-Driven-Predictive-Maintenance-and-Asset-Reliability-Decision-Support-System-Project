@@ -206,17 +206,28 @@ body { font-family: 'Fira Sans', 'Noto Sans Arabic', 'Segoe UI', 'DejaVu Sans', 
     document.getElementById('progress').style.width = (Math.min(1, t / duration) * 100).toFixed(3) + '%'
   }
 
-  /** On-screen text in order, with each figure's source: for captions,
-   *  alt text and checking every number against where it came from. */
+  /** The on-screen words in order, exactly as shown, for captions and alt
+   *  text; each figure carries a note number, and the sources follow at
+   *  the end, so the words a viewer reads are kept apart from the citations. */
   function transcript() {
-    return scenes.map((s, i) => {
+    const sources = []
+    const cite = (source) => {
+      if (!sources.includes(source)) sources.push(source)
+      return `[${sources.indexOf(source) + 1}]`
+    }
+    const body = scenes.map((s) => {
       const sc = s.scene
       const lines = [`[${s.start.toFixed(1)}–${s.end.toFixed(1)} s] ${sc.type}`]
+      // A statement shows its figure above its words, so it is read first.
+      const figure = sc.figure ? `${format(sc.figure, sc.figure.value)} ${cite(sc.figure.source)}` : null
+      if (figure && sc.type === 'statement') lines.push(figure)
       for (const key of ['kicker', 'title', 'subtitle', 'heading', 'text', 'note']) if (sc[key]) lines.push(sc[key])
-      for (const item of sc.items || []) lines.push(`${item.label}: ${format(item, item.value)} (source: ${item.source})`)
-      if (sc.figure) lines.push(`${format(sc.figure, sc.figure.value)} (source: ${sc.figure.source})`)
+      for (const item of sc.items || []) lines.push(`${item.label}: ${format(item, item.value)} ${cite(item.source)}`)
+      if (figure && sc.type !== 'statement') lines.push(figure)
       return lines.join('\n')
     }).join('\n\n') + (spec.footer ? `\n\n${spec.footer}` : '')
+    const heading = spec.language === 'ar' ? 'المصادر' : 'Sources'
+    return sources.length ? `${body}\n\n${heading}\n${sources.map((x, i) => `[${i + 1}] ${x}`).join('\n')}` : body
   }
 
   window.motion = { duration, fps: spec.fps, width: W, height: H, seek, transcript,

@@ -51,13 +51,13 @@ node .claude/skills/motion/render.mjs spec.json out/clip.mp4
 
 Rendering needs the frontend's Playwright (`npm --prefix frontend ci`), Chromium (`/opt/pw-browsers/chromium` or `PLAYWRIGHT_EXECUTABLE_PATH`) and `ffmpeg` on the path. A 17-second clip at 1080p and 30 fps takes about a minute here. Beside the MP4 it writes:
 
-- `clip.poster.png`: the first figure scene once settled, for a slide or a thumbnail;
+- `clip.poster.png`: the first figure scene once settled, or the scene numbered in `"poster"` (for example `1`, the title), for a slide or a thumbnail;
 - `clip.sheet.png`: one frame per scene. **Read it before delivering**, and check overflow, contrast and text;
-- `clip.txt`: every on-screen word and figure with its source, in order, for alt text, captions and checking.
+- `clip.txt`: every on-screen word and figure in order, exactly as shown, with a note number on each figure and the sources listed at the end: for alt text, captions and checking.
 
 ## Rules
 
-1. **Figures** come from a verified register: the KPI register, a run's calculations, `Expected_Values.csv`. Say which in each `source`.
+1. **Figures** come from a verified register: the KPI register, a run's calculations, `Expected_Values.csv`. Say which in each `source`, in words the viewer can follow, such as "Report, Appendix A: Maintenance Cost", not a working file name.
 2. **Course material stays out of Git.** Write specs and renders for the capstone to the scratchpad or a `private/` folder, never to the repository. Only the sample examples live here.
 3. **One idea per scene.** At 1080p, labels are at least 23 px and headings much larger. Keep text short enough to read twice in the scene's time.
 4. **No sound and no flashing.** Nothing changes more than three times a second. Deliver the transcript beside the MP4, so the content does not depend on seeing the motion.

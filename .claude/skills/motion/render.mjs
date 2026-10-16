@@ -40,6 +40,10 @@ export function validate(spec) {
   need(['light', 'dark'].includes(spec.theme ?? 'light'), 'theme must be "light" or "dark".')
   need(Array.isArray(spec.scenes) && spec.scenes.length > 0, 'scenes must be a non-empty list.')
   if (spec.footer) need(spec.footer.length <= LIMITS.footer, `footer is over ${LIMITS.footer} characters.`)
+  if (spec.poster != null) {
+    need(Number.isInteger(spec.poster) && spec.poster >= 1 && spec.poster <= (spec.scenes || []).length,
+      `poster must be a scene number from 1 to ${(spec.scenes || []).length}.`)
+  }
   let total = 0
   const figure = (where, item) => {
     need(typeof item?.value === 'number' && Number.isFinite(item.value), `${where}: value must be a number.`)
@@ -136,8 +140,8 @@ async function render(spec, out) {
     })
 
     const base = out.replace(/\.mp4$/i, '')
-    // The poster: the first scene with figures, fully counted up.
-    const posterScene = scenes.find((s) => s.type !== 'title') || scenes[0]
+    // The poster: the scene the spec names, or the first scene with figures, fully counted up.
+    const posterScene = spec.poster ? scenes[spec.poster - 1] : (scenes.find((s) => s.type !== 'title') || scenes[0])
     fs.writeFileSync(`${base}.poster.png`, await shot(Math.max(posterScene.start, posterScene.end - 0.6)))
     // The review sheet: each scene once it has settled, three to a row.
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'motion-'))

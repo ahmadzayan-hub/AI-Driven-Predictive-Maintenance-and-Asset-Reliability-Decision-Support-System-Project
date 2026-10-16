@@ -137,6 +137,16 @@ class RendererCheckTests(unittest.TestCase):
                       "duration must be", "needs 1 to 8 items"):
             self.assertIn(words, done.stderr)
 
+    def test_the_poster_names_a_scene_that_exists(self):
+        spec = {"poster": 3, "scenes": [{"type": "title", "duration": 3, "title": "Briefing"},
+                                        {"type": "statement", "duration": 4, "text": "of records.",
+                                         "figure": {"value": 27, "suffix": "%", "source": "sample"}}]}
+        done = self.check(spec)
+        self.assertEqual(done.returncode, 1)
+        self.assertIn("poster must be a scene number from 1 to 2", done.stderr)
+        spec["poster"] = 1
+        self.assertEqual(self.check(spec).returncode, 0)
+
 
 if __name__ == "__main__":
     unittest.main()
