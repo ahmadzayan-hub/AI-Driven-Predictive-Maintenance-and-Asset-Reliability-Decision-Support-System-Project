@@ -200,8 +200,12 @@ and returns fresh state snapshots.
 │   └── e2e/               # Playwright end-to-end + accessibility tests
 ├── docs/
 │   ├── UI_UX_AUDIT.md     # Audit, plan, and acceptance criteria
+│   ├── PLAYBOOK.md        # How the repository is operated
 │   ├── adr/               # Decision records (database, auth, analytics…)
 │   └── screenshots/       # Final interface captures
+├── brain/                 # Second brain: linked notes, start at Home.md
+├── .claude/               # Claude Code hooks, skills, commands, agents
+├── CLAUDE.md · Memory.md · project-progress.md · session-logs.md
 ├── README.md · user_guide.md · requirements.txt · .env.example
 ```
 
@@ -267,7 +271,8 @@ python main.py
 # Python: agent, utils, API, runs, analytics, sequential ranges,
 # metrics, auth, tenancy, erasure, quotas, backups, worker, recovery,
 # supply chain, launcher, routing, language, assistant, custom stages,
-# agent runtimes, MCP, frameworks, report language, docs (616 tests)
+# agent runtimes, MCP, frameworks, report language, docs, and the
+# repository's operating system: brain checker and session hooks (646 tests)
 python -m unittest discover tests
 
 # Frontend unit tests (37 tests)
@@ -284,7 +289,7 @@ cd frontend && npm run typecheck
 
 The same suite runs automatically in CI (`.github/workflows/ci.yml`) on
 every push, including the run-engine and backup suites against a real
-PostgreSQL 16 service. Last verified: 616 Python tests (600 run in CI;
+PostgreSQL 16 service. Last verified: 646 Python tests (630 run in CI;
 the 11 that need an optional agent framework or the MCP SDK, and the 5
 that need LLMRouter, skip there),
 37 frontend unit tests, and 52 end-to-end checks (51 executed, 1
@@ -292,13 +297,13 @@ desktop-only check skipped on the mobile project). In environments with a pre-in
 browser, point Playwright at it:
 `PLAYWRIGHT_EXECUTABLE_PATH=/path/to/chromium npx playwright test`.
 
-Five of the 616 load real LLMRouter routers and **skip unless LLMRouter
+Five of the 646 load real LLMRouter routers and **skip unless LLMRouter
 is installed**, which in CI it is not — so CI reports `OK (skipped=5)`
 and that is the expected result, not a gap. The other 22 routing tests
 never import it and always run. Both readings were verified: with the
 library and the optional frameworks (ADR 0021) installed, nothing
-skipped (checked at 584 tests; the 32 that ADR 0022 added need neither
-and run everywhere).
+skipped (checked at 584 tests; the 32 that ADR 0022 added and the 30
+operating-system tests need neither and run everywhere).
 
 ## Background worker (optional)
 
@@ -589,6 +594,25 @@ See `user_guide.md` for the full command reference.
 - A scheduled off-site backup job (see ADR 0005 for why it is not a
   workflow in this public repository)
 - Named memory keys (e.g. `/remember birthday = 1 May`)
+
+## Working on it with Claude Code
+
+The repository carries its own operating system for Claude Code sessions,
+described in [docs/PLAYBOOK.md](docs/PLAYBOOK.md):
+
+- **Working memory:** [CLAUDE.md](CLAUDE.md) holds the instructions,
+  [Memory.md](Memory.md) the durable facts,
+  [project-progress.md](project-progress.md) the board, with the
+  analytics-OS milestones and a code-grounded gap analysis, and
+  [session-logs.md](session-logs.md) one entry per session.
+- **A second brain:** [brain/](brain/Home.md) is an Obsidian vault of
+  linked notes, with `User`, `Identity` and `Soul` at its core.
+  `python scripts/brain_check.py` finds broken links, stale notes,
+  duplicates and unlinked mentions.
+- **Hooks and skills:** the [.claude/](.claude/README.md) folder holds
+  them. A SessionStart hook briefs each session. The session-start,
+  session-end and brain-maintenance skills keep the files above current.
+  A Stop hook makes sure a session that committed work also logs it.
 
 ## Contributing
 

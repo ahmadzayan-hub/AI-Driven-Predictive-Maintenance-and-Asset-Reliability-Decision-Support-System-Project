@@ -152,9 +152,30 @@ anyone, and stays in the history even after it is deleted.
 | `tests/`, `frontend/e2e/` | Python tests; browser end-to-end tests |
 | `docs/` | Architecture, agent catalogue, known limitations, decision records |
 | `examples/` | A custom stage and agent runtimes to copy from |
+| `project-progress.md`, `session-logs.md`, `Memory.md` | What is happening now, what each session did, and durable facts |
+| `brain/` | The second brain: linked notes, starting at `brain/Home.md`. Open the folder in Obsidian, or read it on GitHub |
+| `CLAUDE.md`, `.claude/` | Instructions, hooks and skills for Claude Code sessions |
 
 For how to use the app, see `user_guide.md`. For the design and its
-trade-offs, see `docs/ARCHITECTURE.md` and `docs/adr/`.
+trade-offs, see `docs/ARCHITECTURE.md` and `docs/adr/`. For how the
+repository is run day to day, see `docs/PLAYBOOK.md`.
+
+## Working with Claude Code
+
+If you use Claude Code, this repository briefs every session for you. Trust
+the folder when Claude Code asks, and keep `python3` on your path. A
+SessionStart hook summarises the current focus, the last session's next
+steps and the brain's health. Then:
+
+- say **start session** to have Claude orient itself;
+- say **wrap up** at the end, so it logs the session, updates the board,
+  `Memory.md` and the brain, and commits.
+
+The hooks only read the repository and write to the git-ignored
+`.claude/state/`. The one exception is the safety net at session end, which
+may append an automatic entry to `session-logs.md`. To turn the hooks off
+for yourself alone, put `{"disableAllHooks": true}` in
+`.claude/settings.local.json`.
 
 ## Getting help
 
