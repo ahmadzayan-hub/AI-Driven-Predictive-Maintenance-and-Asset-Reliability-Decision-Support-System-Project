@@ -1222,6 +1222,24 @@ kbd {
   min-height: 44px;
 }
 
+/* What the server noticed while reading a file: error cells, formulas
+   with no saved result, which sheet it read. Worth a look, not an error. */
+.warnings {
+  list-style: none;
+  padding: 0;
+  margin-top: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.warnings li {
+  padding-inline-start: var(--space-2);
+  border-inline-start: 2px solid var(--highlight);
+}
+
 /* Memory */
 .memory__form {
   display: flex;
@@ -1505,6 +1523,24 @@ form.field {
 .segmented__option[aria-pressed='true'] {
   background: var(--accent-soft);
   color: var(--accent);
+}
+
+/* Three long choices do not fit side by side on a phone: they stack. */
+@media (max-width: 479px) {
+  .segmented {
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
+  }
+
+  .segmented__option {
+    text-align: start;
+  }
+
+  .segmented__option + .segmented__option {
+    border-inline-start: 0;
+    border-top: 1px solid var(--border);
+  }
 }
 
 .switchrow {

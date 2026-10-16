@@ -112,7 +112,7 @@ describe('OverviewView', () => {
 describe('DatasetsView', () => {
   it('explains where datasets come from when there are none', async () => {
     serve({ '/api/datasets': { datasets: [] }, '/api/usage': USAGE })
-    render(<DatasetsView onAnalyse={vi.fn()} onAdd={vi.fn()} />)
+    render(<DatasetsView onAnalyse={vi.fn()} />)
     expect(await screen.findByText('No datasets yet')).toBeInTheDocument()
   })
 
@@ -127,11 +127,57 @@ describe('DatasetsView', () => {
     }
     serve({ '/api/datasets': { datasets: [dataset] }, '/api/usage': USAGE })
     const onAnalyse = vi.fn()
-    render(<DatasetsView onAnalyse={onAnalyse} onAdd={vi.fn()} />)
+    render(<DatasetsView onAnalyse={onAnalyse} />)
 
     expect(await screen.findByText('48.3 kB')).toBeInTheDocument()
     expect(screen.getByText('fingerprint 1a2b3c4d')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Analyse quarterly-sales.csv' }))
     expect(onAnalyse).toHaveBeenCalledWith(dataset)
+  })
+
+  it('adds a file through the API and lists it with its format and rows', async () => {
+    const user = userEvent.setup()
+    const stored = {
+      id: 'ds2',
+      sha256: 'abcdef1234',
+      name: 'book.xlsx',
+      byte_size: 900,
+      created_at: '2026-10-16T09:00:00+00:00',
+      source_format: 'xlsx',
+      row_count: 4,
+      column_count: 3,
+    }
+    let listed: unknown[] = []
+    const fetchMock = vi.fn((path: string, init?: RequestInit) => {
+      if (path.startsWith('/api/datasets?') && init?.method === 'POST') {
+        listed = [stored]
+        return Promise.resolve({
+          ok: true,
+          status: 201,
+          json: () =>
+            Promise.resolve({
+              dataset: stored,
+              created: true,
+              columns: ['team', 'quarter', 'sales'],
+              preview: [],
+              warnings: ['Read the sheet “Sales”, the first of 2.'],
+              sheets: ['Sales', 'Notes'],
+            }),
+        } as Response)
+      }
+      const body = path === '/api/datasets' ? { datasets: listed } : USAGE
+      return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) } as Response)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const { container } = render(<DatasetsView onAnalyse={vi.fn()} />)
+    expect(await screen.findByText('No datasets yet')).toBeInTheDocument()
+
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement
+    await user.upload(input, new File(['PK'], 'book.xlsx'))
+
+    expect(await screen.findByText('Added book.xlsx: 4 data rows.')).toBeInTheDocument()
+    expect(screen.getByText('Read the sheet “Sales”, the first of 2.')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Analyse book.xlsx' })).toBeInTheDocument()
+    expect(screen.getByText(/^Excel ·/)).toBeInTheDocument()
   })
 })

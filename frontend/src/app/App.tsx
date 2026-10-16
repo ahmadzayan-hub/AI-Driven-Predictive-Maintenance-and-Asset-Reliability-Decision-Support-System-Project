@@ -428,7 +428,6 @@ export function App() {
               onAnalyse={(dataset) =>
                 startAnalysis({ kind: 'stored', id: dataset.id, name: dataset.name })
               }
-              onAdd={() => startAnalysis({ kind: 'upload' })}
             />
           ) : null}
           {tab === 'chat' ? (

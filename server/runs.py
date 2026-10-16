@@ -22,7 +22,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from server import analytics, metrics, quota
+from server import analytics, datasets, metrics, quota
 from server import stages as stage_registry
 
 RUN_STATES = {"queued", "running", "awaiting_approval", "verifying",
@@ -98,13 +98,29 @@ class RunEngine:
         self.store.update("tasks", task_id, fields)
 
     # -- API --------------------------------------------------------------
-    def store_dataset(self, text, name, owner):
+    def store_dataset(self, text, name, owner, source_format="csv"):
         """Content-addressed storage: identical uploads share one row."""
+        return self._store(text, name, owner, source_format)[0]
+
+    def store_upload(self, parsed, name, owner):
+        """A file read by server.datasets (ADR 0024): its canonical CSV,
+        stored like any other. Returns (dataset, created)."""
+        return self._store(parsed.csv_text, name, owner, parsed.source_format,
+                           (len(parsed.rows), len(parsed.columns)))
+
+    def _store(self, text, name, owner, source_format, shape=None):
+        rows, columns = shape or datasets.counts(text)
         digest = hashlib.sha256(text.encode()).hexdigest()
         existing = self.store.find_dataset(digest, owner)
         if existing:
             # Already stored: consumes no new space, so no quota applies.
-            return existing
+            # A row from before the dataset API learns its shape now.
+            if existing.get("row_count") is None and rows is not None:
+                self.store.update("datasets", existing["id"], {
+                    "source_format": existing.get("source_format") or source_format,
+                    "row_count": rows, "column_count": columns})
+                existing = self.store.get_dataset(existing["id"])
+            return existing, False
         if self.limits:
             quota.check_dataset(self.store, owner, self.limits,
                                 len(text.encode()))
@@ -112,8 +128,10 @@ class RunEngine:
         self.store.insert("datasets", {
             "id": dataset_id, "sha256": digest, "name": name,
             "content": text, "byte_size": len(text.encode()),
-            "owner": owner, "created_at": _now()})
-        return self.store.get_dataset(dataset_id)
+            "owner": owner, "created_at": _now(),
+            "source_format": source_format, "row_count": rows,
+            "column_count": columns})
+        return self.store.get_dataset(dataset_id), True
 
     def custom_roles_for(self, profile=None):
         """Which registered stages a run includes. A profile names a
@@ -170,7 +188,8 @@ class RunEngine:
             text = dataset_text or analytics.sample_dataset()
             name = dataset_name or (
                 "uploaded dataset" if dataset_text else "sample sales dataset")
-            dataset = self.store_dataset(text, name, owner)
+            dataset = self.store_dataset(text, name, owner,
+                                         "csv" if dataset_text else "sample")
         now = _now()
         self.store.insert("runs", {
             "id": run_id, "goal": goal.strip(),

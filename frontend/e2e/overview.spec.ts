@@ -69,12 +69,16 @@ test('a stored dataset is analysed again by reference', async ({ page }) => {
   await expectNoViolations(page, 'datasets')
 
   await page.getByRole('button', { name: 'Analyse sample sales dataset' }).click()
-  const chosen = page.getByRole('group', { name: 'Dataset', exact: true })
-  await expect(chosen).toContainText('sample sales dataset')
-  await expect(chosen).toContainText('nothing is uploaded again')
+  await expect(page.getByRole('button', { name: 'Stored dataset', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+  const picker = page.getByLabel('Choose a stored dataset')
+  await expect(picker.locator('option:checked')).toContainText('sample sales dataset · 72 data rows')
+  await expect(page.getByText('nothing is uploaded again')).toBeVisible()
   await expect(page.getByLabel('Goal')).toHaveValue('Analyse sample sales dataset and produce a business report')
   // The upload fields are not offered for a dataset that is already stored.
-  await expect(page.getByLabel('Choose a CSV file')).toHaveCount(0)
+  await expect(page.getByLabel('Choose a file')).toHaveCount(0)
   await expectNoViolations(page, 'runs form with a stored dataset')
 
   await page.getByRole('button', { name: 'Start run' }).click()
@@ -84,12 +88,14 @@ test('a stored dataset is analysed again by reference', async ({ page }) => {
   await page.getByRole('button', { name: 'Cancel', exact: true }).click()
   await expect(page.getByText('state: cancelled')).toBeVisible()
 
-  // Choosing another dataset brings the sample and upload switch back.
+  // Going back to the sample puts its goal back; the upload fields are
+  // one choice away.
   await openTab(page, /^Datasets/)
   await page.getByRole('button', { name: 'Analyse sample sales dataset' }).click()
-  await page.getByRole('button', { name: 'Choose another' }).click()
-  await expect(page.getByRole('button', { name: 'Upload or paste CSV' })).toBeVisible()
-  await expect(page.getByLabel('Goal')).toHaveValue(/sample sales dataset/)
+  await page.getByRole('button', { name: 'Sample sales data', exact: true }).click()
+  await expect(page.getByLabel('Goal')).toHaveValue(/^Analyze the sample sales dataset/)
+  await page.getByRole('button', { name: 'Upload a file or paste CSV', exact: true }).click()
+  await expect(page.getByLabel('Choose a file')).toBeVisible()
 })
 
 test('the phone bar holds five places and More opens the rest', async ({ page }) => {
@@ -119,7 +125,7 @@ test('the new views do not scroll sideways at 320 px, in either language', async
   await page.goto('/')
   await page.setViewportSize({ width: 320, height: 640 })
 
-  for (const name of [/^Overview/, /^Datasets/]) {
+  for (const name of [/^Overview/, /^Datasets/, /^Runs/]) {
     await openTab(page, name)
     await expect(page.locator('main .panel__title')).toBeVisible()
     await expect(page.locator('main .skeleton')).toHaveCount(0)

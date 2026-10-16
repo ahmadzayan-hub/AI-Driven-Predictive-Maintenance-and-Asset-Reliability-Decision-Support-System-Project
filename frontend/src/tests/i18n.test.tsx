@@ -30,9 +30,9 @@ describe('the dictionaries', () => {
     const untranslated = (Object.keys(en) as Array<keyof typeof en>).filter(
       (key) => ar[key].trim() === '' || (ar[key] === en[key] && /[a-z]{4,}/i.test(en[key])),
     )
-    // Product names and file paths are the same in both languages and
-    // are allowed; everything else must differ.
-    expect(untranslated).toEqual(['brand.name'])
+    // Product names, file formats and file paths are the same in both
+    // languages and are allowed; everything else must differ.
+    expect(untranslated).toEqual(['brand.name', 'format.xlsx', 'format.json', 'format.jsonl'])
   })
 
   it('use the same placeholders in both languages', () => {

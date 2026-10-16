@@ -1,12 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useI18n } from '../../i18n'
-import { api, ApiError } from '../../shared/api'
+import { api, ApiError, MAX_UPLOAD_BYTES } from '../../shared/api'
 import { barGeometry } from '../../shared/charts'
 import { Icon } from '../../shared/components/Icon'
-import { questionLabel, stateLabel, typeLabel } from '../../shared/labels'
-import type { ChartSpec, Pipelines, RunDetail, RunSummary } from '../../shared/types'
+import { formatLabel, questionLabel, stateLabel, typeLabel } from '../../shared/labels'
+import type {
+  ChartSpec,
+  DatasetSummary,
+  Pipelines,
+  RunDetail,
+  RunSummary,
+  UploadResult,
+} from '../../shared/types'
 
 const ACTIVE_STATES = ['queued', 'running']
+
+const SOURCE_LABELS = {
+  sample: 'runs.sample',
+  stored: 'runs.stored',
+  upload: 'runs.upload',
+} as const
 
 function BarChart({ chart }: { chart: ChartSpec }) {
   const barWidth = 100 / chart.values.length
@@ -141,19 +154,25 @@ function stageTitles(pipelines: Pipelines, profile: string): string[] {
 }
 
 export function RunsView({ openRunId = null, openNonce = 0, preset = null }: RunsViewProps) {
-  const { t, tx, plural, isRtl, locale, formatNumber } = useI18n()
+  const { t, tx, plural, isRtl, locale, formatNumber, formatDate } = useI18n()
   const [runs, setRuns] = useState<RunSummary[]>([])
   const [run, setRun] = useState<RunDetail | null>(null)
-  // A stored dataset is analysed by reference: nothing is sent again.
-  const [stored, setStored] = useState(() =>
-    preset?.kind === 'stored' ? { id: preset.id, name: preset.name } : null,
+  // Where the data comes from (ADR 0024). A stored dataset and an
+  // uploaded file are both analysed by reference: the run sends an id.
+  const [source, setSource] = useState<'sample' | 'stored' | 'upload'>(() =>
+    preset?.kind === 'stored' ? 'stored' : preset?.kind === 'upload' ? 'upload' : 'sample',
   )
+  const [datasets, setDatasets] = useState<DatasetSummary[] | null>(null)
+  const [storedId, setStoredId] = useState(() => (preset?.kind === 'stored' ? preset.id : ''))
   const [goal, setGoal] = useState(() =>
     preset?.kind === 'stored' ? t('runs.goalStored', { name: preset.name }) : t('runs.goalDefault'),
   )
-  const [useUpload, setUseUpload] = useState(() => preset?.kind === 'upload')
+  // The goal the form last wrote itself. A goal the person typed is
+  // never replaced when they pick another dataset.
+  const autoGoal = useRef(goal)
+  const [uploaded, setUploaded] = useState<UploadResult | null>(null)
+  const [uploading, setUploading] = useState<string | null>(null)
   const [csvDraft, setCsvDraft] = useState('')
-  const [fileName, setFileName] = useState<string | null>(null)
   // Stepping stops for two different reasons: the user paused the run
   // (durable, server-side, also obeyed by a background worker) or a
   // request failed (local to this tab, cleared on the next action).
@@ -182,6 +201,53 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null }: Run
   useEffect(() => {
     void refreshList()
   }, [refreshList])
+
+  useEffect(() => {
+    let cancelled = false
+    api
+      .listDatasets()
+      .then((result) => !cancelled && setDatasets(result.datasets))
+      .catch(() => !cancelled && setDatasets([]))
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  function suggestGoal(name: string | null) {
+    if (goal !== autoGoal.current) return
+    const next = name ? t('runs.goalStored', { name }) : t('runs.goalDefault')
+    autoGoal.current = next
+    setGoal(next)
+  }
+
+  async function uploadFile(file: File) {
+    setErrorMessage(null)
+    setUploaded(null)
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setErrorMessage(
+        t('runs.tooBig', {
+          name: file.name,
+          size: formatNumber(file.size / 1_000_000, { maximumFractionDigits: 1 }),
+          limit: formatNumber(MAX_UPLOAD_BYTES / 1_000_000),
+        }),
+      )
+      return
+    }
+    setUploading(file.name)
+    try {
+      const result = await api.uploadDataset(file, locale)
+      setUploaded(result)
+      setCsvDraft('')
+      suggestGoal(result.dataset.name)
+      setDatasets((list) =>
+        list && !list.some((d) => d.id === result.dataset.id) ? [result.dataset, ...list] : list,
+      )
+    } catch (error) {
+      setErrorMessage(error instanceof ApiError ? error.message : t('runs.uploadFailed'))
+    } finally {
+      setUploading(null)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -255,16 +321,18 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null }: Run
     setBusy(true)
     setErrorMessage(null)
     try {
-      const pasted = !stored && useUpload && csvDraft.trim()
+      const datasetId =
+        source === 'stored' ? storedId || undefined : source === 'upload' ? uploaded?.dataset.id : undefined
+      const pasted = source === 'upload' && !uploaded && csvDraft.trim()
       const detail = await api.createRun(
         goal.trim(),
         pasted ? csvDraft : undefined,
-        pasted ? (fileName ?? t('runs.pastedName')) : undefined,
+        pasted ? t('runs.pastedName') : undefined,
         profile || undefined,
         // The report is written in the reader's language, and stays in it:
         // switching the interface later does not rewrite an approved artifact.
         locale,
-        stored?.id,
+        datasetId,
       )
       setRun(detail)
       setStoppedByError(false)
@@ -300,6 +368,23 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null }: Run
 
   const pendingApproval = run?.approvals.find((a) => a.state === 'pending')
 
+  /** One line per stored dataset: what it is called, how big, what it was. */
+  function datasetLine(d: DatasetSummary) {
+    const parts = [d.name]
+    if (d.row_count != null) parts.push(plural('runs.rows', d.row_count))
+    if (d.source_format) parts.push(formatLabel(t, d.source_format))
+    parts.push(formatDate(d.created_at))
+    return parts.join(' · ')
+  }
+
+  // Until the list arrives, a preset from the Datasets view is the one
+  // choice, so the picker never flashes empty.
+  const storedChoices = datasets
+    ? datasets.map((d) => ({ id: d.id, label: datasetLine(d) }))
+    : preset?.kind === 'stored'
+      ? [{ id: preset.id, label: preset.name }]
+      : []
+
   if (!run) {
     return (
       <section className="panel" aria-label={t('runs.aria')}>
@@ -331,49 +416,60 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null }: Run
                 <span className="field__label" id="dataset-label">
                   {t('runs.dataset')}
                 </span>
-                {stored ? (
-                  <div className="chosen" role="group" aria-labelledby="dataset-label">
-                    <Icon name="database" size={18} />
-                    <span className="chosen__body">
-                      <span className="chosen__name" dir="auto">
-                        {stored.name}
-                      </span>
-                      <span className="field__help">{t('runs.storedHelp')}</span>
-                    </span>
+                <div className="segmented" role="group" aria-labelledby="dataset-label">
+                  {(['sample', 'stored', 'upload'] as const).map((option) => (
                     <button
+                      key={option}
                       type="button"
-                      className="btn btn--subtle"
+                      className="segmented__option"
+                      aria-pressed={source === option}
                       onClick={() => {
-                        setStored(null)
-                        setGoal(t('runs.goalDefault'))
+                        setSource(option)
+                        if (option === 'sample') suggestGoal(null)
+                        if (option === 'stored') {
+                          const chosen = datasets?.find((d) => d.id === storedId)
+                          if (chosen) suggestGoal(chosen.name)
+                        }
                       }}
-                      disabled={busy}
                     >
-                      {t('runs.storedChange')}
+                      {t(SOURCE_LABELS[option])}
                     </button>
-                  </div>
-                ) : (
-                  <div className="segmented" role="group" aria-labelledby="dataset-label">
-                    <button
-                      type="button"
-                      className="segmented__option"
-                      aria-pressed={!useUpload}
-                      onClick={() => setUseUpload(false)}
-                    >
-                      {t('runs.sample')}
-                    </button>
-                    <button
-                      type="button"
-                      className="segmented__option"
-                      aria-pressed={useUpload}
-                      onClick={() => setUseUpload(true)}
-                    >
-                      {t('runs.upload')}
-                    </button>
-                  </div>
-                )}
+                  ))}
+                </div>
               </div>
-              {useUpload && !stored ? (
+              {source === 'stored' ? (
+                <div className="field">
+                  <label className="field__label" htmlFor="run-stored">
+                    {t('runs.storedLabel')}
+                  </label>
+                  {datasets && datasets.length === 0 && !storedId ? (
+                    <p className="field__help">{t('runs.storedNone')}</p>
+                  ) : (
+                    <>
+                      <select
+                        id="run-stored"
+                        className="field__select"
+                        value={storedId}
+                        disabled={busy}
+                        onChange={(event) => {
+                          setStoredId(event.target.value)
+                          const chosen = datasets?.find((d) => d.id === event.target.value)
+                          suggestGoal(chosen ? chosen.name : null)
+                        }}
+                      >
+                        {storedId ? null : <option value="">{t('runs.storedPick')}</option>}
+                        {storedChoices.map((choice) => (
+                          <option key={choice.id} value={choice.id}>
+                            {choice.label}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="field__help">{t('runs.storedHelp')}</span>
+                    </>
+                  )}
+                </div>
+              ) : null}
+              {source === 'upload' ? (
                 <>
                   <div className="field">
                     <label className="field__label" htmlFor="run-file">
@@ -384,37 +480,37 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null }: Run
                       id="run-file"
                       className="field__input"
                       type="file"
-                      accept=".csv,text/csv"
-                      disabled={busy}
+                      accept=".csv,.tsv,.txt,.xlsx,.json,.jsonl,.ndjson"
+                      disabled={busy || uploading !== null}
                       onChange={(event) => {
                         const file = event.target.files?.[0]
-                        if (!file) return
-                        if (file.size > 2_000_000) {
-                          setErrorMessage(
-                            t('runs.tooBig', {
-                              name: file.name,
-                              size: (file.size / 1_000_000).toFixed(1),
-                            }),
-                          )
-                          return
-                        }
-                        const reader = new FileReader()
-                        reader.onload = () => {
-                          setCsvDraft(String(reader.result ?? ''))
-                          setFileName(file.name)
-                          setErrorMessage(null)
-                        }
-                        reader.onerror = () =>
-                          setErrorMessage(t('runs.readFailed', { name: file.name }))
-                        reader.readAsText(file)
+                        if (file) void uploadFile(file)
                       }}
                     />
-                    {fileName ? (
-                      <p className="privacy-note">
-                        <Icon name="check" size={14} />
-                        <span dir="auto">{fileName}</span> ·{' '}
-                        {plural('runs.rows', csvDraft.split('\n').filter(Boolean).length - 1)}
-                      </p>
+                    <p className="privacy-note" role="status" aria-live="polite">
+                      {uploading ? (
+                        <>
+                          <span className="spinner" aria-hidden="true" />
+                          {t('runs.uploading', { name: uploading })}
+                        </>
+                      ) : uploaded ? (
+                        <>
+                          <Icon name="check" size={14} />
+                          <span dir="auto">{uploaded.dataset.name}</span> ·{' '}
+                          {plural('runs.rows', uploaded.dataset.row_count ?? uploaded.preview.length)} ·{' '}
+                          {formatLabel(t, uploaded.dataset.source_format)}
+                          {uploaded.created ? null : <> · {t('runs.alreadyStored')}</>}
+                        </>
+                      ) : null}
+                    </p>
+                    {uploaded && uploaded.warnings.length > 0 ? (
+                      <ul className="warnings">
+                        {uploaded.warnings.map((warning) => (
+                          <li key={warning} dir="auto">
+                            {warning}
+                          </li>
+                        ))}
+                      </ul>
                     ) : null}
                   </div>
                   <div className="field">
@@ -430,7 +526,8 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null }: Run
                       value={csvDraft}
                       onChange={(event) => {
                         setCsvDraft(event.target.value)
-                        setFileName(null)
+                        // Pasted text replaces a file chosen before it.
+                        setUploaded(null)
                       }}
                       placeholder={'team,quarter,sales\nA,Q1,100\nB,Q1,90'}
                       disabled={busy}

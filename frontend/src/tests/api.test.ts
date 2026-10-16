@@ -67,6 +67,20 @@ describe('api client', () => {
     })
   })
 
+  it('uploads a file as the request body, named and in the reader\'s language', async () => {
+    localStorage.setItem('aos-token', 'tok')
+    mockFetchOnce({ status: 201, json: () => Promise.resolve({ created: true }) })
+    const file = new File(['a,b\n1,2\n'], 'ventes été.csv', { type: 'text/csv' })
+    await api.uploadDataset(file, 'ar')
+    const [path, init] = vi.mocked(fetch).mock.calls[0]
+    expect(path).toBe('/api/datasets?name=ventes%20%C3%A9t%C3%A9.csv&language=ar')
+    expect(init?.method).toBe('POST')
+    expect(init?.body).toBe(file)
+    // The file's own type replaces JSON, and the token is still sent.
+    expect(init?.headers).toMatchObject({ 'Content-Type': 'text/csv', Authorization: 'Bearer tok' })
+    localStorage.removeItem('aos-token')
+  })
+
   it('lists the stored datasets', async () => {
     mockFetchOnce({ json: () => Promise.resolve({ datasets: [] }) })
     await expect(api.listDatasets()).resolves.toEqual({ datasets: [] })

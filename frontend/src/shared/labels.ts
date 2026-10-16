@@ -54,6 +54,15 @@ export function stateLabel(t: Translate, state: string): string {
   return STATES.has(state) ? t(`state.${state}` as MessageKey) : state.replace(/_/g, ' ')
 }
 
+const FORMATS = new Set(['csv', 'tsv', 'xlsx', 'json', 'jsonl', 'sample'])
+
+/** What a stored dataset was uploaded as (ADR 0024). Older datasets have
+ *  no recorded format, and say nothing rather than guess. */
+export function formatLabel(t: Translate, format: string | null | undefined): string {
+  if (!format) return ''
+  return FORMATS.has(format) ? t(`format.${format}` as MessageKey) : format.toUpperCase()
+}
+
 export function categoryLabel(t: Translate, category: string): string {
   if (CATEGORIES.has(category)) return t(`category.${category}` as MessageKey)
   return category.charAt(0).toUpperCase() + category.slice(1)

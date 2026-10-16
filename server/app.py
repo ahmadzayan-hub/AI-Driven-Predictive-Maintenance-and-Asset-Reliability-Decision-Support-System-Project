@@ -16,14 +16,16 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from starlette.concurrency import run_in_threadpool
 
 from agent import Agent, language_code
 from server.agent_runtime import build_runtime
+from server import datasets as dataset_reader
 from server.assistant import Assistant
 from server.model_gateway import ModelGateway
 from server.routing import RoutedGateway, build_router
@@ -173,7 +175,8 @@ class PreferenceIn(BaseModel):
 class RunIn(BaseModel):
     goal: str = Field(min_length=3, max_length=500)
     profile: str | None = Field(default=None, max_length=64)
-    dataset_text: str | None = Field(default=None, max_length=2_100_000)
+    # Pasted CSV. A file goes through POST /api/datasets (ADR 0024).
+    dataset_text: str | None = Field(default=None, max_length=dataset_reader.MAX_UPLOAD_BYTES)
     dataset_id: str | None = Field(default=None, max_length=32)
     dataset_name: str | None = Field(default=None, max_length=100)
     # The language the report is written in (ADR 0022). The interface
@@ -635,6 +638,51 @@ def create_app(config_path=None, env=None):
     def read_usage(principal=Depends(requires("read"))):
         with lock:
             return quota_usage(store, principal.subject, limits)
+
+    @app.post("/api/datasets", status_code=201)
+    async def upload_dataset(
+        request: Request,
+        name: str = Query(min_length=1, max_length=100),
+        format: str | None = Query(default=None, pattern="^(csv|tsv|xlsx|json|jsonl)$"),
+        sheet: str | None = Query(default=None, max_length=31),
+        language: str = Query(default="en", pattern="^(en|ar)$"),
+        principal=Depends(requires("write")),
+    ):
+        """One file as the request body, read into a canonical table and
+        stored content-addressed (ADR 0024). 201 when it is new; 200 when
+        the same data was already stored, which costs nothing."""
+        limit = dataset_reader.MAX_UPLOAD_BYTES
+        declared = request.headers.get("content-length", "")
+        if declared.isdigit() and int(declared) > limit:
+            raise HTTPException(413, detail=dataset_reader.too_large().message(language))
+        chunks, size = [], 0
+        async for chunk in request.stream():
+            size += len(chunk)
+            if size > limit:
+                raise HTTPException(413, detail=dataset_reader.too_large().message(language))
+            chunks.append(chunk)
+        # Only the file's own name: a browser sends no path, a script might.
+        filename = re.split(r"[\\/]", name)[-1].strip() or "dataset"
+        try:
+            parsed = await run_in_threadpool(
+                dataset_reader.read, b"".join(chunks), filename, format, sheet)
+        except dataset_reader.DatasetError as error:
+            raise HTTPException(error.status, detail=error.message(language))
+
+        def store_it():
+            with lock:
+                return engine.store_upload(parsed, filename, principal.subject)
+        try:
+            dataset, created = await run_in_threadpool(store_it)
+        except QuotaExceeded as error:
+            raise HTTPException(status_code=429, detail=error.message)
+        summary = {key: dataset.get(key) for key in (
+            "id", "sha256", "name", "byte_size", "created_at",
+            "source_format", "row_count", "column_count")}
+        return JSONResponse(status_code=201 if created else 200, content={
+            "dataset": summary, "created": created,
+            "columns": parsed.columns, "preview": parsed.preview(),
+            "warnings": parsed.warning_texts(language), "sheets": parsed.sheets})
 
     @app.get("/api/datasets")
     def list_datasets(principal=Depends(requires("read"))):

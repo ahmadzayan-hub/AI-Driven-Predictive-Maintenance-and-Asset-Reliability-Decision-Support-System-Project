@@ -137,10 +137,16 @@ switch.
 ### Analytics runs
 
 Open **Runs** to turn a goal into a governed analytics pipeline. Choose
-the bundled sample sales dataset, upload a CSV file, or paste one (header
-row first, up to 2 MB / 50,000 rows), then start the run. Uploading the
-same file twice stores it once, and a previous upload can be re-analysed
-without sending it again. Twenty-one specialist agents execute in order,
+the bundled sample sales dataset, a dataset you stored before, or a new
+file, then start the run. A file can be CSV or TSV, an Excel workbook
+(`.xlsx`), JSON or JSON Lines: up to 4 MB as uploaded, 50,000 rows, and
+10 MB once converted to CSV. The server reads it, says how many rows it
+found, and notes anything worth checking, such as error cells or which
+sheet of a workbook it read. CSV must be UTF-8; in Excel, save as "CSV
+UTF-8". You can still paste CSV text, header row first. The **Datasets**
+page adds files without starting a run. The same data is stored once,
+whatever format it came in, and a stored dataset is analysed again without
+being sent again. Twenty-one specialist agents execute in order,
 sequenced by **Hermes**, the orchestrator — planning, ingestion, data
 contract, profiling, quality scoring, privacy scanning, cleaning, metric
 governance, preparation, segment concentration, the four analytics

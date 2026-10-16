@@ -197,6 +197,22 @@ export interface DatasetSummary {
   name: string
   byte_size: number
   created_at: string
+  /** csv, tsv, xlsx, json, jsonl or sample (ADR 0024); null for a
+   *  dataset stored before formats were recorded. */
+  source_format?: string | null
+  row_count?: number | null
+  column_count?: number | null
+}
+
+/** What POST /api/datasets read from a file. `created` is false when the
+ *  same data was already stored, which costs nothing. */
+export interface UploadResult {
+  dataset: DatasetSummary
+  created: boolean
+  columns: string[]
+  preview: string[][]
+  warnings: string[]
+  sheets: string[]
 }
 
 /** Registered custom stages and the profiles that choose among them,

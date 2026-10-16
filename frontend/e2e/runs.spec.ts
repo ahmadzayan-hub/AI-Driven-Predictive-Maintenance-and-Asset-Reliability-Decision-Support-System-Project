@@ -56,14 +56,15 @@ test('a CSV file can be uploaded and is analyzed', async ({ page }) => {
   await page.goto('/')
   await openTab(page, /^Runs/)
 
-  await page.getByRole('button', { name: 'Upload or paste CSV' }).click()
-  await page.getByLabel('Choose a CSV file').setInputFiles({
+  await page.getByRole('button', { name: 'Upload a file or paste CSV', exact: true }).click()
+  await page.getByLabel('Choose a file').setInputFiles({
     name: 'quarterly-sales.csv',
     mimeType: 'text/csv',
     buffer: Buffer.from('team,quarter,sales\nA,Q1,120\nA,Q2,180\nB,Q1,60\nB,Q2,40\n'),
   })
-  // The file is read in the browser and its shape confirmed before sending.
-  await expect(page.getByText('quarterly-sales.csv · 4 data rows')).toBeVisible()
+  // The server reads the file and says what it found before any run
+  // starts (ADR 0024).
+  await expect(page.getByText('quarterly-sales.csv · 4 data rows · CSV')).toBeVisible()
 
   await page.getByLabel('Goal').fill('Analyze the uploaded quarterly sales')
   await page.getByRole('button', { name: 'Start run' }).click()

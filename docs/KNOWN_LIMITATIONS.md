@@ -196,7 +196,7 @@ required local files. Both behaviors are covered by tests
     (ADR 0005). Supabase's automated daily backups cover Pro plans and
     above, not the free plan this project uses. Backup files are
     unencrypted JSON, the whole database is held in memory while one is
-    written (fine at the 2 MB dataset limit, not at hundreds of
+    written (fine at the 10 MB dataset limit, not at hundreds of
     megabytes), and in local mode `data/memory.json` lives outside the
     database and must be backed up separately.
 16. Usage is bounded per owner (runs/day, dataset count, dataset bytes)
@@ -205,11 +205,17 @@ required local files. Both behaviors are covered by tests
     time is not measured. `/api/usage` names those gaps rather than
     hiding them. The daily window is calendar-based (midnight UTC), so a
     burst either side of midnight can exceed the intended daily rate.
-17. Dataset ingestion is CSV only — uploaded as a file or pasted, up to
-    2 MB and 50,000 rows, held in the database rather than object
-    storage. XLSX, JSON, Parquet, and database connectors are not
-    implemented, and analysis is in-memory (no DuckDB/Polars), so
-    larger-than-memory datasets are out of scope.
+17. Datasets come from a file (CSV, TSV, Excel `.xlsx`, JSON or JSON
+    Lines) or pasted CSV (ADR 0024): up to 4 MB as uploaded, the limit
+    of the platform the app is deployed to, 50,000 rows, and 10 MB once
+    converted to CSV. They are held in the database rather than object
+    storage. Not read: old `.xls` workbooks, OpenDocument, Parquet, CSV
+    in any encoding but UTF-8 or UTF-16, and database connectors. A
+    workbook gives one sheet per upload; the API can name another
+    sheet, but the interface cannot yet. A formula with no saved result
+    arrives empty, with a warning. Analysis is in-memory (no
+    DuckDB/Polars), so larger-than-memory datasets are out of scope, and
+    a dataset cannot yet be deleted from the interface.
 18. Custom stages (ADR 0020) are **trusted Python in this process**, not
     a sandbox: the contract catches a malformed result, a mis-cited
     claim or a mutated context, and a plugin that wants to misbehave

@@ -26,7 +26,10 @@ from server import metrics as glossary
 from server import sequential
 
 MAX_ROWS = 50_000
-MAX_DATASET_BYTES = 2_000_000
+# The most CSV an analysis reads (ADR 0024). Measured: at 50,000 rows
+# and 20 columns (5.3 MB) the slowest stage took 2.9 s. An upload is
+# smaller still (server/datasets.py), but a workbook can expand.
+MAX_DATASET_BYTES = 10_000_000
 
 
 def sample_dataset():

@@ -9,11 +9,18 @@ import type {
   RunSummary,
   SessionState,
   TranscriptEntry,
+  UploadResult,
   Usage,
 } from './types'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? ''
 const REQUEST_TIMEOUT_MS = 10_000
+// A 4 MB file on a slow connection, then read on the server.
+const UPLOAD_TIMEOUT_MS = 60_000
+
+/** The most one upload can be (server/datasets.py, ADR 0024). Checked
+ *  here only to save a wasted transfer; the server decides. */
+export const MAX_UPLOAD_BYTES = 4_000_000
 
 export class ApiError extends Error {
   status: number
@@ -65,10 +72,16 @@ async function request<T>(
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   let response: Response
+  const { headers, ...rest } = init
   try {
     response = await fetch(`${API_BASE}${path}`, {
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      ...init,
+      ...rest,
+      // A caller's headers add to these; the token is never dropped.
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(),
+        ...(headers as Record<string, string> | undefined),
+      },
       signal: controller.signal,
     })
   } catch (error) {
@@ -176,6 +189,18 @@ export const api = {
       }),
     }),
   listDatasets: () => request<{ datasets: DatasetSummary[] }>('/api/datasets'),
+  /** The file itself is the request body: CSV, TSV, Excel, JSON or JSON
+   *  Lines. The server reads it, stores it once and answers in `language`. */
+  uploadDataset: (file: File, language: 'en' | 'ar' = 'en') =>
+    request<UploadResult>(
+      `/api/datasets?name=${encodeURIComponent(file.name)}&language=${language}`,
+      {
+        method: 'POST',
+        body: file,
+        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+      },
+      UPLOAD_TIMEOUT_MS,
+    ),
   pipelines: () => request<Pipelines>('/api/pipelines'),
   listRuns: () => request<{ runs: RunSummary[] }>('/api/runs'),
   usage: () => request<Usage>('/api/usage'),

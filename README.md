@@ -26,6 +26,13 @@ environment — not a replacement for Windows, macOS, or Linux.
   analyses one again by reference, without uploading it twice. The
   interface is planned in `docs/UI_PLAN.md` and its design system is
   generated with the vendored `ui-ux-pro-max` skill (ADR 0023)
+- **Datasets in the formats business data comes in** — CSV and TSV, Excel
+  workbooks, JSON and JSON Lines, up to 4 megabytes, read with the
+  standard library into one canonical table (`POST /api/datasets`,
+  ADR 0024). Excel dates, error cells and formulas are handled and
+  reported; hostile workbooks (entity and decompression bombs, paths
+  outside the archive) are refused; the same data in any format is stored
+  once
 - **Command-line interface** — the original `python main.py` experience,
   fully preserved and dependency-free
 - **One brain, two faces** — both interfaces drive the same tested Python
@@ -279,14 +286,14 @@ python main.py
 # Python: agent, utils, API, runs, analytics, sequential ranges,
 # metrics, auth, tenancy, erasure, quotas, backups, worker, recovery,
 # supply chain, launcher, routing, language, assistant, custom stages,
-# agent runtimes, MCP, frameworks, report language, docs, and the
-# repository's operating system: brain checker and session hooks (646 tests)
+# agent runtimes, MCP, frameworks, report language, datasets, docs, and
+# the repository's operating system: brain checker and session hooks (699 tests)
 python -m unittest discover tests
 
-# Frontend unit tests (52 tests)
+# Frontend unit tests (54 tests)
 cd frontend && npm test
 
-# End-to-end + accessibility (60 checks across desktop and mobile,
+# End-to-end + accessibility (66 checks across desktop and mobile,
 # in English and Arabic;
 # requires the production build: npm run build)
 cd frontend && npx playwright test
@@ -297,21 +304,24 @@ cd frontend && npm run typecheck
 
 The same suite runs automatically in CI (`.github/workflows/ci.yml`) on
 every push, including the run-engine and backup suites against a real
-PostgreSQL 16 service. Last verified: 646 Python tests (630 run in CI;
-the 11 that need an optional agent framework or the MCP SDK, and the 5
-that need LLMRouter, skip there),
-52 frontend unit tests, and 60 end-to-end checks (57 executed; 3
+PostgreSQL 16 service. Last verified: 699 Python tests (682 run in CI;
+the 11 that need an optional agent framework or the MCP SDK, the 5 that
+need LLMRouter, and the 1 that cross-checks workbooks with openpyxl skip
+there),
+54 frontend unit tests, and 66 end-to-end checks (63 executed; 3
 skipped by design, because each covers one viewport only). In environments with a pre-installed
 browser, point Playwright at it:
 `PLAYWRIGHT_EXECUTABLE_PATH=/path/to/chromium npx playwright test`.
 
-Five of the 646 load real LLMRouter routers and **skip unless LLMRouter
-is installed**, which in CI it is not — so CI reports `OK (skipped=5)`
-and that is the expected result, not a gap. The other 22 routing tests
+Five of the 699 load real LLMRouter routers and **skip unless LLMRouter
+is installed**, which in CI it is not. With the eleven framework tests
+and the openpyxl cross-check, CI reports `OK (skipped=17)`, and that is
+the expected result, not a gap. The other 22 routing tests
 never import it and always run. Both readings were verified: with the
 library and the optional frameworks (ADR 0021) installed, nothing
 skipped (checked at 584 tests; the 32 that ADR 0022 added and the 30
-operating-system tests need neither and run everywhere).
+operating-system tests need neither and run everywhere). Of the 53
+dataset tests (ADR 0024), one needs openpyxl, which is not a dependency.
 
 ## Background worker (optional)
 

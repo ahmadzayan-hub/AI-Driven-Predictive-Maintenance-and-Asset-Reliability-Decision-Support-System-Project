@@ -143,6 +143,14 @@ class SqlStore:
             self._exec("ALTER TABLE runs ADD COLUMN paused INTEGER")
         except Exception:
             self._rollback()
+        # What a dataset is (ADR 0024). NULL for rows stored before the
+        # dataset API, until the same data is stored again.
+        for column, kind in (("source_format", "TEXT"), ("row_count", "INTEGER"),
+                             ("column_count", "INTEGER")):
+            try:
+                self._exec(f"ALTER TABLE datasets ADD COLUMN {column} {kind}")
+            except Exception:
+                self._rollback()
         self._migrate_memory_owner()
 
     def _migrate_memory_owner(self):
@@ -383,7 +391,8 @@ class SqlStore:
 
     def list_datasets(self, owner):
         return self._exec(
-            "SELECT id, sha256, name, byte_size, created_at FROM datasets "
+            "SELECT id, sha256, name, byte_size, created_at, source_format, "
+            "row_count, column_count FROM datasets "
             "WHERE owner = ? ORDER BY created_at DESC LIMIT 50", (owner,))
 
     # -- backup and restore ----------------------------------------------

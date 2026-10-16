@@ -1,27 +1,64 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../../i18n'
-import { api, ApiError } from '../../shared/api'
+import { api, ApiError, MAX_UPLOAD_BYTES } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
 import { formatBytes } from '../../shared/format'
-import type { DatasetSummary, Usage } from '../../shared/types'
+import { formatLabel } from '../../shared/labels'
+import type { DatasetSummary, UploadResult, Usage } from '../../shared/types'
 
 /** The most datasets GET /api/datasets returns. */
 const DATASET_PAGE = 50
 
+const ACCEPT = '.csv,.tsv,.txt,.xlsx,.json,.jsonl,.ndjson'
+
 interface DatasetsViewProps {
   onAnalyse: (dataset: DatasetSummary) => void
-  onAdd: () => void
 }
 
 /** The datasets stored for this owner. Datasets are content-addressed on
  *  the server, so analysing one again sends nothing: the run refers to
  *  the stored copy by its id. */
-export function DatasetsView({ onAnalyse, onAdd }: DatasetsViewProps) {
-  const { t, formatNumber, formatDate } = useI18n()
+export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
+  const { t, plural, locale, formatNumber, formatDate } = useI18n()
   const [datasets, setDatasets] = useState<DatasetSummary[] | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
   const [usage, setUsage] = useState<Usage | null>(null)
   const [attempt, setAttempt] = useState(0)
+  // Adding a dataset (ADR 0024): one file at a time, read and stored by
+  // the server, which answers in the reader's language.
+  const fileInput = useRef<HTMLInputElement | null>(null)
+  const [uploading, setUploading] = useState<string | null>(null)
+  const [outcome, setOutcome] = useState<UploadResult | null>(null)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+
+  async function addFile(file: File) {
+    setOutcome(null)
+    setUploadError(null)
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setUploadError(
+        t('runs.tooBig', {
+          name: file.name,
+          size: formatNumber(file.size / 1_000_000, { maximumFractionDigits: 1 }),
+          limit: formatNumber(MAX_UPLOAD_BYTES / 1_000_000),
+        }),
+      )
+      return
+    }
+    setUploading(file.name)
+    try {
+      const result = await api.uploadDataset(file, locale)
+      setOutcome(result)
+      // Refreshed in place: the list stays on screen while it updates.
+      const [list, latest] = await Promise.allSettled([api.listDatasets(), api.usage()])
+      if (list.status === 'fulfilled') setDatasets(list.value.datasets)
+      if (latest.status === 'fulfilled') setUsage(latest.value)
+    } catch (error) {
+      setUploadError(error instanceof ApiError ? error.message : t('datasets.uploadFailed'))
+    } finally {
+      setUploading(null)
+      if (fileInput.current) fileInput.current.value = ''
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -56,11 +93,61 @@ export function DatasetsView({ onAnalyse, onAdd }: DatasetsViewProps) {
             <h2 className="panel__title">{t('datasets.title')}</h2>
             <p className="panel__desc">{t('datasets.desc')}</p>
           </div>
-          <button type="button" className="btn btn--ghost" onClick={onAdd}>
-            <Icon name="plus" size={16} />
+          <button
+            type="button"
+            className="btn btn--primary"
+            disabled={uploading !== null}
+            onClick={() => fileInput.current?.click()}
+          >
+            {uploading ? <span className="spinner" aria-hidden="true" /> : <Icon name="plus" size={16} />}
             {t('datasets.add')}
           </button>
+          {/* Opened by the button above, which is what keyboard and
+              screen-reader users reach; the input itself stays out of
+              the tab order. */}
+          <input
+            ref={fileInput}
+            type="file"
+            accept={ACCEPT}
+            hidden
+            tabIndex={-1}
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              if (file) void addFile(file)
+            }}
+          />
         </div>
+        <p className="panel__note">{t('runs.fileHelp')}</p>
+        <div role="status" aria-live="polite">
+          {uploading ? (
+            <p className="statusline">{t('datasets.uploading', { name: uploading })}</p>
+          ) : outcome ? (
+            <>
+              <p className="statusline statusline--success" dir="auto">
+                {outcome.created
+                  ? t('datasets.addedOne', {
+                      name: outcome.dataset.name,
+                      rows: plural('runs.rows', outcome.dataset.row_count ?? 0),
+                    })
+                  : t('datasets.duplicate', { name: outcome.dataset.name })}
+              </p>
+              {outcome.warnings.length > 0 ? (
+                <ul className="warnings">
+                  {outcome.warnings.map((warning) => (
+                    <li key={warning} dir="auto">
+                      {warning}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </>
+          ) : null}
+        </div>
+        {uploadError ? (
+          <p className="statusline statusline--error" role="alert" dir="auto">
+            {uploadError}
+          </p>
+        ) : null}
 
         {usage ? (
           <p className="panel__note">
@@ -97,7 +184,12 @@ export function DatasetsView({ onAnalyse, onAdd }: DatasetsViewProps) {
             <h3 className="empty__title">{t('datasets.emptyTitle')}</h3>
             <p className="empty__text">{t('datasets.emptyText')}</p>
             <div className="empty__actions">
-              <button type="button" className="btn btn--primary" onClick={onAdd}>
+              <button
+                type="button"
+                className="btn btn--primary"
+                disabled={uploading !== null}
+                onClick={() => fileInput.current?.click()}
+              >
                 {t('datasets.add')}
               </button>
             </div>
@@ -116,6 +208,17 @@ export function DatasetsView({ onAnalyse, onAdd }: DatasetsViewProps) {
                       {dataset.name}
                     </span>
                     <span className="dataset__meta">
+                      {dataset.source_format ? (
+                        <>{formatLabel(t, dataset.source_format)} · </>
+                      ) : null}
+                      {dataset.row_count != null ? (
+                        <>
+                          <span className="dataset__figure">
+                            {plural('runs.rows', dataset.row_count)}
+                          </span>
+                          {' · '}
+                        </>
+                      ) : null}
                       <span className="dataset__figure">
                         {formatBytes(dataset.byte_size, formatNumber)}
                       </span>

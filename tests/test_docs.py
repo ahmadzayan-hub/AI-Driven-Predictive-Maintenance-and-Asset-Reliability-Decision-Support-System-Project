@@ -96,12 +96,17 @@ class PipelineCountsTestCase(unittest.TestCase):
                           f"{path.name} does not name the orchestrator")
 
     def test_the_dataset_limits_quoted_in_docs_are_the_real_ones(self):
+        from server import datasets
+
         megabytes = analytics.MAX_DATASET_BYTES // 1_000_000
+        upload = datasets.MAX_UPLOAD_BYTES // 1_000_000
         rows = f"{analytics.MAX_ROWS:,}"
-        for path in (DOCS / "README.md", DOCS / "user_guide.md"):
+        for path in (DOCS / "README.md", DOCS / "user_guide.md",
+                     DOCS / "docs" / "KNOWN_LIMITATIONS.md"):
             text = path.read_text(encoding="utf-8")
             if "MB" in text and "rows" in text:
                 self.assertIn(f"{megabytes} MB", text, path.name)
+                self.assertIn(f"{upload} MB", text, path.name)
                 self.assertIn(rows, text, path.name)
 
 
