@@ -87,11 +87,11 @@ The hook knows it is due because that log has no section dated today.
 ### Analyse a dataset (today)
 
 1. `python scripts/serve.py`, then open `http://localhost:8000`, or use the deployment.
-2. In **Runs**, give a goal ("Why did revenue fall in Q4?") and a dataset: the bundled sample, one stored in **Datasets**, or a CSV, Excel, JSON or JSON Lines file of up to 4 MB (ADR 0024).
+2. In **Datasets**, add a file (CSV, Excel, JSON or JSON Lines, up to 4 MB, ADR 0024) and say what each column is under **Columns** (ADR 0025). Then, in **Runs**, give a goal ("Why did revenue fall in Q4?") and choose that dataset, or use the bundled sample.
 3. The pipeline profiles, cleans, governs the measure, runs the four analytics types, validates and reports. Read the headline of each report tab, then the evidence behind each claim.
 4. Approve the publish step only after reading. The report and its run log go to `vault/`.
 
-Column mapping, several datasets in one run, a dashboard and live data are milestones A2 to A7 on the board, not features yet.
+Several datasets in one run, a dashboard and live data are milestones A3 to A7 on the board, not features yet.
 
 ### Build a roadmap milestone
 

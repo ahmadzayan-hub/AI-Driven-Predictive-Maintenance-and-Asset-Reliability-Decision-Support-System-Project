@@ -23,6 +23,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from server import analytics, datasets, metrics, quota
+from server import mapping as colmap
 from server import stages as stage_registry
 
 RUN_STATES = {"queued", "running", "awaiting_approval", "verifying",
@@ -39,6 +40,17 @@ RUN_TRANSITIONS = {
     "completed": set(), "partially_completed": set(), "failed": set(),
     "cancelled": set(),
 }
+
+
+DATASET_FIELDS = ("id", "sha256", "name", "byte_size", "created_at", "source_format",
+                  "row_count", "column_count", "mapping_updated_at")
+
+
+def dataset_summary(dataset):
+    """A dataset without its content, and whether it has a saved mapping."""
+    summary = {key: dataset.get(key) for key in DATASET_FIELDS}
+    summary["mapped"] = dataset.get("mapping_updated_at") is not None
+    return summary
 
 
 def _now():
@@ -133,6 +145,58 @@ class RunEngine:
             "column_count": columns})
         return self.store.get_dataset(dataset_id), True
 
+    # -- column mapping (ADR 0025) -----------------------------------------
+    def _owned_dataset(self, dataset_id, owner):
+        dataset = self.store.get_dataset(dataset_id)
+        if dataset is None or dataset["owner"] != owner:
+            raise KeyError(dataset_id)
+        return dataset
+
+    def _metrics(self):
+        return (self.glossary or {}).get("metrics", [])
+
+    def dataset_detail(self, dataset_id, owner, language="en"):
+        """A dataset as the mapping step needs it: the first rows, a
+        profile of each column, the saved mapping and a suggested one."""
+        dataset = self._owned_dataset(dataset_id, owner)
+        columns, rows = colmap.table(dataset["content"])
+        sampled = colmap.sample(rows)
+        profiles = colmap.profile(columns, sampled)
+        suggestion = colmap.suggest(columns, sampled, self._metrics(), profiles)
+        reasons = suggestion.pop("reasons")
+        for item in profiles:
+            reason = reasons[item["name"]]
+            item["suggested_role"] = suggestion["roles"][item["name"]]
+            item["reason"] = reason["ar"] if language == "ar" else reason["en"]
+        return {
+            "dataset": dataset_summary(dataset),
+            "columns": profiles,
+            "preview": [[row.get(c) or "" for c in columns]
+                        for row in rows[:colmap.PREVIEW_ROWS]],
+            "row_count": len(rows), "profiled_rows": len(sampled),
+            "mapping": (json.loads(dataset["mapping_json"])
+                        if dataset.get("mapping_json") else None),
+            "suggestion": suggestion,
+        }
+
+    def save_mapping(self, dataset_id, owner, mapping, language="en"):
+        """Validate a mapping against every row and keep it with the
+        dataset. Raises mapping.MappingError with every problem."""
+        dataset = self._owned_dataset(dataset_id, owner)
+        columns, rows = colmap.table(dataset["content"])
+        clean = colmap.validate(mapping, columns, rows)
+        self.store.update("datasets", dataset_id, {
+            "mapping_json": json.dumps(clean, ensure_ascii=False),
+            "mapping_updated_at": _now()})
+        return self.dataset_detail(dataset_id, owner, language)
+
+    def clear_mapping(self, dataset_id, owner, language="en"):
+        """Back to automatic detection for runs made from now on."""
+        self._owned_dataset(dataset_id, owner)
+        self.store.update("datasets", dataset_id, {
+            "mapping_json": None, "mapping_updated_at": None})
+        return self.dataset_detail(dataset_id, owner, language)
+
     def custom_roles_for(self, profile=None):
         """Which registered stages a run includes. A profile names a
         subset; no profile means the "default" profile when one is
@@ -180,10 +244,12 @@ class RunEngine:
         if self.limits:
             quota.check_run(self.store, owner, self.limits)
         run_id = uuid.uuid4().hex[:12]
+        mapping_json = None
         if dataset_id:
-            dataset = self.store.get_dataset(dataset_id)
-            if dataset is None or dataset["owner"] != owner:
-                raise KeyError(dataset_id)
+            dataset = self._owned_dataset(dataset_id, owner)
+            # The run keeps its own copy of the mapping, so changing the
+            # mapping later never changes a run already made (ADR 0025).
+            mapping_json = dataset.get("mapping_json")
         else:
             text = dataset_text or analytics.sample_dataset()
             name = dataset_name or (
@@ -201,7 +267,8 @@ class RunEngine:
             "owner": owner, "dataset_id": dataset["id"],
             # Fixed for the run's life: the approval gate binds to the hash
             # of one artifact, written in one language (ADR 0022).
-            "report_language": language})
+            "report_language": language,
+            "mapping_json": mapping_json})
         titles = analytics.ROLE_TITLES_AR if language == "ar" else analytics.ROLE_TITLES
         for idx, role in enumerate(roles):
             title = titles.get(role) or self.stages[role].title
@@ -224,7 +291,9 @@ class RunEngine:
         ctx = {"goal": run["goal"], "dataset_text": self._dataset_text(run),
                "dataset_name": run["dataset_name"], "run_id": run["id"],
                "glossary": self.glossary,
-               "report_language": run.get("report_language") or "en"}
+               "report_language": run.get("report_language") or "en",
+               "mapping": (json.loads(run["mapping_json"])
+                           if run.get("mapping_json") else None)}
         for task in tasks:
             if task["state"] == "succeeded" and task["result_json"]:
                 result = json.loads(task["result_json"])

@@ -5,6 +5,7 @@ import { Icon } from '../../shared/components/Icon'
 import { formatBytes } from '../../shared/format'
 import { formatLabel } from '../../shared/labels'
 import type { DatasetSummary, UploadResult, Usage } from '../../shared/types'
+import { MappingPanel } from './MappingPanel'
 
 /** The most datasets GET /api/datasets returns. */
 const DATASET_PAGE = 50
@@ -30,6 +31,24 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
   const [uploading, setUploading] = useState<string | null>(null)
   const [outcome, setOutcome] = useState<UploadResult | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  // Column mapping (ADR 0025): one dataset's columns at a time. A new
+  // upload opens it straight away, without taking focus from the status.
+  const [mapping, setMapping] = useState<{ id: string; focus: boolean } | null>(null)
+
+  function closeMapping() {
+    const id = mapping?.id
+    setMapping(null)
+    if (id) {
+      // Back to the button that opened it, or the list if it came from an upload.
+      requestAnimationFrame(() => document.getElementById(`dataset-columns-${id}`)?.focus())
+    }
+  }
+
+  function updateDataset(changed: DatasetSummary) {
+    setDatasets((list) =>
+      list ? list.map((dataset) => (dataset.id === changed.id ? { ...dataset, ...changed } : dataset)) : list,
+    )
+  }
 
   async function addFile(file: File) {
     setOutcome(null)
@@ -48,6 +67,7 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
     try {
       const result = await api.uploadDataset(file, locale)
       setOutcome(result)
+      setMapping({ id: result.dataset.id, focus: false })
       // Refreshed in place: the list stays on screen while it updates.
       const [list, latest] = await Promise.allSettled([api.listDatasets(), api.usage()])
       if (list.status === 'fulfilled') setDatasets(list.value.datasets)
@@ -160,6 +180,17 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
           </p>
         ) : null}
 
+        {mapping ? (
+          <MappingPanel
+            key={mapping.id}
+            datasetId={mapping.id}
+            focusOnOpen={mapping.focus}
+            onClose={closeMapping}
+            onChanged={updateDataset}
+            onAnalyse={onAnalyse}
+          />
+        ) : null}
+
         {failed ? (
           <div className="card">
             <p className="statusline statusline--error" role="alert" dir="auto">
@@ -206,6 +237,9 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
                   <span className="dataset__body">
                     <span className="dataset__name" dir="auto">
                       {dataset.name}
+                      {dataset.mapped ? (
+                        <span className="dataset__tag">{t('mapping.mapped')}</span>
+                      ) : null}
                     </span>
                     <span className="dataset__meta">
                       {dataset.source_format ? (
@@ -230,14 +264,26 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
                       </span>
                     </span>
                   </span>
-                  <button
-                    type="button"
-                    className="btn btn--ghost dataset__action"
-                    aria-label={t('datasets.analyseAria', { name: dataset.name })}
-                    onClick={() => onAnalyse(dataset)}
-                  >
-                    {t('datasets.analyse')}
-                  </button>
+                  <span className="dataset__actions">
+                    <button
+                      type="button"
+                      id={`dataset-columns-${dataset.id}`}
+                      className="btn btn--ghost dataset__action"
+                      aria-label={t('mapping.openAria', { name: dataset.name })}
+                      aria-expanded={mapping?.id === dataset.id}
+                      onClick={() => setMapping({ id: dataset.id, focus: true })}
+                    >
+                      {t('mapping.open')}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--ghost dataset__action"
+                      aria-label={t('datasets.analyseAria', { name: dataset.name })}
+                      onClick={() => onAnalyse(dataset)}
+                    >
+                      {t('datasets.analyse')}
+                    </button>
+                  </span>
                 </li>
               ))}
             </ul>

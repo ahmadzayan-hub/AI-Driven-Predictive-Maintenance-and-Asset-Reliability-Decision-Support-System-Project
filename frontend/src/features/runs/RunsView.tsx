@@ -373,6 +373,8 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null }: Run
     const parts = [d.name]
     if (d.row_count != null) parts.push(plural('runs.rows', d.row_count))
     if (d.source_format) parts.push(formatLabel(t, d.source_format))
+    // A mapped dataset runs by its saved mapping (ADR 0025), so say so.
+    if (d.mapped) parts.push(t('mapping.mapped'))
     parts.push(formatDate(d.created_at))
     return parts.join(' · ')
   }

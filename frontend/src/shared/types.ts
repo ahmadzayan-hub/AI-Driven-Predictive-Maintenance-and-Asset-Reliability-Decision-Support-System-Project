@@ -202,6 +202,60 @@ export interface DatasetSummary {
   source_format?: string | null
   row_count?: number | null
   column_count?: number | null
+  /** True once the owner has saved a column mapping (ADR 0025). */
+  mapped?: boolean
+  mapping_updated_at?: string | null
+}
+
+/** What a column is, in a mapping (ADR 0025). */
+export type ColumnRole = 'measure' | 'dimension' | 'date' | 'ignore'
+export type DateOrder = 'auto' | 'day-first' | 'month-first'
+export type Grain = 'auto' | 'day' | 'month' | 'quarter' | 'year'
+
+/** A column mapping: one role per column, the measure analysed, the
+ *  breakdown, and how dates are read and summed. */
+export interface ColumnMapping {
+  roles: Record<string, ColumnRole>
+  measure: string | null
+  dimension: string | null
+  date_order: DateOrder
+  grain: Grain
+  version?: number
+}
+
+/** What the server read in one column, and the role it suggests. */
+export interface ColumnProfile {
+  name: string
+  type: 'number' | 'date' | 'text' | 'empty'
+  filled: number
+  cells: number
+  numeric_share: number
+  date_share: number
+  distinct: number
+  examples: string[]
+  ambiguous_order: boolean
+  suggested_role: ColumnRole
+  /** Why the role is suggested, in the reader's language. */
+  reason: string
+}
+
+/** GET /api/datasets/{id}: everything the mapping step shows. */
+export interface DatasetDetail {
+  dataset: DatasetSummary
+  columns: ColumnProfile[]
+  preview: string[][]
+  row_count: number
+  /** The suggestion reads an even sample of a large table. */
+  profiled_rows: number
+  mapping: ColumnMapping | null
+  suggestion: ColumnMapping
+}
+
+/** One reason a mapping was refused, named by its field and column. */
+export interface MappingProblem {
+  field: 'roles' | 'measure' | 'dimension' | 'date_order' | 'grain'
+  column: string | null
+  message: string
 }
 
 /** What POST /api/datasets read from a file. `created` is false when the

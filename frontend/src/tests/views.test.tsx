@@ -165,7 +165,20 @@ describe('DatasetsView', () => {
             }),
         } as Response)
       }
-      const body = path === '/api/datasets' ? { datasets: listed } : USAGE
+      const body =
+        path === '/api/datasets'
+          ? { datasets: listed }
+          : path.startsWith('/api/datasets/ds2')
+            ? {
+                dataset: stored,
+                columns: [],
+                preview: [],
+                row_count: 4,
+                profiled_rows: 4,
+                mapping: null,
+                suggestion: { roles: {}, measure: null, dimension: null, date_order: 'auto', grain: 'auto' },
+              }
+            : USAGE
       return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) } as Response)
     })
     vi.stubGlobal('fetch', fetchMock)
@@ -179,5 +192,8 @@ describe('DatasetsView', () => {
     expect(screen.getByText('Read the sheet “Sales”, the first of 2.')).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: 'Analyse book.xlsx' })).toBeInTheDocument()
     expect(screen.getByText(/^Excel ·/)).toBeInTheDocument()
+    // A new upload opens its columns, without taking focus from the status.
+    const heading = await screen.findByRole('heading', { name: 'Columns of book.xlsx' })
+    expect(heading).not.toHaveFocus()
   })
 })

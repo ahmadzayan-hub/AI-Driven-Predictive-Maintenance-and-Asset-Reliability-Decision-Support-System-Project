@@ -22,6 +22,7 @@ import math
 import re
 import statistics
 
+from server import mapping as colmap
 from server import metrics as glossary
 from server import sequential
 
@@ -205,7 +206,9 @@ def _next_labels(labels, count):
                 month, year = 1, year + 1
             out.append(f"{year:04d}-{month:02d}")
         return out
-    return [f"next period +{i + 1}" for i in range(count)]
+    # Days, quarters and years continue their calendars too (ADR 0025).
+    return (colmap.next_period_labels(last, count)
+            or [f"next period +{i + 1}" for i in range(count)])
 
 
 def _period_label(ctx, label):
@@ -343,6 +346,24 @@ def collector(ctx):
                           f"تتجاوز البيانات الحد المسموح به وهو {MAX_ROWS} صف."))
     columns = [c for c in reader.fieldnames if c]
     digest = hashlib.sha256(text.encode()).hexdigest()[:16]
+    calculations = [{"id": "c_rows", "name": "row_count", "value": len(rows),
+                     "method": "len(csv rows)"}]
+    claims = [_claim(ctx, "cl_ingest", "fact",
+                     f"The dataset contains {len(rows)} rows and {len(columns)} columns.",
+                     f"تحتوي البيانات على {_ar_n(len(rows), 'row')} "
+                     f"و{_ar_n(len(columns), 'column')}.",
+                     ["c_rows"])]
+    mapping = ctx.get("mapping")
+    if mapping:
+        # The owner said what each column is (ADR 0025). The report says
+        # so, because every later choice follows from it.
+        calculations.append({"id": "c_mapped_columns", "name": "mapped_columns",
+                             "value": len(mapping["roles"]),
+                             "method": "columns given a role in the dataset's saved mapping"})
+        claims.append(_claim(ctx, "cl_mapping", "fact",
+                             colmap.describe(mapping, columns, "en"),
+                             colmap.describe(mapping, columns, "ar"),
+                             ["c_mapped_columns"]))
     return _result(
         "succeeded",
         _say(ctx,
@@ -351,24 +372,30 @@ def collector(ctx):
              f"استُلمت البيانات: {_ar_n(len(rows), 'row')} "
              f"و{_ar_n(len(columns), 'column')} (لقطة البيانات sha256:{digest})."),
         output={"rows": rows, "columns": columns, "snapshot": digest,
-                "row_count": len(rows)},
-        calculations=[{"id": "c_rows", "name": "row_count", "value": len(rows),
-                       "method": "len(csv rows)"}],
-        claims=[_claim(ctx, "cl_ingest", "fact",
-                       f"The dataset contains {len(rows)} rows and {len(columns)} columns.",
-                       f"تحتوي البيانات على {_ar_n(len(rows), 'row')} "
-                       f"و{_ar_n(len(columns), 'column')}.",
-                       ["c_rows"])],
+                "row_count": len(rows), "mapped": bool(mapping)},
+        calculations=calculations,
+        claims=claims,
     )
 
 
 def profiler(ctx):
     rows = ctx["collector"]["rows"]
     columns = ctx["collector"]["columns"]
+    mapping = ctx.get("mapping")
+    # With a mapping the measures are the numbers, by the owner's word; a
+    # numeric ID mapped as a dimension is not one (ADR 0025).
+    measures = colmap.measures_of(mapping, columns) if mapping else None
     profile, numeric_columns = {}, []
     for col in columns:
         values = [r.get(col, "") or "" for r in rows]
         missing = sum(1 for v in values if not str(v).strip())
+        if measures is not None:
+            is_numeric = col in measures
+            if is_numeric:
+                numeric_columns.append(col)
+            profile[col] = {"missing": missing, "distinct": len(set(values)),
+                            "numeric": is_numeric}
+            continue
         numbers = [n for n in (_to_number(v) for v in values if str(v).strip()) if n is not None]
         is_numeric = len(numbers) >= max(1, (len(values) - missing) * 0.9)
         if is_numeric and numbers:
@@ -419,6 +446,10 @@ def cleaner(ctx):
     if not numeric_columns:
         return _fail(_say(ctx, "No numeric column is available to analyze.",
                           "لا يوجد عمود رقمي يمكن تحليله."))
+    mapping = ctx.get("mapping")
+    # A mapped measure is read as the owner declared it: currency, (300),
+    # Arabic digits. Unmapped data keeps the old reading (ADR 0025).
+    to_number = colmap.parse_number if mapping else _to_number
     before = len(rows)
     cleaned, seen, dropped_empty, dropped_dupes, coercion_failures = [], set(), 0, 0, 0
     for row in rows:
@@ -432,7 +463,7 @@ def cleaner(ctx):
             continue
         seen.add(key)
         for col in numeric_columns:
-            number = _to_number(stripped.get(col, ""))
+            number = to_number(stripped.get(col, ""))
             if number is None and str(stripped.get(col, "")).strip():
                 coercion_failures += 1
             stripped[col] = number
@@ -444,6 +475,39 @@ def cleaner(ctx):
         {"id": "c_dropped", "name": "rows_dropped", "value": before - after,
          "method": "empty + exact-duplicate removal"},
     ]
+    claims = [_claim(ctx, "cl_rowloss", "fact",
+                     f"{before - after} of {before} rows were removed during cleaning "
+                     f"({dropped_empty} empty, {dropped_dupes} duplicates).",
+                     f"حُذف {before - after} من أصل {_ar_n(before, 'row')} أثناء التنظيف "
+                     f"({dropped_empty} فارغ و{dropped_dupes} مكرر).",
+                     ["c_rows_before", "c_rows_after", "c_dropped"])]
+    dates = {"date_col": None, "date_grain": None, "date_order": None,
+             "dates_unreadable": 0, "dates_missing": 0}
+    date_col = colmap.date_of(mapping, ctx["collector"]["columns"]) if mapping else None
+    if date_col:
+        # Each date becomes a sortable period label at the mapping's grain,
+        # so every later stage orders time by time, not alphabetically. A
+        # value that does not read is left out of the trend and counted.
+        labels, grain, order = colmap.period_labels(
+            [row.get(date_col, "") for row in cleaned],
+            mapping.get("date_order", "auto"), mapping.get("grain", "auto"))
+        for row, label in zip(cleaned, labels):
+            if label is None:
+                dates["dates_unreadable" if row.get(date_col) else "dates_missing"] += 1
+            row[date_col] = label
+        dates.update(date_col=date_col, date_grain=grain, date_order=order)
+        calcs.append({"id": "c_dates_unread", "name": "dates_not_read",
+                      "value": dates["dates_unreadable"],
+                      "method": f"filled {date_col} cells that do not read as a date "
+                                f"at {grain} grain ({order})"})
+        if dates["dates_unreadable"]:
+            claims.append(_claim(
+                ctx, "cl_dates_unread", "limitation",
+                f"{dates['dates_unreadable']} row(s) have a {date_col} that could not be "
+                f"read as a date by {grain}, so they are left out of every trend.",
+                f"في {dates['dates_unreadable']} من الصفوف قيمة {date_col} لم تُقرأ "
+                "تاريخاً، فاستُبعدت من كل اتجاه زمني.",
+                ["c_dates_unread"]))
     return _result(
         "succeeded",
         _say(ctx,
@@ -456,14 +520,9 @@ def cleaner(ctx):
              f"{coercion_failures} قيمة غير رقمية فارغة). يُذكر كل صف محذوف "
              "ولا يُخفى."),
         output={"rows": cleaned, "rows_before": before, "rows_after": after,
-                "dropped": before - after},
+                "dropped": before - after, **dates},
         calculations=calcs,
-        claims=[_claim(ctx, "cl_rowloss", "fact",
-                       f"{before - after} of {before} rows were removed during cleaning "
-                       f"({dropped_empty} empty, {dropped_dupes} duplicates).",
-                       f"حُذف {before - after} من أصل {_ar_n(before, 'row')} أثناء التنظيف "
-                       f"({dropped_empty} فارغ و{dropped_dupes} مكرر).",
-                       ["c_rows_before", "c_rows_after", "c_dropped"])],
+        claims=claims,
     )
 
 
@@ -474,6 +533,7 @@ MEASURE_SOURCES_AR = {
     "glossary metric, not certified": "مؤشر في مسرد المؤشرات غير معتمد",
     "column name": "اسم العمود",
     "first numeric column": "أول عمود رقمي",
+    "the owner's column mapping": "ربط الأعمدة الذي حفظه المالك",
 }
 
 
@@ -491,8 +551,18 @@ def governance(ctx):
     book = ctx.get("glossary") or {}
     metrics, problems = book.get("metrics", []), book.get("problems", [])
 
-    measure, metric, source, candidates = glossary.resolve(
-        metrics, ctx["collector"]["columns"], numeric_columns)
+    if ctx.get("mapping"):
+        # The owner chose the measure (ADR 0025). The glossary still says
+        # what that column means, and still names any defined metric that
+        # was mapped but not chosen.
+        measure = ctx["mapping"]["measure"]
+        _, _, _, candidates = glossary.resolve(
+            metrics, ctx["collector"]["columns"], numeric_columns)
+        metric = next((c["metric"] for c in candidates if c["column"] == measure), None)
+        source = "the owner's column mapping"
+    else:
+        measure, metric, source, candidates = glossary.resolve(
+            metrics, ctx["collector"]["columns"], numeric_columns)
     calcs = [{"id": "c_gov_defined", "name": "metrics_in_glossary",
               "value": len(metrics),
               "method": "entries accepted from metrics.json"}]
@@ -734,10 +804,17 @@ def preparer(ctx):
     # Which number this run is about was decided by the governance stage,
     # on the record and with a reason. This stage no longer guesses.
     measure = ctx["governance"]["measure"]
-    date_col = next((c for c in columns if c.lower() in
-                     ("month", "date", "period", "week", "year")), None)
-    group_col = next((c for c in columns
-                      if c not in numeric_columns and c != date_col), None)
+    mapping = ctx.get("mapping")
+    if mapping:
+        # The owner's mapping replaces the name heuristics (ADR 0025), and
+        # the cleaner has already turned each date into a period label.
+        date_col = ctx["cleaner"].get("date_col")
+        group_col = mapping.get("dimension")
+    else:
+        date_col = next((c for c in columns if c.lower() in
+                         ("month", "date", "period", "week", "year")), None)
+        group_col = next((c for c in columns
+                          if c not in numeric_columns and c != date_col), None)
     groups = {}
     if group_col:
         for row in rows:
@@ -748,20 +825,27 @@ def preparer(ctx):
     if date_col:
         for row in rows:
             value = row.get(measure)
-            if value is not None:
+            if value is not None and not (mapping and row[date_col] is None):
                 trend[row[date_col]] = trend.get(row[date_col], 0.0) + value
         trend = dict(sorted(trend.items()))
     total = round(sum(r[measure] for r in rows if r.get(measure) is not None), 2)
+    grain = ctx["cleaner"].get("date_grain") if mapping else None
+    grain_ar = {"day": "اليوم", "month": "الشهر", "quarter": "الربع", "year": "السنة"}
     return _result(
         "succeeded",
         _say(ctx,
              f"Prepared analysis dataset: measure “{measure}”"
              + (f", grouped by “{group_col}”" if group_col else "")
-             + (f", trended by “{date_col}”" if date_col else "") + ".",
+             + (f", trended by “{date_col}”" if date_col else "")
+             + (f" by {grain}" if grain else "")
+             + (" (column mapping)" if mapping else "") + ".",
              f"أُعدّت بيانات التحليل: المقياس «{measure}»"
              + (f"، مجمّعاً حسب «{group_col}»" if group_col else "")
-             + (f"، ومتتبَّعاً عبر «{date_col}»" if date_col else "") + "."),
+             + (f"، ومتتبَّعاً عبر «{date_col}»" if date_col else "")
+             + (f" على مستوى {grain_ar[grain]}" if grain else "")
+             + (" (ربط الأعمدة)" if mapping else "") + "."),
         output={"measure": measure, "group_col": group_col, "date_col": date_col,
+                "date_grain": grain,
                 "groups": {k: round(v, 2) for k, v in groups.items()},
                 "trend": {k: round(v, 2) for k, v in trend.items()},
                 "total": total},
@@ -1162,8 +1246,11 @@ def experiment(ctx):
     measure = prep["measure"]
     values = [row[measure] for row in rows if row.get(measure) is not None]
     column, arm_names = _experiment_column(
-        rows, ctx["collector"]["columns"], ctx["profiler"]["numeric_columns"],
-        prep["date_col"])
+        rows,
+        # Mapped: only dimensions can record an experiment's arms (ADR 0025).
+        (colmap.dimensions_of(ctx["mapping"], ctx["collector"]["columns"])
+         if ctx.get("mapping") else ctx["collector"]["columns"]),
+        ctx["profiler"]["numeric_columns"], prep["date_col"])
 
     if len(values) < 2:
         calcs = [{"id": "c_exp_rows", "name": "rows_with_a_measure", "value": len(values),

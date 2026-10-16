@@ -1,9 +1,12 @@
 import { translate } from '../i18n'
 import type {
   AuthConfig,
+  ColumnMapping,
+  DatasetDetail,
   DatasetSummary,
   ExportPayload,
   IdentityInfo,
+  MappingProblem,
   Pipelines,
   RunDetail,
   RunSummary,
@@ -25,13 +28,31 @@ export const MAX_UPLOAD_BYTES = 4_000_000
 export class ApiError extends Error {
   status: number
   offline: boolean
+  /** Field-level reasons, when the server gives them (a refused mapping). */
+  problems: MappingProblem[]
 
-  constructor(message: string, status = 0, offline = false) {
+  constructor(message: string, status = 0, offline = false, problems: MappingProblem[] = []) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.offline = offline
+    this.problems = problems
   }
+}
+
+/** The server's `detail`: a sentence, or a summary with field errors. */
+function readDetail(body: unknown): { message: string | null; problems: MappingProblem[] } {
+  if (!body || typeof body !== 'object' || !('detail' in body)) return { message: null, problems: [] }
+  const detail = (body as { detail: unknown }).detail
+  if (typeof detail === 'string') return { message: detail, problems: [] }
+  if (detail && typeof detail === 'object' && 'message' in detail) {
+    const { message, errors } = detail as { message: unknown; errors?: unknown }
+    return {
+      message: typeof message === 'string' ? message : null,
+      problems: Array.isArray(errors) ? (errors as MappingProblem[]) : [],
+    }
+  }
+  return { message: null, problems: [] }
 }
 
 export const TOKEN_KEY = 'aos-token'
@@ -105,11 +126,13 @@ async function request<T>(
   }
 
   if (!response.ok) {
-    const detail =
-      body && typeof body === 'object' && 'detail' in body && typeof body.detail === 'string'
-        ? body.detail
-        : translate('api.failed', { status: response.status })
-    throw new ApiError(detail, response.status)
+    const { message, problems } = readDetail(body)
+    throw new ApiError(
+      message ?? translate('api.failed', { status: response.status }),
+      response.status,
+      false,
+      problems,
+    )
   }
   return body as T
 }
@@ -199,6 +222,32 @@ export const api = {
         body: file,
         headers: { 'Content-Type': file.type || 'application/octet-stream' },
       },
+      UPLOAD_TIMEOUT_MS,
+    ),
+  /** Preview, column profile, saved mapping and a suggestion (ADR 0025). */
+  getDataset: (id: string, language: 'en' | 'ar' = 'en') =>
+    request<DatasetDetail>(`/api/datasets/${encodeURIComponent(id)}?language=${language}`, {}, UPLOAD_TIMEOUT_MS),
+  /** Checked against every row; a refusal carries `problems` by field. */
+  saveMapping: (id: string, mapping: ColumnMapping, language: 'en' | 'ar' = 'en') =>
+    request<DatasetDetail>(
+      `/api/datasets/${encodeURIComponent(id)}/mapping?language=${language}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({
+          roles: mapping.roles,
+          measure: mapping.measure,
+          dimension: mapping.dimension,
+          date_order: mapping.date_order,
+          grain: mapping.grain,
+        }),
+      },
+      UPLOAD_TIMEOUT_MS,
+    ),
+  /** Back to automatic detection for runs from now on. */
+  clearMapping: (id: string, language: 'en' | 'ar' = 'en') =>
+    request<DatasetDetail>(
+      `/api/datasets/${encodeURIComponent(id)}/mapping?language=${language}`,
+      { method: 'DELETE' },
       UPLOAD_TIMEOUT_MS,
     ),
   pipelines: () => request<Pipelines>('/api/pipelines'),

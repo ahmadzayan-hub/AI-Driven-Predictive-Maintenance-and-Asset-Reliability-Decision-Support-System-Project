@@ -170,11 +170,49 @@ the same validator as the built-in ones, and if a custom stage fails the
 report says so rather than leaving it out. Registering a stage is an
 operator task: see "Custom agents" in the README.
 
+### Saying what each column is
+
+A run needs to know three things about a dataset: which number it is
+about, what to break that number down by, and which column is time.
+Unless you say, it guesses from column names. To say, open **Datasets**
+and choose **Columns** beside a dataset. A file you have just added
+opens there by itself.
+
+The panel shows the first rows, then every column with what it holds
+(numbers, dates or text), a suggested role and the reason for it. Give
+each column one role:
+
+- **Measure** — a number. Pick the one the analysis is about under
+  *Measure analysed*; the others are checked as possible drivers.
+- **Dimension** — a category to break totals down by. Pick one under
+  *Breakdown*, or none.
+- **Date** — at most one column. Choose how dates are written (day or
+  month first) and what to sum them by: day, month, quarter or year. The
+  automatic choice keeps the data's own detail until there would be more
+  than 36 periods.
+- **Ignore** — left out of the analysis, such as IDs and free-text notes.
+  The quality and privacy checks still read it.
+
+A mapped measure reads currency signs and codes, `(300)` as −300, and
+Arabic digits. A comma must group thousands: `12,5` is refused rather
+than guessed, and the report counts such cells. Dates are read in ISO
+form, as day, month and year in the order you chose, as quarters, and
+with English or Arabic month names, and trends are ordered by time.
+
+**Save mapping** checks your choices against every row. If something
+cannot work, such as text mapped as a measure or dates that could be day
+first or month first, nothing is saved. A box at the top lists each
+problem and links to its field, and the message also appears beside the
+field. Each run takes a copy of the mapping when it starts, so changing
+the mapping later never changes a finished report. **Use automatic
+detection** removes the mapping. Pasted CSV and the sample always use
+automatic detection.
+
 ### Defining what a number means
 
-By default a run picks the column it analyses by its name — a column
-called `revenue`, or failing that the first numeric column — and the
-report says which rule applied. That is a guess, and the report calls it
+Without a column mapping, a run picks the column it analyses by its
+name — a column called `revenue`, or failing that the first numeric
+column — and the report says which rule applied. That is a guess, and the report calls it
 one: "this run analyses **revenue** because it was chosen by column name.
 No definition exists for it."
 

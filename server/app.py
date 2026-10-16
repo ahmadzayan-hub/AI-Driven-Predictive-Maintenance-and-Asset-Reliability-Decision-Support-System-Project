@@ -27,11 +27,12 @@ from starlette.concurrency import run_in_threadpool
 from agent import Agent, language_code
 from server.agent_runtime import build_runtime
 from server import datasets as dataset_reader
+from server import mapping as colmap
 from server.assistant import Assistant
 from server.model_gateway import ModelGateway
 from server.routing import RoutedGateway, build_router
 from server.stages import describe, load_stages
-from server.runs import RunEngine
+from server.runs import RunEngine, dataset_summary
 from server.auth import AuthError, build_identity, public_auth_config
 from server.quota import QuotaExceeded, load_limits
 from server.quota import usage as quota_usage
@@ -183,6 +184,16 @@ class RunIn(BaseModel):
     # The language the report is written in (ADR 0022). The interface
     # sends the reader's language.
     language: str = Field(default="en", pattern="^(en|ar)$")
+
+
+class MappingIn(BaseModel):
+    """A column mapping (ADR 0025). Roles, orders and grains are checked
+    by server.mapping, which explains a refusal in the reader's language."""
+    roles: dict[str, str] = Field(default_factory=dict, max_length=500)
+    measure: str | None = Field(default=None, max_length=200)
+    dimension: str | None = Field(default=None, max_length=200)
+    date_order: str = Field(default="auto", max_length=20)
+    grain: str = Field(default="auto", max_length=20)
 
 
 class ApprovalIn(BaseModel):
@@ -710,18 +721,52 @@ def create_app(config_path=None, env=None, dist_dir=None):
             dataset, created = await run_in_threadpool(store_it)
         except QuotaExceeded as error:
             raise HTTPException(status_code=429, detail=error.message)
-        summary = {key: dataset.get(key) for key in (
-            "id", "sha256", "name", "byte_size", "created_at",
-            "source_format", "row_count", "column_count")}
         return JSONResponse(status_code=201 if created else 200, content={
-            "dataset": summary, "created": created,
+            "dataset": dataset_summary(dataset), "created": created,
             "columns": parsed.columns, "preview": parsed.preview(),
             "warnings": parsed.warning_texts(language), "sheets": parsed.sheets})
 
     @app.get("/api/datasets")
     def list_datasets(principal=Depends(requires("read"))):
         with lock:
-            return {"datasets": store.list_datasets(principal.subject)}
+            return {"datasets": [
+                {**row, "mapped": row.get("mapping_updated_at") is not None}
+                for row in store.list_datasets(principal.subject)]}
+
+    # Column mapping (ADR 0025). Another owner's dataset is a 404, never a
+    # 403: whether it exists is not theirs to learn.
+    @app.get("/api/datasets/{dataset_id}")
+    def read_dataset(dataset_id: str,
+                     language: str = Query(default="en", pattern="^(en|ar)$"),
+                     principal=Depends(requires("read"))):
+        with lock:
+            try:
+                return engine.dataset_detail(dataset_id, principal.subject, language)
+            except KeyError:
+                raise HTTPException(status_code=404, detail="Dataset not found.")
+
+    @app.put("/api/datasets/{dataset_id}/mapping")
+    def save_mapping(dataset_id: str, mapping: MappingIn,
+                     language: str = Query(default="en", pattern="^(en|ar)$"),
+                     principal=Depends(requires("write"))):
+        with lock:
+            try:
+                return engine.save_mapping(dataset_id, principal.subject,
+                                           mapping.model_dump(), language)
+            except KeyError:
+                raise HTTPException(status_code=404, detail="Dataset not found.")
+            except colmap.MappingError as error:
+                raise HTTPException(status_code=422, detail=error.detail(language))
+
+    @app.delete("/api/datasets/{dataset_id}/mapping")
+    def clear_mapping(dataset_id: str,
+                      language: str = Query(default="en", pattern="^(en|ar)$"),
+                      principal=Depends(requires("write"))):
+        with lock:
+            try:
+                return engine.clear_mapping(dataset_id, principal.subject, language)
+            except KeyError:
+                raise HTTPException(status_code=404, detail="Dataset not found.")
 
     @app.get("/api/runs")
     def list_runs(principal=Depends(requires("read"))):

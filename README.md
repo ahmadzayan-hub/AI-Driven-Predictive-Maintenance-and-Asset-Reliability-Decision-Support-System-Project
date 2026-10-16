@@ -33,6 +33,12 @@ environment — not a replacement for Windows, macOS, or Linux.
   reported; hostile workbooks (entity and decompression bombs, paths
   outside the archive) are refused; the same data in any format is stored
   once
+- **Column mapping** — the owner says once what each column of a dataset
+  is (measure, dimension, date or ignored), how dates are written and
+  what to sum them by. The server suggests a role for each column with a
+  reason, checks a mapping against every row, and explains a refusal
+  field by field in English or Arabic. Runs follow the mapping and keep
+  a copy of it; unmapped data is analysed exactly as before (ADR 0025)
 - **Command-line interface** — the original `python main.py` experience,
   fully preserved and dependency-free
 - **One brain, two faces** — both interfaces drive the same tested Python
@@ -289,15 +295,15 @@ python main.py
 # Python: agent, utils, API, runs, analytics, sequential ranges,
 # metrics, auth, tenancy, erasure, quotas, backups, worker, recovery,
 # supply chain, launcher, routing, language, assistant, custom stages,
-# agent runtimes, MCP, frameworks, report language, datasets, docs, and
-# the repository's operating system: brain checker, session hooks and the
-# verify script (719 tests)
+# agent runtimes, MCP, frameworks, report language, datasets, column
+# mapping, docs, and the repository's operating system: brain checker,
+# session hooks and the verify script (769 tests)
 python -m unittest discover tests
 
-# Frontend unit tests (54 tests)
+# Frontend unit tests (60 tests)
 cd frontend && npm test
 
-# End-to-end + accessibility (66 checks across desktop and mobile,
+# End-to-end + accessibility (72 checks across desktop and mobile,
 # in English and Arabic;
 # requires the production build: npm run build)
 cd frontend && npx playwright test
@@ -313,17 +319,17 @@ python scripts/verify.py
 
 The same suite runs automatically in CI (`.github/workflows/ci.yml`) on
 every push, including the run-engine and backup suites against a real
-PostgreSQL 16 service. Last verified: 719 Python tests (701 run in CI;
+PostgreSQL 16 service. Last verified: 769 Python tests (751 run in CI;
 the 11 that need an optional agent framework or the MCP SDK, the 5 that
 need LLMRouter, the 1 that cross-checks workbooks with openpyxl, and the
 1 that needs the frontend build, which CI makes after the Python step,
 skip there),
-54 frontend unit tests, and 66 end-to-end checks (63 executed; 3
+60 frontend unit tests, and 72 end-to-end checks (69 executed; 3
 skipped by design, because each covers one viewport only). In environments with a pre-installed
 browser, point Playwright at it:
 `PLAYWRIGHT_EXECUTABLE_PATH=/path/to/chromium npx playwright test`.
 
-Five of the 719 load real LLMRouter routers and **skip unless LLMRouter
+Five of the 769 load real LLMRouter routers and **skip unless LLMRouter
 is installed**, which in CI it is not. With the eleven framework tests,
 the openpyxl cross-check and the static-files test that needs the
 frontend build, CI reports `OK (skipped=18)` (CI run 49), and that is

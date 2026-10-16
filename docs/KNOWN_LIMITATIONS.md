@@ -245,3 +245,14 @@ required local files. Both behaviors are covered by tests
     back button and a shared link always land on the assistant. Deep
     links are phase 2 of `docs/UI_PLAN.md`. On a phone the header has
     room for only the first letters of the agent's name.
+21. Column mapping (ADR 0025) gives each column one role and analyses
+    one measure, broken down by at most one dimension. The other
+    measures are drivers, not subjects. There is no week grain, no
+    fiscal year, no derived or computed column, and no unit per
+    measure. A decimal comma is refused rather than read, and
+    two-digit years follow the POSIX rule, so `70` is 1970. The
+    suggestion reads an even sample of 10,000 rows of a larger table,
+    while saving checks every row. A mapping belongs to one dataset:
+    a changed file is new content, so it starts unmapped. Pasted CSV
+    and the sample always use automatic detection. Unmapped data is
+    still typed from column names, and its periods still sort as text.

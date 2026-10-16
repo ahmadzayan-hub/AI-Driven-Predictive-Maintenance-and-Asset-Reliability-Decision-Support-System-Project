@@ -133,7 +133,7 @@ class SqlStore:
         # report_language: NULL for runs written before reports had a
         # language, which were all English (ADR 0022).
         for column in ("dataset_id", "lease_owner", "lease_expires_at",
-                       "report_language"):
+                       "report_language", "mapping_json"):
             try:
                 self._exec(f"ALTER TABLE runs ADD COLUMN {column} TEXT")
             except Exception:
@@ -145,8 +145,10 @@ class SqlStore:
             self._rollback()
         # What a dataset is (ADR 0024). NULL for rows stored before the
         # dataset API, until the same data is stored again.
+        # The owner's column mapping (ADR 0025), and the copy a run takes.
         for column, kind in (("source_format", "TEXT"), ("row_count", "INTEGER"),
-                             ("column_count", "INTEGER")):
+                             ("column_count", "INTEGER"), ("mapping_json", "TEXT"),
+                             ("mapping_updated_at", "TEXT")):
             try:
                 self._exec(f"ALTER TABLE datasets ADD COLUMN {column} {kind}")
             except Exception:
@@ -392,7 +394,7 @@ class SqlStore:
     def list_datasets(self, owner):
         return self._exec(
             "SELECT id, sha256, name, byte_size, created_at, source_format, "
-            "row_count, column_count FROM datasets "
+            "row_count, column_count, mapping_updated_at FROM datasets "
             "WHERE owner = ? ORDER BY created_at DESC LIMIT 50", (owner,))
 
     # -- backup and restore ----------------------------------------------

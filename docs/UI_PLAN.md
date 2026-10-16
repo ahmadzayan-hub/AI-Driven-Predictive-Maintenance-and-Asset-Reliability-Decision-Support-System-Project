@@ -192,7 +192,7 @@ From the skill's UX guidelines, applied here:
 | --- | --- | --- | --- | --- |
 | 0 Foundation | Design system v2 tokens, bundled Fira fonts, flat brand mark, chart fixes (negative bars, forecast boundary) | — | Unit, end-to-end and axe green; contrast verified; budget kept | Done, 16 Oct 2026 |
 | 1 Overview and Datasets | Two new views on existing APIs; analyse a stored dataset | — | New end-to-end and axe checks in both languages; no overflow at 320 px | Done, 16 Oct 2026 |
-| 2 Add data | Upload of several formats, preview, column mapping; deep links | A1, A2 | ADR; API and UI tests per format; error-summary behaviour tested | Started: upload of each format, the stored-dataset picker and format and row counts shipped with A1 (ADR 0024). Preview, mapping and deep links remain |
+| 2 Add data | Upload of several formats, preview, column mapping; deep links | A1, A2 | ADR; API and UI tests per format; error-summary behaviour tested | Started: upload of each format, the stored-dataset picker and format and row counts shipped with A1 (ADR 0024). Preview and column mapping, with the error-summary pattern, shipped with A2 (ADR 0025). Deep links and the sheet picker remain |
 | 3 Dashboards | Dashboard pages, filters, drill to rows, chart-to-table toggle; "Analyses" naming | A4, A5 | Every chart has a table; filter state survives reload; axe on every page | Planned |
 | 4 Several datasets | Join builder: pick datasets, declare keys, preview the merge | A3 | Join-correctness tests; key-coverage warnings shown | Planned |
 | 5 Models | Model cards: metric against baseline, calibration, importance, "not used" models | A6 | Every model shows its baseline; weak models labelled | Planned |
