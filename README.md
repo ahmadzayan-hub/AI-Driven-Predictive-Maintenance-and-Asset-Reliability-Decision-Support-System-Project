@@ -217,9 +217,8 @@ and returns fresh state snapshots.
 ## Installation
 
 ```bash
-git clone https://github.com/ahmadzayan-hub/11.git
-cd 11
-git checkout claude/agentic-os-final-project-53j6ql
+git clone https://github.com/ahmadzayan-hub/agentic-os-final-project.git
+cd agentic-os-final-project
 
 # Web interface dependencies
 pip install -r requirements.txt
@@ -590,6 +589,13 @@ See `user_guide.md` for the full command reference.
 - A scheduled off-site backup job (see ADR 0005 for why it is not a
   workflow in this public repository)
 - Named memory keys (e.g. `/remember birthday = 1 May`)
+
+## Contributing
+
+Team members start with [CONTRIBUTING.md](CONTRIBUTING.md). It covers
+getting access, ways to help without writing code, local setup, the
+branch and pull-request flow, and the rules for a public repository: no
+secrets, no personal data, no force-push.
 
 ## Author and Course Information
 

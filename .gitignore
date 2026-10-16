@@ -9,6 +9,9 @@ data/agentic.db*
 vault/
 # Backups contain every row of the database, including user data.
 backups/
+# Course files and anything with personal data (names, student numbers).
+# This repository is public: keep them here, where Git never sees them.
+private/
 __pycache__/
 *.pyc
 .venv/
