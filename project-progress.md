@@ -8,18 +8,33 @@ Last updated: 2026-10-16, session `7ba0117d`. The session-end skill keeps this f
 
 - **Capstone, due 22 Oct (upload 21 Oct):**
     - Release candidates built on 16 Oct and sent to the user: `Group_9226_Team_3_Report.pdf` (24 A4 pages) and `Group_9226_Team_3_Presentation.pptx` (15 slides with notes), with the Power BI kit, a submission checklist and the build scripts. Report, deck and the kit's 30 expected values reconcile.
-    - Still open: build the `.pbix` in Power BI Desktop from the kit; the team-owned items highlighted in the PDF (registration numbers, screenshots, notebook names, the instructor email); owners rerunning their own figures; rehearsals on 20, 23 and 24 Oct.
+    - **Reviewed on 16 Oct by the review loop** (`docs/AGENT_TEAM.md` §5). The gates went 50.0% → 56.2% → 62.5% → 62.5%: all ten the session could act on pass, and six are the team's.
+        - The rebuilt PDF is tagged and has bookmarks.
+        - The deck's slides have titles and readable alt text.
+        - The clip's stockout scene now states an association, not a cause.
+        - `Team3_Review_Round1_Corrections.md` went to the user. It holds the verified corrections to two headline claims (row-average gaps, stockouts), with owners and replacement wording.
+    - Still open, for the team:
+        - build the `.pbix` in Power BI Desktop from the kit;
+        - apply the memo's corrections in the shared report and deck;
+        - the highlighted team items (registration numbers, screenshots, notebook names, the instructor email);
+        - owners rerunning their own figures;
+        - rehearsals on 20, 23 and 24 Oct.
     - The drafts are private documents shared with the team.
 - **Operating system for this repository: done 2026-10-16.** CLAUDE.md, `AGENTS.md` for other coding agents, Memory.md, this board, session-logs.md, the second brain in `brain/`, session hooks and skills in `.claude/`, and `scripts/verify.py` with its `verify` skill. The SessionStart hook fired live in this session, at its start and after each compaction.
 - **Interface, phases 0 and 1: done 2026-10-16** (`dea3b38`, ADR 0023, plan in `docs/UI_PLAN.md`). Design system v2 generated with the vendored ui-ux-pro-max skill, bundled Fira fonts, chart fixes, and the Overview and Datasets views.
 - **A1, the dataset API: done 2026-10-16** (ADR 0024). `POST /api/datasets` reads CSV, TSV, Excel, JSON and JSON Lines into one canonical table with the standard library. Uploads go up to 4 MB, the platform's limit, and 10 MB as CSV. The Runs view has a stored-dataset picker, and the Datasets view adds files.
 - **A2, column mapping: done 2026-10-16** (ADR 0025). The owner gives each column a role (measure, dimension, date, ignore), chooses the measure, breakdown, date order and grain, and saves it with the dataset after every-row validation. Runs copy the mapping; unmapped data runs as before. The Datasets view has a *Columns* panel with preview, suggestions and an error summary.
-- **Next build: A3, several datasets per run (ADR 0026)**, and the rest of interface phase 2: deep links and the sheet picker. Code-split the views first: JavaScript is at 96.7 of 100 KB.
+- **Agent team: done 2026-10-16** (`docs/AGENT_TEAM.md`).
+    - **Reviewers:** five read-only reviewer subagents on Haiku or Sonnet by job, run by the `review-loop` skill with `scripts/review_gate.py` and `scripts/figures_check.py`.
+    - **Makers:** `dashboard-analyst`, with the `dashboards` skill: `scripts/analyse.py`, then a Claude Dashboard or an offline page.
+    - **Local models:** `scripts/consult.py` for free local second opinions, untested live here.
+    - **ADR 0026:** uneven periods are read per record.
+- **Next build: A3, several datasets per run (ADR 0027)**, and the rest of interface phase 2: deep links and the sheet picker. Code-split the views first: JavaScript is at 96.7 of 100 KB.
 
 ## Next
 
 1. Code-split the interface views, to recover budget before phase 3.
-2. A3: several datasets per run, with declared join keys (ADR 0026); deep links and the sheet picker (phase 2).
+2. A3: several datasets per run, with declared join keys (ADR 0027); deep links and the sheet picker (phase 2).
 3. Invite the team as collaborators and protect the default branch (owner action, on GitHub).
 
 ## Analytics OS milestones
@@ -54,6 +69,7 @@ Reusable foundations: the metric glossary (`metrics.json`), custom stages (ADR 0
 
 | Date | What | Evidence |
 | --- | --- | --- |
+| 2026-10-16 | Agent team: reviewer subagents, the review loop and its gates, the figures checker (glued cells, worked arithmetic), the analysis export and dashboards skill, local-model consultation; ADR 0026, uneven periods read per record; motion transcripts keep sources apart | 818 Python tests with PostgreSQL (16 skipped here); 60 frontend unit tests; build within budget; end-to-end not rerun (no interface change) |
 | 2026-10-16 | A2, column mapping: roles per column, suggestions with reasons, every-row validation with an error summary, runs that copy the mapping (ADR 0025) | 769 Python tests with PostgreSQL; 60 frontend unit tests; 69 of 72 end-to-end checks run and pass, 3 skipped by design |
 | 2026-10-16 | Agentic OS setup: `AGENTS.md`, `scripts/verify.py` and the `verify` skill; the server compresses and caches the built interface as Vercel does (ADR 0023, amendment) | 719 Python tests with PostgreSQL; 54 frontend unit tests; 63 of 66 end-to-end checks pass, 3 skipped by design; Lighthouse mobile Performance 99, up from 86 to 88, and 100 for the other three |
 | 2026-10-16 | A1, the dataset API: CSV, TSV, Excel, JSON and JSON Lines read into one canonical table; stored-dataset picker; uploads in the Datasets view (ADR 0024) | `50babcc`; 699 Python tests with PostgreSQL; 54 frontend unit tests; 63 of 66 end-to-end checks run and pass, 3 skipped by design |

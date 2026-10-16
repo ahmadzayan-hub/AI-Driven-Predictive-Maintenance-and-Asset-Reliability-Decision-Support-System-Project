@@ -42,5 +42,6 @@ The second brain of [[Agentic OS]]: what the project knows, who it serves and ho
 
 - [[Session lifecycle]]: how every working session starts and ends
 - [[Team collaboration]]: how teammates join and contribute
+- [[Agent team]]: the specialist subagents, their model tiers and the review loop that validates deliverables
 - [[Decision log]]: every architecture decision, one line each
 - [[Note schema]] and [[Maintenance log]]: the rules for notes and the record of upkeep

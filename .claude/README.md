@@ -13,11 +13,14 @@ Everything here is shared with the team through Git, except the paths `.gitignor
 | `skills/brain-maintenance/` | Daily: refresh stale values, merge duplicates, repair and add wikilinks. |
 | `skills/verify/` | Run every check with `scripts/verify.py` and report the real counts; how to measure Lighthouse. |
 | `skills/motion/` | Short animated explainers (MP4) from verified figures, rendered frame by frame from code like Claude Motion: `composition.html`, `render.mjs`, and examples from the sample data. Needs the frontend's Playwright and `ffmpeg`. |
+| `skills/review-loop/` | The review super-agent's method: score the gates, send the reviewers in parallel, fix, rescore, until 100% or the loop stops. Gates run with `scripts/review_gate.py`; figures with `scripts/figures_check.py`. |
+| `skills/dashboards/` | Deep analysis with `scripts/analyse.py`, then a dashboard where every figure cites its calculation: a Claude Dashboard where the artifact type exists, or an offline page (`render.py`). |
 | `skills/ui-ux-pro-max/` | Design intelligence for the interface: styles, palettes, type, UX rules, charts (ADR 0023). |
 | `skills/design-system/`, `brand/`, `ui-styling/` | Token architecture and a token validator; brand voice and identity; shadcn/Tailwind and canvas posters (not for the app). |
 | `skills/design/`, `banner-design/`, `slides/` | Logos, corporate identity, icons, banners and HTML decks. The logo, identity and icon generators call third-party image services and need an API key. |
 | `commands/` | Slash commands. Empty for now; see below. |
-| `agents/motion-designer.md` | The first project subagent: plans a clip from sourced figures, renders it with the motion skill, reviews the frames and reports every figure with its source. Loaded when a session starts. |
+| `agents/` | The agent team (`docs/AGENT_TEAM.md`), loaded when a session starts:<br>• `motion-designer`: sourced, animated explainers.<br>• `dashboard-analyst`: deep analysis and dashboards.<br>• Five read-only reviewers for the review loop: `figures-auditor`, `brief-compliance-reviewer`, `analytics-expert-reviewer`, `security-privacy-reviewer` and `accessibility-i18n-reviewer`.<br>Each has the cheapest model that does its job well. |
+| `consult-models.json` | Which free local model `scripts/consult.py` asks for each kind of second opinion. |
 | `plugins/` | How to add project plugins. Documentation only. |
 | `state/` | Hook runtime state, one JSON file per session. Git ignores it. |
 
@@ -55,4 +58,6 @@ model: inherit
 You review data quality for Agentic OS. …
 ```
 
-`name` and `description` are required. Files without a `name`, or whose `---` is not the first line, are skipped silently. Claude Code reads `agents/` when a session starts, so a new subagent is available from the next session. `motion-designer` is the example to copy: a narrow job, the tools it needs and no more, and rules it must not break. Candidates for the roadmap are a data-quality reviewer, a dashboard designer and a model evaluator that checks every model against its baseline. Each is added with the feature it serves.
+`name` and `description` are required. Files without a `name`, or whose `---` is not the first line, are skipped silently. Claude Code reads `agents/` when a session starts, so a new subagent is available from the next session. `motion-designer` is the example to copy: a narrow job, the tools it needs and no more, and rules it must not break. Candidates for the roadmap are a data-quality reviewer and a model evaluator that checks every model against its baseline. Each is added with the feature it serves.
+
+A subagent cannot start another subagent, so a loop that coordinates several of them is a skill the main session runs (`review-loop`), not an agent. Until the next session start, a new agent can be run as a general-purpose agent told to read and follow its file.

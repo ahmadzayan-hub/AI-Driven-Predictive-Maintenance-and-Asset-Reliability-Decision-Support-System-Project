@@ -41,5 +41,6 @@ The next stage is the [[Analytics OS roadmap]]: several datasets, dynamic inputs
 ## Related
 
 - [[User]], who owns it.
+- [[Agent team]], the subagents and review loop that check this project's work and deliverables.
 - [[Team collaboration]], for how teammates contribute.
 - [[Session lifecycle]], for how work on it is run.

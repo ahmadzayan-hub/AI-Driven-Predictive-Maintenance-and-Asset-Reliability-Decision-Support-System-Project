@@ -39,6 +39,7 @@ python scripts/verify.py [--quick | --e2e]                # all of the above in 
 - `server/analytics.py`: the pipeline stages and dataset limits. `server/runs.py`: the durable run engine. `server/app.py`: the API.
 - `server/metrics.py`: the metric glossary. `server/stages.py`: custom stages (ADR 0020). `server/agent_runtime.py`, `server/tools.py`, `server/mcp.py`: runtimes and MCP (ADR 0021).
 - `frontend/src/features/*`: views. `frontend/src/i18n/`: English and Arabic strings. `frontend/e2e/`: Playwright tests.
+- `docs/AGENT_TEAM.md`: the agent team, model tiers and the review loop. `scripts/review_gate.py`, `scripts/figures_check.py`, `scripts/analyse.py`, `scripts/consult.py`: its zero-cost tools.
 - `docs/adr/`: decisions. `docs/KNOWN_LIMITATIONS.md`: what is not done. `README.md`: the one place test counts are kept.
 - `AGENTS.md`: the same rules for Codex and other coding agents. Change it in the same commit as a rule here.
 

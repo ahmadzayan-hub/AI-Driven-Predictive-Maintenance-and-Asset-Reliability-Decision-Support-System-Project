@@ -34,6 +34,14 @@ python scripts/verify.py --e2e      # and the Playwright end-to-end suite
 python scripts/verify.py --quick    # the fast subset, while iterating
 ```
 
+These scripts are plain Python and work for any agent (`docs/AGENT_TEAM.md`):
+
+```bash
+python scripts/figures_check.py --register kpis.csv --doc report.pdf          # every figure traced to its register
+python scripts/review_gate.py plan.json                                         # a deliverable's gates, scored round by round
+python scripts/analyse.py data.csv --suggest --out analysis.json                # the governed pipeline, exported as figures, never rows
+```
+
 Report what it printed. If a step was skipped or failed, say so. Set `PG_TEST_URL` to include the PostgreSQL tests; the commands are in `CLAUDE.md`.
 
 ## At the end of a session

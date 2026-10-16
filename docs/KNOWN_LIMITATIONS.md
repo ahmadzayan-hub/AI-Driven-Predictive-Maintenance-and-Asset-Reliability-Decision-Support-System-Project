@@ -256,3 +256,24 @@ required local files. Both behaviors are covered by tests
     a changed file is new content, so it starts unmapped. Pasted CSV
     and the sample always use automatic detection. Unmapped data is
     still typed from column names, and its periods still sort as text.
+22. Uneven periods are read per record (ADR 0026) only in the
+    descriptive stage: its headline and a limitation claim give the
+    per-record change when the quietest period holds under three
+    quarters of the busiest's records. The segment, diagnostic,
+    predictive and prescriptive stages still work on totals, so a
+    forecast follows the record count, and "protect the leading group"
+    can name the group with the most records rather than the largest
+    loss per record. The dashboards skill shows per-record charts beside
+    the totals; the app's report does not yet.
+23. The agent team (`docs/AGENT_TEAM.md`) is tooling for this
+    repository and its deliverables, not part of the app.
+    - **Local models:** the free models behind `scripts/consult.py` are
+      tested only against a stub server. This environment cannot
+      download them, so no local model has answered a request here.
+    - **Reviewers:** they are Claude subagents. Their findings are
+      checked by recomputation before they are acted on, but a reviewer
+      can miss what it was not asked about.
+    - **Scores:** the loop's percentage counts gates, not findings.
+    - **Claude Dashboards:** this is a hosted claude.ai feature. The
+      skill reaches it only in a claude.ai session, and elsewhere writes
+      an offline page. A new agent file loads at the next session start.

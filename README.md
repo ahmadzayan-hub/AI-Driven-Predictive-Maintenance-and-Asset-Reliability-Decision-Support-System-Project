@@ -296,8 +296,9 @@ python main.py
 # metrics, auth, tenancy, erasure, quotas, backups, worker, recovery,
 # supply chain, launcher, routing, language, assistant, custom stages,
 # agent runtimes, MCP, frameworks, report language, datasets, column
-# mapping, docs, and the repository's operating system: brain checker,
-# session hooks, the verify script and the motion skill (776 tests)
+# mapping, uneven periods, docs, and the repository's operating system:
+# brain checker, session hooks, the verify script, the motion skill and the
+# agent team's tools (818 tests)
 python -m unittest discover tests
 
 # Frontend unit tests (60 tests)
@@ -319,7 +320,7 @@ python scripts/verify.py
 
 The same suite runs automatically in CI (`.github/workflows/ci.yml`) on
 every push, including the run-engine and backup suites against a real
-PostgreSQL 16 service. Last verified: 776 Python tests (758 run in CI;
+PostgreSQL 16 service. Last verified: 818 Python tests (800 run in CI;
 the 11 that need an optional agent framework or the MCP SDK, the 5 that
 need LLMRouter, the 1 that cross-checks workbooks with openpyxl, and the
 1 that needs the frontend build, which CI makes after the Python step,
@@ -329,7 +330,7 @@ skipped by design, because each covers one viewport only). In environments with 
 browser, point Playwright at it:
 `PLAYWRIGHT_EXECUTABLE_PATH=/path/to/chromium npx playwright test`.
 
-Five of the 776 load real LLMRouter routers and **skip unless LLMRouter
+Five of the 818 load real LLMRouter routers and **skip unless LLMRouter
 is installed**, which in CI it is not. With the eleven framework tests,
 the openpyxl cross-check and the static-files test that needs the
 frontend build, CI reports `OK (skipped=18)` (CI run 49), and that is
@@ -648,6 +649,16 @@ described in [docs/PLAYBOOK.md](docs/PLAYBOOK.md):
   them. A SessionStart hook briefs each session. The session-start,
   session-end and brain-maintenance skills keep the files above current.
   A Stop hook makes sure a session that committed work also logs it.
+- **An agent team:** [docs/AGENT_TEAM.md](docs/AGENT_TEAM.md) describes it.
+  - **Reviewers:** five read-only reviewer subagents (figures, brief,
+    analytics method, security and privacy, accessibility and Arabic).
+  - **Makers:** a dashboard analyst and a motion designer.
+  - **The review loop:** it scores a deliverable's gates with
+    `scripts/review_gate.py` and sends the reviewers in parallel until
+    every gate passes, or it reports what is left and whose it is.
+  - **Cost:** each job goes to the cheapest tier that can do it right.
+    Deterministic scripts and free local models (`scripts/consult.py`)
+    come before Claude.
 
 ## Contributing
 

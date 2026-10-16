@@ -36,14 +36,21 @@ brain/                       Obsidian vault, entry point Home.md
   settings.json              the three hooks
   hooks/                     session_start.py · stop_gate.py · session_end.py
   skills/                    session-start · session-end · brain-maintenance · verify · motion
+                             · review-loop · dashboards
                              design: ui-ux-pro-max · design-system · brand · ui-styling
                              · design · banner-design · slides (third-party, see PROVENANCE.md)
-  agents/motion-designer.md  the first subagent: sourced, animated explainers
+  agents/                    the agent team (docs/AGENT_TEAM.md): motion-designer, dashboard-analyst
+                             and five read-only reviewers
+  consult-models.json        free local models for scripts/consult.py, one per kind of task
   commands/                  empty until a feature needs one
   plugins/README.md          how to add a plugin
   state/                     git-ignored hook state, one file per session
 scripts/brain_check.py       finds brain problems; never edits
 scripts/verify.py            runs every check and prints the real counts
+scripts/review_gate.py       scores a deliverable's gates, round by round
+scripts/figures_check.py     every figure in a document traced to a register, arithmetic checked
+scripts/analyse.py           a file through the governed pipeline, exported as figures, never rows
+scripts/consult.py           a second opinion from a free local model, refusing raw data
 docs/PLAYBOOK.md             this file
 ```
 
@@ -92,7 +99,7 @@ The hook knows it is due because that log has no section dated today.
 3. The pipeline profiles, cleans, governs the measure, runs the four analytics types, validates and reports. Read the headline of each report tab, then the evidence behind each claim.
 4. Approve the publish step only after reading. The report and its run log go to `vault/`.
 
-Several datasets in one run, a dashboard and live data are milestones A3 to A7 on the board, not features yet.
+Several datasets in one run, dashboards in the app and live data are milestones A3 to A7 on the board, not features yet. Outside the app, the `dashboards` skill already turns one file into a sourced dashboard (runbook below).
 
 ### Build a roadmap milestone
 
@@ -128,6 +135,25 @@ Each of these is code that runs on teammates' machines. Review it like code.
 5. Course and client clips are written outside the repository. Only sample-data examples live in `.claude/skills/motion/examples/`.
 
 Claude Motion, Anthropic's hosted feature, does the same thing in claude.ai on Team and Enterprise plans. This repository's skill is the local equivalent, because the hosted feature has no API.
+
+### Review a deliverable until it is validated
+
+1. Write a plan for `scripts/review_gate.py`: the gates (page counts, figures against the register, required sections, markers that must be gone), each team-owned gate with its `owner`.
+2. Run the `review-loop` skill. Each round:
+    - scores the gates;
+    - sends the reviewers in parallel;
+    - fixes what is yours;
+    - rescores.
+3. Recompute a reviewer's figures yourself before passing them on. The first capstone review found that a reviewer's numbers were right nearly everywhere, but not everywhere.
+4. Turn each finding into a gate where a pattern can check it, so the next round checks the fix without a reviewer.
+5. 100% means every gate passes, or is accepted in the plan by a named person with a reason. Otherwise the loop stops after five rounds, or after two rounds with no gain, and reports what is left and whose it is.
+
+### Build a dashboard from a file
+
+1. `python scripts/analyse.py data.csv --mapping m.json --out analysis.json --csv-dir aggregates/` runs the governed pipeline at no cost. The export holds totals with their record counts, per-record values, calculations and claims, never rows.
+2. Read the claims marked `limitation` first. ADR 0026: when periods or groups hold different numbers of records, read the per-record view before the totals.
+3. In claude.ai, the `dashboards` skill builds a Claude Dashboard from the aggregate files. Anywhere else, `render.py` writes an offline page.
+4. Check that every number is sourced with `scripts/figures_check.py`, passing the aggregate files as references.
 
 ### Work with another coding agent
 
