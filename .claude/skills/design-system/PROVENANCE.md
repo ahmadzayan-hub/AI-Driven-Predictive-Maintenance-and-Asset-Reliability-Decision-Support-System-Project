@@ -20,7 +20,7 @@ Third-party skill from the same repository as `ui-ux-pro-max`, vendored on 2026-
 
 - Its token advice (three layers, no raw hex in components) matches ADR 0023. Its slide output fetches third-party fonts and scripts, so it is for decks, never for the app.
 - The skill's name is not the same thing as the folder `design-system/agentic-os/`, which holds this project's own design system.
-- First use, 2026-10-16: `validate-tokens.cjs --dir frontend/src` reported no hardcoded colours; a direct search found four it cannot see (three `rgb(5 8 18 / 0.62)` scrims and one `#fff` switch thumb in `app.css`).
+- First use, 2026-10-16: `validate-tokens.cjs --dir frontend/src` reported no hardcoded colours; a direct search found four it cannot see (three `rgb(5 8 18 / 0.62)` scrims and one `#fff` switch thumb in `app.css`). They became the tokens `--scrim` and `--switch-thumb` the same day, so no raw colour remains in `frontend/src` outside `tokens.css`. The validator misses space-separated `rgb()` and allows `#fff` by design, so check with a search as well.
 
 ## Updating
 

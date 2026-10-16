@@ -252,7 +252,7 @@
 .scrim {
   position: fixed;
   inset: 0;
-  background: rgb(5 8 18 / 0.62);
+  background: var(--scrim);
   z-index: 40;
   border: 0;
 }
@@ -1535,7 +1535,7 @@ form.field {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--switch-thumb);
   box-shadow: var(--shadow-1);
   transition: transform var(--motion-fast);
 }
@@ -1962,7 +1962,7 @@ form.field {
 .dialog__scrim {
   position: fixed;
   inset: 0;
-  background: rgb(5 8 18 / 0.62);
+  background: var(--scrim);
   display: grid;
   place-items: center;
   padding: var(--space-4);
@@ -2073,7 +2073,7 @@ form.field {
 .palette__scrim {
   position: fixed;
   inset: 0;
-  background: rgb(5 8 18 / 0.62);
+  background: var(--scrim);
   display: flex;
   justify-content: center;
   align-items: flex-start;

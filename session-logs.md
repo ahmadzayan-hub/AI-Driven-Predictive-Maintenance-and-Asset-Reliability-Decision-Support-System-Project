@@ -91,3 +91,12 @@ The first entries were written from the commit history and the session's own rec
 - **Decisions:** vendor everything, unchanged. Contain the risks in documentation: design's logo, identity and icon generators call Gemini, AtlasCloud or MuAPI with an API key (`.env` is git-ignored everywhere; never give them data), and ui-styling's shadcn/Tailwind and slides' CDN Chart.js do not apply to the app (ADR 0023).
 - **Open / next:** optionally turn the four hardcoded colours into tokens (`--scrim`, `--switch-thumb`); confirm CI on `b478983`; then A1 with ADR 0024.
 - **Blockers:** none.
+
+## 2026-10-16 · `7ba0117d` · claude/agentic-os-final-project-53j6ql (colour tokens)
+
+**Goal:** fix the four hardcoded colours the design-system audit turned up.
+
+- **Done:** added `--scrim` and `--switch-thumb` to `tokens.css` (defined once, the same in both themes) and used them for the drawer, dialog and palette scrims and the switch thumb. No raw colour remains in `frontend/src` outside `tokens.css`.
+- **Verified:** 52 frontend unit tests; build (JavaScript 92.9 KB, CSS 7.3 KB gzipped); 26 end-to-end checks in the accessibility, Arabic, journey and overview specs, 24 run and pass and 2 skipped by design.
+- **Decisions:** both values keep their exact previous colours, so nothing changes on screen and no contrast needed rechecking.
+- **Open / next:** A1 with ADR 0024.

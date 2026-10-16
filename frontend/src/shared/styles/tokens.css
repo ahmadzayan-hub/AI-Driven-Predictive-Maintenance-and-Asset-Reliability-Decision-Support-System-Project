@@ -49,6 +49,13 @@
   --shadow-2: 0 4px 12px rgb(20 22 31 / 0.08);
   --shadow-3: 0 16px 40px rgb(20 22 31 / 0.18);
 
+  /* The same in both themes, so the dark blocks below leave them alone.
+     The scrim dims the page behind the drawer, dialogs and the command
+     palette. The switch thumb sits on --border-strong when off and on
+     --accent-solid when on, 3:1 or better against both, in both themes. */
+  --scrim: rgb(5 8 18 / 0.62);
+  --switch-thumb: #ffffff;
+
   /* Shape */
   --radius-s: 8px;
   --radius-m: 12px;
