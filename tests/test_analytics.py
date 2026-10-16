@@ -240,6 +240,11 @@ class FourAnalyticsTypesTestCase(unittest.TestCase):
         measured = len(ctx["preparer"]["trend"])
         self.assertEqual(len(chart["values"]),
                          measured + len(ctx["predictive"]["forecast"]))
+        # The boundary is data, not only alt text, so a chart can draw it:
+        # every point from forecast_from onwards is a projection.
+        self.assertEqual(chart["forecast_from"], measured)
+        self.assertEqual(chart["labels"][chart["forecast_from"]],
+                         ctx["predictive"]["forecast"][0]["label"])
 
 
 class GovernedSpecialistsTestCase(unittest.TestCase):

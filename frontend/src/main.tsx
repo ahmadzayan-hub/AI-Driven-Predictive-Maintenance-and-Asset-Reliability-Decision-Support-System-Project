@@ -2,6 +2,14 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './app/App'
 import { StoreProvider } from './app/store'
+// Design system v2 (ADR 0023): the faces are bundled with the app, Latin
+// subsets only, so they are cached offline and never fetched from a third
+// party. Arabic text uses the system stack set in tokens.css.
+import '@fontsource/fira-sans/latin-400.css'
+import '@fontsource/fira-sans/latin-500.css'
+import '@fontsource/fira-sans/latin-600.css'
+import '@fontsource/fira-code/latin-400.css'
+import '@fontsource/fira-code/latin-500.css'
 import './shared/styles/tokens.css'
 import './shared/styles/base.css'
 import './shared/styles/app.css'

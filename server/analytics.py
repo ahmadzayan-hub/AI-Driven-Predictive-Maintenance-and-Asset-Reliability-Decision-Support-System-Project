@@ -2362,6 +2362,9 @@ def visuals(ctx):
                                      f"{measure}: التاريخ والتوقع"),
                        "labels": list(prep["trend"].keys()) + [f["label"] for f in forecast],
                        "values": list(prep["trend"].values()) + [f["value"] for f in forecast],
+                       # The index of the first projected point, so a chart can
+                       # draw the boundary rather than leave it to the alt text.
+                       "forecast_from": measured,
                        "source": "preparer.trend + predictive.forecast",
                        "alt": _say(ctx,
                                    f"Line chart of {measure} over {measured} measured "

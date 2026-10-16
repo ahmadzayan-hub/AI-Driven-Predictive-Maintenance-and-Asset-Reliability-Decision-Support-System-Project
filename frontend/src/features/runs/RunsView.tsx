@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useI18n } from '../../i18n'
 import { api, ApiError } from '../../shared/api'
+import { barGeometry } from '../../shared/charts'
 import { Icon } from '../../shared/components/Icon'
 import { questionLabel, stateLabel, typeLabel } from '../../shared/labels'
 import type { ChartSpec, Pipelines, RunDetail, RunSummary } from '../../shared/types'
@@ -8,22 +9,22 @@ import type { ChartSpec, Pipelines, RunDetail, RunSummary } from '../../shared/t
 const ACTIVE_STATES = ['queued', 'running']
 
 function BarChart({ chart }: { chart: ChartSpec }) {
-  const max = Math.max(...chart.values, 1)
   const barWidth = 100 / chart.values.length
+  const { zero, bars } = barGeometry(chart.values)
   return (
     <svg viewBox="0 0 100 58" role="img" aria-label={chart.alt} className="runchart__svg">
-      {chart.values.map((value, index) => (
+      {bars.map((bar, index) => (
         <rect
           key={chart.labels[index]}
           x={index * barWidth + barWidth * 0.15}
-          y={50 - (value / max) * 46}
+          y={bar.y}
           width={barWidth * 0.7}
-          height={(value / max) * 46}
+          height={bar.height}
           rx="1"
-          fill="var(--accent-solid)"
+          fill={bar.negative ? 'var(--highlight)' : 'var(--accent-solid)'}
         />
       ))}
-      <line x1="0" y1="50" x2="100" y2="50" stroke="var(--border-strong)" strokeWidth="0.5" />
+      <line x1="0" y1={zero} x2="100" y2={zero} stroke="var(--border-strong)" strokeWidth="0.5" />
       {chart.labels.map((label, index) => (
         <text
           key={label}
@@ -41,19 +42,48 @@ function BarChart({ chart }: { chart: ChartSpec }) {
 }
 
 function LineChart({ chart }: { chart: ChartSpec }) {
+  const { t } = useI18n()
   const max = Math.max(...chart.values, 1)
   const min = Math.min(...chart.values, 0)
   const span = max - min || 1
-  const points = chart.values
-    .map((value, index) => {
-      const x = (index / Math.max(chart.values.length - 1, 1)) * 96 + 2
-      const y = 48 - ((value - min) / span) * 42
-      return `${x},${y}`
-    })
-    .join(' ')
+  const xy = chart.values.map((value, index) => ({
+    x: (index / Math.max(chart.values.length - 1, 1)) * 96 + 2,
+    y: 48 - ((value - min) / span) * 42,
+  }))
+  const join = (list: { x: number; y: number }[]) => list.map((p) => `${p.x},${p.y}`).join(' ')
+  // A projection is drawn dashed from the last measured point onwards, with
+  // the boundary marked and named, so nobody reads it as a measurement.
+  const from = chart.forecast_from
+  const split = from !== undefined && from > 0 && from < xy.length
+  const history = split ? xy.slice(0, from) : xy
+  const projection = split ? xy.slice(from - 1) : []
+  const boundaryX = split ? xy[from - 1].x : 0
   return (
     <svg viewBox="0 0 100 58" role="img" aria-label={chart.alt} className="runchart__svg">
-      <polyline points={points} fill="none" stroke="var(--accent-solid)" strokeWidth="1.4" />
+      <polyline points={join(history)} fill="none" stroke="var(--accent-solid)" strokeWidth="1.4" />
+      {split ? (
+        <>
+          <polyline
+            points={join(projection)}
+            fill="none"
+            stroke="var(--accent-solid)"
+            strokeWidth="1.4"
+            strokeDasharray="2.4 1.6"
+          />
+          <line
+            x1={boundaryX}
+            y1="4"
+            x2={boundaryX}
+            y2="50"
+            stroke="var(--text-faint)"
+            strokeWidth="0.4"
+            strokeDasharray="1 1"
+          />
+          <text x={boundaryX + 1} y="7" fontSize="3.2" fill="var(--text-faint)">
+            {t('runs.forecast')}
+          </text>
+        </>
+      ) : null}
       <line x1="0" y1="50" x2="100" y2="50" stroke="var(--border-strong)" strokeWidth="0.5" />
       <text x="2" y="56" fontSize="3.4" fill="var(--text-faint)">
         {chart.labels[0]}
@@ -89,10 +119,16 @@ function nextTabIndex(key: string, current: number, count: number, rtl: boolean)
   return null
 }
 
+/** What another view asked the form to start with: the upload fields
+ *  open, or a dataset already stored on the server. The view is mounted
+ *  afresh on each visit, so the preset seeds its first render. */
+export type RunPreset = { kind: 'upload' } | { kind: 'stored'; id: string; name: string }
+
 interface RunsViewProps {
   /** A run to open on arrival — the one the assistant just started. */
   openRunId?: string | null
   openNonce?: number
+  preset?: RunPreset | null
 }
 
 /** The custom stages a profile includes, by title, for the picker's help. */
@@ -104,12 +140,18 @@ function stageTitles(pipelines: Pipelines, profile: string): string[] {
   })
 }
 
-export function RunsView({ openRunId = null, openNonce = 0 }: RunsViewProps) {
-  const { t, tx, plural, isRtl, locale } = useI18n()
+export function RunsView({ openRunId = null, openNonce = 0, preset = null }: RunsViewProps) {
+  const { t, tx, plural, isRtl, locale, formatNumber } = useI18n()
   const [runs, setRuns] = useState<RunSummary[]>([])
   const [run, setRun] = useState<RunDetail | null>(null)
-  const [goal, setGoal] = useState(() => t('runs.goalDefault'))
-  const [useUpload, setUseUpload] = useState(false)
+  // A stored dataset is analysed by reference: nothing is sent again.
+  const [stored, setStored] = useState(() =>
+    preset?.kind === 'stored' ? { id: preset.id, name: preset.name } : null,
+  )
+  const [goal, setGoal] = useState(() =>
+    preset?.kind === 'stored' ? t('runs.goalStored', { name: preset.name }) : t('runs.goalDefault'),
+  )
+  const [useUpload, setUseUpload] = useState(() => preset?.kind === 'upload')
   const [csvDraft, setCsvDraft] = useState('')
   const [fileName, setFileName] = useState<string | null>(null)
   // Stepping stops for two different reasons: the user paused the run
@@ -213,14 +255,16 @@ export function RunsView({ openRunId = null, openNonce = 0 }: RunsViewProps) {
     setBusy(true)
     setErrorMessage(null)
     try {
+      const pasted = !stored && useUpload && csvDraft.trim()
       const detail = await api.createRun(
         goal.trim(),
-        useUpload && csvDraft.trim() ? csvDraft : undefined,
-        useUpload && csvDraft.trim() ? (fileName ?? t('runs.pastedName')) : undefined,
+        pasted ? csvDraft : undefined,
+        pasted ? (fileName ?? t('runs.pastedName')) : undefined,
         profile || undefined,
         // The report is written in the reader's language, and stays in it:
         // switching the interface later does not rewrite an approved artifact.
         locale,
+        stored?.id,
       )
       setRun(detail)
       setStoppedByError(false)
@@ -287,26 +331,49 @@ export function RunsView({ openRunId = null, openNonce = 0 }: RunsViewProps) {
                 <span className="field__label" id="dataset-label">
                   {t('runs.dataset')}
                 </span>
-                <div className="segmented" role="group" aria-labelledby="dataset-label">
-                  <button
-                    type="button"
-                    className="segmented__option"
-                    aria-pressed={!useUpload}
-                    onClick={() => setUseUpload(false)}
-                  >
-                    {t('runs.sample')}
-                  </button>
-                  <button
-                    type="button"
-                    className="segmented__option"
-                    aria-pressed={useUpload}
-                    onClick={() => setUseUpload(true)}
-                  >
-                    {t('runs.upload')}
-                  </button>
-                </div>
+                {stored ? (
+                  <div className="chosen" role="group" aria-labelledby="dataset-label">
+                    <Icon name="database" size={18} />
+                    <span className="chosen__body">
+                      <span className="chosen__name" dir="auto">
+                        {stored.name}
+                      </span>
+                      <span className="field__help">{t('runs.storedHelp')}</span>
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn--subtle"
+                      onClick={() => {
+                        setStored(null)
+                        setGoal(t('runs.goalDefault'))
+                      }}
+                      disabled={busy}
+                    >
+                      {t('runs.storedChange')}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="segmented" role="group" aria-labelledby="dataset-label">
+                    <button
+                      type="button"
+                      className="segmented__option"
+                      aria-pressed={!useUpload}
+                      onClick={() => setUseUpload(false)}
+                    >
+                      {t('runs.sample')}
+                    </button>
+                    <button
+                      type="button"
+                      className="segmented__option"
+                      aria-pressed={useUpload}
+                      onClick={() => setUseUpload(true)}
+                    >
+                      {t('runs.upload')}
+                    </button>
+                  </div>
+                )}
               </div>
-              {useUpload ? (
+              {useUpload && !stored ? (
                 <>
                   <div className="field">
                     <label className="field__label" htmlFor="run-file">
@@ -570,6 +637,32 @@ export function RunsView({ openRunId = null, openNonce = 0 }: RunsViewProps) {
                     {chart.title}
                   </figcaption>
                   {chart.type === 'bar' ? <BarChart chart={chart} /> : <LineChart chart={chart} />}
+                  {/* The same numbers as a table: nobody has to read a
+                      value off a bar, and a screen reader gets every one. */}
+                  <details className="runchart__data" dir={isRtl ? 'rtl' : 'ltr'}>
+                    <summary>{t('runs.chartData')}</summary>
+                    <table className="datatable">
+                      <thead>
+                        <tr>
+                          <th scope="col">{t('runs.chartLabel')}</th>
+                          <th scope="col">{t('runs.chartValue')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {chart.labels.map((label, index) => (
+                          <tr key={label}>
+                            <th scope="row" dir="auto">
+                              {label}
+                              {chart.forecast_from !== undefined && index >= chart.forecast_from
+                                ? ` (${t('runs.forecast')})`
+                                : ''}
+                            </th>
+                            <td>{formatNumber(chart.values[index])}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </details>
                 </figure>
               ))}
             </div>

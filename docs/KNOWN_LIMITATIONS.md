@@ -231,3 +231,11 @@ required local files. Both behaviors are covered by tests
     are not in `requirements.txt` and CI does not install them; their
     tests skip there, and the versions verified are the ones in the
     ADR's table.
+20. The Overview and Datasets views (ADR 0023) read existing endpoints
+    and nothing more. The Overview's counts cover the 50 most recent
+    analyses that `GET /api/runs` returns, and the view says so when
+    the list is full; the Datasets view lists the 50 most recent
+    datasets. Neither view has an address of its own yet: the browser's
+    back button and a shared link always land on the assistant. Deep
+    links are phase 2 of `docs/UI_PLAN.md`. On a phone the header has
+    room for only the first letters of the agent's name.

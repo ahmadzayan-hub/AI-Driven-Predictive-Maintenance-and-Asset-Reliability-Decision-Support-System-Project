@@ -51,4 +51,25 @@ describe('api client', () => {
     mockFetchOnce({ ok: false, status: 500, json: () => Promise.reject(new Error('not json')) })
     await expect(api.health()).rejects.toMatchObject({ message: 'Request failed (500).' })
   })
+
+  it('analyses a stored dataset by its id and sends no file text', async () => {
+    mockFetchOnce({ json: () => Promise.resolve({ id: 'r1' }) })
+    await api.createRun('Analyse it', 'a,b\n1,2', 'local.csv', undefined, 'ar', 'ds1')
+    const [path, init] = vi.mocked(fetch).mock.calls[0]
+    expect(path).toBe('/api/runs')
+    expect(JSON.parse(String(init?.body))).toEqual({
+      goal: 'Analyse it',
+      dataset_text: null,
+      dataset_name: null,
+      dataset_id: 'ds1',
+      profile: null,
+      language: 'ar',
+    })
+  })
+
+  it('lists the stored datasets', async () => {
+    mockFetchOnce({ json: () => Promise.resolve({ datasets: [] }) })
+    await expect(api.listDatasets()).resolves.toEqual({ datasets: [] })
+    expect(vi.mocked(fetch).mock.calls[0][0]).toBe('/api/datasets')
+  })
 })

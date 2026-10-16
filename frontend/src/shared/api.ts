@@ -1,6 +1,7 @@
 import { translate } from '../i18n'
 import type {
   AuthConfig,
+  DatasetSummary,
   ExportPayload,
   IdentityInfo,
   Pipelines,
@@ -153,23 +154,28 @@ export const api = {
   exportData: (id: string) => request<ExportPayload>(`/api/sessions/${id}/export`),
   clearMemory: (id: string) =>
     request<OperationResult>(`/api/sessions/${id}/memory`, { method: 'DELETE' }),
+  /** `datasetId` analyses a dataset already stored for this owner, so a
+   *  file is never sent twice; it takes the place of `datasetText`. */
   createRun: (
     goal: string,
     datasetText?: string,
     datasetName?: string,
     profile?: string,
     language: 'en' | 'ar' = 'en',
+    datasetId?: string,
   ) =>
     request<RunDetail>('/api/runs', {
       method: 'POST',
       body: JSON.stringify({
         goal,
-        dataset_text: datasetText ?? null,
-        dataset_name: datasetName ?? null,
+        dataset_text: datasetId ? null : (datasetText ?? null),
+        dataset_name: datasetId ? null : (datasetName ?? null),
+        dataset_id: datasetId ?? null,
         profile: profile || null,
         language,
       }),
     }),
+  listDatasets: () => request<{ datasets: DatasetSummary[] }>('/api/datasets'),
   pipelines: () => request<Pipelines>('/api/pipelines'),
   listRuns: () => request<{ runs: RunSummary[] }>('/api/runs'),
   usage: () => request<Usage>('/api/usage'),

@@ -1,7 +1,9 @@
 /* Agentic OS service worker: cache-first for immutable hashed assets,
    network-only for the API (session data must never be cached), and a
    network-first app shell so updates arrive on the next load. */
-const CACHE = 'aos-v1'
+// Bumped with design system v2 (ADR 0023): the icons are cached first and
+// would otherwise keep the old colours on returning devices.
+const CACHE = 'aos-v2'
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(['/'])))

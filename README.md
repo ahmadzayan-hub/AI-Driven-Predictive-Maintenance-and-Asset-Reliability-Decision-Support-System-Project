@@ -12,12 +12,20 @@ environment — not a replacement for Windows, macOS, or Linux.
 
 ![Agentic OS — the same workspace in Arabic, right-to-left](docs/screenshots/desktop-chat-arabic-dark.png)
 
+![Agentic OS — the Overview: key figures, the latest findings and the approval queue](docs/screenshots/desktop-overview-light.png)
+
 ## Main Features
 
 - **Web workspace** — a responsive React application with a greeting hero,
   conversation view, centered command search and palette (Ctrl/⌘+K),
   activity timeline with session health, onboarding, and a token-based
   design system with dark, light, and system themes
+- **Overview and Datasets** — the Overview shows the key figures, the
+  latest findings in their report's language, what waits for approval and
+  the newest analyses; the Datasets view lists every stored dataset and
+  analyses one again by reference, without uploading it twice. The
+  interface is planned in `docs/UI_PLAN.md` and its design system is
+  generated with the vendored `ui-ux-pro-max` skill (ADR 0023)
 - **Command-line interface** — the original `python main.py` experience,
   fully preserved and dependency-free
 - **One brain, two faces** — both interfaces drive the same tested Python
@@ -275,10 +283,10 @@ python main.py
 # repository's operating system: brain checker and session hooks (646 tests)
 python -m unittest discover tests
 
-# Frontend unit tests (37 tests)
+# Frontend unit tests (52 tests)
 cd frontend && npm test
 
-# End-to-end + accessibility (52 checks across desktop and mobile,
+# End-to-end + accessibility (60 checks across desktop and mobile,
 # in English and Arabic;
 # requires the production build: npm run build)
 cd frontend && npx playwright test
@@ -292,8 +300,8 @@ every push, including the run-engine and backup suites against a real
 PostgreSQL 16 service. Last verified: 646 Python tests (630 run in CI;
 the 11 that need an optional agent framework or the MCP SDK, and the 5
 that need LLMRouter, skip there),
-37 frontend unit tests, and 52 end-to-end checks (51 executed, 1
-desktop-only check skipped on the mobile project). In environments with a pre-installed
+52 frontend unit tests, and 60 end-to-end checks (57 executed; 3
+skipped by design, because each covers one viewport only). In environments with a pre-installed
 browser, point Playwright at it:
 `PLAYWRIGHT_EXECUTABLE_PATH=/path/to/chromium npx playwright test`.
 

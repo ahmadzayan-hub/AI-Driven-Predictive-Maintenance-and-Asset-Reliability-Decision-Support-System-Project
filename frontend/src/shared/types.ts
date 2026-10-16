@@ -141,6 +141,9 @@ export interface ChartSpec {
   labels: string[]
   values: number[]
   alt: string
+  /** Index of the first forecast point on a history-and-forecast line;
+   *  absent on charts that are all measurement. */
+  forecast_from?: number
 }
 
 export interface RunDetail {
@@ -184,6 +187,16 @@ export interface RunSummary {
   state: RunState
   created_at: string
   updated_at: string
+}
+
+/** A dataset stored for this owner, from GET /api/datasets: the newest
+ *  50, content-addressed, so an identical file appears once. */
+export interface DatasetSummary {
+  id: string
+  sha256: string
+  name: string
+  byte_size: number
+  created_at: string
 }
 
 /** Registered custom stages and the profiles that choose among them,
