@@ -5,7 +5,7 @@ Third-party skill, vendored so every teammate's Claude Code session has the same
 | | |
 | --- | --- |
 | Source | <https://github.com/nextlevelbuilder/ui-ux-pro-max-skill>, folder `.claude/skills/ui-ux-pro-max/` |
-| Commit | `56ea9cf174ed86786187daa9de0e6247cb0747e4` (2026-10-14) |
+| Commit | `56ea9cf174ed86786187daa9de0e6247cb0747e4` (2026-10-15), still the upstream HEAD when re-cloned on 2026-10-16 |
 | Licence | MIT, copied unchanged into `LICENSE` here |
 | Vendored | 2026-10-16 |
 
@@ -24,6 +24,10 @@ Third-party skill, vendored so every teammate's Claude Code session has the same
 
 - The persisted design system is `design-system/agentic-os/MASTER.md`. Its "Agentic OS decisions" section overrides the generated values: Arabic support, existing contrast results, the chart rules.
 - How the UI is planned and built is in `docs/UI_PLAN.md`.
+
+## The other skills from the same repository
+
+Vendored on 2026-10-16 at the user's request, each with its own `PROVENANCE.md` and review notes: `banner-design`, `brand`, `design`, `design-system`, `slides` and `ui-styling`. Three of `design`'s scripts call third-party image services when given an API key, and `ui-styling` can run `npx shadcn`; neither applies to the app.
 
 ## Updating
 

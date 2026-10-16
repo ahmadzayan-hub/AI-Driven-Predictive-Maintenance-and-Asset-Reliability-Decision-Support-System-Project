@@ -35,6 +35,8 @@ brain/                       Obsidian vault, entry point Home.md
   settings.json              the three hooks
   hooks/                     session_start.py · stop_gate.py · session_end.py
   skills/                    session-start · session-end · brain-maintenance
+                             design: ui-ux-pro-max · design-system · brand · ui-styling
+                             · design · banner-design · slides (third-party, see PROVENANCE.md)
   commands/ agents/          empty until a feature needs them
   plugins/README.md          how to add a plugin
   state/                     git-ignored hook state, one file per session

@@ -42,6 +42,7 @@ Full list: [brain/Soul.md](brain/Soul.md).
 - KPIs are ratios of sums, never averages of row rates ([brain/Concepts/Weighted KPIs.md](brain/Concepts/Weighted%20KPIs.md)).
 - Commit messages explain why, in a descriptive body.
 - Interface work: read `design-system/agentic-os/MASTER.md` first (its *Agentic OS decisions* section wins), then ask the vendored skill one focused question: `python3 .claude/skills/ui-ux-pro-max/scripts/search.py "<concern>" --domain ux`. Its search can miss; `references/quick-reference.md` has every rule. Components use tokens, never raw hex.
+- Seven design skills come from `nextlevelbuilder/ui-ux-pro-max-skill` at `56ea9cf`, each with a `PROVENANCE.md`. For the app, only ui-ux-pro-max and design-system's token advice apply: ui-styling's shadcn/Tailwind and slides' CDN Chart.js break ADR 0023. design's logo, identity and icon generators send prompts to Gemini, AtlasCloud or MuAPI and need a key: never give them data.
 
 ## Standing decisions
 
