@@ -16,7 +16,7 @@ The [[User]]'s goal for [[Agentic OS]]: a system that digests several datasets w
 
 | Capability | Today | Gap |
 | --- | --- | --- |
-| Ingestion | CSV only, up to 2 MB and 50,000 rows, sent inside the run request | No upload endpoint, XLSX or JSON. Since `dea3b38` the Datasets view lists stored datasets and analyses one by id |
+| Ingestion | Done as A1 (ADR 0024): CSV, TSV, Excel, JSON and JSON Lines through `POST /api/datasets`, 4 MB uploaded and 10 MB as CSV, 50,000 rows, stored once in any format; a stored-dataset picker in the Runs view | `.xls`, Parquet and connectors; choosing a sheet in the interface |
 | Several datasets | Storage keeps many, but a run takes exactly one | No joins, merges or multi-table runs |
 | Dynamic inputs | Columns typed by heuristics; the measure picked from the glossary or by name hints | No column mapping in the UI; dates need fixed column names |
 | Preparation and cleaning | Trim, drop empty and duplicate rows, null non-numbers | No imputation, outlier handling or date parsing; cleaned data cannot be downloaded |
@@ -26,7 +26,7 @@ The [[User]]'s goal for [[Agentic OS]]: a system that digests several datasets w
 
 ## Order of work
 
-1. A dataset API and a dataset picker.
+1. A dataset API and a dataset picker. Done on 2026-10-16.
 2. Column mapping, so the user chooses measures, dimensions and the date.
 3. Several datasets per run, with declared join keys and a merge stage.
 4. A cleaned-data download and an aggregates query endpoint.

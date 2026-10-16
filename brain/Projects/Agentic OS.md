@@ -5,7 +5,7 @@ tags: [project]
 status: active
 updated: 2026-10-16
 review_every_days: 14
-sources: [README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/adr/0023-the-analytics-workspace-interface.md]
+sources: [README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0024-the-dataset-api.md]
 ---
 
 # Agentic OS
@@ -21,7 +21,7 @@ The product in this repository, described in [[Identity]]: a governed business-a
 ## What it does today
 
 - Chat in English or Arabic that maps a sentence to a typed action.
-- Analyses of one CSV dataset (up to 2 MB) through the [[Governed pipeline]], sequenced by the [[Hermes orchestrator]].
+- Analyses of one dataset per run through the [[Governed pipeline]], sequenced by the [[Hermes orchestrator]]. Since ADR 0024 a dataset can be CSV, TSV, an Excel workbook, JSON or JSON Lines, up to 4 MB, read into one canonical table and stored once.
 - Reports with claims linked to calculations, published through the [[Approval gate]].
 - Optional narration through the [[Model gateway]]; extension through [[Custom stages]] and [[Agent runtimes and MCP]].
 - The bundled [[Sample sales data]] works without an upload.

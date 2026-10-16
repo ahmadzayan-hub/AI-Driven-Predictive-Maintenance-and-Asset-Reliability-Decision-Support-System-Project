@@ -100,3 +100,34 @@ The first entries were written from the commit history and the session's own rec
 - **Verified:** 52 frontend unit tests; build (JavaScript 92.9 KB, CSS 7.3 KB gzipped); 26 end-to-end checks in the accessibility, Arabic, journey and overview specs, 24 run and pass and 2 skipped by design.
 - **Decisions:** both values keep their exact previous colours, so nothing changes on screen and no contrast needed rechecking.
 - **Open / next:** A1 with ADR 0024.
+
+## 2026-10-16 · `7ba0117d` · claude/agentic-os-final-project-53j6ql (A1)
+
+**Goal:** start A1, the dataset API, with ADR 0024.
+
+- **Done:** `POST /api/datasets` reads CSV, TSV, Excel, JSON and JSON Lines into one canonical CSV with the standard library (`server/datasets.py`). Datasets record their format and shape. The Runs view has a Sample, Stored and Upload switch with a stored-dataset picker, and the Datasets view adds files. ADR 0024. All in `50babcc`.
+- **Verified:**
+    - Measured before choosing limits: the slowest stage took 2.9 s at 50,000 rows × 20 columns (5.3 MB).
+    - 699 Python tests with PostgreSQL (16 optional skips), 53 of them new.
+    - 54 frontend unit tests; typecheck and build (JavaScript 94.1 KB, CSS 7.4 KB gzipped).
+    - 66 end-to-end checks: 63 run and pass, 3 skipped by design.
+    - Docs tests, SBOM licence check and brain check all clean.
+    - CI not yet checked for `50babcc`.
+- **Decisions (ADR 0024):**
+    - A raw request body, not multipart, so no new dependency.
+    - Read workbooks with the standard library rather than openpyxl or pandas.
+    - 4 MB per upload, under Vercel's 4.5 MB request limit; 10 MB as CSV; 50,000 rows; 500 columns.
+    - Refuse non-UTF-8 CSV rather than guess an encoding.
+    - Refuse `DOCTYPE`s, and cap the XML read from a workbook.
+    - A repeat upload answers `200` with `created: false`.
+- **Defects found on the way:**
+    - Inline workbook strings would have picked up whitespace from pretty-printed XML.
+    - The CSV row cap rescanned every row each time.
+    - The Datasets list flashed to a skeleton after each upload.
+    - The three-way switch would have overflowed at 320 px.
+    - All four were fixed before the commit.
+- **Open / next:**
+    - Confirm CI on `50babcc`, including the expected 17 skips.
+    - A2, column mapping, with ADR 0025.
+    - Interface phase 2: preview, a sheet picker, deep links.
+- **Blockers:** none.

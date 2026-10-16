@@ -28,7 +28,7 @@ The course-supplied dataset behind the [[Team 3 Capstone]]: synthetic maintenanc
 
 ## Why it matters beyond the course
 
-At 2.1 MB, it is just over the 2 MB upload limit of [[Agentic OS]], and it needs exactly what the [[Analytics OS roadmap]] adds: column mapping, a dashboard and classification models. It is the obvious test case for those features, used locally and never committed.
+At 2.1 MB it was just over the old 2 MB limit of [[Agentic OS]]; since ADR 0024 it fits the 4 MB upload limit, and its 60 columns are well under the 500-column cap. It needs exactly what the [[Analytics OS roadmap]] adds: column mapping, a dashboard and classification models. It is the obvious test case for those features, used locally and never committed.
 
 ## Related
 

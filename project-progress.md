@@ -12,12 +12,13 @@ Last updated: 2026-10-16, session `7ba0117d`. The session-end skill keeps this f
     - The drafts are private documents shared with the team.
 - **Operating system for this repository: done 2026-10-16.** CLAUDE.md, Memory.md, this board, session-logs.md, the second brain in `brain/`, and session hooks and skills in `.claude/`. Next: confirm the hooks fire in a fresh session.
 - **Interface, phases 0 and 1: done 2026-10-16** (`dea3b38`, ADR 0023, plan in `docs/UI_PLAN.md`). Design system v2 generated with the vendored ui-ux-pro-max skill, bundled Fira fonts, chart fixes, and the Overview and Datasets views.
-- **Next build: A1, dataset API (ADR 0024).** It unlocks interface phase 2, adding data in several formats.
+- **A1, the dataset API: done 2026-10-16** (ADR 0024). `POST /api/datasets` reads CSV, TSV, Excel, JSON and JSON Lines into one canonical table with the standard library. Uploads go up to 4 MB, the platform's limit, and 10 MB as CSV. The Runs view has a stored-dataset picker, and the Datasets view adds files.
+- **Next build: A2, column mapping (ADR 0025)**, with the rest of interface phase 2: preview, mapping and deep links.
 
 ## Next
 
-1. A1: dataset API and upload formats, with ADR 0024 (see the milestones). Then interface phase 2: upload, preview, column mapping and deep links.
-2. A2: column mapping in the UI, used by governance and preparation.
+1. A2: column mapping with ADR 0025, used by governance and preparation; in the interface, a preview of the first rows and a mapping step, plus deep links (phase 2).
+2. A3: several datasets per run, with declared join keys.
 3. Invite the team as collaborators and protect the default branch (owner action, on GitHub).
 
 ## Analytics OS milestones
@@ -26,7 +27,7 @@ Status values: Not started, In progress, Done (date, evidence).
 
 | # | Milestone | Status | Gate to call it done |
 | --- | --- | --- | --- |
-| A1 | Dataset API: `POST /api/datasets` (multipart), CSV, XLSX and JSON parsers, larger limit, picker in the Runs view | In progress: the picker for stored datasets shipped in `dea3b38`; the API and parsers are not started | ADR; API and parser tests; e2e upload of each format |
+| A1 | Dataset API: `POST /api/datasets`, CSV, XLSX and JSON parsers, larger limit, picker in the Runs view | Done 2026-10-16: ADR 0024; 53 reader and API tests on SQLite and PostgreSQL; end-to-end upload of CSV, XLSX and JSON | ADR; API and parser tests; e2e upload of each format |
 | A2 | Column mapping: choose measures, dimensions and the date column; date parsing; replaces name heuristics | Not started | ADR; tests on mapped and unmapped data; Arabic and English UI |
 | A3 | Several datasets per run: dataset list, declared join keys, merge stage after cleaning | Not started | ADR; join-correctness tests (row counts, key coverage) |
 | A4 | Cleaned-data download and an aggregates query endpoint (filter and group-by) | Not started | Tests; tenant isolation tests on the new endpoints |
@@ -38,7 +39,7 @@ Status values: Not started, In progress, Done (date, evidence).
 
 | Area | Today | Missing |
 | --- | --- | --- |
-| Ingestion | CSV only, inside `POST /api/runs` (`server/app.py`); 2 MB and 50,000 rows (`server/analytics.py`); stored content-addressed (`server/runs.py`) | Upload endpoint, XLSX and JSON. The Datasets view lists stored datasets and analyses one by id (`dea3b38`) |
+| Ingestion | `POST /api/datasets` reads CSV, TSV, XLSX, JSON and JSON Lines (`server/datasets.py`): 4 MB uploaded, 10 MB as CSV, 50,000 rows, 500 columns; stored content-addressed with format and shape; pasted CSV still works | `.xls`, OpenDocument, Parquet, connectors; choosing a sheet in the interface; deleting a dataset |
 | Several datasets | Storage keeps many; one `dataset_id` per run | Multi-dataset runs, joins |
 | Dynamic inputs | Numeric typing at 50% and 90% parse rates; measure from the glossary or name hints (`server/metrics.py`); date column must be named month, date, period, week or year | User column mapping; date and category typing; currency and percent parsing |
 | Prep and cleaning | Trim, drop empty and duplicate rows, null non-numbers; periods sorted as strings | Imputation, outlier treatment, date parsing; cleaned data not downloadable |
@@ -52,6 +53,7 @@ Reusable foundations: the metric glossary (`metrics.json`), custom stages (ADR 0
 
 | Date | What | Evidence |
 | --- | --- | --- |
+| 2026-10-16 | A1, the dataset API: CSV, TSV, Excel, JSON and JSON Lines read into one canonical table; stored-dataset picker; uploads in the Datasets view (ADR 0024) | `50babcc`; 699 Python tests with PostgreSQL; 54 frontend unit tests; 63 of 66 end-to-end checks run and pass, 3 skipped by design |
 | 2026-10-16 | Interface phases 0 and 1: design system v2, bundled fonts, chart fixes, Overview and Datasets views (ADR 0023) | `dea3b38`; 646 Python tests with PostgreSQL; 52 frontend unit tests; 57 of 60 end-to-end checks run and pass, 3 skipped by design |
 | 2026-10-16 | Operating system for the repository: tracking files, second brain, hooks and skills | 646 Python tests with PostgreSQL, 30 of them new; brain check strict-clean |
 | 2026-10-16 | Repository opened to the team: CONTRIBUTING.md, PR template, `private/` ignored | `7091b76`; CI run 43 green |
@@ -66,6 +68,6 @@ The earlier history is in `docs/ROADMAP.md` (tiers and gates) and `docs/adr/`.
 ## Risks and blockers
 
 - **Capstone time:** six days to submission, with the dashboard not yet built. Cut optional scope first, as the plan says.
-- **Data upload limit:** the capstone dataset is 2.1 MB, over the app's 2 MB limit, until A1 lands.
+- **Data upload limit:** resolved by A1. The capstone file (2.1 MB, 5,000 rows, 60 columns) is within the new limits; it has not been uploaded here, because course files stay out of this environment's repository.
 - **Production checks:** auth, the database and the model provider are unverified on Vercel; see `docs/KNOWN_LIMITATIONS.md`.
 - **Hooks:** they need `python3`, and they run only after a person trusts the folder in Claude Code.
