@@ -7,10 +7,10 @@ Last updated: 2026-10-16, session `7ba0117d`. The session-end skill keeps this f
 ## Now
 
 - **Capstone, due 22 Oct (upload 21 Oct):**
-    - The report and the 15-slide deck carry figures computed from the final dataset on 16 Oct, and a Power BI kit is delivered.
-    - Still open: build the `.pbix` from the kit; the team-owned `[Add]` items (screenshots, notebook names, the instructor email); owners rerunning their own figures; rehearsals on 20, 23 and 24 Oct.
+    - Release candidates built on 16 Oct and sent to the user: `Group_9226_Team_3_Report.pdf` (24 A4 pages) and `Group_9226_Team_3_Presentation.pptx` (15 slides with notes), with the Power BI kit, a submission checklist and the build scripts. Report, deck and the kit's 30 expected values reconcile.
+    - Still open: build the `.pbix` in Power BI Desktop from the kit; the team-owned items highlighted in the PDF (registration numbers, screenshots, notebook names, the instructor email); owners rerunning their own figures; rehearsals on 20, 23 and 24 Oct.
     - The drafts are private documents shared with the team.
-- **Operating system for this repository: done 2026-10-16.** CLAUDE.md, Memory.md, this board, session-logs.md, the second brain in `brain/`, and session hooks and skills in `.claude/`. Next: confirm the hooks fire in a fresh session.
+- **Operating system for this repository: done 2026-10-16.** CLAUDE.md, `AGENTS.md` for other coding agents, Memory.md, this board, session-logs.md, the second brain in `brain/`, session hooks and skills in `.claude/`, and `scripts/verify.py` with its `verify` skill. The SessionStart hook fired live in this session, at its start and after each compaction.
 - **Interface, phases 0 and 1: done 2026-10-16** (`dea3b38`, ADR 0023, plan in `docs/UI_PLAN.md`). Design system v2 generated with the vendored ui-ux-pro-max skill, bundled Fira fonts, chart fixes, and the Overview and Datasets views.
 - **A1, the dataset API: done 2026-10-16** (ADR 0024). `POST /api/datasets` reads CSV, TSV, Excel, JSON and JSON Lines into one canonical table with the standard library. Uploads go up to 4 MB, the platform's limit, and 10 MB as CSV. The Runs view has a stored-dataset picker, and the Datasets view adds files.
 - **Next build: A2, column mapping (ADR 0025)**, with the rest of interface phase 2: preview, mapping and deep links.
@@ -53,6 +53,7 @@ Reusable foundations: the metric glossary (`metrics.json`), custom stages (ADR 0
 
 | Date | What | Evidence |
 | --- | --- | --- |
+| 2026-10-16 | Agentic OS setup: `AGENTS.md`, `scripts/verify.py` and the `verify` skill; the server compresses and caches the built interface as Vercel does (ADR 0023, amendment) | 719 Python tests with PostgreSQL; 54 frontend unit tests; 63 of 66 end-to-end checks pass, 3 skipped by design; Lighthouse mobile Performance 99, up from 86 to 88, and 100 for the other three |
 | 2026-10-16 | A1, the dataset API: CSV, TSV, Excel, JSON and JSON Lines read into one canonical table; stored-dataset picker; uploads in the Datasets view (ADR 0024) | `50babcc`; 699 Python tests with PostgreSQL; 54 frontend unit tests; 63 of 66 end-to-end checks run and pass, 3 skipped by design |
 | 2026-10-16 | Interface phases 0 and 1: design system v2, bundled fonts, chart fixes, Overview and Datasets views (ADR 0023) | `dea3b38`; 646 Python tests with PostgreSQL; 52 frontend unit tests; 57 of 60 end-to-end checks run and pass, 3 skipped by design |
 | 2026-10-16 | Operating system for the repository: tracking files, second brain, hooks and skills | 646 Python tests with PostgreSQL, 30 of them new; brain check strict-clean |

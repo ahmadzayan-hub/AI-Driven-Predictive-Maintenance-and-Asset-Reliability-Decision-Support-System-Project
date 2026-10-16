@@ -147,3 +147,37 @@ The first entries were written from the commit history and the session's own rec
     - No reasoning display.
 - **Open / next:** run Codex Task 1, the specification, and review it. Consider an `AGENTS.md` pointing Codex to `CLAUDE.md`.
 - **CI:** runs 48 (colour tokens) and 49 (A1, `b925fc6`) are green. Run 49's Python step reported `Ran 699 tests ... OK (skipped=18)`, not the 17 the README predicted. The extra skip is the static-files test, which needs a frontend build that CI makes later. The README was corrected to 681 run in CI.
+
+## 2026-10-16 · `7ba0117d` · claude/agentic-os-final-project-53j6ql (deliverables and setup)
+
+**Goal:** complete the Agentic OS setup for full performance, and generate the final capstone deliverables.
+
+- **Done:**
+    - Capstone release candidates, built outside the repository and sent to the user:
+        - `Group_9226_Team_3_Report.pdf`: 24 A4 pages, a cover, a contents page with real page numbers, and the quarterly downtime chart recomputed from the dataset.
+        - `Group_9226_Team_3_Presentation.pptx`: 15 slides with notes and alt text.
+        - The Power BI kit, a submission checklist and the build scripts.
+    - Reconciled report, deck and kit. All 30 expected dashboard values agree with the report; three MTBF values appear there rounded to whole hours. Every number in the deck appears in the report, exactly or abbreviated. The two illustrative gaps, 6,421 h and $17.94M, recompute from the CSV.
+    - Server compresses and caches the built interface as Vercel does, and an unmatched `/api/` path returns 404. Recorded as an ADR 0023 amendment (`a74db6c`).
+    - `AGENTS.md` for other coding agents; `scripts/verify.py` and the `verify` skill (`a74db6c`).
+- **Verified:**
+    - `python scripts/verify.py --e2e` with PostgreSQL passed all 7 steps:
+        - 719 Python tests, 16 skipped;
+        - the brain check;
+        - the type check;
+        - 54 frontend unit tests;
+        - the build;
+        - the budget: JavaScript 92.9 of 100 KB, CSS 7.3 of 10 KB, fonts 119.4 of 120 KB;
+        - end-to-end: 63 passed, 3 skipped by design.
+    - Lighthouse 13.4.1 mobile, before the change: Performance 86, 87 and 88; LCP 3.4 s.
+    - After: 99 in each of three runs, with Accessibility, Best Practices and SEO at 100; LCP 2.0 s, CLS 0. Desktop scored 100 in all four.
+    - The SessionStart hook fired live in this session (state file) and after each compaction.
+- **Decisions:**
+    - Never compress API responses. A token beside caller-chosen text is the shape BREACH needs.
+    - Leave the team-owned facts as visible highlighted items in the PDF rather than fill them in. These are the registration numbers, screenshots, notebook names and the instructor email.
+    - The `.pbix` must be saved by Power BI Desktop from the kit.
+- **Open / next:**
+    - Confirm CI on `a74db6c`; the expected Python result is 701 run, `skipped=18`.
+    - The team builds the `.pbix` and resolves the highlighted items before 21 Oct.
+    - Then A2, column mapping (ADR 0025), with code-splitting of views to recover the 43 KB of script that Lighthouse reports unused.
+- **Blockers:** the `.pbix` needs Windows and Power BI Desktop.

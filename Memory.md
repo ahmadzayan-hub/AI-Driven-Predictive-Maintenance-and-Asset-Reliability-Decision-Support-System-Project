@@ -36,6 +36,8 @@ Full list: [brain/Soul.md](brain/Soul.md).
 - **End-to-end database:** every spec and both viewports share one database, and datasets are content-addressed per owner. Give each spec its own table, accept "already stored" where it can happen, and use `exact: true` for short button names that run goals may contain.
 - **Vercel:** `vercel.json` pins `"framework": null`, because the FastAPI preset breaks the `/api` rewrites.
 - **Cloud sessions:** uploads and uncommitted files do not survive a new container. The harness's Stop hook requires everything committed and pushed.
+- **One command for every check:** `python scripts/verify.py` (`--quick`, `--e2e`; set `PG_TEST_URL` and `REQUIRE_PG=1` for PostgreSQL). Quote its PASS lines, never older counts.
+- **Lighthouse:** serve with `python scripts/serve.py --local-only --port 8011` and run `npx lighthouse` from `frontend/` with `CHROME_PATH=/opt/pw-browsers/chromium`; recipe in `.claude/skills/verify/SKILL.md`. Never `pkill -f` a pattern that also appears in your own command line: it kills the shell (exit 144).
 
 ## Conventions
 
@@ -51,8 +53,11 @@ Full list: [brain/Soul.md](brain/Soul.md).
 - Capstone: the record is the unit of analysis, and loss per downtime hour is about $2,500. The capstone documents are private and shared with the team, never committed.
 - Hooks only record and remind; skills make the edits. Brain notes are public project knowledge.
 - Interface (ADR 0023): the session opens on the assistant, with the Overview one click away; the phone bar holds five places; JavaScript at most 100 KB gzipped (92 KB at phase 1). Labels the tests rely on ("Runs", "Workspace") stay until phase 3.
+- Serving (ADR 0023 amendment): the FastAPI server gzips everything outside `/api/` and marks `/assets/` immutable, as `vercel.json` does. API responses are never compressed (BREACH). Fonts sit at 119.4 of the 120 KB budget, so a new weight needs a budget decision.
+- Other coding agents read `AGENTS.md`. Change it in the same commit as a rule in `CLAUDE.md`.
+- Capstone files are built outside the repository and sent to the user as files: the report PDF from the shared report's Markdown export with pandoc and Chromium, and the deck from slide renders. The build scripts went to the user as `Team3_Build_Tools.zip`.
 
 ## Open questions
 
 - Has the asset-ID email gone to the capstone instructors, and what was the reply?
-- Do appendices count toward the report's 25-page limit? What time does Moodle close on 22 October?
+- What time does Moodle close on 22 October? (The report is 24 pages with its appendices, so the page question no longer matters.)

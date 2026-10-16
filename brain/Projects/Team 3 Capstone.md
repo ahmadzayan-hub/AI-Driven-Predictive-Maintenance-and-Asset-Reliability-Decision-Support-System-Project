@@ -16,12 +16,13 @@ The course capstone of the [[User]]'s team: an executive analytics package on pr
 
 | Deliverable | Format | State on 2026-10-16 |
 | --- | --- | --- |
-| Executive dashboard | Power BI `.pbix` | Build kit ready: Power Query, DAX, theme, 30 expected values. Not yet built |
-| Executive presentation | `.pptx`, 12 to 15 slides | 15 slides with speaker notes and final figures |
-| Analytical report | `.pdf`, 20 to 25 pages | Full draft with computed figures; team-owned items still to add |
+| Executive dashboard | Power BI `.pbix` | Build kit ready: Power Query, DAX, theme, 30 expected values. Not yet built: only Power BI Desktop can save a `.pbix` |
+| Executive presentation | `.pptx`, 12 to 15 slides | Release candidate: 15 slides, 16:9, with speaker notes and alt text |
+| Analytical report | `.pdf`, 20 to 25 pages | Release candidate: 24 A4 pages with a cover and contents; team-owned items highlighted |
 
 - Moodle submission closes on 22 October 2026, and the team uploads on 21 October 2026 to keep a buffer.
 - The team presents to the instructors on 25 October 2026.
+- Reconciled on 16 October: all 30 expected dashboard values agree with the report, three of them rounded there to whole hours, and every number in the deck appears in the report, exactly or abbreviated. A submission checklist went to the user with the files.
 
 The plan, the report draft and the deck draft are private documents shared with the team. Roles, names and registration numbers stay there, never in this public repository.
 

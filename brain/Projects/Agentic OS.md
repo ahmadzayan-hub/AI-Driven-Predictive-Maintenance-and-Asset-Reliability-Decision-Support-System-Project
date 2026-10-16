@@ -5,7 +5,7 @@ tags: [project]
 status: active
 updated: 2026-10-16
 review_every_days: 14
-sources: [README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0024-the-dataset-api.md]
+sources: [README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0024-the-dataset-api.md, scripts/verify.py]
 ---
 
 # Agentic OS
@@ -29,9 +29,8 @@ The product in this repository, described in [[Identity]]: a governed business-a
 
 ## Verified state on 2026-10-16
 
-- 646 Python tests passed against PostgreSQL, with 16 optional-library skips. That includes 30 tests for the brain checker and the session hooks.
-- After the interface work (`dea3b38`): 52 frontend unit tests passed, and 57 of 60 end-to-end checks ran and passed, with 3 skipped by design because each covers one viewport.
-- CI run 43 was green on commit `7091b76`, before the operating-system commit.
+- `python scripts/verify.py --e2e`, with PostgreSQL, passed all seven steps: 719 Python tests with 16 optional-library skips, the brain check, the type check, 54 frontend unit tests, the build, the interface budget (JavaScript 92.9 of 100 KB gzipped, fonts 119.4 of 120 KB), and 63 of 66 end-to-end checks, with 3 skipped by design.
+- Lighthouse on the self-hosted server: Performance 99 on mobile in each of three runs and 100 on desktop, with Accessibility, Best Practices and SEO at 100. Before the server compressed and cached the build, mobile Performance was 86 to 88 (ADR 0023, amendment).
 
 These counts go stale fast; `README.md` is the one place where they are maintained.
 
