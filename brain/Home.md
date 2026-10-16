@@ -30,6 +30,7 @@ The second brain of [[Agentic OS]]: what the project knows, who it serves and ho
 - [[Weighted KPIs]], the measurement rule behind every headline number
 - [[Model gateway]], [[Custom stages]] and [[Agent runtimes and MCP]], the three extension seams
 - [[Second brain]], how this vault itself is kept
+- [[Design system]], how the interface looks and behaves, and where its rules come from
 
 ## Data
 

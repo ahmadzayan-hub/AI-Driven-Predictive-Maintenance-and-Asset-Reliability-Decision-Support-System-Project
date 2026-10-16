@@ -29,7 +29,7 @@ Full list: [brain/Soul.md](brain/Soul.md).
 
 - **Python:** `python3 -m pip install -r requirements.txt`. `pip` alone may target another interpreter. If PyJWT conflicts with Debian's copy, first run `python3 -m pip install --ignore-installed PyJWT cryptography`.
 - **PostgreSQL tests:** run `service postgresql start`. In a fresh container, create the role and database first: `su postgres -c "psql -c 'create role dev login superuser'"`, then `su postgres -c "createdb -O dev agentic_test"`. Add a `host agentic_test dev 127.0.0.1/32 trust` line above the other host lines in `pg_hba.conf`, then reload. Run with `REQUIRE_PG=1 PG_TEST_URL=postgresql://dev@127.0.0.1:5432/agentic_test python -m unittest discover tests`.
-- **End-to-end tests:** build first (`npm --prefix frontend run build`), then `PLAYWRIGHT_EXECUTABLE_PATH=/opt/pw-browsers/chromium npm --prefix frontend run e2e`. The screenshots spec rewrites `docs/screenshots/`: run `git checkout -- docs/screenshots` unless updating them on purpose.
+- **End-to-end tests:** build first (`npm --prefix frontend run build`), then `PLAYWRIGHT_EXECUTABLE_PATH=/opt/pw-browsers/chromium npm --prefix frontend run e2e`. The screenshots spec rewrites `docs/screenshots/`, Overview and Datasets included, with reduced motion so no capture lands mid-transition: run `git checkout -- docs/screenshots` unless updating them on purpose.
 - **npm lockfile fixes:** `npx -y npm@latest update --package-lock-only <pkg>`. npm 10.9's `audit fix` crashes, and `--legacy-peer-deps` silently drops `@testing-library/dom`.
 - **Docs are tested:** `tests/test_docs.py` checks pipeline counts and the dataset limits quoted in README and user_guide. Write "72 megabytes", not "72 MB", in README.
 - **Vercel:** `vercel.json` pins `"framework": null`, because the FastAPI preset breaks the `/api` rewrites.
@@ -41,11 +41,13 @@ Full list: [brain/Soul.md](brain/Soul.md).
 - Every user-facing string exists in English and Arabic (`frontend/src/i18n/`, `assistant.py`).
 - KPIs are ratios of sums, never averages of row rates ([brain/Concepts/Weighted KPIs.md](brain/Concepts/Weighted%20KPIs.md)).
 - Commit messages explain why, in a descriptive body.
+- Interface work: read `design-system/agentic-os/MASTER.md` first (its *Agentic OS decisions* section wins), then ask the vendored skill one focused question: `python3 .claude/skills/ui-ux-pro-max/scripts/search.py "<concern>" --domain ux`. Its search can miss; `references/quick-reference.md` has every rule. Components use tokens, never raw hex.
 
 ## Standing decisions
 
 - Capstone: the record is the unit of analysis, and loss per downtime hour is about $2,500. The capstone documents are private and shared with the team, never committed.
 - Hooks only record and remind; skills make the edits. Brain notes are public project knowledge.
+- Interface (ADR 0023): the session opens on the assistant, with the Overview one click away; the phone bar holds five places; JavaScript at most 100 KB gzipped (92 KB at phase 1). Labels the tests rely on ("Runs", "Workspace") stay until phase 3.
 
 ## Open questions
 

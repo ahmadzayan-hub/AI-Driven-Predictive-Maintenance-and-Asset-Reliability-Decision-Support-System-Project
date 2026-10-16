@@ -1,0 +1,33 @@
+---
+type: concept
+aliases: [Design system v2, UI design system, ui-ux-pro-max]
+tags: [interface, design]
+status: active
+updated: 2026-10-16
+review_every_days: 30
+sources: [docs/adr/0023-the-analytics-workspace-interface.md, docs/UI_PLAN.md, design-system/agentic-os/MASTER.md, frontend/src/shared/styles/tokens.css, .claude/skills/ui-ux-pro-max/PROVENANCE.md]
+---
+
+# Design system
+
+How the interface of [[Agentic OS]] looks and behaves, and where those choices come from. It turns the [[Analytics OS roadmap]] into screens a reader in either language can use.
+
+## Facts
+
+- Generated on 2026-10-16 by the vendored `ui-ux-pro-max` skill (MIT, commit `56ea9cf`) and kept in `design-system/agentic-os/MASTER.md`. The file's *Agentic OS decisions* section overrides the generated values (ADR 0023).
+- Palette: navy and blue for actions (`#1e40af` light, `#2563eb` dark). Amber (`#b45309`, `#fbbf24`) is only a highlight, for example the tile showing runs waiting at the [[Approval gate]]. Every text pairing measures 4.5:1 or better and every control border 3:1 or better, in both themes.
+- Type: Fira Sans for text and Fira Code for figures, bundled from `@fontsource` (OFL-1.1, Latin only, about 119 KB in five WOFF2 files). Arabic keeps the system stack, because Fira has no Arabic letters.
+- Charts stay hand-drawn SVG: bars from a zero line, a marked forecast boundary, and a table of the numbers under each chart. Figures follow [[Weighted KPIs]].
+- Navigation: the sidebar groups *Analyse* (Overview, Datasets, Runs) and *Work with* (Workspace, Memory, Activity). A phone's bar holds five places, the last being *More*.
+- Budgets: JavaScript at most 100 KB gzipped (92 KB at phase 1), CSS at most 10 KB (7 KB), fonts at most 120 KB.
+- Phases 0 and 1 of `docs/UI_PLAN.md` shipped in `dea3b38`. Phases 2 to 6 wait on milestones A1 to A7.
+
+## How to use it
+
+Read the master file, then ask the skill one focused question with `python3 .claude/skills/ui-ux-pro-max/scripts/search.py "<concern>" --domain ux`. Its advice never overrides [[Soul]]: no third-party requests, no fabricated screenshots, and every string in English and Arabic.
+
+## Related
+
+- [[Home]]
+- [[Identity]], whose two languages the interface serves equally.
+- [[Decision log]], for ADR 0023 and the ADR 0018 accessibility bar it keeps.

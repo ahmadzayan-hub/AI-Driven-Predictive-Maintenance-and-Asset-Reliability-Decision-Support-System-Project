@@ -5,7 +5,7 @@ tags: [project]
 status: active
 updated: 2026-10-16
 review_every_days: 14
-sources: [README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md]
+sources: [README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/adr/0023-the-analytics-workspace-interface.md]
 ---
 
 # Agentic OS
@@ -25,11 +25,12 @@ The product in this repository, described in [[Identity]]: a governed business-a
 - Reports with claims linked to calculations, published through the [[Approval gate]].
 - Optional narration through the [[Model gateway]]; extension through [[Custom stages]] and [[Agent runtimes and MCP]].
 - The bundled [[Sample sales data]] works without an upload.
+- An Overview of key figures, the latest findings and the approval queue, and a Datasets view that analyses a stored dataset again by reference. Both follow the [[Design system]].
 
 ## Verified state on 2026-10-16
 
 - 646 Python tests passed against PostgreSQL, with 16 optional-library skips. That includes 30 tests for the brain checker and the session hooks.
-- 37 frontend unit tests and 52 end-to-end checks passed (51 run, 1 desktop-only skip).
+- After the interface work (`dea3b38`): 52 frontend unit tests passed, and 57 of 60 end-to-end checks ran and passed, with 3 skipped by design because each covers one viewport.
 - CI run 43 was green on commit `7091b76`, before the operating-system commit.
 
 These counts go stale fast; `README.md` is the one place where they are maintained.

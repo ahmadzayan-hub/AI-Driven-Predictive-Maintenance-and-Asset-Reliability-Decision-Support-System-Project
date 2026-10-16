@@ -63,3 +63,21 @@ The first entries were written from the commit history and the session's own rec
     - The inspection pilot starts with the free condition-score ranking, because the model only matches it in the top 10% of the queue (85% against 86%).
 - **Open / next:** build the `.pbix` from the kit; team-owned `[Add]` items; owners rerun their figures; A1 dataset API with ADR 0023; confirm the hooks fire in a fresh session.
 - **Blockers:** inviting collaborators is an owner action on GitHub. Power BI Desktop is needed for the `.pbix`.
+
+## 2026-10-16 · `7ba0117d` · claude/agentic-os-final-project-53j6ql
+
+**Goal:** plan the user interface and build it with the ui-ux-pro-max skill.
+
+- **Done:**
+    - Vendored the ui-ux-pro-max skill (MIT, commit `56ea9cf`, with `PROVENANCE.md`) and generated the design system into `design-system/agentic-os/`, with repository overrides. Wrote `docs/UI_PLAN.md` (phases 0 to 6, mapped to milestones A1 to A7) and ADR 0023.
+    - Phase 0: tokens v2 (navy and blue, amber highlight), bundled Fira Sans and Fira Code, flat brand mark and icons, negative bars from a zero line, a marked forecast boundary (`forecast_from` from the server), and a table of the numbers under every chart.
+    - Phase 1: the Overview (key figures, latest findings in their report's language, the approval queue, recent analyses) and the Datasets view (Analyse runs a stored dataset by `dataset_id`). Grouped sidebar; a phone bar of five places with *More*. All strings in English and Arabic.
+    - Screenshot spec now captures the new views, with reduced motion; screenshots regenerated. All in `dea3b38`.
+- **Verified:** 646 Python tests with PostgreSQL (16 optional skips); docs tests; 52 frontend unit tests; typecheck and build (JavaScript 92 KB gzipped, CSS 7 KB); 60 end-to-end checks, 57 run and pass and 3 skipped by design; axe clean on the new views in English and Arabic; no overflow at 320 px; SBOM licence check clean; brain check strict-clean. CI not yet checked for `dea3b38`.
+- **Decisions:**
+    - The session still opens on the assistant; the Overview is one click away (ADR 0023).
+    - The JavaScript budget rises from 90 KB to 100 KB gzipped, to leave room for phases 2 and 3.
+    - The skill's advice never overrides the repository's rules. Its generated `#DBEAFE` border (about 1.2:1), its GSAP motion and its landing-page pattern were overridden.
+    - The dataset API's record becomes ADR 0024.
+- **Open / next:** confirm CI on `dea3b38`; A1 dataset API with ADR 0024, then interface phase 2 (upload formats, preview, column mapping, deep links). The phone header truncates the agent's name (pre-existing, recorded in KNOWN_LIMITATIONS).
+- **Blockers:** none.
