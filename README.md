@@ -304,18 +304,20 @@ cd frontend && npm run typecheck
 
 The same suite runs automatically in CI (`.github/workflows/ci.yml`) on
 every push, including the run-engine and backup suites against a real
-PostgreSQL 16 service. Last verified: 699 Python tests (682 run in CI;
+PostgreSQL 16 service. Last verified: 699 Python tests (681 run in CI;
 the 11 that need an optional agent framework or the MCP SDK, the 5 that
-need LLMRouter, and the 1 that cross-checks workbooks with openpyxl skip
-there),
+need LLMRouter, the 1 that cross-checks workbooks with openpyxl, and the
+1 that needs the frontend build, which CI makes after the Python step,
+skip there),
 54 frontend unit tests, and 66 end-to-end checks (63 executed; 3
 skipped by design, because each covers one viewport only). In environments with a pre-installed
 browser, point Playwright at it:
 `PLAYWRIGHT_EXECUTABLE_PATH=/path/to/chromium npx playwright test`.
 
 Five of the 699 load real LLMRouter routers and **skip unless LLMRouter
-is installed**, which in CI it is not. With the eleven framework tests
-and the openpyxl cross-check, CI reports `OK (skipped=17)`, and that is
+is installed**, which in CI it is not. With the eleven framework tests,
+the openpyxl cross-check and the static-files test that needs the
+frontend build, CI reports `OK (skipped=18)` (CI run 49), and that is
 the expected result, not a gap. The other 22 routing tests
 never import it and always run. Both readings were verified: with the
 library and the optional frameworks (ADR 0021) installed, nothing

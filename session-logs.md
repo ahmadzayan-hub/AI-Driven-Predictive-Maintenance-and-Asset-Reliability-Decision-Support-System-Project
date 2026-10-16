@@ -145,4 +145,5 @@ The first entries were written from the commit history and the session's own rec
     - Take the patterns, not the packages: no CopilotKit, AI Elements or shadcn/ui, per ADR 0023.
     - The run engine stays polling. The interface gets an AG-UI-shaped client adapter, so a streaming transport could replace polling later without UI changes.
     - No reasoning display.
-- **Open / next:** run Codex Task 1, the specification, and review it. Consider an `AGENTS.md` pointing Codex to `CLAUDE.md`. Confirm CI on `50babcc`.
+- **Open / next:** run Codex Task 1, the specification, and review it. Consider an `AGENTS.md` pointing Codex to `CLAUDE.md`.
+- **CI:** runs 48 (colour tokens) and 49 (A1, `b925fc6`) are green. Run 49's Python step reported `Ran 699 tests ... OK (skipped=18)`, not the 17 the README predicted. The extra skip is the static-files test, which needs a frontend build that CI makes later. The README was corrected to 681 run in CI.
