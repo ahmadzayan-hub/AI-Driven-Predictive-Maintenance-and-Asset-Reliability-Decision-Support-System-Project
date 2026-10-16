@@ -45,3 +45,27 @@ The user asked for the UI to be planned and built with the `ui-ux-pro-max` skill
 - A Lighthouse accessibility score below 100, or any axe violation, in either language or theme.
 - Performance below 95, or the fonts causing visible layout shift (CLS 0.1 or more).
 - Users finding Overview slower to reach their work than the chat was. If that happens, the session should open on the view last used.
+
+## Amendment, 2026-10-16: serving the build as Vercel does
+
+**Found.** A Lighthouse audit of the self-hosted server (`python scripts/serve.py`, mobile emulation, Lighthouse 13.4.1, three runs) scored Performance 86, 87 and 88, under the 95 this record sets. Accessibility, Best Practices and SEO were 100. The largest contentful paint took 3.4 s. The cause was the server, not the interface. It sent the 323 KB script and the 38 KB stylesheet uncompressed, and with no cache headers. Vercel's CDN compresses both, and `vercel.json` marks `/assets/` as immutable, so production and a self-hosted copy behaved differently.
+
+**Decided.** The FastAPI server now serves the build the way `vercel.json` does:
+
+- Responses outside `/api/` are gzip-compressed when the browser accepts it and they are over 1 KB.
+- API responses are never compressed. A response can carry a token beside text the caller chose, which is the shape a compression side channel (BREACH) needs, and the bodies are small JSON anyway.
+- `/assets/` files are sent with `Cache-Control: public, max-age=31536000, immutable`, because Vite names each one by its content hash.
+- The page, the service worker and the manifest are sent with `no-cache`, so a new build is picked up on the next visit.
+- API responses keep `no-store`.
+- An `/api/` path that no route matches now returns 404. Before this change, it returned the interface's page.
+
+**Measured after,** with the same tool and settings:
+
+| Run | Performance | Accessibility, Best Practices, SEO | LCP | CLS | TBT |
+| --- | --- | --- | --- | --- | --- |
+| Mobile (each of 3 runs) | 99 | 100 | 2.0 s | 0 | 0 to 10 ms |
+| Desktop (1 run) | 100 | 100 | 0.5 s | 0 | 0 ms |
+
+The page now transfers 151 KB. Six tests in `tests/test_api.py` cover this, using a stand-in build so that they run in CI, where the Python tests run before the frontend build.
+
+**Still open.** Lighthouse estimates 43 KB of the script is unused on the first view. Splitting views into chunks loaded on demand would recover it. That belongs with phase 2, when the views grow.

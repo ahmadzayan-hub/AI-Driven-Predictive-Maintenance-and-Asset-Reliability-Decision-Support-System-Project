@@ -164,9 +164,12 @@ environment — not a replacement for Windows, macOS, or Linux.
 - **Accessibility** — WCAG 2.2 AA verified by automated axe scans plus
   keyboard review; full keyboard operation, focus-trapped dialogs,
   reduced-motion support (system setting and in-app switch)
-- **Measured performance** — Lighthouse (mobile emulation, production
-  build): Performance 96, Accessibility 100, Best Practices 100, SEO 100;
-  LCP 2.3 s, CLS 0, TBT 0 ms
+- **Measured performance** — Lighthouse 13.4 against the self-hosted
+  server, 16 October 2026: mobile emulation scored Performance 99,
+  Accessibility 100, Best Practices 100 and SEO 100 in each of three runs
+  (LCP 2.0 s, CLS 0, TBT 0–10 ms); desktop scored 100 in all four. The
+  server compresses the interface and caches its hashed assets for a year,
+  as Vercel does in production (ADR 0023, amendment)
 
 ## Architecture
 
@@ -287,7 +290,8 @@ python main.py
 # metrics, auth, tenancy, erasure, quotas, backups, worker, recovery,
 # supply chain, launcher, routing, language, assistant, custom stages,
 # agent runtimes, MCP, frameworks, report language, datasets, docs, and
-# the repository's operating system: brain checker and session hooks (699 tests)
+# the repository's operating system: brain checker, session hooks and the
+# verify script (719 tests)
 python -m unittest discover tests
 
 # Frontend unit tests (54 tests)
@@ -300,11 +304,16 @@ cd frontend && npx playwright test
 
 # Type checking
 cd frontend && npm run typecheck
+
+# All of the above in one run, plus the brain check and the interface
+# budget, printing the real counts (--quick skips the build; --e2e adds
+# Playwright)
+python scripts/verify.py
 ```
 
 The same suite runs automatically in CI (`.github/workflows/ci.yml`) on
 every push, including the run-engine and backup suites against a real
-PostgreSQL 16 service. Last verified: 699 Python tests (681 run in CI;
+PostgreSQL 16 service. Last verified: 719 Python tests (701 run in CI;
 the 11 that need an optional agent framework or the MCP SDK, the 5 that
 need LLMRouter, the 1 that cross-checks workbooks with openpyxl, and the
 1 that needs the frontend build, which CI makes after the Python step,
@@ -314,7 +323,7 @@ skipped by design, because each covers one viewport only). In environments with 
 browser, point Playwright at it:
 `PLAYWRIGHT_EXECUTABLE_PATH=/path/to/chromium npx playwright test`.
 
-Five of the 699 load real LLMRouter routers and **skip unless LLMRouter
+Five of the 719 load real LLMRouter routers and **skip unless LLMRouter
 is installed**, which in CI it is not. With the eleven framework tests,
 the openpyxl cross-check and the static-files test that needs the
 frontend build, CI reports `OK (skipped=18)` (CI run 49), and that is

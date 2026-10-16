@@ -18,6 +18,7 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -190,8 +191,34 @@ class ApprovalIn(BaseModel):
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
+# Vite names every file under /assets by a hash of its content, so a cached
+# copy can never be stale. The page, the service worker and the manifest
+# point at the current hashes, so the browser revalidates them each visit.
+# vercel.json sets the same headers in production (ADR 0023, amendment).
+IMMUTABLE = "public, max-age=31536000, immutable"
+REVALIDATE = "no-cache"
 
-def create_app(config_path=None, env=None):
+
+class InterfaceGZip:
+    """Compress the built interface, never the API.
+
+    API responses can carry a token beside text the caller chose, which is
+    the shape a compression side channel (BREACH) needs, and they are small
+    JSON anyway. The interface is public, static and most of the bytes.
+    """
+
+    def __init__(self, app):
+        self.app = app
+        self.gzip = GZipMiddleware(app, minimum_size=1024)
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http" and not scope["path"].startswith("/api/"):
+            await self.gzip(scope, receive, send)
+        else:
+            await self.app(scope, receive, send)
+
+
+def create_app(config_path=None, env=None, dist_dir=None):
     config = load_config(config_path or PROJECT_ROOT / "config.json")
     # Fails closed: declaring production without a managed identity
     # provider raises here rather than serving data unauthenticated.
@@ -324,10 +351,17 @@ def create_app(config_path=None, env=None):
         response.headers.setdefault(
             "Permissions-Policy", "camera=(), microphone=(), geolocation=()"
         )
-        if request.url.path.startswith("/api/"):
+        path = request.url.path
+        if path.startswith("/api/"):
             # Session, memory, and export payloads are private.
             response.headers.setdefault("Cache-Control", "no-store")
+        elif path.startswith("/assets/") and response.status_code == 200:
+            response.headers.setdefault("Cache-Control", IMMUTABLE)
+        else:
+            response.headers.setdefault("Cache-Control", REVALIDATE)
         return response
+
+    app.add_middleware(InterfaceGZip)
 
     @app.exception_handler(Exception)
     async def handle_unexpected_error(request: Request, exc: Exception):
@@ -733,12 +767,15 @@ def create_app(config_path=None, env=None):
     # ------------------------------------------------------------------
     # Static frontend (production build), if present
     # ------------------------------------------------------------------
-    dist = PROJECT_ROOT / "frontend" / "dist"
+    dist = Path(dist_dir) if dist_dir else PROJECT_ROOT / "frontend" / "dist"
     if dist.is_dir():
         app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
 
         @app.get("/{full_path:path}", include_in_schema=False)
         def spa(full_path: str):
+            # An API path no route matched is a missing endpoint, not a page.
+            if full_path == "api" or full_path.startswith("api/"):
+                raise HTTPException(status_code=404, detail="Not found.")
             candidate = (dist / full_path).resolve()
             # Serve real files inside dist; anything else falls back to the
             # SPA entry point. Path-aware containment (is_relative_to on the

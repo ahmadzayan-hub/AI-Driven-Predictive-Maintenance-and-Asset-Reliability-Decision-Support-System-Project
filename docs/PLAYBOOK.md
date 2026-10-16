@@ -21,6 +21,7 @@ Two rules hold the layers together:
 
 ```text
 CLAUDE.md                    instructions Claude Code reads first
+AGENTS.md                    the same rules, short, for Codex and other agents
 Memory.md                    durable facts, under about 150 lines
 project-progress.md          Now · Next · milestones · gaps · shipped · risks
 session-logs.md              one entry per session, oldest first
@@ -34,13 +35,14 @@ brain/                       Obsidian vault, entry point Home.md
 .claude/
   settings.json              the three hooks
   hooks/                     session_start.py · stop_gate.py · session_end.py
-  skills/                    session-start · session-end · brain-maintenance
+  skills/                    session-start · session-end · brain-maintenance · verify
                              design: ui-ux-pro-max · design-system · brand · ui-styling
                              · design · banner-design · slides (third-party, see PROVENANCE.md)
   commands/ agents/          empty until a feature needs them
   plugins/README.md          how to add a plugin
   state/                     git-ignored hook state, one file per session
 scripts/brain_check.py       finds brain problems; never edits
+scripts/verify.py            runs every check and prints the real counts
 docs/PLAYBOOK.md             this file
 ```
 
@@ -50,7 +52,7 @@ docs/PLAYBOOK.md             this file
 
 1. **Start (automatic).** The SessionStart hook records the starting branch and commit in `.claude/state/`. It then briefs Claude with the *Now* section, the last log entry and the brain's health, and says whether brain maintenance is due.
 2. **Orient.** The `session-start` skill reads `Memory.md`, the board, the last log entry, `Soul.md` and `User.md`, checks Git, and states the plan in a few lines. If the user has already asked for something, that comes first.
-3. **Work.** Branch rules from `CLAUDE.md` apply. Test as you go, and commit with messages that explain why.
+3. **Work.** Branch rules from `CLAUDE.md` apply. Test as you go, and commit with messages that explain why. Before saying a change works, run `python scripts/verify.py` (the `verify` skill) and quote what it printed.
 4. **End.** The `session-end` skill:
     - appends the log entry under the session's id;
     - moves items on the board;
@@ -85,11 +87,11 @@ The hook knows it is due because that log has no section dated today.
 ### Analyse a dataset (today)
 
 1. `python scripts/serve.py`, then open `http://localhost:8000`, or use the deployment.
-2. In **Runs**, give a goal ("Why did revenue fall in Q4?") and a CSV of up to 2 MB, or use the bundled sample.
+2. In **Runs**, give a goal ("Why did revenue fall in Q4?") and a dataset: the bundled sample, one stored in **Datasets**, or a CSV, Excel, JSON or JSON Lines file of up to 4 MB (ADR 0024).
 3. The pipeline profiles, cleans, governs the measure, runs the four analytics types, validates and reports. Read the headline of each report tab, then the evidence behind each claim.
 4. Approve the publish step only after reading. The report and its run log go to `vault/`.
 
-Several datasets, column mapping, a dashboard and live data are milestones A1 to A7 on the board, not features yet.
+Column mapping, several datasets in one run, a dashboard and live data are milestones A2 to A7 on the board, not features yet.
 
 ### Build a roadmap milestone
 
@@ -97,7 +99,7 @@ Several datasets, column mapping, a dashboard and live data are milestones A1 to
 2. Write the tests that define done: the gate column on the board. They cover English and Arabic for anything user-facing.
 3. Implement. Keep the governed pipeline's guarantees: validation, provenance and the approval gate.
 4. Update `README.md` (feature list and test counts), `docs/KNOWN_LIMITATIONS.md`, and the brain note `Projects/Analytics OS roadmap.md`.
-5. Run the full suites, push, and confirm CI. Then mark the milestone Done on the board, with the date and the evidence.
+5. Run `python scripts/verify.py --e2e`, with `PG_TEST_URL` set so that the PostgreSQL tests run too. Push, and confirm CI. Then mark the milestone Done on the board, with the date and the evidence.
 
 ### Add knowledge to the brain
 
@@ -116,6 +118,10 @@ Several datasets, column mapping, a dashboard and live data are milestones A1 to
 
 Each of these is code that runs on teammates' machines. Review it like code.
 
+### Work with another coding agent
+
+Codex, Copilot and similar tools read `AGENTS.md`. It points them to `CLAUDE.md` and repeats the rules that must not be missed. They do not run the hooks or skills in `.claude/`, so they verify with `python scripts/verify.py` and write their own `session-logs.md` entry by hand. When a rule in `CLAUDE.md` changes, change `AGENTS.md` in the same commit; `tests/test_docs.py` checks that every path it names exists.
+
 ### Onboard a teammate
 
 Send them `CONTRIBUTING.md`. Once they clone the repository and trust the folder in Claude Code, their sessions get the same briefing, skills and brain. Their private notes go in `brain/private/`.
@@ -126,6 +132,7 @@ Send them `CONTRIBUTING.md`. Once they clone the repository and trust the folder
 | --- | --- |
 | No briefing at session start | Check `/hooks`, that `python3` is on the path, and that the folder is trusted. Run `echo '{}' \| python3 .claude/hooks/session_start.py` to see the output |
 | The Stop hook keeps asking for a log | Run the session-end skill, or tell Claude to stop without logging. The gate fires only once per session |
+| `verify.py` reports FAIL | It prints the end of the failing step's output. Rerun that step alone, with the command `python scripts/verify.py --list` shows, to see all of it |
 | `brain_check.py --strict` fails | It names the note and the problem. Fix links to the note that was meant, and sources to paths that exist |
 | `Memory.md` or the board contradicts the code | The code wins. Fix the record and mention it in the session log |
 | A cloud session ended before logging | Its automatic entry, if written, was lost with the container. Reconstruct it from `git log` at the next session start |

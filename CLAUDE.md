@@ -31,6 +31,7 @@ npm --prefix frontend run typecheck && npm --prefix frontend test && npm --prefi
 npm --prefix frontend run e2e                             # needs the build; restore docs/screenshots afterwards
 python scripts/serve.py                                   # app on http://localhost:8000
 python scripts/brain_check.py --strict                    # brain links, fields and sources
+python scripts/verify.py [--quick | --e2e]                # all of the above in one run, with real counts (the verify skill)
 ```
 
 ## Map
@@ -39,6 +40,7 @@ python scripts/brain_check.py --strict                    # brain links, fields 
 - `server/metrics.py`: the metric glossary. `server/stages.py`: custom stages (ADR 0020). `server/agent_runtime.py`, `server/tools.py`, `server/mcp.py`: runtimes and MCP (ADR 0021).
 - `frontend/src/features/*`: views. `frontend/src/i18n/`: English and Arabic strings. `frontend/e2e/`: Playwright tests.
 - `docs/adr/`: decisions. `docs/KNOWN_LIMITATIONS.md`: what is not done. `README.md`: the one place test counts are kept.
+- `AGENTS.md`: the same rules for Codex and other coding agents. Change it in the same commit as a rule here.
 
 ## Rules
 
