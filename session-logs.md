@@ -222,3 +222,32 @@ The first entries were written from the commit history and the session's own rec
     - A3, several datasets per run (ADR 0026).
     - Deep links and the sheet picker.
 - **Blockers:** none.
+
+## 2026-10-16 · `7ba0117d` · claude/agentic-os-final-project-53j6ql (motion skill)
+
+**Goal:** research "Claude Code motion", then install it and integrate it as a project subagent for deliverables.
+
+- **Found:**
+    - Claude Motion is Anthropic's hosted beta in claude.ai (launched 8 Oct 2026). It is on Team and Enterprise plans only, and off by default on Enterprise. It writes animation as code and exports MP4.
+    - There is no API or Claude Code route, so it cannot be installed in a repository.
+    - Community skills take the same approach, for example HTML with Playwright and ffmpeg. The one reviewed fetches third-party media at run time, so none was vendored.
+- **Done:** `550ae22`.
+    - The `.claude/skills/motion` skill:
+        - a composition in which each frame is a pure function of time;
+        - `render.mjs`, which steps frames in Chromium and encodes H.264 with ffmpeg, refuses figures without a source, and writes a poster, a review sheet and a transcript;
+        - English and Arabic examples from the sample dataset.
+    - `.claude/agents/motion-designer.md`, the first project subagent.
+    - `tests/test_motion.py`, with 7 tests.
+    - Updated `.claude/README.md`, the playbook, the README and `Memory.md`.
+- **Verified:**
+    - Both examples rendered here: 510 frames, 17 s, 1920×1080, 30 fps, yuv420p, about 60 s each.
+    - The Arabic sheet was reviewed. It is right to left, with figures isolated so the currency reads "3,583,440 US$".
+    - 776 Python tests with PostgreSQL, 16 skipped.
+    - CI runs 52 and 53 green (A2 included).
+- **Decisions:**
+    - Build locally, with no network, audio or third-party assets, rather than vendor a community skill.
+    - Course clips are rendered outside the repository.
+- **Open / next:**
+    - The capstone briefing clip is being rendered by an agent following the `motion-designer` instructions. Subagents load at session start, so `motion-designer` is callable by name from the next session.
+    - Confirm CI on `550ae22`.
+- **Blockers:** none.
