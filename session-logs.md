@@ -81,3 +81,13 @@ The first entries were written from the commit history and the session's own rec
     - The dataset API's record becomes ADR 0024.
 - **Open / next:** confirm CI on `dea3b38`; A1 dataset API with ADR 0024, then interface phase 2 (upload formats, preview, column mapping, deep links). The phone header truncates the agent's name (pre-existing, recorded in KNOWN_LIMITATIONS).
 - **Blockers:** none.
+
+## 2026-10-16 · `7ba0117d` · claude/agentic-os-final-project-53j6ql (later)
+
+**Goal:** clone the ui-ux-pro-max skills from GitHub and use them as skills.
+
+- **Done:** re-cloned `nextlevelbuilder/ui-ux-pro-max-skill`. Its HEAD is still `56ea9cf`, so the vendored ui-ux-pro-max is current. Reviewed and vendored the repository's six other skills (banner-design, brand, design, design-system, slides, ui-styling), each with its MIT licence and a `PROVENANCE.md` (`b478983`). Claude Code registered all six.
+- **Verified:** offline scripts smoke-tested from their installed paths; the design-system skill loaded through the Skill tool, and its token validator ran on `frontend/src`. It found no hardcoded colours, but a direct search found four it misses (three `rgb(5 8 18 / 0.62)` scrims, one `#fff` switch thumb in `app.css`). Project OS, docs and SBOM tests (63) pass; brain check strict-clean.
+- **Decisions:** vendor everything, unchanged. Contain the risks in documentation: design's logo, identity and icon generators call Gemini, AtlasCloud or MuAPI with an API key (`.env` is git-ignored everywhere; never give them data), and ui-styling's shadcn/Tailwind and slides' CDN Chart.js do not apply to the app (ADR 0023).
+- **Open / next:** optionally turn the four hardcoded colours into tokens (`--scrim`, `--switch-thumb`); confirm CI on `b478983`; then A1 with ADR 0024.
+- **Blockers:** none.

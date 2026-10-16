@@ -5,7 +5,7 @@ tags: [interface, design]
 status: active
 updated: 2026-10-16
 review_every_days: 30
-sources: [docs/adr/0023-the-analytics-workspace-interface.md, docs/UI_PLAN.md, design-system/agentic-os/MASTER.md, frontend/src/shared/styles/tokens.css, .claude/skills/ui-ux-pro-max/PROVENANCE.md]
+sources: [docs/adr/0023-the-analytics-workspace-interface.md, docs/UI_PLAN.md, design-system/agentic-os/MASTER.md, frontend/src/shared/styles/tokens.css, .claude/skills/ui-ux-pro-max/PROVENANCE.md, .claude/skills/design/PROVENANCE.md]
 ---
 
 # Design system
@@ -21,6 +21,7 @@ How the interface of [[Agentic OS]] looks and behaves, and where those choices c
 - Navigation: the sidebar groups *Analyse* (Overview, Datasets, Runs) and *Work with* (Workspace, Memory, Activity). A phone's bar holds five places, the last being *More*.
 - Budgets: JavaScript at most 100 KB gzipped (92 KB at phase 1), CSS at most 10 KB (7 KB), fonts at most 120 KB.
 - Phases 0 and 1 of `docs/UI_PLAN.md` shipped in `dea3b38`. Phases 2 to 6 wait on milestones A1 to A7.
+- Six more skills from the same upstream repository were vendored in `b478983`: design-system, brand, ui-styling, design, banner-design and slides. For the app only ui-ux-pro-max and design-system's token rules apply. ui-styling's shadcn/Tailwind and slides' CDN Chart.js break ADR 0023, and design's logo, identity and icon generators call third-party image services.
 
 ## How to use it
 
