@@ -18,8 +18,8 @@ The [[User]]'s goal for [[Agentic OS]]: a system that digests several datasets w
 | --- | --- | --- |
 | Ingestion | Done as A1 (ADR 0024): CSV, TSV, Excel, JSON and JSON Lines through `POST /api/datasets`, 4 MB uploaded and 10 MB as CSV, 50,000 rows, stored once in any format; a stored-dataset picker in the Runs view | `.xls`, Parquet and connectors; choosing a sheet in the interface |
 | Several datasets | Storage keeps many, but a run takes exactly one | No joins, merges or multi-table runs |
-| Dynamic inputs | Columns typed by heuristics; the measure picked from the glossary or by name hints | No column mapping in the UI; dates need fixed column names |
-| Preparation and cleaning | Trim, drop empty and duplicate rows, null non-numbers | No imputation, outlier handling or date parsing; cleaned data cannot be downloaded |
+| Dynamic inputs | Done as A2 (ADR 0025): a [[Column mapping]] per dataset, with suggested roles, every-row validation and an error summary in the Datasets view; unmapped data still uses name heuristics | Weeks and fiscal years; derived columns; more than one breakdown |
+| Preparation and cleaning | Trim, drop empty and duplicate rows, null non-numbers; mapped dates parsed into period labels | No imputation or outlier handling; cleaned data cannot be downloaded |
 | Modelling | Linear trend forecast with backtest, anomalies, contributions, causal checks, sensitivity | No classification, regression, clustering or seasonality |
 | Visualisation | Up to four bar or line charts per run, as SVG with zero-line bars, a marked forecast and a table of the numbers; an Overview of key figures | No dashboard pages, filters, slicers or drill-down |
 | Live data | Runs advance while the Runs view is open, or through an optional worker | No connectors, scheduled refresh or push updates |
@@ -27,7 +27,7 @@ The [[User]]'s goal for [[Agentic OS]]: a system that digests several datasets w
 ## Order of work
 
 1. A dataset API and a dataset picker. Done on 2026-10-16.
-2. Column mapping, so the user chooses measures, dimensions and the date.
+2. Column mapping, so the user chooses measures, dimensions and the date. Done on 2026-10-16.
 3. Several datasets per run, with declared join keys and a merge stage.
 4. A cleaned-data download and an aggregates query endpoint.
 5. Dashboard pages with filters and drill-down.

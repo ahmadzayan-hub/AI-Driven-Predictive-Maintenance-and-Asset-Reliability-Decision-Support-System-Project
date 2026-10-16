@@ -13,12 +13,13 @@ Last updated: 2026-10-16, session `7ba0117d`. The session-end skill keeps this f
 - **Operating system for this repository: done 2026-10-16.** CLAUDE.md, `AGENTS.md` for other coding agents, Memory.md, this board, session-logs.md, the second brain in `brain/`, session hooks and skills in `.claude/`, and `scripts/verify.py` with its `verify` skill. The SessionStart hook fired live in this session, at its start and after each compaction.
 - **Interface, phases 0 and 1: done 2026-10-16** (`dea3b38`, ADR 0023, plan in `docs/UI_PLAN.md`). Design system v2 generated with the vendored ui-ux-pro-max skill, bundled Fira fonts, chart fixes, and the Overview and Datasets views.
 - **A1, the dataset API: done 2026-10-16** (ADR 0024). `POST /api/datasets` reads CSV, TSV, Excel, JSON and JSON Lines into one canonical table with the standard library. Uploads go up to 4 MB, the platform's limit, and 10 MB as CSV. The Runs view has a stored-dataset picker, and the Datasets view adds files.
-- **Next build: A2, column mapping (ADR 0025)**, with the rest of interface phase 2: preview, mapping and deep links.
+- **A2, column mapping: done 2026-10-16** (ADR 0025). The owner gives each column a role (measure, dimension, date, ignore), chooses the measure, breakdown, date order and grain, and saves it with the dataset after every-row validation. Runs copy the mapping; unmapped data runs as before. The Datasets view has a *Columns* panel with preview, suggestions and an error summary.
+- **Next build: A3, several datasets per run (ADR 0026)**, and the rest of interface phase 2: deep links and the sheet picker. Code-split the views first: JavaScript is at 96.7 of 100 KB.
 
 ## Next
 
-1. A2: column mapping with ADR 0025, used by governance and preparation; in the interface, a preview of the first rows and a mapping step, plus deep links (phase 2).
-2. A3: several datasets per run, with declared join keys.
+1. Code-split the interface views, to recover budget before phase 3.
+2. A3: several datasets per run, with declared join keys (ADR 0026); deep links and the sheet picker (phase 2).
 3. Invite the team as collaborators and protect the default branch (owner action, on GitHub).
 
 ## Analytics OS milestones
@@ -28,7 +29,7 @@ Status values: Not started, In progress, Done (date, evidence).
 | # | Milestone | Status | Gate to call it done |
 | --- | --- | --- | --- |
 | A1 | Dataset API: `POST /api/datasets`, CSV, XLSX and JSON parsers, larger limit, picker in the Runs view | Done 2026-10-16: ADR 0024; 53 reader and API tests on SQLite and PostgreSQL; end-to-end upload of CSV, XLSX and JSON | ADR; API and parser tests; e2e upload of each format |
-| A2 | Column mapping: choose measures, dimensions and the date column; date parsing; replaces name heuristics | Not started | ADR; tests on mapped and unmapped data; Arabic and English UI |
+| A2 | Column mapping: choose measures, dimensions and the date column; date parsing; replaces name heuristics | Done 2026-10-16: ADR 0025; 50 mapping tests on SQLite and PostgreSQL; e2e mapping in English and Arabic, desktop and phone | ADR; tests on mapped and unmapped data; Arabic and English UI |
 | A3 | Several datasets per run: dataset list, declared join keys, merge stage after cleaning | Not started | ADR; join-correctness tests (row counts, key coverage) |
 | A4 | Cleaned-data download and an aggregates query endpoint (filter and group-by) | Not started | Tests; tenant isolation tests on the new endpoints |
 | A5 | Dashboard: router, pages, global filters, drill-down, richer chart types | Not started | ADR; axe and e2e on every page; desktop and mobile |
@@ -41,8 +42,8 @@ Status values: Not started, In progress, Done (date, evidence).
 | --- | --- | --- |
 | Ingestion | `POST /api/datasets` reads CSV, TSV, XLSX, JSON and JSON Lines (`server/datasets.py`): 4 MB uploaded, 10 MB as CSV, 50,000 rows, 500 columns; stored content-addressed with format and shape; pasted CSV still works | `.xls`, OpenDocument, Parquet, connectors; choosing a sheet in the interface; deleting a dataset |
 | Several datasets | Storage keeps many; one `dataset_id` per run | Multi-dataset runs, joins |
-| Dynamic inputs | Numeric typing at 50% and 90% parse rates; measure from the glossary or name hints (`server/metrics.py`); date column must be named month, date, period, week or year | User column mapping; date and category typing; currency and percent parsing |
-| Prep and cleaning | Trim, drop empty and duplicate rows, null non-numbers; periods sorted as strings | Imputation, outlier treatment, date parsing; cleaned data not downloadable |
+| Dynamic inputs | A saved column mapping (`server/mapping.py`, ADR 0025) sets measures, breakdown, date, date order and grain, reading currency and Arabic digits; without one, numeric typing at 50% and 90% parse rates, the measure from the glossary or name hints, and a date column named month, date, period, week or year | Weeks and fiscal years; derived columns; more than one breakdown; decimal commas |
+| Prep and cleaning | Trim, drop empty and duplicate rows, null non-numbers; mapped dates become sortable period labels, unmapped periods still sort as strings | Imputation, outlier treatment; cleaned data not downloadable |
 | Modelling | Linear trend with backtest, anomalies, contributions and correlations, causal checks, concentration, sensitivity | Classification, multivariate regression, clustering, seasonality |
 | Visualisation | Up to four bar or line `ChartSpec`s per run, as hand-written SVG (`RunsView.tsx`): bars from a zero line, a marked forecast boundary, a table of the numbers under each chart. The Overview shows key figures and the latest headlines | Dashboard pages, filters, slicers, drill-down, tooltips |
 | Live data | A run advances while the Runs view is open (350 ms ticks) or through `server/worker.py` | Connectors, scheduled refresh, SSE or websockets |
@@ -53,6 +54,7 @@ Reusable foundations: the metric glossary (`metrics.json`), custom stages (ADR 0
 
 | Date | What | Evidence |
 | --- | --- | --- |
+| 2026-10-16 | A2, column mapping: roles per column, suggestions with reasons, every-row validation with an error summary, runs that copy the mapping (ADR 0025) | 769 Python tests with PostgreSQL; 60 frontend unit tests; 69 of 72 end-to-end checks run and pass, 3 skipped by design |
 | 2026-10-16 | Agentic OS setup: `AGENTS.md`, `scripts/verify.py` and the `verify` skill; the server compresses and caches the built interface as Vercel does (ADR 0023, amendment) | 719 Python tests with PostgreSQL; 54 frontend unit tests; 63 of 66 end-to-end checks pass, 3 skipped by design; Lighthouse mobile Performance 99, up from 86 to 88, and 100 for the other three |
 | 2026-10-16 | A1, the dataset API: CSV, TSV, Excel, JSON and JSON Lines read into one canonical table; stored-dataset picker; uploads in the Datasets view (ADR 0024) | `50babcc`; 699 Python tests with PostgreSQL; 54 frontend unit tests; 63 of 66 end-to-end checks run and pass, 3 skipped by design |
 | 2026-10-16 | Interface phases 0 and 1: design system v2, bundled fonts, chart fixes, Overview and Datasets views (ADR 0023) | `dea3b38`; 646 Python tests with PostgreSQL; 52 frontend unit tests; 57 of 60 end-to-end checks run and pass, 3 skipped by design |

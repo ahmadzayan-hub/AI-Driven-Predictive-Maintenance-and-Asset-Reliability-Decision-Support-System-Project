@@ -38,5 +38,6 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 | 0022 | Reports in the reader's language | [[Identity]] |
 | 0023 | The analytics workspace interface | [[Design system]] |
 | 0024 | The dataset API: several formats, one canonical table | [[Analytics OS roadmap]] |
+| 0025 | Column mapping: the owner says what each column is | [[Column mapping]] |
 
-The next records are expected to come from the [[Analytics OS roadmap]]: column mapping (ADR 0025), multi-dataset runs, the dashboard and live data.
+The next records are expected to come from the [[Analytics OS roadmap]]: multi-dataset runs, the dashboard and live data.

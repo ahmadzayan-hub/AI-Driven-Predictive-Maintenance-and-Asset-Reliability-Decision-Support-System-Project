@@ -181,3 +181,44 @@ The first entries were written from the commit history and the session's own rec
     - The team builds the `.pbix` and resolves the highlighted items before 21 Oct.
     - Then A2, column mapping (ADR 0025), with code-splitting of views to recover the 43 KB of script that Lighthouse reports unused.
 - **Blockers:** the `.pbix` needs Windows and Power BI Desktop.
+
+## 2026-10-16 · `7ba0117d` · claude/agentic-os-final-project-53j6ql (A2 column mapping)
+
+**Goal:** start A2, column mapping, with ADR 0025.
+
+- **Done:** A2 shipped (`af4d793`).
+    - ADR 0025.
+    - `server/mapping.py`: reading rules, profile, suggestion and validation.
+    - `GET /api/datasets/{id}`, and `PUT` and `DELETE /api/datasets/{id}/mapping`.
+    - A mapping copy in each run.
+    - Pipeline stages that follow the mapping.
+    - A *Columns* panel in the Datasets view: preview, suggestions and an error summary, in English and Arabic.
+    - A *Mapped* tag in the list and the Runs picker.
+    - The brain note *Column mapping*.
+- **Verified:** `python scripts/verify.py --e2e` with PostgreSQL passed all 7 steps:
+    - 769 Python tests, 16 skipped, 50 of them new;
+    - the brain check;
+    - the type check;
+    - 60 frontend unit tests;
+    - the build;
+    - the budget: JavaScript 96.7 of 100 KB, CSS 7.7 of 10 KB, fonts 119.4 of 120 KB;
+    - end-to-end: 69 passed, 3 skipped by design. That includes 6 new mapping checks on desktop and phone, axe-clean in English and Arabic, with no sideways scroll at 320 px.
+- **Decisions:**
+    - Unmapped data runs exactly as before, so old reports reproduce.
+    - A suggestion is never applied silently.
+    - A decimal comma is refused, not guessed.
+    - An ambiguous day or month order is asked, not guessed.
+    - The profile reads a 10,000-row sample, which took 1.3 s at the 50,000-row limit; validation reads every row.
+    - Pasted CSV ignores a saved mapping of the same content.
+- **Defects found on the way, all fixed before the commit:**
+    - A currency column of whole dollars was suggested as an identifier.
+    - Unique free text became a dimension.
+    - An untouched suggestion was reported as unsaved changes.
+    - Two buttons shared the name "Analyse …".
+    - The panel crashed on a malformed response.
+- **Open / next:**
+    - Confirm CI on `af4d793`; the expected Python result is 751 run, `skipped=18`.
+    - Code-split the views.
+    - A3, several datasets per run (ADR 0026).
+    - Deep links and the sheet picker.
+- **Blockers:** none.
