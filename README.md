@@ -297,7 +297,7 @@ python main.py
 # supply chain, launcher, routing, language, assistant, custom stages,
 # agent runtimes, MCP, frameworks, report language, datasets, column
 # mapping, docs, and the repository's operating system: brain checker,
-# session hooks and the verify script (769 tests)
+# session hooks, the verify script and the motion skill (776 tests)
 python -m unittest discover tests
 
 # Frontend unit tests (60 tests)
@@ -319,7 +319,7 @@ python scripts/verify.py
 
 The same suite runs automatically in CI (`.github/workflows/ci.yml`) on
 every push, including the run-engine and backup suites against a real
-PostgreSQL 16 service. Last verified: 769 Python tests (751 run in CI;
+PostgreSQL 16 service. Last verified: 776 Python tests (758 run in CI;
 the 11 that need an optional agent framework or the MCP SDK, the 5 that
 need LLMRouter, the 1 that cross-checks workbooks with openpyxl, and the
 1 that needs the frontend build, which CI makes after the Python step,
@@ -329,7 +329,7 @@ skipped by design, because each covers one viewport only). In environments with 
 browser, point Playwright at it:
 `PLAYWRIGHT_EXECUTABLE_PATH=/path/to/chromium npx playwright test`.
 
-Five of the 769 load real LLMRouter routers and **skip unless LLMRouter
+Five of the 776 load real LLMRouter routers and **skip unless LLMRouter
 is installed**, which in CI it is not. With the eleven framework tests,
 the openpyxl cross-check and the static-files test that needs the
 frontend build, CI reports `OK (skipped=18)` (CI run 49), and that is

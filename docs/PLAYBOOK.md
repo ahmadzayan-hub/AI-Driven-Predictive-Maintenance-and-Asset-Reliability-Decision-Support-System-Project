@@ -35,10 +35,11 @@ brain/                       Obsidian vault, entry point Home.md
 .claude/
   settings.json              the three hooks
   hooks/                     session_start.py · stop_gate.py · session_end.py
-  skills/                    session-start · session-end · brain-maintenance · verify
+  skills/                    session-start · session-end · brain-maintenance · verify · motion
                              design: ui-ux-pro-max · design-system · brand · ui-styling
                              · design · banner-design · slides (third-party, see PROVENANCE.md)
-  commands/ agents/          empty until a feature needs them
+  agents/motion-designer.md  the first subagent: sourced, animated explainers
+  commands/                  empty until a feature needs one
   plugins/README.md          how to add a plugin
   state/                     git-ignored hook state, one file per session
 scripts/brain_check.py       finds brain problems; never edits
@@ -117,6 +118,16 @@ Several datasets in one run, a dashboard and live data are milestones A3 to A7 o
 - **Plugin:** follow `.claude/plugins/README.md`.
 
 Each of these is code that runs on teammates' machines. Review it like code.
+
+### Make an animated clip for a deliverable
+
+1. Gather the figures from a verified source, such as the KPI register, a run's calculations or `Expected_Values.csv`.
+2. Ask for the `motion-designer` subagent, or use the `motion` skill directly. Either way, every figure in the spec carries its `source`.
+3. Run `node .claude/skills/motion/render.mjs spec.json --check`, then render to an MP4.
+4. Read the review sheet before delivering. Hand over the MP4 with its poster and transcript; the transcript is the text alternative.
+5. Course and client clips are written outside the repository. Only sample-data examples live in `.claude/skills/motion/examples/`.
+
+Claude Motion, Anthropic's hosted feature, does the same thing in claude.ai on Team and Enterprise plans. This repository's skill is the local equivalent, because the hosted feature has no API.
 
 ### Work with another coding agent
 
