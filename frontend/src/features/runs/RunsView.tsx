@@ -168,6 +168,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
     onRunSelected?.(detail?.id ?? null)
   }, [onRunSelected])
   const [evidenceTask, setEvidenceTask] = useState<RunTask | null>(null)
+  const fullReportRef = useRef<HTMLPreElement | null>(null)
   const closeEvidence = useCallback(() => setEvidenceTask(null), [])
   const starting = useRef(false)
   // Where the data comes from (ADR 0024). A stored dataset and an
@@ -619,6 +620,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
               <p className="card__meta"><time dateTime={snapshot.receivedAt ?? run.updated_at}>{t('cockpit.lastObserved', { time: `${formatDate(snapshot.receivedAt ?? run.updated_at)} ${formatTime(snapshot.receivedAt ?? run.updated_at)}` })}</time></p>
             </div>
             <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+              {run.report?.published_path ? <button type="button" className="btn btn--primary" onClick={() => { fullReportRef.current?.focus(); fullReportRef.current?.scrollIntoView({ block: 'center' }) }}>{t('cockpit.readPublished')}</button> : null}
               {ACTIVE_STATES.includes(run.state) ? (
                 <>
                   <button
@@ -785,6 +787,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                 </p>
               ) : null}
               <pre
+                ref={fullReportRef}
                 className="runreport runreport--full"
                 tabIndex={0}
                 role="region"

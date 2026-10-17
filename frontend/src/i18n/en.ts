@@ -8,6 +8,7 @@
  *  preference (agent.py). */
 export const en = {
   'state.paused': 'Paused',
+  'cockpit.readPublished': 'Read the published report',
   "datasets.previewTitle": "Preview uploaded data",
   "datasets.sheets": "Workbook sheets",
 

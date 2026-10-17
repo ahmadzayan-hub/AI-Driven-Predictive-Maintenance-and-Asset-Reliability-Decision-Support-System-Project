@@ -84,6 +84,8 @@ test('drafts, deep links, evidence and exact-report keyboard approval', async ({
   await expect(page.getByRole('status').filter({ hasText: 'Publication confirmed' })).toBeVisible()
   await page.goto(linked)
   await expect(page.locator('.privacy-note').filter({ hasText: 'Reports/' })).toBeVisible()
+  await page.getByRole('button', { name: 'Read the published report', exact: true }).click()
+  await expect(page.locator('.runreport--full')).toBeFocused()
 })
 
 test('Arabic phone cockpit and evidence fit the viewport', async ({ page }, testInfo) => {
