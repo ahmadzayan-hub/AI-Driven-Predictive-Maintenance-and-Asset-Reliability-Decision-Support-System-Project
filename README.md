@@ -14,8 +14,15 @@ environment — not a replacement for Windows, macOS, or Linux.
 
 ![Agentic OS — the Overview: key figures, the latest findings and the approval queue](docs/screenshots/desktop-overview-light.png)
 
+[Editable Figma designs](https://www.figma.com/design/nLdKZ5cVOtRMTWEvhCJSEK) ·
+[UI specification and API mapping](docs/design/AGENTIC_UI_SPEC.md) ·
+[Current verification and platform scope](docs/design/VALIDATION.md)
+
 ## Main Features
 
+- **Governed analysis workspace** — grouped specialist progress, findings and evidence,
+  an exact-report approval inbox, server-confirmed publishing, addressable runs,
+  recovered text drafts and installable PWA guidance for Windows, Android and iOS
 - **Web workspace** — a responsive React application with a greeting hero,
   conversation view, centered command search and palette (Ctrl/⌘+K),
   activity timeline with session health, onboarding, and a token-based
