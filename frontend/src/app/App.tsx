@@ -1,4 +1,5 @@
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { Activity, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { ChatView } from '../features/chat/ChatView'
 import type { ComposerHandle } from '../features/chat/Composer'
 import type { RunPreset } from '../features/runs/RunsView'
@@ -12,6 +13,7 @@ import { languageLabel, toneLabel } from '../shared/labels'
 import type { CommandInfo } from '../shared/types'
 import {
   ActivityView,
+  ApprovalsView,
   CommandPalette,
   DatasetsView,
   HelpDialog,
@@ -28,7 +30,9 @@ import {
 import { useStore } from './store'
 import { useTheme } from './useTheme'
 
-type Tab = 'overview' | 'datasets' | 'chat' | 'runs' | 'memory' | 'preferences' | 'activity'
+import { runStore } from '../features/runs/runStore'
+import { useHashRoute } from './routing'
+import type { Tab } from './routing'
 
 interface NavItem {
   id: Tab
@@ -46,6 +50,7 @@ const NAV_GROUPS: Array<{ id: string; label: MessageKey | null; items: NavItem[]
       { id: 'overview', label: 'nav.overview', icon: 'dashboard' },
       { id: 'datasets', label: 'nav.datasets', icon: 'database' },
       { id: 'runs', label: 'nav.runs', icon: 'sparkle' },
+      { id: 'approvals', label: 'nav.approvals', icon: 'shield' },
     ],
   },
   {
@@ -79,7 +84,10 @@ export function App() {
   const { isDark, toggleTheme } = useTheme()
   // The session opens on the assistant: it greets a newcomer and is where
   // a returning reader types. The Overview is one click away.
-  const [tab, setTab] = useState<Tab>('chat')
+  const [route, navigate] = useHashRoute()
+  const tab = route.tab
+  const [visited, setVisited] = useState<Tab[]>(['chat'])
+  useEffect(() => { setVisited((previous) => previous.includes(tab) ? previous : [...previous, tab]) }, [tab])
   // Which run the Runs view opens, and what its form starts with. Only one
   // of the two is set at a time, so the view never has to choose.
   const [runTarget, setRunTarget] = useState<{ id: string; nonce: number } | null>(null)
@@ -98,6 +106,26 @@ export function App() {
     }
   })
   const composerRef = useRef<ComposerHandle | null>(null)
+  const [pendingCommand, setPendingCommand] = useState<string | null>(null)
+  const currentRunId = tab === 'runs' ? route.runId ?? null : runTarget?.id ?? null
+
+  useLayoutEffect(() => {
+    runStore.reset()
+  }, [store.session?.session_id, store.identity?.principal.subject, store.identity?.principal.role])
+
+  useEffect(() => {
+    if (tab === 'chat' && pendingCommand) { composerRef.current?.insert(pendingCommand); setPendingCommand(null) }
+  }, [tab, pendingCommand])
+
+  useEffect(() => {
+    if (tab === 'runs' && route.runId) setRunTarget((previous) => previous?.id === route.runId ? previous : { id: route.runId!, nonce: ++runNonce.current })
+    document.getElementById('workspace-main')?.focus({ preventScroll: true })
+  }, [tab, route.runId])
+
+  const selectRun = useCallback((id: string | null) => {
+    setRunTarget(id ? { id, nonce: ++runNonce.current } : null)
+    if (tab === 'runs') navigate({ tab: 'runs', runId: id ?? undefined })
+  }, [tab, navigate])
 
   // "Analyse the sales data" in the chat starts a run; the person
   // should see it, not be told to go and find it.
@@ -105,13 +133,13 @@ export function App() {
     if (!store.openRun) return
     setRunPreset(null)
     setRunTarget(store.openRun)
-    setTab('runs')
-  }, [store.openRun])
+    navigate({ tab: 'runs', runId: store.openRun.id })
+  }, [store.openRun, navigate])
 
   /** Move to a view from the navigation: a plain visit, with no preset. */
   function go(next: Tab) {
     setRunPreset(null)
-    setTab(next)
+    navigate({ tab: next, runId: next === 'runs' ? runTarget?.id : undefined })
     setDrawerOpen(false)
   }
 
@@ -119,13 +147,14 @@ export function App() {
     runNonce.current += 1
     setRunPreset(null)
     setRunTarget({ id, nonce: runNonce.current })
-    setTab('runs')
+    navigate({ tab: 'runs', runId: id })
   }
 
   function startAnalysis(preset: RunPreset | null) {
+    runNonce.current += 1
     setRunTarget(null)
     setRunPreset(preset)
-    setTab('runs')
+    navigate({ tab: 'runs' })
   }
 
   useEffect(() => {
@@ -152,6 +181,13 @@ export function App() {
     first?.focus()
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') setDrawerOpen(false)
+      if (event.key === 'Tab') {
+        const items = drawerRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), a[href]')
+        if (!items?.length) return
+        const first = items[0], last = items[items.length - 1]
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
+      }
     }
     document.addEventListener('keydown', onKeyDown)
     return () => {
@@ -183,7 +219,7 @@ export function App() {
     setPaletteOpen(false)
     go('chat')
     const hasArguments = command.usage.trim() !== command.command
-    composerRef.current?.insert(hasArguments ? `${command.command} ` : command.command)
+    setPendingCommand(hasArguments ? `${command.command} ` : command.command)
   }
 
   async function confirmAction() {
@@ -275,6 +311,11 @@ export function App() {
   const rawName = session.preferences.user_name
   const userName = typeof rawName === 'string' && rawName.trim() ? rawName.trim() : null
 
+  function pane(id: Tab, content: ReactNode) {
+    if (tab !== id && !visited.includes(id)) return null
+    return <Activity key={id} mode={tab === id ? 'visible' : 'hidden'}><ViewBoundary><Suspense fallback={<ViewLoading />}>{content}</Suspense></ViewBoundary></Activity>
+  }
+
   const sidebar = (
     <div className="sidebar">
       <nav className="sidebar__nav" aria-label={t('nav.main')}>
@@ -354,10 +395,13 @@ export function App() {
 
   return (
     <div className="shell">
-      <a className="skiplink" href="#composer-input">
-        {t('shell.skip')}
+      <a className="skiplink" href={tab === 'chat' ? '#composer-input' : '#workspace-main'} onClick={(event) => {
+        event.preventDefault()
+        document.getElementById(tab === 'chat' ? 'composer-input' : 'workspace-main')?.focus()
+      }}>
+        {t(tab === 'chat' ? 'shell.skip' : 'shell.skipMain')}
       </a>
-      <header className="shell__header">
+      <header className="shell__header" inert={drawerOpen}>
         <button
           type="button"
           ref={menuButtonRef}
@@ -433,71 +477,71 @@ export function App() {
           </>
         ) : null}
 
-        <main className="main">
-          {/* Keyed by view, so a failure in one view clears on leaving it. */}
-          <ViewBoundary key={tab}>
-            <Suspense fallback={<ViewLoading />}>
-              {tab === 'overview' ? (
-                <OverviewView onOpenRun={openRun} onStart={startAnalysis} />
-              ) : null}
-              {tab === 'datasets' ? (
-                <DatasetsView
-                  onAnalyse={(dataset) =>
-                    startAnalysis({ kind: 'stored', id: dataset.id, name: dataset.name })
-                  }
-                />
-              ) : null}
-              {tab === 'chat' ? (
-                <ChatView
-                  session={session}
-                  sending={store.sending}
-                  failedText={store.failedText}
-                  offline={status === 'offline'}
-                  userName={userName}
-                  onSend={(text) => void store.send(text)}
-                  onRetry={() => void store.retryFailed()}
-                  onDismissFailed={store.dismissFailed}
-                  composerRef={composerRef}
-                />
-              ) : null}
-              {tab === 'runs' ? (
-                <RunsView
-                  openRunId={runTarget?.id ?? null}
-                  openNonce={runTarget?.nonce ?? 0}
-                  preset={runPreset}
-                />
-              ) : null}
-              {tab === 'memory' ? (
-                <MemoryView
-                  entries={session.memory_entries}
-                  disabled={session.ended}
-                  onAdd={store.addMemory}
-                  onUpdate={store.updateMemory}
-                  onDelete={store.deleteMemory}
-                  onClearAll={store.clearMemory}
-                  onExport={store.exportData}
-                  onClearHistory={() => setConfirming('history')}
-                />
-              ) : null}
-              {tab === 'preferences' ? (
-                <PreferencesView
-                  preferences={session.preferences}
-                  disabled={session.ended}
-                  locale={locale}
-                  onSet={store.setPreference}
-                  onSetLanguage={store.setLanguage}
-                />
-              ) : null}
-              {tab === 'activity' ? (
-                <ActivityView
-                  events={store.events}
-                  session={session}
-                  status={status}
-                  lastSyncedAt={store.lastSyncedAt}
-                />
-              ) : null}
-            </Suspense>
-          </ViewBoundary>
+        <main className="main" id="workspace-main" inert={drawerOpen} tabIndex={-1} key={`${session.session_id}:${store.identity?.principal.subject ?? 'local'}:${store.identity?.principal.role ?? 'local'}`}>
+          {pane('overview', (
+            <OverviewView onOpenRun={openRun} onStart={startAnalysis} onApprovals={() => go('approvals')} />
+          ))}
+          {pane('datasets', (
+            <DatasetsView
+              onAnalyse={(dataset) =>
+                startAnalysis({ kind: 'stored', id: dataset.id, name: dataset.name })
+              }
+            />
+          ))}
+          {pane('chat', (
+            <ChatView
+              session={session}
+              sending={store.sending}
+              failedText={store.failedText}
+              offline={status === 'offline'}
+              userName={userName}
+              onSend={store.send}
+              onRetry={() => void store.retryFailed()}
+              onDismissFailed={store.dismissFailed}
+              composerRef={composerRef}
+              onOpenRun={openRun}
+            />
+          ))}
+          {pane('runs', (
+            <RunsView
+              draftScope={session.session_id}
+              key={currentRunId ?? `form-${runNonce.current}`}
+              onRunSelected={selectRun}
+              openRunId={currentRunId}
+              openNonce={runTarget?.nonce ?? 0}
+              preset={runPreset}
+            />
+          ))}
+          {pane('memory', (
+            <MemoryView
+              entries={session.memory_entries}
+              disabled={session.ended}
+              onAdd={store.addMemory}
+              onUpdate={store.updateMemory}
+              onDelete={store.deleteMemory}
+              onClearAll={store.clearMemory}
+              onExport={store.exportData}
+              onClearHistory={() => setConfirming('history')}
+            />
+          ))}
+          {pane('preferences', (
+            <PreferencesView
+              preferences={session.preferences}
+              disabled={session.ended}
+              locale={locale}
+              onSet={store.setPreference}
+              onSetLanguage={store.setLanguage}
+            />
+          ))}
+          {pane('activity', (
+            <ActivityView
+              events={store.events}
+              session={session}
+              status={status}
+              lastSyncedAt={store.lastSyncedAt}
+            />
+          ))}
+        {pane('approvals', <ApprovalsView onOpenRun={openRun} />)}
         </main>
 
         {tab === 'chat' ? (

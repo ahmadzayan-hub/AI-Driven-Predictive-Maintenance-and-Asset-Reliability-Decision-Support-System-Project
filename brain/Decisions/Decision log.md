@@ -42,4 +42,7 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 | 0026 | Uneven periods are read per record | [[Weighted KPIs]] |
 | 0027 | Agents are measured: confusion matrices, recall floors, blind holdouts, seeded reviewer memos | [[Agent evaluation]] |
 
+| 0028 | Views load on demand, idle prefetch and measured first-load budget | [[Design system]] |
+| 0029 | Governed run workspace, exact-artifact review and hash navigation | [[Design system]] |
+
 The next records are expected to come from the [[Analytics OS roadmap]]: multi-dataset runs, the dashboard and live data.

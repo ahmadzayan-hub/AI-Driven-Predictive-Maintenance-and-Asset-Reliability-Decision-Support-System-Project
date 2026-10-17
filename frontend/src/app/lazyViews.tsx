@@ -12,6 +12,7 @@ import { useI18n } from '../i18n'
 import { Icon } from '../shared/components/Icon'
 
 const loaders = {
+  approvals: () => import('../features/approvals/ApprovalsView'),
   overview: () => import('../features/overview/OverviewView'),
   datasets: () => import('../features/datasets/DatasetsView'),
   runs: () => import('../features/runs/RunsView'),
@@ -24,6 +25,7 @@ const loaders = {
   signIn: () => import('../features/auth/SignIn'),
 }
 
+export const ApprovalsView = lazy(() => loaders.approvals().then((m) => ({ default: m.ApprovalsView })))
 export const OverviewView = lazy(() => loaders.overview().then((m) => ({ default: m.OverviewView })))
 export const DatasetsView = lazy(() => loaders.datasets().then((m) => ({ default: m.DatasetsView })))
 export const RunsView = lazy(() => loaders.runs().then((m) => ({ default: m.RunsView })))

@@ -6,6 +6,7 @@ import { formatBytes } from '../../shared/format'
 import { formatLabel } from '../../shared/labels'
 import type { DatasetSummary, UploadResult, Usage } from '../../shared/types'
 import { MappingPanel } from './MappingPanel'
+import { UploadPreview } from './UploadPreview'
 
 /** The most datasets GET /api/datasets returns. */
 const DATASET_PAGE = 50
@@ -151,6 +152,7 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
                     })
                   : t('datasets.duplicate', { name: outcome.dataset.name })}
               </p>
+              <UploadPreview result={outcome} />
               {outcome.warnings.length > 0 ? (
                 <ul className="warnings">
                   {outcome.warnings.map((warning) => (
@@ -298,3 +300,4 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
     </section>
   )
 }
+

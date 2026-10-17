@@ -17,6 +17,8 @@ test('analytics run: goal to approved, published, evidence-backed report', async
 
   // Every specialist succeeded and the evidence is visible. Twenty-one
   // stages; the twenty-second task is the publish gate, still waiting.
+  const disclosure = page.locator('.run-timeline__disclosure')
+  if ((await disclosure.getAttribute('open')) === null) await disclosure.locator(':scope > summary').click()
   await expect(page.locator('.runtask--succeeded')).toHaveCount(21)
   await expect(
     page.locator('.runtasks').getByText('All validation checks passed', { exact: false }),
@@ -76,3 +78,4 @@ test('a CSV file can be uploaded and is analyzed', async ({ page }) => {
   await expect(page.locator('.runreport--full')).toContainText('total_sales | 400.0')
   await expect(page.locator('.runreport--full')).toContainText('quarterly-sales.csv')
 })
+

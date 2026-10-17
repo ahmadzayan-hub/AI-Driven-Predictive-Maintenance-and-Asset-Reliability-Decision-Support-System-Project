@@ -41,13 +41,15 @@ Last updated: 2026-10-17, session `7ba0117d`. The session-end skill keeps this f
     - The typeface is IBM Plex Sans with IBM Plex Sans Arabic, the user's choice; Dubai can replace it if its files are supplied.
 - **House style: done 2026-10-17.** `.claude/skills/rta-style/` (colours, type and layout only, no logo, name or data) themes the offline dashboards, the clips and the evaluation report, checked for AA contrast in light and dark.
 - **Views load on demand: done 2026-10-17** (ADR 0028). The chat and the shell ship first; the other views and dialogs are chunks fetched when shown, and prefetched in idle time. First load fell from 96.7 to 85.7 KB gzipped, and Lighthouse's unused script halved, but load speed did not measurably change (mobile 98 against 99, largest paint 2.13 s both). The budget now counts the first load, all scripts and the largest chunk.
-- **Next build: A3, several datasets per run (ADR 0029)**, and the rest of interface phase 2: deep links and the sheet picker.
+- **Governed UI, implementation under verification (ADR 0029):** editable Figma light/dark and Arabic phone designs, shared run snapshots, grouped progress, exact-report approvals inbox, evidence dialog, assistant result cards, hash deep links, scoped text drafts, upload previews and PWA installation guidance. Existing on-demand loaders and their idle prefetch are retained. [Handoff and actual validation status](docs/design/AGENTIC_UI_SPEC.md). Full frontend/API checks await CI; no release-quality claim yet.
+- **Next build: A3, several datasets per run (ADR 0030, proposed)**, and the workbook sheet picker. The governed UI adds deep links, pending CI verification.
 
 ## Next
 
-1. A3: several datasets per run, with declared join keys (ADR 0029); deep links and the sheet picker (phase 2).
-2. Harder reviewer memos (subtler defects, longer documents), so prompt changes can be measured. For intent and causal wording, try a model behind the rules once a rotated key or a local model is available; the rules plateau near 70% on blind sets.
-3. Invite the team as collaborators and protect the default branch (owner action, on GitHub).
+1. Complete governed UI CI/browser verification and inspect measured performance.
+2. A3: several datasets per run, with declared join keys (ADR 0030, proposed); workbook sheet selection (phase 2).
+3. Harder reviewer memos (subtler defects, longer documents), so prompt changes can be measured. For intent and causal wording, try a model behind the rules once a rotated key or a local model is available; the rules plateau near 70% on blind sets.
+4. Invite the team as collaborators and protect the default branch (owner action, on GitHub).
 
 ## Analytics OS milestones
 

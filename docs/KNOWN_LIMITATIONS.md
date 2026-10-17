@@ -258,9 +258,8 @@ required local files. Both behaviors are covered by tests
     and nothing more. The Overview's counts cover the 50 most recent
     analyses that `GET /api/runs` returns, and the view says so when
     the list is full; the Datasets view lists the 50 most recent
-    datasets. Neither view has an address of its own yet: the browser's
-    back button and a shared link always land on the assistant. Deep
-    links are phase 2 of `docs/UI_PLAN.md`. On a phone the header has
+    datasets. Hash addresses now restore these views and an individual
+    run (ADR 0029); browser back preserves the destination. On a phone the header has
     room for only the first letters of the agent's name.
 21. Column mapping (ADR 0025) gives each column one role and analyses
     one measure, broken down by at most one dimension. The other

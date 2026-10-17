@@ -1,0 +1,78 @@
+import AxeBuilder from '@axe-core/playwright'
+import { expect, test } from '@playwright/test'
+import { composerInput, openTab, skipOnboarding } from './helpers'
+
+test.use({ contextOptions: { reducedMotion: 'reduce' } })
+
+test('drafts, deep links, evidence and exact-report keyboard approval', async ({ page }, testInfo) => {
+  await skipOnboarding(page)
+  await page.goto('/')
+  await composerInput(page).fill('Keep my unsent question')
+  await openTab(page, /^Datasets/)
+  await openTab(page, /^Workspace/)
+  await expect(composerInput(page)).toHaveValue('Keep my unsent question')
+  await page.reload()
+  await expect(composerInput(page)).toHaveValue('Keep my unsent question')
+
+  await openTab(page, /^Runs/)
+  await page.getByLabel('Goal').fill('Find what changed in sample sales')
+  await page.reload()
+  await expect(page.getByLabel('Goal')).toHaveValue('Find what changed in sample sales')
+  await page.getByRole('button', { name: 'Start run', exact: true }).click()
+  await expect(page).toHaveURL(/#\/runs\/[a-z0-9]+$/)
+  await expect(page.getByRole('region', { name: 'Approval required' })).toBeVisible({ timeout: 40_000 })
+  const linked = page.url()
+  // A skip action moves focus without replacing the analysis route.
+  await page.locator('.skiplink').evaluate((element: HTMLAnchorElement) => element.click())
+  await expect(page).toHaveURL(linked)
+  await expect(page.locator('#workspace-main')).toBeFocused()
+  await page.reload()
+  await expect(page.locator('.cockpit__finding')).toContainText('45%')
+
+  await page.getByRole('button', { name: 'Why is this true?', exact: true }).first().click()
+  const evidence = page.getByRole('dialog', { name: 'Why is this true?' })
+  await expect(evidence).toContainText('c_change')
+  await expect(evidence.getByRole('table')).toBeVisible()
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag22aa']).analyze()).violations).toEqual([])
+  await page.screenshot({ path: `../docs/screenshots/${testInfo.project.name}-evidence.png` })
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('button', { name: 'Why is this true?', exact: true }).first()).toBeFocused()
+
+  await openTab(page, /^Approvals/)
+  const card = page.locator('.approval-inbox > .card').filter({ hasText: 'Find what changed in sample sales' })
+  await card.getByRole('button', { name: 'Review', exact: true }).click()
+  await card.getByText('Review the exact report', { exact: true }).click()
+  await expect(card.locator('pre')).toContainText('Every claim in this report')
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag22aa']).analyze()).violations).toEqual([])
+  await page.screenshot({ path: `../docs/screenshots/${testInfo.project.name}-approvals.png` })
+  const approve = card.getByRole('button', { name: 'Approve and publish', exact: true })
+  await approve.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.locator('.assurance-strip')).toContainText('Publication confirmed')
+  await page.goto(linked)
+  await expect(page.locator('.privacy-note').filter({ hasText: 'Reports/' })).toBeVisible()
+})
+
+test('Arabic phone cockpit and evidence fit the viewport', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'explicit phone sizes run once')
+  await skipOnboarding(page)
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Change language' }).click()
+  await expect(page.locator('html')).toHaveAttribute('dir', 'rtl')
+  await page.goto('/#/runs')
+  await page.getByRole('button', { name: 'بدء التحليل', exact: true }).click()
+  await expect(page.getByRole('region', { name: 'موافقة مطلوبة' })).toBeVisible({ timeout: 40_000 })
+  await page.screenshot({ path: '../docs/screenshots/phone-390-arabic-cockpit.png' })
+  await page.getByRole('button', { name: 'لماذا هذا صحيح؟', exact: true }).first().click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('table')).toBeVisible()
+  for (const width of [390, 320]) {
+    await page.setViewportSize({ width, height: 844 })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
+    const bounds = await dialog.boundingBox()
+    expect(bounds?.height).toBeLessThanOrEqual(812)
+  }
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag22aa']).analyze()).violations).toEqual([])
+  await page.keyboard.press('Escape')
+})

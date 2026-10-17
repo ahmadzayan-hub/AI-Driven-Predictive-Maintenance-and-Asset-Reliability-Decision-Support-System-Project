@@ -10,13 +10,14 @@ import { countRuns, latestWithFindings, recentRuns, RUN_PAGE, waitingForApproval
 interface OverviewViewProps {
   onOpenRun: (id: string) => void
   onStart: (preset: RunPreset | null) => void
+  onApprovals?: () => void
 }
 
 /** Where the workspace stands, on one screen: the figures, the latest
  *  findings, what is waiting at the approval gate, and the newest runs.
  *  Everything comes from existing endpoints; nothing is computed here
  *  that the server did not already say. */
-export function OverviewView({ onOpenRun, onStart }: OverviewViewProps) {
+export function OverviewView({ onOpenRun, onStart, onApprovals }: OverviewViewProps) {
   const { t, tx, formatNumber, formatDate } = useI18n()
   const [runs, setRuns] = useState<RunSummary[] | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
@@ -258,6 +259,7 @@ export function OverviewView({ onOpenRun, onStart }: OverviewViewProps) {
 
           <div className="card">
             <h3 className="card__title">{t('overview.waiting')}</h3>
+            {onApprovals ? <button type="button" className="evidence-link" onClick={onApprovals}>{t('approvals.openInbox')}</button> : null}
             {waiting.length === 0 ? (
               <p className="card__empty">{t('overview.waitingNone')}</p>
             ) : (
@@ -312,3 +314,4 @@ export function OverviewView({ onOpenRun, onStart }: OverviewViewProps) {
     </section>
   )
 }
+

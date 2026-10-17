@@ -1,17 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useSessionDraft } from '../../shared/useSessionDraft'
 import { useI18n } from '../../i18n'
 import { api, ApiError, MAX_UPLOAD_BYTES } from '../../shared/api'
 import { barGeometry } from '../../shared/charts'
 import { Icon } from '../../shared/components/Icon'
-import { formatLabel, questionLabel, stateLabel, typeLabel } from '../../shared/labels'
+import { languageLabel, formatLabel, questionLabel, stateLabel, typeLabel } from '../../shared/labels'
 import type {
   ChartSpec,
   DatasetSummary,
   Pipelines,
   RunDetail,
   RunSummary,
+  RunTask,
   UploadResult,
 } from '../../shared/types'
+
+import { ApprovalCard } from './ApprovalCard'
+import { EvidencePanel } from './EvidencePanel'
+import { PlanPreview, RunTimeline } from './RunTimeline'
+import { runStore, useRun } from './runStore'
+import { UploadPreview } from '../datasets/UploadPreview'
 
 const ACTIVE_STATES = ['queued', 'running']
 
@@ -108,16 +116,6 @@ function LineChart({ chart }: { chart: ChartSpec }) {
   )
 }
 
-const TASK_ICON: Record<string, string> = {
-  succeeded: '✓',
-  failed: '✕',
-  skipped: '—',
-  cancelled: '—',
-  running: '…',
-  awaiting_approval: '!',
-  pending: '·',
-}
-
 /** Arrow-key movement inside the analytics-type tablist. Selection
  *  follows focus, which is the expected behaviour when switching panels
  *  is cheap — here it only swaps already-loaded text. In a right-to-left
@@ -138,10 +136,12 @@ function nextTabIndex(key: string, current: number, count: number, rtl: boolean)
 export type RunPreset = { kind: 'upload' } | { kind: 'stored'; id: string; name: string }
 
 interface RunsViewProps {
+  draftScope?: string
   /** A run to open on arrival — the one the assistant just started. */
   openRunId?: string | null
   openNonce?: number
   preset?: RunPreset | null
+  onRunSelected?: (id: string | null) => void
 }
 
 /** The custom stages a profile includes, by title, for the picker's help. */
@@ -153,10 +153,20 @@ function stageTitles(pipelines: Pipelines, profile: string): string[] {
   })
 }
 
-export function RunsView({ openRunId = null, openNonce = 0, preset = null }: RunsViewProps) {
-  const { t, tx, plural, isRtl, locale, formatNumber, formatDate } = useI18n()
+export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRunSelected, draftScope = 'session' }: RunsViewProps) {
+  const { t, plural, isRtl, locale, formatNumber, formatDate, formatTime } = useI18n()
   const [runs, setRuns] = useState<RunSummary[]>([])
-  const [run, setRun] = useState<RunDetail | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(openRunId)
+  const snapshot = useRun(selectedId, true)
+  const run = snapshot.detail
+  const setRun = useCallback((detail: RunDetail | null) => {
+    if (detail) runStore.receive(detail)
+    setSelectedId(detail?.id ?? null)
+    onRunSelected?.(detail?.id ?? null)
+  }, [onRunSelected])
+  const [evidenceTask, setEvidenceTask] = useState<RunTask | null>(null)
+  const closeEvidence = useCallback(() => setEvidenceTask(null), [])
+  const starting = useRef(false)
   // Where the data comes from (ADR 0024). A stored dataset and an
   // uploaded file are both analysed by reference: the run sends an id.
   const [source, setSource] = useState<'sample' | 'stored' | 'upload'>(() =>
@@ -164,7 +174,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null }: Run
   )
   const [datasets, setDatasets] = useState<DatasetSummary[] | null>(null)
   const [storedId, setStoredId] = useState(() => (preset?.kind === 'stored' ? preset.id : ''))
-  const [goal, setGoal] = useState(() =>
+  const [goal, setGoal] = useSessionDraft(`${draftScope}:analysis-question`, () =>
     preset?.kind === 'stored' ? t('runs.goalStored', { name: preset.name }) : t('runs.goalDefault'),
   )
   // The goal the form last wrote itself. A goal the person typed is
@@ -176,18 +186,17 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null }: Run
   // Stepping stops for two different reasons: the user paused the run
   // (durable, server-side, also obeyed by a background worker) or a
   // request failed (local to this tab, cleared on the next action).
-  const [stoppedByError, setStoppedByError] = useState(false)
   // Which analytics type's report is on screen. Descriptive is the floor
   // of the maturity ladder, so it opens first.
   const [openReport, setOpenReport] = useState('descriptive')
-  const [busy, setBusy] = useState(false)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [throttled, setThrottled] = useState(false)
+  const [localBusy, setBusy] = useState(false)
+  const busy = localBusy || snapshot.pending
+  const [localError, setErrorMessage] = useState<string | null>(null)
+  const errorMessage = localError ?? snapshot.error?.message ?? null
   // Custom stages and profiles (ADR 0020). The picker exists only when
   // an operator configured profiles; a default install shows nothing.
   const [pipelines, setPipelines] = useState<Pipelines | null>(null)
   const [profile, setProfile] = useState('')
-  const advancing = useRef(false)
 
   const refreshList = useCallback(async () => {
     try {
@@ -263,61 +272,18 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null }: Run
   }, [])
 
   useEffect(() => {
-    if (!openRunId) return
-    let cancelled = false
-    setBusy(true)
-    api
-      .getRun(openRunId)
-      .then((detail) => {
-        if (cancelled) return
-        setRun(detail)
-        setStoppedByError(false)
-      })
-      .catch((error) => {
-        if (cancelled) return
-        setErrorMessage(error instanceof ApiError ? error.message : t('runs.actionFailed'))
-      })
-      .finally(() => {
-        if (!cancelled) setBusy(false)
-      })
-    return () => {
-      cancelled = true
+    if (openRunId) {
+      setSelectedId(openRunId)
+      setErrorMessage(null)
     }
-    // `t` changes only with the locale; the run to open is the key.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openRunId, openNonce])
 
-  // Bounded client-driven stepping: one task per tick while the run is
-  // active and auto-run is on. Pausing simply stops advancing — the run
-  // state is durable on the server either way.
-  useEffect(() => {
-    if (!run || run.paused || stoppedByError || !ACTIVE_STATES.includes(run.state)) return
-    const timer = setTimeout(async () => {
-      if (advancing.current) return
-      advancing.current = true
-      try {
-        setRun(await api.advanceRun(run.id))
-        setErrorMessage(null)
-        setThrottled(false)
-      } catch (error) {
-        if (error instanceof ApiError && error.status === 429) {
-          // Throttled: keep the run active and let the next tick retry
-          // instead of abandoning a half-finished pipeline.
-          setErrorMessage(t('runs.slowing'))
-          setThrottled(true)
-        } else {
-          setErrorMessage(error instanceof ApiError ? error.message : t('runs.advanceFailed'))
-          setStoppedByError(true)
-        }
-      } finally {
-        advancing.current = false
-      }
-    }, throttled ? 1500 : 350)
-    return () => clearTimeout(timer)
-  }, [run, stoppedByError, throttled, t])
+  useEffect(() => { setOpenReport('descriptive'); setEvidenceTask(null) }, [selectedId])
 
   async function createRun(event: React.FormEvent) {
     event.preventDefault()
+    if (starting.current) return
+    starting.current = true
     setBusy(true)
     setErrorMessage(null)
     try {
@@ -335,11 +301,11 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null }: Run
         datasetId,
       )
       setRun(detail)
-      setStoppedByError(false)
       void refreshList()
     } catch (error) {
       setErrorMessage(error instanceof ApiError ? error.message : t('runs.startFailed'))
     } finally {
+      starting.current = false
       setBusy(false)
     }
   }
@@ -348,7 +314,8 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null }: Run
     setBusy(true)
     setErrorMessage(null)
     try {
-      setRun(await action())
+      const detail = selectedId ? await runStore.mutate(selectedId, action) : await action()
+      if (detail) setRun(detail)
       void refreshList()
     } catch (error) {
       setErrorMessage(error instanceof ApiError ? error.message : t('runs.actionFailed'))
@@ -366,7 +333,6 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null }: Run
     document.getElementById(`reporttab-${type}`)?.focus()
   }
 
-  const pendingApproval = run?.approvals.find((a) => a.state === 'pending')
 
   /** One line per stored dataset: what it is called, how big, what it was. */
   function datasetLine(d: DatasetSummary) {
@@ -386,6 +352,13 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null }: Run
     : preset?.kind === 'stored'
       ? [{ id: preset.id, label: preset.name }]
       : []
+
+  if (selectedId && !run) {
+    return <section className="panel" aria-label={t('runs.detailAria')}><div className="panel__inner">
+      {errorMessage ? <p role="alert" className="statusline statusline--error" dir="auto">{errorMessage}</p> : <div role="status" aria-label={t('cockpit.loading')} className="card"><div className="skeleton skeleton--title" /><div className="skeleton skeleton--line" /></div>}
+      <div className="dialog__actions"><button type="button" className="btn btn--ghost" onClick={() => void runStore.retry(selectedId)}>{t('common.tryAgain')}</button><button type="button" className="btn btn--ghost" onClick={() => setRun(null)}>{t('runs.all')}</button></div>
+    </div></section>
+  }
 
   if (!run) {
     return (
@@ -566,6 +539,8 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null }: Run
                   </select>
                 </div>
               ) : null}
+              {uploaded ? <UploadPreview result={uploaded} /> : null}
+              <PlanPreview pipelines={pipelines} profile={profile} />
               <div className="field">
                 <button type="submit" className="btn btn--primary" disabled={busy || !goal.trim()}>
                   {busy ? <span className="spinner" aria-hidden="true" /> : <Icon name="sparkle" size={16} />}
@@ -618,16 +593,18 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null }: Run
   const reportDir = reportLang === 'ar' ? 'rtl' : 'ltr'
 
   return (
-    <section className="panel" aria-label={t('runs.detailAria')}>
+    <section className="panel cockpit" aria-label={t('runs.detailAria')}>
       <div className="panel__inner panel__inner--split">
         <div className="panel__column">
-          <div className="panel__header">
+          <div className="panel__header cockpit__header">
             <div>
+              <p className="eyebrow">{t('cockpit.workspace')}</p>
               <h2 className="panel__title" dir="auto">
                 {run.goal}
               </h2>
+              {run.reports[0]?.headline ? <p className="cockpit__finding" dir={run.report_language === 'ar' ? 'rtl' : 'ltr'} lang={run.report_language}>{run.reports[0].headline}</p> : null}
               <p className="panel__desc">
-                <span dir="auto">{run.dataset_name}</span> · {t('runs.state')}{' '}
+                <span dir="auto">{run.dataset_name}</span> · {languageLabel(t, reportLang)} · {t('runs.state')}{' '}
                 <strong>{stateLabel(t, run.state)}</strong>
                 {run.error ? (
                   <>
@@ -636,6 +613,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null }: Run
                   </>
                 ) : null}
               </p>
+              <p className="card__meta"><time dateTime={snapshot.receivedAt ?? run.updated_at}>{t('cockpit.lastObserved', { time: `${formatDate(snapshot.receivedAt ?? run.updated_at)} ${formatTime(snapshot.receivedAt ?? run.updated_at)}` })}</time></p>
             </div>
             <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
               {ACTIVE_STATES.includes(run.state) ? (
@@ -645,7 +623,6 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null }: Run
                     className="btn btn--ghost"
                     disabled={busy}
                     onClick={() => {
-                      setStoppedByError(false)
                       void act(() => (run.paused ? api.resumeRun(run.id) : api.pauseRun(run.id)))
                     }}
                   >
@@ -667,63 +644,25 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null }: Run
             </div>
           </div>
 
-          {pendingApproval ? (
-            <div className="card approvalcard" role="region" aria-label={t('runs.approval')}>
-              <h3 className="card__title">
-                <Icon name="alert" size={16} /> {t('runs.approval')}
-              </h3>
-              <dl>
-                <div className="rail__row">
-                  <dt>{t('runs.action')}</dt>
-                  <dd dir="auto" style={{ maxWidth: '70%', whiteSpace: 'normal', textAlign: 'end' }}>
-                    {pendingApproval.action}
-                  </dd>
-                </div>
-                <div className="rail__row">
-                  <dt>{t('runs.target')}</dt>
-                  <dd dir="ltr" style={{ maxWidth: '70%', whiteSpace: 'normal', textAlign: 'end' }}>
-                    {pendingApproval.target}
-                  </dd>
-                </div>
-                <div className="rail__row">
-                  <dt>{t('runs.risk')}</dt>
-                  <dd dir="auto">
-                    {pendingApproval.risk === 'high' ? t('runs.riskHigh') : pendingApproval.risk}
-                  </dd>
-                </div>
-                <div className="rail__row">
-                  <dt>{t('runs.impact')}</dt>
-                  <dd dir="auto" style={{ maxWidth: '70%', whiteSpace: 'normal', textAlign: 'end' }}>
-                    {pendingApproval.impact}
-                  </dd>
-                </div>
-                <div className="rail__row">
-                  <dt>{t('runs.reversibility')}</dt>
-                  <dd dir="auto" style={{ maxWidth: '70%', whiteSpace: 'normal', textAlign: 'end' }}>
-                    {pendingApproval.reversibility}
-                  </dd>
-                </div>
-              </dl>
-              <div className="dialog__actions">
-                <button
-                  type="button"
-                  className="btn btn--ghost"
-                  disabled={busy}
-                  onClick={() => void act(() => api.decideApproval(run.id, pendingApproval.id, 'reject'))}
-                >
-                  {t('runs.reject')}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--primary"
-                  disabled={busy}
-                  onClick={() => void act(() => api.decideApproval(run.id, pendingApproval.id, 'approve'))}
-                >
-                  {t('runs.approve')}
-                </button>
-              </div>
-            </div>
-          ) : null}
+          <p className="cockpit__continuity"><Icon name="shield" size={14} />{t('cockpit.keepOpen')}</p>
+          <p className="visually-hidden" role="status" aria-live="polite">{(() => {
+            const event = [...snapshot.events].reverse().find((item) => item.kind === 'stage.changed')
+            const task = run.tasks.find((item) => item.id === event?.subject)
+            return task ? `${task.title}: ${stateLabel(t, task.state)}` : stateLabel(t, run.state)
+          })()}</p>
+          <ApprovalCard detail={run} onDecision={(detail) => { setRun(detail); void refreshList() }} />
+          {run.reports.length ? <section className="finding-grid" aria-label={t('overview.findings')}>
+            {run.reports.filter((section) => ['descriptive', 'diagnostic', 'predictive', 'prescriptive'].includes(section.type)).map((section) => {
+              const task = run.tasks.find((item) => item.role === section.type)
+              return <article className="finding-card" key={section.type}>
+                <p className="eyebrow">{typeLabel(t, section.type, section.title)}</p>
+                <h3>{questionLabel(t, section.type, section.question)}</h3>
+                <p className="finding-card__headline" lang={reportLang} dir={reportDir}>{section.headline}</p>
+                {task ? <button type="button" className="evidence-link" aria-label={t('cockpit.whyFor', { type: typeLabel(t, section.type, section.title) })} onClick={() => setEvidenceTask(task)}>{t('cockpit.why')}<Icon name="search" size={14} /></button> : null}
+              </article>
+            })}
+          </section> : null}
+          {run.tasks.find((task) => task.role === 'validator')?.quality_checks.length ? <div className="assurance-strip"><Icon name="shield" size={16} /><span>{t('cockpit.checks')}: {run.tasks.find((task) => task.role === 'validator')!.quality_checks.every((check) => check.passed) ? t('cockpit.passed') : t('cockpit.notPassed')}</span><span>{run.report?.published_path ? t('cockpit.published') : t('cockpit.unpublished')}</span></div> : null}
 
           {run.charts.length > 0 ? (
             <div className="card">
@@ -865,36 +804,10 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null }: Run
           </p>
         </div>
 
-        <div className="panel__column panel__column--side">
-          <div className="card">
-            <h3 className="card__title">{t('runs.pipeline')}</h3>
-            <p className="controlrow__help">
-              {tx('runs.pipelineDesc', { hermes: <strong>Hermes</strong> })}
-            </p>
-            <ul className="runtasks" aria-live="polite">
-              {run.tasks.map((task) => (
-                <li key={task.id} className={`runtask runtask--${task.state}`}>
-                  <span className="runtask__mark" aria-hidden="true">
-                    {TASK_ICON[task.state] ?? '·'}
-                  </span>
-                  <span>
-                    <span className="controlrow__label" dir="auto">
-                      {task.title}
-                    </span>
-                    {task.summary ? (
-                      <span className="controlrow__help" dir="auto">
-                        {task.summary}
-                      </span>
-                    ) : (
-                      <span className="controlrow__help">{stateLabel(t, task.state)}</span>
-                    )}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
+        <div className="panel__column panel__column--side"><RunTimeline run={run} pipelines={pipelines} onEvidence={setEvidenceTask} /></div>
       </div>
+      {snapshot.interrupted ? <div className="cockpit__recovery"><p role="alert" dir="auto">{errorMessage}</p><button type="button" className="btn btn--ghost" onClick={() => { setErrorMessage(null); void runStore.retry(run.id) }}>{t('common.tryAgain')}</button></div> : null}
+      {evidenceTask ? <EvidencePanel run={run} task={evidenceTask} onClose={closeEvidence} /> : null}
     </section>
   )
 }

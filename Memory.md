@@ -42,6 +42,8 @@ Full list: [brain/Soul.md](brain/Soul.md).
 
 ## Conventions
 
+- UI handoff (ADR 0029): `docs/design/AGENTIC_UI_SPEC.md`; editable designs at https://www.figma.com/design/nLdKZ5cVOtRMTWEvhCJSEK. Current delivery targets a PWA on Windows, Android and iOS; native signing/store packages are separate. See `docs/design/VALIDATION.md` before claiming runtime verification.
+
 - A behaviour change gets an ADR in `docs/adr/`, numbered next; ADRs are never edited to fit later facts.
 - Every user-facing string exists in English and Arabic (`frontend/src/i18n/`, `assistant.py`).
 - KPIs are ratios of sums, never averages of row rates ([brain/Concepts/Weighted KPIs.md](brain/Concepts/Weighted%20KPIs.md)). Check what a row rate holds before comparing: the capstone's preventive rows store placeholder rates.
