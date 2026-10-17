@@ -340,7 +340,10 @@ class RunEngine:
             "mapping_json": mapping_json, "joins_json": joins_json})
         titles = analytics.ROLE_TITLES_AR if language == "ar" else analytics.ROLE_TITLES
         for idx, role in enumerate(roles):
-            title = titles.get(role) or self.stages[role].title
+            # A plugin may name itself in Arabic too (ADR 0033).
+            title = (titles.get(role)
+                     or (language == "ar" and getattr(self.stages[role], "title_ar", None))
+                     or self.stages[role].title)
             self.store.insert("tasks", {
                 "id": uuid.uuid4().hex[:12], "run_id": run_id, "idx": idx,
                 "role": role, "title": title,
@@ -732,7 +735,7 @@ class RunEngine:
     def get_run(self, run_id):
         run = self._row(run_id)
         tasks = []
-        charts, report, reports = [], None, []
+        charts, report, reports, models = [], None, [], []
         questions = dict(analytics.REPORT_SECTIONS)
         for t in self.store.get_tasks(run_id):
             result = json.loads(t["result_json"]) if t["result_json"] else None
@@ -753,6 +756,10 @@ class RunEngine:
                                     # surfaced rather than left inside the markdown.
                                     "headline": result["output"].get("headline", ""),
                                     "content": content})
+            # A model reports its card, baseline included (ADR 0033).
+            card = (result or {}).get("output", {}).get("model_card")
+            if card and t["state"] == "succeeded":
+                models.append({**card, "role": t["role"], "title": t["title"]})
             # A custom stage that wrote a section gets its own tab too.
             if result and t["role"] not in analytics.ROLE_TITLES:
                 content = result["output"].get("report_markdown")
@@ -784,4 +791,4 @@ class RunEngine:
                 "updated_at": run["updated_at"], "tasks": tasks,
                 "paused": bool(run.get("paused")),
                 "approvals": approvals, "charts": charts, "report": report,
-                "reports": reports}
+                "reports": reports, "models": models}

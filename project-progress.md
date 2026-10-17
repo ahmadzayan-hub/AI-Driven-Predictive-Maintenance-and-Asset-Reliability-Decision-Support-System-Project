@@ -1,6 +1,6 @@
 # Project progress
 
-Last updated: 2026-10-17, session `7ba0117d` (A3 to A5). The session-end skill keeps this file current; the SessionStart hook reads the *Now* section into every new session.
+Last updated: 2026-10-17, session `7ba0117d` (A3 to A6). The session-end skill keeps this file current; the SessionStart hook reads the *Now* section into every new session.
 
 **Vision.** Agentic OS becomes an analytics OS. It digests several datasets with dynamic inputs, then carries them through preparation, cleaning and modelling to a multi-page interactive dashboard with live data, with insights and key findings that are always traceable to a calculation. The reasoning behind it is in `brain/Projects/Analytics OS roadmap.md`.
 
@@ -45,12 +45,13 @@ Last updated: 2026-10-17, session `7ba0117d` (A3 to A5). The session-end skill k
 - **A3, several datasets per run: done 2026-10-17** (ADR 0030). A run joins up to four stored lookups onto its main dataset on declared keys, right after cleaning. A repeated lookup key is refused, a left join keeps every total, an inner join says what it left out, and every join reports its key coverage; the Validation Expert recounts the rows. The run form has a join builder with a preview.
 - **A4, the cleaned table: done 2026-10-17** (ADR 0031). `GET /api/runs/{id}/data.csv` downloads the cleaned, merged table as spreadsheet-safe CSV; `/fields`, `/query` (totals by group under filters, rates as ratios of sums) and `/records` answer questions of it without sending it to the browser. Another owner's run is a 404.
 - **A5, dashboard pages: done 2026-10-17** (ADR 0032). `#/dashboard/{run}/{page}` opens six pages over the cleaned table (overview, breakdown, trend, distribution, relationship, records). Filters live in the address, so a filtered view can be bookmarked and shared; every chart has its numbers in a table, and every group drills down to its records. CSS budget split into first load (10 KB) and total (16 KB).
-- **Next build: A6 models (ADR 0033)**, then A7 live data (ADR 0034).
+- **A6, modelling stages: done 2026-10-17** (ADR 0033). A regression, a classifier, a clustering and a seasonal forecast, as ADR 0020 plugins behind the `models` profile. Each is tested on held-out data against a plain baseline and must beat it by 5% to count; a weak model is reported as weak. The Runs view shows a model card per model, verdict first. A view's strings now ship with its chunk (ADR 0035), which took the first load from 97.9 to 92.8 KB.
+- **Next build: A7 live data (ADR 0034).**
 
 ## Next
 
 1. Observe the manager's timed review task, real Windows/Android/iOS PWA installation and assistive-technology use; measure fresh Web Vitals. Automated interface checks and bundle budgets pass; see the validation record for the remaining observations. CSS is near its existing limit, so trim before adding styles or record a justified budget change in an ADR.
-2. A6 modelling stages (ADR 0033), then A7 live data (ADR 0034); workbook sheet selection (phase 2).
+2. A7 live data (ADR 0034); workbook sheet selection (phase 2).
 3. Harder reviewer memos (subtler defects, longer documents), so prompt changes can be measured. For intent and causal wording, try a model behind the rules once a rotated key or a local model is available; the rules plateau near 70% on blind sets.
 4. Invite the team as collaborators and protect the default branch (owner action, on GitHub).
 
@@ -65,7 +66,7 @@ Status values: Not started, In progress, Done (date, evidence).
 | A3 | Several datasets per run: dataset list, declared join keys, merge stage after cleaning | Done 2026-10-17: ADR 0030; 46 join tests on SQLite and PostgreSQL (row counts, key coverage, repeated keys, numeric and date keys, tenancy); join builder end-to-end in English and Arabic, desktop and phone | ADR; join-correctness tests (row counts, key coverage) |
 | A4 | Cleaned-data download and an aggregates query endpoint (filter and group-by) | Done 2026-10-17: ADR 0031; 30 query tests on SQLite and PostgreSQL, tenant isolation on all four endpoints; CSV download end-to-end | Tests; tenant isolation tests on the new endpoints |
 | A5 | Dashboard: router, pages, global filters, drill-down, richer chart types | Done 2026-10-17: ADR 0032; 7 dashboard unit tests; every page end-to-end with axe, in English and Arabic, desktop and phone | ADR; axe and e2e on every page; desktop and mobile |
-| A6 | Modelling stages: regression, classification, clustering, seasonal forecast, each against a baseline | Not started | ADR 0020 plugins; every model reports its baseline |
+| A6 | Modelling stages: regression, classification, clustering, seasonal forecast, each against a baseline | Done 2026-10-17: ADR 0033; 22 modelling tests, including governed runs in English and Arabic that pass validation; model cards end-to-end with axe in both languages, desktop and phone | ADR 0020 plugins; every model reports its baseline |
 | A7 | Live data: connectors that snapshot into datasets, scheduled re-runs, push updates (SSE) | Not started | ADR; worker tests; reconnect behaviour |
 
 ## Gap analysis (code audit, 2026-10-16)
@@ -76,7 +77,7 @@ Status values: Not started, In progress, Done (date, evidence).
 | Several datasets | A run joins up to four stored lookups on declared keys (ADR 0030) | Unions; fuzzy or case-insensitive keys |
 | Dynamic inputs | A saved column mapping (`server/mapping.py`, ADR 0025) sets measures, breakdown, date, date order and grain, reading currency and Arabic digits; without one, numeric typing at 50% and 90% parse rates, the measure from the glossary or name hints, and a date column named month, date, period, week or year | Weeks and fiscal years; derived columns; more than one breakdown; decimal commas |
 | Prep and cleaning | Trim, drop empty and duplicate rows, null non-numbers; mapped dates become sortable period labels, unmapped periods still sort as strings; the cleaned table downloads and answers queries (ADR 0031) | Imputation, outlier treatment |
-| Modelling | Linear trend with backtest, anomalies, contributions and correlations, causal checks, concentration, sensitivity | Classification, multivariate regression, clustering, seasonality |
+| Modelling | Linear trend with backtest, anomalies, contributions and correlations, causal checks, concentration, sensitivity; on the `models` profile, a regression, a classifier, a clustering and a seasonal forecast, each against a baseline (ADR 0033) | Trees and ensembles; tuning; inputs chosen by when they were recorded |
 | Visualisation | Up to four bar or line `ChartSpec`s per run, as hand-written SVG (`RunsView.tsx`); a six-page dashboard per run with filters in the address, bars, lines, histograms and scatter plots, each with its numbers and drill-down to records (ADR 0032) | Saved layouts; cross-filtering by clicking a chart; maps |
 | Live data | A run advances while the Runs view is open (350 ms ticks) or through `server/worker.py` | Connectors, scheduled refresh, SSE or websockets |
 
@@ -86,6 +87,7 @@ Reusable foundations: the metric glossary (`metrics.json`), custom stages (ADR 0
 
 | Date | What | Evidence |
 | --- | --- | --- |
+| 2026-10-17 | A6, modelling stages: four plugins against their baselines, model cards; view strings ship with their chunk (ADRs 0033, 0035) | 964 Python tests with PostgreSQL (16 skipped); 98 frontend unit tests; end-to-end 94 of 98 run and pass, 4 skipped by design; budget 92.8 of 100 KB first load |
 | 2026-10-17 | A5, dashboard pages: router, six pages, global filters in the address, drill-down to records, histogram and scatter (ADR 0032) | 942 Python tests with PostgreSQL (16 skipped); 94 frontend unit tests; end-to-end 90 of 94 run and pass, 4 skipped by design; budget 96.5 of 100 KB first load, CSS 9.4 of 10 KB first load and 10.2 of 16 KB total |
 | 2026-10-17 | A3 and A4: several datasets per run with declared joins and a merge preview (ADR 0030); the cleaned table as CSV, fields, totals and records (ADR 0031) | 941 Python tests with PostgreSQL (16 skipped); 87 frontend unit tests; end-to-end 82 of 86 run and pass, 4 skipped by design; budget 93.7 of 100 KB first load, CSS 9.4 of 10 KB |
 | 2026-10-17 | Views load on demand: chunks per view and dialog, idle prefetch, a bilingual loading and failure state; the budget counts first load, total and the largest chunk (ADR 0028) | 863 Python tests with PostgreSQL (16 skipped); 66 frontend unit tests; budget 85.7 of 100 KB first load; end-to-end 71 of 74 run and pass, 3 skipped by design; Lighthouse mobile 98 (99 before), largest paint 2.13 s both |

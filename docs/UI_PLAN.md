@@ -183,7 +183,7 @@ From the skill's UX guidelines, applied here:
 | Keyboard | Every action reachable; visible focus ring; no keyboard traps; Escape closes overlays |
 | Layout | No horizontal page scroll from 320 to 1440 px |
 | Lighthouse (mobile) | Performance at least 95; Accessibility 100; Best Practices at least 95 |
-| Budget | JavaScript on first load at most 100 KB gzipped, all scripts at most 160 KB, and no view's chunk over 30 KB (ADR 0028: 85.7, 105.6 and 5.0 KB after views moved to chunks loaded on demand). CSS on the first load at most 10 KB gzipped and all CSS at most 16 KB, since a view's styles ship with its chunk (ADR 0032); fonts at most 120 KB (7.7 and 119.4 KB) |
+| Budget | JavaScript on first load at most 100 KB gzipped, all scripts at most 160 KB, and no view's chunk over 30 KB (ADR 0028: 85.7, 105.6 and 5.0 KB after views moved to chunks loaded on demand; a view's strings ship with its chunk, ADR 0035). CSS on the first load at most 10 KB gzipped and all CSS at most 16 KB, since a view's styles ship with its chunk (ADR 0032); fonts at most 120 KB (7.7 and 119.4 KB) |
 | Core Web Vitals | LCP under 2.5 s, CLS under 0.1, INP under 200 ms |
 
 ## 8. Phases
@@ -195,13 +195,13 @@ From the skill's UX guidelines, applied here:
 | 2 Add data | Upload of several formats, preview, column mapping; deep links | A1, A2 | ADR; API and UI tests per format; error-summary behaviour tested | Upload, stored-dataset picker, preview and mapping shipped in ADRs 0024–0025. Hash deep links and upload-result previews added in ADR 0029; workbook sheet selection remains proposed. See docs/design/VALIDATION.md for verification status. |
 | 3 Dashboards | Dashboard pages, filters, drill to rows, chart-to-table toggle; "Analyses" naming | A4, A5 | Every chart has a table; filter state survives reload; axe on every page | Done, 17 Oct 2026 (ADR 0032): six pages over a run's cleaned table, filters and choices in the address, drill-down to records from every group, axe and no sideways scrolling on every page at desktop and phone width, in both languages. "Analyses" naming not changed |
 | 4 Several datasets | Join builder: pick datasets, declare keys, preview the merge | A3 | Join-correctness tests; key-coverage warnings shown | Done, 17 Oct 2026 (ADR 0030): join builder in the run form, preview with match counts and unmatched keys, refusal of repeated lookup keys, end-to-end and axe in both languages |
-| 5 Models | Model cards: metric against baseline, calibration, importance, "not used" models | A6 | Every model shows its baseline; weak models labelled | Planned |
+| 5 Models | Model cards: metric against baseline, calibration, importance, "not used" models | A6 | Every model shows its baseline; weak models labelled | Done, 17 Oct 2026 (ADR 0033): a card per model under the run's charts, verdict first, the metric against its named baseline, what it predicts, from what and how it was tested; a weak model says not to use it. Calibration and importance are in the report section, not the card. Strings ship with the view (ADR 0035) |
 | 6 Live | Connectors, schedules, live badge, polite announcements | A7 | Reconnect and stale-data states tested | Planned |
 
 ## 9. How to build a screen
 
 1. Read `design-system/agentic-os/MASTER.md`, starting with its *Agentic OS decisions* section, then any page override in `design-system/agentic-os/pages/`.
 2. Ask the skill one focused question: `python .claude/skills/ui-ux-pro-max/scripts/search.py "<concern>" --domain ux`. Use `--stack react` for implementation questions.
-3. Use tokens, never raw hex values, in components. Add every string in both `en.ts` and `ar.ts`.
+3. Use tokens, never raw hex values, in components. Add every string in both `en.ts` and `ar.ts`, or, for a view that loads on demand, in its `messages.ts` pack (ADR 0035).
 4. Add the states, the keyboard path and the end-to-end and axe checks before calling the screen done.
 5. Run the skill's pre-delivery checklist in the master file.

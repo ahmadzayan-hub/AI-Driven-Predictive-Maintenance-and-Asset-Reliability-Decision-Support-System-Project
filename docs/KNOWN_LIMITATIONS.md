@@ -35,9 +35,10 @@ placeholder controls — absent capabilities have no UI.
      observations are eight observations.
    - **Predictive** fits a straight-line trend to the historical periods
      and extends it, with accuracy measured by backtesting against
-     held-out periods. There is no seasonality model, no machine
-     learning, and no probabilistic interval — the stated range comes
-     from measured backtest error. Fewer than 4 periods produces no
+     held-out periods. There is no probabilistic interval — the stated
+     range comes from measured backtest error. A seasonal model, a
+     regression, a classifier and a clustering are available as optional
+     stages on the `models` profile (ADR 0033; see item 28). Fewer than 4 periods produces no
      forecast; fewer than 6 produces a forecast explicitly marked as
      having unmeasured accuracy.
    - **Prescriptive** ranks options the dataset itself supplies, scoring
@@ -324,3 +325,12 @@ required local files. Both behaviors are covered by tests
     page reads an even sample of at most 500 records, and a filter list
     offers a column only when it has at most 200 values, so an ID or
     free-text column cannot be filtered from the bar.
+28. The modelling stages (ADR 0033) are four fixed, standard-library
+    models: least squares, naive Bayes, k-means and an additive trend
+    and season. There are no trees, ensembles or tuning, and nothing
+    beyond the documented settings. The models are associations, not
+    causes. A model cannot know which inputs were recorded after the
+    outcome, so an input like that makes it look better than it is; every
+    model says so, but none can check it. Fewer than 30 records, or fewer
+    than three seasons for the seasonal forecast, is reported as a
+    limitation and shows no card.

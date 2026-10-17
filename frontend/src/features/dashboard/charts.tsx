@@ -4,6 +4,8 @@
  *  that every chart carries. Axes read left to right in both languages. */
 import type { ReactNode } from 'react'
 import { useI18n } from '../../i18n'
+import { usePack } from '../../i18n/pack'
+import { dashMessages } from './messages'
 
 export interface Point {
   label: string
@@ -23,7 +25,7 @@ export function Figure({ title, chart, table, open = false }: {
   table: ReactNode
   open?: boolean
 }) {
-  const { t, isRtl } = useI18n()
+  const { t, isRtl } = usePack(dashMessages)
   return (
     <figure className="dash-figure">
       <figcaption className="field__label" dir="auto">

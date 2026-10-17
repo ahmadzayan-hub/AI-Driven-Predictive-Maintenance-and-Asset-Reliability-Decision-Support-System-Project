@@ -171,6 +171,8 @@ export interface RunDetail {
   }[]
   approvals: RunApproval[]
   charts: ChartSpec[]
+  /** What each model found, against its baseline (ADR 0033). */
+  models?: ModelCard[]
   /** Other datasets joined onto this one (ADR 0030); empty for one dataset. */
   joins?: Array<Pick<JoinSpec, 'dataset_id' | 'keys' | 'how'> & { alias: string }>
   breakdown?: string | null
@@ -425,4 +427,26 @@ export interface RecordsPage {
   offset?: number
   limit?: number
   sampled?: boolean
+}
+
+/** A model's card (ADR 0033): what it predicts, from what, how it was
+ *  tested, and how it did against the plain baseline it must beat. */
+export interface ModelCard {
+  role: string
+  title: string
+  kind: 'regression' | 'classification' | 'clustering' | 'seasonal'
+  target: string
+  inputs: string[]
+  train_records: number
+  test_records: number
+  split: { kind: 'time' | 'every_fifth' | 'last_season' | 'none'; first_held_out?: string }
+  metric: {
+    name: 'average_error' | 'balanced_accuracy' | 'separation'
+    model: number
+    baseline: number
+    baseline_name: string
+  }
+  improvement: number
+  beats_baseline: boolean
+  details: Record<string, unknown>
 }

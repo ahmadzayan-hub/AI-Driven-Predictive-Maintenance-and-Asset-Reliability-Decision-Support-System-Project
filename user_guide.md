@@ -266,6 +266,28 @@ group, which filters to that group and opens its rows. The page, the
 filters and every choice are in the address, so a reload keeps them and
 a link opens the same view for anyone who can open the analysis.
 
+### Models
+
+Choose the **models** pipeline profile when starting an analysis to add
+four models to it: what predicts the measure (a regression), which
+records land in its top quarter, or in the classes of a text column the
+operator names (a classification), whether the records fall into natural groups (a
+clustering) and whether the measure follows a season (a seasonal
+forecast).
+
+Each model is tested on data it did not learn from: the latest fifth of
+the periods, every fifth record when there is no date, or the last full
+season. It is compared with the guess a person would make without it:
+the average, the most common class, or "same as last period" or "same
+as a season ago". The **Models** card under the charts gives the
+verdict first. A model has to beat its guess by at least 5% to count;
+otherwise the card says it is weak and should not be used. A weak model
+is a finding too.
+
+The models show what moves with the measure, not what causes it. An
+input recorded after the outcome makes a model look better than it is,
+so leave such columns out of the mapping.
+
 ### Defining what a number means
 
 Without a column mapping, a run picks the column it analyses by its

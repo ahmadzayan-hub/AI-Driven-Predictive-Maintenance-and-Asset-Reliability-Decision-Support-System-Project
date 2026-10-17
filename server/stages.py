@@ -79,6 +79,7 @@ class ContractViolation(ValueError):
 def describe(descriptor):
     """The registry entry as the interface and the API see it."""
     return {"role": descriptor.role, "title": descriptor.title,
+            "title_ar": getattr(descriptor, "title_ar", None) or None,
             "after": getattr(descriptor, "after", DEFAULT_AFTER),
             "question": getattr(descriptor, "question", None) or None,
             "can_fail_run": bool(getattr(descriptor, "can_fail_run", False))}
@@ -277,13 +278,18 @@ def validate_result(role, result):
         claim_status = claim.get("status", "verified")
         if claim_status not in CLAIM_STATUSES:
             raise ContractViolation(f"claim status must be one of {CLAIM_STATUSES}")
-        clean_claims.append({
+        clean_claim = {
             "id": _id(claim.get("id"), role, "claim", seen),
             "type": claim_type,
             "text": _text(claim.get("text"), "claim text"),
             "evidence": list(evidence),
             "status": claim_status,
-        })
+        }
+        # The same claim in Arabic, for an Arabic run (ADR 0033). The
+        # Validation Expert checks that both cite the same figures.
+        if claim.get("text_ar") is not None:
+            clean_claim["text_ar"] = _text(claim.get("text_ar"), "Arabic claim text")
+        clean_claims.append(clean_claim)
     clean_checks = []
     for check in checks:
         if not isinstance(check, dict):

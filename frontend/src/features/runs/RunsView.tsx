@@ -19,6 +19,7 @@ import type {
 import { ApprovalCard } from './ApprovalCard'
 import { EvidencePanel } from './EvidencePanel'
 import { JoinBuilder } from './JoinBuilder'
+import { ModelCards } from './ModelCards'
 import { PlanPreview, RunTimeline } from './RunTimeline'
 import { runStore, useRun } from './runStore'
 import { UploadPreview } from '../datasets/UploadPreview'
@@ -772,6 +773,8 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
               ))}
             </div>
           ) : null}
+
+          <ModelCards models={run.models ?? []} language={reportLang} />
 
           {run.reports.length ? (
             <div className="card">

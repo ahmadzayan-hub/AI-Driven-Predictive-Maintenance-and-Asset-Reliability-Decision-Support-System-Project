@@ -3,7 +3,8 @@
  *  preview the merge before starting. The preview runs the server's own
  *  stages, so what it shows is what the run will do. */
 import { useEffect, useRef, useState } from 'react'
-import { useI18n } from '../../i18n'
+import { usePack } from '../../i18n/pack'
+import { joinMessages } from './messages'
 import { api, ApiError } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
 import type { DatasetSummary, JoinPreview, JoinSpec, MappingProblem } from '../../shared/types'
@@ -29,7 +30,7 @@ function suggestKey(left: string[], right: string[]) {
 }
 
 export function JoinBuilder({ primaryId, datasets, disabled, joins, breakdown, onChange }: JoinBuilderProps) {
-  const { t, locale, formatNumber } = useI18n()
+  const { t, locale, formatNumber } = usePack(joinMessages)
   const [columns, setColumns] = useState<Record<string, string[]>>({})
   const [preview, setPreview] = useState<JoinPreview | null>(null)
   const [previewed, setPreviewed] = useState('')

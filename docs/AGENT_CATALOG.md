@@ -154,9 +154,16 @@ stage sees a copy of the context, and its failure is its own unless it
 declares otherwise. `examples/stages/target_attainment.py` is a complete
 example; `docs/adr/0020-custom-agents-as-plugins.md` has the reasoning.
 
+Four such stages ship with the repository and are registered in
+`config.json` behind the `models` profile (ADR 0033): the Regression
+Model Agent, the Classification Model Agent, the Clustering Model Agent
+and the Seasonal Forecast Agent (`server/modelling.py`). Each tests its
+model on held-out data against a plain baseline and reports a weak model
+as weak; the `default` profile leaves them out.
+
 ## Not implemented (honest scope)
 
-Seasonality models, true optimization, red-team, and cost agents are not
+True optimization, red-team, and cost agents are not
 implemented — they require capabilities (inference libraries, LLM
 evaluation, billing relationships) that would be placeholders today.
 

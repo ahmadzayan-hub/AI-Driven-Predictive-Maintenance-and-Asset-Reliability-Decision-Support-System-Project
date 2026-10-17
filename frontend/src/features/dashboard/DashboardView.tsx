@@ -6,7 +6,8 @@
  *  reload and can be shared with someone who can open the run. */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useI18n } from '../../i18n'
-import type { MessageKey } from '../../i18n'
+import { usePack } from '../../i18n/pack'
+import { dashMessages, type DashKey } from './messages'
 import { api, ApiError } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
 import { stateLabel } from '../../shared/labels'
@@ -49,7 +50,7 @@ export function DashboardView({ runId, page, query, onNavigate, onOpenRun }: Das
 }
 
 function RunPicker({ onPick }: { onPick: (id: string) => void }) {
-  const { t } = useI18n()
+  const { t } = usePack(dashMessages)
   const [runs, setRuns] = useState<RunSummary[] | null>(null)
   useEffect(() => {
     let cancelled = false
@@ -163,7 +164,7 @@ function Dashboard({ runId, page, query, onNavigate, onOpenRun }: {
   onNavigate: (route: Route) => void
   onOpenRun: (id: string) => void
 }) {
-  const { t, locale, formatNumber } = useI18n()
+  const { t, locale, formatNumber } = usePack(dashMessages)
   const state = useMemo(() => readState(query), [query])
   const fields = useAnswer<{ fields: TableField[]; records: number }>(`f:${runId}:${locale}`, () =>
     api.tableFields(runId, locale),
@@ -240,7 +241,7 @@ function Dashboard({ runId, page, query, onNavigate, onOpenRun }: {
                   aria-current={current === name ? 'page' : undefined}
                   className="dash-pages__link"
                 >
-                  {t(`dash.page.${name}` as MessageKey)}
+                  {t(`dash.page.${name}` as DashKey)}
                 </a>
               </li>
             ))}
@@ -255,7 +256,7 @@ function Dashboard({ runId, page, query, onNavigate, onOpenRun }: {
         </p>
 
         <div className="dash-page">
-          <h3 className="visually-hidden">{t(`dash.page.${current}` as MessageKey)}</h3>
+          <h3 className="visually-hidden">{t(`dash.page.${current}` as DashKey)}</h3>
           {current === 'overview' ? <OverviewPage {...props} /> : null}
           {current === 'breakdown' ? <BreakdownPage {...props} /> : null}
           {current === 'trend' ? <TrendPage {...props} /> : null}
@@ -274,7 +275,7 @@ function FilterBar({ fields, roles, state, setState }: {
   state: DashState
   setState: (next: DashState) => void
 }) {
-  const { t, formatNumber } = useI18n()
+  const { t, formatNumber } = usePack(dashMessages)
   const listed = roles.texts.filter((field) => field.values && field.values.length > 1)
   const periods = fields.find((field) => field.name === roles.date)?.values?.filter(Boolean) ?? []
   const count = filterCount(state)
@@ -358,7 +359,7 @@ function Problem({ message }: { message: string | null }) {
 }
 
 function Loading() {
-  const { t } = useI18n()
+  const { t } = usePack(dashMessages)
   return <div role="status" aria-label={t('dash.loading')} className="skeleton skeleton--line" />
 }
 
@@ -368,7 +369,7 @@ function GroupTable({ head, rows, onDrill }: {
   rows: Array<{ label: string; cells: string[]; drill?: () => void }>
   onDrill?: boolean
 }) {
-  const { t } = useI18n()
+  const { t } = usePack(dashMessages)
   return (
     <table className="datatable">
       <thead>
@@ -400,7 +401,7 @@ function GroupTable({ head, rows, onDrill }: {
 }
 
 function OverviewPage({ runId, roles, state, filters, setState }: PageProps) {
-  const { t, formatNumber } = useI18n()
+  const { t, formatNumber } = usePack(dashMessages)
   const m = roles.measure!
   const totals = useQuery(runId, {
     measures: [{ agg: 'count' }, { agg: 'sum', column: m }, { agg: 'mean', column: m }], filters, limit: 1,
@@ -472,7 +473,7 @@ function OverviewPage({ runId, roles, state, filters, setState }: PageProps) {
 }
 
 function BreakdownPage({ runId, roles, state, filters, setState }: PageProps) {
-  const { t, formatNumber } = useI18n()
+  const { t, formatNumber } = usePack(dashMessages)
   const m = roles.measure!
   const by = roles.texts.some((f) => f.name === state.by) ? state.by! : roles.breakdown ?? roles.texts[0].name
   const key = state.per ? `mean:${m}` : `sum:${m}`
@@ -522,7 +523,7 @@ function BreakdownPage({ runId, roles, state, filters, setState }: PageProps) {
 }
 
 function TrendPage({ runId, roles, state, filters, setState }: PageProps) {
-  const { t, formatNumber } = useI18n()
+  const { t, formatNumber } = usePack(dashMessages)
   const m = roles.measure!
   const date = roles.date!
   const answer = useQuery(runId, {
@@ -561,7 +562,7 @@ function TrendPage({ runId, roles, state, filters, setState }: PageProps) {
 }
 
 function DistributionPage({ runId, roles, state, filters, setState }: PageProps) {
-  const { t, formatNumber } = useI18n()
+  const { t, formatNumber } = usePack(dashMessages)
   const m = roles.measure!
   const answer = useQuery(runId, { group_by: [{ column: m, bins: 12 }], measures: [{ agg: 'count' }], filters, limit: 50 })
   const bins = (answer.data?.groups ?? [])
@@ -591,7 +592,7 @@ function DistributionPage({ runId, roles, state, filters, setState }: PageProps)
 }
 
 function RelationshipPage({ runId, roles, state, filters, setState }: PageProps) {
-  const { t, formatNumber } = useI18n()
+  const { t, formatNumber } = usePack(dashMessages)
   const m = roles.measure!
   const others = roles.measures.filter((name) => name !== m)
   const vs = others.includes(state.vs ?? '') ? state.vs! : others[0]
@@ -634,7 +635,7 @@ function RelationshipPage({ runId, roles, state, filters, setState }: PageProps)
 }
 
 function RecordsPageView({ runId, state, filters, setState }: PageProps) {
-  const { t, formatNumber } = useI18n()
+  const { t, formatNumber } = usePack(dashMessages)
   const page = useRecords(runId, {
     filters, offset: state.offset, limit: PAGE_SIZE,
     ...(state.sort ? { sort: { by: state.sort, desc: state.desc } } : {}),

@@ -13,8 +13,11 @@ const PREPARE_CONFIG =
   '\'database_file\':\'frontend/e2e/.tmp/agentic.db\',' +
   '\'vault_dir\':\'frontend/e2e/.tmp/vault\',\'maximum_history_items\':50,' +
   '\'stages\':[{\'path\':\'examples.stages.target_attainment.TargetAttainment\',' +
-  '\'options\':{\'target\':3000000}}],' +
-  '\'profiles\':{\'default\':[],\'with-target\':[\'target_attainment\']},' +
+  '\'options\':{\'target\':3000000}},' +
+  '\'server.modelling.RegressionModel\',\'server.modelling.ClassificationModel\',' +
+  '\'server.modelling.ClusteringModel\',\'server.modelling.SeasonalForecast\'],' +
+  '\'profiles\':{\'default\':[],\'with-target\':[\'target_attainment\'],' +
+  '\'models\':[\'regression_model\',\'classification_model\',\'clustering_model\',\'seasonal_model\']},' +
   '\'agent_runtime\':{\'path\':\'tests.test_agent_runtime.ScriptedRuntime\',' +
   '\'options\':{\'calls\':[[\'help\',{}]],\'closing\':\'Over to you.\',\'trigger\':\'sort out\'}}},' +
   'open(\'frontend/e2e/.tmp/config.json\',\'w\')); ' +
