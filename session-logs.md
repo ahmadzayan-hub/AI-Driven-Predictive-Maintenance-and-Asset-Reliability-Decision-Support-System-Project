@@ -465,3 +465,35 @@ The first entries were written from the commit history and the session's own rec
 - **Verified:** pure analytics/assistant/utilities/docs Python subset; dependency-free Node checks; strict brain check. The first review-gate score was 40%, because npm package-dependent gates could not execute locally. Two read-only source reviews produced concrete fixes. Figma renders are design previews, not browser screenshots. Full CI results are pending the branch update; see `docs/design/VALIDATION.md`.
 - **Decided:** preserve FastAPI snapshots and client-stepped execution; add no frontend dependencies or UI kit. No native signed packages or future dashboard APIs are claimed. Pasted raw CSV is excluded from browser draft persistence. Follow current ingestion/mapping contracts rather than the older brief's limits.
 - **Next:** inspect GitHub Actions, fix type/build/browser/budget failures, record actual screenshots and measurements, then complete the validation record. Human ten-second comprehension and real-device installation need observed tasks.
+
+## 2026-10-17 (governed UI verification) · `7ba0117d` · claude/agentic-os-final-project-53j6ql
+
+**Goal:** after the views-on-demand work (`ce70c18`), the owner pushed the governed interface (`8a72368`, ADR 0029) to this branch. The user said "go ahead and fix the e2e tests".
+
+- **Done:**
+    - **ADR numbers:** ADR 0029 is now the governed run workspace, so A3 holds 0030. Fixed in the Codex prompt (`816485e`). This session's earlier entry, which says A3 → 0029, predates that.
+    - **Type check** (`5738d39`): six new strings sat in the plural dictionaries, giving 19 type errors and a failed build. They moved to the message dictionaries.
+    - **`scripts/verify.py`:** after a failed build, the budget step measured the previous `dist` and passed. The budget and browser steps now need the build, and say "not run" when it failed. Two tests cover this.
+    - **Browser suite:** nine checks failed once the build compiled. My fixes and the owner's parallel fixes (`d92311e` to `ecf0d78`) overlapped. Theirs were kept where both existed, so my local commit was dropped unpushed. The surviving fix of mine is in `d53397d`: the assistant spec now waits for the "Forget everything" question before answering "yes". The missing wait made CI run 63 flaky.
+    - **Validation record and README:** `docs/design/VALIDATION.md` now holds the local evidence; the README counts are updated.
+- **Verified:**
+    - `verify.py --e2e` with PostgreSQL on `d53397d` passed all seven steps:
+        - 865 Python tests, 16 skipped;
+        - brain check clean;
+        - type check;
+        - 84 frontend unit tests;
+        - build;
+        - budget: first load 91.9 of 100 KB, total 117.2 of 160 KB, largest chunk 7.3 KB, CSS 9.2 of 10 KB;
+        - 80 browser checks: 76 passed, 4 skipped by design.
+    - Lighthouse 13.4.1 mobile, median of three: Performance 99, Accessibility 100, LCP 1.55 s, TBT 38 ms, CLS 0.000.
+    - CI run 63 Python step: `OK (skipped=19)`, as the README expected.
+- **Decisions:**
+    - Where the owner's fix and mine differed, theirs stays:
+        - **drafts:** each dataset has its own draft key, rather than my preset-wins flag;
+        - **focus:** the drawer returns focus to its opener, because their commit removed the focus-to-main effect.
+- **Open / next:**
+    - CI green on the latest commit (`15d8a41` landed after the local run).
+    - CSS budget is nearly spent.
+    - The human ten-second task and real-device installs are still unobserved.
+    - Then A3 (ADR 0030).
+- **Lesson:** a `pkill -f` whose pattern also appears in your own command line kills your own shell (exit 144), as Memory.md warns. Stop servers by PID.
