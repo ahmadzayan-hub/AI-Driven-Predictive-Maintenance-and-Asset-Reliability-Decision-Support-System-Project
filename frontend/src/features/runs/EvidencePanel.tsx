@@ -15,18 +15,18 @@ export function EvidencePanel({ run, task, onClose }: {
   const reportLanguage = run.report_language === 'ar' ? 'ar' : 'en'
   return (
     <Dialog title={t('cockpit.why')} onClose={onClose} wide>
-      <div className="evidence__context"><span dir="auto">{run.dataset_name}</span><span dir="auto">{task.title}</span></div>
-      {task.summary ? <p dir="auto" className="evidence__summary">{task.summary}</p> : null}
+      <div className="evidence__context"><span dir="auto">{run.dataset_name}</span><span dir="auto" lang={reportLanguage}>{task.title}</span></div>
+      {task.summary ? <p dir="auto" lang={reportLanguage} className="evidence__summary">{task.summary}</p> : null}
       <h3 className="card__title">{t('cockpit.claims')}</h3>
       {task.claims.length ? task.claims.map((claim) => (
         <article className="evidence__claim" key={claim.id}>
           <p dir="auto" lang={reportLanguage}>{claim.text}</p>
           <p className="card__meta">{t('cockpit.references')}</p>
-          <ul className="evidence__refs">{claim.evidence.map((id) => <li key={id}><code dir="ltr">{id}</code></li>)}</ul>
+          <ul className="evidence__refs">{claim.evidence.map((id) => <li key={id}><code dir="ltr" lang="en">{id}</code></li>)}</ul>
         </article>
       )) : <p className="card__meta">{t('cockpit.noClaims')}</p>}
       {task.quality_checks.length ? <><h3 className="card__title">{t('cockpit.checks')}</h3><ul className="evidence__checks">
-        {task.quality_checks.map((check) => <li key={check.name}><Icon name={check.passed ? 'check' : 'alert'} size={16} /><span><strong dir="auto">{check.name}</strong> · {check.passed ? t('cockpit.passed') : t('cockpit.notPassed')}<span className="controlrow__help" dir="auto">{check.detail}</span></span></li>)}
+        {task.quality_checks.map((check) => <li key={check.name}><Icon name={check.passed ? 'check' : 'alert'} size={16} /><span><strong dir="ltr" lang="en">{check.name}</strong> · {check.passed ? t('cockpit.passed') : t('cockpit.notPassed')}<span className="controlrow__help" dir="auto" lang={reportLanguage}>{check.detail}</span></span></li>)}
       </ul></> : null}
       <h3 className="card__title">{t('cockpit.calculations')}</h3>
       <p className="card__meta">{t('cockpit.calculationScope')}</p>

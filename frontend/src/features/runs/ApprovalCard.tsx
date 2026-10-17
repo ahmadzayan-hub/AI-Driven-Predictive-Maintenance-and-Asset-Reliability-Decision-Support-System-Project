@@ -45,10 +45,10 @@ export function ApprovalCard({ detail, onDecision }: {
       </details> : <p role="status">{t('cockpit.reportUnavailable')}</p>}
       <dl className="decision__facts">
         {[
-          [t('runs.action'), approval.action], [t('runs.target'), approval.target],
-          [t('runs.risk'), approval.risk === 'high' ? t('runs.riskHigh') : approval.risk],
-          [t('runs.impact'), approval.impact], [t('runs.reversibility'), approval.reversibility],
-        ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd dir="auto">{value}</dd></div>)}
+          [t('runs.action'), approval.action, run.report_language], [t('runs.target'), approval.target, 'en'],
+          [t('runs.risk'), approval.risk === 'high' ? t('runs.riskHigh') : approval.risk, undefined],
+          [t('runs.impact'), approval.impact, run.report_language], [t('runs.reversibility'), approval.reversibility, run.report_language],
+        ].map(([label, value, language]) => <div key={label}><dt>{label}</dt><dd dir="auto" lang={language}>{value}</dd></div>)}
       </dl>
       <p className="decision__binding"><Icon name="shield" size={14} />{t('cockpit.hashBound')}</p>
       {message ? <p role="alert" className="statusline statusline--error" dir="auto">{message}</p> : null}

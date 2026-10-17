@@ -30,6 +30,18 @@ test('analytics run: goal to approved, published, evidence-backed report', async
   await expect(page.locator('.runreport--full')).toHaveAttribute('lang', 'en')
   await expect(page.locator('.runreport--full')).toHaveAttribute('dir', 'ltr')
 
+  // Interface labels change, while the stored English report and its
+  // adjacent evidence/decision text retain their language-of-parts tags.
+  await page.getByRole('button', { name: 'Change language' }).click()
+  await expect(page.locator('html')).toHaveAttribute('lang', 'ar')
+  await expect(page.locator('.runreport--full')).toHaveAttribute('lang', 'en')
+  await expect(page.locator('.decision__facts dd').first()).toHaveAttribute('lang', 'en')
+  await page.getByRole('button', { name: /^ما الدليل على ذلك؟/ }).first().click()
+  await expect(page.locator('.evidence__summary')).toHaveAttribute('lang', 'en')
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: 'تغيير اللغة' }).click()
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+
   // Approve: the report is published to the Obsidian-compatible vault.
   await approval.getByRole('button', { name: 'Approve and publish' }).click()
   await expect(page.getByText('published to the vault', { exact: false })).toBeVisible()
