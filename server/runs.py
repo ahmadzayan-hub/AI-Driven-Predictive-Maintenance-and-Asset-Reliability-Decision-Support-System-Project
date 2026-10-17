@@ -690,7 +690,10 @@ class RunEngine:
         roles = {}
         for column in numeric:
             roles[column] = "measure"
-        date_col = (outputs.get("cleaner") or {}).get("date_col")
+        # A mapped date is read by the cleaner; an unmapped one is found by
+        # name by the preparer. Either way it is the run's time axis.
+        date_col = ((outputs.get("cleaner") or {}).get("date_col")
+                    or (outputs.get("preparer") or {}).get("date_col"))
         if date_col:
             roles[date_col] = "date"
         for record in (merged or {}).get("joins", []):

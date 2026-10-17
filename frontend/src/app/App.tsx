@@ -23,6 +23,7 @@ import {
   PreferencesView,
   prefetchWhenIdle,
   RunsView,
+  DashboardView,
   SignIn,
   ViewBoundary,
   ViewLoading,
@@ -32,7 +33,7 @@ import { useTheme } from './useTheme'
 
 import { runStore } from '../features/runs/runStore'
 import { useHashRoute } from './routing'
-import type { Tab } from './routing'
+import type { Route, Tab } from './routing'
 
 interface NavItem {
   id: Tab
@@ -50,6 +51,7 @@ const NAV_GROUPS: Array<{ id: string; label: MessageKey | null; items: NavItem[]
       { id: 'overview', label: 'nav.overview', icon: 'dashboard' },
       { id: 'datasets', label: 'nav.datasets', icon: 'database' },
       { id: 'runs', label: 'nav.runs', icon: 'sparkle' },
+      { id: 'dashboard', label: 'nav.dashboard', icon: 'dashboard' },
       { id: 'approvals', label: 'nav.approvals', icon: 'shield' },
     ],
   },
@@ -108,6 +110,11 @@ export function App() {
   const composerRef = useRef<ComposerHandle | null>(null)
   const [pendingCommand, setPendingCommand] = useState<string | null>(null)
   const currentRunId = tab === 'runs' ? route.runId ?? null : runTarget?.id ?? null
+  // The dashboard keeps its address while another view is open, so going
+  // back to it returns to the same page and filters (ADR 0032).
+  const lastDashboard = useRef<Route>({ tab: 'dashboard' })
+  if (tab === 'dashboard') lastDashboard.current = route
+  const dashboardRoute = lastDashboard.current
 
   useLayoutEffect(() => {
     runStore.reset()
@@ -138,8 +145,13 @@ export function App() {
   /** Move to a view from the navigation: a plain visit, with no preset. */
   function go(next: Tab) {
     setRunPreset(null)
-    navigate({ tab: next, runId: next === 'runs' ? runTarget?.id : undefined })
+    if (next === 'dashboard') navigate(lastDashboard.current)
+    else navigate({ tab: next, runId: next === 'runs' ? runTarget?.id : undefined })
     setDrawerOpen(false)
+  }
+
+  function openDashboard(id: string) {
+    navigate({ tab: 'dashboard', runId: id })
   }
 
   function openRun(id: string) {
@@ -509,6 +521,16 @@ export function App() {
               openRunId={currentRunId}
               openNonce={runTarget?.nonce ?? 0}
               preset={runPreset}
+              onOpenDashboard={openDashboard}
+            />
+          ))}
+          {pane('dashboard', (
+            <DashboardView
+              runId={dashboardRoute.runId ?? null}
+              page={dashboardRoute.page ?? null}
+              query={dashboardRoute.query ?? ''}
+              onNavigate={navigate}
+              onOpenRun={openRun}
             />
           ))}
           {pane('memory', (

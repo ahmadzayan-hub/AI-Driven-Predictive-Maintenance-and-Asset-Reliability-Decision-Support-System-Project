@@ -46,7 +46,8 @@ class BudgetTests(unittest.TestCase):
         def noise(size):
             return "".join(rng.choice("abcdefghijklmnopqrstuvwxyz0123456789") for _ in range(size))
 
-        head = ['<script type="module" crossorigin src="/assets/index-a1.js"></script>']
+        head = ['<script type="module" crossorigin src="/assets/index-a1.js"></script>',
+                '<link rel="stylesheet" crossorigin href="/assets/index-a1.css">']
         (dist / "assets" / "index-a1.js").write_text(noise(js_bytes))
         if preload_bytes:
             head.append('<link rel="modulepreload" crossorigin href="/assets/vendor-b2.js">')
@@ -60,6 +61,18 @@ class BudgetTests(unittest.TestCase):
         (dist / "assets" / "font-400.woff2").write_bytes(b"\0" * font_bytes)
         (dist / "assets" / "font-400.woff").write_bytes(b"\0" * 500_000)  # never counted
         return dist
+
+    def test_a_views_stylesheet_counts_in_the_total_only(self):
+        dist = self.build(20_000, 50_000)
+        (dist / "assets" / "index-a1.css").write_text(
+            "".join(f".c{i}{{color:#{i * 2654435761 % 16777216:06x}}}" for i in range(3000)))
+        light = verify.measure_budget(dist)
+        (dist / "assets" / "DashboardView-d4.css").write_text(
+            "".join(f".d{i}{{margin:{i * 40503 % 997}px}}" for i in range(3000)))
+        sizes = verify.measure_budget(dist)
+        self.assertEqual(sizes["css"], light["css"])
+        self.assertGreater(sizes["css_total"], light["css_total"])
+        self.assertGreater(light["css"], 0)
 
     def test_a_build_inside_the_budget_passes(self):
         ok, summary = verify.check_budget(self.build(20_000, 50_000))

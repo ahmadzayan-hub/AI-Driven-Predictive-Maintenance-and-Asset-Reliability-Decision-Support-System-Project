@@ -265,8 +265,10 @@ class TableApiTestCase(unittest.TestCase):
         fields = {f["name"]: f for f in
                   self.client.get(f"/api/runs/{run['id']}/fields").json()["fields"]}
         self.assertEqual(fields["revenue"]["role"], "analysed")
-        # Unmapped: the first text column is the breakdown.
+        # Unmapped: the first text column is the breakdown, and a column
+        # named month is the time axis, as the run itself decided.
         self.assertEqual(fields["product"]["role"], "breakdown")
+        self.assertEqual(fields["month"]["role"], "date")
         self.assertEqual(fields["region"]["values"], ["North", "South"])
 
         totals = self.client.post(f"/api/runs/{run['id']}/query", json={

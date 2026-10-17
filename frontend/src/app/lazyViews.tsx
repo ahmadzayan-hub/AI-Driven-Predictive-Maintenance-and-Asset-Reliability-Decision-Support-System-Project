@@ -16,6 +16,7 @@ const loaders = {
   overview: () => import('../features/overview/OverviewView'),
   datasets: () => import('../features/datasets/DatasetsView'),
   runs: () => import('../features/runs/RunsView'),
+  dashboard: () => import('../features/dashboard/DashboardView'),
   memory: () => import('../features/memory/MemoryView'),
   preferences: () => import('../features/preferences/PreferencesView'),
   activity: () => import('../features/activity/ActivityView'),
@@ -29,6 +30,7 @@ export const ApprovalsView = lazy(() => loaders.approvals().then((m) => ({ defau
 export const OverviewView = lazy(() => loaders.overview().then((m) => ({ default: m.OverviewView })))
 export const DatasetsView = lazy(() => loaders.datasets().then((m) => ({ default: m.DatasetsView })))
 export const RunsView = lazy(() => loaders.runs().then((m) => ({ default: m.RunsView })))
+export const DashboardView = lazy(() => loaders.dashboard().then((m) => ({ default: m.DashboardView })))
 export const MemoryView = lazy(() => loaders.memory().then((m) => ({ default: m.MemoryView })))
 export const PreferencesView = lazy(() =>
   loaders.preferences().then((m) => ({ default: m.PreferencesView })),

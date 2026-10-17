@@ -242,6 +242,30 @@ included, and text that a spreadsheet would run as a formula (a cell
 starting with `=`, `+`, `-` or `@`) is saved with a leading apostrophe so
 it stays text.
 
+### Dashboards
+
+**Dashboards** opens any analysis whose data has been cleaned as a set of
+pages, every figure computed from the same cleaned table the report used.
+A finished analysis also has **Open dashboard** at the top.
+
+- **Overview** — records, the measure's total and its value per record,
+  the largest group, the trend and the top groups.
+- **Breakdown** — the measure by any text column, as totals or per
+  record, largest first.
+- **Trend** — totals and per-record values by period (when the data has
+  a date).
+- **Distribution** — how the measure spreads over twelve equal ranges.
+- **Relationship** — the measure against another number, from an even
+  sample of at most 500 records.
+- **Records** — the rows themselves, 25 at a time, sortable.
+
+The **Filters** card keeps values of any text column and a range of
+periods; a filter applies on every page. Every chart has **Show the
+numbers**, a table of its figures with **Show records** beside each
+group, which filters to that group and opens its rows. The page, the
+filters and every choice are in the address, so a reload keeps them and
+a link opens the same view for anyone who can open the analysis.
+
 ### Defining what a number means
 
 Without a column mapping, a run picks the column it analyses by its

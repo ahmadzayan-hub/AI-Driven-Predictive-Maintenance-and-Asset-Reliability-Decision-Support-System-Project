@@ -318,3 +318,9 @@ required local files. Both behaviors are covered by tests
     on first use and three are kept, so the first question asked of a
     50,000-row run is slower than the ones after it, and a server with
     several processes parses once per process.
+27. Dashboards (ADR 0032) are one run's table, read-only, with a fixed
+    set of pages chosen from its fields: no saved layouts, no choice of
+    chart per page and no cross-filtering by dragging. The relationship
+    page reads an even sample of at most 500 records, and a filter list
+    offers a column only when it has at most 200 values, so an ID or
+    free-text column cannot be filtered from the bar.

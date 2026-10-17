@@ -144,6 +144,8 @@ interface RunsViewProps {
   openNonce?: number
   preset?: RunPreset | null
   onRunSelected?: (id: string | null) => void
+  /** Open this run's dashboard (ADR 0032). */
+  onOpenDashboard?: (id: string) => void
 }
 
 /** The custom stages a profile includes, by title, for the picker's help. */
@@ -155,7 +157,7 @@ function stageTitles(pipelines: Pipelines, profile: string): string[] {
   })
 }
 
-export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRunSelected, draftScope = 'session' }: RunsViewProps) {
+export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRunSelected, onOpenDashboard, draftScope = 'session' }: RunsViewProps) {
   const { t, plural, isRtl, locale, formatNumber, formatDate, formatTime } = useI18n()
   const visible = useRef(true)
   useLayoutEffect(() => { visible.current = true; return () => { visible.current = false } }, [])
@@ -690,6 +692,12 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                     {t('runs.cancel')}
                   </button>
                 </>
+              ) : null}
+              {tableReady && onOpenDashboard ? (
+                <button type="button" className="btn btn--ghost" onClick={() => onOpenDashboard(run.id)}>
+                  <Icon name="dashboard" size={16} />
+                  {t('runs.openDashboard')}
+                </button>
               ) : null}
               {tableReady ? (
                 <button type="button" className="btn btn--ghost" disabled={downloading} onClick={() => void downloadTable(run.id)}>

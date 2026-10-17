@@ -35,9 +35,13 @@ DIST = FRONTEND / "dist"
 # have three limits: what the first page load fetches (the entry module and
 # its preloads in index.html), every script together, and the largest chunk
 # fetched on demand, which is the wait for one view.
-BUDGET_KB = {"js": 100, "js_total": 160, "js_chunk": 30, "css": 10, "fonts": 120}
+# CSS is counted the way scripts are (ADR 0028): the stylesheet the first
+# load fetches, and every stylesheet, since a view's styles ship with its
+# chunk (ADR 0032).
+BUDGET_KB = {"js": 100, "js_total": 160, "js_chunk": 30, "css": 10, "css_total": 16,
+             "fonts": 120}
 LABELS = {"js": "js first load", "js_total": "js total", "js_chunk": "largest js chunk",
-          "css": "css", "fonts": "fonts"}
+          "css": "css first load", "css_total": "css total", "fonts": "fonts"}
 FIRST_LOAD = re.compile(
     r'<(?:script[^>]*\btype="module"[^>]*\bsrc|link[^>]*\brel="modulepreload"[^>]*\bhref)'
     r'="/?(assets/[^"]+\.js)"')
@@ -84,20 +88,31 @@ def summarise_brain(output):
     return line.removeprefix("Brain:").strip()
 
 
+FIRST_STYLES = re.compile(r'<link[^>]*\brel="stylesheet"[^>]*\bhref="/?(assets/[^"]+\.css)"')
+
+
 def first_load_scripts(dist):
     """The scripts index.html fetches before the app starts."""
     return set(FIRST_LOAD.findall((dist / "index.html").read_text(encoding="utf-8")))
 
 
+def first_load_styles(dist):
+    """The stylesheets index.html fetches before the app starts."""
+    return set(FIRST_STYLES.findall((dist / "index.html").read_text(encoding="utf-8")))
+
+
 def measure_budget(dist):
     """Return {kind: kilobytes} for the built interface."""
     first = first_load_scripts(dist)
+    styles = first_load_styles(dist)
     sizes = {kind: 0 for kind in BUDGET_KB}
     for path in (dist / "assets").iterdir():
         if path.suffix in (".js", ".css"):
             size = len(gzip.compress(path.read_bytes(), 9))
             if path.suffix == ".css":
-                sizes["css"] += size
+                sizes["css_total"] += size
+                if f"assets/{path.name}" in styles:
+                    sizes["css"] += size
             elif f"assets/{path.name}" in first:
                 sizes["js"] += size
             else:

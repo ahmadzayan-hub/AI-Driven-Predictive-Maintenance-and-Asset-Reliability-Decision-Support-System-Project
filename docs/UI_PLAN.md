@@ -183,7 +183,7 @@ From the skill's UX guidelines, applied here:
 | Keyboard | Every action reachable; visible focus ring; no keyboard traps; Escape closes overlays |
 | Layout | No horizontal page scroll from 320 to 1440 px |
 | Lighthouse (mobile) | Performance at least 95; Accessibility 100; Best Practices at least 95 |
-| Budget | JavaScript on first load at most 100 KB gzipped, all scripts at most 160 KB, and no view's chunk over 30 KB (ADR 0028: 85.7, 105.6 and 5.0 KB after views moved to chunks loaded on demand). CSS at most 10 KB gzipped, fonts at most 120 KB (7.7 and 119.4 KB) |
+| Budget | JavaScript on first load at most 100 KB gzipped, all scripts at most 160 KB, and no view's chunk over 30 KB (ADR 0028: 85.7, 105.6 and 5.0 KB after views moved to chunks loaded on demand). CSS on the first load at most 10 KB gzipped and all CSS at most 16 KB, since a view's styles ship with its chunk (ADR 0032); fonts at most 120 KB (7.7 and 119.4 KB) |
 | Core Web Vitals | LCP under 2.5 s, CLS under 0.1, INP under 200 ms |
 
 ## 8. Phases
@@ -193,7 +193,7 @@ From the skill's UX guidelines, applied here:
 | 0 Foundation | Design system v2 tokens, bundled Fira fonts, flat brand mark, chart fixes (negative bars, forecast boundary) | — | Unit, end-to-end and axe green; contrast verified; budget kept | Done, 16 Oct 2026 |
 | 1 Overview and Datasets | Two new views on existing APIs; analyse a stored dataset | — | New end-to-end and axe checks in both languages; no overflow at 320 px | Done, 16 Oct 2026 |
 | 2 Add data | Upload of several formats, preview, column mapping; deep links | A1, A2 | ADR; API and UI tests per format; error-summary behaviour tested | Upload, stored-dataset picker, preview and mapping shipped in ADRs 0024–0025. Hash deep links and upload-result previews added in ADR 0029; workbook sheet selection remains proposed. See docs/design/VALIDATION.md for verification status. |
-| 3 Dashboards | Dashboard pages, filters, drill to rows, chart-to-table toggle; "Analyses" naming | A4, A5 | Every chart has a table; filter state survives reload; axe on every page | Planned |
+| 3 Dashboards | Dashboard pages, filters, drill to rows, chart-to-table toggle; "Analyses" naming | A4, A5 | Every chart has a table; filter state survives reload; axe on every page | Done, 17 Oct 2026 (ADR 0032): six pages over a run's cleaned table, filters and choices in the address, drill-down to records from every group, axe and no sideways scrolling on every page at desktop and phone width, in both languages. "Analyses" naming not changed |
 | 4 Several datasets | Join builder: pick datasets, declare keys, preview the merge | A3 | Join-correctness tests; key-coverage warnings shown | Done, 17 Oct 2026 (ADR 0030): join builder in the run form, preview with match counts and unmatched keys, refusal of repeated lookup keys, end-to-end and axe in both languages |
 | 5 Models | Model cards: metric against baseline, calibration, importance, "not used" models | A6 | Every model shows its baseline; weak models labelled | Planned |
 | 6 Live | Connectors, schedules, live badge, polite announcements | A7 | Reconnect and stale-data states tested | Planned |
