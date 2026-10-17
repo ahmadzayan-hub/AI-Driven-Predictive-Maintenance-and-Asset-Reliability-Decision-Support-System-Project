@@ -60,8 +60,26 @@ class TokenTests(unittest.TestCase):
                 with self.subTest(mode=mode, pair=f"{fore} on {back}"):
                     self.assertGreaterEqual(contrast(palette[fore], palette[back]), 3.0)
 
+    def test_the_print_variant_is_built_and_readable(self):
+        self.assertEqual((STYLE / "document.css").read_text(encoding="utf-8"), build.document_css(TOKENS),
+                         "document.css is stale: run python .claude/skills/rta-style/build.py")
+        doc = TOKENS["document"]
+        for fore, back in TOKENS["document_contrast_pairs"]:
+            with self.subTest(pair=f"{fore} on {back}"):
+                self.assertGreaterEqual(contrast(doc[fore], doc[back]), 4.5)
+        for fore, back in TOKENS["document_chart_pairs"]:
+            with self.subTest(pair=f"{fore} on {back}"):
+                self.assertGreaterEqual(contrast(doc[fore], doc[back]), 3.0)
+
+    def test_every_default_colour_has_a_print_role(self):
+        for kind, table in TOKENS["from_default"].items():
+            for colour, role in table.items():
+                with self.subTest(kind=kind, colour=colour):
+                    self.assertRegex(colour, r"^#[0-9a-f]{6}$")
+                    self.assertIn(role, TOKENS["document"])
+
     def test_the_style_files_carry_no_name_or_logo(self):
-        for name in ("tokens.json", "tokens.css", "build.py"):
+        for name in ("tokens.json", "tokens.css", "document.css", "build.py", "restyle.py"):
             with self.subTest(file=name):
                 self.assertIsNone(FORBIDDEN.search((STYLE / name).read_text(encoding="utf-8")))
 
@@ -112,6 +130,35 @@ class WiringTests(unittest.TestCase):
         self.assertEqual(dash.render(self.spec()), dash.render(self.spec(theme="default")))
         self.assertIn(TOKENS["light"]["brand"], dash.render(self.spec(), theme="rta"))
         self.assertIn("theme must be one of default, rta.", dash.validate(self.spec(theme="neon")))
+
+    def test_restyling_changes_colours_and_type_never_words(self):
+        import restyle
+        slide = ('<section style="background:#17252F;color:#F6F5F1;font-family:\'IBM Plex Sans\', Arial, sans-serif">'
+                 '<p style="color:#E39A4C">Group · briefing</p><h1 style="color:#F6F5F1">Maintain by consequence</h1>'
+                 '<div style="background:#F6F5F1"><h2 style="font-family:\'Source Serif 4\', Georgia, serif;'
+                 'color:#17252F">Downtime costs 4.5 times</h2><p style="color:#A35A14">$228.9M</p><br>'
+                 '<p style="color:#5B6770;border-top:2px solid #DCE2E5">Source: KPI register</p></div></section>')
+        out = restyle.Restyler().restyle(slide)
+        doc = TOKENS["document"]
+        strip = lambda html: re.sub(r"<[^>]+>", "", html)
+        self.assertEqual(strip(out), strip(slide))
+        self.assertIn(f"background:{doc['primary']};color:{doc['on-primary']}", out)
+        # Amber on the dark band becomes the light blue that reads on navy, not the red that would not.
+        self.assertIn(f'<p style="color:{doc["primary-4"]}">Group', out)
+        # A heading on a light background takes the brand blue; the figure to look at, the red.
+        self.assertIn(f"color:{doc['primary']}\">Downtime", out)
+        self.assertIn(f'<p style="color:{doc["accent"]}">$228.9M', out)
+        self.assertIn(f"border-top:2px solid {doc['rule']}", out)
+        self.assertNotIn("IBM Plex", out)
+        self.assertNotIn("Source Serif", out)
+        for colour, background in ((doc["primary-4"], doc["primary"]), (doc["primary"], doc["page"])):
+            self.assertGreaterEqual(contrast(colour, background), 4.5)
+
+    def test_a_text_colour_that_would_not_read_is_replaced(self):
+        import restyle
+        # Body text inside a red panel: the mapped dark text fails there, so white is used.
+        out = restyle.Restyler().restyle('<div style="background:#E39A4C"><p style="color:#17252F">Approve now</p></div>')
+        self.assertIn(f'<p style="color:{TOKENS["document"]["on-accent"]}">Approve now', out)
 
     def test_the_evaluation_report_wears_the_style(self):
         import evaluate_agents as ev

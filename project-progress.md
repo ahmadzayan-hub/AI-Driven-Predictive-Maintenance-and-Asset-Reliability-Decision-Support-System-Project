@@ -34,6 +34,10 @@ Last updated: 2026-10-17, session `7ba0117d`. The session-end skill keeps this f
     - **Blind holdout recall, before → now:** intent 65% → 80%, jargon 40% → 83%, causal wording 67% (new and the weakest), privacy 83% → 100%, router 75% → 90%, raw-data guard 50% → 100%.
     - **Reviewer benchmark:** three seeded memos in `evals/reviewers/`, scored by `scripts/score_review.py`. The Tier 0 figures checker went from 0% to 75% on the blind memo. The LLM reviewers were already near their ceiling, so the prompt changes are not proven on held-out memos.
     - **Assistant:** forget by description, with confirmation.
+- **Capstone restyled, 2026-10-17:**
+    - The report (23 pages, tagged) and the deck (15 slides) were rebuilt in the house style's blue-led print variant, following the Dubai Design System's principles. The Power BI theme in the kit matches.
+    - The capstone gates are unchanged: all ten the session can act on pass, and six remain the team's.
+    - The typeface is Noto Sans until the Dubai font files are supplied.
 - **House style: done 2026-10-17.** `.claude/skills/rta-style/` (colours, type and layout only, no logo, name or data) themes the offline dashboards, the clips and the evaluation report, checked for AA contrast in light and dark.
 - **Next build: A3, several datasets per run (ADR 0028)**, and the rest of interface phase 2: deep links and the sheet picker. Code-split the views first: JavaScript is at 96.7 of 100 KB.
 

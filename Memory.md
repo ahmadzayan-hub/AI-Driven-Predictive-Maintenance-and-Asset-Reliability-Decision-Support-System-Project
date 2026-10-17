@@ -37,6 +37,7 @@ Full list: [brain/Soul.md](brain/Soul.md).
 - **Vercel:** `vercel.json` pins `"framework": null`, because the FastAPI preset breaks the `/api` rewrites.
 - **Cloud sessions:** uploads and uncommitted files do not survive a new container. The harness's Stop hook requires everything committed and pushed.
 - **One command for every check:** `python scripts/verify.py` (`--quick`, `--e2e`; set `PG_TEST_URL` and `REQUIRE_PG=1` for PostgreSQL). Quote its PASS lines, never older counts.
+- **Blocked hosts:** the proxy blocks designsystem.dubai.ae, dubaifont.com and fontsquirrel.com. Google Fonts, fonts.gstatic.com, raw.githubusercontent.com and PyPI work. A variable font prints into a PDF as Type 3; make static instances with fontTools (`varLib.instancer`).
 - **Lighthouse:** serve with `python scripts/serve.py --local-only --port 8011` and run `npx lighthouse` from `frontend/` with `CHROME_PATH=/opt/pw-browsers/chromium`; recipe in `.claude/skills/verify/SKILL.md`. Never `pkill -f` a pattern that also appears in your own command line: it kills the shell (exit 144).
 
 ## Conventions
@@ -72,6 +73,7 @@ Full list: [brain/Soul.md](brain/Soul.md).
     - **Fixes from dev only:** read dev misses (`evaluate_agents.py --misses`), never holdout ones. After a round, move the holdout into dev and get a new blind set from an agent that has seen only the label definitions.
     - **Reviewers:** run them on `evals/reviewers/` A, B and C, save the replies under `runs/`, then `score_review.py --summary`. The LLM reviewers sit near 100% on these memos, so the next memos must be harder.
     - **Rules found the hard way:** a figure checker that derives figures must stay off tables and count one quantity once; the capstone dashboard and the figures holdout each caught one.
+- Capstone style (17 Oct): the report and deck are styled when built, with the house style's print variant (`tools/doc_theme.py` and `restyle.py`; `STYLE.md` in the build-tools bundle). The team's text and slides stay untouched, and the previous files are kept in `final/previous-style/` in the scratchpad. The Dubai font cannot be fetched here, and its licence limits redistribution, so the files use Noto Sans. Setting `DUBAI_FONT_DIR` rebuilds them with Dubai.
 - House style: `.claude/skills/rta-style/` (`tokens.json` → `build.py` → `tokens.css`) gives the user's executive-dashboard look in colours, type and layout only: never a logo, an organisation's name or its data, and never presented as official. The capstone Claude Dashboard (Q36TKj9qBNYv7o9qZTCH3V) wears it from version 2 of its page file.
 - Claude Dashboards: build them with the Dashboard artifact type (`Artifact` `list`, `scope: "types"`). Data goes in as small aggregate files uploaded as assets, and every figure is marked `data-source`/`data-field`. Do not render or screenshot the result unless asked.
 

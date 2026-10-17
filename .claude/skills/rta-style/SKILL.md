@@ -26,6 +26,28 @@ A theme, not a brand. It reproduces the look of the user's own executive dashboa
 - **Status:** green, amber, red pills with on-colour text that passes contrast in both modes.
 - **Type:** `system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Naskh Arabic", Tahoma, sans-serif`. No web fonts to fetch.
 
+## The print variant, for reports and decks
+
+`tokens.json` also holds a `document` palette: blue and white led, with red kept for the one figure to look at. It follows the Dubai Design System's principles:
+
+- **One typeface** for headings and body, in Arabic and English. That typeface is Dubai where it is installed or its files are supplied. Elsewhere it is a substitute (Noto Sans), as that system allows.
+- **Hierarchy** from size and weight, not colour.
+- **AA contrast** throughout.
+- **The entity's own colours.** Its own palette, the DDA blue, is not used.
+
+The variant carries no emblem or name of any government or authority.
+
+| File | What it is |
+| --- | --- |
+| `document.css` | Print variables (`--doc-*`) and element rules for an HTML-to-PDF report. The page brings its own `@font-face` for `'Doc Sans'`. |
+| `restyle.py` | Recolours HTML written in the project's default palette (the dashboards' and the capstone drafts' inline styles) by role. It maps backgrounds, text and borders through `from_default`, then checks every text colour against the background it really sits on, falling back to white or body text below 4.5:1. Words never change. |
+
+```bash
+python .claude/skills/rta-style/restyle.py --in slides/ --out themed/
+```
+
+Dubai's licence limits redistribution. Never commit its files; read them from a folder the user supplies.
+
 ## Where it is wired in
 
 - **Offline dashboards:** `python .claude/skills/dashboards/render.py --spec spec.json --theme rta --out d.html`, or `"theme": "rta"` in the spec.

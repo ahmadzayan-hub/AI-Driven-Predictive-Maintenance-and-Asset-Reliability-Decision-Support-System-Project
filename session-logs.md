@@ -338,3 +338,35 @@ The first entries were written from the commit history and the session's own rec
 - **Blockers:**
     - Local Ollama models cannot be downloaded here.
     - Hosted narrator models need a rotated provider key, so neither was measured.
+
+## 2026-10-17 (continued) · `7ba0117d` · claude/agentic-os-final-project-53j6ql
+
+**Goal:** apply the RTA style (blue, white and the rest) and the Dubai Government style, without logos, to the capstone report and deck.
+
+- **Done:**
+    - **Research:** the Dubai Design System asks for the Dubai typeface in Arabic and English, hierarchy from size and weight, and AA contrast. It tells each entity to use its own colours, so the palette here is RTA blue and white. It allows a substitute typeface.
+        - The design system site and dubaifont.com are blocked here.
+        - The Dubai font's licence limits redistribution, so Noto Sans (SIL Open Font License) is used, and `DUBAI_FONT_DIR` rebuilds with Dubai.
+    - **Repository:** `.claude/skills/rta-style/` gains:
+        - a `document` palette with contrast pairs and a role map from the project's default palette;
+        - a generated `document.css`;
+        - `restyle.py`, which recolours inline-styled HTML by role, checks every text colour against its real background, and never changes a word.
+        - Four new tests in `tests/test_rta_style.py`.
+    - **Capstone files (outside the repository):** rebuilt with a build-time theme (`tools/doc_theme.py`). The team's text and slides are untouched, and the previous files are in `final/previous-style/`.
+        - **Report:** 23 pages, tagged, 20 bookmarks; fonts embedded as TrueType, made as static instances with fontTools.
+        - **Deck:** 15 slides with titles and alt text.
+        - The Power BI theme in the kit matches, with Dubai first, then Segoe UI.
+        - The build-tools bundle gained the style step, the fonts with their licence, and `STYLE.md`.
+- **Verified:**
+    - Capstone gates, round 5: 62.5%, the same ten pass. The six failures are the team's, unchanged.
+    - The slides render with no overflow, and their text is identical to the source.
+    - The pages were checked once by eye.
+    - Python suite with PostgreSQL: 856 tests, 16 skipped.
+    - CI run 57 passed for `66cc76e`.
+    - The README count is corrected to 856. It said 851, one short, because the table test was added after that count.
+- **Decisions:**
+    - The style is applied at build time, never by editing the team's documents.
+    - Red is used on white only, never on navy, where it fails contrast.
+- **Open / next:**
+    - If the team wants the real Dubai typeface, download it from dubaifont.com and rebuild with `DUBAI_FONT_DIR`.
+    - The team items and wording corrections from the review memo are still open.
