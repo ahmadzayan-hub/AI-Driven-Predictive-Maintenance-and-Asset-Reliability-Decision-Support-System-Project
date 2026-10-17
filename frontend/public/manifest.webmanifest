@@ -1,0 +1,24 @@
+{
+  "name": "AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project",
+  "short_name": "Asset Reliability",
+  "id": "/",
+  "scope": "/",
+  "categories": ["productivity", "business"],
+  "description": "Maintenance and asset reliability decision support, powered by the Agentic OS analytics engine.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "shortcuts": [
+    { "name": "Overview", "url": "/#/overview" },
+    { "name": "Runs", "url": "/#/runs" },
+    { "name": "Approvals", "url": "/#/approvals" }
+  ],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
+

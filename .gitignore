@@ -1,0 +1,39 @@
+data/memory.json
+# The database plus the -wal/-shm sidecars WAL mode creates alongside it.
+data/agentic.db*
+# A relative `database_file` resolves against the working directory, so a
+# script run from the repository root leaves one here. Runtime data, not
+# source, wherever it lands.
+/agentic.db*
+/sbom.json
+vault/
+# Backups contain every row of the database, including user data.
+backups/
+# Course files and anything with personal data (names, student numbers).
+# This repository is public: keep them here, where Git never sees them.
+# This also covers brain/private/, for second-brain notes that stay local.
+private/
+# The capstone course package and the team workspace. Both hold course
+# files, five members' names and their registration numbers, so neither
+# may ever reach this public repository. The team workspace is a separate
+# private repository with its own CLAUDE.md, Memory.md and session logs.
+inputs/
+# Claude Code: per-person settings and the hooks' per-session state.
+.claude/settings.local.json
+.claude/state/
+.claude/agent-memory-local/
+# Obsidian's per-device files when brain/ is opened as a vault.
+brain/.obsidian/workspace*.json
+brain/.trash/
+__pycache__/
+*.pyc
+.venv/
+.env
+.vscode/
+.idea/
+node_modules/
+frontend/dist/
+frontend/e2e/.tmp/
+frontend/playwright-report/
+frontend/test-results/
+frontend/test-results-preview/

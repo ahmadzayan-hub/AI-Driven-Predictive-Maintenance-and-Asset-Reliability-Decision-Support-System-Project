@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Asset Reliability" />
+    <meta
+      name="description"
+      content="Maintenance and asset reliability decision support, powered by the Agentic OS analytics engine."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#0b1220" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231e40af'/%3E%3Ctext x='16' y='22' font-family='sans-serif' font-size='17' font-weight='700' fill='white' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E"
+    />
+    <title>AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project</title>
+    <script>
+      // Apply the saved theme, motion and language settings before first
+      // paint. Language goes on <html> as lang + dir, which is where CSS,
+      // the bidi algorithm and screen readers read it from — set here so
+      // an Arabic reader never sees a left-to-right flash.
+      try {
+        var theme = localStorage.getItem('aos-theme')
+        if (theme === 'light' || theme === 'dark') {
+          document.documentElement.dataset.theme = theme
+        }
+        if (localStorage.getItem('aos-motion') === 'reduce') {
+          document.documentElement.dataset.motion = 'reduce'
+        }
+        if (localStorage.getItem('aos-locale') === 'ar') {
+          document.documentElement.lang = 'ar'
+          document.documentElement.dir = 'rtl'
+        }
+      } catch (error) {
+        /* localStorage unavailable — system settings apply */
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
