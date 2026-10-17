@@ -63,11 +63,16 @@ Full list: [brain/Soul.md](brain/Soul.md).
     - **Build scripts:** these went to the user as `Team3_Build_Tools.zip`.
     - **Wording:** the report and deck text is the team's. Corrections go to them as a memo with verified figures, never as silent edits.
 - Agent team (`docs/AGENT_TEAM.md`):
-    - **The loop:** the main session runs `review-loop`, because subagents cannot start subagents. New agent files load only at the next session start; until then, run a general-purpose agent told to follow the file.
+    - **The loop:** the main session runs `review-loop`, because subagents cannot start subagents. New or edited agent files load only at the next session start; until then, run a general-purpose agent on the same model, told to follow the file. A named agent asked which instructions it has can misreport, so compare prompts with these controlled runs.
     - **Reviewer figures:** recompute them before passing them on. Turn each checkable finding into a gate.
     - **`--reset`:** `review_gate.py --reset` archives the old rounds.
     - **Local models:** Ollama downloads are blocked by this environment's proxy, so `consult.py` is tested only against a stub.
 - Uneven periods (ADR 0026): a total over periods or groups of different sizes moves with the record count. The pipeline gives the per-record change, and dashboards show per-record charts. The capstone's 2026 months hold 83 records against 167, so totals fall while loss per record is flat.
+- Measurement (ADR 0027): every classifying agent has a suite in `evals/` and a floor in `evals/floors.json`, checked by `tests/test_evals.py`.
+    - **Fixes from dev only:** read dev misses (`evaluate_agents.py --misses`), never holdout ones. After a round, move the holdout into dev and get a new blind set from an agent that has seen only the label definitions.
+    - **Reviewers:** run them on `evals/reviewers/` A, B and C, save the replies under `runs/`, then `score_review.py --summary`. The LLM reviewers sit near 100% on these memos, so the next memos must be harder.
+    - **Rules found the hard way:** a figure checker that derives figures must stay off tables and count one quantity once; the capstone dashboard and the figures holdout each caught one.
+- House style: `.claude/skills/rta-style/` (`tokens.json` → `build.py` → `tokens.css`) gives the user's executive-dashboard look in colours, type and layout only: never a logo, an organisation's name or its data, and never presented as official. The capstone Claude Dashboard (Q36TKj9qBNYv7o9qZTCH3V) wears it from version 2 of its page file.
 - Claude Dashboards: build them with the Dashboard artifact type (`Artifact` `list`, `scope: "types"`). Data goes in as small aggregate files uploaded as assets, and every figure is marked `data-source`/`data-field`. Do not render or screenshot the result unless asked.
 
 ## Open questions

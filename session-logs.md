@@ -296,3 +296,45 @@ The first entries were written from the commit history and the session's own rec
 - **Blockers:**
     - `.pbix` needs Power BI Desktop.
     - Ollama models cannot be downloaded here, so local consultation is untested live.
+
+## 2026-10-17 · `7ba0117d` · claude/agentic-os-final-project-53j6ql
+
+**Goal:** measure every agent and LLM reviewer with confusion matrices and raise their recall, honestly; and give the agents' outputs the user's RTA-style look (colours, fonts and themes, with no logo and no RTA data).
+
+- **Done:**
+    - `c2c1580`, ADR 0027, agents are measured:
+        - Labelled synthetic suites for eight classifying agents (`scripts/evaluate_agents.py`, `evals/`), with confusion matrices, precision and recall, and floors in `tests/test_evals.py`.
+        - Fixes from dev misses only. The holdouts for intent, jargon and causal wording were written blind by independent agents.
+        - `scripts/claims_lint.py`, a new Tier 0 check for causal wording.
+        - The assistant can forget a note by description.
+        - A seeded reviewer benchmark (`evals/reviewers/` A, B, C) scored by `scripts/score_review.py`.
+        - Figures checker fixes, and reviewer prompts v2 (from A only).
+    - `9e21f32`, the house style `.claude/skills/rta-style/`: light and dark tokens tested for AA contrast, wired into the dashboards renderer (`--theme rta`), the clips (`rta`, `rta-dark`) and the evaluation report. No logo, name or data.
+    - **Outside the repository:**
+        - The evaluation report, published as a private page: https://claude.ai/artifact/LwXdUtQbPwnVWSa2yCEz2B
+        - The capstone Claude Dashboard (Q36TKj9qBNYv7o9qZTCH3V) restyled in the house style. The page file is now at version 2 with all 50 data bindings unchanged, and version 1 is in its history.
+        - The offline capstone dashboard was re-rendered in the theme (scratchpad).
+- **Verified:**
+    - `scripts/verify.py` with PostgreSQL: 851 Python tests, 16 skipped; brain check clean (26 notes); type check; 60 frontend unit tests; build; interface budget (JS 96.7 of 100 KB). End-to-end was not run, because no app interface changed.
+    - **Blind holdout recall, before → after:** intent 65% → 80% (the intermediate blind set scored 68%); jargon 40% → 83%; router 75% → 90%; privacy 83% → 100%; raw-data guard 50% → 100%; causal wording 67% (new).
+    - **Reviewer benchmark:** 24 LLM runs, scored. Lane recall:
+        - Tier 0 checker on blind C: 0% → 75%.
+        - Analytics reviewer (controlled v1 → v2): A 83% → 100%, B 80% → 80%, C 100% → 100%.
+        - Figures auditor: 100% everywhere.
+        - Team: A 100%, B 89%, C 100%.
+    - The capstone figure gates give the same results with the old and new checker. The offline dashboard check is identical too.
+    - The report page was looked at once, desktop light and phone dark, with no horizontal overflow.
+- **Decisions:**
+    - **Comparing prompts:** named subagents load their instructions at session start, so v1 and v2 were compared as controlled runs, with a general-purpose agent on the same model.
+    - **Labels:** B's P06 label (overclaim) was kept although every run called it causal; labels are never changed after results.
+    - **Holdouts that informed fixes:** the figures holdout exposed a coincidence (75.2% and 0.752 as two inputs), and the dashboard's table exposed another. Both fixes are general, and the ADR says that holdout is no longer blind.
+    - **ADR numbers:** A3 moves to 0028.
+- **Open / next:**
+    - **Harder reviewer memos:** the LLM reviewers are at their ceiling, so prompt changes cannot be shown yet.
+    - **Causal wording:** a new blind set; it is the weakest suite.
+    - **Live prompts:** the v2 reviewer prompts take effect for named subagents from the next session.
+    - **Confirm CI** on these commits.
+    - The brain maintenance due today was not run beyond this session's note updates.
+- **Blockers:**
+    - Local Ollama models cannot be downloaded here.
+    - Hosted narrator models need a rotated provider key, so neither was measured.

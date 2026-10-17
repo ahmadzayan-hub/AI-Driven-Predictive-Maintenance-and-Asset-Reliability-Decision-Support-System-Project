@@ -3,7 +3,7 @@ type: decision
 aliases: [ADR index, Architecture decisions]
 tags: [decisions]
 status: active
-updated: 2026-10-16
+updated: 2026-10-17
 review_every_days: 30
 sources: [docs/adr]
 ---
@@ -40,5 +40,6 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 | 0024 | The dataset API: several formats, one canonical table | [[Analytics OS roadmap]] |
 | 0025 | Column mapping: the owner says what each column is | [[Column mapping]] |
 | 0026 | Uneven periods are read per record | [[Weighted KPIs]] |
+| 0027 | Agents are measured: confusion matrices, recall floors, blind holdouts, seeded reviewer memos | [[Agent evaluation]] |
 
 The next records are expected to come from the [[Analytics OS roadmap]]: multi-dataset runs, the dashboard and live data.

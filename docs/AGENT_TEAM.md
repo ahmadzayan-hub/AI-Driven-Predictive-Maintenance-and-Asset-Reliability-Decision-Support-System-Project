@@ -14,7 +14,7 @@ Every job goes to the first tier that can do it correctly.
 
 | Tier | What | Cost | Used for |
 | --- | --- | --- | --- |
-| 0 | Deterministic scripts | Nothing, and no tokens | Tests, builds and budgets (`scripts/verify.py`); every figure checked against its register (`scripts/figures_check.py`); the review scorecard (`scripts/review_gate.py`); the brain check; `render.mjs --check`; the governed analysis pipeline itself |
+| 0 | Deterministic scripts | Nothing, and no tokens | Tests, builds and budgets (`scripts/verify.py`); every figure checked against its register (`scripts/figures_check.py`); causal wording (`scripts/claims_lint.py`); the review scorecard (`scripts/review_gate.py`); every agent's confusion matrix and recall (`scripts/evaluate_agents.py`, `scripts/score_review.py`); the brain check; `render.mjs --check`; the governed analysis pipeline itself |
 | 1 | Open-source models on your own machine, through Ollama (`scripts/consult.py`) | Nothing, and data stays on the machine | A second opinion on prose; English–Arabic checks; summarising long logs; triage. Never raw data |
 | 2 | Claude Haiku subagents | Low | Reading and checking that needs tools: auditing figures, accessibility and translation checks, security and privacy sweeps |
 | 3 | Claude Sonnet subagents | Moderate | Expert judgement: analytics method, compliance with a brief, dashboard analysis |
@@ -103,9 +103,26 @@ The loop's first real use was on Team 3's report, deck, briefing clip and Power 
     - **Starting again.** `review_gate.py --reset` now archives earlier rounds instead of deleting them.
 - **Verify the verifier:** a reviewer's figures were right nearly everywhere and wrong in two small places. The loop now recomputes before passing numbers on.
 
-## 6. Adding an agent
+## 6. How well each agent does
+
+Every classifying agent is measured (ADR 0027), with a confusion matrix, precision and recall:
+
+- **Rule-based agents:** `python scripts/evaluate_agents.py [--misses] [--html report.html] [--check]` runs the labelled suites in `evals/`. Each has dev cases, used to find fixes, and holdout cases, used only to judge them. For the text classifiers, the holdout is a blind set written by an independent agent from the label definitions alone. `evals/floors.json` holds the recall each suite must keep, and `tests/test_evals.py` enforces it.
+- **Reviewer subagents:** `evals/reviewers/` holds three synthetic memos with planted defects:
+    - A is used to choose fixes;
+    - B is held out;
+    - C was written blind.
+
+  Run a reviewer on a memo and save its reply in `evals/reviewers/runs/<agent>-<memo>-<tag>.txt`. Then `python scripts/score_review.py --summary` scores every saved run three ways: in its lane, by paragraph detection with false alarms, and as a category confusion matrix. `--figures-tool` scores the Tier 0 checker the same way.
+- **Prompt changes:** a subagent's instructions load when a session starts, so an edited prompt is not live until the next session. To compare two versions now, give a general-purpose agent on the same model each version's instructions, and change nothing else ("ctl" runs).
+- **What the numbers say today:**
+    - Blind recall is 80% for intent, 83% for jargon and 67% for causal wording, the weakest.
+    - The figures auditor and the analytics reviewer were near their ceiling on the seeded memos. Harder memos are the next step (`project-progress.md`).
+
+## 7. Adding an agent
 
 1. Give it one job that the roster does not already cover, and a tier.
 2. Give it the fewest tools that job needs. Reviewers get no Write or Edit.
 3. Give it rules it must not break: no unsourced figure, no course data in Git, no raw data to a model.
 4. Add it to the table above and to `tests/test_agent_team.py`, which checks every agent's frontmatter and model.
+5. If it classifies, give it a labelled suite (dev and holdout) or a seeded benchmark, and a floor (§6).

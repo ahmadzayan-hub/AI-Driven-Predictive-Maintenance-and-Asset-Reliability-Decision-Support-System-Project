@@ -32,6 +32,7 @@ npm --prefix frontend run e2e                             # needs the build; res
 python scripts/serve.py                                   # app on http://localhost:8000
 python scripts/brain_check.py --strict                    # brain links, fields and sources
 python scripts/verify.py [--quick | --e2e]                # all of the above in one run, with real counts (the verify skill)
+python scripts/evaluate_agents.py --check [--html r.html] # every agent's confusion matrix and recall (ADR 0027)
 ```
 
 ## Map
@@ -40,6 +41,8 @@ python scripts/verify.py [--quick | --e2e]                # all of the above in 
 - `server/metrics.py`: the metric glossary. `server/stages.py`: custom stages (ADR 0020). `server/agent_runtime.py`, `server/tools.py`, `server/mcp.py`: runtimes and MCP (ADR 0021).
 - `frontend/src/features/*`: views. `frontend/src/i18n/`: English and Arabic strings. `frontend/e2e/`: Playwright tests.
 - `docs/AGENT_TEAM.md`: the agent team, model tiers and the review loop. `scripts/review_gate.py`, `scripts/figures_check.py`, `scripts/analyse.py`, `scripts/consult.py`: its zero-cost tools.
+- `evals/`: labelled suites, recall floors and seeded reviewer memos; scored by `scripts/evaluate_agents.py` and `scripts/score_review.py`.
+- `.claude/skills/rta-style/`: the house style for agent outputs (colours and type only; no logo, name or data).
 - `docs/adr/`: decisions. `docs/KNOWN_LIMITATIONS.md`: what is not done. `README.md`: the one place test counts are kept.
 - `AGENTS.md`: the same rules for Codex and other coding agents. Change it in the same commit as a rule here.
 

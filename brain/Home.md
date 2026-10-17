@@ -32,6 +32,7 @@ The second brain of [[Agentic OS]]: what the project knows, who it serves and ho
 - [[Second brain]], how this vault itself is kept
 - [[Design system]], how the interface looks and behaves, and where its rules come from
 - [[Column mapping]], how the owner says what each column of a dataset is
+- [[Agent evaluation]], how often each agent is right: confusion matrices, recall floors and blind holdouts
 
 ## Data
 

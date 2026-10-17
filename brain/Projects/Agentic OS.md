@@ -3,7 +3,7 @@ type: project
 aliases: [Agentic OS project]
 tags: [project]
 status: active
-updated: 2026-10-16
+updated: 2026-10-17
 review_every_days: 14
 sources: [README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0024-the-dataset-api.md, scripts/verify.py]
 ---
@@ -26,6 +26,11 @@ The product in this repository, described in [[Identity]]: a governed business-a
 - Optional narration through the [[Model gateway]]; extension through [[Custom stages]] and [[Agent runtimes and MCP]].
 - The bundled [[Sample sales data]] works without an upload.
 - An Overview of key figures, the latest findings and the approval queue, and a Datasets view that analyses a stored dataset again by reference. Both follow the [[Design system]].
+
+## Verified state on 2026-10-17
+
+- `python scripts/verify.py` with PostgreSQL passed all six steps: 851 Python tests with 16 optional-library skips, the brain check, the type check, 60 frontend unit tests, the build, and the interface budget (JavaScript 96.7 of 100 KB). The end-to-end suite was not run on this date.
+- Every classifying agent is measured ([[Agent evaluation]]).
 
 ## Verified state on 2026-10-16
 

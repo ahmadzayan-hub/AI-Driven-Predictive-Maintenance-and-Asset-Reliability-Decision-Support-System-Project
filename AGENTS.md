@@ -40,6 +40,9 @@ These scripts are plain Python and work for any agent (`docs/AGENT_TEAM.md`):
 python scripts/figures_check.py --register kpis.csv --doc report.pdf          # every figure traced to its register
 python scripts/review_gate.py plan.json                                         # a deliverable's gates, scored round by round
 python scripts/analyse.py data.csv --suggest --out analysis.json                # the governed pipeline, exported as figures, never rows
+python scripts/claims_lint.py --doc report.pdf                                  # sentences that claim a cause
+python scripts/evaluate_agents.py --check                                       # every agent's confusion matrix and recall, against its floor
+python scripts/score_review.py --summary                                        # the reviewer subagents on seeded memos
 ```
 
 Report what it printed. If a step was skipped or failed, say so. Set `PG_TEST_URL` to include the PostgreSQL tests; the commands are in `CLAUDE.md`.

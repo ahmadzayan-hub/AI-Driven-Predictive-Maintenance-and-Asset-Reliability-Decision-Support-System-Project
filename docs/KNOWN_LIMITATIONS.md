@@ -86,6 +86,20 @@ placeholder controls — absent capabilities have no UI.
    lessons accumulate as vault run logs for human review. Permanent 100%
    accuracy cannot honestly be promised by any AI system; deterministic
    calculations are exact for the operations implemented.
+6. Every classifying agent is measured on labelled **synthetic** cases
+   (ADR 0027), and the numbers are only as good as those cases. On the
+   blind holdouts the rules reach 80% macro recall for chat intent, 83%
+   recall for jargon and 67% for causal wording (precision 73%). Causal
+   wording is the weakest check, and a sentence it passes may still claim
+   a cause. The seeded reviewer memos were nearly too easy for the
+   reviewer subagents: both scored at or near 100% with either prompt.
+   So the prompt changes are justified on the dev memo, not proven on the
+   held-out ones, and the subagents' run-to-run variation (zero to three
+   false alarms on the same memo) is measured on one run per condition.
+   Local Ollama models and the hosted narrators are **not measured**: the
+   models could not be downloaded here, and no provider key was used. The
+   figures checker cannot read a figure written in words ("one in five");
+   the figures-auditor reads the text for those.
 
 ## Resolved since the first release
 

@@ -15,6 +15,7 @@ Everything here is shared with the team through Git, except the paths `.gitignor
 | `skills/motion/` | Short animated explainers (MP4) from verified figures, rendered frame by frame from code like Claude Motion: `composition.html`, `render.mjs`, and examples from the sample data. Needs the frontend's Playwright and `ffmpeg`. |
 | `skills/review-loop/` | The review super-agent's method: score the gates, send the reviewers in parallel, fix, rescore, until 100% or the loop stops. Gates run with `scripts/review_gate.py`; figures with `scripts/figures_check.py`. |
 | `skills/dashboards/` | Deep analysis with `scripts/analyse.py`, then a dashboard where every figure cites its calculation: a Claude Dashboard where the artifact type exists, or an offline page (`render.py`). |
+| `skills/rta-style/` | The house style for agent outputs: tokens for light and dark (AA contrast tested), used by the dashboards renderer (`--theme rta`), the clips (`"theme": "rta"`) and the evaluation report. Colours, type and layout only; no logo, name or data. |
 | `skills/ui-ux-pro-max/` | Design intelligence for the interface: styles, palettes, type, UX rules, charts (ADR 0023). |
 | `skills/design-system/`, `brand/`, `ui-styling/` | Token architecture and a token validator; brand voice and identity; shadcn/Tailwind and canvas posters (not for the app). |
 | `skills/design/`, `banner-design/`, `slides/` | Logos, corporate identity, icons, banners and HTML decks. The logo, identity and icon generators call third-party image services and need an API key. |

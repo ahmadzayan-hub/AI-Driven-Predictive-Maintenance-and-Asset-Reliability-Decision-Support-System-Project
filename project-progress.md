@@ -1,6 +1,6 @@
 # Project progress
 
-Last updated: 2026-10-16, session `7ba0117d`. The session-end skill keeps this file current; the SessionStart hook reads the *Now* section into every new session.
+Last updated: 2026-10-17, session `7ba0117d`. The session-end skill keeps this file current; the SessionStart hook reads the *Now* section into every new session.
 
 **Vision.** Agentic OS becomes an analytics OS. It digests several datasets with dynamic inputs, then carries them through preparation, cleaning and modelling to a multi-page interactive dashboard with live data, with insights and key findings that are always traceable to a calculation. The reasoning behind it is in `brain/Projects/Analytics OS roadmap.md`.
 
@@ -29,13 +29,20 @@ Last updated: 2026-10-16, session `7ba0117d`. The session-end skill keeps this f
     - **Makers:** `dashboard-analyst`, with the `dashboards` skill: `scripts/analyse.py`, then a Claude Dashboard or an offline page.
     - **Local models:** `scripts/consult.py` for free local second opinions, untested live here.
     - **ADR 0026:** uneven periods are read per record.
-- **Next build: A3, several datasets per run (ADR 0027)**, and the rest of interface phase 2: deep links and the sheet picker. Code-split the views first: JavaScript is at 96.7 of 100 KB.
+- **Agents are measured: done 2026-10-17** (ADR 0027).
+    - **Suites and floors:** every classifying agent has a labelled synthetic suite with a confusion matrix, precision and recall (`scripts/evaluate_agents.py`, `evals/`). Floors are enforced by `tests/test_evals.py`.
+    - **Blind holdout recall, before → now:** intent 65% → 80%, jargon 40% → 83%, causal wording 67% (new and the weakest), privacy 83% → 100%, router 75% → 90%, raw-data guard 50% → 100%.
+    - **Reviewer benchmark:** three seeded memos in `evals/reviewers/`, scored by `scripts/score_review.py`. The Tier 0 figures checker went from 0% to 75% on the blind memo. The LLM reviewers were already near their ceiling, so the prompt changes are not proven on held-out memos.
+    - **Assistant:** forget by description, with confirmation.
+- **House style: done 2026-10-17.** `.claude/skills/rta-style/` (colours, type and layout only, no logo, name or data) themes the offline dashboards, the clips and the evaluation report, checked for AA contrast in light and dark.
+- **Next build: A3, several datasets per run (ADR 0028)**, and the rest of interface phase 2: deep links and the sheet picker. Code-split the views first: JavaScript is at 96.7 of 100 KB.
 
 ## Next
 
 1. Code-split the interface views, to recover budget before phase 3.
-2. A3: several datasets per run, with declared join keys (ADR 0027); deep links and the sheet picker (phase 2).
-3. Invite the team as collaborators and protect the default branch (owner action, on GitHub).
+2. A3: several datasets per run, with declared join keys (ADR 0028); deep links and the sheet picker (phase 2).
+3. Harder reviewer memos (subtler defects, longer documents) so prompt changes can be measured; a new blind set for causal wording, the weakest suite.
+4. Invite the team as collaborators and protect the default branch (owner action, on GitHub).
 
 ## Analytics OS milestones
 
