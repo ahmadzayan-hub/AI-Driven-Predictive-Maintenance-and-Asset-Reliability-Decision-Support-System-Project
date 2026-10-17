@@ -155,7 +155,7 @@ From `CLAUDE.md` and `brain/Soul.md`:
 - **Network:** no third-party requests from the app (no CDNs, no remote fonts, no analytics) and no secrets anywhere.
 - **Data:** raw data never goes to a model. The interface sends datasets only to this app's own API.
 - **Honesty:** never fabricate numbers, screenshots, URLs or test counts. A screenshot is a real capture from `frontend/e2e/screenshots.spec.ts`.
-- **Backend:** do not change backend behaviour. If an interface need truly requires a backend change, stop and write it up as a proposal ADR at the next free number in `docs/adr/` (0025 is column mapping, A2, 0026 is uneven periods, 0027 is agent measurement and 0028 is views loading on demand; the next free number is 0029).
+- **Backend:** do not change backend behaviour. If an interface need truly requires a backend change, stop and write it up as a proposal ADR at the next free number in `docs/adr/` (0025 is column mapping, A2, 0026 is uneven periods, 0027 is agent measurement, 0028 is views loading on demand and 0029 is the governed run workspace; the next free number is 0030, which A3 has reserved, so a new proposal takes 0031).
 - **Git:** no force-push, no history rewriting, no new branches, and no pull request unless the person asks.
 
 ### 10. Tests that guard existing behaviour
