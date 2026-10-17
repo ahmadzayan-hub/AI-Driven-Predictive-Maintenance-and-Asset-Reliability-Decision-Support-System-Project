@@ -90,5 +90,6 @@ Full list: [brain/Soul.md](brain/Soul.md).
 
 ## Open questions
 
-- Has the asset-ID email gone to the capstone instructors, and what was the reply?
-- What time does Moodle close on 22 October? (The report is 24 pages with its appendices, so the page question no longer matters.)
+- Has the asset-ID email gone to the capstone instructors, and what was the reply? **The evidence is now established (17 Oct):** all 180 `Asset_ID` values map to exactly one `Record_Date`, all 180 mix more than one `Asset_Class`, and the widest age span inside one value is 18.6 years, so there is no asset panel. Recorded as trap 1 in the capstone workspace's `Memory.md`.
+- **Answered (17 Oct):** the course files announce no deadline at all. The announcement and the brief both say "To be announced" for materials, submission and presentations, so 21, 22 and 25 October are the team's own plan. The real dates must come from Moodle.
+- The capstone workspace now has its own operating system (`CLAUDE.md`, `Memory.md`, `project-progress.md`, `session-logs.md` and `tools/`), separate from this repository's. Course files, names and registration numbers stay there; `inputs/` and `team3-capstone/` are ignored here.
