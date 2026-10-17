@@ -605,7 +605,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
               {run.reports[0]?.headline ? <p className="cockpit__finding" dir={run.report_language === 'ar' ? 'rtl' : 'ltr'} lang={run.report_language}>{run.reports[0].headline}</p> : null}
               <p className="panel__desc">
                 <span dir="auto">{run.dataset_name}</span> · {languageLabel(t, reportLang)} · {t('runs.state')}{' '}
-                <strong>{stateLabel(t, run.state)}</strong>
+                <strong>{stateLabel(t, run.paused ? 'paused' : run.state)}</strong>
                 {run.error ? (
                   <>
                     {' — '}

@@ -9,6 +9,7 @@
 import type { MessageKey, PluralForms, PluralKey } from './en'
 
 export const ar: Record<MessageKey, string> = {
+  'state.paused': 'متوقف مؤقتًا',
   "datasets.previewTitle": "معاينة البيانات المرفوعة",
   "datasets.sheets": "أوراق المصنف",
 

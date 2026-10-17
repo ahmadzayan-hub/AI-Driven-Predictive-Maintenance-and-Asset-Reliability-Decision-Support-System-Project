@@ -14,6 +14,7 @@ const TONES = new Set(['friendly', 'concise', 'formal'])
 const STATES = new Set([
   'queued',
   'running',
+  'paused',
   'awaiting_approval',
   'completed',
   'partially_completed',
@@ -83,3 +84,4 @@ export function questionLabel(t: Translate, type: string, fallback: string): str
   const known = TYPES[type]
   return known ? t(`question.${known}` as MessageKey) : fallback
 }
+

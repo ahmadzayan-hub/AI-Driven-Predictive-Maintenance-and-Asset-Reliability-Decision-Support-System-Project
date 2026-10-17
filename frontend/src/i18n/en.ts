@@ -7,6 +7,7 @@
  *  — the server localises its own replies from the session's language
  *  preference (agent.py). */
 export const en = {
+  'state.paused': 'Paused',
   "datasets.previewTitle": "Preview uploaded data",
   "datasets.sheets": "Workbook sheets",
 
