@@ -370,3 +370,15 @@ The first entries were written from the commit history and the session's own rec
 - **Open / next:**
     - If the team wants the real Dubai typeface, download it from dubaifont.com and rebuild with `DUBAI_FONT_DIR`.
     - The team items and wording corrections from the review memo are still open.
+
+## 2026-10-17 (research) · `7ba0117d` · claude/agentic-os-final-project-53j6ql
+
+**Goal:** find RTA Dubai's official colours and fonts, and professional Arabic–English (RTL) fonts.
+
+- **Done:**
+    - Researched the question; the findings are in `Memory.md` under *RTA and Dubai style facts*.
+    - **No published RTA colour codes.** The red we use, #C8102E, is the UAE flag red (Pantone 186).
+    - **RTA's typeface is a private commission.** The Dubai font is the Dubai Government's.
+    - **Open-licence Arabic–English fonts** were verified from Google Fonts' own metadata.
+- **Verified:** the licences, designers and weights come from `google/fonts` `METADATA.pb` files. The RTA and Dubai facts come from search results only, because rta.ae, Gulf News, the rebrand agency and dubaifont.com are blocked here.
+- **Open / next:** the user chooses the typeface; then the house style and the capstone builds switch to it.
