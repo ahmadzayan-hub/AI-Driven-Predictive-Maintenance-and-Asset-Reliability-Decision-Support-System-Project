@@ -4,6 +4,33 @@ import { composerInput, openTab, skipOnboarding } from './helpers'
 
 test.use({ contextOptions: { reducedMotion: 'reduce' } })
 
+test('a late start response preserves the destination and the durable run', async ({ page }) => {
+  await skipOnboarding(page)
+  await page.goto('/#/runs')
+  let release!: () => void
+  let received!: () => void
+  let createdId = ''
+  const ready = new Promise<void>((resolve) => { received = resolve })
+  const held = new Promise<void>((resolve) => { release = resolve })
+  await page.route('**/api/runs', async (route) => {
+    if (route.request().method() !== 'POST') { await route.continue(); return }
+    const response = await route.fetch()
+    createdId = (await response.json()).id
+    received()
+    await held
+    await route.fulfill({ response })
+  })
+  await page.getByRole('button', { name: 'Start run', exact: true }).click()
+  await ready
+  await openTab(page, /^Datasets/)
+  release()
+  await expect(page.locator('section[aria-label="Runs"] button[type="submit"]')).toBeEnabled()
+  await expect(page).toHaveURL(/#\/datasets$/)
+  await expect(page.getByRole('heading', { name: 'Datasets', exact: true })).toBeVisible()
+  await page.goto(`/#/runs/${createdId}`)
+  await expect(page.getByRole('region', { name: 'Run detail' })).toBeVisible()
+})
+
 test('drafts, deep links, evidence and exact-report keyboard approval', async ({ page }, testInfo) => {
   await skipOnboarding(page)
   await page.goto('/')

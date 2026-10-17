@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useSessionDraft } from '../../shared/useSessionDraft'
 import { useI18n } from '../../i18n'
 import { api, ApiError, MAX_UPLOAD_BYTES } from '../../shared/api'
@@ -155,11 +155,14 @@ function stageTitles(pipelines: Pipelines, profile: string): string[] {
 
 export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRunSelected, draftScope = 'session' }: RunsViewProps) {
   const { t, plural, isRtl, locale, formatNumber, formatDate, formatTime } = useI18n()
+  const visible = useRef(true)
+  useLayoutEffect(() => { visible.current = true; return () => { visible.current = false } }, [])
   const [runs, setRuns] = useState<RunSummary[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(openRunId)
   const snapshot = useRun(selectedId, true)
   const run = snapshot.detail
   const setRun = useCallback((detail: RunDetail | null) => {
+    if (!visible.current) return
     if (detail) runStore.receive(detail)
     setSelectedId(detail?.id ?? null)
     onRunSelected?.(detail?.id ?? null)

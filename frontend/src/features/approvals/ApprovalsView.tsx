@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useI18n } from '../../i18n'
 import { api, ApiError } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
@@ -8,6 +8,8 @@ import { runStore } from '../runs/runStore'
 
 export function ApprovalsView({ onOpenRun }: { onOpenRun: (id: string) => void }) {
   const { t, formatDate, formatNumber } = useI18n()
+  const visible = useRef(true)
+  useLayoutEffect(() => { visible.current = true; return () => { visible.current = false } }, [])
   const [runs, setRuns] = useState<RunSummary[] | null>(null)
   const [open, setOpen] = useState<RunDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -26,7 +28,7 @@ export function ApprovalsView({ onOpenRun }: { onOpenRun: (id: string) => void }
   const waiting = (runs ?? []).filter((run) => run.state === 'awaiting_approval').sort((a, b) => a.updated_at.localeCompare(b.updated_at))
   async function review(id: string) {
     setBusy(true); setError(null); setReceipt(null)
-    try { const detail = await api.getRun(id); runStore.receive(detail); setOpen(detail) }
+    try { const detail = await api.getRun(id); if (!visible.current) return; runStore.receive(detail); setOpen(detail) }
     catch (err) { setError(err instanceof ApiError ? err.message : t('approvals.failed')) }
     finally { setBusy(false) }
   }
