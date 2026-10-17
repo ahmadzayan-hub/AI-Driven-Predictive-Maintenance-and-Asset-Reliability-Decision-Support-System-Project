@@ -3,7 +3,7 @@ type: concept
 aliases: [Design system v2, UI design system, ui-ux-pro-max]
 tags: [interface, design]
 status: active
-updated: 2026-10-16
+updated: 2026-10-17
 review_every_days: 30
 sources: [docs/adr/0023-the-analytics-workspace-interface.md, docs/UI_PLAN.md, design-system/agentic-os/MASTER.md, frontend/src/shared/styles/tokens.css, .claude/skills/ui-ux-pro-max/PROVENANCE.md, .claude/skills/design/PROVENANCE.md]
 ---
@@ -32,3 +32,4 @@ Read the master file, then ask the skill one focused question with `python3 .cla
 - [[Home]]
 - [[Identity]], whose two languages the interface serves equally.
 - [[Decision log]], for ADR 0023 and the ADR 0018 accessibility bar it keeps.
+- [[House style]]: the look of the agents' outputs, kept separate from the interface.

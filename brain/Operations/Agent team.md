@@ -30,7 +30,7 @@ The agent team checks this project's work and builds its outputs. Specialist sub
     - The figures auditor caught every planted figure defect.
     - The analytics reviewer missed one category boundary on the held-out memo: "proves the shift pattern works", labelled overclaim, called causal.
     - Both raised zero to three false alarms from run to run.
-- **House style:** dashboards, clips and the evaluation report can wear the user's executive-dashboard look (`.claude/skills/rta-style`). It is colours and type only, with no logo or name.
+- **[[House style]]:** dashboards, clips and the evaluation report can wear the user's executive-dashboard look (`.claude/skills/rta-style`). It is colours and type only, with no logo or name.
 
 ## Related
 

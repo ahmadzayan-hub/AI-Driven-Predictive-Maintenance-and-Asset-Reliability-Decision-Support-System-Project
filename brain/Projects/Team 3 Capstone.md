@@ -3,9 +3,9 @@ type: project
 aliases: [Capstone, Group 9226 capstone]
 tags: [project, course]
 status: active
-updated: 2026-10-16
+updated: 2026-10-17
 review_every_days: 3
-sources: [project-progress.md, docs/AGENT_TEAM.md]
+sources: [project-progress.md, docs/AGENT_TEAM.md, Memory.md]
 ---
 
 # Team 3 Capstone
@@ -14,11 +14,11 @@ The course capstone of the [[User]]'s team: an executive analytics package on pr
 
 ## Deliverables and dates
 
-| Deliverable | Format | State on 2026-10-16 |
+| Deliverable | Format | State on 2026-10-17 |
 | --- | --- | --- |
 | Executive dashboard | Power BI `.pbix` | Build kit ready: Power Query, DAX, theme, 30 expected values. Not yet built: only Power BI Desktop can save a `.pbix` |
-| Executive presentation | `.pptx`, 12 to 15 slides | Release candidate: 15 slides, 16:9, with speaker notes and alt text |
-| Analytical report | `.pdf`, 20 to 25 pages | Release candidate: 24 A4 pages with a cover and contents; team-owned items highlighted |
+| Executive presentation | `.pptx`, 12 to 15 slides | Release candidate: 15 slides, 16:9, with speaker notes and alt text, in the [[House style]] |
+| Analytical report | `.pdf`, 20 to 25 pages | Release candidate: 23 A4 pages with a cover and contents, in the [[House style]]; team-owned items highlighted |
 
 - Moodle submission closes on 22 October 2026, and the team uploads on 21 October 2026 to keep a buffer.
 - The team presents to the instructors on 25 October 2026.
@@ -26,6 +26,7 @@ The course capstone of the [[User]]'s team: an executive analytics package on pr
 - **Reviewed on 16 October** by the [[Agent team]]'s review loop. The gates went 50.0% → 62.5%; all ten the session could act on pass.
     - The build fixes are in the files: a tagged PDF with bookmarks, titled slides with readable alt text, and clip sources a reader can follow.
     - The rest is the team's: the `.pbix`, their highlighted items, and corrections to two headline claims. The corrections went to the user as a memo, with recomputed figures and replacement wording.
+- **Restyled on 17 October**, at the user's request: blue and white, IBM Plex Sans, no logos. The style is applied when the files are built, so the team's text is untouched. The gates were unchanged, with the same ten passing in round 6, and the Power BI theme in the kit matches.
 
 The plan, the report draft and the deck draft are private documents shared with the team. Roles, names and registration numbers stay there, never in this public repository.
 

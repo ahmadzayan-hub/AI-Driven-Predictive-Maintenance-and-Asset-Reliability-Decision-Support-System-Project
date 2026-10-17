@@ -3,7 +3,7 @@ type: profile
 aliases: [Owner, Project owner]
 tags: [core]
 status: active
-updated: 2026-10-16
+updated: 2026-10-17
 review_every_days: 14
 sources: [README.md, Memory.md, project-progress.md]
 ---
@@ -33,6 +33,8 @@ No contact details, student numbers or teammates' personal data belong in this n
 - Short progress notes while working, then the deliverable.
 - Work shared as links that the team can review and edit.
 - Firm rules on security and honesty, set out in [[Soul]].
+- Wants the agents' outputs and the capstone documents in an RTA-inspired [[House style]]: blue and white, in IBM Plex Sans with IBM Plex Sans Arabic, which they chose on 17 October 2026. Never with logos or official names.
+- Wants every agent measured, with confusion matrices and recall, reported honestly ([[Agent evaluation]]).
 
 ## Related
 

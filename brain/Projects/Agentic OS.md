@@ -29,7 +29,7 @@ The product in this repository, described in [[Identity]]: a governed business-a
 
 ## Verified state on 2026-10-17
 
-- `python scripts/verify.py` with PostgreSQL passed all six steps: 851 Python tests with 16 optional-library skips, the brain check, the type check, 60 frontend unit tests, the build, and the interface budget (JavaScript 96.7 of 100 KB). The end-to-end suite was not run on this date.
+- `python scripts/verify.py` with PostgreSQL passed all six steps. That run had 851 Python tests; the suite has since grown to 856, all passing with PostgreSQL and the same 16 optional-library skips. It also passed the brain check, the type check, 60 frontend unit tests, the build, and the interface budget (JavaScript 96.7 of 100 KB). The end-to-end suite was not run on this date.
 - Every classifying agent is measured ([[Agent evaluation]]).
 
 ## Verified state on 2026-10-16

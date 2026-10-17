@@ -31,6 +31,7 @@ The second brain of [[Agentic OS]]: what the project knows, who it serves and ho
 - [[Model gateway]], [[Custom stages]] and [[Agent runtimes and MCP]], the three extension seams
 - [[Second brain]], how this vault itself is kept
 - [[Design system]], how the interface looks and behaves, and where its rules come from
+- [[House style]], how the agents' outputs look: dashboards, clips, reports and decks
 - [[Column mapping]], how the owner says what each column of a dataset is
 - [[Agent evaluation]], how often each agent is right: confusion matrices, recall floors and blind holdouts
 
