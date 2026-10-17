@@ -369,13 +369,13 @@ def _named_like_an_id(column):
     lowered = column.lower().replace(" ", "_").replace("-", "_")
     camel = len(column) > 2 and column.endswith("Id") and column[-3].islower()
     return camel or lowered in ("id", "code", "key") or lowered.endswith(
-        ("_id", "_code", "_key", "_no", "_number"))
+        ("_id", "_code", "_key", "_no", "_number", "_centre", "_center"))
 
 
-def _personal(column):
-    from server.analytics import PII_COLUMN_WORDS  # imported late: analytics imports this module
-    lowered = column.lower()
-    return any(word in lowered for word in PII_COLUMN_WORDS)
+def _personal_columns(columns, rows):
+    """Columns the Privacy Agent would flag, by name or by value (ADR 0027)."""
+    from server.analytics import personal_data_findings  # imported late: analytics imports this module
+    return {f["column"] for f in personal_data_findings(columns, rows)}
 
 
 def table(text):
@@ -457,8 +457,10 @@ REASONS = {
                   "نص فيه {distinct} من القيم المختلفة."),
     "unique_text": ("Nearly every value is different, like names or notes.",
                     "كل قيمة تقريباً مختلفة، مثل الأسماء أو الملاحظات."),
-    "personal": ("Named like personal data, so it is left out of the analysis.",
-                 "اسمه يدل على بيانات شخصية، فيُستبعد من التحليل."),
+    "personal": ("Looks like personal data, by its name or its values, so it is left out of the analysis.",
+                 "يبدو بيانات شخصية، من اسمه أو من قيمه، فيُستبعد من التحليل."),
+    "year": ("Years, kept as a breakdown beside the time axis.",
+             "سنوات، تُستخدم تقسيماً إلى جانب المحور الزمني."),
     "empty": ("Every cell is empty.", "كل الخلايا فارغة."),
 }
 
@@ -473,17 +475,20 @@ def suggest(columns, rows, metrics=(), profiles=None):
     from server import metrics as glossary
     profiles = profiles or profile(columns, rows)
     roles, reasons, date_column = {}, {}, None
+    personal = _personal_columns(columns, rows)
     for p in profiles:
         name, kind = p["name"], p["type"]
         share = f"{max(p['numeric_share'], p['date_share']):.0%}"
         if kind == "empty":
             roles[name], reasons[name] = "ignore", _reason("empty")
-        elif _personal(name):
+        elif name in personal:
             roles[name], reasons[name] = "ignore", _reason("personal")
         elif kind == "date":
             if date_column is None:
                 date_column = name
                 roles[name], reasons[name] = "date", _reason("date", share=f"{p['date_share']:.0%}")
+            elif p["examples"] and all(re.fullmatch(r"(19|20)\d{2}", _plain(v)) for v in p["examples"]):
+                roles[name], reasons[name] = "dimension", _reason("year")
             else:
                 roles[name], reasons[name] = "ignore", _reason("second_date")
         elif kind == "number":

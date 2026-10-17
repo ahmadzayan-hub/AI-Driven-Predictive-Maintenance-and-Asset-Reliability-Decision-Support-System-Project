@@ -50,11 +50,58 @@ RAW_RUN = 8         # consecutive delimited lines that make a data block
 TABLE_RUN = 30      # rows that make a Markdown table a data dump, not a summary
 
 
+def _records_in_json(text):
+    """Records a text holds as JSON: an array of objects (anywhere in the
+    text), or JSON Lines, one object per line."""
+    start, end = text.find("["), text.rfind("]")
+    if 0 <= start < end:
+        try:
+            data = json.loads(text[start:end + 1])
+            if isinstance(data, list):
+                return sum(isinstance(item, dict) for item in data)
+        except ValueError:
+            pass
+    run = best = 0
+    for line in text.splitlines():
+        try:
+            run = run + 1 if isinstance(json.loads(line), dict) else 0
+        except ValueError:
+            run = 0
+        best = max(best, run)
+    return best
+
+
+def _same_shape_run(lines, fields):
+    """The longest run of consecutive lines with the same field count (at
+    least three, and digits among them), fields being a line's parts."""
+    run, width, best = 0, None, 0
+    for line in lines:
+        parts = fields(line)
+        rowlike = parts is not None and len(parts) >= 3 and re.search(r"\d", line) is not None
+        if rowlike and len(parts) == width:
+            run += 1
+        elif rowlike:
+            run, width = 1, len(parts)
+        else:
+            run, width = 0, None
+        best = max(best, run)
+    return best
+
+
 def looks_like_raw_rows(text):
-    """True when the text holds a block of data rows: RAW_RUN or more
-    consecutive lines with the same number of commas, tabs or semicolons
-    and digits in them, or a Markdown table of TABLE_RUN rows or more.
-    A summary table of a few figures, prose and code are not refused."""
+    """True when the text holds a block of data rows, in any of the shapes
+    data travels in (ADR 0027 measured the misses):
+
+    - RAW_RUN or more consecutive lines with the same number of commas,
+      tabs or semicolons, with digits in them;
+    - a Markdown table of TABLE_RUN rows or more;
+    - RAW_RUN or more records as JSON: an array of objects, or JSON Lines;
+    - RAW_RUN or more lines of a space-aligned table (columns two or more
+      spaces apart);
+    - RAW_RUN or more lines of "key: value, key: value" pairs.
+
+    A summary table of a few figures, prose, code and short logs are not
+    refused."""
     lines = text.splitlines()
     table = 0
     for line in lines:
@@ -74,7 +121,12 @@ def looks_like_raw_rows(text):
                 run, width = 0, None
             if run >= RAW_RUN:
                 return True
-    return False
+    if _records_in_json(text) >= RAW_RUN:
+        return True
+    if _same_shape_run(lines, lambda line: re.split(r" {2,}", line.strip()) if "  " in line.strip() else None) >= RAW_RUN:
+        return True
+    pairs = lambda line: re.findall(r"[\w ]{1,30}:\s*[^,;]+", line) if line.count(":") >= 2 else None
+    return _same_shape_run(lines, lambda line: (pairs(line) or None) and [*pairs(line), ""]) >= RAW_RUN
 
 
 class Backend:

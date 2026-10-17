@@ -240,12 +240,37 @@ JARGON = (
     "القيمة الاحتمالية", "دلالة إحصائية", "دال إحصائياً", "دالة إحصائياً",
     "فرضية العدم", "فترة الثقة", "فاصل الثقة", "معامل التحديد",
     "الانحراف المعياري", "انحرافات معيارية", "معامل الانحدار",
+    # The names of tests and technical statistics (ADR 0027). Business words
+    # that look statistical ("variance", "residual value", "bootstrapped")
+    # are left out on purpose.
+    "standard error", "standard deviation", "t-statistic", "t statistic", "t-test",
+    "chi-square", "chi-squared", "chi square", "f-statistic", "f-test", "z-score", "z-test",
+    "anova", "heteroscedastic", "homoscedastic", "multicollinearity", "autocorrelation",
+    "kurtosis", "skewness", "coefficient of variation", "degrees of freedom",
+    "likelihood ratio", "logistic regression", "linear regression", "mean squared error",
+    "mean absolute error", "interquartile",
+    "الخطأ المعياري", "مربع كاي", "كاي تربيع", "تحليل التباين", "الالتواء", "التفرطح",
+    "معامل الاختلاف", "درجات الحرية", "اختبار ت", "الانحدار اللوجستي", "الانحدار الخطي",
+    "principal component", "mann-whitney", "wilcoxon", "kruskal", "kolmogorov",
+    "تحليل المكونات الأساسية", "المكونات الرئيسية", "بشكل معنوي", "دلالة معنوية", "فروق معنوية",
 )
+# Abbreviations match only as whole words, so "CI" is caught in "the 95% CI"
+# and never inside "decision" or "special"; "p = 0.03" is a p-value.
+JARGON_WORDS = re.compile(r"(?<![\w-])(ci|s\.e\.|auc|roc|rmse|mape|mae|anova|vif|pca)(?![\w-])|"
+                          r"(?<![\w-])p\s*[=<>≤]\s*0?\.\d|"
+                          # A test named after its authors: "Mann-Whitney test", "اختبار مان-ويتني".
+                          r"\b[A-Z][a-z]+[-–][A-Z][a-z]+ test\b|اختبار\s+[\u0621-\u064A]+[-–][\u0621-\u064A]+",
+                          re.I)
 
 
 def _jargon_in(text):
     lowered = text.lower()
-    return [word for word in JARGON if word in lowered]
+    found = [word for word in JARGON if word in lowered]
+    for match in JARGON_WORDS.finditer(text):
+        token = match.group(0).lower()
+        if not any(token.startswith(word) for word in found):
+            found.append(match.group(0))
+    return found
 
 
 # The four analytics types, in maturity-ladder order. Each stage owns one
@@ -1857,6 +1882,61 @@ PII_PATTERNS = [
 PII_COLUMN_WORDS = ("email", "e-mail", "phone", "mobile", "ssn", "nin",
                     "passport", "iban", "card", "dob", "birth", "address",
                     "national_id", "emirates_id")
+# A column named for a person's name ("full_name", "first name"), not a
+# thing's ("product_name").
+PERSON_NAME_COLUMN = re.compile(r"^(?:full|first|last|given|family|middle)?[ _-]?name$|^(?:الاسم|اسم)$", re.I)
+# A person's name as a value: two to four capitalised words, or two to four
+# Arabic words. Counted only in a column where nearly every value differs,
+# so place names and categories ("Jebel Ali", "Al Quoz") are not names.
+PERSON_NAME_VALUE = re.compile(r"[A-Z][a-z'’-]+(?: [A-Z][a-z'’-]+){1,3}|[\u0621-\u064A]{2,}(?: [\u0621-\u064A]{2,}){1,3}")
+# A date or a time stamp is not a phone number, however many digits it has.
+DATE_OR_TIME = re.compile(r"\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}(?:[ T]\d{1,2}:\d{2}(?::\d{2})?)?")
+
+
+def personal_data_findings(columns, rows):
+    """The columns that look like personal data, by name or by value,
+    with what matched. The Privacy Agent reports these; the agent
+    evaluation (scripts/evaluate_agents.py, ADR 0027) measures them.
+
+    A name alone is not enough when the values say otherwise: "card_type"
+    holding three card brands, or "email_opens" holding counts, is not
+    personal data. A value pattern (an email, a phone number, a long
+    identifier, a person's name) is enough on its own."""
+    findings = []
+    for column in columns:
+        lowered = column.lower()
+        named = [word for word in PII_COLUMN_WORDS if word in lowered]
+        if PERSON_NAME_COLUMN.match(column.strip()):
+            named.append("name")
+        hits, values = {}, []
+        for row in rows[:2000]:          # bounded scan; enough to detect a pattern
+            value = (row.get(column) or "").strip()
+            if not value:
+                continue
+            values.append(value)
+            looks_dated = DATE_OR_TIME.fullmatch(value) is not None
+            for label, pattern in PII_PATTERNS:
+                if label == "phone number" and looks_dated:
+                    continue
+                if pattern.search(value):
+                    hits[label] = hits.get(label, 0) + 1
+        distinct = len(set(values))
+        varied = bool(values) and distinct >= 0.8 * len(values)
+        names = sum(1 for v in values if PERSON_NAME_VALUE.fullmatch(v))
+        if varied and len(values) >= 5 and names >= 0.8 * len(values):
+            hits["person name"] = names
+        if named and not hits:
+            categories = bool(values) and distinct < 0.5 * len(values)
+            counts = bool(values) and all(re.fullmatch(r"-?\d{1,8}(?:\.\d+)?", v) for v in values)
+            if categories or counts:
+                named = []
+        if named or hits:
+            findings.append({
+                "column": column,
+                "by_name": named,
+                "by_value": [{"kind": k, "rows": v} for k, v in sorted(hits.items())],
+            })
+    return findings
 
 
 def contract(ctx):
@@ -2054,24 +2134,7 @@ def privacy(ctx):
     reports what it found and where, and the human decides at the gate.
     """
     rows, columns = ctx["collector"]["rows"], ctx["collector"]["columns"]
-    findings = []
-    for column in columns:
-        lowered = column.lower()
-        named = [word for word in PII_COLUMN_WORDS if word in lowered]
-        hits = {}
-        for row in rows[:2000]:          # bounded scan; enough to detect a pattern
-            value = (row.get(column) or "").strip()
-            if not value:
-                continue
-            for label, pattern in PII_PATTERNS:
-                if pattern.search(value):
-                    hits[label] = hits.get(label, 0) + 1
-        if named or hits:
-            findings.append({
-                "column": column,
-                "by_name": named,
-                "by_value": [{"kind": k, "rows": v} for k, v in sorted(hits.items())],
-            })
+    findings = personal_data_findings(columns, rows)
 
     calcs = [{"id": "c_pii_columns", "name": "columns_with_personal_data",
               "value": len(findings),

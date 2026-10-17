@@ -10,11 +10,18 @@ Tier 0 of docs/AGENT_TEAM.md: no model, no tokens. Three checks:
    exactly or in a recognised shorter form ($50,430,446 as $50.4 million or
    $50.4M; 219.0 as 219; 26,501 as 26.5k).
 2. Sourcing, with --reference: every number in a --doc appears in the
-   register or in a reference document. Small counts (up to 31) and years
-   are ignored, because they are labels far more often than figures. A
-   figure run into a word ("Reactive7988.1", from glued table cells) counts.
+   register or in a reference document, in a compatible unit (a percentage
+   is not sourced by a dollar amount). Bare small counts (up to 31) and
+   years are ignored, because they are labels far more often than figures;
+   "12%" and "$12" are figures. A figure run into a word ("Reactive7988.1",
+   from glued table cells) counts. A figure that follows from the sourced
+   figures its sentence names (610 staff across 48 stores, 12.7 each) is
+   derived; one presented as following from them that does not is wrong.
 3. Arithmetic: a calculation written out ("24.4 h − 16.9 h = 7.5 h") must
    hold. A result that holds is a derived figure, sourced by its inputs.
+
+Figures written in words ("one in five") are not read: the figures-auditor
+reads the text for those.
 
 Reads .md, .txt, .html, .json, .csv and .tsv (cell by cell), .pdf (with pdftotext) and .pptx (slide
 text, alt text and speaker notes). Exits 0 when everything is found, 1
@@ -95,11 +102,38 @@ def read_text(path):
     return normalise(text)
 
 
+# Arabic-Indic and Persian digits, and the Arabic separators, read as figures (ADR 0027).
+ARABIC_FIGURES = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹٬٫٪", "01234567890123456789,.%")
+# An amount in brackets is a negative, as accounts write it: "(1,200)" is -1,200.
+ACCOUNTING_NEGATIVE = re.compile(r"\((\$?\d{1,3}(?:,\d{3})+(?:\.\d+)?|\$\d+(?:\.\d+)?)\)")
+# A figure the text calls approximate may be rounded further than its digits show.
+APPROXIMATE = re.compile(r"(?:\b(?:about|around|roughly|approximately|nearly|almost|some|close to)|~|≈|"
+                         r"حوالي|حوالى|نحو|قرابة)\s*(\$?\d[\d,]*(?:\.\d+)?%?(?:\s?(?:thousand|million|billion|bn|[MBk]))?)(?![\w])",
+                         re.I)
+
+
 def normalise(text):
-    """One line of text with plain spaces and minus signs, as the checks read it."""
+    """One line of text with plain spaces, minus signs and Western digits, as the checks read it."""
     # Time stamps such as "[10.0–15.5 s]" in a clip transcript are not figures.
     text = re.sub(r"\[\d+(?:\.\d+)?\s?[–-]\s?\d+(?:\.\d+)?\s?s\]", " ", text)
-    return " ".join(text.replace(" ", " ").replace("−", "-").split())
+    text = text.translate(ARABIC_FIGURES)
+    text = ACCOUNTING_NEGATIVE.sub(r"-\1", text)
+    return " ".join(text.replace("\u00a0", " ").replace("−", "-").split())
+
+
+def rounding_unit(token):
+    """How far a written figure can be from the value it rounds: half of its
+    last significant place. 6,400 is within 50 of its value; 26.5k within 50."""
+    parsed = parse(token)
+    if parsed is None:
+        return 0.0
+    number, decimals, scale = parsed
+    if decimals:
+        unit = 10 ** -decimals
+    else:
+        digits = str(int(abs(number)))
+        unit = 10 ** (len(digits) - len(digits.rstrip("0"))) if digits.strip("0") else 1
+    return unit * (scale or 1) / 2
 
 
 SCALES = {"k": 1e3, "thousand": 1e3, "m": 1e6, "million": 1e6, "bn": 1e9, "billion": 1e9, "b": 1e9}
@@ -259,13 +293,109 @@ def numbers_in(text, keep_small=False):
         parsed = parse(token)
         if parsed is None:
             continue
-        plain = token.lstrip("+-−$").rstrip("%")
-        if not keep_small and re.fullmatch(r"\d{1,2}", plain) and parsed[0] <= 31:
+        # Only a bare number can be a label: "12%" and "$12" are figures (ADR 0027).
+        if not keep_small and re.fullmatch(r"\d{1,2}", token) and parsed[0] <= 31:
             continue
-        if not keep_small and re.fullmatch(r"(19|20)\d{2}", plain):
+        if not keep_small and re.fullmatch(r"(19|20)\d{2}", token):
             continue
         seen.add(token)
     return sorted(seen)
+
+
+def unit_of(token):
+    """'%', '$' or '' (a bare number, which may stand for either)."""
+    token = token.strip().lstrip("+-−")
+    return "%" if token.endswith("%") else "$" if token.startswith("$") else ""
+
+
+def sourced_by(token, pool):
+    """True when a pool entry (value, unit) is this figure, in a compatible unit."""
+    unit = unit_of(token)
+    return any(same_figure(token, value) for value, other in pool if not (unit and other and unit != other))
+
+
+# Words that present a figure as computed from others, by the kind of sum.
+CUES = {
+    "ratio": re.compile(r"\b(each|per|every|average|averages|mean|apiece)\b|لكل|متوسط", re.I),
+    "change": re.compile(r"\b(growth|grew|grow|grows|rise|rose|risen|up|down|fell|fall|gain|drop|dropped|change|"
+                         r"increase[sd]?|decrease[sd]?)\b|نمو|ارتفع|انخفض|زيادة", re.I),
+    "share": re.compile(r"\b(share|of all|proportion|percent of)\b|نسبة|حصة", re.I),
+}
+# "That is growth of 13.4%": the figures are in the sentence before.
+BACK_REFERENCE = re.compile(r"^(that|this|it|these|those|which)\b|^(هذا|هذه|وهذا|وهذه)", re.I)
+SENTENCES = re.compile(r"(?<=[.!?؟])\s+")
+# A figure this close to a derivation of its sentence's own inputs is a slip
+# in that derivation, not an unrelated number (chosen on benchmark A, ADR 0027).
+SLIP_FACTOR = 2.0
+MAX_SENTENCE, MAX_FIGURES = 300, 6
+
+
+def _derivations(a, b):
+    return {"ratio": [x for x in (a / b if b else None, b / a if a else None) if x is not None],
+            "change": [x for x in (a / b - 1 if b else None, b / a - 1 if a else None, a - b, b - a) if x is not None],
+            "share": [x for x in (a / b if b else None, b / a if a else None) if x is not None],
+            "other": [a * b, a + b]}
+
+
+def _as_written(token, value):
+    """A computed value in the token's terms: a fraction read as a percentage."""
+    return value * 100 if unit_of(token) == "%" and abs(value) < 1.5 else value
+
+
+def _close(token, value):
+    """Within the token's own rounding: with no working shown, there is no
+    rounded input to allow for."""
+    written, unit = value_of(token), rounding_unit(token)
+    return any(abs(written - c) <= unit + 1e-9 for c in {value, _as_written(token, value)})
+
+
+def _distinct(values):
+    """One input per quantity: 75.2% and 0.752 are the same figure written twice."""
+    out = []
+    for v in values:
+        if v is not None and not any(abs(v - o) < 1e-9 or abs(v - o * 100) < 1e-6 or abs(v * 100 - o) < 1e-6
+                                     for o in out):
+            out.append(v)
+    return out
+
+
+def _words(text):
+    return {w.rstrip("s") for w in re.findall(r"[^\W\d_]{4,}", text.lower())}
+
+
+def implied(token, sentence, previous, pool, register):
+    """For a figure not in the pool: "derived" when it follows from the
+    sourced figures its sentence names (or the register rows it names by
+    every word of their label); ("wrong", computed) when the sentence
+    presents it as computed from two or more of its figures and it is a
+    slip from one of their derivations; None otherwise."""
+    # Prose only: a table read as one long "sentence" holds dozens of figures,
+    # and any two of them would derive something.
+    if len(sentence) > MAX_SENTENCE or len(numbers_in(sentence)) > MAX_FIGURES:
+        return None
+    body = re.sub(r"^(?:\[\w+\]|[^\w])+", "", sentence)
+    explicit = [value_of(t) for t in numbers_in(sentence) if t != token and sourced_by(t, pool)]
+    if len(explicit) < 2 and previous and BACK_REFERENCE.match(body):
+        explicit += [value_of(t) for t in numbers_in(previous) if sourced_by(t, pool)]
+    words = _words(sentence)
+    named = [value_of(r["value"]) for r in register
+             if _words(re.sub(r"\(.*?\)", " ", r["label"])) and _words(re.sub(r"\(.*?\)", " ", r["label"])) <= words]
+    inputs = _distinct(explicit + named)
+    pairs = [(a, b) for i, a in enumerate(inputs) for b in inputs[i + 1:]]
+    if any(_close(token, c) for a, b in pairs for cs in _derivations(a, b).values() for c in cs):
+        return "derived"
+    explicit = _distinct(explicit)
+    families = [name for name, cue in CUES.items() if cue.search(sentence)]
+    if len(explicit) < 2 or not families:
+        return None
+    written = value_of(token)
+    candidates = [_as_written(token, c) for i, a in enumerate(explicit) for b in explicit[i + 1:]
+                  for f in families for c in _derivations(a, b)[f]]
+    candidates = [c for c in candidates if c and (c > 0) == (written > 0)]
+    if not candidates or not written:
+        return None
+    best = min(candidates, key=lambda c: max(written / c, c / written))
+    return ("wrong", best) if max(written / best, best / written) <= SLIP_FACTOR else None
 
 
 def load_register(path, value_column, label_columns):
@@ -291,15 +421,32 @@ def check(register, docs, references=(), sourcing_only=False):
             (derived if calc["holds"] else wrong).append({"doc": Path(name).name, **calc})
     if references or sourcing_only:
         pool_text = " ".join(read_text(r) for r in references)
-        pool = {value_of(t) for t in numbers_in(pool_text, keep_small=True)}
-        pool |= {value_of(r["value"]) for r in register}
-        pool.discard(None)
+        pool = {(value_of(t), unit_of(t)) for t in numbers_in(pool_text, keep_small=True)}
+        pool |= {(value_of(r["value"]), unit_of(r["value"])) for r in register}
+        pool = {(v, u) for v, u in pool if v is not None}
         for name, text in texts.items():
+            doc = Path(name).name
             # A result whose working is shown is sourced by its inputs.
-            shown = {value_of(d["result"]) for d in derived if d["doc"] == Path(name).name}
+            known = pool | {(value_of(d["result"]), unit_of(d["result"])) for d in derived if d["doc"] == doc}
+            approximate = {m.group(1).strip().rstrip(",.") for m in APPROXIMATE.finditer(text)}
+            sentences = SENTENCES.split(text)
             for token in numbers_in(text):
-                if not any(same_figure(token, v) for v in pool | shown):
-                    unsourced.append({"doc": Path(name).name, "number": token})
+                if sourced_by(token, known):
+                    continue
+                if token in approximate:
+                    written, unit = value_of(token), rounding_unit(token)
+                    if any(abs(written - v) <= unit + 1e-9 for v, _ in pool):
+                        continue
+                where = next((i for i, s in enumerate(sentences) if token in numbers_in(s)), None)
+                verdict = (implied(token, sentences[where], sentences[where - 1] if where else "", pool, register)
+                           if where is not None else None)
+                if verdict == "derived":
+                    continue
+                if verdict:
+                    wrong.append({"doc": doc, "shown": sentences[where][:160], "result": token,
+                                  "computed": round(verdict[1], 6), "holds": False, "implied": True})
+                    continue
+                unsourced.append({"doc": doc, "number": token})
     missing = [c for c in coverage if not c["found"]]
     return {"register_values": len(register), "found": len(register) - len(missing),
             "missing": [] if sourcing_only else missing, "unsourced": unsourced, "coverage": coverage,
