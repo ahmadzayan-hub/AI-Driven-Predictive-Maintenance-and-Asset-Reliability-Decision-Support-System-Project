@@ -634,3 +634,20 @@ produce real analysis, reports and computed dashboards.
     - “Upload any dataset” means supported tabular inputs within the existing limits, not arbitrary binary formats or guaranteed useful predictions. A workbook's first visible sheet must parse before the picker appears; a non-tabular cover needs reordering or CSV export. Analysis without an open Runs view uses the existing separately started worker. Publishing remains an explicit approval.
     - No new package requirement, higher quota, external model call, production deployment, commit, push or pull request. Remaining full-suite failures are reported rather than presented as a green backend.
 - **Next:** resolve the remaining Windows test-fixture/cleanup failures and run PostgreSQL/full browser validation. Continue the governed maintenance-domain integration before binding the fictional equipment design to uploaded asset metrics or promising evaluated failure predictions.
+
+## 2026-10-17 · `c84a0ec6` · claude/agentic-os-final-project-53j6ql · S2
+
+**Goal:** wire the structural detectors into the pipeline so a finding travels as evidence rather than as a note.
+
+- **Done:** `server/maintenance/governance.py`, an ADR 0020 stage turning each detector finding into a calculation plus a bilingual claim citing it (`c0b58ce`). ADR 0039 records the design; `tests/test_maintenance_governance.py` covers it. Findings are now keyed by the function that produced them.
+- **Verified:**
+    - 23 stage tests, 65 across the maintenance and detector suites, all pass. Full suite `Ran 1090`; failures 3 and errors 243 — the error count has now been seen at 243, 253, 254 and 257 across runs of the same code, all `_Py_HashRandomization_Init` subprocess-spawn failures, so it is the sandbox and not the change.
+    - `stages.validate_result` accepts the stage output unchanged on the real 5,000-row panel: **16 calculations, 14 claims, 7 quality checks**, status succeeded, summary "12 structural finding(s), 8 of them high: Asset_ID does not identify an entity."
+    - Both registration paths documented in ADR 0039 were executed, not just written: `AGENTIC_OS_STAGES` and `config["stages"]` with options. Both load with no problems and honour `fail_on_high`.
+    - `scripts/brain_check.py --strict`: 27 notes, 0 broken links.
+- **Decided:**
+    - The stage succeeds by default on a high-severity finding. A structural finding restricts what may be concluded; it is not a reason to refuse to compute. `fail_on_high=True` inverts it.
+    - Skipped detectors are reported by name as quality checks. Above a cell budget the quadratic detectors do not run, and a diagnostic stage that hides its own gaps is worse than none.
+    - It is opt-in. Enabling it by default would be a separate behaviour change needing its own ADR.
+- **Found by running it on real data, not fixtures:** the Arabic was joining three column names into the subject slot where the English names one; and a plural detector function emitting a singular finding key made its quality check fail while reporting it had found nothing. Both fixed with regression tests.
+- **Open / next:** S3, the validated model workflow — targets, chronological evaluation and baseline cards over the contract's `model_inputs`, which already admits 11 of 60 columns and excludes 49 with reasons. The repository rename still needs `gh auth login`.
