@@ -208,6 +208,40 @@ the mapping later never changes a finished report. **Use automatic
 detection** removes the mapping. Pasted CSV and the sample always use
 automatic detection.
 
+### Joining other datasets
+
+A run can bring columns from other stored datasets onto each row of its
+main dataset, such as a product's category from a product list or a
+month's target from a planning sheet. In the new-analysis form, choose
+a stored dataset or upload a file, then **Join a dataset** under *Join
+other datasets*:
+
+- **Dataset to join** — any other dataset you have stored.
+- **Key** — a column of the main table and the column of the joined
+  dataset that holds the same values. When both have a column of the
+  same name, it is suggested. Up to three key pairs.
+- **Rows without a match** — *Keep every row* leaves every total as it
+  was and leaves the joined columns empty for unmatched rows; *Keep only
+  matched rows* drops them, and the report says how many.
+
+**Preview the merge** shows the rows in and out, how many rows found a
+match in each dataset, the keys that found none, and the first rows of
+the merged table. A joined dataset whose key appears more than once is
+refused, because a row would otherwise be counted twice. After a
+preview you can choose a column from a joined dataset under *Break
+totals down by*. Up to four datasets can be joined; the run then shows a
+Data Merge Agent right after cleaning.
+
+### Downloading the cleaned data
+
+Once a run has cleaned its data, and merged any joined datasets, **Download
+cleaned data (CSV)** at the top of the run saves the table it analysed:
+the rows it kept, measures as plain numbers and mapped dates as the
+periods it summed by. The file opens correctly in Excel, Arabic
+included, and text that a spreadsheet would run as a formula (a cell
+starting with `=`, `+`, `-` or `@`) is saved with a leading apostrophe so
+it stays text.
+
 ### Defining what a number means
 
 Without a column mapping, a run picks the column it analyses by its

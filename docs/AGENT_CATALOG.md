@@ -24,6 +24,7 @@ list as the stopping rule).
 | 6 | Data Quality Agent | Scorecard over four ratios (completeness, uniqueness, validity, consistency) with a stated formula and a grade | no |
 | 7 | Privacy Agent | Scans column names and values for personal data before anything can be published; reports, never redacts silently | no |
 | 8 | Data Cleaning Agent | Trim, dedupe, coercion — row loss always reported | yes |
+| 8a | Data Merge Agent — *only in runs that join datasets* (ADR 0030) | Cleans each joined dataset like the main one and joins it on the declared keys: refuses a lookup whose key repeats, keeps every row (left) or says what it left out (inner), renames a taken column instead of overwriting it, and measures how many rows found a match | yes (a join it cannot make) |
 | 9 | Metric Governance Agent | Decides which column the run analyses and states why: a certified glossary metric, an uncertified one, a column name, or the first numeric column. Names the metric's owner and definition, and where the definition is arithmetic over other columns present in the data, checks every row against it and reports the ones that do not match | no |
 | 10 | Data Preparation Agent | Measure/dimension selection, aggregates, trend | yes |
 | 11 | Segment Concentration Agent | Share per segment, Pareto coverage, Herfindahl index — the fact a total hides | no |
@@ -120,6 +121,9 @@ and add a row to the pipeline without adding a fact to the report. The
 cost of a decorative agent is not compute — it is that every genuine
 stage becomes harder to trust when it sits in a list padded with
 theatre.
+
+A run that joins datasets adds one more, the Data Merge Agent, right after
+cleaning; a run of one dataset never has it (ADR 0030).
 
 Hermes is deliberately **not** one of the twenty-one. It sequences, gates,
 leases and recovers; it never produces a finding. Keeping the

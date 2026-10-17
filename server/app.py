@@ -19,20 +19,23 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
 from agent import Agent, language_code
 from server.agent_runtime import build_runtime
+from server import analytics
 from server import datasets as dataset_reader
+from server import joins as joining
 from server import mapping as colmap
+from server import query as table_query
 from server.assistant import Assistant
 from server.model_gateway import ModelGateway
 from server.routing import RoutedGateway, build_router
 from server.stages import describe, load_stages
-from server.runs import RunEngine, dataset_summary
+from server.runs import RunEngine, TableNotReady, dataset_summary
 from server.auth import AuthError, build_identity, public_auth_config
 from server.quota import QuotaExceeded, load_limits
 from server.quota import usage as quota_usage
@@ -174,6 +177,26 @@ class PreferenceIn(BaseModel):
     value: str = Field(min_length=1, max_length=200)
 
 
+class KeyPairIn(BaseModel):
+    """One key of a join: a column of the table so far and the column of
+    the joined dataset that holds the same values (ADR 0030)."""
+    left: str = Field(min_length=1, max_length=200)
+    right: str = Field(min_length=1, max_length=200)
+
+
+class JoinIn(BaseModel):
+    dataset_id: str = Field(min_length=1, max_length=32)
+    keys: list[KeyPairIn] = Field(min_length=1, max_length=joining.MAX_KEYS)
+    how: str = Field(default="left", pattern="^(left|inner)$")
+    alias: str | None = Field(default=None, max_length=24)
+
+
+class JoinPreviewIn(BaseModel):
+    dataset_id: str = Field(min_length=1, max_length=32)
+    joins: list[JoinIn] = Field(min_length=1, max_length=joining.MAX_JOINS)
+    breakdown: str | None = Field(default=None, max_length=200)
+
+
 class RunIn(BaseModel):
     goal: str = Field(min_length=3, max_length=500)
     profile: str | None = Field(default=None, max_length=64)
@@ -184,6 +207,10 @@ class RunIn(BaseModel):
     # The language the report is written in (ADR 0022). The interface
     # sends the reader's language.
     language: str = Field(default="en", pattern="^(en|ar)$")
+    # Other stored datasets joined onto this one, and an optional
+    # breakdown from the merged table (ADR 0030).
+    joins: list[JoinIn] | None = Field(default=None, max_length=joining.MAX_JOINS)
+    breakdown: str | None = Field(default=None, max_length=200)
 
 
 class MappingIn(BaseModel):
@@ -194,6 +221,24 @@ class MappingIn(BaseModel):
     dimension: str | None = Field(default=None, max_length=200)
     date_order: str = Field(default="auto", max_length=20)
     grain: str = Field(default="auto", max_length=20)
+
+
+class QueryIn(BaseModel):
+    """Totals by group under filters (ADR 0031). The shapes are checked by
+    server.query, which explains a refusal in the reader's language."""
+    group_by: list = Field(default_factory=list, max_length=table_query.MAX_GROUP_BY)
+    measures: list = Field(default_factory=list, max_length=table_query.MAX_MEASURES)
+    filters: list = Field(default_factory=list, max_length=table_query.MAX_FILTERS)
+    sort: dict | None = None
+    limit: int = 100
+
+
+class RecordsIn(BaseModel):
+    filters: list = Field(default_factory=list, max_length=table_query.MAX_FILTERS)
+    sort: dict | None = None
+    offset: int = 0
+    limit: int = 50
+    sample: int | None = None
 
 
 class ApprovalIn(BaseModel):
@@ -657,9 +702,14 @@ def create_app(config_path=None, env=None, dist_dir=None):
                                          owner=principal.subject,
                                          dataset_id=run.dataset_id,
                                          profile=run.profile,
-                                         language=run.language)
+                                         language=run.language,
+                                         joins=([j.model_dump() for j in run.joins]
+                                                if run.joins else None),
+                                         breakdown=run.breakdown)
             except KeyError:
                 raise HTTPException(status_code=404, detail='Dataset not found.')
+            except joining.JoinError as error:
+                raise HTTPException(status_code=422, detail=error.detail(run.language))
             except ValueError as error:
                 # An unknown profile, or one naming an unregistered stage.
                 raise HTTPException(status_code=422, detail=str(error))
@@ -668,6 +718,28 @@ def create_app(config_path=None, env=None, dist_dir=None):
                 # entitled to make it — just not right now, or not this
                 # much. The message says which and when it clears.
                 raise HTTPException(status_code=429, detail=error.message)
+
+    @app.post("/api/joins/preview")
+    async def preview_joins(body: JoinPreviewIn,
+                            language: str = Query(default="en", pattern="^(en|ar)$"),
+                            principal=Depends(requires("read"))):
+        """What a run with these joins would merge, without making the run
+        (ADR 0030). Reads under the lock; merges outside it, because a
+        merge of large tables takes long enough to hold up everyone."""
+        def plan():
+            with lock:
+                return engine.join_plan(principal.subject, body.dataset_id,
+                                        [j.model_dump() for j in body.joins],
+                                        body.breakdown)
+        try:
+            primary, mapping, spec, inputs = await run_in_threadpool(plan)
+            return await run_in_threadpool(
+                analytics.preview_merge, primary["content"], mapping, inputs,
+                spec["breakdown"], language)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="Dataset not found.")
+        except joining.JoinError as error:
+            raise HTTPException(status_code=422, detail=error.detail(language))
 
     @app.get("/api/pipelines")
     def read_pipelines(principal=Depends(requires("read"))):
@@ -800,6 +872,68 @@ def create_app(config_path=None, env=None, dist_dir=None):
     def cancel_run(run_id: str, principal=Depends(requires("write"))):
         with lock:
             return _run_or_404(lambda: engine.cancel(run_id), principal, run_id)
+
+    # ------------------------------------------------------------------
+    # A run's cleaned table (ADR 0031): download, fields, totals, records
+    # ------------------------------------------------------------------
+    async def run_table(run_id, principal, language):
+        """The run's analysis table, for its owner. Ownership and the store
+        are read under the lock; the table is parsed and queried outside
+        it, so a large table does not hold up everyone else."""
+        def source():
+            with lock:
+                if not owns(principal, engine.owner_of(run_id)):
+                    raise KeyError(run_id)
+                return engine.table_source(run_id)
+        try:
+            key, stored, run = await run_in_threadpool(source)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="Run not found.")
+        except TableNotReady:
+            raise HTTPException(status_code=409, detail=(
+                "الجدول المنظَّف غير جاهز بعد: لم ينتهِ التشغيل من تنظيف بياناته."
+                if language == "ar" else
+                "The cleaned table is not ready yet: the run has not finished cleaning its data."))
+        return await run_in_threadpool(engine.load_table, key, stored), run
+
+    @app.get("/api/runs/{run_id}/data.csv")
+    async def download_table(run_id: str,
+                             language: str = Query(default="en", pattern="^(en|ar)$"),
+                             principal=Depends(requires("read"))):
+        table, run = await run_table(run_id, principal, language)
+        name = table_query.download_name(run["goal"], run_id)
+        text = await run_in_threadpool(table_query.to_csv, table)
+        return Response(content=text.encode("utf-8"), media_type="text/csv; charset=utf-8",
+                        headers={"Content-Disposition":
+                                 f'attachment; filename="{name}"; filename*=UTF-8\'\'{name}'})
+
+    @app.get("/api/runs/{run_id}/fields")
+    async def table_fields(run_id: str,
+                           language: str = Query(default="en", pattern="^(en|ar)$"),
+                           principal=Depends(requires("read"))):
+        table, _ = await run_table(run_id, principal, language)
+        return {"fields": await run_in_threadpool(table_query.fields, table),
+                "records": len(table.rows)}
+
+    @app.post("/api/runs/{run_id}/query")
+    async def query_table(run_id: str, body: QueryIn,
+                          language: str = Query(default="en", pattern="^(en|ar)$"),
+                          principal=Depends(requires("read"))):
+        table, _ = await run_table(run_id, principal, language)
+        try:
+            return await run_in_threadpool(table_query.aggregate, table, body.model_dump())
+        except table_query.QueryError as error:
+            raise HTTPException(status_code=422, detail=error.detail(language))
+
+    @app.post("/api/runs/{run_id}/records")
+    async def table_records(run_id: str, body: RecordsIn,
+                            language: str = Query(default="en", pattern="^(en|ar)$"),
+                            principal=Depends(requires("read"))):
+        table, _ = await run_table(run_id, principal, language)
+        try:
+            return await run_in_threadpool(table_query.records, table, body.model_dump())
+        except table_query.QueryError as error:
+            raise HTTPException(status_code=422, detail=error.detail(language))
 
     @app.post("/api/runs/{run_id}/approvals/{approval_id}")
     def decide_approval(run_id: str, approval_id: str, decision: ApprovalIn, principal=Depends(requires("approve"))):

@@ -48,11 +48,15 @@ from pathlib import Path
 from server import analytics
 
 ROLE_PATTERN = re.compile(r"^[a-z][a-z0-9_]{1,39}$")
-BUILT_IN_ROLES = tuple(role for role, _ in analytics.PIPELINE) + ("publish",)
+BUILT_IN_ROLES = (tuple(role for role, _ in analytics.PIPELINE)
+                  + tuple(analytics.OPTIONAL_STAGES) + ("publish",))
 # Provenance, validation, reporting, publishing. Nothing may run after
 # these, so everything that runs is audited by them.
 GUARDED_TAIL = ("lineage", "validator", "reporter", "publish")
-PLACEMENTS = tuple(role for role in BUILT_IN_ROLES if role not in GUARDED_TAIL)
+# A stage only some runs have (the merge, ADR 0030) is no anchor: a
+# custom stage placed after it would vanish from every other run.
+PLACEMENTS = tuple(role for role in BUILT_IN_ROLES
+                   if role not in GUARDED_TAIL and role not in analytics.OPTIONAL_STAGES)
 DEFAULT_AFTER = "sensitivity"
 
 STATUSES = ("succeeded", "failed")

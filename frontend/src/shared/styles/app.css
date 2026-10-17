@@ -1224,6 +1224,31 @@ kbd {
 
 /* What the server noticed while reading a file: error cells, formulas
    with no saved result, which sheet it read. Worth a look, not an error. */
+/* Join builder (ADR 0030): one group per join, keys side by side when they fit. */
+.joinbuilder {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  padding: var(--space-3);
+  margin-block: var(--space-3);
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.joinbuilder__item {
+  display: grid;
+  gap: var(--space-2);
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-3);
+}
+
+.joinbuilder__key {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  align-items: end;
+}
+
 .warnings {
   list-style: none;
   padding: 0;

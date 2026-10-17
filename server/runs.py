@@ -18,11 +18,15 @@ import copy
 import hashlib
 import json
 import re
+import threading
 import uuid
+from collections import OrderedDict
 from datetime import datetime, timezone
 from pathlib import Path
 
 from server import analytics, datasets, metrics, quota
+from server import joins as joining
+from server import query
 from server import mapping as colmap
 from server import stages as stage_registry
 
@@ -44,6 +48,14 @@ RUN_TRANSITIONS = {
 
 DATASET_FIELDS = ("id", "sha256", "name", "byte_size", "created_at", "source_format",
                   "row_count", "column_count", "mapping_updated_at")
+
+# Parsed analysis tables kept for the query endpoints (ADR 0031): a
+# 50,000-row table is answered without parsing its stored result again.
+TABLE_CACHE_SIZE = 3
+
+
+class TableNotReady(Exception):
+    """The run has not cleaned its data yet, so it has no table to read."""
 
 
 def dataset_summary(dataset):
@@ -88,6 +100,8 @@ class RunEngine:
             entries, problems = metrics.load_glossary()
             glossary = {"metrics": entries, "problems": problems}
         self.glossary = glossary
+        self._tables = OrderedDict()
+        self._tables_lock = threading.Lock()
 
     # -- state helpers ----------------------------------------------------
     def _set_run_state(self, run_id, new_state, error=None):
@@ -217,28 +231,83 @@ class RunEngine:
                              f"that are not registered: {', '.join(unknown)}.")
         return list(chosen)
 
-    def roles_for(self, profile=None):
+    def roles_for(self, profile=None, joined=False):
         """The run's stage order: the built-in pipeline with each custom
         stage inserted after the built-in stage it asked for. Custom
         stages can only be placed before the governed tail, so every
-        one of them runs before provenance, validation and reporting."""
+        one of them runs before provenance, validation and reporting.
+        A run that joins datasets merges them right after cleaning, before
+        anything else reads the cleaned rows (ADR 0030)."""
         custom = self.custom_roles_for(profile)
         roles = []
         for role, _ in analytics.PIPELINE:
             roles.append(role)
+            if joined:
+                roles.extend(optional for optional, after in analytics.OPTIONAL_AFTER.items()
+                             if after == role)
             roles.extend(r for r in custom
                          if getattr(self.stages[r], "after",
                                     stage_registry.DEFAULT_AFTER) == role)
         return roles + ["publish"]
 
+    # -- several datasets per run (ADR 0030) ------------------------------
+    def _join_inputs(self, spec, owner):
+        """Each joined dataset as the merge stage reads it. Another owner's
+        dataset is missing (KeyError), never forbidden."""
+        loaded = [self._owned_dataset(item["dataset_id"], owner) for item in spec["joins"]]
+        joining.assign_aliases(spec["joins"], [d["name"] for d in loaded])
+        return [{**item, "name": dataset["name"], "content": dataset["content"],
+                 "snapshot": dataset["sha256"][:16],
+                 "mapping": (json.loads(dataset["mapping_json"])
+                             if dataset.get("mapping_json") else None)}
+                for item, dataset in zip(spec["joins"], loaded)]
+
+    def join_plan(self, owner, dataset_id, joins, breakdown=None):
+        """Everything a merge needs, read from the store: the main
+        dataset, the declaration and each joined dataset. Raises KeyError
+        for a dataset that is not this owner's and JoinError for a
+        declaration that cannot run."""
+        if not dataset_id:
+            raise joining.JoinError([joining.Problem(
+                "dataset", None,
+                "Joins start from a stored dataset: choose one or upload a file first.",
+                "يبدأ الدمج من بيانات محفوظة: اختر مجموعة بيانات أو ارفع ملفاً أولاً.")])
+        primary = self._owned_dataset(dataset_id, owner)
+        spec = joining.normalise(joins, breakdown)
+        inputs = self._join_inputs(spec, owner)
+        mapping = json.loads(primary["mapping_json"]) if primary.get("mapping_json") else None
+        return primary, mapping, spec, inputs
+
+    def preview_joins(self, owner, dataset_id, joins, breakdown=None, language="en"):
+        primary, mapping, spec, inputs = self.join_plan(owner, dataset_id, joins, breakdown)
+        return analytics.preview_merge(primary["content"], mapping, inputs,
+                                       spec["breakdown"], language)
+
     def create_run(self, goal, dataset_text=None, dataset_name=None,
                    owner="local-owner", dataset_id=None, profile=None,
-                   language="en"):
+                   language="en", joins=None, breakdown=None):
         # An unknown profile, or a language reports are not written in, is
         # refused before anything is written.
-        roles = self.roles_for(profile)
+        roles = self.roles_for(profile, joined=bool(joins))
         if language not in analytics.REPORT_LANGUAGES:
             raise ValueError(f"Reports are not written in “{language}”.")
+        joins_json = None
+        joined_names = []
+        if joins:
+            # Refused here, with every reason, rather than at the merge
+            # stage halfway through the run: the preview runs the same code.
+            primary, mapping, spec, inputs = self.join_plan(owner, dataset_id, joins,
+                                                            breakdown)
+            analytics.preview_merge(primary["content"], mapping, inputs,
+                                    spec["breakdown"], language, rows_shown=0)
+            # The run keeps its own copy of each joined mapping, as it does
+            # of the main one, so a later change never reaches it.
+            joins_json = json.dumps({
+                "joins": [{key: item[key] for key in
+                           ("dataset_id", "alias", "how", "keys", "mapping")}
+                          for item in inputs],
+                "breakdown": spec["breakdown"]}, ensure_ascii=False)
+            joined_names = [item["name"] for item in inputs]
         # Checked before anything is written, so a refused run leaves no
         # half-created rows behind.
         if self.limits:
@@ -259,7 +328,7 @@ class RunEngine:
         now = _now()
         self.store.insert("runs", {
             "id": run_id, "goal": goal.strip(),
-            "dataset_name": dataset["name"],
+            "dataset_name": " + ".join([dataset["name"], *joined_names]),
             # dataset_text stays populated for backward compatibility with
             # rows written before datasets were content-addressed.
             "dataset_text": "", "state": "queued",
@@ -268,7 +337,7 @@ class RunEngine:
             # Fixed for the run's life: the approval gate binds to the hash
             # of one artifact, written in one language (ADR 0022).
             "report_language": language,
-            "mapping_json": mapping_json})
+            "mapping_json": mapping_json, "joins_json": joins_json})
         titles = analytics.ROLE_TITLES_AR if language == "ar" else analytics.ROLE_TITLES
         for idx, role in enumerate(roles):
             title = titles.get(role) or self.stages[role].title
@@ -286,6 +355,17 @@ class RunEngine:
             if dataset is not None:
                 return dataset["content"]
         return run.get("dataset_text") or ""
+
+    def _merge_inputs(self, run):
+        declared = json.loads(run.get("joins_json") or "{}")
+        inputs = []
+        for item in declared.get("joins") or []:
+            dataset = self.store.get_dataset(item["dataset_id"])
+            if dataset is None:
+                continue  # the merge then reports a join it cannot make
+            inputs.append({**item, "name": dataset["name"], "content": dataset["content"],
+                           "snapshot": dataset["sha256"][:16]})
+        return {"joins": inputs, "join_breakdown": declared.get("breakdown")}
 
     def _context(self, run, tasks):
         ctx = {"goal": run["goal"], "dataset_text": self._dataset_text(run),
@@ -363,7 +443,8 @@ class RunEngine:
         if task["role"] == "publish":
             return self._request_publish_approval(run_id, task)
 
-        stage = dict(analytics.PIPELINE).get(task["role"])
+        stage = (dict(analytics.PIPELINE).get(task["role"])
+                 or analytics.OPTIONAL_STAGES.get(task["role"]))
         custom = self.stages.get(task["role"])
         if stage is None and custom is None:
             # A run created by an earlier pipeline version, or with a
@@ -380,6 +461,10 @@ class RunEngine:
 
         self._set_task(task["id"], "running")
         ctx = self._context(run, tasks)
+        if task["role"] == "merge":
+            # Read only for the stage that needs them: joined datasets can
+            # be large, and no other stage reads them raw.
+            ctx.update(self._merge_inputs(run))
         if custom is not None:
             return self._advance_custom(run_id, task, custom, ctx)
         try:
@@ -564,6 +649,70 @@ class RunEngine:
                               {"state": "cancelled", "decided_at": _now()})
         return self.get_run(run_id)
 
+    # -- the analysis table (ADR 0031) ------------------------------------
+    TABLE_ROLES = ("profiler", "cleaner", "merge", "governance", "preparer")
+
+    def table_source(self, run_id):
+        """What reading a run's analysis table needs, taken from the store:
+        a cache key and the stored results. Cheap, so it can run under the
+        server's lock; `load_table` does the parsing outside it."""
+        run = self._row(run_id)
+        tasks = {t["role"]: t for t in self.store.get_tasks(run_id)}
+        source = tasks.get("merge") or tasks.get("cleaner")
+        if source is None or source["state"] != "succeeded" or not source["result_json"]:
+            raise TableNotReady(run_id)
+        stored = {role: tasks[role]["result_json"] for role in self.TABLE_ROLES
+                  if role in tasks and tasks[role]["state"] == "succeeded"
+                  and tasks[role]["result_json"]}
+        if "collector" in tasks and tasks["collector"]["result_json"]:
+            stored["collector"] = tasks["collector"]["result_json"]
+        return (run_id, source["id"], source["updated_at"]), stored, run
+
+    def load_table(self, key, stored):
+        """The analysis table as a query.Table, parsed once per key."""
+        with self._tables_lock:
+            if key in self._tables:
+                self._tables.move_to_end(key)
+                return self._tables[key]
+        outputs = {role: json.loads(text)["output"] for role, text in stored.items()
+                   if role != "collector"}
+        merged = outputs.get("merge")
+        if merged:
+            rows, columns = merged["rows"], merged["columns"]
+            numeric = merged["numeric_columns"]
+        else:
+            rows = outputs["cleaner"]["rows"]
+            # The cleaner keeps the CSV's column order in each row; an empty
+            # table has none, so only then is the larger collector result read.
+            columns = (list(rows[0].keys()) if rows else
+                       json.loads(stored["collector"])["output"]["columns"])
+            numeric = outputs["profiler"]["numeric_columns"]
+        roles = {}
+        for column in numeric:
+            roles[column] = "measure"
+        date_col = (outputs.get("cleaner") or {}).get("date_col")
+        if date_col:
+            roles[date_col] = "date"
+        for record in (merged or {}).get("joins", []):
+            for column in record["added_columns"]:
+                roles.setdefault(column, "joined")
+        group_col = (outputs.get("preparer") or {}).get("group_col")
+        if group_col:
+            roles[group_col] = "breakdown"
+        measure = (outputs.get("governance") or {}).get("measure")
+        if measure:
+            roles[measure] = "analysed"
+        table = query.table_from(columns, numeric, rows, roles)
+        with self._tables_lock:
+            self._tables[key] = table
+            while len(self._tables) > TABLE_CACHE_SIZE:
+                self._tables.popitem(last=False)
+        return table
+
+    def analysis_table(self, run_id):
+        key, stored, _ = self.table_source(run_id)
+        return self.load_table(key, stored)
+
     # -- reads ------------------------------------------------------------
     def _row(self, run_id):
         run = self.store.get_run(run_id)
@@ -621,8 +770,12 @@ class RunEngine:
                                      "decided_at")}
             for a in self.store.approvals_for_run(run_id)
         ]
+        declared = json.loads(run.get("joins_json") or "{}")
+        joins = [{key: item.get(key) for key in ("dataset_id", "alias", "how", "keys")}
+                 for item in declared.get("joins") or []]
         return {"id": run["id"], "goal": run["goal"],
                 "dataset_name": run["dataset_name"], "state": run["state"],
+                "joins": joins, "breakdown": declared.get("breakdown"),
                 "report_language": run.get("report_language") or "en",
                 "error": run["error"], "created_at": run["created_at"],
                 "updated_at": run["updated_at"], "tasks": tasks,

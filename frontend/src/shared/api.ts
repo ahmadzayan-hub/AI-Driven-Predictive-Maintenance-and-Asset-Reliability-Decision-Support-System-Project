@@ -6,11 +6,18 @@ import type {
   DatasetSummary,
   ExportPayload,
   IdentityInfo,
+  JoinPreview,
+  JoinSpec,
   MappingProblem,
   Pipelines,
+  QueryAnswer,
+  QuerySpec,
+  RecordsPage,
+  RecordsSpec,
   RunDetail,
   RunSummary,
   SessionState,
+  TableField,
   TranscriptEntry,
   UploadResult,
   Usage,
@@ -147,6 +154,12 @@ export interface MessageResult {
   state: SessionState
 }
 
+/** The file name a download was given, from Content-Disposition. */
+function attachmentName(header: string | null, fallback: string): string {
+  const match = header?.match(/filename="([^"]+)"/)
+  return match ? match[1] : fallback
+}
+
 export const api = {
   health: () => request<{ status: string; agent_name: string; version: string }>('/api/health'),
   authConfig: () => request<AuthConfig>('/api/auth/config'),
@@ -199,18 +212,35 @@ export const api = {
     profile?: string,
     language: 'en' | 'ar' = 'en',
     datasetId?: string,
+    /** Other stored datasets joined onto this one, and a breakdown from
+     *  the merged table (ADR 0030). The server checks the merge first. */
+    merge?: { joins: JoinSpec[]; breakdown?: string | null },
   ) =>
-    request<RunDetail>('/api/runs', {
-      method: 'POST',
-      body: JSON.stringify({
-        goal,
-        dataset_text: datasetId ? null : (datasetText ?? null),
-        dataset_name: datasetId ? null : (datasetName ?? null),
-        dataset_id: datasetId ?? null,
-        profile: profile || null,
-        language,
-      }),
-    }),
+    request<RunDetail>(
+      '/api/runs',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          goal,
+          dataset_text: datasetId ? null : (datasetText ?? null),
+          dataset_name: datasetId ? null : (datasetName ?? null),
+          dataset_id: datasetId ?? null,
+          profile: profile || null,
+          language,
+          joins: merge?.joins.length ? merge.joins : null,
+          breakdown: merge?.joins.length ? (merge.breakdown || null) : null,
+        }),
+      },
+      merge?.joins.length ? UPLOAD_TIMEOUT_MS : REQUEST_TIMEOUT_MS,
+    ),
+  /** The merge a run with these joins would make, refused with every
+   *  problem by field when it cannot be made (ADR 0030). */
+  previewJoins: (datasetId: string, joins: JoinSpec[], breakdown: string | null, language: 'en' | 'ar' = 'en') =>
+    request<JoinPreview>(
+      `/api/joins/preview?language=${language}`,
+      { method: 'POST', body: JSON.stringify({ dataset_id: datasetId, joins, breakdown: breakdown || null }) },
+      UPLOAD_TIMEOUT_MS,
+    ),
   listDatasets: () => request<{ datasets: DatasetSummary[] }>('/api/datasets'),
   /** The file itself is the request body: CSV, TSV, Excel, JSON or JSON
    *  Lines. The server reads it, stores it once and answers in `language`. */
@@ -258,6 +288,47 @@ export const api = {
   pauseRun: (id: string) => request<RunDetail>(`/api/runs/${id}/pause`, { method: 'POST' }),
   resumeRun: (id: string) => request<RunDetail>(`/api/runs/${id}/resume`, { method: 'POST' }),
   cancelRun: (id: string) => request<RunDetail>(`/api/runs/${id}/cancel`, { method: 'POST' }),
+  /** A run's cleaned table (ADR 0031): fields, totals by group, rows. */
+  tableFields: (id: string, language: 'en' | 'ar' = 'en') =>
+    request<{ fields: TableField[]; records: number }>(
+      `/api/runs/${encodeURIComponent(id)}/fields?language=${language}`, {}, UPLOAD_TIMEOUT_MS),
+  queryTable: (id: string, spec: QuerySpec, language: 'en' | 'ar' = 'en') =>
+    request<QueryAnswer>(
+      `/api/runs/${encodeURIComponent(id)}/query?language=${language}`,
+      { method: 'POST', body: JSON.stringify(spec) },
+      UPLOAD_TIMEOUT_MS,
+    ),
+  tableRecords: (id: string, spec: RecordsSpec, language: 'en' | 'ar' = 'en') =>
+    request<RecordsPage>(
+      `/api/runs/${encodeURIComponent(id)}/records?language=${language}`,
+      { method: 'POST', body: JSON.stringify(spec) },
+      UPLOAD_TIMEOUT_MS,
+    ),
+  /** The cleaned table as a CSV file. Fetched with the token, which a
+   *  plain link could not send, then handed to the browser to save. */
+  downloadTable: async (id: string, language: 'en' | 'ar' = 'en') => {
+    let response: Response
+    try {
+      response = await fetch(`${API_BASE}/api/runs/${encodeURIComponent(id)}/data.csv?language=${language}`, {
+        headers: authHeaders(),
+      })
+    } catch {
+      throw new ApiError(translate('api.unreachable'), 0, true)
+    }
+    if (!response.ok) {
+      let message: string | null = null
+      try {
+        message = readDetail(await response.json()).message
+      } catch {
+        message = null
+      }
+      throw new ApiError(message ?? translate('api.failed', { status: response.status }), response.status)
+    }
+    return {
+      blob: await response.blob(),
+      name: attachmentName(response.headers.get('content-disposition'), `run-${id}-cleaned.csv`),
+    }
+  },
   decideApproval: (id: string, approvalId: string, decision: 'approve' | 'reject') =>
     request<RunDetail>(`/api/runs/${id}/approvals/${approvalId}`, {
       method: 'POST',

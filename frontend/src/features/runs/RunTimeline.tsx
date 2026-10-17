@@ -8,9 +8,9 @@ import { BANDS, groupedTasks, planRoles, roleBand } from './pipeline'
 
 const STATES: Record<string, string> = { succeeded: '✓', failed: '✕', skipped: '—', cancelled: '—', running: '…', awaiting_approval: '!', pending: '·' }
 
-export function PlanPreview({ pipelines, profile }: { pipelines: Pipelines | null; profile: string }) {
+export function PlanPreview({ pipelines, profile, joined = false }: { pipelines: Pipelines | null; profile: string; joined?: boolean }) {
   const { t, formatNumber } = useI18n()
-  const roles = planRoles(pipelines, profile)
+  const roles = planRoles(pipelines, profile, joined)
   return <details className="plan-preview"><summary><Icon name="activity" size={17} /><span>{t('cockpit.planTitle')}</span><span className="plan-preview__count">{t('cockpit.stageCount', { n: formatNumber(roles.length) })}</span></summary>
     <p className="field__help">{t('cockpit.planHelp')}</p><div className="plan-preview__bands">{BANDS.map((band) => <div key={band}><h4>{t(`cockpit.band.${band}`)}</h4><ol>{roles.filter((role) => roleBand(role, pipelines) === band).map((role) => <li key={role} dir="auto">{pipelines?.stages.find((stage) => stage.role === role)?.title ?? t(`cockpit.role.${role}` as MessageKey)}</li>)}</ol></div>)}</div>
   </details>

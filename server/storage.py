@@ -132,8 +132,10 @@ class SqlStore:
                     f"UPDATE {table} SET owner = 'local-owner' WHERE owner IS NULL")
         # report_language: NULL for runs written before reports had a
         # language, which were all English (ADR 0022).
+        # joins_json: the datasets a run joins and on what (ADR 0030); NULL
+        # for a run of one dataset, which is every run before it.
         for column in ("dataset_id", "lease_owner", "lease_expires_at",
-                       "report_language", "mapping_json"):
+                       "report_language", "mapping_json", "joins_json"):
             try:
                 self._exec(f"ALTER TABLE runs ADD COLUMN {column} TEXT")
             except Exception:

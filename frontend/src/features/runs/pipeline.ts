@@ -17,9 +17,15 @@ export function roleBand(role: string, pipelines?: Pipelines | null): Band {
   return custom && custom.after !== role ? roleBand(custom.after) : 'data'
 }
 
-export function planRoles(pipelines: Pipelines | null, profile: string): string[] {
+/** The stages a run will have. A run that joins datasets merges them
+ *  right after cleaning (ADR 0030). */
+export function planRoles(pipelines: Pipelines | null, profile: string, joined = false): string[] {
   const custom = pipelines ? (profile ? pipelines.profiles[profile] ?? [] : pipelines.default) : []
-  return BASE_ROLES.flatMap((role) => [role, ...custom.filter((name) => pipelines?.stages.find((stage) => stage.role === name)?.after === role)])
+  return BASE_ROLES.flatMap((role) => [
+    role,
+    ...(joined && role === 'cleaner' ? ['merge'] : []),
+    ...custom.filter((name) => pipelines?.stages.find((stage) => stage.role === name)?.after === role),
+  ])
 }
 
 export function groupedTasks(tasks: RunTask[], pipelines?: Pipelines | null) {

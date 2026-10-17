@@ -22,6 +22,7 @@ import math
 import re
 import statistics
 
+from server import joins as joining
 from server import mapping as colmap
 from server import metrics as glossary
 from server import sequential
@@ -566,6 +567,209 @@ def cleaner(ctx):
     )
 
 
+# ---------------------------------------------------------------------------
+# Several datasets in one run (ADR 0030). Every stage after cleaning reads
+# the analysis table through these three, so a run that joins other
+# datasets is analysed on the merged table and a run that does not is
+# analysed exactly as before.
+# ---------------------------------------------------------------------------
+
+def _rows(ctx):
+    merged = ctx.get("merge")
+    return merged["rows"] if merged else ctx["cleaner"]["rows"]
+
+
+def _columns(ctx):
+    merged = ctx.get("merge")
+    return merged["columns"] if merged else ctx["collector"]["columns"]
+
+
+def _numeric(ctx):
+    merged = ctx.get("merge")
+    return merged["numeric_columns"] if merged else ctx["profiler"]["numeric_columns"]
+
+
+def _merge_tables(ctx):
+    """The merge itself, as the stage and the preview both need it.
+    Raises joins.JoinError with every problem."""
+    clean = ctx["cleaner"]
+    date = ({"column": clean["date_col"], "order": clean.get("date_order"),
+             "grain": clean.get("date_grain")} if clean.get("date_col") else None)
+    joined, screens = [], []
+    for item in ctx.get("joins") or []:
+        table = joining.clean_table(item["content"], item.get("mapping"))
+        joined.append({**item, "table": table})
+        for finding in personal_data_findings(table.columns, table.screened):
+            screens.append({**finding, "dataset": item["name"]})
+    merged = joining.merge(ctx["collector"]["columns"], clean["rows"],
+                           ctx["profiler"]["numeric_columns"], joined, date)
+    problem = joining.breakdown_problem(ctx.get("join_breakdown"), merged["columns"],
+                                        merged["numeric_columns"])
+    if problem:
+        raise joining.JoinError([problem])
+    return merged, screens
+
+
+def merge(ctx):
+    """Data Merge Agent — put the joined datasets beside each row (ADR 0030).
+
+    Runs only when a run declares joins, right after cleaning. It never
+    adds a row: a lookup whose key repeats is refused, a left join keeps
+    every row it was given, and an inner join says what it left out. How
+    many rows found a match is a measured figure, not a footnote.
+    """
+    try:
+        merged, screens = _merge_tables(ctx)
+    except joining.JoinError as error:
+        return _fail(error.message(report_language(ctx)))
+    rows_before = len(ctx["cleaner"]["rows"])
+    calcs, claims, checks, lines = [], [], [], []
+    for index, record in enumerate(merged["joins"]):
+        prefix = f"c_merge_{index}"
+        keys = ", ".join(f"{k['left']} = {k['right']}" for k in record["keys"])
+        calcs += [
+            {"id": f"{prefix}_rows_in", "name": f"rows_before_joining_{record['alias']}",
+             "value": record["rows_in"], "method": "rows of the table before this join"},
+            {"id": f"{prefix}_matched", "name": f"rows_matched_in_{record['alias']}",
+             "value": record["matched"],
+             "method": f"rows whose key ({keys}) is found in {record['name']}"},
+            {"id": f"{prefix}_rows_out", "name": f"rows_after_joining_{record['alias']}",
+             "value": record["rows_out"],
+             "method": ("every row kept (left join)" if record["how"] == "left"
+                        else "matched rows only (inner join)")},
+            {"id": f"{prefix}_coverage", "name": f"key_coverage_{record['alias']}",
+             "value": record["coverage"], "method": "rows matched / rows before this join"},
+        ]
+        name, matched, total = record["name"], record["matched"], record["rows_in"]
+        coverage = record["coverage"]
+        complete = record["unmatched"] == 0
+        claims.append(_claim(
+            ctx, f"cl_merge_{index}", "fact" if complete else "limitation",
+            (f"Every one of the {total} rows found a match in {name} on {keys}."
+             if complete else
+             f"{matched} of {total} rows found a match in {name} on {keys} "
+             f"({coverage:.0%}); the other {record['unmatched']} have empty "
+             f"values for its columns."),
+            (f"وجد كل صف من الصفوف وعددها {total} تطابقاً في {name} على {keys}."
+             if complete else
+             f"وجد {matched} من أصل {total} صفاً تطابقاً في {name} على {keys} "
+             f"({coverage:.0%})، وبقيت أعمدته فارغة في الصفوف الأخرى وعددها "
+             f"{record['unmatched']}."),
+            [f"{prefix}_matched", f"{prefix}_rows_in", f"{prefix}_coverage"]))
+        if record["how"] == "inner" and record["unmatched"]:
+            claims.append(_claim(
+                ctx, f"cl_merge_{index}_inner", "limitation",
+                f"Only matched rows were kept: {record['unmatched']} rows without a "
+                f"match in {name} were left out, so every total covers "
+                f"{record['rows_out']} rows.",
+                f"احتُفظ بالصفوف المتطابقة وحدها: استُبعد {record['unmatched']} صفاً "
+                f"بلا تطابق في {name}، فكل مجموع يغطي {record['rows_out']} صفاً.",
+                [f"{prefix}_rows_out", f"{prefix}_matched"]))
+        expected = record["rows_in"] if record["how"] == "left" else record["matched"]
+        checks += [
+            {"name": f"join_{record['alias']}_keeps_the_row_count",
+             "passed": record["rows_out"] == expected,
+             "detail": _say(ctx,
+                            f"{record['rows_out']} rows out, {expected} expected "
+                            f"({record['how']} join).",
+                            f"خرج {record['rows_out']} صفاً والمتوقع {expected} "
+                            f"(دمج {record['how']}).")},
+            {"name": f"join_{record['alias']}_keys_cover_every_row",
+             "passed": complete,
+             "detail": _say(ctx,
+                            f"{matched} of {total} rows matched"
+                            + (f"; unmatched keys include "
+                               f"{', '.join(record['unmatched_keys'])}"
+                               if record["unmatched_keys"] else "") + ".",
+                            f"تطابق {matched} من أصل {total}"
+                            + (f"؛ ومن المفاتيح غير المتطابقة "
+                               f"{'، '.join(record['unmatched_keys'])}"
+                               if record["unmatched_keys"] else "") + ".")},
+        ]
+        renamed = ", ".join(f"{old} → {new}" for old, new in record["renamed"].items())
+        lines.append(_say(
+            ctx,
+            f"- **{name}** ({record['how']} join on {keys}): {matched} of {total} rows "
+            f"matched; added {len(record['added_columns'])} column(s)"
+            + (f", renamed {renamed}" if renamed else "") + ".",
+            f"- **{name}** (دمج {record['how']} على {keys}): تطابق {matched} من أصل "
+            f"{total}؛ أُضيف {len(record['added_columns'])} من الأعمدة"
+            + (f"، وأُعيدت تسمية {renamed}" if renamed else "") + "."))
+    if screens:
+        calcs.append({"id": "c_merge_pii", "name": "joined_columns_with_personal_data",
+                      "value": len(screens),
+                      "method": "joined columns matching a personal-data name or value pattern"})
+        listed = ", ".join(f"{s['dataset']}: {s['column']}" for s in screens[:5])
+        claims.append(_claim(
+            ctx, "cl_merge_pii", "warning",
+            f"Joined data appears to contain personal data in {len(screens)} column(s) "
+            f"({listed}). Publishing writes the report to the vault — check that it is "
+            "allowed to leave here.",
+            f"يبدو أن البيانات المدمجة تحتوي على بيانات شخصية في {len(screens)} من "
+            f"الأعمدة ({listed}). النشر يكتب التقرير في المخزن، فتحقق من أنه مسموح "
+            "بخروجه من هنا.",
+            ["c_merge_pii"]))
+    rows_after = len(merged["rows"])
+    summary = _say(
+        ctx,
+        f"Merged {len(merged['joins'])} dataset(s) onto {rows_before} rows: "
+        f"{rows_after} rows and {len(merged['columns'])} columns. "
+        + " ".join(f"{r['name']}: {r['matched']} of {r['rows_in']} matched."
+                   for r in merged["joins"]),
+        f"دُمجت {len(merged['joins'])} من مجموعات البيانات على {rows_before} صفاً: "
+        f"{rows_after} صفاً و{len(merged['columns'])} عموداً. "
+        + " ".join(f"{r['name']}: تطابق {r['matched']} من {r['rows_in']}."
+                   for r in merged["joins"]))
+    return _result(
+        "succeeded", summary,
+        output={"rows": merged["rows"], "columns": merged["columns"],
+                "numeric_columns": merged["numeric_columns"],
+                "rows_before": rows_before, "rows_after": rows_after,
+                "joins": merged["joins"], "breakdown": ctx.get("join_breakdown"),
+                "snapshots": [r["snapshot"] for r in merged["joins"]],
+                "personal_data": screens, "notes_markdown": "\n".join(lines)},
+        calculations=calcs, claims=claims, checks=checks)
+
+
+def preview_merge(dataset_text, mapping, joins, breakdown=None, language="en",
+                  rows_shown=5):
+    """What a run with these joins would merge, without making the run.
+
+    It runs the real collection, profiling, cleaning and merge stages, so
+    the preview cannot disagree with the run (ADR 0030). Raises
+    joins.JoinError with every problem, including a main dataset that the
+    pipeline itself would refuse."""
+    ctx = {"dataset_text": dataset_text, "mapping": mapping,
+           "report_language": language, "joins": joins, "join_breakdown": breakdown}
+    for role, stage in (("collector", collector), ("profiler", profiler),
+                        ("cleaner", cleaner)):
+        result = stage(ctx)
+        if result["status"] == "failed":
+            raise joining.JoinError([joining.Problem("dataset", None, result["summary"],
+                                                     result["summary"])])
+        ctx[role] = result["output"]
+    merged, screens = _merge_tables(ctx)
+    columns = merged["columns"]
+
+    def shown(value):
+        if value is None:
+            return ""
+        if isinstance(value, float):
+            return str(int(value)) if value.is_integer() else format(value, ".10g")
+        return str(value)
+
+    numeric = set(merged["numeric_columns"])
+    return {"rows_before": len(ctx["cleaner"]["rows"]), "rows_after": len(merged["rows"]),
+            "columns": columns,
+            "added_columns": [c for r in merged["joins"] for c in r["added_columns"]],
+            "breakdown_choices": [c for c in columns if c not in numeric],
+            "joins": merged["joins"],
+            "personal_data": [{"dataset": s["dataset"], "column": s["column"]}
+                              for s in screens],
+            "preview": [[shown(row.get(c)) for c in columns]
+                        for row in merged["rows"][:rows_shown]]}
+
+
 # Why the run analyses the column it does (server/metrics.resolve), as an
 # Arabic report says it.
 MEASURE_SOURCES_AR = {
@@ -586,8 +790,8 @@ def governance(ctx):
     "revenue" column that does not equal price × units is a finding about
     the business, not a rounding detail.
     """
-    numeric_columns = ctx["profiler"]["numeric_columns"]
-    rows = ctx["cleaner"]["rows"]
+    numeric_columns = _numeric(ctx)
+    rows = _rows(ctx)
     book = ctx.get("glossary") or {}
     metrics, problems = book.get("metrics", []), book.get("problems", [])
 
@@ -597,12 +801,12 @@ def governance(ctx):
         # was mapped but not chosen.
         measure = ctx["mapping"]["measure"]
         _, _, _, candidates = glossary.resolve(
-            metrics, ctx["collector"]["columns"], numeric_columns)
+            metrics, _columns(ctx), numeric_columns)
         metric = next((c["metric"] for c in candidates if c["column"] == measure), None)
         source = "the owner's column mapping"
     else:
         measure, metric, source, candidates = glossary.resolve(
-            metrics, ctx["collector"]["columns"], numeric_columns)
+            metrics, _columns(ctx), numeric_columns)
     calcs = [{"id": "c_gov_defined", "name": "metrics_in_glossary",
               "value": len(metrics),
               "method": "entries accepted from metrics.json"}]
@@ -838,9 +1042,9 @@ def governance(ctx):
 
 
 def preparer(ctx):
-    rows = ctx["cleaner"]["rows"]
-    numeric_columns = ctx["profiler"]["numeric_columns"]
-    columns = ctx["collector"]["columns"]
+    rows = _rows(ctx)
+    numeric_columns = _numeric(ctx)
+    columns = _columns(ctx)
     # Which number this run is about was decided by the governance stage,
     # on the record and with a reason. This stage no longer guesses.
     measure = ctx["governance"]["measure"]
@@ -855,6 +1059,11 @@ def preparer(ctx):
                          ("month", "date", "period", "week", "year")), None)
         group_col = next((c for c in columns
                           if c not in numeric_columns and c != date_col), None)
+    # A breakdown chosen for a joined run wins: it is usually why the
+    # lookup was joined at all (ADR 0030).
+    breakdown = (ctx.get("merge") or {}).get("breakdown")
+    if breakdown:
+        group_col = breakdown
     # Each total keeps the number of records behind it, so a reader can
     # compare per record when groups or periods differ in size (ADR 0026).
     groups, group_counts = {}, {}
@@ -911,7 +1120,7 @@ def descriptive(ctx):
     Summarises the snapshot in business language. This is the floor of the
     maturity ladder: everything above it consumes these figures.
     """
-    rows = ctx["cleaner"]["rows"]
+    rows = _rows(ctx)
     prep = ctx["preparer"]
     measure = prep["measure"]
     values = [r[measure] for r in rows if r.get(measure) is not None]
@@ -1072,7 +1281,7 @@ def diagnostic(ctx):
     association: nothing here establishes cause.
     """
     prep = ctx["preparer"]
-    rows = ctx["cleaner"]["rows"]
+    rows = _rows(ctx)
     measure, group_col, date_col = prep["measure"], prep["group_col"], prep["date_col"]
     calcs, claims, contributions = [], [], []
 
@@ -1131,7 +1340,7 @@ def diagnostic(ctx):
 
     # Which other numeric columns move together with the measure?
     associations = []
-    numeric_columns = [c for c in ctx["profiler"]["numeric_columns"] if c != measure]
+    numeric_columns = [c for c in _numeric(ctx) if c != measure]
     for index, column in enumerate(numeric_columns[:4]):
         pairs = [(r[column], r[measure]) for r in rows
                  if r.get(column) is not None and r.get(measure) is not None]
@@ -1331,15 +1540,17 @@ def experiment(ctx):
     followed by the design that would change the answer.
     """
     prep = ctx["preparer"]
-    rows = ctx["cleaner"]["rows"]
+    rows = _rows(ctx)
     measure = prep["measure"]
     values = [row[measure] for row in rows if row.get(measure) is not None]
+    joined = [c for c in _columns(ctx) if c not in ctx["collector"]["columns"]]
     column, arm_names = _experiment_column(
         rows,
-        # Mapped: only dimensions can record an experiment's arms (ADR 0025).
-        (colmap.dimensions_of(ctx["mapping"], ctx["collector"]["columns"])
-         if ctx.get("mapping") else ctx["collector"]["columns"]),
-        ctx["profiler"]["numeric_columns"], prep["date_col"])
+        # Mapped: only dimensions can record an experiment's arms (ADR 0025),
+        # and a joined column is the joined dataset's to describe.
+        (colmap.dimensions_of(ctx["mapping"], ctx["collector"]["columns"]) + joined
+         if ctx.get("mapping") else _columns(ctx)),
+        _numeric(ctx), prep["date_col"])
 
     if len(values) < 2:
         calcs = [{"id": "c_exp_rows", "name": "rows_with_a_measure", "value": len(values),
@@ -2486,6 +2697,10 @@ def lineage(ctx):
          "method": "evidence ids cited by a claim but produced by no stage"},
     ]
     snapshot = ctx["collector"]["snapshot"]
+    # A joined run reads more than one snapshot, and names each (ADR 0030).
+    joined = (ctx.get("merge") or {}).get("snapshots") or []
+    if joined:
+        snapshot = snapshot + " + " + " + ".join(f"sha256:{s}" for s in joined)
     return _result(
         "succeeded",
         _say(ctx,
@@ -2498,7 +2713,8 @@ def lineage(ctx):
              + (f" ولم يُستشهد بـ {len(unused)} من العمليات الحسابية." if unused
                 else "")),
         output={"produced_by_stage": produced, "dangling": dangling,
-                "unused": unused, "snapshot": snapshot},
+                "unused": unused, "snapshot": ctx["collector"]["snapshot"],
+                "joined_snapshots": joined},
         calculations=calcs,
         claims=[_claim(ctx, "cl_lineage", "fact",
                        f"Every figure in this report traces back to snapshot "
@@ -3067,6 +3283,32 @@ def validator(ctx):
                                   f"dropped = {clean['rows_before']} input rows",
                                   f"{clean['rows_after']} محتفظ به + {clean['dropped']} "
                                   f"محذوف = {clean['rows_before']} صف مُدخل")})
+    merged = ctx.get("merge")
+    if merged:
+        # A join must not add rows, and an inner join may only remove the
+        # rows that found no match (ADR 0030). Recounted from the records,
+        # independently of the merge stage's own check.
+        counted = clean["rows_after"]
+        broken = []
+        for record in merged["joins"]:
+            expected = (record["rows_in"] if record["how"] == "left"
+                        else record["matched"])
+            if record["rows_in"] != counted or record["rows_out"] != expected:
+                broken.append(record["alias"])
+            counted = record["rows_out"]
+        broken += [] if counted == merged["rows_after"] == len(merged["rows"]) else ["total"]
+        checks.append({"name": "joins_keep_the_row_count", "passed": not broken,
+                       "detail": _say(ctx,
+                                      (f"{clean['rows_after']} cleaned rows → "
+                                       f"{merged['rows_after']} merged rows, every join "
+                                       "accounted for."
+                                       if not broken else
+                                       "Row counts do not reconcile at: " + ", ".join(broken)),
+                                      (f"{clean['rows_after']} صفاً بعد التنظيف ← "
+                                       f"{merged['rows_after']} صفاً بعد الدمج، وكل دمج "
+                                       "محسوب."
+                                       if not broken else
+                                       "لا تتطابق أعداد الصفوف عند: " + ", ".join(broken)))})
     all_calc_ids = {c["id"] for stage in evidence_stages(ctx)
                     for c in ctx.get(stage + "_result", {}).get("calculations", [])}
     all_claims = [cl for stage in evidence_stages(ctx)
@@ -3465,6 +3707,8 @@ def reporter(ctx):
               ctx["quality_result"]["summary"],
               ctx["contract_result"]["summary"],
               ctx["profiler_result"]["summary"], ctx["cleaner_result"]["summary"],
+              *([ctx["merge_result"]["summary"], ctx["merge"]["notes_markdown"]]
+                if ctx.get("merge") else []),
               ctx["privacy_result"]["summary"],
               ctx["lineage_result"]["summary"],
               ctx["segments_result"]["summary"],
@@ -3522,7 +3766,7 @@ def reporter(ctx):
               for line in text["limits_lines"]]
     lines += ["", text["footer"].format(run_id=ctx.get("run_id", ""),
                                         measure=prep["measure"],
-                                        rows=ctx["cleaner"]["rows_after"])]
+                                        rows=len(_rows(ctx)))]
     report = "\n".join(lines)
     return _result(
         "succeeded",
@@ -3565,9 +3809,14 @@ PIPELINE = [
     ("reporter", reporter),
 ]
 
+# Stages a run includes only when it asks for them. The merge runs right
+# after cleaning in a run that declares joins (ADR 0030).
+OPTIONAL_STAGES = {"merge": merge}
+OPTIONAL_AFTER = {"merge": "cleaner"}
+
 # Stages whose claims and calculations the validator audits.
 EVIDENCE_STAGES = ("collector", "contract", "profiler", "quality", "privacy",
-                   "cleaner", "governance", "preparer", "segments", "descriptive",
+                   "cleaner", "merge", "governance", "preparer", "segments", "descriptive",
                    "diagnostic",
                    "experiment", "predictive", "anomaly", "prescriptive",
                    "sensitivity", "lineage")
@@ -3599,6 +3848,7 @@ ROLE_TITLES = {
     "quality": "Data Quality Agent",
     "privacy": "Privacy Agent",
     "cleaner": "Data Cleaning Agent",
+    "merge": "Data Merge Agent — which datasets join, and on what?",
     "governance": "Metric Governance Agent — is this measure defined and owned?",
     "preparer": "Data Preparation Agent",
     "segments": "Segment Concentration Agent",
@@ -3626,6 +3876,7 @@ ROLE_TITLES_AR = {
     "quality": "وكيل جودة البيانات",
     "privacy": "وكيل الخصوصية",
     "cleaner": "وكيل تنظيف البيانات",
+    "merge": "وكيل دمج البيانات: أي البيانات تُدمج وعلى أي مفتاح؟",
     "governance": "وكيل حوكمة المؤشرات: هل المقياس معرَّف وله مالك؟",
     "preparer": "وكيل إعداد البيانات",
     "segments": "وكيل تركّز الشرائح",

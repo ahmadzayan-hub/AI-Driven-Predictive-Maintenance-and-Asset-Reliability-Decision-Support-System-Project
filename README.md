@@ -46,6 +46,18 @@ environment — not a replacement for Windows, macOS, or Linux.
   reason, checks a mapping against every row, and explains a refusal
   field by field in English or Arabic. Runs follow the mapping and keep
   a copy of it; unmapped data is analysed exactly as before (ADR 0025)
+- **Several datasets in one run** — up to four stored lookups joined onto
+  the main dataset on declared keys, with a preview of the merge. A
+  lookup whose key repeats is refused, a left join never changes a
+  total, an inner join says what it left out, and every join reports how
+  many rows found a match; the Validation Expert recounts the rows
+  itself (ADR 0030)
+- **The cleaned table, downloadable and queryable** — a run's cleaned
+  and merged table downloads as CSV that is safe to open in a
+  spreadsheet (`GET /api/runs/{id}/data.csv`), and can be described,
+  totalled by group under filters, and read row by row
+  (`/fields`, `/query`, `/records`). Rates are ratios of sums, and
+  another owner's run is a 404 (ADR 0031)
 - **Command-line interface** — the original `python main.py` experience,
   fully preserved and dependency-free
 - **One brain, two faces** — both interfaces drive the same tested Python
@@ -303,16 +315,16 @@ python main.py
 # metrics, auth, tenancy, erasure, quotas, backups, worker, recovery,
 # supply chain, launcher, routing, language, assistant, custom stages,
 # agent runtimes, MCP, frameworks, report language, datasets, column
-# mapping, uneven periods, docs, and the repository's operating system:
+# mapping, joins, the cleaned-table queries, uneven periods, docs, and the repository's operating system:
 # brain checker, session hooks, the verify script, the motion skill, the
 # agent team's tools, agent evaluation, the house style and the interface
-# budget (865 tests)
+# budget (941 tests)
 python -m unittest discover tests
 
-# Frontend unit tests (84 tests)
+# Frontend unit tests (87 tests)
 cd frontend && npm test
 
-# End-to-end + accessibility (80 checks across desktop and mobile,
+# End-to-end + accessibility (86 checks across desktop and mobile,
 # in English and Arabic;
 # requires the production build: npm run build)
 cd frontend && npx playwright test
@@ -328,17 +340,17 @@ python scripts/verify.py
 
 The same suite runs automatically in CI (`.github/workflows/ci.yml`) on
 every push, including the run-engine and backup suites against a real
-PostgreSQL 16 service. Last verified: 865 Python tests (846 run in CI;
+PostgreSQL 16 service. Last verified: 941 Python tests (922 run in CI;
 the 11 that need an optional agent framework or the MCP SDK, the 5 that
 need LLMRouter, the 1 that cross-checks workbooks with openpyxl, and the
 2 that need the frontend build, which CI makes after the Python step,
 skip there),
-84 frontend unit tests, and 80 end-to-end checks (76 executed; 4
+87 frontend unit tests, and 86 end-to-end checks (82 executed; 4
 skipped by design, because each covers one viewport only). In environments with a pre-installed
 browser, point Playwright at it:
 `PLAYWRIGHT_EXECUTABLE_PATH=/path/to/chromium npx playwright test`.
 
-Five of the 865 load real LLMRouter routers and **skip unless LLMRouter
+Five of the 941 load real LLMRouter routers and **skip unless LLMRouter
 is installed**, which in CI it is not. With the eleven framework tests,
 the openpyxl cross-check and the two tests that read the frontend build
 (the static files and the interface budget), CI is expected to report

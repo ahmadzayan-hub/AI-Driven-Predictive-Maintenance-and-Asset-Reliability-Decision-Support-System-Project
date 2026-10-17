@@ -194,7 +194,7 @@ From the skill's UX guidelines, applied here:
 | 1 Overview and Datasets | Two new views on existing APIs; analyse a stored dataset | — | New end-to-end and axe checks in both languages; no overflow at 320 px | Done, 16 Oct 2026 |
 | 2 Add data | Upload of several formats, preview, column mapping; deep links | A1, A2 | ADR; API and UI tests per format; error-summary behaviour tested | Upload, stored-dataset picker, preview and mapping shipped in ADRs 0024–0025. Hash deep links and upload-result previews added in ADR 0029; workbook sheet selection remains proposed. See docs/design/VALIDATION.md for verification status. |
 | 3 Dashboards | Dashboard pages, filters, drill to rows, chart-to-table toggle; "Analyses" naming | A4, A5 | Every chart has a table; filter state survives reload; axe on every page | Planned |
-| 4 Several datasets | Join builder: pick datasets, declare keys, preview the merge | A3 | Join-correctness tests; key-coverage warnings shown | Planned |
+| 4 Several datasets | Join builder: pick datasets, declare keys, preview the merge | A3 | Join-correctness tests; key-coverage warnings shown | Done, 17 Oct 2026 (ADR 0030): join builder in the run form, preview with match counts and unmatched keys, refusal of repeated lookup keys, end-to-end and axe in both languages |
 | 5 Models | Model cards: metric against baseline, calibration, importance, "not used" models | A6 | Every model shows its baseline; weak models labelled | Planned |
 | 6 Live | Connectors, schedules, live badge, polite announcements | A7 | Reconnect and stale-data states tested | Planned |
 

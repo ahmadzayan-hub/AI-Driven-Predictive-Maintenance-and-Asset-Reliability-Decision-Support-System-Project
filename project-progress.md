@@ -1,6 +1,6 @@
 # Project progress
 
-Last updated: 2026-10-17, session `7ba0117d`. The session-end skill keeps this file current; the SessionStart hook reads the *Now* section into every new session.
+Last updated: 2026-10-17, session `7ba0117d` (A3 and A4). The session-end skill keeps this file current; the SessionStart hook reads the *Now* section into every new session.
 
 **Vision.** Agentic OS becomes an analytics OS. It digests several datasets with dynamic inputs, then carries them through preparation, cleaning and modelling to a multi-page interactive dashboard with live data, with insights and key findings that are always traceable to a calculation. The reasoning behind it is in `brain/Projects/Analytics OS roadmap.md`.
 
@@ -42,12 +42,14 @@ Last updated: 2026-10-17, session `7ba0117d`. The session-end skill keeps this f
 - **House style: done 2026-10-17.** `.claude/skills/rta-style/` (colours, type and layout only, no logo, name or data) themes the offline dashboards, the clips and the evaluation report, checked for AA contrast in light and dark.
 - **Views load on demand: done 2026-10-17** (ADR 0028). The chat and the shell ship first; the other views and dialogs are chunks fetched when shown, and prefetched in idle time. First load fell from 96.7 to 85.7 KB gzipped, and Lighthouse's unused script halved, but load speed did not measurably change (mobile 98 against 99, largest paint 2.13 s both). The budget now counts the first load, all scripts and the largest chunk.
 - **Governed UI, delivered 2026-10-17 (ADR 0029):** editable Figma light/dark and Arabic phone designs, shared run snapshots, grouped progress, exact-report approvals inbox, evidence dialog, assistant result cards, hash deep links, scoped text drafts, upload previews and PWA installation guidance. Existing on-demand loaders and their idle prefetch are retained. The real publishing journey, recovery, keyboard review, Arabic phone layout and bundle checks pass in [CI 39019826211](https://github.com/ahmadzayan-hub/agentic-os-final-project/actions/runs/39019826211). [Design handoff](docs/design/AGENTIC_UI_SPEC.md), [actual screenshots](docs/screenshots/) and [validation with open observations](docs/design/VALIDATION.md).
-- **Next build: A3, several datasets per run (ADR 0030, proposed)**, and the workbook sheet picker. Hash deep links are delivered.
+- **A3, several datasets per run: done 2026-10-17** (ADR 0030). A run joins up to four stored lookups onto its main dataset on declared keys, right after cleaning. A repeated lookup key is refused, a left join keeps every total, an inner join says what it left out, and every join reports its key coverage; the Validation Expert recounts the rows. The run form has a join builder with a preview.
+- **A4, the cleaned table: done 2026-10-17** (ADR 0031). `GET /api/runs/{id}/data.csv` downloads the cleaned, merged table as spreadsheet-safe CSV; `/fields`, `/query` (totals by group under filters, rates as ratios of sums) and `/records` answer questions of it without sending it to the browser. Another owner's run is a 404.
+- **Next build: A5, dashboard pages (ADR 0032)**, then A6 models and A7 live data.
 
 ## Next
 
 1. Observe the manager's timed review task, real Windows/Android/iOS PWA installation and assistive-technology use; measure fresh Web Vitals. Automated interface checks and bundle budgets pass; see the validation record for the remaining observations. CSS is near its existing limit, so trim before adding styles or record a justified budget change in an ADR.
-2. A3: several datasets per run, with declared join keys (ADR 0030, proposed); workbook sheet selection (phase 2).
+2. A5 dashboard pages on the A4 query API (ADR 0032), then A6 and A7; workbook sheet selection (phase 2).
 3. Harder reviewer memos (subtler defects, longer documents), so prompt changes can be measured. For intent and causal wording, try a model behind the rules once a rotated key or a local model is available; the rules plateau near 70% on blind sets.
 4. Invite the team as collaborators and protect the default branch (owner action, on GitHub).
 
@@ -59,8 +61,8 @@ Status values: Not started, In progress, Done (date, evidence).
 | --- | --- | --- | --- |
 | A1 | Dataset API: `POST /api/datasets`, CSV, XLSX and JSON parsers, larger limit, picker in the Runs view | Done 2026-10-16: ADR 0024; 53 reader and API tests on SQLite and PostgreSQL; end-to-end upload of CSV, XLSX and JSON | ADR; API and parser tests; e2e upload of each format |
 | A2 | Column mapping: choose measures, dimensions and the date column; date parsing; replaces name heuristics | Done 2026-10-16: ADR 0025; 50 mapping tests on SQLite and PostgreSQL; e2e mapping in English and Arabic, desktop and phone | ADR; tests on mapped and unmapped data; Arabic and English UI |
-| A3 | Several datasets per run: dataset list, declared join keys, merge stage after cleaning | Not started | ADR; join-correctness tests (row counts, key coverage) |
-| A4 | Cleaned-data download and an aggregates query endpoint (filter and group-by) | Not started | Tests; tenant isolation tests on the new endpoints |
+| A3 | Several datasets per run: dataset list, declared join keys, merge stage after cleaning | Done 2026-10-17: ADR 0030; 46 join tests on SQLite and PostgreSQL (row counts, key coverage, repeated keys, numeric and date keys, tenancy); join builder end-to-end in English and Arabic, desktop and phone | ADR; join-correctness tests (row counts, key coverage) |
+| A4 | Cleaned-data download and an aggregates query endpoint (filter and group-by) | Done 2026-10-17: ADR 0031; 30 query tests on SQLite and PostgreSQL, tenant isolation on all four endpoints; CSV download end-to-end | Tests; tenant isolation tests on the new endpoints |
 | A5 | Dashboard: router, pages, global filters, drill-down, richer chart types | Not started | ADR; axe and e2e on every page; desktop and mobile |
 | A6 | Modelling stages: regression, classification, clustering, seasonal forecast, each against a baseline | Not started | ADR 0020 plugins; every model reports its baseline |
 | A7 | Live data: connectors that snapshot into datasets, scheduled re-runs, push updates (SSE) | Not started | ADR; worker tests; reconnect behaviour |
@@ -70,9 +72,9 @@ Status values: Not started, In progress, Done (date, evidence).
 | Area | Today | Missing |
 | --- | --- | --- |
 | Ingestion | `POST /api/datasets` reads CSV, TSV, XLSX, JSON and JSON Lines (`server/datasets.py`): 4 MB uploaded, 10 MB as CSV, 50,000 rows, 500 columns; stored content-addressed with format and shape; pasted CSV still works | `.xls`, OpenDocument, Parquet, connectors; choosing a sheet in the interface; deleting a dataset |
-| Several datasets | Storage keeps many; one `dataset_id` per run | Multi-dataset runs, joins |
+| Several datasets | A run joins up to four stored lookups on declared keys (ADR 0030) | Unions; fuzzy or case-insensitive keys |
 | Dynamic inputs | A saved column mapping (`server/mapping.py`, ADR 0025) sets measures, breakdown, date, date order and grain, reading currency and Arabic digits; without one, numeric typing at 50% and 90% parse rates, the measure from the glossary or name hints, and a date column named month, date, period, week or year | Weeks and fiscal years; derived columns; more than one breakdown; decimal commas |
-| Prep and cleaning | Trim, drop empty and duplicate rows, null non-numbers; mapped dates become sortable period labels, unmapped periods still sort as strings | Imputation, outlier treatment; cleaned data not downloadable |
+| Prep and cleaning | Trim, drop empty and duplicate rows, null non-numbers; mapped dates become sortable period labels, unmapped periods still sort as strings; the cleaned table downloads and answers queries (ADR 0031) | Imputation, outlier treatment |
 | Modelling | Linear trend with backtest, anomalies, contributions and correlations, causal checks, concentration, sensitivity | Classification, multivariate regression, clustering, seasonality |
 | Visualisation | Up to four bar or line `ChartSpec`s per run, as hand-written SVG (`RunsView.tsx`): bars from a zero line, a marked forecast boundary, a table of the numbers under each chart. The Overview shows key figures and the latest headlines | Dashboard pages, filters, slicers, drill-down, tooltips |
 | Live data | A run advances while the Runs view is open (350 ms ticks) or through `server/worker.py` | Connectors, scheduled refresh, SSE or websockets |
@@ -83,6 +85,7 @@ Reusable foundations: the metric glossary (`metrics.json`), custom stages (ADR 0
 
 | Date | What | Evidence |
 | --- | --- | --- |
+| 2026-10-17 | A3 and A4: several datasets per run with declared joins and a merge preview (ADR 0030); the cleaned table as CSV, fields, totals and records (ADR 0031) | 941 Python tests with PostgreSQL (16 skipped); 87 frontend unit tests; end-to-end 82 of 86 run and pass, 4 skipped by design; budget 93.7 of 100 KB first load, CSS 9.4 of 10 KB |
 | 2026-10-17 | Views load on demand: chunks per view and dialog, idle prefetch, a bilingual loading and failure state; the budget counts first load, total and the largest chunk (ADR 0028) | 863 Python tests with PostgreSQL (16 skipped); 66 frontend unit tests; budget 85.7 of 100 KB first load; end-to-end 71 of 74 run and pass, 3 skipped by design; Lighthouse mobile 98 (99 before), largest paint 2.13 s both |
 | 2026-10-16 | Agent team: reviewer subagents, the review loop and its gates, the figures checker (glued cells, worked arithmetic), the analysis export and dashboards skill, local-model consultation; ADR 0026, uneven periods read per record; motion transcripts keep sources apart | 818 Python tests with PostgreSQL (16 skipped here); 60 frontend unit tests; build within budget; end-to-end not rerun (no interface change) |
 | 2026-10-16 | A2, column mapping: roles per column, suggestions with reasons, every-row validation with an error summary, runs that copy the mapping (ADR 0025) | 769 Python tests with PostgreSQL; 60 frontend unit tests; 69 of 72 end-to-end checks run and pass, 3 skipped by design |

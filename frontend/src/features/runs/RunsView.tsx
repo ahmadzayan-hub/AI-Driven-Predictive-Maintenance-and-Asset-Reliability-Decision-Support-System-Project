@@ -8,6 +8,7 @@ import { languageLabel, formatLabel, questionLabel, stateLabel, typeLabel } from
 import type {
   ChartSpec,
   DatasetSummary,
+  JoinSpec,
   Pipelines,
   RunDetail,
   RunSummary,
@@ -17,6 +18,7 @@ import type {
 
 import { ApprovalCard } from './ApprovalCard'
 import { EvidencePanel } from './EvidencePanel'
+import { JoinBuilder } from './JoinBuilder'
 import { PlanPreview, RunTimeline } from './RunTimeline'
 import { runStore, useRun } from './runStore'
 import { UploadPreview } from '../datasets/UploadPreview'
@@ -201,6 +203,14 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
   // an operator configured profiles; a default install shows nothing.
   const [pipelines, setPipelines] = useState<Pipelines | null>(null)
   const [profile, setProfile] = useState('')
+  // Other stored datasets joined onto the main one (ADR 0030).
+  const [downloading, setDownloading] = useState(false)
+  const [joins, setJoins] = useState<JoinSpec[]>([])
+  const [breakdown, setBreakdown] = useState('')
+  const changeJoins = useCallback((next: JoinSpec[], nextBreakdown: string) => {
+    setJoins(next)
+    setBreakdown(nextBreakdown)
+  }, [])
 
   const refreshList = useCallback(async () => {
     try {
@@ -291,8 +301,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
     setBusy(true)
     setErrorMessage(null)
     try {
-      const datasetId =
-        source === 'stored' ? storedId || undefined : source === 'upload' ? uploaded?.dataset.id : undefined
+      const datasetId = primaryId ?? undefined
       const pasted = source === 'upload' && !uploaded && csvDraft.trim()
       const detail = await api.createRun(
         goal.trim(),
@@ -303,6 +312,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
         // switching the interface later does not rewrite an approved artifact.
         locale,
         datasetId,
+        datasetId && joins.length ? { joins, breakdown } : undefined,
       )
       setRun(detail)
       void refreshList()
@@ -311,6 +321,31 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
     } finally {
       starting.current = false
       setBusy(false)
+    }
+  }
+
+  // The dataset a run starts from, when it is a stored one: joins need it.
+  const primaryId =
+    source === 'stored' ? storedId || null : source === 'upload' ? uploaded?.dataset.id ?? null : null
+
+  /** Save the run's cleaned (and merged) table as CSV (ADR 0031). */
+  async function downloadTable(id: string) {
+    setDownloading(true)
+    setErrorMessage(null)
+    try {
+      const { blob, name } = await api.downloadTable(id, locale)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = name
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch (error) {
+      setErrorMessage(error instanceof ApiError ? error.message : t('runs.downloadFailed'))
+    } finally {
+      setDownloading(false)
     }
   }
 
@@ -544,7 +579,17 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                 </div>
               ) : null}
               {uploaded ? <UploadPreview result={uploaded} /> : null}
-              <PlanPreview pipelines={pipelines} profile={profile} />
+              {source !== 'sample' ? (
+                <JoinBuilder
+                  primaryId={primaryId}
+                  datasets={datasets}
+                  disabled={busy}
+                  joins={joins}
+                  breakdown={breakdown}
+                  onChange={changeJoins}
+                />
+              ) : null}
+              <PlanPreview pipelines={pipelines} profile={profile} joined={joins.length > 0} />
               <div className="field">
                 <button type="submit" className="btn btn--primary" disabled={busy || !goal.trim()}>
                   {busy ? <span className="spinner" aria-hidden="true" /> : <Icon name="sparkle" size={16} />}
@@ -595,6 +640,9 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
 
   const reportLang = run.report_language === 'ar' ? 'ar' : 'en'
   const reportDir = reportLang === 'ar' ? 'rtl' : 'ltr'
+  // The table the run analyses exists once cleaning, and any merge, is done.
+  const tableTask = run.tasks.find((task) => task.role === 'merge') ?? run.tasks.find((task) => task.role === 'cleaner')
+  const tableReady = tableTask?.state === 'succeeded'
 
   return (
     <section className="panel cockpit" aria-label={t('runs.detailAria')}>
@@ -642,6 +690,12 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                     {t('runs.cancel')}
                   </button>
                 </>
+              ) : null}
+              {tableReady ? (
+                <button type="button" className="btn btn--ghost" disabled={downloading} onClick={() => void downloadTable(run.id)}>
+                  {downloading ? <span className="spinner" aria-hidden="true" /> : <Icon name="download" size={16} />}
+                  {t('runs.download')}
+                </button>
               ) : null}
               <button type="button" className="btn btn--ghost" onClick={() => setRun(null)}>
                 {t('runs.all')}

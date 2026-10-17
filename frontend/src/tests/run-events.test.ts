@@ -48,6 +48,12 @@ describe('profile plan and evidence boundary', () => {
     expect(roles.at(-1)).toBe('publish')
     expect(planRoles(pipelines, '')).not.toContain('target')
   })
+  it('merges joined datasets right after cleaning, and only when there are joins (ADR 0030)', () => {
+    const joined = planRoles(null, '', true)
+    expect(joined[joined.indexOf('cleaner') + 1]).toBe('merge')
+    expect(roleBand('merge')).toBe('data')
+    expect(planRoles(null, '')).not.toContain('merge')
+  })
   it('reads English and Arabic calculation tables without extracting unrelated tables', () => {
     const en = '| Figure | Value | Method |\n| --- | --- | --- |\n| revenue | 12 | recorded sum |\n\n| Person | Team | Note |\n| a | b | c |'
     const ar = '| الرقم | القيمة | الطريقة |\n| --- | --- | --- |\n| revenue | 12 | recorded sum |'

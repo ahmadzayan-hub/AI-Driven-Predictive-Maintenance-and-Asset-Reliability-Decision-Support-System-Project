@@ -301,3 +301,20 @@ required local files. Both behaviors are covered by tests
     Lighthouse mobile scored 98 against 99 before, with the same largest
     paint (2.13 s). What it saves is the unused script, which halved.
     Both dictionaries still ship on the first load.
+25. Several datasets per run (ADR 0030) are joined, not stacked: up to
+    four lookups, each on one to three key columns, onto one main
+    dataset of the same owner. Keys match as trimmed text, as numbers
+    when the main key is numeric, or as periods when it is the mapped
+    date; there is no case-insensitive or fuzzy matching, so `north`
+    and `North` do not match and the coverage figure is how the owner
+    finds out. A lookup whose key repeats is refused rather than
+    aggregated. The stages before cleaning (contract, profiling,
+    quality, privacy) describe the main dataset only; joined datasets
+    are screened for personal data by the merge stage itself.
+26. A run's cleaned table (ADR 0031) downloads as CSV only, not Excel or
+    Parquet, and is read-only. Its query language is deliberately small:
+    named aggregates, eleven filter operators, at most two groupings and
+    no expressions or joins at query time. A table is parsed into memory
+    on first use and three are kept, so the first question asked of a
+    50,000-row run is slower than the ones after it, and a server with
+    several processes parses once per process.
