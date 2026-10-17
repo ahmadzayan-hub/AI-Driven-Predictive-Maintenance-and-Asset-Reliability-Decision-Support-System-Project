@@ -21,7 +21,8 @@ The product in this repository, described in [[Identity]]: a governed business-a
 ## What it does today
 
 - Chat in English or Arabic that maps a sentence to a typed action.
-- Analyses of one dataset per run through the [[Governed pipeline]], sequenced by the [[Hermes orchestrator]]. Since ADR 0024 a dataset can be CSV, TSV, an Excel workbook, JSON or JSON Lines, up to 4 MB, read into one canonical table and stored once.
+- Analyses through the [[Governed pipeline]], sequenced by the [[Hermes orchestrator]], of a dataset in CSV, TSV, Excel, JSON or JSON Lines (ADR 0024), joined with up to four others on declared keys (ADR 0030).
+- A six-page dashboard per analysis over its cleaned table (ADRs 0031, 0032), optional models each tested against a baseline (ADR 0033), and live sources that refresh on a schedule and push changes to open pages (ADR 0034).
 - Reports with claims linked to calculations, published through the [[Approval gate]].
 - Optional narration through the [[Model gateway]]; extension through [[Custom stages]] and [[Agent runtimes and MCP]].
 - The bundled [[Sample sales data]] works without an upload.
@@ -42,7 +43,7 @@ These counts go stale fast; `README.md` is the one place where they are maintain
 
 ## Direction
 
-The next stage is the [[Analytics OS roadmap]]: several datasets, dynamic inputs, a dashboard and live data. Decisions so far are in the [[Decision log]].
+The [[Analytics OS roadmap]]'s seven milestones were built by 17 October 2026: several datasets, dynamic inputs, a dashboard, models and live data. Decisions are in the [[Decision log]].
 
 ## Related
 

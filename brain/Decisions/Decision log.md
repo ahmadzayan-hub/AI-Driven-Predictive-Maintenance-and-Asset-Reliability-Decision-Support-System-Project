@@ -44,5 +44,11 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 
 | 0028 | Views load on demand, idle prefetch and measured first-load budget | [[Design system]] |
 | 0029 | Governed run workspace, exact-artifact review and hash navigation | [[Design system]] |
+| 0030 | Several datasets per run: declared joins and a merge stage | [[Analytics OS roadmap]] |
+| 0031 | The cleaned table: download, fields, totals and records | [[Analytics OS roadmap]] |
+| 0032 | Dashboard pages with filters in the address and drill-down | [[Design system]] |
+| 0033 | Modelling stages as plugins, each against its baseline | [[Custom stages]] |
+| 0034 | Live data: connectors, scheduled refreshes, pushed updates | [[Analytics OS roadmap]] |
+| 0035 | A view's strings ship with the view | [[Design system]] |
 
-The next records are expected to come from the [[Analytics OS roadmap]]: multi-dataset runs, the dashboard and live data.
+All seven [[Analytics OS roadmap]] milestones have their records.

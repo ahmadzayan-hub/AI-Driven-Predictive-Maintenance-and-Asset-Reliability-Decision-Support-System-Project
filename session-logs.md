@@ -497,3 +497,30 @@ The first entries were written from the commit history and the session's own rec
     - The human ten-second task and real-device installs are still unobserved.
     - Then A3 (ADR 0030).
 - **Lesson:** a `pkill -f` whose pattern also appears in your own command line kills your own shell (exit 144), as Memory.md warns. Stop servers by PID.
+
+## 2026-10-17 · `7ba0117d` · claude/agentic-os-final-project-53j6ql (A3 to A7)
+
+**Goal:** the user asked to "start A3 now and complete till A7": the five Analytics OS milestones, each with an ADR, tests, English and Arabic UI and verification. Earlier in the session: the capstone kickoff deck (online Slides artifact and .pptx) and its new slides online.
+
+- **Done:**
+    - **A3 and A4** (`b0070f3`, ADRs 0030 and 0031): several datasets per run with declared join keys and a merge stage; the cleaned table as CSV, fields, totals and records.
+    - **A5** (`9b0c6bd`, ADR 0032): six dashboard pages over a run's cleaned table, filters in the address, drill-down to records, histogram and scatter. The CSS budget became first load ≤ 10 KB and total ≤ 16 KB. Unmapped data now uses the preparer's date column as the time axis.
+    - **A6** (`94520a4`, ADRs 0033 and 0035): regression, classification, clustering and seasonal-forecast stages as plugins behind a `models` profile, each tested on held-out data against a plain baseline; model cards in the Runs view. View strings now ship with their chunk as typed message packs, which took the first load from 97.9 to 92.8 KB.
+    - **A7** (`b78e4a4`, ADR 0034): live sources (connectors) behind a fence against server-side request forgery, content-addressed snapshots that keep a mapping that still fits, scheduled refreshes by the worker under leases with backoff, `GET /api/events` (server-sent events, resumable), a Live / Reconnecting / Offline badge, a live sources panel in the Datasets view and a "newer snapshot" notice on dashboards.
+- **Verified:** `verify.py --e2e` with PostgreSQL passed all seven steps on each milestone's final tree:
+    - A5 (`9b0c6bd`): 942 Python tests (16 skipped), 94 unit tests, e2e 90 of 94 (4 skipped by design), first load 96.5 KB.
+    - A6 (`94520a4`): 964 Python tests, 98 unit tests, e2e 94 of 98, first load 92.8 KB.
+    - A7 (`b78e4a4`): 1025 Python tests (16 skipped), brain check clean, type check, 106 unit tests, build, budget (JS 92.8 of 100 KB first load, 137.5 of 160 in all; CSS 9.4 of 10 and 11.1 of 16), e2e 100 of 104 (4 skipped by design).
+    - A5 and A6 were each also tested as the staged tree alone, without the next milestone's files.
+    - A security-privacy review of A7 found no blockers. Seven of its ten findings were fixed with tests: a trickling source outlasting the time limit, an unhandled read error looping in the worker, NAT64-embedded IPv4, no cooldown on "Refresh now", no cap on event streams, credential-looking query keys, and a loose cursor format. Three were recorded as accepted in ADR 0034.
+- **Decisions:**
+    - A model must beat its baseline by 5% to count; clustering needs separation 0.25. A weak model is reported as weak (ADR 0033).
+    - Lazily loaded views keep their strings in packs (ADR 0035) instead of growing the first-load dictionaries.
+    - Connectors refuse proxies, redirects and any private address; ten per account; a manual refresh takes the worker's lease (ADR 0034).
+    - The event stream is delivered at least once and ends every 55 seconds; the dashboard never swaps its figures by itself.
+- **Open / next:**
+    - CI on the pushed head.
+    - A real fetch from a public host has not been exercised: this environment reaches the internet only through a proxy, which connectors refuse by design. Try it on a deployment with direct egress.
+    - Scheduled refresh on Vercel needs a worker or a cron calling "refresh"; serverless refreshes only on request.
+    - Workbook sheet selection (UI plan phase 2).
+- **Blockers:** none for the code. The capstone team items in *Now* are unchanged.
