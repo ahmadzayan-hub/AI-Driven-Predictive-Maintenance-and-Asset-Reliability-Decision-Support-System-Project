@@ -382,3 +382,23 @@ The first entries were written from the commit history and the session's own rec
     - **Open-licence Arabic–English fonts** were verified from Google Fonts' own metadata.
 - **Verified:** the licences, designers and weights come from `google/fonts` `METADATA.pb` files. The RTA and Dubai facts come from search results only, because rta.ae, Gulf News, the rebrand agency and dubaifont.com are blocked here.
 - **Open / next:** the user chooses the typeface; then the house style and the capstone builds switch to it.
+
+## 2026-10-17 (typeface) · `7ba0117d` · claude/agentic-os-final-project-53j6ql
+
+**Goal:** after the research, the user chose IBM Plex Sans with IBM Plex Sans Arabic for the house style, the report and the deck.
+
+- **Done:**
+    - **Repository:** the font stacks in `tokens.json` lead with IBM Plex Sans and IBM Plex Sans Arabic, for both screen and print; `typefaces` records the licences. The clips' RTA theme and the skill's text follow.
+    - **Capstone files:**
+        - `doc_theme.py` loads Plex Latin and Arabic (static, from @fontsource), and the report body is 10.2 pt.
+        - The report and the deck were rebuilt.
+        - The Power BI theme names IBM Plex Sans first, then Segoe UI.
+        - The tools bundle installs Plex through npm and no longer ships Noto.
+- **Verified:**
+    - **Gates, round 6:** 62.5%, the same ten pass. The six failures are the team's.
+    - **Report:** 23 pages, tagged; IBM Plex Sans is embedded as TrueType, and only ≤ and ≥ fall back.
+    - **Slides:** all 15 render with no overflow.
+    - **Arabic sample:** renders in IBM Plex Sans Arabic, both weights loaded.
+    - `tests.test_rta_style`, `tests.test_motion` and `tests.test_agent_team` pass.
+    - CI runs 58 and 59 passed.
+- **Open / next:** the team's items from the review memo.

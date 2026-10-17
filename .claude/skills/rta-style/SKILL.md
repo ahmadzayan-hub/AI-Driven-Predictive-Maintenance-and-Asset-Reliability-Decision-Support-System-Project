@@ -24,13 +24,13 @@ A theme, not a brand. It reproduces the look of the user's own executive dashboa
 - **Tiles:** white cards with a 5px leading edge in navy, red for the lead figure, or a status colour.
 - **Charts:** red, navy, grey, amber, teal, green, in that order. Red marks the figure the reader should look at; navy carries the rest.
 - **Status:** green, amber, red pills with on-colour text that passes contrast in both modes.
-- **Type:** `system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Naskh Arabic", Tahoma, sans-serif`. No web fonts to fetch.
+- **Type:** IBM Plex Sans for English and IBM Plex Sans Arabic for Arabic: one system designed together, seven weights, SIL Open Font License, so it can be embedded in PDFs and pages. Screens fall back to system fonts where Plex is not installed; builds that make PDFs or slides bundle the files.
 
 ## The print variant, for reports and decks
 
 `tokens.json` also holds a `document` palette: blue and white led, with red kept for the one figure to look at. It follows the Dubai Design System's principles:
 
-- **One typeface** for headings and body, in Arabic and English. That typeface is Dubai where it is installed or its files are supplied. Elsewhere it is a substitute (Noto Sans), as that system allows.
+- **One type system** for headings and body, in Arabic and English: IBM Plex Sans with IBM Plex Sans Arabic, chosen by the user on 17 October 2026. Dubai, the Dubai Government's own font, can replace it where its files are supplied; the Dubai Design System allows either.
 - **Hierarchy** from size and weight, not colour.
 - **AA contrast** throughout.
 - **The entity's own colours.** Its own palette, the DDA blue, is not used.
@@ -39,7 +39,7 @@ The variant carries no emblem or name of any government or authority.
 
 | File | What it is |
 | --- | --- |
-| `document.css` | Print variables (`--doc-*`) and element rules for an HTML-to-PDF report. The page brings its own `@font-face` for `'Doc Sans'`. |
+| `document.css` | Print variables (`--doc-*`) and element rules for an HTML-to-PDF report. The page brings its own `@font-face` rules for `'Doc Sans'` (Latin) and `'Doc Sans Arabic'`. |
 | `restyle.py` | Recolours HTML written in the project's default palette (the dashboards' and the capstone drafts' inline styles) by role. It maps backgrounds, text and borders through `from_default`, then checks every text colour against the background it really sits on, falling back to white or body text below 4.5:1. Words never change. |
 
 ```bash

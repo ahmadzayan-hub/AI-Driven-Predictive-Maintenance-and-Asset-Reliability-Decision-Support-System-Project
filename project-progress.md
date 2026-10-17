@@ -37,7 +37,7 @@ Last updated: 2026-10-17, session `7ba0117d`. The session-end skill keeps this f
 - **Capstone restyled, 2026-10-17:**
     - The report (23 pages, tagged) and the deck (15 slides) were rebuilt in the house style's blue-led print variant, following the Dubai Design System's principles. The Power BI theme in the kit matches.
     - The capstone gates are unchanged: all ten the session can act on pass, and six remain the team's.
-    - The typeface is Noto Sans until the Dubai font files are supplied.
+    - The typeface is IBM Plex Sans with IBM Plex Sans Arabic, the user's choice; Dubai can replace it if its files are supplied.
 - **House style: done 2026-10-17.** `.claude/skills/rta-style/` (colours, type and layout only, no logo, name or data) themes the offline dashboards, the clips and the evaluation report, checked for AA contrast in light and dark.
 - **Next build: A3, several datasets per run (ADR 0028)**, and the rest of interface phase 2: deep links and the sheet picker. Code-split the views first: JavaScript is at 96.7 of 100 KB.
 

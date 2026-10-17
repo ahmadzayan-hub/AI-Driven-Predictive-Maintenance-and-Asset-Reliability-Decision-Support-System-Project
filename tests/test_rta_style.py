@@ -149,8 +149,9 @@ class WiringTests(unittest.TestCase):
         self.assertIn(f"color:{doc['primary']}\">Downtime", out)
         self.assertIn(f'<p style="color:{doc["accent"]}">$228.9M', out)
         self.assertIn(f"border-top:2px solid {doc['rule']}", out)
-        self.assertNotIn("IBM Plex", out)
+        self.assertNotIn("'IBM Plex Sans', Arial", out)
         self.assertNotIn("Source Serif", out)
+        self.assertEqual(out.count(f"font-family:{TOKENS['document_font']}"), 2)
         for colour, background in ((doc["primary-4"], doc["primary"]), (doc["primary"], doc["page"])):
             self.assertGreaterEqual(contrast(colour, background), 4.5)
 
