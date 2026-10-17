@@ -64,6 +64,7 @@ Full list: [brain/Soul.md](brain/Soul.md).
 - Committing one milestone out of a mixed working tree: `git diff <file> > p`, keep the wanted hunks, `git apply --cached p`; then test the staged tree alone with `git checkout-index -a --prefix=<scratch>/tree/` and a symlinked `frontend/node_modules`.
 - Column mapping (ADR 0025): `server/mapping.py` holds all reading rules. A run copies the mapping into `runs.mapping_json`. Unmapped data must keep running exactly as before, and the tests check it. Stage outputs are not in the API, so tests read `app.state.store.get_tasks()`.
 - Capstone files are built outside the repository and sent to the user as files.
+    - **Team workspace:** a private repository `ahmadzayan-hub/team3-capstone`, created by the user (this session's GitHub app gets 403 on repository creation). Its `.github/project/` JSON plus the Project setup workflow create labels, milestones and issues; `people.json` holds the usernames to assign. The public Agentic OS repository never holds course files, names or registration numbers.
     - **Report:** one tagged PDF with bookmarks, from the shared report's Markdown export, with pandoc and Chromium. Pages are numbered as the PDF counts them.
     - **Deck:** slide renders, with titles and alt text.
     - **Build scripts:** these went to the user as `Team3_Build_Tools.zip`.
