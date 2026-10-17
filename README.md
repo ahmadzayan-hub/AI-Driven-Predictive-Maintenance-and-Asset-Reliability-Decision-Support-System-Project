@@ -70,6 +70,13 @@ environment — not a replacement for Windows, macOS, or Linux.
   the obvious baseline (the average, the most common class, last
   season), reports a weak model as weak, and shows a model card with the
   verdict first (ADR 0033)
+- **Live data** — a live source is a saved `https://` address that
+  snapshots into a dataset, now or every 15 minutes to a week. New
+  content is analysed and stops at the approval gate; the same content
+  starts nothing. Fetching is fenced against server-side request forgery
+  (public addresses only, the checked address pinned, no redirects). Open
+  pages follow `GET /api/events`, a server-sent event stream that resumes
+  where it stopped, with a Live, Reconnecting or Offline badge (ADR 0034)
 - **Command-line interface** — the original `python main.py` experience,
   fully preserved and dependency-free
 - **One brain, two faces** — both interfaces drive the same tested Python
@@ -327,16 +334,16 @@ python main.py
 # metrics, auth, tenancy, erasure, quotas, backups, worker, recovery,
 # supply chain, launcher, routing, language, assistant, custom stages,
 # agent runtimes, MCP, frameworks, report language, datasets, column
-# mapping, joins, the cleaned-table queries, modelling stages, uneven periods, docs, and the repository's operating system:
+# mapping, joins, the cleaned-table queries, modelling stages, live sources and the event stream, uneven periods, docs, and the repository's operating system:
 # brain checker, session hooks, the verify script, the motion skill, the
 # agent team's tools, agent evaluation, the house style and the interface
-# budget (964 tests)
+# budget (1025 tests)
 python -m unittest discover tests
 
-# Frontend unit tests (98 tests)
+# Frontend unit tests (106 tests)
 cd frontend && npm test
 
-# End-to-end + accessibility (98 checks across desktop and mobile,
+# End-to-end + accessibility (104 checks across desktop and mobile,
 # in English and Arabic;
 # requires the production build: npm run build)
 cd frontend && npx playwright test
@@ -352,17 +359,17 @@ python scripts/verify.py
 
 The same suite runs automatically in CI (`.github/workflows/ci.yml`) on
 every push, including the run-engine and backup suites against a real
-PostgreSQL 16 service. Last verified: 964 Python tests (945 run in CI;
+PostgreSQL 16 service. Last verified: 1025 Python tests (1006 run in CI;
 the 11 that need an optional agent framework or the MCP SDK, the 5 that
 need LLMRouter, the 1 that cross-checks workbooks with openpyxl, and the
 2 that need the frontend build, which CI makes after the Python step,
 skip there),
-98 frontend unit tests, and 98 end-to-end checks (94 executed; 4
+106 frontend unit tests, and 104 end-to-end checks (100 executed; 4
 skipped by design, because each covers one viewport only). In environments with a pre-installed
 browser, point Playwright at it:
 `PLAYWRIGHT_EXECUTABLE_PATH=/path/to/chromium npx playwright test`.
 
-Five of the 964 load real LLMRouter routers and **skip unless LLMRouter
+Five of the 1025 load real LLMRouter routers and **skip unless LLMRouter
 is installed**, which in CI it is not. With the eleven framework tests,
 the openpyxl cross-check and the two tests that read the frontend build
 (the static files and the interface budget), CI is expected to report
@@ -381,8 +388,11 @@ open, run a worker:
 
 ```bash
 python scripts/worker.py          # poll for work until Ctrl-C
-python scripts/worker.py --once   # advance one run, then exit
+python scripts/worker.py --once   # advance one run and refresh one due source, then exit
 ```
+
+The same worker refreshes live sources whose refresh is due (ADR 0034),
+under the same kind of lease, so two workers never fetch one source.
 
 The worker claims a run with a database lease, advances it one task at a
 time, and releases the lease when the run needs a human or ends. It never

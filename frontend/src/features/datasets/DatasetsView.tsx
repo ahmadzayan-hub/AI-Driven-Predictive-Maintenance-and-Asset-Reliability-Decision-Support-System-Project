@@ -5,6 +5,7 @@ import { Icon } from '../../shared/components/Icon'
 import { formatBytes } from '../../shared/format'
 import { formatLabel } from '../../shared/labels'
 import type { DatasetSummary, UploadResult, Usage } from '../../shared/types'
+import { ConnectorsPanel } from '../live/ConnectorsPanel'
 import { MappingPanel } from './MappingPanel'
 import { UploadPreview } from './UploadPreview'
 
@@ -296,6 +297,8 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
             ) : null}
           </div>
         )}
+
+        <ConnectorsPanel />
       </div>
     </section>
   )

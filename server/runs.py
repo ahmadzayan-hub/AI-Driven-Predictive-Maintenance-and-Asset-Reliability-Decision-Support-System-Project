@@ -791,4 +791,6 @@ class RunEngine:
                 "updated_at": run["updated_at"], "tasks": tasks,
                 "paused": bool(run.get("paused")),
                 "approvals": approvals, "charts": charts, "report": report,
-                "reports": reports, "models": models}
+                "reports": reports, "models": models,
+                # The live source a refresh made this run from (ADR 0034).
+                "connector_id": run.get("connector_id")}

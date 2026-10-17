@@ -266,6 +266,33 @@ group, which filters to that group and opens its rows. The page, the
 filters and every choice are in the address, so a reload keeps them and
 a link opens the same view for anyone who can open the analysis.
 
+### Live sources
+
+**Datasets → Live sources** keeps files that change: give a name, an
+`https://` address of a public file (CSV, TSV, Excel, JSON or JSON Lines,
+up to 4 MB), how often to refresh (every 15 minutes to every week, or
+only when you ask) and the question each analysis should answer.
+
+Each refresh fetches the file. If it has not changed, nothing happens and
+the source says **No change**. If it has, the new version is stored as a
+dataset, gets the previous version's column mapping when that still fits
+every row, and is analysed. The analysis waits for approval like any
+other: nothing publishes itself. A refresh that fails says why, and a
+scheduled source waits longer after each failure, up to a day. **Pause**
+stops the schedule; **Refresh now** fetches at once.
+
+The badge beside the title says whether the page is following changes:
+**Live**, **Reconnecting…** or **Offline**, with the time of the last
+update when it is not live. A dashboard over a live source's analysis
+shows the same badge and, when a newer snapshot has been analysed,
+offers **Open the newer analysis**; the figures on screen never change
+by themselves.
+
+A server administrator can limit which hosts sources may come from.
+Addresses on a private network, addresses that redirect, and addresses
+that carry a password or key are refused. **Refresh now** works once a
+minute per source.
+
 ### Models
 
 Choose the **models** pipeline profile when starting an analysis to add

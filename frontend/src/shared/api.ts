@@ -23,7 +23,7 @@ import type {
   Usage,
 } from './types'
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? ''
+export const API_BASE = import.meta.env.VITE_API_BASE ?? ''
 const REQUEST_TIMEOUT_MS = 10_000
 // A 4 MB file on a slow connection, then read on the server.
 const UPLOAD_TIMEOUT_MS = 60_000
@@ -83,7 +83,7 @@ export function hasToken(): boolean {
 
 /** Bearer token for hosted deployments that enable managed auth. In
  *  local mode none exists and the header is simply omitted. */
-function authHeaders(): Record<string, string> {
+export function authHeaders(): Record<string, string> {
   try {
     const token = localStorage.getItem(TOKEN_KEY)
     return token ? { Authorization: `Bearer ${token}` } : {}
@@ -92,7 +92,7 @@ function authHeaders(): Record<string, string> {
   }
 }
 
-async function request<T>(
+export async function request<T>(
   path: string,
   init: RequestInit = {},
   timeoutMs = REQUEST_TIMEOUT_MS,

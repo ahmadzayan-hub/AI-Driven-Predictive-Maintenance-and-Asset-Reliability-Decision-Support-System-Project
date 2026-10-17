@@ -8,10 +8,12 @@ snapshots so the frontend never has to parse reply strings.
 The command-line application (python main.py) is unaffected by this module.
 """
 
+import asyncio
 import json
 import os
 import re
 import threading
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -19,7 +21,7 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
@@ -29,9 +31,11 @@ from server.agent_runtime import build_runtime
 from server import analytics
 from server import datasets as dataset_reader
 from server import joins as joining
+from server import live
 from server import mapping as colmap
 from server import query as table_query
 from server.assistant import Assistant
+from server.connectors import Busy, ConnectorError, Connectors, TooSoon
 from server.model_gateway import ModelGateway
 from server.routing import RoutedGateway, build_router
 from server.stages import describe, load_stages
@@ -245,6 +249,26 @@ class ApprovalIn(BaseModel):
     decision: str = Field(pattern="^(approve|reject)$")
 
 
+class ConnectorIn(BaseModel):
+    """A live source (ADR 0034). The address is checked by server.connectors,
+    which explains a refusal in the reader's language."""
+    name: str = Field(min_length=1, max_length=100)
+    url: str = Field(min_length=1, max_length=2000)
+    goal: str = Field(min_length=1, max_length=500)
+    format: str | None = Field(default=None, pattern="^(csv|tsv|xlsx|json|jsonl)$")
+    sheet: str | None = Field(default=None, max_length=31)
+    every_minutes: int | None = None
+    language: str = Field(default="en", pattern="^(en|ar)$")
+    profile: str | None = Field(default=None, max_length=64)
+
+
+class ConnectorUpdateIn(BaseModel):
+    """Pause or resume, or change the interval. An interval that is not
+    sent is kept; `null` means "only when asked"."""
+    enabled: bool | None = None
+    every_minutes: int | None = None
+
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 # Vite names every file under /assets by a hash of its content, so a cached
@@ -367,6 +391,14 @@ def create_app(config_path=None, env=None, dist_dir=None):
     )
 
     environ = os.environ if env is None else env
+    # Live sources (ADR 0034). The fence reads its host list and the test
+    # fixture folder from the same environment as everything else.
+    connectors = Connectors(engine, env=environ)
+    app.state.connectors = connectors
+    # Open event streams per owner in this process (ADR 0034): each polls
+    # the database every second, so one owner cannot open hundreds.
+    open_streams = {}
+    streams_lock = threading.Lock()
     # The default must exceed the application's own legitimate write
     # cadence: a client-stepped analytics run issues ~3 advance calls per
     # second, so a 120/min budget (2/s) would throttle a normal run.
@@ -942,6 +974,114 @@ def create_app(config_path=None, env=None, dist_dir=None):
                 lambda: engine.decide_approval(run_id, approval_id, decision.decision),
                 principal, run_id,
             )
+
+    # ------------------------------------------------------------------
+    # Live data (ADR 0034): connectors and the event stream. A connector
+    # is its owner's alone; another owner's is a 404, never a 403.
+    # ------------------------------------------------------------------
+    def _no_connector():
+        raise HTTPException(status_code=404, detail="Live source not found.")
+
+    @app.get("/api/connectors")
+    def list_connectors(principal=Depends(requires("read"))):
+        with lock:
+            return {"connectors": connectors.list(principal.subject)}
+
+    @app.post("/api/connectors", status_code=201)
+    def create_connector(body: ConnectorIn,
+                         language: str = Query(default="en", pattern="^(en|ar)$"),
+                         principal=Depends(requires("write"))):
+        with lock:
+            try:
+                return connectors.create(
+                    principal.subject, body.name, body.url, body.goal, language=body.language,
+                    format=body.format, sheet=body.sheet, every_minutes=body.every_minutes,
+                    profile=body.profile)
+            except ConnectorError as error:
+                raise HTTPException(status_code=error.status, detail=error.message(language))
+            except ValueError as error:  # an unknown pipeline profile
+                raise HTTPException(status_code=422, detail=str(error))
+
+    @app.put("/api/connectors/{connector_id}")
+    def update_connector(connector_id: str, body: ConnectorUpdateIn,
+                         language: str = Query(default="en", pattern="^(en|ar)$"),
+                         principal=Depends(requires("write"))):
+        every = body.every_minutes if "every_minutes" in body.model_fields_set else "keep"
+        with lock:
+            try:
+                return connectors.update(connector_id, principal.subject,
+                                         enabled=body.enabled, every_minutes=every)
+            except KeyError:
+                _no_connector()
+            except ConnectorError as error:
+                raise HTTPException(status_code=error.status, detail=error.message(language))
+
+    @app.delete("/api/connectors/{connector_id}", status_code=204)
+    def delete_connector(connector_id: str, principal=Depends(requires("write"))):
+        with lock:
+            try:
+                connectors.delete(connector_id, principal.subject)
+            except KeyError:
+                _no_connector()
+        return Response(status_code=204)
+
+    @app.post("/api/connectors/{connector_id}/refresh")
+    async def refresh_connector(connector_id: str,
+                                language: str = Query(default="en", pattern="^(en|ar)$"),
+                                principal=Depends(requires("write"))):
+        """Fetch now. The fetch and the parse run outside the lock; the
+        connector's lease keeps a worker from fetching it at the same time."""
+        try:
+            return await run_in_threadpool(
+                connectors.refresh_now, connector_id, principal.subject, lock)
+        except KeyError:
+            _no_connector()
+        except Busy:
+            raise HTTPException(status_code=409, detail=(
+                "يجري تحديث هذا المصدر الآن. حاول بعد قليل." if language == "ar" else
+                "This source is being refreshed already. Try again in a moment."))
+        except TooSoon as wait:
+            raise HTTPException(status_code=429, headers={"Retry-After": str(wait.seconds)},
+                                detail=(f"حُدّث هذا المصدر للتو. حاول بعد {wait.seconds} ثانية."
+                                        if language == "ar" else
+                                        f"This source was fetched moments ago. Try again in "
+                                        f"{wait.seconds} seconds."))
+
+    @app.get("/api/events")
+    async def events(request: Request,
+                     wait: float = Query(default=live.MAX_SECONDS, ge=0, le=live.MAX_SECONDS),
+                     last_event_id: str | None = Header(default=None, alias="Last-Event-ID"),
+                     principal=Depends(requires("read"))):
+        """The owner's runs and connectors as they change, as server-sent
+        events. Each stream ends within `wait` seconds; the client resumes
+        with Last-Event-ID. An unreadable one starts from now."""
+        owner = principal.subject
+        with streams_lock:
+            if open_streams.get(owner, 0) >= live.MAX_STREAMS_PER_OWNER:
+                raise HTTPException(status_code=429, headers={"Retry-After": "30"},
+                                    detail="Too many open update streams. Close a tab.")
+            open_streams[owner] = open_streams.get(owner, 0) + 1
+        reader = live.Reader(store, owner,
+                             live.parse_cursor(last_event_id) or live.cursor_now())
+
+        def poll_locked():
+            with lock:
+                return reader.poll()
+
+        async def poll():
+            return await run_in_threadpool(poll_locked)
+
+        async def body():
+            try:
+                async for part in live.stream(reader, poll, asyncio.sleep, time.monotonic,
+                                              request.is_disconnected, max_seconds=wait):
+                    yield part
+            finally:
+                with streams_lock:
+                    open_streams[owner] -= 1
+
+        return StreamingResponse(body(), media_type="text/event-stream", headers={
+            "Cache-Control": "no-store", "X-Accel-Buffering": "no"})
 
     # ------------------------------------------------------------------
     # Static frontend (production build), if present

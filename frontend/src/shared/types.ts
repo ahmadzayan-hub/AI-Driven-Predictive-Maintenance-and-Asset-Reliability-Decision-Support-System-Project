@@ -173,6 +173,8 @@ export interface RunDetail {
   charts: ChartSpec[]
   /** What each model found, against its baseline (ADR 0033). */
   models?: ModelCard[]
+  /** The live source a refresh made this run from (ADR 0034). */
+  connector_id?: string | null
   /** Other datasets joined onto this one (ADR 0030); empty for one dataset. */
   joins?: Array<Pick<JoinSpec, 'dataset_id' | 'keys' | 'how'> & { alias: string }>
   breakdown?: string | null

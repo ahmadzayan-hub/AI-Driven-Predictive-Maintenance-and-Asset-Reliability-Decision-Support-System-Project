@@ -334,3 +334,17 @@ required local files. Both behaviors are covered by tests
     model says so, but none can check it. Fewer than 30 records, or fewer
     than three seasons for the seasonal forecast, is reported as a
     limitation and shows no card.
+29. Live sources (ADR 0034) fetch public files over https only: no
+    credentials, databases or APIs that need a key, and no proxy, so a
+    server that reaches the internet only through one cannot refresh.
+    Each refresh is a whole snapshot of at most 4 MB; ten sources per
+    account, and "Refresh now" once a minute per source. Addresses that
+    carry a credential in their query are refused. The cap of five event
+    streams per owner is per server process. Scheduled refreshes need the
+    background worker
+    (`python scripts/worker.py`); a serverless deployment refreshes only
+    when someone presses **Refresh now**. The event stream ends every 55
+    seconds and the page reconnects, so a hosting platform that limits a
+    request's length is fine; one that buffers responses delays events
+    until the stream ends. A connector's error is stored in the
+    language it was created in.

@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useI18n } from '../../i18n'
 import { usePack } from '../../i18n/pack'
 import { dashMessages, type DashKey } from './messages'
+import { LiveFollow } from '../live/LiveFollow'
 import { api, ApiError } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
 import { stateLabel } from '../../shared/labels'
@@ -231,6 +232,14 @@ function Dashboard({ runId, page, query, onNavigate, onOpenRun }: {
             </button>
           </div>
         </div>
+        {run.data?.connector_id ? (
+          <LiveFollow
+            runId={runId}
+            connectorId={run.data.connector_id}
+            createdAt={run.data.created_at}
+            onOpen={(id) => onNavigate({ tab: 'dashboard', runId: id, page: current, query: writeState(state) || undefined })}
+          />
+        ) : null}
 
         <nav className="dash-pages" aria-label={t('dash.pages')}>
           <ul>

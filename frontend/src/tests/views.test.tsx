@@ -165,8 +165,12 @@ describe('DatasetsView', () => {
             }),
         } as Response)
       }
+      // The live sources panel (ADR 0034): none saved, and no event stream.
+      if (path === '/api/events') return Promise.resolve({ ok: false, status: 503 } as Response)
       const body =
-        path === '/api/datasets'
+        path === '/api/connectors'
+          ? { connectors: [] }
+          : path === '/api/datasets'
           ? { datasets: listed }
           : path.startsWith('/api/datasets/ds2')
             ? {

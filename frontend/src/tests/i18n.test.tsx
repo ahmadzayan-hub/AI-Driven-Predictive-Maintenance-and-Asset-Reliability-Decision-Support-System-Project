@@ -14,6 +14,7 @@ import {
 import { usePack } from '../i18n/pack'
 import { dashMessages } from '../features/dashboard/messages'
 import { joinMessages, modelMessages } from '../features/runs/messages'
+import { liveMessages } from '../features/live/messages'
 import { StatusBadge } from '../shared/components/StatusBadge'
 
 afterEach(() => {
@@ -150,7 +151,7 @@ describe('useI18n', () => {
 // rules: the same keys and placeholders in both languages, none blank or
 // left in English, and no key that the main dictionary also defines.
 describe('message packs', () => {
-  const packs = { dashMessages, joinMessages, modelMessages }
+  const packs = { dashMessages, joinMessages, modelMessages, liveMessages }
   const names = (text: string) => (text.match(/\{\w+\}/g) ?? []).sort()
 
   for (const [name, pack] of Object.entries(packs)) {
