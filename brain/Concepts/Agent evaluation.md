@@ -19,7 +19,12 @@ How [[Agentic OS]] knows how often each of its agents is right: labelled synthet
     - For the text classifiers, each holdout is written blind by an independent agent from the label definitions alone, then joins dev after the round.
     - Floors in `evals/floors.json` fail the tests on any regression.
 - **Overfitting shows:** chat intent scored 100% on dev and 68% on a blind set. After another round it scored 80% on a new blind set of 60 cases.
-- **Blind recall on 2026-10-17:** intent 80%, jargon 83%, causal wording 67% (the weakest, precision 73%). Privacy, the raw-data guard and the figures checker each scored 100% on their holdouts.
+- **Blind recall on 2026-10-17 (round 5, blind set v4), before → after:**
+    - intent 68% → 72%;
+    - jargon 83% → 92%;
+    - causal wording 69% → 69% (precision 92%).
+    - The rules scored 80% on intent on the previous blind set. One blind set overstates how far hand-written rules generalise.
+    - Privacy, the raw-data guard and the figures checker each scored 100% on their holdouts.
 - **Reviewer benchmark:** three seeded memos.
     - Dev A; B held out, from the same author; C written blind.
     - The Tier 0 figures checker went from 0% to 75% lane recall on C, with no false alarms.

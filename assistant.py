@@ -293,13 +293,15 @@ _HELP = re.compile(
     r"what can i (ask|do)|what commands|which commands|(list|show)( me)? (the |your )?commands|"
     r"what can you (actually |really |even )?do|not sure (where|how) to start|"
     r"how (does|do) (this|it|you) work|how do i use (this|it|you)|what are my options|"
-    r"help me (get started|start|begin)|get(ting)? started|guide me|how to use (this|it|you))\b"
+    r"help me (get started|start|begin)|get(ting)? started|guide me|how to use (this|it|you)|"
+    r"walk me through how|show me how (to|i)|how (do|can|should) i (upload|use|get)|how to upload)\b"
     r"|^\W*(مساعدة|ساعدني|ماذا تستطيع|ماذا يمكنك|إيه اللي تقدر|ايه اللي تقدر|"
     r"تقدر تعمل|ما الذي تستطيع|ما الذي يمكنك|الأوامر|كيف أستخدم|كيف استخدم|كيف يعمل)"
-    r"|(الأوامر المتاحة|ما الأوامر|كيف أبدأ|كيف ابدأ|كيف أستخدم|كيف استخدم)", re.I)
+    r"|(الأوامر المتاحة|ما الأوامر|كيف أبدأ|كيف ابدأ|كيف أستخدم|كيف استخدم|أستخدمك|استخدمك|تفهمني|"
+    r"إزاي أستخدم|ازاي استخدم|ازاي أستخدم|إزاي استخدم)", re.I)
 _CLEAR_HISTORY = re.compile(
-    r"\b(clear|delete|erase|wipe|reset)\b.*\b(history|conversation|chat)\b"
-    r"|(امسح|احذف|امح|صفّر|صفر|فضي|فضّي)\b.*(السجل|سجل المحادثة|المحادثة|التاريخ|الشات|الرسائل)", re.I)
+    r"\b(clear|delete|erase|wipe|reset)\b.*\b(history|conversation|chat|messages)\b"
+    r"|(امسح|احذف|امح|صفّر|صفر|فضي|فضّي|حذف|مسح)\b.*(السجل|سجل المحادثة|المحادثة|التاريخ|الشات|الرسائل)", re.I)
 _FORGET_ALL = re.compile(
     r"\b(forget|delete|clear|erase|wipe|remove)\b.*"
     r"\b(everything|all memory|all memories|all of it|the memory|my memory|"
@@ -312,15 +314,16 @@ _FORGET_KEY = re.compile(
     r"|(انس|انسى|انسَ|احذف|امسح|امح)\b.*(?P<key_ar>memory_\d+)"
     r"|(انس|انسى|انسَ|احذف|امسح|امح)\b.*(?:الذاكرة|الملاحظة)\s*(?:رقم\s*)?(?P<num_ar>\d+)", re.I)
 _FORGET_ABOUT = re.compile(
-    r"\b(forget|delete|remove|erase|drop)\s+(?:the |my |that |this )?(?:note|memory|reminder|entry)\s+"
+    r"\b(forget|delete|remove|erase|drop)\s+(?:the |my |that |this )?(?:note|memory|reminder|entry|thing|bit|info|information)\s+"
     r"(?:about|on|regarding|concerning|for)\s+(?P<about>[^,.;!?]+)"
-    r"|(?:انس|انسَ|انسى|احذف|امسح|امح)\s+(?:ال)?(?:ملاحظة|ذاكرة)\s*(?:المتعلقة|الخاصة|التي عن|عن)\s*"
+    r"|(?:انس|انسَ|انسى|احذف|امسح|امح)\s+(?:ال)?(?:ملاحظة|ذاكرة|معلومة)\s*(?:المتعلقة|الخاصة|التي عن|عن|اللي\s+(?:\S+\s+){0,3}?عن)\s*"
     r"(?P<about_ar>[^،,.؟!]+)", re.I)
 _REMEMBER = re.compile(
     r"^\W*(?:please\s+)?(?:remember|note|save|keep in mind|don'?t forget|make a note|take a note|jot down|"
     r"dont forget)(?:\s+that)?\s*[:,\-–—]?\s*(?P<info>.+?)\s*$"
     r"|^\W*(?:من فضلك\s+|لو سمحت\s+|أرجو\s+|ارجو\s+|ممكن\s+|رجاءً?\s+)?(?:تذكر|تذكّر|افتكر|إفتكر|"
-    r"احفظ|إحفظ|سجل|سجّل|تسجل|تسجّل|تحفظ|خزن|خزّن|تخزن|لا تنس|لا تنسى|ما تنساش|متنساش|خلي بالك)"
+    r"احفظ|إحفظ|سجل|سجّل|تسجل|تسجّل|تحفظ|خزن|خزّن|تخزن|لا تنس|لا تنسى|ما تنساش|متنساش|خلي بالك|"
+    r"خلك حافظ|خليك حافظ|خلّيك حافظ|خلك فاكر|خليك فاكر)"
     r"(?:\s+(?:لي|عندك|في الذاكرة|بالذاكرة))?"
     r"(?:\s+(?:أن|ان|إن|انه|أنه|إنه|ان\s))?\s*[:،,\-–—]?\s*(?P<info_ar>.+?)\s*$",
     re.I | re.S)
@@ -333,12 +336,13 @@ _RECALL = re.compile(
     r"(your|my) memory|what do you remember about|^\W*recall\b|"
     r"^\W*(do|can) you remember|(list|show)( me)? (everything|all( that)?) you (remember|know)|"
     r"what (notes|memories) do you have|remind me (what|of what)|what (have|did) i ask(ed)? you to remember|"
-    r"do you (still )?have (the |my |a |any )?(note|notes|memory|memories))"
+    r"do you (still )?have (the |my |a |any )?(note|notes|memory|memories)|"
+    r"what (have you|you have|you've) (got )?(saved|stored|kept)|what('s| is) (saved|stored) about me)"
     r"|(إيه اللي فاكره|ايه اللي فاكره|إيه اللي حفظته|ايه اللي حفظته|ماذا تتذكر|"
     r"ما الذي تتذكره|ماذا حفظت|ما الذي حفظته|اعرض الذاكرة|أعرض الذاكرة|"
     r"اعرض ما حفظت|ماذا تعرف عني|ما هي ذاكرتك|فاكر إيه|فاكر ايه|فاكر حاجة|"
     r"هل تتذكر|تفتكر|بتفتكر|اعرض ملاحظاتي|ملاحظاتي|ذكرني|ذكّرني|خزنته|خزنت لي|حفظته لي|وش حفظت|"
-    r"وش اللي حفظت)", re.I)
+    r"وش اللي حفظت|اللي حفظتها|اللي حفظته|اللي خزنتها|المعلومات اللي حفظت)", re.I)
 _RECALL_QUERY = re.compile(r"\babout\s+(?P<q>.+?)\s*[?؟.]*\s*$|\bعن\s+(?P<q_ar>.+?)\s*[?؟.]*\s*$", re.I)
 _NAME = re.compile(
     r"\b(?:call me|my name is|my name's|i am called|i'm called|you can call me)"
@@ -396,14 +400,16 @@ _SECTION_HINTS = (
 _START_RUN = re.compile(
     r"\b(analy[sz]e|analysis|run (an? |the )?(analysis|report|pipeline)|"
     r"(generate|produce|create|make|build|prepare|write|give me|start|begin|kick off|run) (a |an |the |new )?"
-    r"(report|analysis)|examine|study|explore|dig into|look into|crunch)\b"
+    r"(report|analysis)|examine|study|explore|dig into|look into|crunch|"
+    r"put(ting)? together (a |an |the )?(\w+ )?(report|analysis)|go(ing)? through (the |my |this )?(\w+ ){0,3}(sheet|file|data|dataset|spreadsheet))\b"
     r"|(حلل|حلّل|حلّلي|حللي|تحليل|اعمل تحليل|إعمل تحليل|اعمل تقرير|اعملي تقرير|"
     r"أعد تقرير|أعدّ تقرير|جهز تقرير|جهّز تقرير|ابدأ تحليل|ابدأ التحليل|"
     r"إبدأ تحليل|شغل تحليل|شغّل تحليل|شغل التحليل|ادرس|إدرس|افحص|إفحص)", re.I)
 _REPORT_QUESTION = re.compile(
     r"\bwhat (does|did) the (report|analysis|model|forecast|results?) (say|show|recommend|suggest|"
     r"conclude|find|predict)\b|(بماذا|ماذا) (يوصي|توصي|يقول|يقترح) (التحليل|التقرير)|"
-    r"(حسب|وفق|في) التقرير", re.I)
+    r"(حسب|وفق|في) التقرير|أظهرها التقرير|أظهره التقرير|أظهر التقرير|يظهر التقرير|يُظهر التقرير|"
+    r"التقرير بيقول|التقرير يقول|التقرير قال", re.I)
 _SAMPLE_DATASET = re.compile(r"\bsample\b|النموذجي|النموذجية|التجريبي|التجريبية|العينة", re.I)
 
 

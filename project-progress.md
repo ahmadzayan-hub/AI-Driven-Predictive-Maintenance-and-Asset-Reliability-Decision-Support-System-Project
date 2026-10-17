@@ -32,6 +32,7 @@ Last updated: 2026-10-17, session `7ba0117d`. The session-end skill keeps this f
 - **Agents are measured: done 2026-10-17** (ADR 0027).
     - **Suites and floors:** every classifying agent has a labelled synthetic suite with a confusion matrix, precision and recall (`scripts/evaluate_agents.py`, `evals/`). Floors are enforced by `tests/test_evals.py`.
     - **Blind holdout recall, before → now:** intent 65% → 80%, jargon 40% → 83%, causal wording 67% (new and the weakest), privacy 83% → 100%, router 75% → 90%, raw-data guard 50% → 100%.
+    - **Round 5, on a fresh blind set (v4), before → after:** intent 68% → 72%, jargon 83% → 92%, causal wording 69% → 69%. The rules plateau near 70% on unseen sentences for intent and causal wording.
     - **Reviewer benchmark:** three seeded memos in `evals/reviewers/`, scored by `scripts/score_review.py`. The Tier 0 figures checker went from 0% to 75% on the blind memo. The LLM reviewers were already near their ceiling, so the prompt changes are not proven on held-out memos.
     - **Assistant:** forget by description, with confirmation.
 - **Capstone restyled, 2026-10-17:**
@@ -45,7 +46,7 @@ Last updated: 2026-10-17, session `7ba0117d`. The session-end skill keeps this f
 
 1. Code-split the interface views, to recover budget before phase 3.
 2. A3: several datasets per run, with declared join keys (ADR 0028); deep links and the sheet picker (phase 2).
-3. Harder reviewer memos (subtler defects, longer documents) so prompt changes can be measured; a new blind set for causal wording, the weakest suite.
+3. Harder reviewer memos (subtler defects, longer documents), so prompt changes can be measured. For intent and causal wording, try a model behind the rules once a rotated key or a local model is available; the rules plateau near 70% on blind sets.
 4. Invite the team as collaborators and protect the default branch (owner action, on GitHub).
 
 ## Analytics OS milestones

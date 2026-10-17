@@ -211,128 +211,288 @@
    "text": "لم تثبت الدراسة بعد أن التدريب هو السبب في تحسن الإنتاجية، والنتائج الأولية فقط.",
    "label": false,
    "source": "blind v2, promoted to dev after round 2"
-  }
- ],
- "holdout": [
+  },
   {
    "text": "Heavy rain delayed about 30% of the morning trains, which cut ridership on the coastal line.",
    "label": true,
-   "source": "blind v3, written by an independent agent from the label definitions only"
+   "source": "blind v3, promoted to dev after round 3"
   },
   {
    "text": "Stations with more cleaning staff tend to have fewer complaints, but we have not checked whether one drives the other.",
    "label": false,
-   "source": "blind v3, written by an independent agent from the label definitions only"
+   "source": "blind v3, promoted to dev after round 3"
   },
   {
    "text": "The new fare cap raised weekend ridership by 18%.",
    "label": true,
-   "source": "blind v3, written by an independent agent from the label definitions only"
+   "source": "blind v3, promoted to dev after round 3"
   },
   {
    "text": "Night-shift drivers log 12% more incidents than day-shift drivers on the same routes.",
    "label": false,
-   "source": "blind v3, written by an independent agent from the label definitions only"
+   "source": "blind v3, promoted to dev after round 3"
   },
   {
    "text": "Longer dwell times at the central station are driving the late running on line two.",
    "label": true,
-   "source": "blind v3, written by an independent agent from the label definitions only"
+   "source": "blind v3, promoted to dev after round 3"
   },
   {
    "text": "يرتبط ارتفاع رضا العملاء بسرعة حل الشكاوى، لكن هذا لا يثبت أن أحدهما سبب الآخر.",
    "label": false,
-   "source": "blind v3, written by an independent agent from the label definitions only"
+   "source": "blind v3, promoted to dev after round 3"
   },
   {
    "text": "أدى إلغاء الدعم عن تذاكر الطلاب إلى انخفاض عدد الركاب في الفترة المسائية.",
    "label": true,
-   "source": "blind v3, written by an independent agent from the label definitions only"
+   "source": "blind v3, promoted to dev after round 3"
   },
   {
    "text": "Fuel accounts for 34% of the total operating cost of the freight fleet.",
    "label": false,
-   "source": "blind v3, written by an independent agent from the label definitions only"
+   "source": "blind v3, promoted to dev after round 3"
   },
   {
    "text": "Replacing the old brake pads reduced breakdowns on the bus fleet by about a quarter.",
    "label": true,
-   "source": "blind v3, written by an independent agent from the label definitions only"
+   "source": "blind v3, promoted to dev after round 3"
   },
   {
    "text": "يسجل الفرع الجنوبي معدل تأخير أعلى بنسبة 7% من الفرع الشمالي خلال الربع الثالث.",
    "label": false,
-   "source": "blind v3, written by an independent agent from the label definitions only"
+   "source": "blind v3, promoted to dev after round 3"
   },
   {
    "text": "Spare-parts stock-outs lead to roughly 40 hours of idle time per truck each month.",
    "label": true,
-   "source": "blind v3, written by an independent agent from the label definitions only"
+   "source": "blind v3, promoted to dev after round 3"
   },
   {
    "text": "Complaints peaked in the week after the timetable change, then settled by the end of the month.",
    "label": false,
-   "source": "blind v3, written by an independent agent from the label definitions only"
+   "source": "blind v3, promoted to dev after round 3"
   },
   {
    "text": "يؤدي ارتفاع أسعار الوقود إلى زيادة تكلفة الكيلومتر في عقود النقل.",
    "label": true,
-   "source": "blind v3, written by an independent agent from the label definitions only"
+   "source": "blind v3, promoted to dev after round 3"
   },
   {
    "text": "On-time performance has risen steadily since January, reaching 91% in September.",
    "label": false,
-   "source": "blind v3, written by an independent agent from the label definitions only"
+   "source": "blind v3, promoted to dev after round 3"
   },
   {
    "text": "Training the dispatchers boosted on-time performance, according to the controlled comparison.",
    "label": true,
-   "source": "blind v3, written by an independent agent from the label definitions only"
+   "source": "blind v3, promoted to dev after round 3"
   },
   {
    "text": "الشركة الأم تشيل 60% من عقود الشحن، والباقي على عملاء صغار",
    "label": false,
-   "source": "blind v3, written by an independent agent from the label definitions only"
+   "source": "blind v3, promoted to dev after round 3"
   },
   {
    "text": "الحر الشديد يسوي أعطال بالمكيفات ويرفع طلبات الصيانة بشكل كبير",
    "label": true,
-   "source": "blind v3, written by an independent agent from the label definitions only"
+   "source": "blind v3, promoted to dev after round 3"
   },
   {
    "text": "The hypothesis that heat causes the breakdowns is still untested; we have not run the analysis yet.",
    "label": false,
-   "source": "blind v3, written by an independent agent from the label definitions only"
+   "source": "blind v3, promoted to dev after round 3"
   },
   {
    "text": "The March price increase is behind the drop in corporate bookings.",
    "label": true,
-   "source": "blind v3, written by an independent agent from the label definitions only"
+   "source": "blind v3, promoted to dev after round 3"
   },
   {
    "text": "هل ارتفاع درجات الحرارة يسبب زيادة الأعطال؟ هذا سؤال نحتاج لاختباره قبل أن نستنتج شيئاً.",
    "label": false,
-   "source": "blind v3, written by an independent agent from the label definitions only"
+   "source": "blind v3, promoted to dev after round 3"
   },
   {
    "text": "يسبب التأخير عند البوابة الشمالية طوابير أطول لشاحنات البضائع.",
    "label": true,
-   "source": "blind v3, written by an independent agent from the label definitions only"
+   "source": "blind v3, promoted to dev after round 3"
   },
   {
    "text": "Customer ratings are closely linked to how quickly tickets get resolved.",
    "label": false,
-   "source": "blind v3, written by an independent agent from the label definitions only"
+   "source": "blind v3, promoted to dev after round 3"
   },
   {
    "text": "التأخير في استلام القطع بيخلي الأتوبيسات تفضل واقفة أيام، وده بيقلل الإيراد",
    "label": true,
-   "source": "blind v3, written by an independent agent from the label definitions only"
+   "source": "blind v3, promoted to dev after round 3"
   },
   {
    "text": "الشكاوى نزلت الشهر ده للشهر التاني على التوالي، وده مؤشر إيجابي بس لسه بدري نحكم",
    "label": false,
-   "source": "blind v3, written by an independent agent from the label definitions only"
+   "source": "blind v3, promoted to dev after round 3"
+  }
+ ],
+ "holdout": [
+  {
+   "text": "The new brake pads reduced repeat failures on the 14-bus fleet by 22% in six months.",
+   "label": true,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "Shipment delays and driver overtime rose together across the four depots over the past year.",
+   "label": false,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "Heat stress on the conveyor motors is driving most of the unplanned stops this summer.",
+   "label": true,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "Average waiting time was 52 minutes before the new triage rule and 37 minutes after it.",
+   "label": false,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "Late supplier deliveries caused the stockouts we saw in October.",
+   "label": true,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "Repairs on the older fleet account for 61% of total maintenance hours this quarter.",
+   "label": false,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "The 5% price cut boosted weekend footfall at the mall branches.",
+   "label": true,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "Weekend basket values run about 8% higher than weekday ones, on average.",
+   "label": false,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "Ageing signalling equipment is responsible for most of the delays on the red line.",
+   "label": true,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "Most complaints arrived on Mondays, usually in the first two hours of the working day.",
+   "label": false,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "أدى تغيير مواعيد الوردية الليلية إلى ارتفاع عدد الأخطاء في الفرز.",
+   "label": true,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "Electricity use at the Al Quoz plant has trended downward since January.",
+   "label": false,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "تسبب نقص قطع الغيار في تأخير ما يقارب ٤٠٪ من أوامر العمل.",
+   "label": true,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "Could the new supplier be behind the stockouts, or is this just a seasonal coincidence?",
+   "label": false,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "خفّض التدريب الجديد على التشغيل زمن التوقف غير المخطط في محطة الضخ.",
+   "label": true,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "We have not yet established whether the training programme affects injury rates; the data is too thin to say.",
+   "label": false,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "ارتفاع أسعار الوقود يدفع تكاليف النقل إلى الأعلى كل شهر.",
+   "label": true,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "The shift change may have contributed to the error spike, but the sample is small and we cannot confirm it.",
+   "label": false,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "Introducing the loyalty card lifted repeat purchases among shoppers under 30.",
+   "label": true,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "Patients who attended the follow-up call were more likely to be readmitted, a pattern we see in every hospital in the sample.",
+   "label": false,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "The drop in on-time departures was caused by the night closures at the main depot.",
+   "label": true,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "The team checked whether heat affects pump failures and found no clear pattern.",
+   "label": false,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "يعود تراجع دقة التنبؤ إلى نقص البيانات في الأشهر الأخيرة.",
+   "label": true,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "تزامن ارتفاع درجات الحرارة مع زيادة طلبات التكييف في الفروع الجنوبية.",
+   "label": false,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "The impact of the new triage rule was a 15-minute cut in average waiting time.",
+   "label": true,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "كان متوسط مدة الإجراءات ٦٨ يوماً قبل تطبيق النظام الجديد و٤١ يوماً بعده.",
+   "label": false,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "انخفاض حوادث التصادم عند التقاطعات الرئيسية جاء نتيجة تحديث نظام الإشارات.",
+   "label": true,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "تمثل الفروع الخمسة الجديدة ٢٣٪ من إجمالي المساحة المؤجرة.",
+   "label": false,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "Missing calibration checks triggered the batch of rejected lab results last week.",
+   "label": true,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "يتجه معدل الغياب في المستشفى الغربي نحو الانخفاض منذ بداية العام.",
+   "label": false,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "أسهمت حملة التوعية في خفض عدد المكالمات الخاطئة إلى مركز الاتصال.",
+   "label": true,
+   "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "هل يمكن أن يكون تأخر الموردين سبباً لنقص المخزون، أم أن الأمر مرتبط بالموسم فقط؟",
+   "label": false,
+   "source": "blind v4, written by an independent agent from the label definitions only"
   }
  ],
  "holdout_v1": [
@@ -465,6 +625,128 @@
    "text": "لم تثبت الدراسة بعد أن التدريب هو السبب في تحسن الإنتاجية، والنتائج الأولية فقط.",
    "label": false,
    "source": "blind v2, written by an independent agent from the label definitions only"
+  }
+ ],
+ "holdout_v3": [
+  {
+   "text": "Heavy rain delayed about 30% of the morning trains, which cut ridership on the coastal line.",
+   "label": true,
+   "source": "blind v3, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "Stations with more cleaning staff tend to have fewer complaints, but we have not checked whether one drives the other.",
+   "label": false,
+   "source": "blind v3, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "The new fare cap raised weekend ridership by 18%.",
+   "label": true,
+   "source": "blind v3, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "Night-shift drivers log 12% more incidents than day-shift drivers on the same routes.",
+   "label": false,
+   "source": "blind v3, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "Longer dwell times at the central station are driving the late running on line two.",
+   "label": true,
+   "source": "blind v3, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "يرتبط ارتفاع رضا العملاء بسرعة حل الشكاوى، لكن هذا لا يثبت أن أحدهما سبب الآخر.",
+   "label": false,
+   "source": "blind v3, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "أدى إلغاء الدعم عن تذاكر الطلاب إلى انخفاض عدد الركاب في الفترة المسائية.",
+   "label": true,
+   "source": "blind v3, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "Fuel accounts for 34% of the total operating cost of the freight fleet.",
+   "label": false,
+   "source": "blind v3, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "Replacing the old brake pads reduced breakdowns on the bus fleet by about a quarter.",
+   "label": true,
+   "source": "blind v3, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "يسجل الفرع الجنوبي معدل تأخير أعلى بنسبة 7% من الفرع الشمالي خلال الربع الثالث.",
+   "label": false,
+   "source": "blind v3, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "Spare-parts stock-outs lead to roughly 40 hours of idle time per truck each month.",
+   "label": true,
+   "source": "blind v3, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "Complaints peaked in the week after the timetable change, then settled by the end of the month.",
+   "label": false,
+   "source": "blind v3, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "يؤدي ارتفاع أسعار الوقود إلى زيادة تكلفة الكيلومتر في عقود النقل.",
+   "label": true,
+   "source": "blind v3, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "On-time performance has risen steadily since January, reaching 91% in September.",
+   "label": false,
+   "source": "blind v3, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "Training the dispatchers boosted on-time performance, according to the controlled comparison.",
+   "label": true,
+   "source": "blind v3, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "الشركة الأم تشيل 60% من عقود الشحن، والباقي على عملاء صغار",
+   "label": false,
+   "source": "blind v3, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "الحر الشديد يسوي أعطال بالمكيفات ويرفع طلبات الصيانة بشكل كبير",
+   "label": true,
+   "source": "blind v3, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "The hypothesis that heat causes the breakdowns is still untested; we have not run the analysis yet.",
+   "label": false,
+   "source": "blind v3, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "The March price increase is behind the drop in corporate bookings.",
+   "label": true,
+   "source": "blind v3, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "هل ارتفاع درجات الحرارة يسبب زيادة الأعطال؟ هذا سؤال نحتاج لاختباره قبل أن نستنتج شيئاً.",
+   "label": false,
+   "source": "blind v3, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "يسبب التأخير عند البوابة الشمالية طوابير أطول لشاحنات البضائع.",
+   "label": true,
+   "source": "blind v3, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "Customer ratings are closely linked to how quickly tickets get resolved.",
+   "label": false,
+   "source": "blind v3, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "التأخير في استلام القطع بيخلي الأتوبيسات تفضل واقفة أيام، وده بيقلل الإيراد",
+   "label": true,
+   "source": "blind v3, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "الشكاوى نزلت الشهر ده للشهر التاني على التوالي، وده مؤشر إيجابي بس لسه بدري نحكم",
+   "label": false,
+   "source": "blind v3, written by an independent agent from the label definitions only"
   }
  ]
 }

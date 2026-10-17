@@ -116,7 +116,8 @@ Every classifying agent is measured (ADR 0027), with a confusion matrix, precisi
   Run a reviewer on a memo and save its reply in `evals/reviewers/runs/<agent>-<memo>-<tag>.txt`. Then `python scripts/score_review.py --summary` scores every saved run three ways: in its lane, by paragraph detection with false alarms, and as a category confusion matrix. `--figures-tool` scores the Tier 0 checker the same way.
 - **Prompt changes:** a subagent's instructions load when a session starts, so an edited prompt is not live until the next session. To compare two versions now, give a general-purpose agent on the same model each version's instructions, and change nothing else ("ctl" runs).
 - **What the numbers say today:**
-    - Blind recall is 80% for intent, 83% for jargon and 67% for causal wording, the weakest.
+    - On the newest blind set (v4), recall is 72% for intent, 92% for jargon and 69% for causal wording.
+    - Each round of rule fixes helps less on unseen sentences than on the cases it came from: intent went 68% → 72% on v4, and causal wording did not move. Wider understanding needs a model behind the rules (ADR 0019), which this environment cannot measure.
     - The figures auditor and the analytics reviewer were near their ceiling on the seeded memos. Harder memos are the next step (`project-progress.md`).
 
 ## 7. Adding an agent

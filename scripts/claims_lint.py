@@ -31,27 +31,34 @@ CAUSAL = [
     # "Stockouts double outages" claims an effect; "double the downtime" compares.
     re.compile(r"\b(doubles?|doubled|triples?|tripled)\b(?!\s+the\b)", re.I),
     # Arabic puts the subject between the verb and its "إلى": "أدى نقص المخزون إلى".
-    re.compile(r"(أدى|أدت|يؤدي|تؤدي|أدّى|أدّت)\s+(?:\S+\s+){0,4}(إلى|الى)|بسبب|تسبب|تسبّب|يسبب|يسبّب"),
+    re.compile(r"(أدى|أدت|يؤدي|تؤدي|أدّى|أدّت)\s+(?:\S+\s+){0,7}(إلى|الى)|بسبب|تسبب|تسبّب|يسبب|يسبّب"),
     re.compile(r"\b(contribut(es|ed|ing)|produc(es|ed)|trigger(s|ed)|is responsible for|are responsible for)\b", re.I),
     re.compile(r"(ساهم|ساهمت|يساهم|تساهم|أسهم|أسهمت)\s+(?:\S+\s+){0,4}في|ينتج عن|نتج عن|نتيجة ل"),
     # A transitive effect verb: "the discount increased orders" claims an
     # effect; "orders increased 15%" or "increased by 15%" only reports a change.
     re.compile(r"\b(increase[sd]?|reduce[sd]?|decrease[sd]?|boost(s|ed)?|raise[sd]?|lower(s|ed)?|"
                r"improve[sd]?|worsen(s|ed)?|cut(s)?|lift(s|ed)?)\s+(?!(by|to|from|in|on|at|over|during|after|"
-               r"before|across|between|with|than|for|of|and|or|but)\b)(?!\w+ly\b)(?![\d$%(])\w+", re.I),
+               r"before|across|between|with|than|for|of|and|or|but)\b(?!-))(?!\w+ly\b)(?![\d$%(])\w+", re.I),
     # "Lead times are pushing stockouts up": a force on a measure.
     re.compile(r"\b(push(es|ed|ing)?|drag(s|ged|ging)?|pull(s|ed|ing)?)\s+(?:\w+\s+){1,3}(up|down)\b", re.I),
     # Arabic subject-verb-object: "خفض الساعات يقلل التكاليف". A verb that opens
     # the sentence, or is followed by a preposition, only reports a change.
-    re.compile(r"\S+\s+(?:\S+\s+){0,6}(يقلل|تقلل|يقلّل|تقلّل|يزيد|يرفع|ترفع|يخفض|تخفض|يخفّض|تخفّض|"
-               r"يحسن|تحسن|يحسّن|تحسّن)\s+(?!(في|خلال|بنسبة|عن|على|إلى|الى|حتى)\s)(?:من\s+)?\S+"),
+    # A prefix joins the verb in writing: "و" (and), "ف" (so), and the colloquial "ب" of
+    # "بيقلل". "يسوي" and "يخلي" (makes) are the Gulf and Egyptian causatives.
+    re.compile(r"\S+\s+(?:\S+\s+){0,6}[وف]?ب?(يقلل|تقلل|يقلّل|تقلّل|يزيد|تزيد|يزود|تزود|يرفع|ترفع|يخفض|تخفض|يخفّض|تخفّض|"
+               r"يحسن|تحسن|يحسّن|تحسّن|يسوي|تسوي|يخلي|تخلي|يخلّي|تخلّي)\s+(?!(في|خلال|بنسبة|عن|على|إلى|الى|حتى)\s)(?:من\s+)?\S+"),
 ]
 # Sentences about causation itself are not claims of it.
 META = re.compile(
     r"\b(can ?not|can't|no finding|not)\s+(claim|prove|show|be stated as|establish)|"
     r"\bnot (what|a) caus|\bnot proof\b|\bassociation,? not\b|"
     r"\b(doesn't|does not|don't|do not|can't|cannot)\s+(tell|show|say|prove)\s+(us\s+)?(which|whether|if|what)\b|"
-    r"لا يمكن (ادعاء|إثبات)|ليس سبباً|لم (يثبت|تثبت|يُثبت|تُثبت|يتضح)|لا (يثبت|تثبت|يدل على أن)", re.I)
+    r"لا يمكن (ادعاء|إثبات)|ليس سبباً|لم (يثبت|تثبت|يُثبت|تُثبت|يتضح)|لا (يثبت|تثبت|يدل على أن)|"
+    # A hypothesis, or a question not yet tested, is not a claim (round 5 of ADR 0027).
+    r"\bhypothes[ie]s\b|\bhypothesi[sz]e|\buntested\b|\bunproven\b|"
+    r"\bnot (yet )?(checked|tested|verified|established|proven|confirmed)\b|"
+    r"\b(check|checked|test|tested|know|knew|see|establish|determine|confirm)(ed)?\s+whether\b|"
+    r"فرضية|لم (نختبر|يختبر|يُختبر|نتحقق)|نحتاج (لاختبار|إلى اختبار|الى اختبار)|قبل أن نستنتج", re.I)
 SENTENCE = re.compile(r"[^.!?؟\n]+[.!?؟]?")
 
 
@@ -60,7 +67,8 @@ def causal_phrases(text):
     found = []
     for match in SENTENCE.finditer(text):
         sentence = match.group(0).strip()
-        if not sentence or META.search(sentence):
+        # A question asks about a cause; it does not claim one.
+        if not sentence or META.search(sentence) or sentence.endswith(("?", "؟")):
             continue
         for pattern in CAUSAL:
             hit = pattern.search(sentence)

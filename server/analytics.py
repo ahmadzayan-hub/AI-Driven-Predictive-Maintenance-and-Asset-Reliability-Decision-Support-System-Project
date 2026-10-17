@@ -253,6 +253,12 @@ JARGON = (
     "معامل الاختلاف", "درجات الحرية", "اختبار ت", "الانحدار اللوجستي", "الانحدار الخطي",
     "principal component", "mann-whitney", "wilcoxon", "kruskal", "kolmogorov",
     "تحليل المكونات الأساسية", "المكونات الرئيسية", "بشكل معنوي", "دلالة معنوية", "فروق معنوية",
+    # Corrections for testing many comparisons at once, and the model
+    # diagnostics an Arabic report names (round 5 of ADR 0027).
+    "bonferroni", "multiple comparisons", "pairwise comparisons", "post hoc", "post-hoc",
+    "false discovery rate", "tukey", "residuals",
+    "تجانس التباين", "عدم تجانس", "البواقي", "الأخطاء المعيارية", "أخطاء المعيار",
+    "المقارنات المتعددة", "المقارنات الزوجية",
 )
 # Abbreviations match only as whole words, so "CI" is caught in "the 95% CI"
 # and never inside "decision" or "special"; "p = 0.03" is a p-value.

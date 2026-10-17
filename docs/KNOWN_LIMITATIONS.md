@@ -88,10 +88,13 @@ placeholder controls — absent capabilities have no UI.
    calculations are exact for the operations implemented.
 6. Every classifying agent is measured on labelled **synthetic** cases
    (ADR 0027), and the numbers are only as good as those cases. On the
-   blind holdouts the rules reach 80% macro recall for chat intent, 83%
-   recall for jargon and 67% for causal wording (precision 73%). Causal
-   wording is the weakest check, and a sentence it passes may still claim
-   a cause. The seeded reviewer memos were nearly too easy for the
+   newest blind holdout (v4, 17 October) the rules reach 72% macro recall
+   for chat intent, 92% recall for jargon and 69% for causal wording
+   (precision 92%). Hand-written rules generalise only so far: intent
+   scored 80% on the previous blind set and 68% on this one before any
+   change, and a round of fixes from the earlier set lifted causal wording
+   by nothing here. A sentence the causal check passes may still claim a
+   cause, and a chat sentence outside the vocabulary is answered as chat. The seeded reviewer memos were nearly too easy for the
    reviewer subagents: both scored at or near 100% with either prompt.
    So the prompt changes are justified on the dev memo, not proven on the
    held-out ones, and the subagents' run-to-run variation (zero to three

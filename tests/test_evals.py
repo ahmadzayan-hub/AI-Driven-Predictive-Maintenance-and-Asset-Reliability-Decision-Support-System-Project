@@ -142,6 +142,34 @@ class RecallFixTests(unittest.TestCase):
             result = fc.check([{"label": "gap", "value": "6421"}], [doc], sourcing_only=True)
             self.assertEqual([u["number"] for u in result["unsourced"]], ["7,100"])
 
+    def test_round_five_causal_wording(self):
+        claims = lambda text: [p for p, _ in claims_lint.causal_phrases(text)]
+        # Questions and untested hypotheses talk about a cause without claiming one.
+        self.assertEqual(claims("Does the heat cause the breakdowns?"), [])
+        self.assertEqual(claims("هل يسبب الحر زيادة الأعطال؟"), [])
+        self.assertEqual(claims("The hypothesis that heat causes the breakdowns is untested."), [])
+        self.assertEqual(claims("Busier depots have more delays, but we have not checked whether one drives the other."), [])
+        # A hyphenated word after the verb is its object, not a preposition.
+        self.assertTrue(claims("Training the dispatchers boosted on-time performance."))
+        # Arabic: a longer subject inside "أدى … إلى", prefixed verbs, colloquial causatives.
+        self.assertTrue(claims("أدى إلغاء الدعم عن تذاكر الطلاب إلى انخفاض عدد الركاب."))
+        self.assertTrue(claims("الحر الشديد ويرفع طلبات الصيانة"))
+        self.assertTrue(claims("التأخير في القطع بيخلي الأتوبيسات واقفة"))
+
+    def test_round_five_jargon_and_intent(self):
+        self.assertTrue(analytics._jargon_in("After a Bonferroni correction, two comparisons stay."))
+        self.assertTrue(analytics._jargon_in("وجدنا عدم تجانس التباين في البواقي."))
+        self.assertFalse(analytics._jargon_in("The residual value of the fleet is $2.1 million."))
+        import assistant
+        for text, action in (("Could you walk me through how to upload a spreadsheet?", "help"),
+                             ("Erase our previous messages from this session, please.", "clear_history"),
+                             ("pls forget that thing about the discount", "forget"),
+                             ("what have you got saved about me so far", "recall"),
+                             ("خلك حافظ عندك إن المورد يطلب الدفع خلال 45 يوم", "remember"),
+                             ("التقرير بيقول إيه عن المصاريف؟", "explain_report")):
+            with self.subTest(text=text):
+                self.assertEqual(assistant.understand(text)["action"], action)
+
     def sourcing(self, text, register):
         with tempfile.TemporaryDirectory() as tmp:
             doc = Path(tmp) / "doc.md"
