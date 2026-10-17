@@ -442,7 +442,7 @@ The first entries were written from the commit history and the session's own rec
     - **Docs:** A3 moves to ADR 0029. Also updated: the UI plan's budget row, the Codex prompt, known limitation 24, Memory, the design-system note and the README counts.
 - **Verified:**
     - **Budget:** first load 96.7 → 85.7 KB gzipped; all scripts 96.7 → 105.6 KB; largest chunk 5.0 KB (Runs). React DOM is about 57 KB of the first load.
-    - `scripts/verify.py --e2e` with PostgreSQL: 863 Python tests, 16 skipped; brain check clean (27 notes); type check; 66 frontend unit tests; build; budget. End-to-end: 69 passed and 3 skipped by design in that run; the 2 new checks failed there and passed after the fix below (74 in all).
+    - `scripts/verify.py --e2e` with PostgreSQL: 863 Python tests, 16 skipped; brain check clean (27 notes); type check; 66 frontend unit tests; build; budget. End-to-end: 69 passed and 3 skipped by design in that run; the 2 new checks failed there and passed after the fix below. A clean rerun of the whole suite after the fix: 71 passed, 3 skipped by design (74 in all).
     - **Lighthouse 13.4.1 mobile,** three runs on each build (a worktree of `e45b0e3` against the working tree), medians before → after:
         - Performance 99 → 98;
         - largest paint 2.13 s both;
