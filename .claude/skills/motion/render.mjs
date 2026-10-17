@@ -21,6 +21,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(HERE, '..', '..', '..')
 const SIZES = new Set(['1920x1080', '1280x720', '1080x1080', '1080x1920'])
 const FPS = new Set([24, 25, 30, 60])
+const THEMES = ['light', 'dark', 'rta', 'rta-dark']
 const TYPES = new Set(['title', 'kpis', 'bars', 'statement'])
 const MAX_SECONDS = 90
 const LIMITS = { title: 90, kicker: 60, subtitle: 160, heading: 110, text: 160, note: 200, label: 48, footer: 160 }
@@ -37,7 +38,7 @@ export function validate(spec) {
   need(SIZES.has(size), `Size ${size} is not one of ${[...SIZES].join(', ')}.`)
   need(FPS.has(spec.fps ?? 30), `fps must be one of ${[...FPS].join(', ')}.`)
   need(['en', 'ar'].includes(spec.language ?? 'en'), 'language must be "en" or "ar".')
-  need(['light', 'dark'].includes(spec.theme ?? 'light'), 'theme must be "light" or "dark".')
+  need(THEMES.includes(spec.theme ?? 'light'), `theme must be one of ${THEMES.join(', ')}.`)
   need(Array.isArray(spec.scenes) && spec.scenes.length > 0, 'scenes must be a non-empty list.')
   if (spec.footer) need(spec.footer.length <= LIMITS.footer, `footer is over ${LIMITS.footer} characters.`)
   if (spec.poster != null) {

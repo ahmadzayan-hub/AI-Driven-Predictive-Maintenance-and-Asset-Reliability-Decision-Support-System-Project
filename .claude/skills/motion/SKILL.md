@@ -20,7 +20,7 @@ Change one number in the spec, render again, and only that number moves.
 
 ## The spec
 
-A JSON file. The sizes allowed are 1920×1080 (default), 1280×720, 1080×1080 and 1080×1920. The frame rate is 24, 25, 30 (default) or 60. `language` is `en` or `ar` (right to left), and `theme` is `light` or `dark`.
+A JSON file. The sizes allowed are 1920×1080 (default), 1280×720, 1080×1080 and 1080×1920. The frame rate is 24, 25, 30 (default) or 60. `language` is `en` or `ar` (right to left), and `theme` is `light`, `dark`, or `rta` / `rta-dark` (the user's house style from `.claude/skills/rta-style`: colours and type only, no logo or name).
 
 | Scene `type` | Fields | Notes |
 | --- | --- | --- |

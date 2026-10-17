@@ -40,6 +40,7 @@ def validate(spec):
         return problems
     need(bool(spec.get("title")), "The dashboard needs a title.")
     need(spec.get("language", "en") in ("en", "ar"), "language must be en or ar.")
+    need(spec.get("theme", "default") in THEMES, f"theme must be one of {', '.join(THEMES)}.")
     sections = spec.get("sections") or []
     need(0 < len(sections) <= MAX_SECTIONS, f"Use 1 to {MAX_SECTIONS} sections.")
     for index, section in enumerate(sections, 1):
@@ -200,8 +201,35 @@ a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-of
 @media print{section{break-inside:avoid}details.numbers{display:block}details.numbers[open] summary{display:none}}
 """
 
+# The user's house style (.claude/skills/rta-style): its colours and type over
+# this page's layout. Colours, type and motifs only; no logo, name or data.
+STYLE_TOKENS = Path(__file__).resolve().parent.parent / "rta-style" / "tokens.json"
+THEMES = ("default", "rta")
 
-def render(spec):
+
+def theme_css(theme):
+    if theme != "rta":
+        return ""
+    tokens = json.loads(STYLE_TOKENS.read_text(encoding="utf-8"))
+
+    def palette(p):
+        return (f"--bg:{p['bg']};--panel:{p['surface']};--fg:{p['text']};--muted:{p['muted']};--line:{p['border']};"
+                f"--accent:{p['accent']};--accent-soft:{p['accent-tint']};--hi:{p['brand']};--brand:{p['brand']};"
+                f"--bar:{p['bar']};--bar-edge:{p['bar-edge']};--on-bar:{p['on-brand']}")
+    return (f":root{{{palette(tokens['light'])}}}"
+            f"@media (prefers-color-scheme:dark){{:root{{{palette(tokens['dark'])}}}}}"
+            f"html{{font-family:{tokens['font']['family']}}}.chart text{{font-family:{tokens['font']['family']}}}"
+            f"header{{background:var(--bar);color:var(--on-bar);border-bottom:4px solid var(--bar-edge);"
+            f"border-radius:{tokens['radius']};padding:16px 20px}}header p{{color:var(--on-bar)}}"
+            f"section{{border-radius:{tokens['radius']}}}"
+            "h2{padding-inline-start:.6rem;border-inline-start:4px solid var(--brand)}footer h2{border:0;padding:0}"
+            ".kpi{border-top:1px solid var(--line);border-inline-start:5px solid var(--accent)}"
+            ".kpi:first-child{border-inline-start-color:var(--brand)}"
+            "@media print{header{-webkit-print-color-adjust:exact;print-color-adjust:exact}}")
+
+
+def render(spec, theme=None):
+    theme = theme or spec.get("theme", "default")
     language = spec.get("language", "en")
     words = WORDS[language]
     sources = Sources()
@@ -251,7 +279,7 @@ def render(spec):
     direction = "rtl" if language == "ar" else "ltr"
     return (f'<!doctype html><html lang="{language}" dir="{direction}"><head><meta charset="utf-8">'
             f'<meta name="viewport" content="width=device-width,initial-scale=1">'
-            f'<title>{esc(spec["title"])}</title><style>{CSS}</style></head><body>'
+            f'<title>{esc(spec["title"])}</title><style>{CSS}{theme_css(theme)}</style></head><body>'
             f'<header><h1>{esc(spec["title"])}</h1><p>{esc(spec.get("subtitle", words["made"]))}</p></header>'
             f'<main>{"".join(blocks)}</main>'
             f'<footer><h2>{words["sources"]}</h2><ol>{listed}</ol>'
@@ -348,6 +376,7 @@ def main(argv=None):
     parser.add_argument("--out", help="the HTML file to write")
     parser.add_argument("--write-spec", help="with --analysis: also save the spec it made")
     parser.add_argument("--check", action="store_true", help="validate only")
+    parser.add_argument("--theme", choices=THEMES, help="override the spec's theme (rta: the user's house style)")
     args = parser.parse_args(argv)
     if args.spec:
         spec = json.loads(Path(args.spec).read_text(encoding="utf-8"))
@@ -363,7 +392,7 @@ def main(argv=None):
     if args.check or not args.out:
         print(f"OK: {len(spec['sections'])} sections, {figures} figures, each with a source.")
         return 0
-    Path(args.out).write_text(render(spec), encoding="utf-8")
+    Path(args.out).write_text(render(spec, args.theme), encoding="utf-8")
     print(f"Wrote {args.out}: {len(spec['sections'])} sections, {figures} figures.")
     return 0
 

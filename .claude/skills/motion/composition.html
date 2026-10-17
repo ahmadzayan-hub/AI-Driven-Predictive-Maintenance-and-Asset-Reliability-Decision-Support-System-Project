@@ -19,6 +19,25 @@
   --paper: #0f1a24; --surface: #152331; --ink: #eef2f5; --ink-2: #c6d0d8; --muted: #9aa8b4;
   --rule: #2a3b4a; --accent: #7fb2dc; --accent-soft: #1d3346; --amber: #f0b46e; --amber-soft: #3a2a17;
 }
+/* The user's house style, from .claude/skills/rta-style/tokens.json (tests/test_rta_style.py
+   keeps the two in step). Colours and type only: no logo, name or data. */
+:root[data-theme="rta"] {
+  --paper: #f1f2f3; --surface: #ffffff; --ink: #1f2225; --ink-2: #2b2e31; --muted: #58595b;
+  --rule: #d6d8db; --accent: #0b3c6e; --accent-soft: #e6eef7; --amber: #c8102e; --amber-soft: #fbe9ec;
+  --bar: #c8102e; --bar-edge: #9b0a22;
+}
+:root[data-theme="rta-dark"] {
+  --paper: #15171a; --surface: #1f2225; --ink: #eef0f2; --ink-2: #d6d8db; --muted: #aab1b8;
+  --rule: #3a3f45; --accent: #8db8e8; --accent-soft: #1b2c3f; --amber: #ef5b6e; --amber-soft: #3a1a20;
+  --bar: #9b0a22; --bar-edge: #c8102e;
+}
+:root[data-theme^="rta"] body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Naskh Arabic", Tahoma, sans-serif; }
+:root[data-theme^="rta"] body::before { content: ""; position: absolute; inset-inline: 0; top: 0; height: .7em;
+  background: var(--bar); border-bottom: .22em solid var(--bar-edge); }
+:root[data-theme^="rta"] .kicker { color: var(--amber); }
+:root[data-theme^="rta"] .kpi { border-top: 1px solid var(--rule); border-inline-start: .35em solid var(--accent); }
+:root[data-theme^="rta"] .kpi:first-child { border-inline-start-color: var(--amber); }
+:root[data-theme^="rta"] .progress__fill { background: var(--amber); }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: var(--w); height: var(--h); overflow: hidden; background: var(--paper); }
 body { font-family: 'Fira Sans', 'Noto Sans Arabic', 'Segoe UI', 'DejaVu Sans', sans-serif; color: var(--ink);
