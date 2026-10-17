@@ -589,3 +589,24 @@ Decision-Support System SaaS Project.
     - Ran the full `scripts/verify.py --e2e` with the bundled interpreter, `-X utf8` and `PYTHONUTF8=1`. The final full-run log is private at `private/project-study-2026-10-17/ui-verification-final.txt`: `3 of 7 steps failed`. Python reported `Ran 1064 tests` / `FAILED (failures=6, errors=90, skipped=330)`; missing FastAPI, Starlette and crypto dependency closure are among the failures. Other backend errors were not fully diagnosed. The frontend timeout noted above was subsequently fixed and the entire frontend suite rerun successfully. The normal end-to-end server could not start because `python3` is not recognized. PostgreSQL was not configured. This does not establish a passing backend or production readiness.
 - **Decided:** the preview is isolated from the application store and backend, has no model calls, durable review actions or maintenance dispatch, and leaves the normal authenticated workspace as the default entry point. Source-document content informs the design but does not authorize external actions. No dependency or interface-budget increase was needed.
 - **Next:** bind the reviewed UI to the maintenance-domain contract's server-side aggregates and governed model cards, preserving tenant boundaries, source freshness and report approval. Run backend/normal e2e checks with the required Python environment and PostgreSQL. No deployment, commit, push or pull request was made.
+
+## 2026-10-17 · `c84a0ec6` · claude/agentic-os-final-project-53j6ql
+
+**Goal:** separate the engine, the maintenance domain and the private delivery, and sync the result to GitHub.
+
+- **Done:**
+    - Restructured the tree into three concerns. `04_Deliverables/` → `private/capstone/`, `01_Data/` → `private/data/`, the playbook and `review_workbook.py` → `private/project-study-2026-10-17/`, and the retail sales example (`03_Dashboard/`, `analyze.py`, `analyze_deep.py`) → `private/retail-example/`. The numbered folders are gone.
+    - Added the maintenance domain, milestone S1: `server/maintenance/contract.py` (what a row is, each column's scale, and when it was knowable) and `kpis.py` (one controlled definition per measure, ratios of sums over stated populations), with `tests/test_maintenance.py`.
+    - Added `server/detectors.py` and `tests/test_detectors.py` earlier in the session (`200965b`).
+    - **Pushed `200965b`, `a8596e4`, `dccbbf5` and `3514589`.** The two entries above this one state that nothing was committed or pushed; that was true when written and is no longer true. The branch now carries the product identity work, the maintenance preview and this restructure.
+- **Verified:**
+    - 44 new Python tests pass (24 maintenance, 20 detectors). Full suite `Ran 1064`; failures 3 and errors 253–257 drifting between runs, all `_Py_HashRandomization_Init` subprocess-spawn failures in pre-existing modules. A pristine clone of `a2ec230` gives the same 3 failures and 253 errors, so this is the sandbox, not the change.
+    - Frontend: 17 files, 115 tests pass; TypeScript check clean.
+    - The KPI register reproduces the independently verified figures: preventive share 75.16%, first-time fix 76.56% on 4,015 corrective records, repeat repair 23.44%, availability 79.39%, loss per downtime hour $2,513.
+    - The playbook's relative links: 15 of 15 resolve from its new home, against 0 from `00_Method/`.
+    - Remote tree carries no numbered folders, no `private/`, no `inputs/`, and zero registration-number matches.
+- **Decided:**
+    - The privacy rule is enforced by `private/` alone. The restructure had moved course material to `01_Data/` and `04_Deliverables/`, which no ignore rule covered, so both would have been committed to this public repository on the next `git add -A`. Folder-specific rules were removed rather than left to rot.
+    - The retail example was moved rather than deleted. It is out of the product tree and ignored; `rm -rf private/retail-example/` finishes the job, and nothing recovers it afterwards.
+    - `detectors.py` stays domain-agnostic in `server/`; `server/maintenance/` holds what is specific to maintenance. That split is what lets the detectors transfer to data nobody has seen.
+- **Open / next:** wire the detectors and the contract into a governed stage (S2) so findings become claims with calculations; bind the maintenance preview to server-side aggregates (S3/S4). The GitHub repository rename still needs `gh auth login`.
