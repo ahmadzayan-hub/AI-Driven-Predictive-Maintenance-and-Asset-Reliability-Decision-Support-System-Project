@@ -95,11 +95,11 @@ The hook knows it is due because that log has no section dated today.
 ### Analyse a dataset (today)
 
 1. `python scripts/serve.py`, then open `http://localhost:8000`, or use the deployment.
-2. In **Datasets**, add a file (CSV, Excel, JSON or JSON Lines, up to 4 MB, ADR 0024) and say what each column is under **Columns** (ADR 0025). Then, in **Runs**, give a goal ("Why did revenue fall in Q4?") and choose that dataset, or use the bundled sample.
+2. Open **Overview → New analysis**, or `#/runs?source=upload`. Add a file, choose its workbook sheet if needed, review column roles and state your question. Select **Start run**. The [upload guide](DATASET_ANALYTICS.md) describes supported formats, limits and the optional modelling profile (ADR 0038).
 3. The pipeline profiles, cleans, governs the measure, runs the four analytics types, validates and reports. Read the headline of each report tab, then the evidence behind each claim.
 4. Approve the publish step only after reading. The report and its run log go to `vault/`.
 
-Several datasets in one run, dashboards in the app and live data are milestones A3 to A7 on the board, not features yet. Outside the app, the `dashboards` skill already turns one file into a sourced dashboard (runbook below).
+Runs support declared joins, computed dashboard pages and optional modelling profiles. Keep the Runs view open while it processes, or start `python scripts/worker.py` for background execution. Live sources can snapshot files on a schedule. See milestones A3 to A7 on the board for their evidence and boundaries.
 
 ### Build a roadmap milestone
 

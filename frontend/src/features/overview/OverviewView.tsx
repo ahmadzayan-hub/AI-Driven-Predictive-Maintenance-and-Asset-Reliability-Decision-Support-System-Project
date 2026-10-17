@@ -70,7 +70,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals }: OverviewViewPr
         <h2 className="panel__title">{t('overview.title')}</h2>
         <p className="panel__desc">{t('overview.desc')}</p>
       </div>
-      <button type="button" className="btn btn--primary" onClick={() => onStart(null)}>
+      <button type="button" className="btn btn--primary" onClick={() => onStart({ kind: 'upload' })}>
         <Icon name="plus" size={16} />
         {t('overview.start')}
       </button>

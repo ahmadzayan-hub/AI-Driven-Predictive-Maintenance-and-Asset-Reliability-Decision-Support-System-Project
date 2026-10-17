@@ -13,6 +13,7 @@ import sqlite3
 import tempfile
 import unittest
 import zipfile
+from contextlib import ExitStack
 from datetime import date, datetime
 from pathlib import Path
 from unittest import mock
@@ -247,8 +248,10 @@ class XlsxTests(unittest.TestCase):
         parsed = read(body, "multi.xlsx")
         self.assertEqual(parsed.columns, ["s"])
         self.assertEqual(parsed.sheets, ["Hidden", "Sales", "Costs"])
+        self.assertEqual(parsed.selected_sheet, "Sales")
         self.assertIn("Read the sheet “Sales”, the first of 3.", parsed.warning_texts())
         self.assertEqual(read(body, "multi.xlsx", sheet="costs").columns, ["c"])
+        self.assertEqual(read(body, "multi.xlsx", sheet="costs").selected_sheet, "Costs")
         with self.assertRaises(DatasetError) as caught:
             read(body, "multi.xlsx", sheet="Budget")
         self.assertIn("Its sheets: Hidden, Sales, Costs", caught.exception.en)
@@ -389,6 +392,7 @@ class DatasetApiTestCase(unittest.TestCase):
         path.write_text(json.dumps(config), encoding="utf-8")
         self.client = TestClient(create_app(path, env=self.env()),
                                  raise_server_exceptions=False)
+        self.addCleanup(self.client.app.state.store._conn.close)
 
     def upload(self, body, name, **params):
         query = "&".join(f"{k}={v}" for k, v in {"name": name, **params}.items())
@@ -426,6 +430,22 @@ class DatasetApiTestCase(unittest.TestCase):
         self.assertFalse(again.json()["created"])
         self.assertEqual(again.json()["dataset"]["id"], first.json()["dataset"]["id"])
         self.assertEqual(len(self.client.get("/api/datasets").json()["datasets"]), 1)
+
+    def test_named_sheet_reports_its_identity_and_runs_its_own_rows(self):
+        body = build_xlsx([("Cover", [["note"], ["Synthetic fixture"]]),
+                           ("Plant data", [["region", "cost"], ["North", 320], ["South", 180]])])
+        response = self.upload(body, "plants.xlsx", sheet="Plant%20data")
+        self.assertEqual(response.status_code, 201, response.text)
+        payload = response.json()
+        self.assertEqual(payload["selected_sheet"], "Plant data")
+        self.assertEqual(payload["columns"], ["region", "cost"])
+        run = self.client.post("/api/runs", json={"goal": "Analyze plant cost", "dataset_id": payload["dataset"]["id"]}, headers=getattr(self, "headers", {})).json()
+        for _ in range(40):
+            run = self.client.post(f"/api/runs/{run['id']}/advance", headers=getattr(self, "headers", {})).json()
+            if run["state"] not in ("queued", "running"):
+                break
+        self.assertEqual(run["state"], "awaiting_approval")
+        self.assertIn("2 rows × 2 columns", next(t for t in run["tasks"] if t["role"] == "collector")["summary"])
 
     def test_size_is_refused_from_the_header_and_while_streaming(self):
         too_big = b"a\n" + b"1\n" * (datasets.MAX_UPLOAD_BYTES // 2 + 1)
@@ -517,6 +537,7 @@ class DatasetQuotaAndTenancyTests(unittest.TestCase):
         self.client = TestClient(create_app(path, env={
             "AGENTIC_OS_JWT_SECRET": SECRET, "AGENTIC_OS_ENV": "production",
             "AGENTIC_OS_QUOTA_DATASETS": "1"}), raise_server_exceptions=False)
+        self.addCleanup(self.client.app.state.store._conn.close)
 
     def auth(self, subject, role="owner"):
         return {"Authorization": "Bearer " + issue_local_test_token(
@@ -559,7 +580,7 @@ class DatasetMigrationTests(unittest.TestCase):
         from server.runs import RunEngine
         from server.storage import open_store
 
-        with tempfile.TemporaryDirectory() as tmp:
+        with tempfile.TemporaryDirectory() as tmp, ExitStack() as connections:
             path = Path(tmp) / "old.db"
             conn = sqlite3.connect(path)
             conn.execute("""CREATE TABLE datasets (
@@ -575,6 +596,7 @@ class DatasetMigrationTests(unittest.TestCase):
             conn.close()
 
             store = open_store(sqlite_path=str(path))
+            connections.callback(store._conn.close)
             listed = store.list_datasets("local-owner")
             self.assertEqual(listed[0]["row_count"], None)
             self.assertEqual(listed[0]["source_format"], None)
@@ -585,7 +607,7 @@ class DatasetMigrationTests(unittest.TestCase):
             self.assertEqual((stored["row_count"], stored["column_count"],
                               stored["source_format"]), (1, 2, "csv"))
             # Opening it again is harmless: the migration is repeatable.
-            open_store(sqlite_path=str(path))
+            connections.callback(open_store(sqlite_path=str(path))._conn.close)
 
 
 class DocsTests(unittest.TestCase):

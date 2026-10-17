@@ -1,10 +1,19 @@
 import { defineConfig } from '@playwright/test'
+import { existsSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+
+// A local virtual environment is available on Windows even without python3
+// on PATH. CI can still use its interpreter or set PYTHON_EXECUTABLE.
+const localPython = fileURLToPath(new URL(process.platform === 'win32' ? '../.venv/Scripts/python.exe' : '../.venv/bin/python', import.meta.url))
+const python = process.env.PYTHON_EXECUTABLE ?? (existsSync(localPython) ? localPython : 'python3')
+if (/["\r\n]/.test(python)) throw new Error('Invalid PYTHON_EXECUTABLE path')
+const PYTHON = `"${python}"`
 
 // The web server runs the real FastAPI adapter against a disposable
 // configuration in e2e/.tmp/, so end-to-end runs never touch the
 // repository's real data/memory.json.
 const PREPARE_CONFIG =
-  'python3 -c "import json,os,shutil; os.makedirs(\'frontend/e2e/.tmp\',exist_ok=True); ' +
+  `${PYTHON} -c "import json,os,shutil; os.makedirs('frontend/e2e/.tmp',exist_ok=True); ` +
   'shutil.rmtree(\'frontend/e2e/.tmp/vault\', ignore_errors=True); ' +
   'shutil.rmtree(\'frontend/e2e/.tmp/sources\', ignore_errors=True); os.makedirs(\'frontend/e2e/.tmp/sources\'); ' +
   '[os.remove(p) for p in [\'frontend/e2e/.tmp/agentic.db\'] if os.path.exists(p)]; ' +
@@ -51,7 +60,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: `${PREPARE_CONFIG} && python3 -m uvicorn server.app:app --host 127.0.0.1 --port 8123`,
+      command: `${PREPARE_CONFIG} && ${PYTHON} -m uvicorn server.app:app --host 127.0.0.1 --port 8123`,
       cwd: '..',
       url: 'http://127.0.0.1:8123/api/health',
       // Live sources (ADR 0034) read files from this folder at the
@@ -69,13 +78,13 @@ export default defineConfig({
       // Second instance with managed auth enabled, for e2e/auth.spec.ts.
       // The secret is test-only and the provider is never contacted.
       command:
-        'python3 -c "import json,os; os.makedirs(\'frontend/e2e/.tmp/auth\',exist_ok=True); ' +
+        `${PYTHON} -c "import json,os; os.makedirs('frontend/e2e/.tmp/auth',exist_ok=True); ` +
         'json.dump({\'agent_name\':\'Agentic OS\',\'version\':\'1.0.0\',' +
         "'memory_file':'frontend/e2e/.tmp/auth/memory.json'," +
         "'database_file':'frontend/e2e/.tmp/auth/agentic.db'," +
         "'vault_dir':'frontend/e2e/.tmp/auth/vault'}, " +
         'open(\'frontend/e2e/.tmp/auth/config.json\',\'w\'))" ' +
-        '&& python3 -m uvicorn server.app:app --host 127.0.0.1 --port 8124',
+        `&& ${PYTHON} -m uvicorn server.app:app --host 127.0.0.1 --port 8124`,
       cwd: '..',
       url: 'http://127.0.0.1:8124/api/health',
       env: {

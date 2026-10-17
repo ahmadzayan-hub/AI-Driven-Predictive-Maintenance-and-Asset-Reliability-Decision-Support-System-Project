@@ -516,11 +516,11 @@ export function App() {
           {pane('runs', (
             <RunsView
               draftScope={session.session_id}
-              key={currentRunId ?? `form-${runNonce.current}`}
+              key={currentRunId ?? `form-${runNonce.current}-${route.source ?? ''}`}
               onRunSelected={selectRun}
               openRunId={currentRunId}
               openNonce={runTarget?.nonce ?? 0}
-              preset={runPreset}
+              preset={route.source === 'upload' && !route.runId ? { kind: 'upload' } : runPreset}
               onOpenDashboard={openDashboard}
             />
           ))}

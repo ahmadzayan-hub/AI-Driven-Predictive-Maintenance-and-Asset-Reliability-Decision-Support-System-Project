@@ -52,5 +52,7 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 | 0035 | A view's strings ship with the view | [[Design system]] |
 | 0036 | Maintenance SaaS product identity over the existing Agentic OS engine | [[Identity]], [[Agentic OS]] |
 | 0037 | Isolated bilingual maintenance design preview with fictional fixtures | [[Design system]], [[Agentic OS]] |
+| 0038 | Explicit dataset intake, workbook sheet selection and governed upload-to-dashboard flow | [[Column mapping]], [[Governed pipeline]] |
+| 0039 | Structural detectors run as a governed stage, so a finding travels as evidence | [[Custom stages]], [[Governed pipeline]] |
 
 All seven [[Analytics OS roadmap]] milestones have their records.

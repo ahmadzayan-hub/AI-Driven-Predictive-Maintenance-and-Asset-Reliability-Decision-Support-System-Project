@@ -610,3 +610,27 @@ Decision-Support System SaaS Project.
     - The retail example was moved rather than deleted. It is out of the product tree and ignored; `rm -rf private/retail-example/` finishes the job, and nothing recovers it afterwards.
     - `detectors.py` stays domain-agnostic in `server/`; `server/maintenance/` holds what is specific to maintenance. That split is what lets the detectors transfer to data nobody has seen.
 - **Open / next:** wire the detectors and the contract into a governed stage (S2) so findings become claims with calculations; bind the maintenance preview to server-side aggregates (S3/S4). The GitHub repository rename still needs `gh auth login`.
+
+## 2026-10-17 · `codex-dataset-intake` · local workspace
+
+**Goal:** let the owner upload their datasets and have the application's agents
+produce real analysis, reports and computed dashboards.
+
+- **Done:**
+    - Connected the maintenance preview's primary upload action and Overview's New analysis action to the real Runs intake, including a restorable `#/runs?source=upload` route. Kept the preview's fictional fixtures distinct from computed run results.
+    - Blocked empty, pending and failed upload/stored submissions from falling back to sample data. Replacing a file clears stale uploaded/pasted inputs. Added shared file acceptance, pre-analysis column-role review and bilingual workflow/limits/model guidance.
+    - Exposed workbook sheet selection after a successful upload in Runs and Datasets. The API returns the actual selected sheet; changing sheets resubmits the same file with an explicit sheet name. API tests confirm that the chosen worksheet supplies the run's rows and columns.
+    - Installed the already declared Python dependencies into the project's `.venv`, using `uv` with a project-local cache. Updated Playwright's interpreter resolution for Windows/project virtual environments. Closed dataset-test SQLite connections before disposable-directory cleanup.
+    - Added ADR 0038 and `docs/DATASET_ANALYTICS.md`; updated the operating playbook, limitations, README, decision index, Memory and board. Started the real local server on loopback port 8000 and opened its upload screen in Edge. Existing user datasets/runs were not modified.
+- **Verified:**
+    - `.venv/Scripts/python.exe -m unittest tests.test_datasets`: `Ran 55 tests`, `OK (skipped=9)`. Earlier errors in this focused suite were Windows locked-database cleanup failures; closing the relevant connections fixed them.
+    - `scripts/verify.py` with `PYTHONUTF8=1`: `1 of 6 steps failed: Python tests`. Private output: `private/project-study-2026-10-17/upload-verification.txt`. Python reported `Ran 1066 tests` / `FAILED (failures=2, errors=259, skipped=140)`. The printed failures include CRLF asset-fixture mismatches; the error tail includes SQLite temporary-directory cleanup locks. The complete error set was not individually diagnosed, and PostgreSQL was not configured.
+    - The same verifier printed PASS for brain check, type check, frontend unit tests (`120 passed`), production build and interface budget. Budget: JS first load 93.5 of 100 KB, JS total 149.9 of 160 KB, largest chunk 13.1 of 30 KB; CSS first load 9.4 of 10 KB, CSS total 14.5 of 16 KB; fonts 119.4 of 120 KB.
+    - The real API browser run covering `datasets.spec.ts`, `models.spec.ts` and `intake.spec.ts` executed all cases. The ten existing dataset/model cases passed. New Arabic checks first exposed an ambiguous test selector and then a test race between report creation and the subsequent approval state; the assertions now target the named Start control and wait for the approval region.
+    - Final `npm --prefix frontend run e2e -- intake.spec.ts`: `4 passed (1.6m)`, exit 0. Synthetic CSV/JSON uploads in English/Arabic on desktop/phone produced the expected calculations and retained the approval gate; the CSV flow also verified the computed dashboard. Axe checks passed. The entire backend browser suite was not run; `--list` reported 108 tests in 22 files.
+    - Final isolated maintenance preview suite: `4 passed (1.2m)`, exit 0, including the updated upload link layout and regenerated synthetic screenshots. Both browser runners needed their exact test-server PIDs stopped after all cases completed to finish teardown in this Windows environment.
+    - `python -m unittest tests.test_docs`: `Ran 8 tests` / `OK` after adding the guide/ADR. Manually confirmed the real local upload form, disabled empty Start action and configured models profile in Edge.
+- **Decided:**
+    - “Upload any dataset” means supported tabular inputs within the existing limits, not arbitrary binary formats or guaranteed useful predictions. A workbook's first visible sheet must parse before the picker appears; a non-tabular cover needs reordering or CSV export. Analysis without an open Runs view uses the existing separately started worker. Publishing remains an explicit approval.
+    - No new package requirement, higher quota, external model call, production deployment, commit, push or pull request. Remaining full-suite failures are reported rather than presented as a green backend.
+- **Next:** resolve the remaining Windows test-fixture/cleanup failures and run PostgreSQL/full browser validation. Continue the governed maintenance-domain integration before binding the fictional equipment design to uploaded asset metrics or promising evaluated failure predictions.

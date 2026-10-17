@@ -4,7 +4,7 @@ export type Tab = 'overview' | 'datasets' | 'chat' | 'runs' | 'dashboard' | 'app
 /** Where the reader is. A dashboard address also carries its page and
  *  every choice made on it (ADR 0032), so a filtered page survives a
  *  reload and can be shared. */
-export interface Route { tab: Tab; runId?: string; page?: string; query?: string }
+export interface Route { tab: Tab; runId?: string; page?: string; query?: string; source?: 'upload' }
 const TABS = new Set<Tab>(['overview', 'datasets', 'chat', 'runs', 'dashboard', 'approvals', 'memory', 'preferences', 'activity'])
 const ID = /^[a-zA-Z0-9_-]{1,100}$/
 const PAGE = /^[a-z]{1,20}$/
@@ -18,6 +18,7 @@ export function parseRoute(hash: string): Route {
   const tab = name === 'assistant' || name === 'workspace' ? 'chat' : name
   if (!TABS.has(tab as Tab)) return { tab: 'chat' }
   if (tab === 'runs' && rawId && ID.test(rawId)) return { tab, runId: rawId }
+  if (tab === 'runs' && !rawId && new URLSearchParams(query).get('source') === 'upload') return { tab, source: 'upload' }
   if (tab === 'dashboard') {
     const route: Route = { tab }
     if (rawId && ID.test(rawId)) {
@@ -35,7 +36,7 @@ export function routeHash(route: Route): string {
     if (!route.runId) return '#/dashboard'
     return `#/dashboard/${encodeURIComponent(route.runId)}${route.page ? `/${route.page}` : ''}${route.query ? `?${route.query}` : ''}`
   }
-  return `#/${route.tab === 'chat' ? 'assistant' : route.tab}${route.tab === 'runs' && route.runId ? `/${encodeURIComponent(route.runId)}` : ''}`
+  return `#/${route.tab === 'chat' ? 'assistant' : route.tab}${route.tab === 'runs' && route.runId ? `/${encodeURIComponent(route.runId)}` : route.tab === 'runs' && route.source === 'upload' ? '?source=upload' : ''}`
 }
 
 function subscribe(listener: () => void) {

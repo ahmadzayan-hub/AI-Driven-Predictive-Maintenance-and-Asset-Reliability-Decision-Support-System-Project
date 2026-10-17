@@ -17,6 +17,13 @@ equipment, review, cost and model-evidence screens in English or Arabic. It uses
 clearly labelled fictional data and requires no backend. See the
 [maintenance design specification](docs/design/MAINTENANCE_UI_SPEC.md).
 
+**Analyze your dataset:** start the Python server and open
+`http://127.0.0.1:8000/#/runs?source=upload`, or use **Upload & analyze your data**
+in the preview. Upload a tabular file, review its columns, then start the
+agents and open the computed report/dashboard. See the
+[upload guide](docs/DATASET_ANALYTICS.md) for setup, workbook sheets, supported
+formats, limits and background processing.
+
 In this project, "operating system" means an intelligent assistant
 environment — not a replacement for Windows, macOS, or Linux.
 
@@ -349,13 +356,13 @@ python main.py
 # mapping, joins, the cleaned-table queries, modelling stages, live sources and the event stream, uneven periods, docs, and the repository's operating system:
 # brain checker, session hooks, the verify script, the motion skill, the
 # agent team's tools, agent evaluation, the house style and the interface
-# budget (1064 tests discovered in the current local suite)
+# budget (1066 tests discovered in the current local suite)
 python -m unittest discover tests
 
-# Frontend unit tests (113 tests)
+# Frontend unit tests (120 tests)
 cd frontend && npm test
 
-# End-to-end + accessibility (104 checks across desktop and mobile,
+# End-to-end + accessibility (108 checks across desktop and mobile,
 # in English and Arabic;
 # requires the production build: npm run build)
 cd frontend && npx playwright test
@@ -382,18 +389,29 @@ skipped by design, because each covers one viewport only). In environments with 
 browser, point Playwright at it:
 `PLAYWRIGHT_EXECUTABLE_PATH=/path/to/chromium npx playwright test`.
 
-Maintenance UI validation on 17 October 2026: the current frontend unit suite
-passes all 113 tests, and the production build and interface budgets pass.
+Maintenance UI and dataset intake validation on 17 October 2026: the current
+frontend unit suite passes all 120 tests. Type checking, the production build,
+brain check and interface budgets pass.
 All 4 isolated preview browser tests pass, covering interactions, exports,
 English/Arabic, both themes, accessibility and desktop/phone layouts.
 The isolated design browser suite runs with
 `npm --prefix frontend run e2e -- --config playwright.preview.config.ts` after
 building. It uses synthetic fixtures and is separate from backend validation.
-The local full verifier is not green: the Python run reports 6 failures and
-90 errors (330 skipped), including absent server dependencies, and the normal
-browser suite cannot start because `python3` is unavailable. See the session
-log for the complete local record; these results do not replace earlier CI
-evidence or establish production readiness.
+The declared server dependencies are now installed in the local virtual
+environment, and the normal browser test servers start on Windows. All 4 new
+intake browser checks pass against the real API, including English/Arabic,
+CSV/JSON, calculated reports, a computed dashboard, accessibility and the
+approval gate. The 10 existing dataset/model checks also passed in the focused
+run; the complete 108-check backend browser suite was not rerun. The focused
+dataset Python suite reports 55 tests, 9 skipped, OK.
+
+The full local verifier reports **1 of 6 steps failed**: Python tests.
+Its 1066 discovered tests report 2 failures, 259 errors and 140 skipped.
+The failure output includes Windows SQLite cleanup locks and CRLF fixture
+mismatches; the full set of errors has not been individually diagnosed.
+PostgreSQL was not configured. See the session log for the complete local
+record; these results do not replace earlier CI evidence or establish
+production readiness.
 
 Five of the 1025 load real LLMRouter routers and **skip unless LLMRouter
 is installed**, which in CI it is not. With the eleven framework tests,

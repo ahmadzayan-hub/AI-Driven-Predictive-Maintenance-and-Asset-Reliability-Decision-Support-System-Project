@@ -201,6 +201,25 @@ class UnevenPeriodsTest(unittest.TestCase):
         self.assertEqual(detectors.uneven_periods(("Record_Date",), rows), [])
 
 
+class DetectorNamingTest(unittest.TestCase):
+
+    def test_each_finding_is_keyed_by_the_function_that_produced_it(self):
+        # Anything that consumes findings matches them to detectors by
+        # this name. A plural function emitting a singular key makes a
+        # quality check fail while reporting that it found nothing.
+        rows = ([{"Type": "Preventive", "Fix_Rate": 0.0, "Availability_Pct": 0.9,
+                  "Record_Date": "2024-01-01"} for _ in range(40)]
+                + [{"Type": "Corrective", "Fix_Rate": r, "Availability_Pct": 0.9,
+                    "Record_Date": "2025-01-01"}
+                   for _ in range(20) for r in (0.7, 0.8, 0.9)])
+        columns = ("Type", "Fix_Rate", "Availability_Pct", "Record_Date")
+        produced = {f["detector"] for f in detectors.run_all(columns, rows)}
+        known = {d.__name__ for d in detectors.DETECTORS}
+        self.assertTrue(produced, "the fixture should trigger something")
+        self.assertTrue(produced <= known,
+                        f"findings keyed by an unknown name: {produced - known}")
+
+
 class RunAllTest(unittest.TestCase):
 
     def test_orders_findings_with_the_most_severe_first(self):

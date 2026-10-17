@@ -12,6 +12,12 @@ const FIELDS: TableField[] = [
 ]
 
 describe('dashboard addresses (ADR 0032)', () => {
+  it('links directly to a real upload form without replacing an existing run', () => {
+    expect(parseRoute('#/runs?source=upload')).toEqual({ tab: 'runs', source: 'upload' })
+    expect(routeHash({ tab: 'runs', source: 'upload' })).toBe('#/runs?source=upload')
+    expect(parseRoute('#/runs/r1?source=upload')).toEqual({ tab: 'runs', runId: 'r1' })
+    expect(parseRoute('#/runs?source=invalid')).toEqual({ tab: 'runs' })
+  })
   it('carry the run, the page and every choice, and survive a round trip', () => {
     const state = {
       ...EMPTY,

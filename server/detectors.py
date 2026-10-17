@@ -273,7 +273,7 @@ def placeholder_rates(columns, rows):
             names = ", ".join(f"{k} ({len(groups[k])} rows, all {constant[k][0]:g})"
                               for k in list(constant)[:3])
             findings.append(_finding(
-                "placeholder_rate", "high",
+                "placeholder_rates", "high",
                 f"{rate} is a placeholder for part of the data",
                 f"{filled} of {len(rows)} rows hold one fixed value of {rate}, grouped by "
                 f"{group_col}: {names}. Averaging the column over every row gives "
