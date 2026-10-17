@@ -587,6 +587,12 @@ export const en = {
   'signin.enterEmail': 'Enter your email address first.',
   'signin.checkEmail': 'Check {email} for a sign-in link.',
   'signin.linkFailed': 'Could not send the link.',
+  'view.reload': 'Reload this view',
+  'cockpit.lastObserved': 'Last checked {time}',
+  'cockpit.exactReport': 'Review the exact report',
+  'cockpit.previewIncludesEvidence': 'This is the report returned for this approval. Its calculations, references and limitations are included below.',
+  'cockpit.reportUnavailable': 'The report is unavailable. Publishing stays disabled; reopen the analysis to recover it.',
+  'install.failed': 'The installation prompt could not open. Use your browser’s installation menu instead.',
 } as const
 
 export type MessageKey = keyof typeof en
@@ -601,12 +607,6 @@ export const enPlurals = {
   'runs.rows': { one: '{n} data row', other: '{n} data rows' },
   'session.restoredMessages': { one: '{n} message', other: '{n} messages' },
   'msg.toolCalls': { one: '{n} tool call', other: '{n} tool calls' },
-  "view.reload": "Reload this view",
-  "cockpit.lastObserved": "Last checked {time}",
-  "cockpit.exactReport": "Review the exact report",
-  "cockpit.previewIncludesEvidence": "This is the report returned for this approval. Its calculations, references and limitations are included below.",
-  "cockpit.reportUnavailable": "The report is unavailable. Publishing stays disabled; reopen the analysis to recover it.",
-  "install.failed": "The installation prompt could not open. Use your browser’s installation menu instead.",
 } as const satisfies Record<string, PluralForms>
 
 export type PluralKey = keyof typeof enPlurals

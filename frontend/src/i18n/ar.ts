@@ -566,6 +566,12 @@ export const ar: Record<MessageKey, string> = {
   'signin.enterEmail': 'أدخل بريدك الإلكتروني أولًا.',
   'signin.checkEmail': 'تحقق من {email} للحصول على رابط تسجيل الدخول.',
   'signin.linkFailed': 'تعذّر إرسال الرابط.',
+  'view.reload': 'إعادة تحميل العرض',
+  'cockpit.lastObserved': 'آخر تحقق {time}',
+  'cockpit.exactReport': 'مراجعة التقرير المحدد',
+  'cockpit.previewIncludesEvidence': 'هذا هو التقرير المرتبط بهذه الموافقة كما أعاده الخادم. ترد حساباته ومراجعه وحدوده أدناه.',
+  'cockpit.reportUnavailable': 'التقرير غير متاح. يظل النشر معطلاً؛ أعد فتح التحليل لاستعادته.',
+  'install.failed': 'تعذر فتح نافذة التثبيت. استخدم قائمة التثبيت في المتصفح.',
 }
 
 /** Arabic distinguishes zero, one, two, few (3–10), many (11–99) and
@@ -611,10 +617,4 @@ export const arPlurals: Record<PluralKey, PluralForms> = {
     many: '{n} استدعاء أدوات',
     other: '{n} استدعاء أدوات',
   },
-  "view.reload": "إعادة تحميل العرض",
-  "cockpit.lastObserved": "آخر تحقق {time}",
-  "cockpit.exactReport": "مراجعة التقرير المحدد",
-  "cockpit.previewIncludesEvidence": "هذا هو التقرير المرتبط بهذه الموافقة كما أعاده الخادم. ترد حساباته ومراجعه وحدوده أدناه.",
-  "cockpit.reportUnavailable": "التقرير غير متاح. يظل النشر معطلاً؛ أعد فتح التحليل لاستعادته.",
-  "install.failed": "تعذر فتح نافذة التثبيت. استخدم قائمة التثبيت في المتصفح.",
 }

@@ -52,6 +52,10 @@ class Step:
     cwd: Path = ROOT
     summarise: object = None
     groups: set = field(default_factory=lambda: {"full"})
+    # Steps that must pass first in this run. The budget and the browser
+    # tests read frontend/dist, so after a failed build they would judge
+    # the previous build and could pass for code that does not compile.
+    needs: tuple = ()
 
 
 def summarise_unittest(output):
@@ -130,9 +134,9 @@ def steps():
         Step("Frontend unit tests", [npm, "test"], cwd=FRONTEND,
              summarise=summarise_vitest, groups={"quick", "full", "e2e"}),
         Step("Production build", [npm, "run", "build"], cwd=FRONTEND, groups={"full", "e2e"}),
-        Step("Interface budget", ["budget"], groups={"full", "e2e"}),
+        Step("Interface budget", ["budget"], groups={"full", "e2e"}, needs=("Production build",)),
         Step("End-to-end tests", [npm, "run", "e2e"], cwd=FRONTEND,
-             summarise=summarise_playwright, groups={"e2e"}),
+             summarise=summarise_playwright, groups={"e2e"}, needs=("Production build",)),
     ]
 
 
@@ -178,6 +182,11 @@ def main(argv=None):
     failed = []
     for s in chosen:
         print(f"… {s.name}", flush=True)
+        blocked = [name for name in s.needs if name in failed]
+        if blocked:
+            failed.append(s.name)
+            print(f"FAIL {s.name:20} {0:6.1f}s  not run: {', '.join(blocked)} failed", flush=True)
+            continue
         ok, detail, output, seconds = run(s)
         mark = "PASS" if ok else "FAIL"
         print(f"{mark} {s.name:20} {seconds:6.1f}s  {detail}", flush=True)

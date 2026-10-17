@@ -138,6 +138,24 @@ class StepTests(unittest.TestCase):
                 self.assertEqual(verify.main(["--e2e", "--list"]), 0)
         self.assertIn("End-to-end tests", out.getvalue())
 
+    def test_a_failed_build_is_not_followed_by_checks_of_the_old_build(self):
+        build = verify.Step("Production build", [sys.executable, "-c", "raise SystemExit(2)"],
+                            groups={"full"})
+        budget = verify.Step("Interface budget", ["budget"], groups={"full"},
+                             needs=("Production build",))
+        with mock.patch.object(verify, "steps", return_value=[build, budget]), \
+                mock.patch.object(verify, "check_budget", side_effect=AssertionError("measured")):
+            with contextlib.redirect_stdout(io.StringIO()) as out:
+                self.assertEqual(verify.main([]), 1)
+        self.assertIn("FAIL Interface budget", out.getvalue())
+        self.assertIn("not run: Production build failed", out.getvalue())
+        self.assertIn("2 of 2 steps failed", out.getvalue())
+
+    def test_the_budget_and_browser_tests_need_the_build(self):
+        by_name = {s.name: s for s in verify.steps()}
+        self.assertIn("Production build", by_name["Interface budget"].needs)
+        self.assertIn("Production build", by_name["End-to-end tests"].needs)
+
     def test_a_failing_step_fails_the_run(self):
         failing = verify.Step("Python tests", [sys.executable, "-c", "raise SystemExit(3)"],
                               groups={"quick"})
