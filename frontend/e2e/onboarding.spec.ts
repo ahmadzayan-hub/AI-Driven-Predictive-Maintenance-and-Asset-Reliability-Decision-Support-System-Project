@@ -4,7 +4,7 @@ import { composerInput } from './helpers'
 test('first visit shows dismissible onboarding that never returns', async ({ page }) => {
   await page.goto('/')
 
-  const dialog = page.getByRole('dialog', { name: 'Welcome to Agentic OS' })
+  const dialog = page.getByRole('dialog', { name: 'Welcome to Asset Reliability' })
   await expect(dialog).toBeVisible()
   await expect(dialog).toContainText('Memory is stored locally')
 
@@ -13,5 +13,5 @@ test('first visit shows dismissible onboarding that never returns', async ({ pag
 
   await page.reload()
   await expect(composerInput(page)).toBeVisible()
-  await expect(page.getByRole('dialog', { name: 'Welcome to Agentic OS' })).toBeHidden()
+  await expect(page.getByRole('dialog', { name: 'Welcome to Asset Reliability' })).toBeHidden()
 })

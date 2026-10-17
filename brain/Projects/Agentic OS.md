@@ -10,7 +10,7 @@ sources: [README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progres
 
 # Agentic OS
 
-The product in this repository, described in [[Identity]]: a governed business-analytics assistant with a web workspace and a command-line interface.
+The engine in this repository, described in [[Identity]]: a governed business-analytics assistant with a web workspace and a command-line interface. It powers **AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project** (ADR 0036). The public product scope is in `docs/PROJECT_CHARTER.md`; the engine name and technical identifiers remain stable.
 
 ## Where it lives
 

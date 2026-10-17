@@ -4,7 +4,7 @@ Instructions for Claude Code working in this repository. Keep this file short; d
 
 ## What this is
 
-Agentic OS is a governed business-analytics assistant with a Python standard-library CLI (`main.py`, `agent.py`), a FastAPI server (`server/`) and a React 19 + Vite + TypeScript frontend (`frontend/`). Analyses run as a governed pipeline of specialist stages sequenced by Hermes. Every claim links to a calculation, and publishing waits for human approval.
+The product is **AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project**. Agentic OS is its governed analytics engine, with a Python standard-library CLI (`main.py`, `agent.py`), a FastAPI server (`server/`) and a React 19 + Vite + TypeScript frontend (`frontend/`). Analyses run as a governed pipeline of specialist stages sequenced by Hermes. Every claim links to a calculation, and publishing waits for human approval. `docs/PROJECT_CHARTER.md` defines the product scope and delivery roadmap.
 
 **Where it is going:** an analytics OS that takes several datasets with dynamic inputs through preparation, cleaning and modelling to a multi-page interactive dashboard with live data. The milestones and the code-grounded gap analysis are in `project-progress.md`.
 

@@ -70,7 +70,7 @@ export const en = {
   "cards.allowed": "Completed",
   "cards.refused": "Unsuccessful",
   "cards.arguments": "Tool arguments",
-  "install.title": "Use Agentic OS as an app",
+  "install.title": "Use Asset Reliability as an app",
   "install.desc": "The same workspace adapts to Windows, Android, iPhone and iPad.",
   "install.button": "Install app",
   "install.installed": "You are using the installed app.",
@@ -102,7 +102,9 @@ export const en = {
   "cockpit.role.publish": "Approval-gated publishing",
 
   // Brand and shell
-  'brand.name': 'Agentic OS',
+  'brand.name': 'Asset Reliability',
+  'brand.fullName': 'AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project',
+  'brand.description': 'Maintenance and asset reliability decision support, powered by the Agentic OS analytics engine.',
   'shell.skip': 'Skip to message composer',
   'nav.main': 'Main',
   'nav.primary': 'Primary',
@@ -218,9 +220,9 @@ export const en = {
   'msg.viaRuntime': 'run by {name}',
 
   // Onboarding
-  'onboard.title': 'Welcome to Agentic OS',
+  'onboard.title': 'Welcome to Asset Reliability',
   'onboard.intro':
-    'Your personal intelligent workspace: conversation, memory, and preferences in one place.',
+    'Prepare data, examine maintenance and reliability findings, and review the evidence before approving a report.',
   'onboard.p1': 'Talk to the agent in plain language, or use slash commands like /help and /remember.',
   'onboard.p2': 'Press Ctrl+K (or ⌘K) any time to search every available command.',
   'onboard.p3': 'Preferences such as response tone change how the agent replies — instantly.',
@@ -375,7 +377,7 @@ export const en = {
   'outcome.sessionEnded': 'Session ended.',
   'outcome.startFailed': 'Could not start a session.',
   'api.timeout': 'The server took too long to respond. Please try again.',
-  'api.unreachable': 'Cannot reach the Agentic OS server. Check your connection.',
+  'api.unreachable': 'Cannot reach the Asset Reliability server. Check your connection.',
   'api.failed': 'Request failed ({status}).',
 
   // Analytics runs
@@ -575,9 +577,9 @@ export const en = {
 
   // Sign-in
   'signin.aria': 'Sign in',
-  'signin.title': 'Sign in to Agentic OS',
+  'signin.title': 'Sign in to Asset Reliability',
   'signin.desc':
-    'This deployment requires an account. Your credentials go directly to the identity provider — Agentic OS never sees them.',
+    'This deployment requires an account. Your credentials go directly to the identity provider — this app never sees them.',
   'signin.email': 'Email',
   'signin.password': 'Password',
   'signin.submit': 'Sign in',

@@ -1,6 +1,6 @@
 # Operating playbook
 
-How this repository is structured and run, day to day, by people and by Claude Code. Agentic OS is the product. This playbook covers the system around it, which keeps the work continuous, verified and remembered from one session to the next.
+How this repository is structured and run, day to day, by people and by Claude Code. Agentic OS is the engine behind the maintenance SaaS product described in `docs/PROJECT_CHARTER.md`. This playbook covers the system around it, which keeps the work continuous, verified and remembered from one session to the next.
 
 ## 1. The five layers
 

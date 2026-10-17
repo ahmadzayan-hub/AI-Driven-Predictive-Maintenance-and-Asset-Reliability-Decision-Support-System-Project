@@ -72,7 +72,7 @@ export const ar: Record<MessageKey, string> = {
   "cards.allowed": "اكتمل",
   "cards.refused": "لم يكتمل",
   "cards.arguments": "مدخلات الأداة",
-  "install.title": "استخدم Agentic OS كتطبيق",
+  "install.title": "استخدم موثوقية الأصول كتطبيق",
   "install.desc": "تتكيف مساحة العمل نفسها مع Windows وAndroid وiPhone وiPad.",
   "install.button": "تثبيت التطبيق",
   "install.installed": "أنت تستخدم التطبيق المثبّت.",
@@ -103,7 +103,9 @@ export const ar: Record<MessageKey, string> = {
   "cockpit.role.reporter": "إعداد التقارير",
   "cockpit.role.publish": "النشر بعد الموافقة",
 
-  'brand.name': 'Agentic OS',
+  'brand.name': 'موثوقية الأصول',
+  'brand.fullName': 'مشروع نظام الصيانة التنبؤية المدعوم بالذكاء الاصطناعي ودعم قرارات موثوقية الأصول كبرمجيات كخدمة',
+  'brand.description': 'دعم قرارات الصيانة وموثوقية الأصول باستخدام محرك التحليلات Agentic OS.',
   'shell.skip': 'الانتقال إلى مربع كتابة الرسالة',
   'nav.main': 'التنقل الرئيسي',
   'nav.primary': 'التنقل الأساسي',
@@ -209,8 +211,8 @@ export const ar: Record<MessageKey, string> = {
   'msg.viaModel': 'فهمه نموذج ({provider})',
   'msg.viaRuntime': 'نفّذه {name}',
 
-  'onboard.title': 'مرحبًا بك في Agentic OS',
-  'onboard.intro': 'مساحة عملك الذكية الشخصية: المحادثة والذاكرة والتفضيلات في مكان واحد.',
+  'onboard.title': 'مرحبًا بك في موثوقية الأصول',
+  'onboard.intro': 'جهّز البيانات، وافحص نتائج الصيانة وموثوقية الأصول، وراجع الأدلة قبل اعتماد التقرير.',
   'onboard.p1': 'تحدّث إلى الوكيل بلغة طبيعية، أو استخدم أوامر الشرطة المائلة مثل ‎/help‎ و‎/remember‎.',
   'onboard.p2': 'اضغط Ctrl+K (أو ⌘K) في أي وقت للبحث في كل الأوامر المتاحة.',
   'onboard.p3': 'التفضيلات مثل أسلوب الرد تغيّر طريقة رد الوكيل — فورًا.',
@@ -357,7 +359,7 @@ export const ar: Record<MessageKey, string> = {
   'outcome.sessionEnded': 'انتهت الجلسة.',
   'outcome.startFailed': 'تعذّر بدء جلسة.',
   'api.timeout': 'استغرق الخادم وقتًا طويلًا للرد. يُرجى المحاولة مرة أخرى.',
-  'api.unreachable': 'تعذّر الوصول إلى خادم Agentic OS. تحقق من اتصالك.',
+  'api.unreachable': 'تعذّر الوصول إلى خادم موثوقية الأصول. تحقق من اتصالك.',
   'api.failed': 'فشل الطلب ({status}).',
 
   'runs.aria': 'التحليلات',
@@ -554,9 +556,9 @@ export const ar: Record<MessageKey, string> = {
   'grain.year': 'السنة',
 
   'signin.aria': 'تسجيل الدخول',
-  'signin.title': 'تسجيل الدخول إلى Agentic OS',
+  'signin.title': 'تسجيل الدخول إلى موثوقية الأصول',
   'signin.desc':
-    'يتطلب هذا النشر حسابًا. تذهب بيانات اعتمادك مباشرة إلى مزوّد الهوية — ولا يراها Agentic OS أبدًا.',
+    'يتطلب هذا النشر حسابًا. تذهب بيانات اعتمادك مباشرة إلى مزوّد الهوية — ولا يراها هذا التطبيق أبدًا.',
   'signin.email': 'البريد الإلكتروني',
   'signin.password': 'كلمة المرور',
   'signin.submit': 'تسجيل الدخول',

@@ -828,7 +828,8 @@ def create_app(config_path=None, env=None, dist_dir=None):
         return JSONResponse(status_code=201 if created else 200, content={
             "dataset": dataset_summary(dataset), "created": created,
             "columns": parsed.columns, "preview": parsed.preview(),
-            "warnings": parsed.warning_texts(language), "sheets": parsed.sheets})
+            "warnings": parsed.warning_texts(language), "sheets": parsed.sheets,
+            "selected_sheet": parsed.selected_sheet})
 
     @app.get("/api/datasets")
     def list_datasets(principal=Depends(requires("read"))):

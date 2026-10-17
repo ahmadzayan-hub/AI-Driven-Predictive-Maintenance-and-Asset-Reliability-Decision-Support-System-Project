@@ -1,11 +1,14 @@
 # Project progress
 
-Last updated: 2026-10-17, session `7ba0117d` (A3 to A7: the Analytics OS milestones are built). The session-end skill keeps this file current; the SessionStart hook reads the *Now* section into every new session.
+Last updated: 2026-10-17, session `codex-maintenance-ui` (interactive maintenance SaaS design). The session-end skill keeps this file current; the SessionStart hook reads the *Now* section into every new session.
 
-**Vision.** Agentic OS becomes an analytics OS. It digests several datasets with dynamic inputs, then carries them through preparation, cleaning and modelling to a multi-page interactive dashboard with live data, with insights and key findings that are always traceable to a calculation. The reasoning behind it is in `brain/Projects/Analytics OS roadmap.md`.
+**Vision.** **AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project** uses Agentic OS as its governed analytics engine. It digests several datasets with dynamic inputs, then carries them through preparation, cleaning and modelling to a multi-page interactive dashboard with live data, with insights and key findings that are always traceable to a calculation. The product scope and remaining domain work are in `docs/PROJECT_CHARTER.md`; the reusable engine milestones are in `brain/Projects/Analytics OS roadmap.md`.
 
 ## Now
 
+- **Maintenance SaaS UI design: done locally 2026-10-17** (ADR 0037). The owner selected the executive overview. `?design=maintenance` opens a bilingual, responsive preview with equipment, review, cost and model-evidence screens, shared filters, source/calculation drill-down, local review marks and a clearly labelled fictional summary export. Light/dark themes and desktop/phone screenshots are in `docs/screenshots/maintenance/`; handoff is `docs/design/MAINTENANCE_UI_SPEC.md`. Backend/model integration and production SaaS readiness remain open. Actual verification outcomes and environment limitations are in the session log.
+- **Maintenance playbook: done locally 2026-10-17.** `private/project-study-2026-10-17/AI_Driven_Predictive_Maintenance_SaaS_Playbook.md` covers the delivery sequence, responsibilities, data/KPI/model gates, dashboard and submission checks, verified CLI options, task prompts and SaaS milestones. It distinguishes the separate retail teaching workspace from this product. The previously recorded private team directory is now absent at its old path; current source and deliverable locations need confirmation before running the package checks.
+- **Product identity and delivery study: done locally 2026-10-17** (ADR 0036). Project documentation, bilingual shell/onboarding/sign-in labels, browser title and install metadata use the new product identity. Agentic OS remains the engine; existing repository, deployment and storage identifiers remain. `docs/PROJECT_CHARTER.md` separates implemented foundations from domain and SaaS milestones. The supplied course requirements, workbook review, current owner responsibilities and deliverable gaps are recorded privately in `private/project-study-2026-10-17/DELIVERY_PLAN.md`. This does not complete or submit the capstone package. Verification results and limitations are in the session log.
 - **Capstone, due 22 Oct (upload 21 Oct):**
     - Release candidates built on 16 Oct and sent to the user: `Group_9226_Team_3_Report.pdf` (24 A4 pages) and `Group_9226_Team_3_Presentation.pptx` (15 slides with notes), with the Power BI kit, a submission checklist and the build scripts. Report, deck and the kit's 30 expected values reconcile.
     - **Reviewed on 16 Oct by the review loop** (`docs/AGENT_TEAM.md` §5). The gates went 50.0% → 56.2% → 62.5% → 62.5%: all ten the session could act on pass, and six are the team's.
@@ -53,10 +56,11 @@ Last updated: 2026-10-17, session `7ba0117d` (A3 to A7: the Analytics OS milesto
 
 ## Next
 
-1. Observe the manager's timed review task, real Windows/Android/iOS PWA installation and assistive-technology use; measure fresh Web Vitals. Automated interface checks and bundle budgets pass; see the validation record for the remaining observations. CSS is near its existing limit, so trim before adding styles or record a justified budget change in an ADR.
-2. Exercise a live source against a real public host, and a scheduled refresh with the worker, on a deployment with direct egress; workbook sheet selection (phase 2).
-3. Harder reviewer memos (subtler defects, longer documents), so prompt changes can be measured. For intent and causal wording, try a model behind the rules once a rotated key or a local model is available; the rules plateau near 70% on blind sets.
-4. Invite the team as collaborators and protect the default branch (owner action, on GitHub).
+1. Follow the maintenance delivery sequence in `docs/PROJECT_CHARTER.md`: approve a grain/units/KPI/feature-timing contract, integrate the existing structural detectors as a governed stage, and complete decision-specific model evidence. Keep the course acceptance checklist and official-date confirmation in the private delivery plan.
+2. Observe the manager's timed review task, real Windows/Android/iOS PWA installation and assistive-technology use; measure fresh Web Vitals. Automated interface checks and bundle budgets pass; see the validation record for the remaining observations. CSS is near its existing limit, so trim before adding styles or record a justified budget change in an ADR.
+3. Exercise a live source against a real public host, and a scheduled refresh with the worker, on a deployment with direct egress; workbook sheet selection (phase 2).
+4. Harder reviewer memos (subtler defects, longer documents), so prompt changes can be measured. For intent and causal wording, try a model behind the rules once a rotated key or a local model is available; the rules plateau near 70% on blind sets.
+5. Invite the team as collaborators and protect the default branch (owner action, on GitHub).
 
 ## Analytics OS milestones
 
@@ -90,6 +94,8 @@ Reusable foundations: the metric glossary (`metrics.json`), custom stages (ADR 0
 
 | Date | What | Evidence |
 | --- | --- | --- |
+| 2026-10-17 | Private maintenance delivery and development playbook | Source-linked Markdown, command-option inspection, local-link checks, documentation tests and strict brain check; results in `session-logs.md` |
+| 2026-10-17 | Maintenance SaaS product identity and delivery study | ADR 0036; public charter; bilingual product labels and browser metadata; private requirements and workbook review; verification recorded in `session-logs.md` |
 | 2026-10-17 | A7, live data: live sources with an SSRF fence, scheduled refreshes, the event stream and the Live badge (ADR 0034) | 1025 Python tests with PostgreSQL (16 skipped); 106 frontend unit tests; end-to-end 100 of 104 run and pass, 4 skipped by design; budget 92.8 of 100 KB first load; security review: no blockers, seven findings fixed |
 | 2026-10-17 | A6, modelling stages: four plugins against their baselines, model cards; view strings ship with their chunk (ADRs 0033, 0035) | 964 Python tests with PostgreSQL (16 skipped); 98 frontend unit tests; end-to-end 94 of 98 run and pass, 4 skipped by design; budget 92.8 of 100 KB first load |
 | 2026-10-17 | A5, dashboard pages: router, six pages, global filters in the address, drill-down to records, histogram and scatter (ADR 0032) | 942 Python tests with PostgreSQL (16 skipped); 94 frontend unit tests; end-to-end 90 of 94 run and pass, 4 skipped by design; budget 96.5 of 100 KB first load, CSS 9.4 of 10 KB first load and 10.2 of 16 KB total |

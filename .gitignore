@@ -18,7 +18,6 @@ private/
 # may ever reach this public repository. The team workspace is a separate
 # private repository with its own CLAUDE.md, Memory.md and session logs.
 inputs/
-team3-capstone/
 # Claude Code: per-person settings and the hooks' per-session state.
 .claude/settings.local.json
 .claude/state/
@@ -37,3 +36,4 @@ frontend/dist/
 frontend/e2e/.tmp/
 frontend/playwright-report/
 frontend/test-results/
+frontend/test-results-preview/

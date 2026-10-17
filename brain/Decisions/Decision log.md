@@ -50,5 +50,7 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 | 0033 | Modelling stages as plugins, each against its baseline | [[Custom stages]] |
 | 0034 | Live data: connectors, scheduled refreshes, pushed updates | [[Analytics OS roadmap]] |
 | 0035 | A view's strings ship with the view | [[Design system]] |
+| 0036 | Maintenance SaaS product identity over the existing Agentic OS engine | [[Identity]], [[Agentic OS]] |
+| 0037 | Isolated bilingual maintenance design preview with fictional fixtures | [[Design system]], [[Agentic OS]] |
 
 All seven [[Analytics OS roadmap]] milestones have their records.

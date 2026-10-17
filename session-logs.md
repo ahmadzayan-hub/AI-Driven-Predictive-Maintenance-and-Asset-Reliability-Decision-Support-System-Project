@@ -534,3 +534,58 @@ The first entries were written from the commit history and the session's own rec
 - **Decisions:** detectors stay domain-agnostic and live in this public repository; everything carrying course material stays in the private capstone workspace. Leakage is reported per split rather than per pair, so one switch is one finding. A candidate total and its parts must share a subject word, not merely a unit.
 - **Open / next:** wire the detectors into a stage plugin (ADR 0020) so their findings become claims with calculations; then the remaining five agents.
 - **Blockers:** `scripts/verify.py` cannot complete on this Windows console — it crashes encoding its own output mark to cp1252, and 253 tests error with `_Py_HashRandomization_Init: failed to get random numbers` because subprocess spawning is blocked here. Both are environmental and pre-existing, not caused by this change.
+
+## 2026-10-17 · `codex-maintenance-identity` · local workspace
+
+**Goal:** study the project and supplied private materials, map the delivery work,
+and rename the product to AI-Driven Predictive Maintenance and Asset Reliability
+Decision-Support System SaaS Project.
+
+- **Done:**
+    - Renamed the product in the README, project instructions, bilingual shell/onboarding/sign-in/install labels, browser title and web manifest. The full title is readable in onboarding; the compact shell label is Asset Reliability / موثوقية الأصول. Locale switching updates the browser and Apple web-app titles and description.
+    - Added `docs/PROJECT_CHARTER.md` and ADR 0036, separating existing engine capabilities from remaining maintenance-domain and SaaS work. Updated Memory, the progress board and the affected brain notes.
+    - Studied the supplied private sources and the existing team workspace. Created a private delivery plan, a reproducible workbook review and aggregate-only evidence under `private/project-study-2026-10-17/`. Source materials and shared deliverable drafts were left intact. Document instructions were treated as source requirements, not authority for external actions.
+    - Added a cross-file identity regression test and extended locale tests for metadata; updated existing browser-test labels.
+- **Verified:**
+    - `python` is not on PATH here. Ran the bundled Python interpreter with `-X utf8` and `PYTHONUTF8=1`; `scripts/verify.py --e2e` completed and reported **2 of 7 steps failed**. Full output is private in `verification.txt`.
+    - `PASS Brain check`: no broken links, stale notes, duplicates, unlinked mentions or orphans. Repeated after the brain edits with the same clean result.
+    - `PASS Type check`; `PASS Frontend unit tests` (106 passed); `PASS Production build`; `PASS Interface budget`.
+    - After the final metadata translation, the affected i18n test file passed all 19 tests, and the production build (including TypeScript) passed again. Final measured budget: JS first load 93.2 of 100 KB, JS total 137.9 of 160 KB, largest JS chunk 12.8 of 30 KB, CSS first load 9.4 of 10 KB, CSS total 11.1 of 16 KB, fonts 119.4 of 120 KB.
+    - Focused Python identity and documentation checks: `Ran 9 tests` / `OK`.
+    - Full Python result: `Ran 1042 tests`, `FAILED (failures=6, errors=90, skipped=330)`. Required server dependencies are absent from the bundled interpreter; dependency-audit failures specifically report missing FastAPI, Starlette and the requested crypto dependency closure. The remaining errors were not fully diagnosed or compared with a pristine checkout. This run does not establish a regression-free backend.
+    - End-to-end tests did not start: the web-server command returned `'python3' is not recognized`. PostgreSQL was not configured. No new browser screenshots or real-device verification are claimed.
+- **Decided:**
+    - Agentic OS remains the analytics engine and configurable assistant name. Package names, API/storage identifiers, export filenames, remote URLs and the local folder are unchanged. This session changes the product identity locally, not the deployment or service readiness.
+    - Private delivery requirements and personal details stay outside public documentation. The supplied official brief and the existing team schedule need date reconciliation in the private plan.
+- **Open / next:**
+    - Follow the maintenance contract and governed-detector integration sequence in the public charter, and the delivery acceptance checklist in the private plan.
+    - Run the full verifier in an environment with the required Python server dependencies and the `python3` command used by Playwright; include PostgreSQL when available.
+    - No commit, push or deployment was made. This Desktop workspace has no `.git` directory, confirmed by `git status`.
+
+## 2026-10-17 · `codex-maintenance-playbook` · local workspace
+
+**Goal:** generate a practical playbook for the renamed maintenance SaaS project.
+
+- **Done:** created the private Markdown playbook at `private/project-study-2026-10-17/AI_Driven_Predictive_Maintenance_SaaS_Playbook.md`. It covers the delivery tracks, responsibilities, local evidence handling, governance, KPI definitions, model evaluation, dashboard implementation, report/deck assembly, review gates, supported command examples, reusable task prompts, SaaS milestones and session handoff. Updated Memory and the progress board.
+- **Verified:** UTF-8 read passed; Markdown fences balanced; all 18 local document links resolve. `python -m unittest tests.test_docs` printed `Ran 8 tests` / `OK`. `scripts/brain_check.py --strict` reported no broken links, stale notes, duplicate candidates, unlinked mentions or orphans. Commands used the bundled interpreter with `-X utf8`. Full application verification and browser tests were not rerun for this documentation-only change; previous failures are not presented as resolved.
+- **Decided:** keep the course-specific playbook private and create a separate file rather than overwrite the existing repository operating playbook or the external teaching-method file. The other workspace's retail example does not define the maintenance application's architecture. CLI examples match inspected options, including the absence of a `--profile` flag in `scripts/analyse.py`.
+- **Next:** confirm the current location of the private team workspace and deliverables. Its previously recorded directory no longer exists at that path. The playbook labels role/status references as historical and uses a configurable current deliverables location in its command examples. No source dataset, existing deliverable, deployment or remote repository was changed.
+
+## 2026-10-17 · `codex-maintenance-ui` · local workspace
+
+**Goal:** design the maintenance SaaS application, using the executive overview selected by the owner.
+
+- **Done:**
+    - Implemented the opt-in `?design=maintenance` React preview: executive overview, asset reliability, maintenance reviews, cost and model evidence. Shared site/period/search filters, calculated figures and charts, accessible chart tables, evidence dialogs, local review marks and a labelled sample-summary CSV export work in English and Arabic.
+    - Created original fictional equipment fixtures, with visible source labels, formulas, fixed-snapshot dates and artificial condition thresholds. No private workbook data or personal information enters this interface. Model performance remains explicitly unavailable.
+    - Reused shared tokens, fonts, themes, locale handling and accessible dialogs. Added navigation tokens and responsive layouts, including right-to-left and dark mode. Loading and failed-chunk states use the existing boundaries. Review queue focus returns to the heading when the original row disappears.
+    - Added ADR 0037, `docs/design/MAINTENANCE_UI_SPEC.md`, unit and isolated browser checks, and eight actual screenshots in `docs/screenshots/maintenance/`. Updated README, the decision index, Memory and the progress board. Opened the local preview in Edge and left the executive overview ready for the owner.
+- **Verified:**
+    - Final `npm --prefix frontend test`: `17 passed` test files, `113 passed` tests. An earlier concurrent full run hit the five-second limit in the combined filter test; the test now sets search in one input event and has an explicit longer timeout. The complete rerun passed.
+    - Final TypeScript check and production build passed. Interface budget printed: JS first load 93.3 of 100 KB, JS total 147.3 of 160 KB, largest chunk 12.8 of 30 KB, CSS first load 9.4 of 10 KB, CSS total 14.5 of 16 KB, fonts 119.4 of 120 KB.
+    - Final `npm --prefix frontend run e2e -- --config playwright.preview.config.ts`: `4 passed (1.7m)`, exit 0. Checked filtered totals and downloaded content, dialog keyboard behavior, local-only reviews/reset on reload, absence of API requests/page errors, all five views in both languages/themes, axe and document overflow, plus 320-pixel metric/legend clipping. The preview suite now uses its own output folder, avoiding collision with the normal backend suite. Its test server needed an explicit stop by its known PID after all cases completed in this Windows environment; the runner then exited successfully.
+    - Visually inspected English desktop and Arabic phone/desktop in Edge and actual production-build screenshots. No real-device, assistive-technology-user or live backend validation is claimed.
+    - `python -m unittest tests.test_docs`: `Ran 8 tests` / `OK`. `brain_check.py --strict`: 27 notes, no broken links, stale notes, duplicate candidates, unlinked mentions or orphans.
+    - Ran the full `scripts/verify.py --e2e` with the bundled interpreter, `-X utf8` and `PYTHONUTF8=1`. The final full-run log is private at `private/project-study-2026-10-17/ui-verification-final.txt`: `3 of 7 steps failed`. Python reported `Ran 1064 tests` / `FAILED (failures=6, errors=90, skipped=330)`; missing FastAPI, Starlette and crypto dependency closure are among the failures. Other backend errors were not fully diagnosed. The frontend timeout noted above was subsequently fixed and the entire frontend suite rerun successfully. The normal end-to-end server could not start because `python3` is not recognized. PostgreSQL was not configured. This does not establish a passing backend or production readiness.
+- **Decided:** the preview is isolated from the application store and backend, has no model calls, durable review actions or maintenance dispatch, and leaves the normal authenticated workspace as the default entry point. Source-document content informs the design but does not authorize external actions. No dependency or interface-budget increase was needed.
+- **Next:** bind the reviewed UI to the maintenance-domain contract's server-side aggregates and governed model cards, preserving tenant boundaries, source freshness and report approval. Run backend/normal e2e checks with the required Python environment and PostgreSQL. No deployment, commit, push or pull request was made.

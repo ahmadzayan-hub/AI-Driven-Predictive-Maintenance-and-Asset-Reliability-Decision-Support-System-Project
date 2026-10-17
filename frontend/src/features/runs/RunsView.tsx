@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useSessionDraft } from '../../shared/useSessionDraft'
 import { useI18n } from '../../i18n'
-import { api, ApiError, MAX_UPLOAD_BYTES } from '../../shared/api'
+import { api, ApiError, MAX_UPLOAD_BYTES, UPLOAD_ACCEPT } from '../../shared/api'
+import { usePack } from '../../i18n/pack'
+import { intakeMessages } from '../datasets/intakeMessages'
+import { WorkbookSheetPicker } from '../datasets/WorkbookSheetPicker'
+import { MappingPanel } from '../datasets/MappingPanel'
 import { barGeometry } from '../../shared/charts'
 import { Icon } from '../../shared/components/Icon'
 import { languageLabel, formatLabel, questionLabel, stateLabel, typeLabel } from '../../shared/labels'
@@ -159,7 +163,7 @@ function stageTitles(pipelines: Pipelines, profile: string): string[] {
 }
 
 export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRunSelected, onOpenDashboard, draftScope = 'session' }: RunsViewProps) {
-  const { t, plural, isRtl, locale, formatNumber, formatDate, formatTime } = useI18n()
+  const { t, plural, isRtl, locale, formatNumber, formatDate, formatTime } = usePack(intakeMessages)
   const visible = useRef(true)
   useLayoutEffect(() => { visible.current = true; return () => { visible.current = false } }, [])
   const [runs, setRuns] = useState<RunSummary[]>([])
@@ -183,7 +187,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
   )
   const [datasets, setDatasets] = useState<DatasetSummary[] | null>(null)
   const [storedId, setStoredId] = useState(() => (preset?.kind === 'stored' ? preset.id : ''))
-  const suggestedGoal = preset?.kind === 'stored' ? t('runs.goalStored', { name: preset.name }) : t('runs.goalDefault')
+  const suggestedGoal = preset?.kind === 'stored' ? t('runs.goalStored', { name: preset.name }) : preset?.kind === 'upload' ? t('intake.goal') : t('runs.goalDefault')
   const questionContext = preset?.kind === 'stored' ? preset.id : preset?.kind ?? 'sample'
   const [goal, setGoal] = useSessionDraft(`${draftScope}:analysis-question:${questionContext}`, () => suggestedGoal)
   // The goal the form last wrote itself. A goal the person typed is
@@ -191,6 +195,8 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
   const autoGoal = useRef(suggestedGoal)
   const [uploaded, setUploaded] = useState<UploadResult | null>(null)
   const [uploading, setUploading] = useState<string | null>(null)
+  const sourceFile = useRef<File | null>(null)
+  const [mappingId, setMappingId] = useState<string | null>(null)
   const [csvDraft, setCsvDraft] = useState('')
   // Stepping stops for two different reasons: the user paused the run
   // (durable, server-side, also obeyed by a background worker) or a
@@ -246,9 +252,12 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
     setGoal(next)
   }
 
-  async function uploadFile(file: File) {
+  async function uploadFile(file: File, sheet?: string) {
     setErrorMessage(null)
     setUploaded(null)
+    setCsvDraft('')
+    setMappingId(null)
+    sourceFile.current = file
     if (file.size > MAX_UPLOAD_BYTES) {
       setErrorMessage(
         t('runs.tooBig', {
@@ -261,7 +270,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
     }
     setUploading(file.name)
     try {
-      const result = await api.uploadDataset(file, locale)
+      const result = await api.uploadDataset(file, locale, sheet)
       setUploaded(result)
       setCsvDraft('')
       suggestGoal(result.dataset.name)
@@ -299,7 +308,17 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
 
   async function createRun(event: React.FormEvent) {
     event.preventDefault()
+    await startRun()
+  }
+
+  async function startRun() {
     if (starting.current) return
+    if (uploading) { setErrorMessage(t('intake.wait')); return }
+    if ((source === 'stored' && !storedId) || (source === 'upload' && !uploaded && !csvDraft.trim())) {
+      setErrorMessage(t('intake.required'))
+      return
+    }
+    if (!goal.trim()) return
     starting.current = true
     setBusy(true)
     setErrorMessage(null)
@@ -415,6 +434,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
 
           <div className="card">
             <form onSubmit={createRun}>
+              <p className="panel__note">{t('intake.workflow')}</p>
               <div className="field">
                 <label className="field__label" htmlFor="run-goal">
                   {t('runs.goal')}
@@ -440,9 +460,17 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                       type="button"
                       className="segmented__option"
                       aria-pressed={source === option}
+                      disabled={busy || uploading !== null}
                       onClick={() => {
                         setSource(option)
+                        setMappingId(null)
+                        setErrorMessage(null)
                         if (option === 'sample') suggestGoal(null)
+                        if (option === 'upload' && goal === autoGoal.current) {
+                          const next = uploaded ? t('runs.goalStored', { name: uploaded.dataset.name }) : t('intake.goal')
+                          autoGoal.current = next
+                          setGoal(next)
+                        }
                         if (option === 'stored') {
                           const chosen = datasets?.find((d) => d.id === storedId)
                           if (chosen) suggestGoal(chosen.name)
@@ -469,6 +497,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                         value={storedId}
                         disabled={busy}
                         onChange={(event) => {
+                          setMappingId(null)
                           setStoredId(event.target.value)
                           const chosen = datasets?.find((d) => d.id === event.target.value)
                           suggestGoal(chosen ? chosen.name : null)
@@ -497,11 +526,12 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                       id="run-file"
                       className="field__input"
                       type="file"
-                      accept=".csv,.tsv,.txt,.xlsx,.json,.jsonl,.ndjson"
+                      accept={UPLOAD_ACCEPT}
                       disabled={busy || uploading !== null}
                       onChange={(event) => {
                         const file = event.target.files?.[0]
                         if (file) void uploadFile(file)
+                        event.target.value = ''
                       }}
                     />
                     <p className="privacy-note" role="status" aria-live="polite">
@@ -530,6 +560,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                       </ul>
                     ) : null}
                   </div>
+                  {uploaded && sourceFile.current && <WorkbookSheetPicker result={uploaded} onSelect={(sheet) => { if (sourceFile.current) void uploadFile(sourceFile.current, sheet) }} />}
                   <div className="field">
                     <label className="field__label" htmlFor="run-csv">
                       {t('runs.paste')}
@@ -545,9 +576,10 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                         setCsvDraft(event.target.value)
                         // Pasted text replaces a file chosen before it.
                         setUploaded(null)
+                        setMappingId(null)
                       }}
                       placeholder={'team,quarter,sales\nA,Q1,100\nB,Q1,90'}
-                      disabled={busy}
+                      disabled={busy || uploading !== null}
                     />
                   </div>
                 </>
@@ -582,6 +614,11 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                 </div>
               ) : null}
               {uploaded ? <UploadPreview result={uploaded} /> : null}
+              {primaryId && !mappingId && <div className="field"><button className="btn btn--ghost" type="button" disabled={busy || uploading !== null} onClick={() => setMappingId(primaryId)}>{t('intake.columns')}</button></div>}
+              {mappingId && <MappingPanel key={mappingId} datasetId={mappingId} focusOnOpen onClose={() => setMappingId(null)} onChanged={(dataset) => {
+                setDatasets((list) => list?.map((item) => item.id === dataset.id ? dataset : item) ?? null)
+                setUploaded((previous) => previous?.dataset.id === dataset.id ? { ...previous, dataset } : previous)
+              }} onAnalyse={() => { setMappingId(null); void startRun() }} />}
               {source !== 'sample' ? (
                 <JoinBuilder
                   primaryId={primaryId}
@@ -593,8 +630,10 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                 />
               ) : null}
               <PlanPreview pipelines={pipelines} profile={profile} joined={joins.length > 0} />
+              <p className="panel__note">{t('intake.models')}</p>
+              <p className="panel__note">{t('intake.limits')}</p>
               <div className="field">
-                <button type="submit" className="btn btn--primary" disabled={busy || !goal.trim()}>
+                <button type="submit" className="btn btn--primary" disabled={busy || uploading !== null || !goal.trim() || (source === 'stored' && !storedId) || (source === 'upload' && !uploaded && !csvDraft.trim())}>
                   {busy ? <span className="spinner" aria-hidden="true" /> : <Icon name="sparkle" size={16} />}
                   {t('runs.start')}
                 </button>

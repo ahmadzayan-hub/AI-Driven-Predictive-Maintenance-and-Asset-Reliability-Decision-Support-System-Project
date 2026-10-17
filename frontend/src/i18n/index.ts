@@ -86,6 +86,11 @@ export function applyLocale(locale: Locale, persist = true) {
   const root = document.documentElement
   root.lang = locale
   root.dir = LOCALES[locale].dir
+  document.title = LOCALES[locale].messages['brand.fullName']
+  document.querySelector('meta[name="apple-mobile-web-app-title"]')
+    ?.setAttribute('content', LOCALES[locale].messages['brand.name'])
+  document.querySelector('meta[name="description"]')
+    ?.setAttribute('content', LOCALES[locale].messages['brand.description'])
   if (persist) {
     try {
       localStorage.setItem(LOCALE_KEY, locale)

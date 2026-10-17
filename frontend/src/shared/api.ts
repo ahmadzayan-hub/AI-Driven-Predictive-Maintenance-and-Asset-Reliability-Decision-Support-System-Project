@@ -31,6 +31,7 @@ const UPLOAD_TIMEOUT_MS = 60_000
 /** The most one upload can be (server/datasets.py, ADR 0024). Checked
  *  here only to save a wasted transfer; the server decides. */
 export const MAX_UPLOAD_BYTES = 4_000_000
+export const UPLOAD_ACCEPT = '.csv,.tsv,.tab,.txt,.xlsx,.xlsm,.json,.jsonl,.ndjson'
 
 export class ApiError extends Error {
   status: number
@@ -244,9 +245,9 @@ export const api = {
   listDatasets: () => request<{ datasets: DatasetSummary[] }>('/api/datasets'),
   /** The file itself is the request body: CSV, TSV, Excel, JSON or JSON
    *  Lines. The server reads it, stores it once and answers in `language`. */
-  uploadDataset: (file: File, language: 'en' | 'ar' = 'en') =>
+  uploadDataset: (file: File, language: 'en' | 'ar' = 'en', sheet?: string) =>
     request<UploadResult>(
-      `/api/datasets?name=${encodeURIComponent(file.name)}&language=${language}`,
+      `/api/datasets?name=${encodeURIComponent(file.name)}&language=${language}${sheet ? `&sheet=${encodeURIComponent(sheet)}` : ''}`,
       {
         method: 'POST',
         body: file,

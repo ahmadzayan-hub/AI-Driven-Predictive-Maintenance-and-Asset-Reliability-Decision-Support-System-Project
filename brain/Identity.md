@@ -3,7 +3,7 @@ type: identity
 aliases: [Who we are]
 tags: [core]
 status: active
-updated: 2026-10-16
+updated: 2026-10-17
 review_every_days: 30
 sources: [README.md, docs/ARCHITECTURE.md, docs/AGENT_CATALOG.md]
 ---
@@ -12,9 +12,9 @@ sources: [README.md, docs/ARCHITECTURE.md, docs/AGENT_CATALOG.md]
 
 Two identities share this repository: the product, and the agent that builds it. Both answer to [[Soul]] and work for the [[User]].
 
-## The product: Agentic OS
+## The product and its Agentic OS engine
 
-[[Agentic OS]] is a governed business-analytics assistant with two front doors: a web workspace and the original command-line interface. In this project "operating system" means an assistant environment, not a replacement for Windows, macOS or Linux.
+The product is **AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project** (ADR 0036). [[Agentic OS]] remains its governed analytics engine with two front doors: a web workspace and the original command-line interface. The product scope and delivery sequence are in `docs/PROJECT_CHARTER.md`. In this project "operating system" means an assistant environment, not a replacement for Windows, macOS or Linux.
 
 - A chat that turns plain English or Arabic into one of a fixed set of typed actions, with no model needed.
 - Analyses that run as a [[Governed pipeline]] of specialist stages, sequenced by the [[Hermes orchestrator]].

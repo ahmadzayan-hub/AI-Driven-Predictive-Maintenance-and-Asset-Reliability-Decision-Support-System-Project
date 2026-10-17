@@ -1,10 +1,10 @@
 {
-  "name": "Agentic OS",
-  "short_name": "Agentic OS",
+  "name": "AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project",
+  "short_name": "Asset Reliability",
   "id": "/",
   "scope": "/",
   "categories": ["productivity", "business"],
-  "description": "A governed business-analytics assistant with memory, runs, and evidence-backed reports.",
+  "description": "Maintenance and asset reliability decision support, powered by the Agentic OS analytics engine.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0b1220",

@@ -71,6 +71,7 @@ class ParsedDataset:
     warnings: list = field(default_factory=list)   # [{"en": ..., "ar": ...}]
     sheets: list = field(default_factory=list)
     csv_text: str = ""
+    selected_sheet: str | None = None
 
     def preview(self):
         return self.rows[:PREVIEW_ROWS]
@@ -757,4 +758,6 @@ def _read_xlsx(body, sheet=None):
         warnings.append({
             "en": f"Read the sheet “{chosen['name']}”, the first of {len(sheets)}.",
             "ar": f"قُرئت الورقة «{chosen['name']}»، وهي الأولى من {len(sheets)} أوراق."})
-    return _table("xlsx", rows, warnings, [s["name"] for s in sheets])
+    parsed = _table("xlsx", rows, warnings, [s["name"] for s in sheets])
+    parsed.selected_sheet = chosen["name"]
+    return parsed

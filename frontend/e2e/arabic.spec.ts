@@ -174,7 +174,7 @@ test.describe('Arabic interface', () => {
   test('the first-run dialog is Arabic and accessible', async ({ page }) => {
     await page.addInitScript(() => localStorage.removeItem('aos-onboarded'))
     await page.goto('/')
-    const dialog = page.getByRole('dialog', { name: 'مرحبًا بك في Agentic OS' })
+    const dialog = page.getByRole('dialog', { name: 'مرحبًا بك في موثوقية الأصول' })
     await dialog.waitFor()
     await expectNoViolations(page, 'onboarding dialog (ar)')
     await dialog.getByRole('button', { name: 'ابدأ الآن' }).click()

@@ -325,6 +325,7 @@ export interface UploadResult {
   preview: string[][]
   warnings: string[]
   sheets: string[]
+  selected_sheet?: string | null
 }
 
 /** Registered custom stages and the profiles that choose among them,

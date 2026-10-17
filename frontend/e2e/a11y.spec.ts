@@ -60,6 +60,6 @@ test('all views and dialogs pass automated WCAG 2.2 AA checks', async ({ page })
 
 test('onboarding dialog passes automated WCAG 2.2 AA checks', async ({ page }) => {
   await page.goto('/')
-  await page.getByRole('dialog', { name: 'Welcome to Agentic OS' }).waitFor()
+  await page.getByRole('dialog', { name: 'Welcome to Asset Reliability' }).waitFor()
   await expectNoViolations(page, 'onboarding dialog')
 })

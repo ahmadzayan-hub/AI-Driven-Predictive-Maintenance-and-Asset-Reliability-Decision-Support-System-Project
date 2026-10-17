@@ -20,6 +20,9 @@ Full list: [brain/Soul.md](brain/Soul.md).
 
 ## Repository
 
+- Product name: **AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project** (17 Oct, ADR 0036). English/Arabic interface labels: Asset Reliability / موثوقية الأصول. Agentic OS remains the engine and assistant name. Public scope and milestones: `docs/PROJECT_CHARTER.md`; the course study and owner details stay in `private/project-study-2026-10-17/DELIVERY_PLAN.md`. This is a display-name change, not a remote repository, folder or deployment rename.
+- Private execution guide: `private/project-study-2026-10-17/AI_Driven_Predictive_Maintenance_SaaS_Playbook.md`. The previously recorded `team3-capstone/team3-capstone/` directory was absent during the playbook's link check; locate its current source and deliverable files before treating earlier release-candidate status as current.
+- Maintenance design (ADR 0037): the owner chose the executive overview. Open `?design=maintenance` on the React app for an isolated bilingual preview using fictional fixtures; no API/model calls or durable review actions. Handoff: `docs/design/MAINTENANCE_UI_SPEC.md`. The static preview browser suite uses `playwright.preview.config.ts`, independently of the Python-backed e2e suite.
 - `ahmadzayan-hub/agentic-os-final-project`, public; the old name `ahmadzayan-hub/11` redirects, and cloud sessions still address it as `11`.
 - Working and default branch: `claude/agentic-os-final-project-53j6ql`. `main` is behind; leave the default alone until after the capstone.
 - Production: `https://agentic-os-final-project.vercel.app`, behind Vercel Authentication.

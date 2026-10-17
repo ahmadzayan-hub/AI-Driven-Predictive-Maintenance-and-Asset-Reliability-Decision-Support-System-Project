@@ -287,7 +287,7 @@ export function App() {
             <span className="brand__mark" aria-hidden="true">
               A
             </span>
-            <span className="brand__name">{t('brand.name')}</span>
+            <span className="brand__name" title={t('brand.fullName')}>{t('brand.name')}</span>
           </div>
           <div className="header__spacer" style={{ flex: 1 }} />
           {languageButton}
@@ -427,7 +427,7 @@ export function App() {
           <span className="brand__mark" aria-hidden="true">
             A
           </span>
-          <h1 className="brand__name">{session.agent_name}</h1>
+          <h1 className="brand__name" title={t('brand.fullName')}>{t('brand.name')}</h1>
         </div>
         <div className="header__search">
           <button

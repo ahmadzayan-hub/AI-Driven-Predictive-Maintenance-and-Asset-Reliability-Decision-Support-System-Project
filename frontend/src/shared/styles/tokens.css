@@ -13,6 +13,13 @@
   --surface: #ffffff;
   --surface-raised: #ffffff;
   --surface-sunken: #e9eef6;
+  /* The maintenance design preview keeps a stable, high-contrast navigation rail. */
+  --nav-surface: #111a2e;
+  --nav-text: #f1f5f9;
+  --nav-muted: #a9b6cc;
+  --nav-border: #33415d;
+  --nav-active: #243657;
+  --nav-accent: #8db0ff;
   --border: #dce3ee;
   --border-strong: #7c8ba1;
   --text: #0f172a;

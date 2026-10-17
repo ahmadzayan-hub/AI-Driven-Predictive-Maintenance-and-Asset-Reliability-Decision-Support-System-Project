@@ -20,6 +20,7 @@ export function Onboarding({ onDismiss }: OnboardingProps) {
   const { t } = useI18n()
   return (
     <Dialog title={t('onboard.title')} onClose={onDismiss} labelledById="onboarding-title">
+      <p className="dialog__body">{t('brand.fullName')}</p>
       <p className="dialog__body">{t('onboard.intro')}</p>
       <ul className="onboard__list">
         {POINTS.map((point) => (

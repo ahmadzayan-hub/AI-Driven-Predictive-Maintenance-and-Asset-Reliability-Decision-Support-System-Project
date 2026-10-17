@@ -1,9 +1,21 @@
-# Agentic OS
+# AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project
 
-An interactive intelligent assistant with two front doors: a modern web
-workspace and the original command-line interface. The agent understands
-commands, applies your preferences, keeps conversation history, and
-remembers information between sessions.
+A maintenance and asset reliability decision-support product being developed
+as software as a service, powered by **Agentic OS**, its governed analytics
+engine. The web workspace supports data preparation, analysis, model evaluation,
+dashboards and human approval of reports. The original command-line assistant
+remains available.
+
+The product name describes the development direction. Asset-specific prediction,
+commercial service readiness and operational savings require separate evidence.
+See the [project charter and delivery roadmap](docs/PROJECT_CHARTER.md) for the
+current scope, reusable capabilities and remaining work.
+
+**Maintenance UI preview:** run `npm --prefix frontend run dev` and open
+`http://localhost:5173/?design=maintenance` for the interactive executive overview,
+equipment, review, cost and model-evidence screens in English or Arabic. It uses
+clearly labelled fictional data and requires no backend. See the
+[maintenance design specification](docs/design/MAINTENANCE_UI_SPEC.md).
 
 In this project, "operating system" means an intelligent assistant
 environment — not a replacement for Windows, macOS, or Linux.
@@ -337,10 +349,10 @@ python main.py
 # mapping, joins, the cleaned-table queries, modelling stages, live sources and the event stream, uneven periods, docs, and the repository's operating system:
 # brain checker, session hooks, the verify script, the motion skill, the
 # agent team's tools, agent evaluation, the house style and the interface
-# budget (1025 tests)
+# budget (1064 tests discovered in the current local suite)
 python -m unittest discover tests
 
-# Frontend unit tests (106 tests)
+# Frontend unit tests (113 tests)
 cd frontend && npm test
 
 # End-to-end + accessibility (104 checks across desktop and mobile,
@@ -359,7 +371,8 @@ python scripts/verify.py
 
 The same suite runs automatically in CI (`.github/workflows/ci.yml`) on
 every push, including the run-engine and backup suites against a real
-PostgreSQL 16 service. Last verified: 1025 Python tests (1006 run in CI;
+PostgreSQL 16 service. Earlier engine verification, before the maintenance
+identity and UI additions: 1025 Python tests (1006 run in CI;
 the 11 that need an optional agent framework or the MCP SDK, the 5 that
 need LLMRouter, the 1 that cross-checks workbooks with openpyxl, and the
 2 that need the frontend build, which CI makes after the Python step,
@@ -368,6 +381,19 @@ skip there),
 skipped by design, because each covers one viewport only). In environments with a pre-installed
 browser, point Playwright at it:
 `PLAYWRIGHT_EXECUTABLE_PATH=/path/to/chromium npx playwright test`.
+
+Maintenance UI validation on 17 October 2026: the current frontend unit suite
+passes all 113 tests, and the production build and interface budgets pass.
+All 4 isolated preview browser tests pass, covering interactions, exports,
+English/Arabic, both themes, accessibility and desktop/phone layouts.
+The isolated design browser suite runs with
+`npm --prefix frontend run e2e -- --config playwright.preview.config.ts` after
+building. It uses synthetic fixtures and is separate from backend validation.
+The local full verifier is not green: the Python run reports 6 failures and
+90 errors (330 skipped), including absent server dependencies, and the normal
+browser suite cannot start because `python3` is unavailable. See the session
+log for the complete local record; these results do not replace earlier CI
+evidence or establish production readiness.
 
 Five of the 1025 load real LLMRouter routers and **skip unless LLMRouter
 is installed**, which in CI it is not. With the eleven framework tests,
@@ -710,8 +736,9 @@ getting access, ways to help without writing code, local setup, the
 branch and pull-request flow, and the rules for a public repository: no
 secrets, no personal data, no force-push.
 
-## Author and Course Information
+## Project Information
 
 - Author: Ahmad Zayan
-- Course: Agentic OS Final Project
+- Product: AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project
+- Engine: Agentic OS
 - Version: 1.0.0

@@ -15,6 +15,7 @@ import { usePack } from '../i18n/pack'
 import { dashMessages } from '../features/dashboard/messages'
 import { joinMessages, modelMessages } from '../features/runs/messages'
 import { liveMessages } from '../features/live/messages'
+import { maintenanceMessages } from '../features/maintenance/messages'
 import { StatusBadge } from '../shared/components/StatusBadge'
 
 afterEach(() => {
@@ -34,9 +35,8 @@ describe('the dictionaries', () => {
     const untranslated = (Object.keys(en) as Array<keyof typeof en>).filter(
       (key) => ar[key].trim() === '' || (ar[key] === en[key] && /[a-z]{4,}/i.test(en[key])),
     )
-    // Product names, file formats and file paths are the same in both
-    // languages and are allowed; everything else must differ.
-    expect(untranslated).toEqual(['brand.name', 'format.xlsx', 'format.json', 'format.jsonl'])
+    // File formats are the same in both languages; product labels are localized.
+    expect(untranslated).toEqual(['format.xlsx', 'format.json', 'format.jsonl'])
   })
 
   it('use the same placeholders in both languages', () => {
@@ -54,16 +54,34 @@ describe('applyLocale', () => {
     expect(document.documentElement.dir).toBe('rtl')
     expect(currentLocale()).toBe('ar')
     expect(storedLocale()).toBe('ar')
+    expect(document.title).toBe(ar['brand.fullName'])
 
     applyLocale('en')
     expect(document.documentElement.dir).toBe('ltr')
     expect(storedLocale()).toBe('en')
+    expect(document.title).toBe(en['brand.fullName'])
   })
 
   it('can apply a session language without recording it as a choice', () => {
-    applyLocale('ar', false)
-    expect(currentLocale()).toBe('ar')
-    expect(storedLocale()).toBeNull()
+    const appleTitle = document.createElement('meta')
+    appleTitle.name = 'apple-mobile-web-app-title'
+    const description = document.createElement('meta')
+    description.name = 'description'
+    document.head.append(appleTitle, description)
+    try {
+      applyLocale('ar', false)
+      expect(currentLocale()).toBe('ar')
+      expect(storedLocale()).toBeNull()
+      expect(appleTitle.content).toBe(ar['brand.name'])
+      expect(description.content).toBe(ar['brand.description'])
+      applyLocale('en', false)
+      expect(appleTitle.content).toBe(en['brand.name'])
+      expect(description.content).toBe(en['brand.description'])
+      expect(storedLocale()).toBeNull()
+    } finally {
+      appleTitle.remove()
+      description.remove()
+    }
   })
 })
 
@@ -151,7 +169,7 @@ describe('useI18n', () => {
 // rules: the same keys and placeholders in both languages, none blank or
 // left in English, and no key that the main dictionary also defines.
 describe('message packs', () => {
-  const packs = { dashMessages, joinMessages, modelMessages, liveMessages }
+  const packs = { dashMessages, joinMessages, modelMessages, liveMessages, maintenanceMessages }
   const names = (text: string) => (text.match(/\{\w+\}/g) ?? []).sort()
 
   for (const [name, pack] of Object.entries(packs)) {

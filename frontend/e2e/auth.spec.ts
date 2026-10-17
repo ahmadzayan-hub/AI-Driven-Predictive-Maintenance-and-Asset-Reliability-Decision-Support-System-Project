@@ -29,7 +29,7 @@ test.describe('managed authentication', () => {
 
     const signIn = page.getByRole('main', { name: 'Sign in' })
     await expect(signIn).toBeVisible()
-    await expect(signIn).toContainText('Agentic OS never sees them')
+    await expect(signIn).toContainText('this app never sees them')
     // The workspace must not be reachable without credentials.
     await expect(page.getByRole('textbox', { name: 'Message' })).toHaveCount(0)
   })

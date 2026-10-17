@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../../i18n'
-import { api, ApiError, MAX_UPLOAD_BYTES } from '../../shared/api'
+import { api, ApiError, MAX_UPLOAD_BYTES, UPLOAD_ACCEPT } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
 import { formatBytes } from '../../shared/format'
 import { formatLabel } from '../../shared/labels'
@@ -8,11 +8,10 @@ import type { DatasetSummary, UploadResult, Usage } from '../../shared/types'
 import { ConnectorsPanel } from '../live/ConnectorsPanel'
 import { MappingPanel } from './MappingPanel'
 import { UploadPreview } from './UploadPreview'
+import { WorkbookSheetPicker } from './WorkbookSheetPicker'
 
 /** The most datasets GET /api/datasets returns. */
 const DATASET_PAGE = 50
-
-const ACCEPT = '.csv,.tsv,.txt,.xlsx,.json,.jsonl,.ndjson'
 
 interface DatasetsViewProps {
   onAnalyse: (dataset: DatasetSummary) => void
@@ -30,6 +29,7 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
   // Adding a dataset (ADR 0024): one file at a time, read and stored by
   // the server, which answers in the reader's language.
   const fileInput = useRef<HTMLInputElement | null>(null)
+  const sourceFile = useRef<File | null>(null)
   const [uploading, setUploading] = useState<string | null>(null)
   const [outcome, setOutcome] = useState<UploadResult | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -52,9 +52,11 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
     )
   }
 
-  async function addFile(file: File) {
+  async function addFile(file: File, sheet?: string) {
     setOutcome(null)
     setUploadError(null)
+    setMapping(null)
+    sourceFile.current = file
     if (file.size > MAX_UPLOAD_BYTES) {
       setUploadError(
         t('runs.tooBig', {
@@ -67,7 +69,7 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
     }
     setUploading(file.name)
     try {
-      const result = await api.uploadDataset(file, locale)
+      const result = await api.uploadDataset(file, locale, sheet)
       setOutcome(result)
       setMapping({ id: result.dataset.id, focus: false })
       // Refreshed in place: the list stays on screen while it updates.
@@ -130,7 +132,7 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
           <input
             ref={fileInput}
             type="file"
-            accept={ACCEPT}
+            accept={UPLOAD_ACCEPT}
             hidden
             tabIndex={-1}
             onChange={(event) => {
@@ -171,6 +173,7 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
             {uploadError}
           </p>
         ) : null}
+        {outcome && sourceFile.current && <WorkbookSheetPicker result={outcome} onSelect={(sheet) => { if (sourceFile.current) void addFile(sourceFile.current, sheet) }} />}
 
         {usage ? (
           <p className="panel__note">
