@@ -14,7 +14,7 @@ export function EvidencePanel({ run, task, onClose }: {
   const rows = reportCalculations(section?.content ?? run.report?.content ?? '')
   const reportLanguage = run.report_language === 'ar' ? 'ar' : 'en'
   return (
-    <Dialog title={t('cockpit.why')} onClose={onClose} wide>
+    <Dialog title={t('cockpit.why')} onClose={onClose} wide initialFocus="panel">
       <div className="evidence__context"><span dir="auto">{run.dataset_name}</span><span dir="auto" lang={reportLanguage}>{task.title}</span></div>
       {task.summary ? <p dir="auto" lang={reportLanguage} className="evidence__summary">{task.summary}</p> : null}
       <h3 className="card__title">{t('cockpit.claims')}</h3>

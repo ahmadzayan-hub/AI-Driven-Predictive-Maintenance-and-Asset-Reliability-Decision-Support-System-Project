@@ -58,6 +58,8 @@ test('drafts, deep links, evidence and exact-report keyboard approval', async ({
 
   await page.getByRole('button', { name: /^Why is this true\?/ }).first().click()
   const evidence = page.getByRole('dialog', { name: 'Why is this true?' })
+  await expect(evidence.getByRole('heading', { name: 'Why is this true?' })).toBeInViewport()
+  await expect(evidence).toBeFocused()
   await expect(evidence).toContainText('c_change')
   await expect(evidence.getByRole('table')).toBeVisible()
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag22aa']).analyze()).violations).toEqual([])
