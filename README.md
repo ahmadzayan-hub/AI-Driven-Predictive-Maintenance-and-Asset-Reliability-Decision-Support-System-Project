@@ -298,13 +298,14 @@ python main.py
 # agent runtimes, MCP, frameworks, report language, datasets, column
 # mapping, uneven periods, docs, and the repository's operating system:
 # brain checker, session hooks, the verify script, the motion skill, the
-# agent team's tools, agent evaluation and the house style (858 tests)
+# agent team's tools, agent evaluation, the house style and the interface
+# budget (863 tests)
 python -m unittest discover tests
 
-# Frontend unit tests (60 tests)
+# Frontend unit tests (66 tests)
 cd frontend && npm test
 
-# End-to-end + accessibility (72 checks across desktop and mobile,
+# End-to-end + accessibility (74 checks across desktop and mobile,
 # in English and Arabic;
 # requires the production build: npm run build)
 cd frontend && npx playwright test
@@ -320,21 +321,22 @@ python scripts/verify.py
 
 The same suite runs automatically in CI (`.github/workflows/ci.yml`) on
 every push, including the run-engine and backup suites against a real
-PostgreSQL 16 service. Last verified: 858 Python tests (840 run in CI;
+PostgreSQL 16 service. Last verified: 863 Python tests (844 run in CI;
 the 11 that need an optional agent framework or the MCP SDK, the 5 that
 need LLMRouter, the 1 that cross-checks workbooks with openpyxl, and the
-1 that needs the frontend build, which CI makes after the Python step,
+2 that need the frontend build, which CI makes after the Python step,
 skip there),
-60 frontend unit tests, and 72 end-to-end checks (69 executed; 3
+66 frontend unit tests, and 74 end-to-end checks (71 executed; 3
 skipped by design, because each covers one viewport only). In environments with a pre-installed
 browser, point Playwright at it:
 `PLAYWRIGHT_EXECUTABLE_PATH=/path/to/chromium npx playwright test`.
 
-Five of the 858 load real LLMRouter routers and **skip unless LLMRouter
+Five of the 863 load real LLMRouter routers and **skip unless LLMRouter
 is installed**, which in CI it is not. With the eleven framework tests,
-the openpyxl cross-check and the static-files test that needs the
-frontend build, CI reports `OK (skipped=18)` (CI run 49), and that is
-the expected result, not a gap. The other 22 routing tests
+the openpyxl cross-check and the two tests that read the frontend build
+(the static files and the interface budget), CI is expected to report
+`OK (skipped=19)`. It reported 18 (CI run 49) before the budget test
+joined them. That is the expected result, not a gap. The other 22 routing tests
 never import it and always run. Both readings were verified: with the
 library and the optional frameworks (ADR 0021) installed, nothing
 skipped (checked at 584 tests; the 32 that ADR 0022 added and the 30

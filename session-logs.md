@@ -428,3 +428,33 @@ The first entries were written from the commit history and the session's own rec
     - v4's misses are not read and not used for fixes, so it stays a test.
     - **Lesson:** a single blind set overstates how far hand-written rules generalise. Intent scored 80% on v3 and 68% on v4 before any change. The rules plateau near 70% for intent and causal wording, and the next real gain needs a model behind them.
 - **Open / next:** a model-backed classifier once a rotated key or a local model is available; harder reviewer memos.
+
+## 2026-10-17 (views on demand) · `7ba0117d` · claude/agentic-os-final-project-53j6ql
+
+**Goal:** split the interface so views load on demand, to free budget for the next views (board item 1).
+
+- **Done:**
+    - **Views load on demand (ADR 0028):**
+        - The chat view and the shell ship in the first load. Six views and four overlays are chunks fetched when first shown (`frontend/src/app/lazyViews.tsx`), then prefetched in idle time unless the browser asks to save data.
+        - A view on its way shows a skeleton with a status label. A view that cannot load says so and offers a reload, in English and Arabic.
+    - **The budget counts what is sent** (`scripts/verify.py`): first load at most 100 KB (the entry and its preloads, read from `index.html`), all scripts at most 160 KB, and the largest on-demand chunk at most 30 KB.
+    - **End-to-end:** `openTab` now waits for the skeleton to go, so axe reads the view and not its placeholder. A new test refuses the Overview's chunk, then checks the message and that the next view still opens.
+    - **Docs:** A3 moves to ADR 0029. Also updated: the UI plan's budget row, the Codex prompt, known limitation 24, Memory, the design-system note and the README counts.
+- **Verified:**
+    - **Budget:** first load 96.7 → 85.7 KB gzipped; all scripts 96.7 → 105.6 KB; largest chunk 5.0 KB (Runs). React DOM is about 57 KB of the first load.
+    - `scripts/verify.py --e2e` with PostgreSQL: 863 Python tests, 16 skipped; brain check clean (27 notes); type check; 66 frontend unit tests; build; budget. End-to-end: 69 passed and 3 skipped by design in that run; the 2 new checks failed there and passed after the fix below (74 in all).
+    - **Lighthouse 13.4.1 mobile,** three runs on each build (a worktree of `e45b0e3` against the working tree), medians before → after:
+        - Performance 99 → 98;
+        - largest paint 2.13 s both;
+        - first paint 1.37 → 1.52 s;
+        - unused script 46.6 → 23.8 KB;
+        - page weight 163.6 → 148.8 KB.
+    - So no speed gain today. The split buys headroom and halves the unused script.
+    - **First end-to-end attempt:** the new test failed on both viewports. The app's service worker fetched the refused chunk itself, out of `page.route`'s reach. The test now blocks service workers, as for a reader with nothing cached.
+    - CI run 62 (recall round 5) passed.
+- **Decisions:**
+    - The chat stays in the first load, because the session opens on it (ADR 0023).
+    - Both dictionaries stay in the first load (about 15 KB gzipped together), so switching language never waits on a download.
+    - Prefetching in idle time keeps later clicks and offline use as before. The cost is 8.9 KB more in all, because each chunk is compressed on its own.
+    - **Why we did it:** for headroom, not speed. The docs say plainly that Lighthouse showed no gain. If the first paint stays slower as views are added, inline the React runtime into the entry first.
+- **Open / next:** A3, several datasets per run (ADR 0029); deep links and the sheet picker.

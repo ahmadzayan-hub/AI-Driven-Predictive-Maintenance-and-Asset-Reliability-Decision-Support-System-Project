@@ -1,16 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { ActivityView } from '../features/activity/ActivityView'
-import { SignIn } from '../features/auth/SignIn'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { ChatView } from '../features/chat/ChatView'
 import type { ComposerHandle } from '../features/chat/Composer'
-import { CommandPalette } from '../features/commands/CommandPalette'
-import { HelpDialog } from '../features/commands/HelpDialog'
-import { DatasetsView } from '../features/datasets/DatasetsView'
-import { MemoryView } from '../features/memory/MemoryView'
-import { Onboarding } from '../features/onboarding/Onboarding'
-import { OverviewView } from '../features/overview/OverviewView'
-import { PreferencesView } from '../features/preferences/PreferencesView'
-import { RunsView } from '../features/runs/RunsView'
 import type { RunPreset } from '../features/runs/RunsView'
 import { useI18n } from '../i18n'
 import type { MessageKey } from '../i18n'
@@ -20,6 +10,21 @@ import type { IconName } from '../shared/components/Icon'
 import { StatusBadge } from '../shared/components/StatusBadge'
 import { languageLabel, toneLabel } from '../shared/labels'
 import type { CommandInfo } from '../shared/types'
+import {
+  ActivityView,
+  CommandPalette,
+  DatasetsView,
+  HelpDialog,
+  MemoryView,
+  Onboarding,
+  OverviewView,
+  PreferencesView,
+  prefetchWhenIdle,
+  RunsView,
+  SignIn,
+  ViewBoundary,
+  ViewLoading,
+} from './lazyViews'
 import { useStore } from './store'
 import { useTheme } from './useTheme'
 
@@ -160,6 +165,11 @@ export function App() {
     setDrawerOpen(true)
   }
 
+  // The other views' chunks follow in idle time once the session is up,
+  // so the first paint waits only for the shell and the chat (ADR 0028).
+  const hasSession = store.session !== null
+  useEffect(() => (hasSession ? prefetchWhenIdle() : undefined), [hasSession])
+
   const dismissOnboarding = useCallback(() => {
     setShowOnboarding(false)
     try {
@@ -211,10 +221,14 @@ export function App() {
   // Hosted deployments gate everything behind the identity provider.
   if (store.needsSignIn && store.authConfig) {
     return (
-      <SignIn
-        config={store.authConfig}
-        onSignedIn={(token) => void store.signIn(token)}
-      />
+      <ViewBoundary>
+        <Suspense fallback={<ViewLoading />}>
+          <SignIn
+            config={store.authConfig}
+            onSignedIn={(token) => void store.signIn(token)}
+          />
+        </Suspense>
+      </ViewBoundary>
     )
   }
 
@@ -420,65 +434,70 @@ export function App() {
         ) : null}
 
         <main className="main">
-          {tab === 'overview' ? (
-            <OverviewView onOpenRun={openRun} onStart={startAnalysis} />
-          ) : null}
-          {tab === 'datasets' ? (
-            <DatasetsView
-              onAnalyse={(dataset) =>
-                startAnalysis({ kind: 'stored', id: dataset.id, name: dataset.name })
-              }
-            />
-          ) : null}
-          {tab === 'chat' ? (
-            <ChatView
-              session={session}
-              sending={store.sending}
-              failedText={store.failedText}
-              offline={status === 'offline'}
-              userName={userName}
-              onSend={(text) => void store.send(text)}
-              onRetry={() => void store.retryFailed()}
-              onDismissFailed={store.dismissFailed}
-              composerRef={composerRef}
-            />
-          ) : null}
-          {tab === 'runs' ? (
-            <RunsView
-              openRunId={runTarget?.id ?? null}
-              openNonce={runTarget?.nonce ?? 0}
-              preset={runPreset}
-            />
-          ) : null}
-          {tab === 'memory' ? (
-            <MemoryView
-              entries={session.memory_entries}
-              disabled={session.ended}
-              onAdd={store.addMemory}
-              onUpdate={store.updateMemory}
-              onDelete={store.deleteMemory}
-              onClearAll={store.clearMemory}
-              onExport={store.exportData}
-              onClearHistory={() => setConfirming('history')}
-            />
-          ) : null}
-          {tab === 'preferences' ? (
-            <PreferencesView
-              preferences={session.preferences}
-              disabled={session.ended}
-              locale={locale}
-              onSet={store.setPreference}
-              onSetLanguage={store.setLanguage}
-            />
-          ) : null}
-          {tab === 'activity' ? (
-            <ActivityView
-              events={store.events}
-              session={session}
-              status={status}
-              lastSyncedAt={store.lastSyncedAt}
-            />
-          ) : null}
+          {/* Keyed by view, so a failure in one view clears on leaving it. */}
+          <ViewBoundary key={tab}>
+            <Suspense fallback={<ViewLoading />}>
+              {tab === 'overview' ? (
+                <OverviewView onOpenRun={openRun} onStart={startAnalysis} />
+              ) : null}
+              {tab === 'datasets' ? (
+                <DatasetsView
+                  onAnalyse={(dataset) =>
+                    startAnalysis({ kind: 'stored', id: dataset.id, name: dataset.name })
+                  }
+                />
+              ) : null}
+              {tab === 'chat' ? (
+                <ChatView
+                  session={session}
+                  sending={store.sending}
+                  failedText={store.failedText}
+                  offline={status === 'offline'}
+                  userName={userName}
+                  onSend={(text) => void store.send(text)}
+                  onRetry={() => void store.retryFailed()}
+                  onDismissFailed={store.dismissFailed}
+                  composerRef={composerRef}
+                />
+              ) : null}
+              {tab === 'runs' ? (
+                <RunsView
+                  openRunId={runTarget?.id ?? null}
+                  openNonce={runTarget?.nonce ?? 0}
+                  preset={runPreset}
+                />
+              ) : null}
+              {tab === 'memory' ? (
+                <MemoryView
+                  entries={session.memory_entries}
+                  disabled={session.ended}
+                  onAdd={store.addMemory}
+                  onUpdate={store.updateMemory}
+                  onDelete={store.deleteMemory}
+                  onClearAll={store.clearMemory}
+                  onExport={store.exportData}
+                  onClearHistory={() => setConfirming('history')}
+                />
+              ) : null}
+              {tab === 'preferences' ? (
+                <PreferencesView
+                  preferences={session.preferences}
+                  disabled={session.ended}
+                  locale={locale}
+                  onSet={store.setPreference}
+                  onSetLanguage={store.setLanguage}
+                />
+              ) : null}
+              {tab === 'activity' ? (
+                <ActivityView
+                  events={store.events}
+                  session={session}
+                  status={status}
+                  lastSyncedAt={store.lastSyncedAt}
+                />
+              ) : null}
+            </Suspense>
+          </ViewBoundary>
         </main>
 
         {tab === 'chat' ? (
@@ -550,15 +569,33 @@ export function App() {
         </button>
       </nav>
 
+      {/* Each dialog appears when its chunk arrives, with nothing to hold its
+          place; one that fails to load leaves the page as it was. */}
       {paletteOpen ? (
-        <CommandPalette
-          commands={session.commands}
-          onPick={pickCommand}
-          onClose={() => setPaletteOpen(false)}
-        />
+        <ViewBoundary fallback={null}>
+          <Suspense fallback={null}>
+            <CommandPalette
+              commands={session.commands}
+              onPick={pickCommand}
+              onClose={() => setPaletteOpen(false)}
+            />
+          </Suspense>
+        </ViewBoundary>
       ) : null}
-      {helpOpen ? <HelpDialog commands={session.commands} onClose={() => setHelpOpen(false)} /> : null}
-      {showOnboarding ? <Onboarding onDismiss={dismissOnboarding} /> : null}
+      {helpOpen ? (
+        <ViewBoundary fallback={null}>
+          <Suspense fallback={null}>
+            <HelpDialog commands={session.commands} onClose={() => setHelpOpen(false)} />
+          </Suspense>
+        </ViewBoundary>
+      ) : null}
+      {showOnboarding ? (
+        <ViewBoundary fallback={null}>
+          <Suspense fallback={null}>
+            <Onboarding onDismiss={dismissOnboarding} />
+          </Suspense>
+        </ViewBoundary>
+      ) : null}
       {confirming ? (
         <ConfirmDialog
           title={confirming === 'history' ? t('confirm.history.title') : t('confirm.end.title')}

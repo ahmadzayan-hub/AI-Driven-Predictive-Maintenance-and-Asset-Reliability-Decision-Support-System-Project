@@ -145,3 +145,27 @@ test('the new views do not scroll sideways at 320 px, in either language', async
     await expectNoViolations(page, `${name} in Arabic`)
   }
 })
+
+test.describe('a view that cannot load', () => {
+  // The service worker would fetch the chunk itself, out of the page's
+  // reach; with it blocked, the page asks the network as a reader with
+  // nothing cached would.
+  test.use({ serviceWorkers: 'block' })
+
+  test('says so, and the next view still opens', async ({ page }) => {
+    // Views load on demand (ADR 0028). Refusing one chunk stands in for a
+    // reader who went offline before it was ever fetched.
+    await skipOnboarding(page)
+    await page.route(/\/assets\/OverviewView-[^/]+\.js$/, (route) => route.abort())
+    await page.goto('/')
+
+    await openTab(page, /^Overview/)
+    await expect(page.getByRole('alert')).toContainText('This view could not be shown')
+    await expect(page.getByRole('button', { name: 'Reload the page' })).toBeVisible()
+    await expectNoViolations(page, 'a view that could not load')
+
+    await openTab(page, /^Datasets/)
+    await expect(page.getByRole('heading', { name: 'Datasets', level: 2 })).toBeVisible()
+    await expect(page.getByRole('alert')).toHaveCount(0)
+  })
+})

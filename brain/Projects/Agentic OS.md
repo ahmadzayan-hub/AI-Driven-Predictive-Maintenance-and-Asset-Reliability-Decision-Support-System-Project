@@ -5,7 +5,7 @@ tags: [project]
 status: active
 updated: 2026-10-17
 review_every_days: 14
-sources: [README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0024-the-dataset-api.md, scripts/verify.py]
+sources: [README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0024-the-dataset-api.md, docs/adr/0028-views-load-on-demand.md, scripts/verify.py]
 ---
 
 # Agentic OS
@@ -29,6 +29,7 @@ The product in this repository, described in [[Identity]]: a governed business-a
 
 ## Verified state on 2026-10-17
 
+- After views began loading on demand (ADR 0028): `python scripts/verify.py --e2e` with PostgreSQL passed 863 Python tests (16 skipped), the brain check, the type check, 66 frontend unit tests, the build and the budget. First-load JavaScript was 85.7 of 100 KB. End-to-end: 69 passed and 3 skipped by design; the 2 new checks passed after a fix to the test. Lighthouse mobile scored 98, against 99 before.
 - `python scripts/verify.py` with PostgreSQL passed all six steps. That run had 851 Python tests; the suite has since grown to 856, all passing with PostgreSQL and the same 16 optional-library skips. It also passed the brain check, the type check, 60 frontend unit tests, the build, and the interface budget (JavaScript 96.7 of 100 KB). The end-to-end suite was not run on this date.
 - Every classifying agent is measured ([[Agent evaluation]]).
 

@@ -31,8 +31,16 @@ DIST = FRONTEND / "dist"
 
 # The interface budget from docs/UI_PLAN.md §7, in kilobytes (1,000 bytes).
 # Scripts and styles are measured gzipped, as they are sent; fonts as woff2,
-# which is already compressed.
-BUDGET_KB = {"js": 100, "css": 10, "fonts": 120}
+# which is already compressed. Views load on demand (ADR 0028), so scripts
+# have three limits: what the first page load fetches (the entry module and
+# its preloads in index.html), every script together, and the largest chunk
+# fetched on demand, which is the wait for one view.
+BUDGET_KB = {"js": 100, "js_total": 160, "js_chunk": 30, "css": 10, "fonts": 120}
+LABELS = {"js": "js first load", "js_total": "js total", "js_chunk": "largest js chunk",
+          "css": "css", "fonts": "fonts"}
+FIRST_LOAD = re.compile(
+    r'<(?:script[^>]*\btype="module"[^>]*\bsrc|link[^>]*\brel="modulepreload"[^>]*\bhref)'
+    r'="/?(assets/[^"]+\.js)"')
 
 ANSI = re.compile(r"\x1b\[[0-9;]*m")
 
@@ -72,14 +80,26 @@ def summarise_brain(output):
     return line.removeprefix("Brain:").strip()
 
 
+def first_load_scripts(dist):
+    """The scripts index.html fetches before the app starts."""
+    return set(FIRST_LOAD.findall((dist / "index.html").read_text(encoding="utf-8")))
+
+
 def measure_budget(dist):
     """Return {kind: kilobytes} for the built interface."""
-    sizes = {"js": 0, "css": 0, "fonts": 0}
+    first = first_load_scripts(dist)
+    sizes = {kind: 0 for kind in BUDGET_KB}
     for path in (dist / "assets").iterdir():
-        if path.suffix == ".js":
-            sizes["js"] += len(gzip.compress(path.read_bytes(), 9))
-        elif path.suffix == ".css":
-            sizes["css"] += len(gzip.compress(path.read_bytes(), 9))
+        if path.suffix in (".js", ".css"):
+            size = len(gzip.compress(path.read_bytes(), 9))
+            if path.suffix == ".css":
+                sizes["css"] += size
+            elif f"assets/{path.name}" in first:
+                sizes["js"] += size
+            else:
+                sizes["js_chunk"] = max(sizes["js_chunk"], size)
+            if path.suffix == ".js":
+                sizes["js_total"] += size
         elif path.suffix == ".woff2":
             sizes["fonts"] += path.stat().st_size
     return {kind: round(total / 1000, 1) for kind, total in sizes.items()}
@@ -87,11 +107,13 @@ def measure_budget(dist):
 
 def check_budget(dist=DIST, budget=BUDGET_KB):
     """Return (ok, summary) for the built interface against the budget."""
-    if not (dist / "assets").is_dir():
+    if not (dist / "assets").is_dir() or not (dist / "index.html").is_file():
         return False, f"no build at {dist}; run the build step first"
+    if not first_load_scripts(dist):
+        return False, "index.html loads no script from assets/; the build is not one this reads"
     sizes = measure_budget(dist)
-    over = [kind for kind, size in sizes.items() if size > budget[kind]]
-    summary = ", ".join(f"{kind} {size} of {budget[kind]} KB" for kind, size in sizes.items())
+    over = [LABELS[kind] for kind, size in sizes.items() if size > budget[kind]]
+    summary = ", ".join(f"{LABELS[kind]} {size} of {budget[kind]} KB" for kind, size in sizes.items())
     return not over, summary + (f"; over: {', '.join(over)}" if over else "")
 
 
@@ -146,7 +168,8 @@ def main(argv=None):
     if args.list:
         for s in chosen:
             if s.command == ["budget"]:
-                print(f"{s.name:20} gzipped sizes of frontend/dist/assets against docs/UI_PLAN.md §7")
+                print(f"{s.name:20} gzipped first load, total and largest chunk of frontend/dist "
+                      "against docs/UI_PLAN.md §7")
                 continue
             where = "" if s.cwd == ROOT else f"  (in {s.cwd.relative_to(ROOT)})"
             print(f"{s.name:20} {' '.join(Path(c).name if i == 0 else c for i, c in enumerate(s.command))}{where}")

@@ -40,14 +40,14 @@ Last updated: 2026-10-17, session `7ba0117d`. The session-end skill keeps this f
     - The capstone gates are unchanged: all ten the session can act on pass, and six remain the team's.
     - The typeface is IBM Plex Sans with IBM Plex Sans Arabic, the user's choice; Dubai can replace it if its files are supplied.
 - **House style: done 2026-10-17.** `.claude/skills/rta-style/` (colours, type and layout only, no logo, name or data) themes the offline dashboards, the clips and the evaluation report, checked for AA contrast in light and dark.
-- **Next build: A3, several datasets per run (ADR 0028)**, and the rest of interface phase 2: deep links and the sheet picker. Code-split the views first: JavaScript is at 96.7 of 100 KB.
+- **Views load on demand: done 2026-10-17** (ADR 0028). The chat and the shell ship first; the other views and dialogs are chunks fetched when shown, and prefetched in idle time. First load fell from 96.7 to 85.7 KB gzipped, and Lighthouse's unused script halved, but load speed did not measurably change (mobile 98 against 99, largest paint 2.13 s both). The budget now counts the first load, all scripts and the largest chunk.
+- **Next build: A3, several datasets per run (ADR 0029)**, and the rest of interface phase 2: deep links and the sheet picker.
 
 ## Next
 
-1. Code-split the interface views, to recover budget before phase 3.
-2. A3: several datasets per run, with declared join keys (ADR 0028); deep links and the sheet picker (phase 2).
-3. Harder reviewer memos (subtler defects, longer documents), so prompt changes can be measured. For intent and causal wording, try a model behind the rules once a rotated key or a local model is available; the rules plateau near 70% on blind sets.
-4. Invite the team as collaborators and protect the default branch (owner action, on GitHub).
+1. A3: several datasets per run, with declared join keys (ADR 0029); deep links and the sheet picker (phase 2).
+2. Harder reviewer memos (subtler defects, longer documents), so prompt changes can be measured. For intent and causal wording, try a model behind the rules once a rotated key or a local model is available; the rules plateau near 70% on blind sets.
+3. Invite the team as collaborators and protect the default branch (owner action, on GitHub).
 
 ## Analytics OS milestones
 
@@ -81,6 +81,7 @@ Reusable foundations: the metric glossary (`metrics.json`), custom stages (ADR 0
 
 | Date | What | Evidence |
 | --- | --- | --- |
+| 2026-10-17 | Views load on demand: chunks per view and dialog, idle prefetch, a bilingual loading and failure state; the budget counts first load, total and the largest chunk (ADR 0028) | 863 Python tests with PostgreSQL (16 skipped); 66 frontend unit tests; budget 85.7 of 100 KB first load; end-to-end 71 of 74 run and pass, 3 skipped by design; Lighthouse mobile 98 (99 before), largest paint 2.13 s both |
 | 2026-10-16 | Agent team: reviewer subagents, the review loop and its gates, the figures checker (glued cells, worked arithmetic), the analysis export and dashboards skill, local-model consultation; ADR 0026, uneven periods read per record; motion transcripts keep sources apart | 818 Python tests with PostgreSQL (16 skipped here); 60 frontend unit tests; build within budget; end-to-end not rerun (no interface change) |
 | 2026-10-16 | A2, column mapping: roles per column, suggestions with reasons, every-row validation with an error summary, runs that copy the mapping (ADR 0025) | 769 Python tests with PostgreSQL; 60 frontend unit tests; 69 of 72 end-to-end checks run and pass, 3 skipped by design |
 | 2026-10-16 | Agentic OS setup: `AGENTS.md`, `scripts/verify.py` and the `verify` skill; the server compresses and caches the built interface as Vercel does (ADR 0023, amendment) | 719 Python tests with PostgreSQL; 54 frontend unit tests; 63 of 66 end-to-end checks pass, 3 skipped by design; Lighthouse mobile Performance 99, up from 86 to 88, and 100 for the other three |

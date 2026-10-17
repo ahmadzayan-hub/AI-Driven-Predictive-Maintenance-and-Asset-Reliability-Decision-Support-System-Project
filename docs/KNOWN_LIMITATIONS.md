@@ -294,3 +294,11 @@ required local files. Both behaviors are covered by tests
     - **Claude Dashboards:** this is a hosted claude.ai feature. The
       skill reaches it only in a claude.ai session, and elsewhere writes
       an offline page. A new agent file loads at the next session start.
+24. Views load on demand (ADR 0028). A reader who goes offline before
+    the idle prefetch finishes, or whose browser asks to save data, can
+    reach a view whose chunk was never fetched. That view says it could
+    not be shown and offers a reload, which works once the reader is
+    back online. The split did not make today's app measurably faster:
+    Lighthouse mobile scored 98 against 99 before, with the same largest
+    paint (2.13 s). What it saves is the unused script, which halved.
+    Both dictionaries still ship on the first load.

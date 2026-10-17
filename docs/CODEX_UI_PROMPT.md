@@ -136,7 +136,7 @@ The repository pins React `^19.2.8`; the current release is 19.3.1. Upgrading wi
 - **Data loading:** `use()` with Suspense boundaries, and an error boundary per view, so one failed request never blanks the shell.
 - **Keep work alive:** `<Activity>` (19.2) keeps the cockpit and the chat mounted while hidden, instead of unmounting and refetching on every tab switch.
 - **Transitions:** `<ViewTransition>` (19.3) for changing views and for list items that change state. Disable it when reduced motion is set.
-- **Code-splitting:** `React.lazy` per view. JavaScript stays under 100 KB gzipped (92 KB at phase 1), CSS under 10 KB, fonts under 120 KB.
+- **Code-splitting:** done (ADR 0028). Add a new view to `frontend/src/app/lazyViews.tsx`, not as a static import in `App.tsx`. The first load stays under 100 KB gzipped, all scripts under 160 KB and each view's chunk under 30 KB. CSS stays under 10 KB and fonts under 120 KB.
 - **CSS:**
     - Container queries for cards that live in both the side column and the main column.
     - `:has()` for state-driven styling.
@@ -155,7 +155,7 @@ From `CLAUDE.md` and `brain/Soul.md`:
 - **Network:** no third-party requests from the app (no CDNs, no remote fonts, no analytics) and no secrets anywhere.
 - **Data:** raw data never goes to a model. The interface sends datasets only to this app's own API.
 - **Honesty:** never fabricate numbers, screenshots, URLs or test counts. A screenshot is a real capture from `frontend/e2e/screenshots.spec.ts`.
-- **Backend:** do not change backend behaviour. If an interface need truly requires a backend change, stop and write it up as a proposal ADR at the next free number in `docs/adr/` (0025 is column mapping, A2, 0026 is uneven periods and 0027 is agent measurement; the next free number is 0028).
+- **Backend:** do not change backend behaviour. If an interface need truly requires a backend change, stop and write it up as a proposal ADR at the next free number in `docs/adr/` (0025 is column mapping, A2, 0026 is uneven periods, 0027 is agent measurement and 0028 is views loading on demand; the next free number is 0029).
 - **Git:** no force-push, no history rewriting, no new branches, and no pull request unless the person asks.
 
 ### 10. Tests that guard existing behaviour

@@ -34,7 +34,7 @@ class SummaryTests(unittest.TestCase):
 
 
 class BudgetTests(unittest.TestCase):
-    def build(self, js_bytes, font_bytes):
+    def build(self, js_bytes, font_bytes, chunk_bytes=0, preload_bytes=0):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
         dist = Path(temp.name)
@@ -42,8 +42,20 @@ class BudgetTests(unittest.TestCase):
         # Random-looking text barely compresses, so its size is predictable.
         import random
         rng = random.Random(7)
-        (dist / "assets" / "index-a1.js").write_text(
-            "".join(rng.choice("abcdefghijklmnopqrstuvwxyz0123456789") for _ in range(js_bytes)))
+
+        def noise(size):
+            return "".join(rng.choice("abcdefghijklmnopqrstuvwxyz0123456789") for _ in range(size))
+
+        head = ['<script type="module" crossorigin src="/assets/index-a1.js"></script>']
+        (dist / "assets" / "index-a1.js").write_text(noise(js_bytes))
+        if preload_bytes:
+            head.append('<link rel="modulepreload" crossorigin href="/assets/vendor-b2.js">')
+            (dist / "assets" / "vendor-b2.js").write_text(noise(preload_bytes))
+        if chunk_bytes:  # fetched only when its view opens, so not in index.html
+            (dist / "assets" / "RunsView-c3.js").write_text(noise(chunk_bytes))
+        (dist / "index.html").write_text(
+            "<!doctype html><html><head><script>/* theme */</script>"
+            + "".join(head) + "</head><body></body></html>")
         (dist / "assets" / "index-a1.css").write_text("body{margin:0}" * 10)
         (dist / "assets" / "font-400.woff2").write_bytes(b"\0" * font_bytes)
         (dist / "assets" / "font-400.woff").write_bytes(b"\0" * 500_000)  # never counted
@@ -57,13 +69,48 @@ class BudgetTests(unittest.TestCase):
     def test_a_build_over_the_budget_fails_and_names_what(self):
         ok, summary = verify.check_budget(self.build(200_000, 50_000))
         self.assertFalse(ok)
-        self.assertIn("over: js", summary)
+        self.assertIn("over: js first load", summary)
+
+    def test_a_chunk_loaded_on_demand_is_not_first_load(self):
+        light = verify.measure_budget(self.build(20_000, 50_000))
+        sizes = verify.measure_budget(self.build(20_000, 50_000, chunk_bytes=40_000))
+        self.assertEqual(sizes["js"], light["js"])
+        self.assertGreater(sizes["js_chunk"], sizes["js"])
+        self.assertAlmostEqual(sizes["js_total"], sizes["js"] + sizes["js_chunk"], delta=0.2)
+
+    def test_a_preloaded_module_is_first_load(self):
+        light = verify.measure_budget(self.build(20_000, 50_000))
+        sizes = verify.measure_budget(self.build(20_000, 50_000, preload_bytes=20_000))
+        self.assertGreater(sizes["js"], 1.8 * light["js"])
+        self.assertEqual(sizes["js_chunk"], 0)
+        self.assertEqual(sizes["js_total"], sizes["js"])
+
+    def test_one_heavy_view_fails_even_when_the_first_load_is_light(self):
+        ok, summary = verify.check_budget(self.build(20_000, 50_000, chunk_bytes=60_000))
+        self.assertFalse(ok)
+        self.assertIn("over: largest js chunk", summary)
+        self.assertNotIn("js first load", summary.split("over:")[1])
 
     def test_no_build_is_a_failure_not_a_pass(self):
         with tempfile.TemporaryDirectory() as empty:
             ok, summary = verify.check_budget(Path(empty))
         self.assertFalse(ok)
         self.assertIn("no build", summary)
+
+    def test_a_page_with_no_script_is_a_failure_not_a_pass(self):
+        dist = self.build(20_000, 50_000)
+        (dist / "index.html").write_text("<!doctype html><html><body></body></html>")
+        ok, summary = verify.check_budget(dist)
+        self.assertFalse(ok)
+        self.assertIn("loads no script", summary)
+
+    def test_the_real_build_is_read(self):
+        """index.html as Vite writes it: the entry and its preloads."""
+        if not (verify.DIST / "index.html").is_file():
+            self.skipTest("no frontend build")
+        first = verify.first_load_scripts(verify.DIST)
+        self.assertTrue(first)
+        self.assertTrue(all((verify.DIST / name).is_file() for name in first))
 
 
 class StepTests(unittest.TestCase):

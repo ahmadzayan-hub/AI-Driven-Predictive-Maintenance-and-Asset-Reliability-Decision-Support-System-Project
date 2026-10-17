@@ -5,7 +5,7 @@ tags: [interface, design]
 status: active
 updated: 2026-10-17
 review_every_days: 30
-sources: [docs/adr/0023-the-analytics-workspace-interface.md, docs/UI_PLAN.md, design-system/agentic-os/MASTER.md, frontend/src/shared/styles/tokens.css, .claude/skills/ui-ux-pro-max/PROVENANCE.md, .claude/skills/design/PROVENANCE.md]
+sources: [docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0028-views-load-on-demand.md, docs/UI_PLAN.md, design-system/agentic-os/MASTER.md, frontend/src/shared/styles/tokens.css, .claude/skills/ui-ux-pro-max/PROVENANCE.md, .claude/skills/design/PROVENANCE.md]
 ---
 
 # Design system
@@ -19,7 +19,7 @@ How the interface of [[Agentic OS]] looks and behaves, and where those choices c
 - Type: Fira Sans for text and Fira Code for figures, bundled from `@fontsource` (OFL-1.1, Latin only, about 119 KB in five WOFF2 files). Arabic keeps the system stack, because Fira has no Arabic letters.
 - Charts stay hand-drawn SVG: bars from a zero line, a marked forecast boundary, and a table of the numbers under each chart. Figures follow [[Weighted KPIs]].
 - Navigation: the sidebar groups *Analyse* (Overview, Datasets, Runs) and *Work with* (Workspace, Memory, Activity). A phone's bar holds five places, the last being *More*.
-- Budgets: JavaScript at most 100 KB gzipped (92 KB at phase 1), CSS at most 10 KB (7 KB), fonts at most 120 KB.
+- Budgets: JavaScript at most 100 KB gzipped on first load, 160 KB in all and 30 KB for any one view, because views load on demand (ADR 0028). CSS at most 10 KB (7.7 KB) and fonts at most 120 KB (119.4 KB).
 - Phases 0 and 1 of `docs/UI_PLAN.md` shipped in `dea3b38`. Phases 2 to 6 wait on milestones A1 to A7.
 - Six more skills from the same upstream repository were vendored in `b478983`: design-system, brand, ui-styling, design, banner-design and slides. For the app only ui-ux-pro-max and design-system's token rules apply. ui-styling's shadcn/Tailwind and slides' CDN Chart.js break ADR 0023, and design's logo, identity and icon generators call third-party image services.
 

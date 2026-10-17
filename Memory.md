@@ -53,11 +53,11 @@ Full list: [brain/Soul.md](brain/Soul.md).
 
 - Capstone: the record is the unit of analysis, and loss per downtime hour is about $2,500. The capstone documents are private and shared with the team, never committed.
 - Hooks only record and remind; skills make the edits. Brain notes are public project knowledge.
-- Interface (ADR 0023): the session opens on the assistant, with the Overview one click away; the phone bar holds five places; JavaScript at most 100 KB gzipped (92 KB at phase 1). Labels the tests rely on ("Runs", "Workspace") stay until phase 3.
+- Interface (ADR 0023): the session opens on the assistant, with the Overview one click away; the phone bar holds five places; views other than the chat load on demand from `src/app/lazyViews.tsx` (ADR 0028); the budget is 100 KB on first load, 160 KB in all and 30 KB per view chunk, gzipped. Labels the tests rely on ("Runs", "Workspace") stay until phase 3.
 - Serving (ADR 0023 amendment): the FastAPI server gzips everything outside `/api/` and marks `/assets/` immutable, as `vercel.json` does. API responses are never compressed (BREACH). Fonts sit at 119.4 of the 120 KB budget, so a new weight needs a budget decision.
 - Other coding agents read `AGENTS.md`. Change it in the same commit as a rule in `CLAUDE.md`.
 - Motion: `.claude/skills/motion` renders sourced explainers to MP4 with Playwright and `ffmpeg`. A 17-second 1080p clip takes about a minute. `render.mjs --check` refuses a figure without a source. Claude Motion itself is a hosted claude.ai beta on Team and Enterprise plans with no API, so it cannot be installed. Subagents load at session start, so `motion-designer` cannot be called in the session that adds it.
-- Column mapping (ADR 0025): `server/mapping.py` holds all reading rules. A run copies the mapping into `runs.mapping_json`. Unmapped data must keep running exactly as before, and the tests check it. Stage outputs are not in the API, so tests read `app.state.store.get_tasks()`. JavaScript sits at 96.7 of 100 KB: code-split before adding views.
+- Column mapping (ADR 0025): `server/mapping.py` holds all reading rules. A run copies the mapping into `runs.mapping_json`. Unmapped data must keep running exactly as before, and the tests check it. Stage outputs are not in the API, so tests read `app.state.store.get_tasks()`.
 - Capstone files are built outside the repository and sent to the user as files.
     - **Report:** one tagged PDF with bookmarks, from the shared report's Markdown export, with pandoc and Chromium. Pages are numbered as the PDF counts them.
     - **Deck:** slide renders, with titles and alt text.
