@@ -524,3 +524,13 @@ The first entries were written from the commit history and the session's own rec
     - Scheduled refresh on Vercel needs a worker or a cron calling "refresh"; serverless refreshes only on request.
     - Workbook sheet selection (UI plan phase 2).
 - **Blockers:** none for the code. The capstone team items in *Now* are unchanged.
+
+## 2026-10-17 · `c84a0ec6` · claude/agentic-os-final-project-53j6ql
+
+**Goal:** stand up the governance detectors behind an agentic product for predictive maintenance, and sync the local working copy to the remote.
+
+- **Done:** six governance detectors as pure functions over (columns, rows), with 22 tests on synthetic fixtures (`200965b`). They report what a dataset cannot support: a key that identifies nothing, a rate whose denominator changes under it, columns that all encode one split, a name promising a scale its values do not use, a total that is not its parts, and periods too uneven to compare. `inputs/` and `team3-capstone/` added to `.gitignore`.
+- **Verified:** the 22 new detector tests pass. Full suite on this branch runs 1041 tests; the pristine remote at `a2ec230` runs 1019 with the **same** 3 failures and 253 errors, so this change adds 22 passing tests and no regression. Pushed `a2ec230..200965b`; the remote tree carries no `inputs/`, no `team3-capstone/` and no personal data.
+- **Decisions:** detectors stay domain-agnostic and live in this public repository; everything carrying course material stays in the private capstone workspace. Leakage is reported per split rather than per pair, so one switch is one finding. A candidate total and its parts must share a subject word, not merely a unit.
+- **Open / next:** wire the detectors into a stage plugin (ADR 0020) so their findings become claims with calculations; then the remaining five agents.
+- **Blockers:** `scripts/verify.py` cannot complete on this Windows console — it crashes encoding its own output mark to cp1252, and 253 tests error with `_Py_HashRandomization_Init: failed to get random numbers` because subprocess spawning is blocked here. Both are environmental and pre-existing, not caused by this change.
