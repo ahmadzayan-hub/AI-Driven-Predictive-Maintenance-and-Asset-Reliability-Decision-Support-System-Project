@@ -1,4 +1,11 @@
 /* Agentic workspace: source tokens and logical properties, ADR 0029. */
+button { min-inline-size: 44px; min-block-size: 44px; }
+.btn, .langbtn, .searchbtn, .chip, .jump, .alertbar__retry, .segmented__option { min-block-size: 44px; }
+/* Keep the switch's familiar track inside a larger touch target. */
+.switch, .switch[aria-checked='true'] { block-size: 44px; background: transparent; }
+.switch::before { content: ''; position: absolute; inset-inline: 0; inset-block-start: 9px; block-size: 26px; border-radius: 999px; background: var(--border-strong); transition: background var(--motion-fast); }
+.switch[aria-checked='true']::before { background: var(--accent-solid); }
+.switch__thumb { top: calc(50% - 10px); }
 .brand__mark { box-shadow: none; border-radius: var(--radius-s); }
 .main:focus { outline: none; }
 .panel { scroll-padding-block-start: 140px; }

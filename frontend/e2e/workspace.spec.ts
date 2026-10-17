@@ -100,6 +100,11 @@ test('Arabic phone cockpit and evidence fit the viewport', async ({ page }, test
   await page.goto('/#/runs')
   await page.getByRole('button', { name: 'بدء التحليل', exact: true }).click()
   await expect(page.getByRole('region', { name: 'موافقة مطلوبة' })).toBeVisible({ timeout: 40_000 })
+  for (const button of await page.getByRole('button').all()) {
+    const bounds = await button.boundingBox()
+    expect(bounds?.width).toBeGreaterThanOrEqual(44)
+    expect(bounds?.height).toBeGreaterThanOrEqual(44)
+  }
   await page.screenshot({ path: '../docs/screenshots/phone-390-arabic-cockpit.png' })
   await page.getByRole('button', { name: /^ما الدليل على ذلك؟/ }).first().click()
   const dialog = page.getByRole('dialog')
