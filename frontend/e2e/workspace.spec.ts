@@ -81,7 +81,7 @@ test('drafts, deep links, evidence and exact-report keyboard approval', async ({
   }
   await expect(approve).toBeFocused()
   await page.keyboard.press('Enter')
-  await expect(page.locator('.assurance-strip')).toContainText('Publication confirmed')
+  await expect(page.getByRole('status').filter({ hasText: 'Publication confirmed' })).toBeVisible()
   await page.goto(linked)
   await expect(page.locator('.privacy-note').filter({ hasText: 'Reports/' })).toBeVisible()
 })

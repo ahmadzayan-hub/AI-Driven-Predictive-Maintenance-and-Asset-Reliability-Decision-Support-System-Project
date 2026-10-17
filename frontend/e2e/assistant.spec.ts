@@ -34,10 +34,11 @@ test('plain language in the chat saves, analyses, explains, and confirms before 
   await sendMessage(page, 'no')
   await expect(lastAgentBubble(page)).toHaveText('Nothing was changed.')
   await openTab(page, /^Memory/)
-  await expect(page.getByText('the Q4 review is on Monday')).toBeVisible()
+  await expect(page.locator('.memory__item').filter({ hasText: 'the Q4 review is on Monday' })).toBeVisible()
 
   await openTab(page, /^Workspace/)
   await sendMessage(page, 'Forget everything')
   await sendMessage(page, 'yes')
   await expect(lastAgentBubble(page)).toHaveText('All saved information has been removed.')
 })
+

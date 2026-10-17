@@ -119,7 +119,6 @@ export function App() {
 
   useEffect(() => {
     if (tab === 'runs' && route.runId) setRunTarget((previous) => previous?.id === route.runId ? previous : { id: route.runId!, nonce: ++runNonce.current })
-    document.getElementById('workspace-main')?.focus({ preventScroll: true })
   }, [tab, route.runId])
 
   const selectRun = useCallback((id: string | null) => {

@@ -177,12 +177,12 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
   )
   const [datasets, setDatasets] = useState<DatasetSummary[] | null>(null)
   const [storedId, setStoredId] = useState(() => (preset?.kind === 'stored' ? preset.id : ''))
-  const [goal, setGoal] = useSessionDraft(`${draftScope}:analysis-question`, () =>
-    preset?.kind === 'stored' ? t('runs.goalStored', { name: preset.name }) : t('runs.goalDefault'),
-  )
+  const suggestedGoal = preset?.kind === 'stored' ? t('runs.goalStored', { name: preset.name }) : t('runs.goalDefault')
+  const questionContext = preset?.kind === 'stored' ? preset.id : preset?.kind ?? 'sample'
+  const [goal, setGoal] = useSessionDraft(`${draftScope}:analysis-question:${questionContext}`, () => suggestedGoal)
   // The goal the form last wrote itself. A goal the person typed is
   // never replaced when they pick another dataset.
-  const autoGoal = useRef(goal)
+  const autoGoal = useRef(suggestedGoal)
   const [uploaded, setUploaded] = useState<UploadResult | null>(null)
   const [uploading, setUploading] = useState<string | null>(null)
   const [csvDraft, setCsvDraft] = useState('')
@@ -608,7 +608,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
               {run.reports[0]?.headline ? <p className="cockpit__finding" dir={run.report_language === 'ar' ? 'rtl' : 'ltr'} lang={run.report_language}>{run.reports[0].headline}</p> : null}
               <p className="panel__desc">
                 <span dir="auto">{run.dataset_name}</span> · {languageLabel(t, reportLang)} · {t('runs.state')}{' '}
-                <strong>{stateLabel(t, run.paused ? 'paused' : run.state)}</strong>
+                <strong>{stateLabel(t, run.paused && ACTIVE_STATES.includes(run.state) ? 'paused' : run.state)}</strong>
                 {run.error ? (
                   <>
                     {' — '}

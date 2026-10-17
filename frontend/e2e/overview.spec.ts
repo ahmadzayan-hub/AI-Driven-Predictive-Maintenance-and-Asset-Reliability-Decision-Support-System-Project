@@ -82,7 +82,7 @@ test('a stored dataset is analysed again by reference', async ({ page }) => {
   await expectNoViolations(page, 'runs form with a stored dataset')
 
   await page.getByRole('button', { name: 'Start run' }).click()
-  await expect(page.locator('.panel__desc').first()).toContainText('sample sales dataset')
+  await expect(page.locator('.cockpit__header .panel__desc')).toContainText('sample sales dataset')
   // Stop it here: what matters is which dataset it started from.
   await page.getByRole('button', { name: 'Pause' }).click()
   await page.getByRole('button', { name: 'Cancel', exact: true }).click()
@@ -127,8 +127,8 @@ test('the new views do not scroll sideways at 320 px, in either language', async
 
   for (const name of [/^Overview/, /^Datasets/, /^Runs/]) {
     await openTab(page, name)
-    await expect(page.locator('main .panel__title')).toBeVisible()
-    await expect(page.locator('main .skeleton')).toHaveCount(0)
+    await expect(page.locator('main .panel__title:visible')).toBeVisible()
+    await expect(page.locator('main .skeleton:visible')).toHaveCount(0)
     expect(await horizontalOverflow(page), `overflow on ${name}`).toBeLessThanOrEqual(0)
   }
 
@@ -139,8 +139,8 @@ test('the new views do not scroll sideways at 320 px, in either language', async
     const menu = page.getByRole('button', { name: 'فتح قائمة التنقل' })
     await menu.click()
     await page.getByRole('dialog').getByRole('button', { name }).click()
-    await expect(page.locator('main .panel__title')).toBeVisible()
-    await expect(page.locator('main .skeleton')).toHaveCount(0)
+    await expect(page.locator('main .panel__title:visible')).toBeVisible()
+    await expect(page.locator('main .skeleton:visible')).toHaveCount(0)
     expect(await horizontalOverflow(page), `overflow on ${name}`).toBeLessThanOrEqual(0)
     await expectNoViolations(page, `${name} in Arabic`)
   }

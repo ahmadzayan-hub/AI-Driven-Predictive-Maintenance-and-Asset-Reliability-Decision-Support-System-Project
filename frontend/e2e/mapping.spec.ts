@@ -95,7 +95,9 @@ test('the suggested columns are adjusted, saved and followed by a run', async ({
   await expect(picker.locator('option:checked')).toContainText(`${NAME} · 11 data rows · CSV · Mapped`)
   await page.getByRole('button', { name: 'Start run' }).click()
   await expect(page.getByRole('region', { name: 'Approval required' })).toBeVisible({ timeout: 40_000 })
-  const tasks = page.locator('.runtasks')
+  const disclosure = page.locator('.run-timeline__disclosure')
+  if ((await disclosure.getAttribute('open')) === null) await disclosure.locator(':scope > summary').click()
+  const tasks = page.locator('.pipeline__bands')
   await expect(tasks).toContainText('Measure “takings” (the owner\'s column mapping)')
   await expect(tasks).toContainText('grouped by “branch”, trended by “order_date” by month (column mapping)')
 })
@@ -152,3 +154,4 @@ test('the columns read right to left in Arabic, with the same checks', async ({ 
   await page.setViewportSize({ width: 320, height: 720 })
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
 })
+
