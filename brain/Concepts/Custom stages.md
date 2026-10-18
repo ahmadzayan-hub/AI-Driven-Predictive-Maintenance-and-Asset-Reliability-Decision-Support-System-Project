@@ -3,9 +3,9 @@ type: concept
 aliases: [Custom agents, Stage plugins]
 tags: [architecture, extension]
 status: active
-updated: 2026-10-16
+updated: 2026-10-18
 review_every_days: 60
-sources: [server/stages.py, docs/adr/0020-custom-agents-as-plugins.md, examples/stages/target_attainment.py]
+sources: [server/stages.py, config.json, docs/adr/0020-custom-agents-as-plugins.md, docs/adr/0041-shipped-stages-and-an-honest-threshold.md, examples/stages/target_attainment.py]
 ---
 
 # Custom stages
@@ -16,8 +16,9 @@ A domain stage is a file: a class with a role, a title, a place in the [[Governe
 - Its result shape is checked before anything is recorded, and its IDs must carry its role prefix.
 - Profiles choose which custom stages a run includes, and `/api/pipelines` lists what loaded and why anything did not.
 - A plugin is trusted Python, not a sandbox.
+- **Written is not registered.** A stage can have its decision record, its tests and a working `run(ctx)` and still be unreachable, because nothing selects it: `config.json` has to name it. The maintenance governance and risk stages (ADRs 0039, 0040) were in that state until 18 October, when ADR 0041 registered both and added a `maintenance` profile. The shipped registry is now tested against the real `config.json`, not a fixture, so a profile naming an unregistered stage fails the suite.
 
-This is the planned route for the new modelling methods in the [[Analytics OS roadmap]]: classification, regression, clustering and seasonal forecasting.
+This was the route for the modelling methods in the [[Analytics OS roadmap]], which shipped as four plugins on the `models` profile (ADR 0033): regression, classification, clustering and seasonal forecasting, each against a baseline.
 
 ## Related
 

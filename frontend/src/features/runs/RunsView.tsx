@@ -154,6 +154,14 @@ interface RunsViewProps {
 }
 
 /** The custom stages a profile includes, by title, for the picker's help. */
+// A profile's key is an identifier, not a label. Every shipped one gets a
+// translated name; an operator's own profile falls back to its key, which
+// is better than hiding it.
+const PROFILE_LABELS: Record<string, 'runs.profileModels' | 'runs.profileMaintenance'> = {
+  models: 'runs.profileModels',
+  maintenance: 'runs.profileMaintenance',
+}
+
 function stageTitles(pipelines: Pipelines, profile: string): string[] {
   const roles = profile ? (pipelines.profiles[profile] ?? []) : pipelines.default
   return roles.map((role) => {
@@ -607,7 +615,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                       .filter((name) => name !== 'default')
                       .map((name) => (
                         <option key={name} value={name}>
-                          {name}
+                          {PROFILE_LABELS[name] ? t(PROFILE_LABELS[name]) : name}
                         </option>
                       ))}
                   </select>

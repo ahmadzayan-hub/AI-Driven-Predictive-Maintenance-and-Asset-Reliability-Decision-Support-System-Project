@@ -535,5 +535,47 @@ class PipelinesApiTestCase(unittest.TestCase):
         self.assertIn("Unknown pipeline profile", refused.json()["detail"])
 
 
+class ShippedConfigTestCase(unittest.TestCase):
+    """The configuration this repository ships, not a fixture.
+
+    ADRs 0039 and 0040 described the maintenance stages, and both loaded
+    in their own tests, but `config.json` registered neither: the domain
+    governance and the timing-curated risk models could not be chosen in
+    a real run, while the generic models could. A stage nobody can select
+    is a document, not behaviour, so the shipped registry is tested here.
+    """
+
+    MAINTENANCE = ("maintenance_governance", "maintenance_risk")
+
+    def setUp(self):
+        root = Path(__file__).resolve().parent.parent
+        self.config = json.loads((root / "config.json").read_text(encoding="utf-8"))
+        self.stages, self.problems = load_stages(env={}, config=self.config)
+
+    def test_every_shipped_stage_loads_with_no_problems(self):
+        self.assertEqual(self.problems, [])
+        for role in self.MAINTENANCE:
+            self.assertIn(role, self.stages)
+
+    def test_the_maintenance_profile_names_only_registered_stages(self):
+        profiles = self.config["profiles"]
+        self.assertEqual(tuple(profiles["maintenance"]), self.MAINTENANCE)
+        for roles in profiles.values():
+            for role in roles:
+                self.assertIn(role, self.stages)
+
+    def test_the_default_profile_still_adds_nothing(self):
+        # Registering a stage makes it selectable, never automatic: an
+        # ordinary run must behave exactly as it did before.
+        self.assertEqual(self.config["profiles"]["default"], [])
+
+    def test_the_maintenance_stages_are_not_in_the_models_profile(self):
+        # The generic models are exploratory (ADR 0033); the maintenance
+        # models enforce the contract's input timing (ADR 0040). Mixing
+        # them would hide which verdict came from which.
+        for role in self.MAINTENANCE:
+            self.assertNotIn(role, self.config["profiles"]["models"])
+
+
 if __name__ == "__main__":
     unittest.main()

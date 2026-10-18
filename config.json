@@ -12,7 +12,9 @@
         "server.modelling.RegressionModel",
         "server.modelling.ClassificationModel",
         "server.modelling.ClusteringModel",
-        "server.modelling.SeasonalForecast"
+        "server.modelling.SeasonalForecast",
+        "server.maintenance.governance.MaintenanceGovernance",
+        "server.maintenance.targets.MaintenanceRisk"
     ],
     "profiles": {
         "default": [],
@@ -21,6 +23,10 @@
             "classification_model",
             "clustering_model",
             "seasonal_model"
+        ],
+        "maintenance": [
+            "maintenance_governance",
+            "maintenance_risk"
         ]
     }
 }

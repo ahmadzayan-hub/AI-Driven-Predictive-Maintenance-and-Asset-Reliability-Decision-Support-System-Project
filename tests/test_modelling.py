@@ -175,6 +175,39 @@ class ClassificationTests(unittest.TestCase):
         self.assertFalse(result["output"]["model_card"]["beats_baseline"])
         self.assertIn("classification_model.cl_weak", {c["id"] for c in result["claims"]})
 
+    def test_the_threshold_comes_from_the_training_rows_alone(self):
+        """A derived label must not be defined by the held-out outcomes.
+
+        The label is "the measure in its top quarter", so the quartile is
+        part of the model. Taken over every row it reads the outcomes the
+        model is about to be scored on, and the score flatters itself. The
+        same table is classified twice here, identical except that the
+        held-out periods' measures are multiplied: the threshold, and so
+        every training label, must not move.
+        """
+        def table(held_out_factor):
+            rows = []
+            for period in range(10):
+                for i in range(40):
+                    sales = 10.0 + i
+                    if period >= 8:
+                        sales *= held_out_factor
+                    rows.append({"month": f"2026-{period + 1:02d}", "x": float(i % 7),
+                                 "channel": ("web", "store")[i % 2], "sales": sales})
+            return context(rows, ["month", "x", "channel", "sales"], ["x", "sales"],
+                           "sales", date="month")
+
+        def threshold(ctx):
+            card = checked(m.ClassificationModel(), ctx)["output"]["model_card"]
+            return float(card["target"].rsplit("≥ ", 1)[1].rstrip(")").replace(",", ""))
+
+        plain, inflated = table(1.0), table(50.0)
+        self.assertEqual(threshold(plain), threshold(inflated))
+        # And it is the training quartile, not the whole table's: the
+        # inflated table's overall quartile is far higher than this.
+        train = sorted(10.0 + i for _ in range(8) for i in range(40))
+        self.assertEqual(threshold(plain), train[int(len(train) * 0.75)])
+
     def test_too_many_classes(self):
         rows = [{"kind": str(i % 9), "x": float(i), "sales": 1.0} for i in range(90)]
         result = checked(m.ClassificationModel(target="kind"),

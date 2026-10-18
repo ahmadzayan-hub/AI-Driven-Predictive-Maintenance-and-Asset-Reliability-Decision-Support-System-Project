@@ -151,6 +151,65 @@ class KpiBoundaryTest(unittest.TestCase):
             self.assertIn("scale", result)
 
 
+class KpiMissingValueTest(unittest.TestCase):
+    """An unmeasured cell is not a measured zero (ADR 0042)."""
+
+    def test_a_missing_measurement_does_not_lower_a_per_record_average(self):
+        measured = [record(Downtime_Hours=10.0)]
+        with_gap = [record(Downtime_Hours=10.0), record(Downtime_Hours="")]
+        kpi = kpis.REGISTER["downtime_per_record"]
+        self.assertEqual(kpi.compute(measured)["value"],
+                         kpi.compute(with_gap)["value"],
+                         "a record nobody measured must not count as zero hours")
+        self.assertEqual(kpi.compute(with_gap)["value"], 10.0)
+
+    def test_the_unmeasured_records_are_counted_and_named(self):
+        rows = [record(Downtime_Hours=10.0), record(Downtime_Hours=""),
+                record(Downtime_Hours="n/a")]
+        result = kpis.REGISTER["downtime_per_record"].compute(rows)
+        self.assertEqual(result["records"], 1)
+        self.assertEqual(result["records_unmeasured"], 2)
+        self.assertEqual(result["missing_policy"], kpis.EXCLUDE)
+
+    def test_the_record_count_divides_into_the_printed_value(self):
+        # A reader who divides the numerator by `records` must get the
+        # figure on the card, or the card cannot be audited.
+        rows = [record(Downtime_Hours=10.0), record(Downtime_Hours=30.0),
+                record(Downtime_Hours=None)]
+        result = kpis.REGISTER["downtime_per_record"].compute(rows)
+        self.assertEqual(result["numerator"] / result["records"], result["value"])
+
+    def test_a_half_measured_pair_is_withheld_not_halved(self):
+        rows = [record(Production_Loss_USD=5000.0, Downtime_Hours="")]
+        result = kpis.REGISTER["loss_per_downtime_hour"].compute(rows)
+        self.assertIsNone(result["value"])
+        self.assertEqual(result["records"], 0)
+        self.assertEqual(result["records_unmeasured"], 1)
+        self.assertIn("every column", result["undefined_reason"])
+
+    def test_a_nonfinite_number_is_not_a_measurement(self):
+        rows = [record(Downtime_Hours=float("nan")), record(Downtime_Hours=8.0)]
+        result = kpis.REGISTER["downtime_per_record"].compute(rows)
+        self.assertEqual(result["value"], 8.0)
+        self.assertEqual(result["records_unmeasured"], 1)
+
+    def test_a_declared_zero_policy_counts_a_blank_as_none_happened(self):
+        kpi = kpis.Kpi("t_zero", "T", "ت", "a", kpis.RECORDS, kpis.every_record,
+                       "all records", contract.HOURS, "test", missing=kpis.ZERO)
+        self.assertEqual(kpi.compute([{"a": 10.0}, {"a": ""}])["value"], 5.0)
+        self.assertEqual(kpi.compute([{"a": 10.0}, {"a": ""}])["records"], 2)
+
+    def test_an_unknown_policy_is_refused_when_the_kpi_is_defined(self):
+        with self.assertRaises(ValueError):
+            kpis.Kpi("t_bad", "T", "ت", "a", kpis.RECORDS, kpis.every_record,
+                     "all records", contract.HOURS, "test", missing="guess")
+
+    def test_every_shipped_kpi_declares_a_known_policy(self):
+        for key, kpi in kpis.REGISTER.items():
+            with self.subTest(kpi=key):
+                self.assertIn(kpi.missing, kpis.MISSING_POLICIES)
+
+
 class KpiAvailabilityTest(unittest.TestCase):
 
     def test_missing_columns_are_reported_with_what_they_need(self):

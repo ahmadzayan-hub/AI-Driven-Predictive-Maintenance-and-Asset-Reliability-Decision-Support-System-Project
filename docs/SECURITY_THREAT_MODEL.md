@@ -1,8 +1,15 @@
 # Security Threat Model
 
-Scope: local-first, single-user application (CLI + web UI + FastAPI on
-localhost). There is no authentication layer — adding one is the first
-step before any multi-user or hosted deployment (see limitations).
+Scope: a local-first application (CLI + web UI + FastAPI on localhost)
+that also runs hosted and multi-tenant. Two identity modes exist (ADR
+0002, `server/auth.py`): `LocalIdentity`, the labelled local-first
+default, where every request is the single local owner with no login;
+and `JwtIdentity`, which verifies a managed provider's token. A hosted
+deployment must declare authentication or startup fails closed, and
+every endpoint except `/api/health` requires a principal. Roles are read
+only from top-level claims and `app_metadata`; `user_metadata` is
+user-editable and never consulted. The sections below describe the
+controls in both modes; see limitations for what is still open.
 
 ## Assets
 
