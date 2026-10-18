@@ -369,6 +369,7 @@ python main.py
 python -m unittest discover tests
 
 # Frontend unit tests (163 tests)
+
 cd frontend && npm test
 
 # End-to-end + accessibility (108 checks across desktop and mobile,
@@ -401,7 +402,7 @@ The dedicated branch is `feature/miyaar-ui-redesign`.
   existing Windows SQLite temporary-file lock failure (`WinError 32`).
   This run is **not green**; PostgreSQL is not configured locally.
 - Miyaar visual/browser suite: **12 passed**, covering English/Arabic, 375/768/1024/1440 px, light theme, command dialog, accessibility, reduced motion, two-turn chat, failures, voice preview and a pending-request session switch.
-- Fresh production budget passes: initial JS **98.6 / 100 KB**, total JS **162.7 / 165 KB**, largest chunk **13.1 / 30 KB**, initial CSS **10.0 / 10 KB**, total CSS **19.6 / 20 KB**, fonts **119.4 / 120 KB** (gzip level 9 except fonts). Initial ceilings are unchanged; ADR 0053 records the total-ceiling increase.
+- Fresh production budget passes: initial JS **98.6 / 100 KB**, total JS **162.7 / 165 KB**, largest chunk **13.1 / 30 KB**, initial CSS **10.0 / 10 KB**, total CSS **19.6 / 20 KB**, fonts **119.4 / 120 KB** (gzip level 9 except fonts). Initial ceilings are unchanged; ADR 0054 records the total-ceiling increase.
 - The full backend-connected browser run and its focused regression rerun are recorded below before handoff.
 
 The isolated Miyaar suite runs with

@@ -1,4 +1,4 @@
-# ADR 0053 — Miyaar workspace and observable voice interaction
+# ADR 0054 — Miyaar workspace and observable voice interaction
 
 Status: Accepted for implementation, 2026-10-19.
 

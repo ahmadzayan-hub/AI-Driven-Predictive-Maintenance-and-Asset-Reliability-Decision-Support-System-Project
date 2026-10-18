@@ -208,6 +208,8 @@ class RunEngineTestCase(unittest.TestCase):
         requested = blocker / "nested" / name
         store = SQLiteStore(requested)
         self.addCleanup(lambda: store.path.unlink(missing_ok=True))
+        # addCleanup is last-in-first-out, so this closes before the unlink.
+        self.addCleanup(store.close)
         self.assertNotEqual(store.path, requested)
         self.assertTrue(str(store.path).startswith(tempfile.gettempdir()))
         run_id = uuid.uuid4().hex[:12]

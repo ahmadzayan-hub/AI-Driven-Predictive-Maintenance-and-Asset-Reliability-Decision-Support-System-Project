@@ -80,7 +80,7 @@ Axe checks do not replace a screen-reader or hardware voice review.
 
 The first-load download ceilings remain unchanged. Total cross-view budgets
 increase explicitly for the requested visual/voice features; measured values
-and rationale are in [ADR 0053](../adr/0053-miyaar-workspace-and-honest-voice.md).
+and rationale are in [ADR 0054](../adr/0054-miyaar-workspace-and-honest-voice.md).
 No new runtime dependency or font was added.
 
 ## Screenshots

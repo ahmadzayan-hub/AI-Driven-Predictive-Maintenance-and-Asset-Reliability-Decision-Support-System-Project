@@ -29,6 +29,21 @@ def closing(case, app):
     return app
 
 
+def closing_store(case, store):
+    """Register a bare store to close before the test's other cleanups.
+
+    `closing` reaches the store through the app that owns it. A test that
+    opens a store directly - to build a `RunEngine`, say - has no app to
+    reach through, so it registers the store itself.
+
+    Returns the store, so it drops into an existing expression without
+    restructuring the fixture.
+    """
+    if store is not None and callable(getattr(store, "close", None)):
+        case.addCleanup(store.close)
+    return store
+
+
 def temp_workspace(case, tempfile_module):
     """A temporary directory that cleans up after the stores inside it."""
     directory = tempfile_module.TemporaryDirectory()

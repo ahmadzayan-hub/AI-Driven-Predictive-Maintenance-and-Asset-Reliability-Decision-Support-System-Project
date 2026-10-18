@@ -19,7 +19,7 @@ from pathlib import Path
 import assistant
 from agent import Agent
 from server import analytics
-from tests.support import closing
+from tests.support import closing, closing_store
 from server.assistant import Assistant
 from server.model_gateway import ModelGateway
 from server.runs import RunEngine
@@ -65,8 +65,16 @@ class FakeGateway:
         return self.answer
 
 
-def engine_in(directory):
+def engine_in(directory, case=None):
+    """An engine over a throwaway store.
+
+    Pass `case` to have the connection closed in that test's teardown:
+    Windows will not delete the database file while a handle is open, so
+    an unclosed store turns a passing test into a cleanup ERROR.
+    """
     store = open_store(None, Path(directory) / "agentic.db")
+    if case is not None:
+        closing_store(case, store)
     return RunEngine(store, Path(directory) / "vault", ModelGateway(env={}))
 
 
@@ -263,7 +271,7 @@ class ServerAssistantTestCase(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
-        self.engine = engine_in(self.tmp.name)
+        self.engine = engine_in(self.tmp.name, case=self)
         self.assistant = Assistant(ModelGateway(env={}), self.engine)
         self.session = FakeSession(make_agent())
 
@@ -404,7 +412,7 @@ class ModelPathTestCase(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
-        self.engine = engine_in(self.tmp.name)
+        self.engine = engine_in(self.tmp.name, case=self)
         self.session = FakeSession(make_agent())
 
     def handle(self, answer, text):

@@ -15,7 +15,7 @@
 
 ## Agentic OS decisions (these override everything below)
 
-Updated by `docs/adr/0053-miyaar-workspace-and-honest-voice.md` for the owner-approved Miyaar redesign. Originally recorded in `docs/adr/0023-the-analytics-workspace-interface.md`; the full plan is in `docs/UI_PLAN.md`. Where the generated rules below disagree with this section, this section wins.
+Updated by `docs/adr/0054-miyaar-workspace-and-honest-voice.md` for the owner-approved Miyaar redesign. Originally recorded in `docs/adr/0023-the-analytics-workspace-interface.md`; the full plan is in `docs/UI_PLAN.md`. Where the generated rules below disagree with this section, this section wins.
 
 1. **Colour tokens come from `frontend/src/shared/styles/tokens.css`.** Midnight navy surfaces and cyan/teal actions are primary; light and explicit system modes remain supported. Test rendered contrast with axe in each theme; decorative borders are not input borders.
 2. **The primary action is cyan/teal** (`--accent-solid`). Amber (`--highlight`) marks what needs a person: approvals, provisional figures. The amber "Primary Button" below does not apply.

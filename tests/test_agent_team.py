@@ -224,7 +224,7 @@ class ReviewGateTests(unittest.TestCase):
         self.assertEqual(card["round"], 1)
         archived = [p for p in (self.dir / "state").glob("*.json") if p.name != "t-plan.json"]
         self.assertEqual(len(archived), 1)
-        self.assertEqual(len(json.loads(archived[0].read_text())["rounds"]), 2)
+        self.assertEqual(len(json.loads(archived[0].read_text(encoding="utf-8"))["rounds"]), 2)
 
     def test_a_bad_plan_is_refused_with_reasons(self):
         bad = self.dir / "bad.json"
@@ -290,7 +290,7 @@ class AnalyseAndDashboardTests(unittest.TestCase):
     def test_aggregates_are_written_as_small_csv_files(self):
         written = analyse.write_aggregates(self.analysis, self.dir / "agg")
         self.assertEqual(sorted(p.name for p in written), ["by_group.csv", "calculations.csv", "trend.csv"])
-        self.assertIn("North,1935057.6", (self.dir / "agg" / "by_group.csv").read_text())
+        self.assertIn("North,1935057.6", (self.dir / "agg" / "by_group.csv").read_text(encoding="utf-8"))
 
     def test_a_figure_without_a_source_is_refused(self):
         spec = {"title": "T", "sections": [{"type": "kpis", "items": [{"label": "Revenue", "value": 1}]}]}
@@ -308,7 +308,7 @@ class AnalyseAndDashboardTests(unittest.TestCase):
         self.assertEqual(spec["sections"][1]["items"], limits)
         page = self.dir / "dashboard.html"
         page.write_text(dash.render(spec), encoding="utf-8")
-        html_text = page.read_text()
+        html_text = page.read_text(encoding="utf-8")
         self.assertIn('<li id="src-1">preparer.c_total', html_text)
         self.assertNotIn("<script", html_text)
         analysis_file = self.dir / "analysis.json"
@@ -334,7 +334,7 @@ class AnalyseAndDashboardTests(unittest.TestCase):
         bars = next(s for s in spec["sections"] if s.get("title") == "loss per record, by site")
         self.assertEqual([(i["label"], i["value"]) for i in bars["items"]], [("South", 150.0), ("North", 100.0)])
         written = analyse.write_aggregates(analysis, self.dir / "uneven")
-        self.assertIn("2025-02,240.0,2,120.0", (self.dir / "uneven" / "trend.csv").read_text())
+        self.assertIn("2025-02,240.0,2,120.0", (self.dir / "uneven" / "trend.csv").read_text(encoding="utf-8"))
         self.assertEqual(sorted(p.name for p in written), ["by_group.csv", "calculations.csv", "trend.csv"])
 
     def test_an_arabic_dashboard_reads_right_to_left_with_isolated_figures(self):

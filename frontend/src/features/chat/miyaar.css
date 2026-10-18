@@ -1,4 +1,4 @@
-/* Miyaar visual layer (ADR 0053). Values come from shared semantic tokens. */
+/* Miyaar visual layer (ADR 0054). Values come from shared semantic tokens. */
 .shell { background: var(--workspace-bg); }
 .shell__header { min-height: 72px; padding-inline: var(--space-5); background: var(--surface-glass); backdrop-filter: blur(12px); }
 .brand__name { font-size: var(--text-m); }

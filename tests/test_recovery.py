@@ -28,6 +28,7 @@ from tests.test_runs import FASTAPI_AVAILABLE, PG_TEST_URL, _postgres_available
 from server import analytics
 from server.model_gateway import ModelGateway
 from server.runs import RunEngine
+from tests.support import closing_store
 from server.storage import RESTORE_ORDER, open_store
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -274,7 +275,8 @@ class InterruptedStageTestCase(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
-        self.store = open_store(None, self.root / "agentic.db")
+        self.store = closing_store(
+            self, open_store(None, self.root / "agentic.db"))
         self.engine = RunEngine(self.store, self.root / "vault",
                                 ModelGateway(),
                                 glossary={"metrics": [], "problems": []})
@@ -335,7 +337,8 @@ class EngineLossTestCase(unittest.TestCase):
 
     def new_engine(self):
         """A new process would build exactly this."""
-        store = open_store(None, self.root / "agentic.db")
+        store = closing_store(
+            self, open_store(None, self.root / "agentic.db"))
         return RunEngine(store, self.root / "vault", ModelGateway(),
                          glossary={"metrics": [], "problems": []})
 
