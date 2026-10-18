@@ -24,7 +24,7 @@ test('capture interface screenshots', async ({ page }, testInfo) => {
     }, value)
 
   await theme('dark')
-  await page.getByText('What would you like to accomplish?').waitFor()
+  await page.getByRole('heading', { name: 'Every asset. A clearer decision.' }).waitFor()
   await shot('hero-dark')
 
   await sendMessage(page, 'Hello! What can you do?')

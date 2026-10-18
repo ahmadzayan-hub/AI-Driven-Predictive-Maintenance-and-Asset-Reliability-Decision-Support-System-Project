@@ -1141,33 +1141,6 @@ kbd {
   vertical-align: middle;
 }
 
-/* Column mapping (ADR 0025) */
-.mapping {
-  margin-bottom: var(--space-4);
-}
-
-.mapping__head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.mapping__head .card__title:focus {
-  outline: none;
-}
-
-.mapping__head .card__title:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.mapping__subtitle {
-  font-size: var(--text-s);
-  font-weight: 600;
-  margin: var(--space-4) 0 var(--space-2);
-}
-
 /* Wide tables scroll inside their own frame, never the page. The frame
    takes focus so a keyboard can scroll it (axe: scrollable-region-focusable). */
 .mapping__preview {

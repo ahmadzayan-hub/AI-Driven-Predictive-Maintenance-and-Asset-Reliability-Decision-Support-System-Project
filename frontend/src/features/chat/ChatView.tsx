@@ -139,7 +139,7 @@ export function ChatView({
         {failedText ? <div className="alertbar" role="alert">
           <Icon name="alert" size={16} />
           <div><p>{t('chat.failed')}</p>{requestError ? <p dir="auto">{requestError}</p> : null}</div>
-          <button type="button" className="alertbar__retry" onClick={onRetry} disabled={sending || offline}>{t('chat.retry')}</button>
+          <button type="button" className="alertbar__retry" onClick={onRetry} disabled={sending}>{t('chat.retry')}</button>
           <button type="button" className="iconbtn" onClick={onDismissFailed} aria-label={t('chat.dismiss')}><Icon name="x" size={14} /></button>
         </div> : null}
         {session.ended ? <div className="alertbar alertbar--info" role="status"><Icon name="power" size={16} /><span>{t('chat.ended')}</span></div> : null}
