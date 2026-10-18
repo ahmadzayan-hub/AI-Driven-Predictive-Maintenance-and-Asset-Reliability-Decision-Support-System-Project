@@ -5,6 +5,12 @@
 - Region: `ap-south-1`. Created at quoted $0/month.
 - Applied migration `asset_reliability_ai_initial_schema_20261018`.
 - Nine backend-only application tables; RLS enabled and direct client grants removed.
+- Verified on 18 October 2026: the public Supabase JWKS URL
+  responds with an active ES256 signing key; no JWT secret is required
+  for signature verification.
+- Vercel **preview only** now holds encrypted `AGENTIC_OS_JWKS_URL` and
+  `AGENTIC_OS_REQUIRE_AUTH=1`. These activate managed JWT verification
+  on future preview deployments, not on the current production demo.
 - Vercel project `asset-reliability-team3-saas` has five encrypted,
   **non-secret** auth settings: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`,
   `AGENTIC_OS_JWT_ISSUER`, `AGENTIC_OS_JWT_AUDIENCE`,
