@@ -1,5 +1,16 @@
 # AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project
 
+<p align="center"><img src="frontend/public/artwork/asset-reliability-mark.svg" width="90" alt="Asset Reliability AI brand mark" /></p>
+
+<p align="center"><strong>Asset Reliability AI</strong><br/>An evidence-led workspace for predictive maintenance, asset risk and human-reviewed decisions.</p>
+
+![Illustrative railway reliability identity, not operational performance data](frontend/public/artwork/asset-reliability-hero.svg)
+
+**Product status:** Under development. A successful build is not proof of predictive model quality, customer isolation or measurable savings. The maintenance design view uses fictional fixtures; the authenticated analysis workflow is separate.
+
+**Start here:** [Product charter](docs/PROJECT_CHARTER.md) · [Agent catalog](docs/AGENT_CATALOG.md) · [UI/brand system](docs/design/ASSET_RELIABILITY_BRAND_SYSTEM.md) · [Validated analysis](docs/DATASET_ANALYTICS.md) · [Known limitations](docs/KNOWN_LIMITATIONS.md)
+
+
 A maintenance and asset reliability decision-support product being developed
 as software as a service, powered by **Agentic OS**, its governed analytics
 engine. The web workspace supports data preparation, analysis, model evaluation,
