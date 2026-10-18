@@ -476,6 +476,30 @@ class ModelPathTestCase(unittest.TestCase):
         self.assertIn("agent: Its inspection follows approved procedures.", context)
         self.assertIn("Message: " + question, context)
 
+    def test_context_separates_saved_entries_from_conversation_without_saving_turns(self):
+        self.session.add_entry("user", "Discuss the exhaust fan.")
+        self.session.add_entry("agent", "We can discuss its maintenance.")
+        question = "Continue with this topic."
+        self.session.add_entry("user", question)
+        for saved in (False, True):
+            with self.subTest(saved=saved):
+                if saved:
+                    self.session.agent.process_input("remember the inspection review is Friday")
+                memories = dict(self.session.agent.memory)
+                transcript = [dict(entry) for entry in self.session.transcript]
+                _, gateway = self.handle(json.dumps({"action": "chat", "reply": "Useful guidance."}), question)
+                context = gateway.asked[0][1]
+                saved_section, recent = context.split("Recent conversation:", 1)
+                self.assertIn("Saved memory:", saved_section)
+                self.assertIn("memory_1: the inspection review is Friday" if saved else "Saved memory:\nnone", saved_section)
+                self.assertNotIn("Discuss the exhaust fan.", saved_section)
+                self.assertNotIn("memory_1:", recent)
+                self.assertIn("user: Discuss the exhaust fan.", recent)
+                self.assertIn("agent: We can discuss its maintenance.", recent)
+                self.assertEqual(context.count(question), 1)
+                self.assertEqual(self.session.agent.memory, memories)
+                self.assertEqual(self.session.transcript, transcript)
+
     def test_intent_boundary_receives_the_full_action_catalog(self):
         # Every executable action must be represented in the model's catalog.
         _, gateway = self.handle(None, "Explain a general inspection")

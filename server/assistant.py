@@ -70,7 +70,8 @@ SYSTEM_PROMPT = (
     "set_preference{key:tone|language|user_name|save_history,value}; "
     "start_run{goal,dataset:stored name|sample}; run_status{}; "
     "explain_report{section:descriptive|diagnostic|experiment|predictive|prescriptive|all}.\n"
-    "Conversation follow-ups use Context and chat, NEVER recall. "
+    "recall searches Saved memory entries, never the Recent conversation transcript. "
+    "Conversation follow-ups use Recent conversation and chat, NEVER recall. "
     "Conceptual maintenance/checklists use chat: answer the specified question "
     "directly and briefly; do not ask whether to give the checklist already requested. "
     "Give useful general guidance with a NONEMPTY reply at the TOP LEVEL, never "
@@ -80,6 +81,13 @@ SYSTEM_PROMPT = (
     "operating limits, predictions or savings. General guidance is not a measured "
     "asset assessment. Inspections follow approved site/manufacturer procedures "
     "and safe isolation by qualified personnel.\n"
+    "Examples (not current context):\n"
+    "Recent conversation: user: Our topic is a belt conveyor. agent: We can discuss its inspection.\n"
+    "Message: Repeat the asset from this conversation.\n"
+    "{\"action\":\"chat\",\"arguments\":{},\"reply\":\"You described a belt conveyor.\"}\n"
+    "Recent conversation: user: أناقش ضاغط هواء. agent: يمكنني توضيح فحصه.\n"
+    "Message: كرر الأصل من هذه المحادثة.\n"
+    "{\"action\":\"chat\",\"arguments\":{},\"reply\":\"ذكرت ضاغط هواء.\"}\n"
     "The system executes actions, confirms deletions, and quotes reports for "
     "run_status/explain_report. Leave reply empty for non-chat actions; never "
     "claim an action already happened. Answer in {language}, at most two short "
@@ -183,9 +191,11 @@ class Assistant:
         agent = session.agent
         lines = ["Context:"]
         memory = agent.memory_entries()[:MAX_MEMORY_IN_CONTEXT]
+        lines.append("Saved memory:")
         if memory:
-            lines.append("Memory:")
             lines.extend(f"- {e['key']}: {e['text'][:200]}" for e in memory)
+        else:
+            lines.append("none")
         prefs = {k: agent.preferences.get(k) for k in PREFERENCE_KEYS
                  if agent.preferences.get(k) is not None}
         lines.append("Preferences: " + json.dumps(prefs, ensure_ascii=False))
@@ -205,6 +215,7 @@ class Assistant:
             # The API appends the current turn before asking. It is sent
             # below as Message, so retain history without duplicating it.
             turns = turns[:-1]
+        lines.append("Recent conversation:")
         for entry in turns[-MAX_TURNS_IN_CONTEXT:]:
             lines.append(f"{entry['role']}: {str(entry.get('text', ''))[:300]}")
         return "\n".join(lines)
