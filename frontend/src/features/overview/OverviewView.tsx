@@ -6,18 +6,20 @@ import { stateLabel, typeLabel } from '../../shared/labels'
 import type { RunDetail, RunSummary, Usage } from '../../shared/types'
 import type { RunPreset } from '../runs/RunsView'
 import { countRuns, latestWithFindings, recentRuns, RUN_PAGE, waitingForApproval } from './summary'
+import { DecisionActions } from './DecisionActions'
 
 interface OverviewViewProps {
   onOpenRun: (id: string) => void
   onStart: (preset: RunPreset | null) => void
   onApprovals?: () => void
+  onOpenDashboard?: () => void
 }
 
 /** Where the workspace stands, on one screen: the figures, the latest
  *  findings, what is waiting at the approval gate, and the newest runs.
  *  Everything comes from existing endpoints; nothing is computed here
  *  that the server did not already say. */
-export function OverviewView({ onOpenRun, onStart, onApprovals }: OverviewViewProps) {
+export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard }: OverviewViewProps) {
   const { t, tx, formatNumber, formatDate } = useI18n()
   const [runs, setRuns] = useState<RunSummary[] | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
@@ -64,6 +66,14 @@ export function OverviewView({ onOpenRun, onStart, onApprovals }: OverviewViewPr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attempt])
 
+  const actions = onOpenDashboard ? (
+    <DecisionActions
+      onUpload={() => onStart({ kind: 'upload' })}
+      onDashboard={onOpenDashboard}
+      onApprovals={onApprovals}
+    />
+  ) : null
+
   const header = (
     <div className="panel__header">
       <div>
@@ -82,6 +92,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals }: OverviewViewPr
       <section className="panel" aria-label={t('overview.aria')}>
         <div className="panel__inner panel__inner--wide">
           {header}
+          {actions}
           <div className="card">
             <p className="statusline statusline--error" role="alert" dir="auto">
               {failed}
@@ -101,6 +112,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals }: OverviewViewPr
       <section className="panel" aria-label={t('overview.aria')}>
         <div className="panel__inner panel__inner--wide">
           {header}
+          {actions}
           <div className="kpis" role="status" aria-label={t('overview.loading')}>
             {[0, 1, 2, 3].map((n) => (
               <div key={n} className="kpi">
@@ -119,6 +131,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals }: OverviewViewPr
       <section className="panel" aria-label={t('overview.aria')}>
         <div className="panel__inner panel__inner--wide">
           {header}
+          {actions}
           <div className="card empty">
             <div className="empty__icon">
               <Icon name="dashboard" size={32} />
