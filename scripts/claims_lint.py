@@ -47,10 +47,39 @@ CAUSAL = [
     # "بيقلل". "يسوي" and "يخلي" (makes) are the Gulf and Egyptian causatives.
     re.compile(r"\S+\s+(?:\S+\s+){0,6}[وف]?ب?(يقلل|تقلل|يقلّل|تقلّل|يزيد|تزيد|يزود|تزود|يرفع|ترفع|يخفض|تخفض|يخفّض|تخفّض|"
                r"يحسن|تحسن|يحسّن|تحسّن|يسوي|تسوي|يخلي|تخلي|يخلّي|تخلّي)\s+(?!(في|خلال|بنسبة|عن|على|إلى|الى|حتى)\s)(?:من\s+)?\S+"),
+    # Arabic attributes a cause by returning to it: "يعود التراجع إلى نقص البيانات".
+    re.compile(r"(يعود|تعود|يرجع|ترجع|يُعزى|تُعزى|يعزى|تعزى)\s+(?:\S+\s+){0,7}(إلى|الى)"),
+    # "جاء نتيجة تحديث النظام": a result attributed to a thing. The older rule
+    # had only "نتيجة ل"; the noun may follow directly or after "عن".
+    re.compile(r"نتيجة\s+(?!(لذلك|لهذا|ذلك|هذا)\b)(?:ل|عن\s+)?\S+"),
+    # The Arabic counterpart of the English "pushes X up".
+    re.compile(r"(يدفع|تدفع|دفع|دفعت)\s+(?:\S+\s+){0,5}(إلى|الى)\s+"
+               r"(الأعلى|الاعلى|الأسفل|الاسفل|الارتفاع|الانخفاض|التراجع|الصعود|الهبوط)"),
+    # English nominalised cause: "the impact of the new rule was a 15-minute cut"
+    # asserts the effect the intervention produced.
+    # "The impact of the outage is still being assessed" reports a status, so the
+    # complement must assert an effect rather than defer one.
+    re.compile(r"\bthe\s+(impact|effect|consequence|upshot)\s+of\b(?:\s+\S+){0,8}?\s+"
+               r"(was|is|has been|were|are)\s+"
+               r"(?!(still|not|yet|unclear|unknown|under|being|hard|difficult|impossible)\b)", re.I),
+    # Arabic verb-subject-object, the language's default order: "خفّض التدريب
+    # الجديد زمن التوقف" claims an effect. The subject-verb-object rule above
+    # requires a word before the verb, which is an English assumption - there a
+    # sentence-opening verb is an imperative or a report. Here the verb opens,
+    # the subject follows, and a further noun phrase is the thing acted on.
+    # "زاد الإنتاج بنسبة 12%" and "زاد الإنتاج في الربع الأخير" stay out: what
+    # follows the subject is a measure or a circumstance, so a change is being
+    # reported. A second noun phrase instead means something was acted on.
+    # Only the position right after the subject is tested - prepositions inside
+    # the phrases themselves are ordinary Arabic ("التدريب الجديد على التشغيل").
+    re.compile(r"^[وف]?(خفّض|خفض|قلّل|قلل|رفع|زاد|ضاعف|حسّن|حسن|أبطأ|ابطأ|سرّع|سرع|"
+               r"عطّل|عطل|أطال|اطال|قصّر|قصر)\s+"
+               r"(?!(في|خلال|بنسبة|بمقدار|عن|على|إلى|الى|حتى|من|بين)\s)\S+\s+"
+               r"(?!(في|خلال|بنسبة|بمقدار|عن|على|إلى|الى|حتى|من|بين)\s)\S+"),
 ]
 # Sentences about causation itself are not claims of it.
 META = re.compile(
-    r"\b(can ?not|can't|no finding|not)\s+(claim|prove|show|be stated as|establish)|"
+    r"\b(can ?not|can't|no finding|not)\s+(claim|prove|show|be stated as|establish|confirm)|"
     r"\bnot (what|a) caus|\bnot proof\b|\bassociation,? not\b|"
     r"\b(doesn't|does not|don't|do not|can't|cannot)\s+(tell|show|say|prove)\s+(us\s+)?(which|whether|if|what)\b|"
     r"لا يمكن (ادعاء|إثبات)|ليس سبباً|لم (يثبت|تثبت|يُثبت|تُثبت|يتضح)|لا (يثبت|تثبت|يدل على أن)|"

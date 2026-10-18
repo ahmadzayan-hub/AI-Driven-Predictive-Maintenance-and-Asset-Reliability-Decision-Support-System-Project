@@ -125,6 +125,38 @@ class RecallFixTests(unittest.TestCase):
         self.assertFalse(claims_lint.causal_phrases("Records with a stockout average twice the downtime."))
         self.assertFalse(claims_lint.causal_phrases("We cannot claim a cause from this data."))
 
+    def test_the_round_six_constructions_are_found(self):
+        """One case per class added in ADR 0054, so a rewrite cannot drop one."""
+        for sentence in (
+            "خفّض التدريب الجديد على التشغيل زمن التوقف غير المخطط في محطة الضخ.",
+            "يعود تراجع دقة التنبؤ إلى نقص البيانات في الأشهر الأخيرة.",
+            "انخفاض الحوادث جاء نتيجة تحديث نظام الإشارات.",
+            "ارتفاع أسعار الوقود يدفع تكاليف النقل إلى الأعلى كل شهر.",
+            "The impact of the new triage rule was a 15-minute cut in average waiting time.",
+        ):
+            self.assertTrue(claims_lint.causal_phrases(sentence), sentence)
+
+    def test_a_hedge_and_a_status_are_not_claims(self):
+        """Both were false positives the round-six patterns had to avoid."""
+        self.assertFalse(claims_lint.causal_phrases(
+            "The shift change may have contributed to the error spike, "
+            "but the sample is small and we cannot confirm it."))
+        self.assertFalse(claims_lint.causal_phrases(
+            "The impact of the outage on customer costs is still being assessed."))
+        # Arabic verb-initial reporting of a change stays out of the net.
+        self.assertFalse(claims_lint.causal_phrases("زاد الإنتاج بنسبة 12% في الربع الأخير."))
+        self.assertFalse(claims_lint.causal_phrases("زاد الإنتاج في الربع الأخير."))
+
+    def test_the_adversarial_probe_is_labelled_as_one(self):
+        """probe_v5 must never be read as a blind holdout: it was written with
+        the patterns in view, so its recall is a worst case, not a measurement
+        of field performance (ADR 0054)."""
+        suite = json.loads((ev.EVALS / "causal.json").read_text(encoding="utf-8"))
+        self.assertIn("probe_v5", suite)
+        self.assertEqual(len(suite["probe_v5"]), 32)
+        for case in suite["probe_v5"]:
+            self.assertIn("NOT a blind holdout", case["source"])
+
     def test_the_claims_lint_cli_exits_by_result(self):
         with tempfile.TemporaryDirectory() as tmp:
             doc = Path(tmp) / "doc.md"

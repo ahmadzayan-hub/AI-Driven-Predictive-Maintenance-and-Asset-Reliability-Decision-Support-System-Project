@@ -748,5 +748,167 @@
    "label": false,
    "source": "blind v3, written by an independent agent from the label definitions only"
   }
+ ],
+ "probe_v5": [
+  {
+   "text": "نجم عن تأجيل الصيانة ارتفاع في أعطال المحامل.",
+   "label": true,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "أفضت إعادة جدولة الورديات إلى انخفاض ساعات العمل الإضافي.",
+   "label": true,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "مردّ تحسن الجاهزية هو برنامج الصيانة الوقائية الجديد.",
+   "label": true,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "فاقم نقص قطع الغيار زمن التوقف في الخط الثالث.",
+   "label": true,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "بفضل نظام الإنذار المبكر تراجعت الأعطال المفاجئة.",
+   "label": true,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "عزّزت الصيانة التنبؤية موثوقية الأسطول خلال الربع الأخير.",
+   "label": true,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "جرّاء ارتفاع الحرارة تضاعفت أعطال التكييف.",
+   "label": true,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "أسفر تحديث البرمجيات عن تقليل زمن الاستجابة.",
+   "label": true,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "The new scheduling rule was behind the drop in overtime hours.",
+   "label": true,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "The reduction in failures is attributable to the revised inspection interval.",
+   "label": true,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "Thanks to the early-warning sensors, unplanned stops fell by a fifth.",
+   "label": true,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "The spike in callouts stems from the deferred maintenance backlog.",
+   "label": true,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "The pilot gave rise to a measurable fall in repeat visits.",
+   "label": true,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "Replacing the bearings brought down vibration levels across the line.",
+   "label": true,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "Longer shifts translate into more reporting errors on the night rota.",
+   "label": true,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "The outage was a direct consequence of the firmware rollback.",
+   "label": true,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "ترتبط زيادة الأعطال بارتفاع ساعات التشغيل دون إثبات سبب.",
+   "label": false,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "زاد الإنتاج بنسبة 12% في الربع الأخير.",
+   "label": false,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "انخفضت الأعطال في المحطة الشمالية خلال الصيف.",
+   "label": false,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "هل أدى تغيير المورد إلى ارتفاع التكاليف؟",
+   "label": false,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "لا يمكن إثبات أن التدريب خفض زمن التوقف بهذه البيانات.",
+   "label": false,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "ترافق ارتفاع الاستهلاك مع زيادة عدد الرحلات.",
+   "label": false,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "نحتاج إلى اختبار ما إذا كان الجدول الجديد يقلل الأعطال.",
+   "label": false,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "يبلغ متوسط زمن الإصلاح 4.2 ساعة في محطة الضخ.",
+   "label": false,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "The impact of the outage on customer costs is still being assessed.",
+   "label": false,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "Failures are higher where operating hours are longer, which is an association only.",
+   "label": false,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "Downtime fell 18% in the second quarter.",
+   "label": false,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "We have not tested whether the new rota reduces errors.",
+   "label": false,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "Is the signal upgrade responsible for the drop in collisions?",
+   "label": false,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "The effect of the discount has not yet been measured.",
+   "label": false,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "Repeat failures and ambient temperature move together across the fleet.",
+   "label": false,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  },
+  {
+   "text": "Average waiting time was 15 minutes in March.",
+   "label": false,
+   "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
+  }
  ]
 }
