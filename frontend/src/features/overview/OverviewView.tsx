@@ -148,6 +148,15 @@ export function OverviewView({ onOpenRun, onStart, onApprovals }: OverviewViewPr
   const recent = recentRuns(runs)
   const findings = latest ? latest.reports.filter((report) => (report.headline ?? '').trim()) : []
   const reportLang = latest?.report_language === 'ar' ? 'ar' : 'en'
+  // A run's independent validator is evidence about that run, not a claim
+  // that every model is accurate or operationally approved.
+  const evidence = latest?.tasks.find((task) => task.role === 'validator')
+  const evidencePassed = evidence?.state === 'succeeded'
+    && evidence.quality_checks.length > 0
+    && evidence.quality_checks.every((check) => check.passed)
+  const stageCount = latest?.tasks.filter((task) => task.role !== 'publish').length ?? 0
+  const stagesComplete = latest?.tasks.filter((task) =>
+    task.role !== 'publish' && task.state === 'succeeded').length ?? 0
 
   const tiles = [
     {
@@ -205,6 +214,32 @@ export function OverviewView({ onOpenRun, onStart, onApprovals }: OverviewViewPr
         {counts.capped ? (
           <p className="panel__note">{t('overview.capped', { n: formatNumber(RUN_PAGE) })}</p>
         ) : null}
+
+        <section className="card overview__evidence" aria-label={t('overview.evidenceHeading')}>
+          <div className="overview__evidence-head">
+            <Icon name="shield" size={22} />
+            <div>
+              <h3 className="card__title">{t('overview.evidenceHeading')}</h3>
+              <p className="card__meta">{latest
+                ? t('overview.evidenceStages', {
+                    done: formatNumber(stagesComplete),
+                    total: formatNumber(stageCount),
+                  })
+                : t('overview.evidenceMissing')}</p>
+            </div>
+          </div>
+          <div className="overview__evidence-state">
+            <strong>{!latest ? t('overview.evidenceUnavailable')
+              : evidencePassed ? t('overview.evidencePassed')
+                : t('overview.evidencePending')}</strong>
+            <p>{t('overview.evidenceScope')}</p>
+          </div>
+          {latest ? (
+            <button type="button" className="btn btn--ghost" onClick={() => onOpenRun(latest.id)}>
+              {t('overview.openAnalysis')}
+            </button>
+          ) : null}
+        </section>
 
         <div className="overview__grid">
           <div className="card">
