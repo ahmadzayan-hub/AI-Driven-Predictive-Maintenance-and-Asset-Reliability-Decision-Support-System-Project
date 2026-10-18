@@ -490,7 +490,7 @@ export function App() {
 
         <main className="main" id="workspace-main" inert={drawerOpen} tabIndex={-1} key={`${session.session_id}:${store.identity?.principal.subject ?? 'local'}:${store.identity?.principal.role ?? 'local'}`}>
           {pane('overview', (
-            <OverviewView onOpenRun={openRun} onStart={startAnalysis} onApprovals={() => go('approvals')} />
+            <OverviewView onOpenRun={openRun} onStart={startAnalysis} onApprovals={() => go('approvals')} onOpenDashboard={() => go('dashboard')} />
           ))}
           {pane('datasets', (
             <DatasetsView
