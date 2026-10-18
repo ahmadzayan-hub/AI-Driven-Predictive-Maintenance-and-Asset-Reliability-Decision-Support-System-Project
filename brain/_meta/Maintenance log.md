@@ -40,3 +40,11 @@ What each round of brain maintenance changed, newest last. The SessionStart hook
 - Added no notes and merged none: the two changes belong in concepts that already exist, and neither ADR introduces a concept the brain was missing.
 - `scripts/brain_check.py --strict` exits 0 after the edits.
 
+## 2026-10-19
+
+- `scripts/brain_check.py --json` reported a structurally clean brain: 27 notes, 299 links, and nothing under broken links, missing fields, bad dates, missing sources, stale, orphans, duplicates, unlinked mentions or weakly linked. Nothing structural was needed, so none was invented. The round was due only because the log had no section dated today.
+- Checked the brain's numeric claims against their sources rather than trusting the link check, which cannot see a wrong number. [[Decision log]] already runs through ADR 0053, backfilled earlier today by the other working copy, and no note quotes a test count — those live in `README.md` by convention, and the dated "Verified state" sections in [[Agentic OS]] are records of their own dates and were left alone.
+- Refreshed [[Session lifecycle]]: step 3 of the loop now says to fetch before writing. A session that writes first can silently revert work that landed while it was thinking — which is how pull request #14's security fix nearly went, and how this session's own fix came to duplicate `a036cf9`. Sources: `docs/GITHUB_SYNC.md`, this session's log entry.
+- Added no notes and merged none. The one lesson of the day belongs in a note that already exists, and nothing today introduced a concept the brain was missing.
+- Corrected a record outside the brain, under the rule that the code wins: `Memory.md`'s environment line still said full Python verification fails on locked SQLite files and CRLF mismatches. It no longer does — 1188 tests, 142 skipped, 0 errors, 0 failures — so the line now states the green result, names the commits that closed it, and keeps only the two load-dependent flakes that are real.
+- `scripts/brain_check.py --strict` exits 0 after the edits.
