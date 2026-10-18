@@ -1,0 +1,42 @@
+{
+  "authorization": {
+    "ordinary_role": "viewer",
+    "ordinary_other_owner_run_status": 404,
+    "metadata_role": "owner",
+    "metadata_other_owner_run_status": 200
+  },
+  "fail_on_high": {
+    "configured": true,
+    "can_fail_run": false,
+    "task_state": "failed",
+    "run_state": "awaiting_approval",
+    "report_created": true
+  },
+  "model_inputs": {
+    "selected_despite_contract_exclusion": [
+      "Failure_Count",
+      "Corrective_WO_Count",
+      "Completed_WO_Count",
+      "Operating_Hours",
+      "First_Time_Fix_Count",
+      "Maintenance_Cost_USD",
+      "Asset_Class"
+    ]
+  },
+  "kpi_missing_value": {
+    "key": "downtime_per_record",
+    "title": "Downtime per record",
+    "title_ar": "\u0627\u0644\u062a\u0648\u0642\u0641 \u0644\u0643\u0644 \u0633\u062c\u0644",
+    "value": 5.0,
+    "scale": "hours",
+    "numerator": 10.0,
+    "denominator": 2.0,
+    "formula": "sum(Downtime_Hours) / count(records)",
+    "population": "all records",
+    "records": 2,
+    "records_excluded": 0,
+    "undefined_reason": null,
+    "edge_cases": "Per record, not per period: record volume differs between periods, so a falling total need not mean less downtime."
+  },
+  "kpi_population_column_missing": "reported computable"
+}

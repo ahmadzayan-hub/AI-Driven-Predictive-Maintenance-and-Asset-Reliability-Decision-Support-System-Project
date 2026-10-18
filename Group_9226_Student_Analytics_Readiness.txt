@@ -1,0 +1,920 @@
+PAGE 1
+ 
+ 
+ 
+ 
+ 
+STUDENT ANALYTICS PROFILE CONSOLIDATED 
+ANALYSIS 
+Data Analytics for AI Business – Group 9226 
+Academic Year 2026 
+Graduate School of Business (GSB), Miami, AASTMT 
+ 
+Coverage: 25 Student Analytics Profiles 
+  
+PAGE 2
+Group 9226 – Student Analytics Readiness Consolidated Analysis pg. 2 
+   
+Contents 
+Executive Overview ............................................................................................................................... 3 
+1. Consolidated Student Analytics Profile Summary ............................................................................... 7 
+1.1 Student List .................................................................................................................................. 7 
+1.2 Cohort Summary .......................................................................................................................... 7 
+1.3 Cohort KPI Summary .................................................................................................................... 8 
+1.4 Cohort-Level KPI Architecture ....................................................................................................... 9 
+1.5 Dominant Cohort Analytics Challenges ........................................................................................ 10 
+1.6 Synthesis of Cohort Learning Needs ............................................................................................. 10 
+2. Cluster Analysis: Students Grouped by Data Analytics Readiness ...................................................... 12 
+3. Cluster Summary Table .................................................................................................................... 13 
+4. Data Analytics Readiness Score Index (DARSI): Quantitative Model .................................................... 14 
+5. Competency Heatmap and Cohort Visualization ............................................................................... 15 
+6. Recommendation on Team Formation and Readiness Scoring ........................................................... 18 
+6.1 Recommended Team Roles ......................................................................................................... 19 
+6.2 Team Readiness Balance Index .................................................................................................... 19 
+7. Machine-Learning Type Used for Cluster Analysis and Alternatives .................................................... 20 
+7.1 Suitable Clustering Algorithms ..................................................................................................... 20 
+8. Proposed Teams and Job-Aligned Group Projects .............................................................................. 21 
+8.1 Team-Specific Student Contributions .......................................................................................... 21 
+Team 1 .......................................................................................................................................... 21 
+Team 2 .......................................................................................................................................... 21 
+Team 3 .......................................................................................................................................... 22 
+Team 4 .......................................................................................................................................... 22 
+Team 5 .......................................................................................................................................... 22 
+8.2 Common Project Architecture ..................................................................................................... 22 
+Conclusion .......................................................................................................................................... 24 
+ 
+ 
+  
+PAGE 3
+Group 9226 – Student Analytics Readiness Consolidated Analysis pg. 3 
+   
+Executive Overview 
+This report presents a consolidated analysis of the Student Analytics Profiles (SAPs) for the 25 
+students enrolled in Data Analytics for AI Business, Group 9226, Academic Year 2026 , at the 
+Graduate School of Business (GSB), Miami, AASTMT. The analysis is intended to transform the 
+information collected through the SAP from descriptive student -profile data into a structured basis for 
+course planning, differentiated learning, analytics -readiness assessment, balanced team 
+formation, and the development of professionally relevant group projects . Accordingly, the report 
+examines students’ professional backgrounds, business contexts, decision responsibilities, data 
+environments, Key Performance Indicators (KPIs), analytics proficiency, Power BI readiness, AI and 
+Machine Learning exposure, and learning expectations. 
+The cohort is characterized by substantial professional and sectoral diversity . Students represent 
+government and digital transformation, SAP and enterprise architecture, construction and infrastructure, 
+quality assurance and quality control, mining and metallurgy, railway systems, heavy -equipment 
+maintenance, biomedical engineering, healthcare and pharmaceuticals, oil and gas, marine operations, 
+finance and investment, credit and accounts receivable, software and SaaS, product management, and 
+diversified business operations. A significant proportion of the cohort consists of experienced 
+professionals occupying managerial, technical -leadership, consulting, entrepreneurial, or executive 
+roles. Consequently, the instructional challenge is not primarily to introduce students to business 
+problems; rather, it is to enable them to convert their existing  domain expertise and managerial 
+experience into structured, data-driven and increasingly AI-enabled decision-making capability. 
+Despite the diversity of industries represented, the SAP analysis identifies considerable commonality in 
+the students’ analytical requirements. Their business problems frequently involve forecasting and 
+prediction, financial performance and cost control, predictive maintenance, asset reliability, 
+quality improvement, process optimization, customer and market analysis, resource allocation, 
+project performance, service delivery, and digital transformation . Similarly, the KPIs reported across 
+the cohort converge around several common performance domains, including revenue growth, 
+profitability, EBITDA, ROI, budget variance, cash flow, equipment availability, MTBF, MTTR, downtime, 
+failure rate, utilization, throughput, NCR closure, rework, SLA compliance, turnaround time, customer 
+conversion, forecast accuracy, digital adoption, system availability, safety compliance, and project 
+delivery performance. This convergence provides an important pedagogical opportunity: students may 
+work in very different professional environments while learning and applying a  common business 
+analytics methodology. 
+A particularly important finding is the prevalence of fragmented organizational data environments . 
+Students frequently describe information distributed across SAP and other ERP systems, Excel 
+spreadsheets, Aconex, Jira, maintenance -management systems, operational applications, financial 
+systems, project platforms, and manually generated reports. The principal development requirement is 
+therefore not simply learning individual analytics tools. Students need to understand how to move from 
+fragmented operational data toward an integrated analytical process in which data are prepared, 
+PAGE 4
+Group 9226 – Student Analytics Readiness Consolidated Analysis pg. 4 
+   
+validated, modelled, transformed into meaningful KPIs, analyzed, visualized, interpreted, and ultimately 
+used to support managerial decisions. 
+The resulting learning needs can be organized into nine interconnected areas: data preparation and data 
+quality; data integration and modelling; Power BI and visualization; KPI design and performance 
+analytics; descriptive and diagnostic analytics; predictive analytics; prescriptive analytics; AI and 
+Machine Learning for business; and data storytelling, governance and responsible AI use . These 
+findings support a course structure that begins with the managerial problem rather than the analytical 
+technique. The recommended learning sequence is therefore: Business Challenge → Business Problem 
+→ Decision Question → Data Requirements → Data Preparation and Integration → KPI Framework → 
+Descriptive Analytics → Diagnostic Analytics → Predictive Analytics → Prescriptive Analytics → Power 
+BI and AI -Enabled Decision Support → Managerial Action . Such a sequence is particularly appropriate 
+for an MBA course because analytics is positioned as a means of improving decisions rather than as an 
+isolated technical exercise. 
+To provide a quantitative basis for assessing student readiness, the report introduces the Data Analytics 
+Readiness Score Index (DARSI) . DARSI is a diagnostic 0 –100 index derived from three dimensions 
+represented in the SAP: Analytics Proficiency (40%), Power BI/Business Intelligence Readiness (35%), 
+and AI/Machine Learning Exposure (25%) . Qualitative self-assessment responses are normalized onto a 
+common numerical scale, allowing the cohort to be examined using four broad readiness bands: 
+Foundation (0 –39), Developing/Transitional (40 –54), Intermediate/Analytics -Ready (55 –74), and 
+Advanced/Applied (75 –100). Where sufficient SAP evidence is unavailable, the student remains 
+unclassified rather than being assigned an inferred score. DARSI is therefore intended strictly as a 
+learning-readiness diagnostic indicator and not as an academic grade or judgment of student 
+performance. 
+At cohort level, the quantitative analysis indicates a mean Analytics Proficiency score of approximately 
+60.2/100, Power BI/BI Readiness of 42.4/100, AI/ML Exposure of 54.6/100, and an overall DARSI of 
+approximately 52.6/100  among students for whom usable readiness information is available. The 
+pattern is significant. The cohort's general analytical and managerial understanding is stronger than its 
+practical BI capability, making Power BI and applied data modelling the clearest common technical 
+development area . AI exposure is already meaningful but uneven: some students report introductory 
+familiarity, while others have practical experience with GenAI, automation, Power Platform, advanced 
+dashboards, DAX, AI agents, computer vision, or other AI -enabled applications. This variation confirms 
+the need for differentiated practical learning rather than assuming that all students should begin at the 
+same technical level. 
+The readiness grouping is appropriately treated as an unsupervised-learning problem , because the 
+analysis initially seeks to identify similarities among students rather than predict a previously validated 
+readiness label. For a cohort of 25 students, hierarchical clustering or K -medoids provides an appropriate 
+basis for exploring readiness patterns, while a future expanded SAP containing mixed numerical, ordinal 
+and categorical variables could be analyzed using Gower distance combined with hierarchical 
+clustering. As additional cohorts and post -course outcomes become available, the analytical framework 
+PAGE 5
+Group 9226 – Student Analytics Readiness Consolidated Analysis pg. 5 
+   
+could subsequently evolve toward supervised learning, using classification to predict validated readiness 
+categories and regression to estimate post-course readiness or learning gain. 
+The readiness analysis also provides a direct basis for differentiated learning. Foundation-level students 
+require greater emphasis on data understanding, cleaning, descriptive statistics, KPI development and 
+Power BI fundamentals. Developing students can progress toward data modelling, diagnostic analytics, 
+visualization and introductory forecasting. Intermediate students can undertake more substantial 
+predictive analytics, classification, advanced Power BI and AI -assisted analysis. Advanced students can 
+be challenged through more sophisticated DAX, predictive modelling, optimization, automation, Machine 
+Learning and AI integration. Importantly, these differentiated technical pathways should operate within a  
+common conceptual framework , ensuring that every student understands the complete relationship 
+between business problems, data, analytics and managerial decisions. 
+For group projects, the analysis recommends forming five teams of five students , with team 
+composition based on a combination of analytics readiness, industry diversity, functional background 
+and managerial experience. The objective is to avoid concentrating technically advanced students in a 
+small number of teams while simultaneously ensuring that each team contains sufficient analytical 
+capability to undertake a meaningful MBA -level project. Each team should therefore combine stronger 
+analytics members with intermediate, developing and foundation -level participants wherever feasible. 
+This structure is intended to support  peer learning, cross -functional collaboration and knowledge 
+transfer, while maintaining individual responsibility for analytical work. 
+Five integrated project themes have been identified to reflect the professional backgrounds of the 
+proposed teams: AI-Enabled Enterprise Performance and Financial Decision Support; Predictive 
+Quality and Operational Performance Analytics for Asset -Intensive Projects; AI -Driven Predictive 
+Maintenance and Asset Reliability; AI -Assisted Resource Allocation and Business Performance 
+Optimization; and AI -Enabled Operational Intelligence and Digital Transformation . Although the 
+projects address different sectors and business problems, they should follow the same academic 
+architecture: defining the business challenge and decision question, identifying and preparing the 
+dataset, establishing KPIs, conducting descriptive and diagnostic analysis, applying appropriate 
+predictive and prescriptive techniques, developing a Power BI dashboard, incorporating a meaningful 
+AI/ML component, and translating the analytical results into managerial recommendations. This common 
+architecture provides comparability across teams while preserving direct relevance to students’ 
+professional environments. 
+Where organizational confidentiality permits, teams should be encouraged to use real but appropriately 
+anonymized professional data . Where access to real data is restricted , particularly in government, 
+finance, healthcare, railway, corporate or other sensitive environments , students may construct 
+synthetic datasets that reproduce the structure and business logic of the actual problem without 
+disclosing confidential information. Similarly, because the course focuses on Data Analytics for AI 
+Business, the use of AI should be substantive rather than cosmetic. AI may support data preparation, 
+forecasting, classification, anomaly detection, predictive maintenance, scenario analysis, model 
+PAGE 6
+Group 9226 – Student Analytics Readiness Consolidated Analysis pg. 6 
+   
+interpretation, RAG-based information retrieval, or AI -assisted decision support; it should not be limited 
+to generating the written project report. 
+Overall, the SAP analysis indicates that Group 9226 should be approached as a cohort of experienced 
+professionals developing the capability to transform domain expertise and organizational data into 
+evidence-based and AI -enabled managerial decisions . The principal developmental gap lies not in the 
+students' knowledge of their industries, but in systematically connecting business challenges with data 
+preparation, KPI design, analytics, visualization, predictive modelling, AI and managerial interpretation. 
+The course should therefore emphasize the complete decision -support cycle rather than the isolated 
+mastery of individual software applications. 
+In this context, the Student Analytics Profile can evolve from an intake questionnaire into a broader 
+learning analytics and course -design instrument  supporting four interconnected functions: pre-
+course diagnosis, differentiated learning design, evidence -based team and project formation, and 
+post-course learning -gain measurement . The DARSI model provides an initial quantitative foundation 
+for this approach and can subsequently be applied before and after the course to calculate changes in 
+analytics readiness. The overarching educational framework emerging from the analysis can therefore be 
+summarized as: 
+Domain Expertise + Business Problem + Data + KPIs + Analytics + AI → Better Managerial Decisions  
+ 
+This framework provides a coherent foundation for aligning the professional diversity of Group 9226 with 
+the MBA orientation of the course and its central objective: developing practical Data Analytics for AI 
+Business capability that produces measurable managerial value. 
+  
+PAGE 7
+Group 9226 – Student Analytics Readiness Consolidated Analysis pg. 7 
+   
+1. Consolidated Student Analytics Profile Summary 
+1.1 Student List 
+# Student Name Registration 
+No. Primary Professional Context 
+1 Abdallah Mahmoud Abdo 24220430 Product Management / Dental 
+2 Abdallah Ramdan Orabi 24220862 Metallurgy / Gold Mining 
+3 Abdelrahman Mohamed Mahmoud Ataalla 24225790 Pharmacy / Healthcare 
+4 Ahmed Fawzy Mohamed Rashed 24220998 Heavy Equipment / Maintenance 
+5 Ahmed Hussam Eldin Raouf Mahmoud 
+Helmy 24222501 Government / Digital Transformation 
+6 Ahmed Mahmoud Elsayed Gohar 24221240 Software / SaaS / Entrepreneurship 
+7 Ahmed Mohamed Ahmed Ammar 24126070 Roads / Infrastructure Supervision 
+8 Ahmed Mohamed Ahmed Hassan 24225801 QA/QC / Data Centre & AI Infrastructure 
+9 Ahmed Mostafa Helmy 24220861 Reliability / Mining & Fertilizer 
+10 Ahmed Abd Elhakam Abd Elfattaah Zaian 24224008 Railway / Automatic Train Control 
+11 Ali Elraey 24126750 Biomedical Engineering / Healthcare 
+12 Amira Elsayed Aly Mohamed Abdallah 24224010 Accounting / Marble & Granite 
+Manufacturing 
+13 Elhussein Mohamed Mortada Mohamed 24224149 Construction QA/QC 
+14 Hisham Qassem 24220251 SAP / Municipal Digital Transformation 
+15 Khaled Abdelnasser Morsi Amer 24221044 Credit / Accounts Receivable 
+16 Mahmoud Nazieh Ibrahim Hussien 
+Farghaly 24222447 SAP / Enterprise Architecture / Government 
+17 Malak Philippe Sadek Reiad 24220177 IT Project Management / Government 
+18 Mohab Magdy Elsayed Ibrahim 24221241 Finance / Construction 
+19 Mohamed Magdy Abdullah Marawan 24224459 Oil & Gas / Artificial Lift 
+20 Mohammed Mahmoud Hammed Allam 24221377 PMO / Cost Control / Water Infrastructure 
+21 Mostafa Abdel Razek Mohamed Ahmed 24220112 ERP / SAP / Digital Government 
+22 Mostafa Badr El-Din Abdo Ghonim 24225799 Marine / Dive Operations 
+23 Omar Hassan Ali Mohamadin Mohamed 24125108 Pharmaceutical Sales 
+24 Sherif Samy Karoub 24225778 CFO / Holding & Investment 
+25 Zaki Mohamed Zaki Elsayed 24224211 Operations / Diversified SME 
+ 
+1.2 Cohort Summary 
+Group 9226 is a professionally mature and highly heterogeneous MBA cohort rather than an entry -level 
+analytics class. The profiles span operational, managerial, technical, financial and executive roles across 
+government, engineering, healthcare, technology, construction, mining, transport, finance, oil and gas, 
+pharmaceuticals and diversified businesses. 
+PAGE 8
+Group 9226 – Student Analytics Readiness Consolidated Analysis pg. 8 
+   
+Professional Cluster Representative Contexts 
+Engineering, Assets & Operations Mining, railway, heavy equipment, biomedical equipment, oil & gas, 
+marine operations 
+Construction, Infrastructure & 
+Quality 
+Roads, QA/QC, NCR management, project supervision, water 
+infrastructure 
+Government & Digital 
+Transformation 
+SAP, municipal services, Digital Government, ERP, enterprise 
+architecture, smart cities 
+Finance & Commercial 
+Management CFO, construction finance, credit, receivables, accounting, cost control 
+Healthcare & Pharmaceuticals Pharmacy, biomedical engineering, pharma field sales, dental products 
+Technology & Entrepreneurship SaaS, software, digital ventures, AI adoption and digital transformation 
+ 
+Pedagogical implication: analytics should be taught primarily as managerial decision support. The same 
+analytical methods can be transferred across contexts —for example, prediction may refer to equipment 
+failure, credit default, service delay, stockout, demand or cost overrun. 
+1.3 Cohort KPI Summary 
+Student KPIs Reported / Interpreted from SAP 
+Abdallah Mahmoud Abdo Not specified in submitted SAP 
+Abdallah Ramdan Orabi Gold Recovery %, Plant Throughput, Equipment Availability, Production 
+Cost/Ounce, Downtime Hours 
+Abdelrahman Mohamed 
+Mahmoud Ataalla 
+MAPE, MASE, Forecast Bias, Stockout Rate, Expiry Write-offs %, Service/Fill 
+Rate, Order Cycle Time, Pharmacist Hours/Ordering Cycle 
+Ahmed Fawzy Mohamed Rashed 
+Fleet Availability, PMS Compliance, Due/Overdue Services %, Downtime, 
+MTTR, Repeat Repair Rate, WO Backlog/Ageing, Technician Productivity, 
+First-Time Fix Rate, Maintenance Cost 
+Ahmed Hussam Eldin Raouf 
+Mahmoud Helmy 
+Service Turnaround Time, SLA Compliance, Backlog/Ageing, First-Time-
+Right, Digital Channel Adoption, Change-Request Cycle Time, Capacity 
+Utilization, Vendor Performance, AI Adoption 
+Ahmed Mahmoud Elsayed 
+Gohar 
+Revenue Growth, MRR/ARR, CAC, Retention/Churn, LTV, Gross Margin, 
+Operating Margin, Product Adoption, Conversion, Project Profitability, ROI, 
+Cash Flow 
+Ahmed Mohamed Ahmed 
+Ammar 
+WIR Approval/Rejection Rate, NCR Count & Closure Time, Asphalt Tonnage 
+vs Plan, Road-Marking Compliance %, Deductions, Complaint Resolution 
+Time/Closure Rate, Permit Compliance %, On-Time Completion 
+Ahmed Mohamed Ahmed 
+Hassan Project Quality Index 
+Ahmed Mostafa Helmy Plant Performance 
+Ahmed Abd Elhakam Abd 
+Elfattaah Zaian 
+Availability, MTBF, MTTR, Failure Rate, Delay Minutes, Preventive/Corrective 
+Maintenance Ratio, Backlog Age, Cost/Schedule Variance, Milestone 
+Adherence, Risk Exposure, SLA/Contractor Compliance, Lifecycle Cost 
+Ali Elraey 
+Downtime Hours, MTBF, MTTR, Maintenance Cost/Equipment, Vendor 
+Response Time, First-Time Fix %, Equipment Utilization %, Compliance 
+Completion %, Prediction Accuracy, Preventive-vs-Reactive Cost Saving 
+Amira Elsayed Aly Mohamed 
+Abdallah Relevant KPI field not completed 
+Elhussein Mohamed Mortada NCR Closure Time/Ageing, Repeat NCR Rate, Rework Rate, RFI 
+PAGE 9
+Group 9226 – Student Analytics Readiness Consolidated Analysis pg. 9 
+   
+Student KPIs Reported / Interpreted from SAP 
+Mohamed Response/Closure Time, Open Quality Items, Handover Completion % 
+Hisham Qassem 
+End-to-End Processing Time, SLA Compliance, Pending Cases/Age, 
+Workflow Completion, Rework, First-Time-Right, Production Incidents, 
+Resolution Time, Automation Rate, Service Volume, Customer Satisfaction, 
+Bottleneck Frequency 
+Khaled Abdelnasser Morsi Amer 
+DSO, Overdue Receivables %, Ageing, Collection Rate, Default/Bad Debt 
+Rate, Credit Utilization, Average Payment Days, Sales Growth, Cash 
+Collection 
+Mahmoud Nazieh Ibrahim 
+Hussien Farghaly 
+Forecast Accuracy, Grant Utilization, Budget Variance, Application Cycle 
+Time, Integration Success Rate, API Uptime/Response/Usage, Open Data 
+Quality/Freshness, Microservice Availability/Error Rate, Deployment 
+Frequency, Change Failure Rate, MTTR 
+Malak Philippe Sadek Reiad Change-Request Volume & Cycle Time, Rework/Rollback %, Sprint Velocity, 
+On-Time Delivery %, Ticket Resolution Time, Team Utilization 
+Mohab Magdy Elsayed Ibrahim Margin Variance, Cost Performance Index, Equipment Utilization 
+Mohamed Magdy Abdullah 
+Marawan 
+Well Uptime %, MTBF, Production Efficiency %, Pump Fillage %, Rod Stress 
+Utilization %, Intervention Cost/Well, Fluid Rate/Well 
+Mohammed Mahmoud 
+Hammed Allam 
+Budget Variance %, PO Cycle/Approval Time, Cost-Overrun Rate/Project, 
+Dashboard/Report Adoption Rate 
+Mostafa Abdel Razek Mohamed 
+Ahmed 
+No valid KPI set explicitly specified; SAP field contains data-management 
+challenges rather than measurable KPIs 
+Mostafa Badr El-Din Abdo 
+Ghonim 
+Maintenance/Repair Completion %, Resolution Time, Training/Certification 
+Completion %, Safety Incident/Compliance Rate, Exhibit/Equipment Uptime 
+Omar Hassan Ali Mohamadin 
+Mohamed 
+Prescription Volume Growth, Call Frequency/Territory Coverage Ratio, Sales 
+Target Achievement %, Physician Engagement/Conversion 
+Sherif Samy Karoub Revenue Growth, Gross Margin, EBITDA, Budget Variance, Operating Cash 
+Flow, Working Capital, ROI 
+Zaki Mohamed Zaki Elsayed 
+Revenue Growth, Revenue/Business Unit, Operating Expenses, Gross Profit 
+Margin, Net Profit Margin, Budget Variance, Occupancy Rate, Average 
+Revenue/Property or Business Unit, Forecast Accuracy 
+ 
+1.4 Cohort-Level KPI Architecture 
+KPI Domain Typical Indicators Analytics Purpose 
+Financial Performance Revenue, EBITDA, margins, ROI, cash flow, budget 
+variance Financial sustainability 
+Cost & Resource 
+Efficiency 
+Cost/unit, utilization, resource capacity, 
+procurement cost Resource optimization 
+Operations Throughput, productivity, cycle time, completion Operational excellence 
+Reliability & Maintenance MTBF, MTTR, availability, downtime, failure rate Predictive maintenance 
+Quality NCRs, rework, first-time-right, quality index Quality improvement 
+Project/Delivery Schedule variance, backlog, milestone adherence, 
+sprint velocity Delivery control 
+Customer/Market Conversion, retention, prescription growth, 
+customer satisfaction Commercial effectiveness 
+Service Performance SLA compliance, turnaround time, incident 
+resolution Service quality 
+PAGE 10
+Group 9226 – Student Analytics Readiness Consolidated Analysis pg. 10 
+   
+KPI Domain Typical Indicators Analytics Purpose 
+Forecasting Forecast accuracy, MAPE, MASE, forecast bias Predictive decision-making 
+Digital Adoption Digital channel %, automation %, dashboard 
+adoption Digital transformation 
+Technology Performance API uptime, integration success, MTTR Digital-platform reliability 
+Safety/Compliance Safety compliance, certifications, permit 
+compliance Risk management 
+AI/Analytics Adoption AI use cases, analytics adoption, prediction 
+performance AI-enabled management 
+ 
+1.5 Dominant Cohort Analytics Challenges 
+• Data fragmentation across SAP, ERP, Excel, Aconex, Jira, maintenance systems, operational 
+platforms and manual reports. 
+• Movement from static reporting toward interactive BI, diagnostic analytics, prediction and decision 
+support. 
+• Prediction needs: equipment failure, stockouts, payment delays, demand, cost overruns, service 
+delays and resource requirements. 
+• Optimization needs: capital, workforce, maintenance, credit, visits, equipment utilization and 
+investment prioritization. 
+• Need to integrate business expertise with data preparation, KPI definition, visualization, modelling 
+and managerial interpretation. 
+1.6 Synthesis of Cohort Learning Needs 
+Priority Learning Need Required Capability Application 
+1 Data Preparation & 
+Quality 
+Cleaning, validation, transformation, missing 
+data, consistency Nearly all sectors 
+2 Data Integration & 
+Modelling 
+Combine ERP/SAP/Excel/operational 
+sources; relationships and data models 
+Government, construction, 
+finance, maintenance 
+3 Power BI Power Query, data modelling, DAX, KPI 
+cards, dashboards, drill-down 
+One of the strongest 
+recurring needs 
+4 KPI Design Business question → metric → target → 
+interpretation All managerial contexts 
+5 Descriptive & 
+Diagnostic Analytics 
+Trends, variance, segmentation, RCA, 
+correlations 
+Determine what happened 
+and why 
+6 Predictive Analytics Forecasting, regression, classification, 
+failure prediction 
+Finance, maintenance, 
+sales, operations 
+7 Prescriptive Analytics Optimization, prioritization, scenarios, 
+resource allocation 
+Strategic and managerial 
+decisions 
+8 AI/ML for Business ML fundamentals, GenAI, AI agents, RAG, 
+prompt-based analysis 
+Emerging strongly across 
+profiles 
+9 Data Storytelling & 
+Governance 
+Executive communication, privacy, 
+explainability, validation, responsible AI Managerial implementation 
+ 
+ 
+PAGE 11
+Group 9226 – Student Analytics Readiness Consolidated Analysis pg. 11 
+   
+Recommended common learning architecture: 
+Professional Context → Business Challenge → Business Problem → Decision Question → Data 
+Requirements → Data Preparation & Integration → KPI Framework → Descriptive Analytics → Diagnostic 
+Analytics → Predictive Analytics → Prescriptive Analytics → Power BI / AI Decision Support → Managerial 
+Action. 
+  
+PAGE 12
+Group 9226 – Student Analytics Readiness Consolidated Analysis pg. 12 
+   
+2. Cluster Analysis: Students Grouped by Data Analytics Readiness 
+The clustering is based on Analytics Proficiency, Power BI/BI Readiness, AI/ML Exposure and evidence of 
+applied analytics. The SAP variables are predominantly ordinal self -assessments; therefore the clusters 
+are interpreted as readiness segments. 
+Cluster Readiness Members 
+Cluster 1 Advanced / Applied Ahmed Fawzy Mohamed Rashed; Ahmed Mohamed Ahmed Ammar; 
+Ahmed Mostafa Helmy; Mahmoud Nazieh Ibrahim Hussien Farghaly 
+Cluster 2 Intermediate / Analytics-
+Ready 
+Ahmed Hussam Eldin Raouf Mahmoud Helmy; Ahmed Mahmoud 
+Elsayed Gohar; Ahmed Mohamed Ahmed Hassan; Ahmed Abd 
+Elhakam Abd Elfattaah Zaian; Hisham Qassem; Khaled Abdelnasser 
+Morsi Amer; Mohamed Magdy Abdullah Marawan; Mohammed 
+Mahmoud Hammed Allam; Mostafa Abdel Razek Mohamed Ahmed; 
+Sherif Samy Karoub 
+Cluster 3 Developing / Transitional 
+Abdallah Ramdan Orabi; Abdelrahman Mohamed Mahmoud Ataalla; 
+Malak Philippe Sadek Reiad; Mostafa Badr El-Din Abdo Ghonim; Zaki 
+Mohamed Zaki Elsayed 
+Cluster 4 Foundation / Capability 
+Building 
+Ali Elraey; Amira Elsayed Aly Mohamed Abdallah; Elhussein Mohamed 
+Mortada Mohamed; Mohab Magdy Elsayed Ibrahim; Omar Hassan Ali 
+Mohamadin Mohamed 
+Cluster U Unclassified Abdallah Mahmoud Abdo 
+ 
+  
+PAGE 13
+Group 9226 – Student Analytics Readiness Consolidated Analysis pg. 13 
+   
+3. Cluster Summary Table 
+Cluster Readiness Level N % Typical Profile Recommended Practical 
+Focus 
+Cluster 1 
+Advanced / 
+Applied Analytics 
+Readiness 
+4 16% 
+Strong applied analytics; 
+practical BI/dashboarding; 
+AI/automation exposure 
+Advanced Power BI/DAX, 
+predictive modelling, ML, AI 
+integration, optimization 
+Cluster 2 Intermediate / 
+Analytics-Ready 10 40% 
+Comfortable with business 
+data/KPIs; basic-to-
+intermediate BI; moderate AI 
+exposure 
+Data preparation, Power BI, KPI 
+analytics, diagnostics, 
+forecasting, prediction 
+Cluster 3 Developing / 
+Transitional 5 20% 
+Meaningful data exposure but 
+uneven BI/statistics/ML 
+capability 
+Power Query, Power BI, 
+statistical foundations, 
+forecasting, introductory 
+prediction 
+Cluster 4 Foundation / 
+Capability Building 5 20% Basic/beginner analytics; 
+limited BI; basic AI exposure 
+Data understanding, cleaning, 
+descriptive statistics, KPI and 
+Power BI fundamentals 
+Cluster U Unclassified 1 4% Readiness fields incomplete 
+Short readiness diagnostic 
+before learning-path 
+assignment 
+ 
+  
+PAGE 14
+Group 9226 – Student Analytics Readiness Consolidated Analysis pg. 14 
+   
+4. Data Analytics Readiness Score Index (DARSI): Quantitative Model 
+Recommended model: 
+DARSI = (0.40 × AP) + (0.35 × BI) + (0.25 × AI) 
+AP = Analytics Proficiency; BI = Power BI / Business Intelligence Readiness; AI = AI / Machine Learning 
+Exposure. Each component is standardized to a 0–100 scale. 
+SAP Response Standardized Score 
+None / No experience 0 
+Beginner / Very Limited 25 
+Basic 35 
+Basic–Intermediate / Developing 50 
+Intermediate / Moderate 65 
+Good / Working Knowledge 75 
+Intermediate–Advanced / Strong Practical 85 
+Very Good / Advanced 95 
+Expert / Extensive Professional Practice 100 
+ 
+DARSI Readiness Band Interpretation 
+0–39 Foundation Requires analytics and BI fundamentals 
+40–54 Developing / Transitional Foundation exists but meaningful technical gaps remain 
+55–74 Intermediate / Analytics-Ready Ready for applied business analytics and predictive work 
+75–100 Advanced / Applied Ready for advanced BI, predictive analytics, ML and AI 
+integration 
+N/A Unclassified Insufficient SAP readiness information 
+ 
+Student AP BI AI DARSI Band 
+Mahmoud Farghaly 95 95 65 87.5 Advanced 
+Ahmed Mohamed Ammar 85 85 85 85.0 Advanced 
+Ahmed Fawzy Rashed 85 75 75 79.0 Advanced 
+Ahmed Mostafa Helmy 65 65 75 67.5 Intermediate 
+Sherif Karoub 65 65 65 65.0 Intermediate 
+Mohammed Mahmoud Allam 65 75 50 64.8 Intermediate 
+Ahmed Mahmoud Gohar 65 50 65 59.8 Intermediate 
+Hisham Qassem 65 50 65 59.8 Intermediate 
+Mostafa Abdel Razek 65 50 65 59.8 Intermediate 
+Mohamed Magdy Marawan 65 50 50 56.0 Intermediate 
+PAGE 15
+Group 9226 – Student Analytics Readiness Consolidated Analysis pg. 15 
+   
+Student AP BI AI DARSI Band 
+Ahmed Hussam Eldin Helmy 65 35 65 54.0 Developing 
+Ahmed Mohamed Hassan 65 35 65 54.0 Developing 
+Ahmed Zaian 65 35 65 54.0 Developing 
+Abdallah Ramdan Orabi 65 50 25 49.8 Developing 
+Khaled Amer 65 50 25 49.8 Developing 
+Abdelrahman Ataalla 65 0 85 47.3 Developing 
+Malak Philippe 65 0 35 34.8 Foundation 
+Mostafa Ghonim 65 0 35 34.8 Foundation 
+Mohab Magdy 35 35 35 35.0 Foundation 
+Zaki Elsayed 25 25 65 35.0 Foundation 
+Ali Elraey 35 25 35 31.5 Foundation 
+Elhussein Mortada 25 25 35 27.5 Foundation 
+Omar Hassan 25 0 25 16.3 Foundation 
+Abdallah Mahmoud Abdo — — — N/A Unclassified 
+Amira Elsayed Abdallah — — — N/A Unclassified 
+ 
+For future cohorts, DARSI can be extended to DARSI -Plus by adding Applied Analytics Experience (AA), for 
+example: DARSI+ = 0.35(AP) + 0.30(BI) + 0.20(AI) + 0.15(AA). For Group 9226, the three -variable model is 
+retained because those dimensions are the most consistently available SAP fields. 
+Learning gain can later be measured as: ΔDARSI = DARSI(Post) − DARSI(Pre). 
+5. Competency Heatmap and Cohort Visualization 
+The heatmap uses the same normalized readiness scale. Missing readiness values are shown as N/A 
+rather than estimated. The graphical view highlights the cohort's asymmetry: general analytics 
+understanding is stronger than Power BI/BI readiness, while AI/ML exposure is substantial but uneven. 
+PAGE 16
+Group 9226 – Student Analytics Readiness Consolidated Analysis pg. 16 
+   
+ 
+Figure 1. Group 9226 Data Analytics Competency Heatmap 
+
+PAGE 17
+Group 9226 – Student Analytics Readiness Consolidated Analysis pg. 17 
+   
+ 
+Figure 2. Group 9226 Cohort Mean Competency Profile 
+Competency Cohort Mean Interpretation 
+Analytics Proficiency 60.2 Intermediate 
+Power BI / BI 42.4 Developing 
+AI / ML Exposure 54.6 Developing–Intermediate 
+Overall DARSI 52.6 Developing, approaching Intermediate 
+ 
+  
+
+PAGE 18
+Group 9226 – Student Analytics Readiness Consolidated Analysis pg. 18 
+   
+6. Recommendation on Team Formation and Readiness Scoring 
+Recommended structure: five project teams of five students, balancing Data Analytics Readiness, 
+professional/industry diversity, and functional/decision -making experience. Each team should ideally 
+contain an advanced/applied anchor, intermediate members, developing/foundation members, and 
+multiple professional contexts. 
+Team Student Reg. No. DARSI Professional Context 
+Team 1 Mahmoud Nazieh Ibrahim Hussien 
+Farghaly 24222447 87.5 Enterprise Architecture / Government 
+Team 1 Hisham Qassem 24220251 59.8 SAP / Government Process 
+Team 1 Mohab Magdy Elsayed Ibrahim 24221241 35.0 Finance / Construction 
+Team 1 Omar Hassan Ali Mohamadin 
+Mohamed 24125108 16.3 Pharmaceutical Sales 
+Team 1 Amira Elsayed Aly Mohamed 
+Abdallah 24224010 N/A Accounting / Manufacturing 
+Team 2 Ahmed Mohamed Ahmed Ammar 24126070 85.0 Roads / Infrastructure 
+Team 2 Ahmed Mohamed Ahmed Hassan 24225801 54.0 Project Quality / Data Centre 
+Team 2 Abdallah Ramdan Orabi 24220862 49.8 Mining / Metallurgy 
+Team 2 Elhussein Mohamed Mortada 
+Mohamed 24224149 27.5 Construction QA/QC 
+Team 2 Abdallah Mahmoud Abdo 24220430 N/A Dental / Product Management 
+Team 3 Ahmed Fawzy Mohamed Rashed 24220998 79.0 Heavy Equipment / Maintenance 
+Team 3 Ahmed Abd Elhakam Abd Elfattaah 
+Zaian 24224008 54.0 Railway / Asset Management 
+Team 3 Khaled Abdelnasser Morsi Amer 24221044 49.8 Credit / Accounts Receivable 
+Team 3 Malak Philippe Sadek Reiad 24220177 34.8 IT Project Management 
+Team 3 Ali Elraey 24126750 31.5 Biomedical Engineering 
+Team 4 Ahmed Mostafa Helmy 24220861 67.5 Reliability / Mining 
+Team 4 Sherif Samy Karoub 24225778 65.0 CFO / Investment 
+Team 4 Ahmed Mahmoud Elsayed Gohar 24221240 59.8 SaaS / Technology 
+Team 4 Abdelrahman Mohamed Mahmoud 
+Ataalla 24225790 47.3 Pharmacy / Healthcare 
+Team 4 Mostafa Badr El-Din Abdo Ghonim 24225799 34.8 Marine / Dive Operations 
+Team 5 Mohammed Mahmoud Hammed 
+Allam 24221377 64.8 PMO / Cost Control 
+Team 5 Mostafa Abdel Razek Mohamed 
+Ahmed 24220112 59.8 SAP / Digital Government 
+Team 5 Mohamed Magdy Abdullah Marawan 24224459 56.0 Oil & Gas 
+Team 5 Ahmed Hussam Eldin Raouf 
+Mahmoud Helmy 24222501 54.0 Government / Digital Transformation 
+Team 5 Zaki Mohamed Zaki Elsayed 24224211 35.0 Diversified Operations 
+ 
+PAGE 19
+Group 9226 – Student Analytics Readiness Consolidated Analysis pg. 19 
+   
+Team Mean DARSI of Scored Members 
+Team 1 49.6 
+Team 2 54.1 
+Team 3 49.8 
+Team 4 54.9 
+Team 5 53.9 
+ 
+6.1 Recommended Team Roles 
+Role Main Responsibility 
+Business Problem Lead Define business challenge, decision question and managerial relevance 
+Data Lead Data collection, cleaning, data dictionary and quality assessment 
+Analytics Lead Descriptive, diagnostic and predictive analytical work 
+BI / Visualization Lead Power BI model, KPIs, dashboards and visual storytelling 
+AI & Decision-Support Lead Appropriate AI use, interpretation, recommendation and managerial 
+implications 
+ 
+6.2 Team Readiness Balance Index 
+Team Mean Readiness = Σ DARSIᵢ / n 
+TRBI Mean = mean(DARSI); TRBI Spread = SD(DARSI). 
+A desirable team would normally have a mean DARSI around 50 –60, at least one member above 65, 
+preferably no more than two members below 40, moderate readiness spread, and no single -industry 
+concentration unless required by the assignment. 
+Optional Team Formation Suitability Index (TFSI): 
+TFSI = 0.40(RB) + 0.25(ID) + 0.20(FD) + 0.15(CB) 
+RB = Readiness Balance; ID = Industry Diversity; FD = Functional Diversity; CB = Competency Balance. 
+  
+PAGE 20
+Group 9226 – Student Analytics Readiness Consolidated Analysis pg. 20 
+   
+7. Machine-Learning Type Used for Cluster Analysis and Alternatives 
+The primary learning type for the readiness cluster analysis is unsupervised learning. There is no pre -
+existing dependent variable or validated readiness label to predict; the objective is to discover groups of 
+students with similar readiness profiles. 
+Learning Type Suitability Use for Group 9226 
+Unsupervised Learning Primary choice Discover naturally similar readiness groups 
+Supervised Learning Useful later Predict validated readiness categories or post-course 
+outcomes 
+Semi-supervised Learning Possible Use a small instructor-labelled subset to classify 
+remaining students 
+Self-supervised Learning Not especially useful 
+here More suitable for large unlabelled text/image datasets 
+Reinforcement Learning Not suitable for basic 
+clustering 
+Could support adaptive learning pathways over repeated 
+interactions 
+ 
+7.1 Suitable Clustering Algorithms 
+Method Suitability Main Advantage 
+K-Means Good after numeric 
+transformation Simple and easy to explain 
+Hierarchical Clustering Very Good Shows how students progressively group; 
+produces a dendrogram 
+K-Medoids Very Good More robust to unusual students/outliers 
+Gower Distance + Hierarchical 
+Clustering 
+Excellent for richer 
+SAP 
+Handles mixed numerical, ordinal and categorical 
+variables 
+DBSCAN Limited Useful for irregular clusters/outliers but less 
+attractive for n=25 
+Gaussian Mixture Model Possible Provides probabilities of cluster membership 
+ 
+Recommended methodological progression: use unsupervised clustering now; validate cluster meanings 
+with instructor judgement; after accumulating several cohorts and post -course outcomes, train 
+supervised classification models for readiness categories and regression models for post -course DARSI 
+or learning gain. 
+Key distinction: clustering tells us who is similar to whom; classification predicts which known category a 
+new student belongs to; regression predicts a continuous outcome such as DARSI or ΔDARSI. 
+  
+PAGE 21
+Group 9226 – Student Analytics Readiness Consolidated Analysis pg. 21 
+   
+8. Proposed Teams and Job-Aligned Group Projects 
+Team Proposed Project Primary Theme Suggested Analytics / ML 
+Team 1 
+AI-Enabled Enterprise 
+Performance and Financial 
+Decision-Support System 
+Digital enterprise 
+performance, finance, 
+process and commercial 
+analytics 
+KPI dashboards; variance analysis; 
+segmentation; process analytics; 
+financial forecasting; AI-assisted 
+management reporting 
+Team 2 
+Predictive Quality and 
+Operational Performance 
+Analytics for Asset-Intensive 
+Projects 
+Quality, infrastructure 
+and operations 
+Quality trend prediction; NCR 
+analysis; contractor performance; 
+classification; computer vision where 
+appropriate 
+Team 3 
+AI-Driven Predictive Maintenance 
+and Asset Reliability Decision-
+Support System 
+Reliability, maintenance 
+and risk 
+Failure prediction; risk scoring; asset 
+prioritization; MTBF/MTTR; 
+maintenance optimization 
+Team 4 
+AI-Assisted Resource Allocation 
+and Business Performance 
+Optimization 
+Finance, resources, 
+inventory, workforce and 
+operations 
+Forecasting; profitability; resource 
+allocation; optimization; prescriptive 
+analytics 
+Team 5 
+AI-Enabled Operational 
+Intelligence and Digital 
+Transformation Dashboard 
+Integrated enterprise 
+analytics and digital 
+transformation 
+ERP/operational integration; Power BI; 
+anomaly detection; prediction; 
+GenAI/RAG decision support 
+ 
+8.1 Team-Specific Student Contributions 
+Team 1 
+Student Suggested Contribution 
+Mahmoud Farghaly Enterprise data integration, APIs, data quality, digital architecture 
+Hisham Qassem Process bottlenecks, SLA analytics, workflow performance 
+Mohab Magdy Cost-to-complete, margin variance, cash-flow analytics 
+Omar Hassan Customer/physician segmentation, targeting and sales analytics 
+Amira Elsayed Accounting, cost and financial-performance perspective 
+ 
+Team 2 
+Student Suggested Contribution 
+Ahmed Ammar Contractor productivity, WIR/NCR, computer-vision inspection 
+Ahmed Hassan Project Quality Index, inspection trends and corrective actions 
+Abdallah Orabi Plant throughput, recovery, downtime and process optimization 
+Elhussein Mortada NCR/RFI closure, rework and handover analytics 
+Abdallah Mahmoud Abdo Product/business-performance and managerial perspective 
+ 
+ 
+ 
+PAGE 22
+Group 9226 – Student Analytics Readiness Consolidated Analysis pg. 22 
+   
+Team 3 
+Student Suggested Contribution 
+Ahmed Rashed Fleet maintenance, downtime, work orders and technician capacity 
+Ahmed Zaian Asset criticality, reliability, obsolescence and lifecycle cost 
+Khaled Amer Risk scoring, probability modelling and financial-risk perspective 
+Malak Philippe IT change requests, resource allocation and project delivery 
+Ali Elraey Medical-equipment maintenance, MTBF/MTTR and procurement 
+ 
+Team 4 
+Student Suggested Contribution 
+Ahmed Mostafa Helmy Asset reliability, maintenance and production-loss analytics 
+Sherif Karoub ROI, EBITDA, cash flow, investment/resource allocation 
+Ahmed Gohar Product profitability, CAC/LTV, growth and venture prioritization 
+Abdelrahman Ataalla Demand forecasting, inventory, stockout and expiry optimization 
+Mostafa Ghonim Workforce scheduling, maintenance and safety/resource prioritization 
+ 
+Team 5 
+Student Suggested Contribution 
+Mohammed Allam Project cost, procurement and performance analytics 
+Mostafa Abdel Razek SAP integration, digital government, AI/RAG 
+Mohamed Magdy Marawan Well/pump performance and predictive operations 
+Ahmed Hussam Eldin Helmy Programme management, digital services and AI adoption 
+Zaki Elsayed Revenue, cost, occupancy and business-unit forecasting 
+ 
+8.2 Common Project Architecture 
+1. Define the Business Challenge 
+2. Formulate the Business Problem 
+3. Define Decision Question(s) 
+4. Identify Data Requirements 
+5. Prepare and Clean the Dataset 
+6. Define KPIs 
+7. Conduct Descriptive Analytics – What happened? 
+8. Conduct Diagnostic Analytics – Why did it happen? 
+9. Conduct Predictive Analytics – What is likely to happen? 
+10. Conduct Prescriptive Analytics – What should management do? 
+11. Build the Power BI Dashboard 
+12. Implement an AI/ML Component 
+13. Develop Managerial Recommendations 
+PAGE 23
+Group 9226 – Student Analytics Readiness Consolidated Analysis pg. 23 
+   
+Each team should preferably use a real anonymized professional dataset. Where confidentiality prevents 
+this, a synthetic dataset should reproduce the structure and business logic without using confidential 
+records. AI should have an identifiable analytical role and should not reduce the project to an AI -
+generated report. 
+Business Problem + Dataset + KPIs + Analytics + Power BI + ML/AI → Managerial Decision Support 
+  
+PAGE 24
+Group 9226 – Student Analytics Readiness Consolidated Analysis pg. 24 
+   
+Conclusion 
+The consolidated analysis of the Student Analytics Profiles (SAPs) for Group 9226 – Data Analytics for 
+AI Business demonstrates that the cohort should be approached as a group of experienced professionals 
+seeking to strengthen their ability to transform professional knowledge and organizational data into 
+evidence-based and AI -enabled managerial decisions . The students represent diverse sectors —
+including government, digital transformation, construction, infrastructure, mining, railway systems, 
+healthcare, pharmaceuticals, finance, oil and gas, marine operations, enterprise systems, software and 
+entrepreneurship—yet their business challenges reveal considerable analytical commonality. 
+Forecasting, cost and performance control, predictive maintenance, quality improvement, resource 
+allocation, customer analysis, process optimization and digital transformation recur across the cohort, 
+providing a strong basis for a common applied analytics framework. 
+The analysis also indicates that the principal developmental gap is not a lack of professional or 
+managerial knowledge. Students generally understand their industries, operational processes, 
+organizational challenges and relevant performance indicators. The more significant challenge is 
+converting this knowledge into a systematic analytical process involving data preparation, integration, 
+KPI design, visualization, diagnostic analysis, prediction, optimization and managerial 
+interpretation. Cohort-level readiness results reinforce this conclusion: general analytics understanding 
+is comparatively stronger than practical Business Intelligence capability, while AI and Machine Learning 
+exposure is meaningful but uneven. Accordingly, Power BI, data modelling and preparation, KPI analytics, 
+predictive methods and the effective integration of AI into decision support should form central 
+components of the practical learning experience. 
+The proposed Data Analytics Readiness Score Index (DARSI)  provides a quantitative foundation for 
+recognizing these differences in student readiness. By integrating Analytics Proficiency, Power BI/BI 
+Readiness and AI/ML Exposure, DARSI can support differentiated learning and evidence -based team 
+formation. It should, however, remain a diagnostic developmental indicator rather than an academic 
+grade. Students with incomplete readiness information should remain unclassified until sufficient 
+evidence becomes available. In future cohorts, applying DARSI at both the beginning and end of the 
+course would also permit the calculation of learning gain through ΔDARSI = DARSI Post − DARSI Pre , 
+providing an additional measure of course impact. 
+The proposed formation of five balanced project teams  translates the readiness analysis into practical 
+course design. Teams combine different levels of analytics readiness with complementary professional 
+and functional backgrounds, supporting peer learning while avoiding the concentration of technically 
+stronger students within a small number of groups. The five proposed project themes —enterprise 
+performance and financial decision intelligence, predictive quality and infrastructure performance, 
+predictive maintenance and asset reliability, strategic resource allocation and business optimization, and 
+digital transformation and operational intelligence —are aligned with students' actual professional 
+environments while maintaining common academic requirements. 
+All projects should therefore follow a consistent analytical pathway: Business Challenge → Business 
+Problem → Decision Question → Data → KPIs → Descriptive Analytics → Diagnostic Analytics → 
+PAGE 25
+Group 9226 – Student Analytics Readiness Consolidated Analysis pg. 25 
+   
+Predictive Analytics → Prescriptive Analytics → Power BI → AI/ML → Managerial Recommendations . 
+Real anonymized professional data should be encouraged wherever appropriate; where confidentiality or 
+organizational restrictions apply, synthetic datasets should reproduce the structure and decision logic of 
+the real problem without disclosing sensitive information. Similarly, AI should contribute to a genuine 
+analytical task —such as forecasting, classification, anomaly detection, predictive maintenance, 
+optimization, model interpretation or decision support —rather than being used merely to generate 
+project text. 
+More broadly, the SAP has the potential to evolve from an intake questionnaire into a learning analytics 
+and course -design instrument  supporting four interconnected functions: pre-course diagnosis, 
+differentiated learning, evidence -based team and project formation, and post -course learning-gain 
+measurement. This would establish a stronger link between student characteristics, instructional 
+design, applied project work and measurable development of analytics capability. 
+The overall conclusion is therefore that the course should not be centred primarily on teaching analytics 
+software. Its central purpose should be to develop the students' ability to frame managerial problems 
+analytically, identify and prepare appropriate data, construct meaningful KPIs, select appropriate 
+analytical and AI methods, interpret results, and translate evidence into defensible managerial 
+action. The professional expertise already exists within Group 9226; the role of the course is to build the 
+analytical bridge between that expertise and better decision-making. 
+The resulting educational framework can be summarized as: 
+Domain Expertise + Business Problem + Data + KPIs + Analytics + AI → Better Managerial Decisions  
+ 
+This framework provides a coherent foundation for aligning the professional diversity of Group 9226 with 
+the MBA orientation of Data Analytics for AI Business , while maintaining a clear focus on the ultimate 
+purpose of analytics and AI: creating measurable value through better managerial decisions. 
+ 

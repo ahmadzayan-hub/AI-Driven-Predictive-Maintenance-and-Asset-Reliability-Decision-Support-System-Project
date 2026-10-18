@@ -1,0 +1,47 @@
+
+> agentic-os-frontend@1.0.0 build
+> tsc --noEmit && vite build
+
+vite v8.2.1 building client environment for production...
+[2K
+transforming...✓ 92 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                          2.36 kB │ gzip:  1.08 kB
+dist/assets/fira-sans-latin-400-normal-66xCkunx.woff    21.87 kB
+dist/assets/fira-sans-latin-600-normal-DtSgd811.woff    22.11 kB
+dist/assets/fira-sans-latin-500-normal-Bkfzcwmr.woff    22.12 kB
+dist/assets/fira-code-latin-400-normal-DGosTW8U.woff2   23.31 kB
+dist/assets/fira-code-latin-500-normal-B6gioGu8.woff2   23.31 kB
+dist/assets/fira-sans-latin-400-normal-a0AnQzuD.woff2   23.87 kB
+dist/assets/fira-sans-latin-500-normal-Bvbxc8ch.woff2   24.05 kB
+dist/assets/fira-sans-latin-600-normal-CXKlxLG9.woff2   24.84 kB
+dist/assets/fira-code-latin-500-normal-aMLC2AMm.woff    29.83 kB
+dist/assets/fira-code-latin-400-normal-C-QZfXAs.woff    29.83 kB
+dist/assets/RunsView-BovXyrws.css                        0.44 kB │ gzip:  0.23 kB
+dist/assets/LiveBadge-z2NwjqBU.css                       1.74 kB │ gzip:  0.58 kB
+dist/assets/DashboardView-CQn4_J-K.css                   2.58 kB │ gzip:  0.88 kB
+dist/assets/MaintenancePreview-C8ZEXx27.css             17.02 kB │ gzip:  3.45 kB
+dist/assets/index-DDqS-7QQ.css                          51.95 kB │ gzip:  9.48 kB
+dist/assets/format-vfceePyJ.js                           0.14 kB │ gzip:  0.12 kB
+dist/assets/pack-B8gHrhjb.js                             0.27 kB │ gzip:  0.22 kB
+dist/assets/Onboarding-2UBX783r.js                       0.96 kB │ gzip:  0.45 kB
+dist/assets/HelpDialog-BlkOW5qE.js                       1.05 kB │ gzip:  0.47 kB
+dist/assets/CommandPalette-Bk52MSdy.js                   1.85 kB │ gzip:  0.85 kB
+dist/assets/ApprovalCard-CjgWjza_.js                     2.89 kB │ gzip:  1.14 kB
+dist/assets/SignIn-BAVB_MqW.js                           3.30 kB │ gzip:  1.28 kB
+dist/assets/ApprovalsView-g_aTBtc2.js                    3.49 kB │ gzip:  1.27 kB
+dist/assets/PreferencesView-CTUEx2wh.js                  6.45 kB │ gzip:  1.91 kB
+dist/assets/ActivityView-D0B0dj2M.js                     6.98 kB │ gzip:  1.87 kB
+dist/assets/LiveBadge-Bxa4OJ2d.js                        7.39 kB │ gzip:  3.08 kB
+dist/assets/OverviewView-CsHGBoAF.js                     7.74 kB │ gzip:  2.07 kB
+dist/assets/MemoryView-B2eB3ZH4.js                       7.81 kB │ gzip:  2.13 kB
+dist/assets/DatasetsView-ClzSnAit.js                    13.44 kB │ gzip:  3.89 kB
+dist/assets/WorkbookSheetPicker-B_KhHLZF.js             13.75 kB │ gzip:  4.50 kB
+dist/assets/MaintenancePreview-DMv5h00C.js              33.09 kB │ gzip:  9.55 kB
+dist/assets/DashboardView-BcyFxf4U.js                   33.70 kB │ gzip:  8.90 kB
+dist/assets/RunsView-FKidZxyC.js                        45.83 kB │ gzip: 13.27 kB
+dist/assets/jsx-runtime-Bn8lx2lW.js                     70.55 kB │ gzip: 21.62 kB
+dist/assets/index-CHx8HZLK.js                          233.21 kB │ gzip: 73.18 kB
+
+✓ built in 1.83s

@@ -1,0 +1,11 @@
+{
+  "server/auth.py": "0700f13b751bf6adc37f32edce6c8ab535a5745685c655211c689855905df5a7",
+  "server/app.py": "58f0f2906a88ea42e0e72e24b0bb23b8fc1ffc64102659bfda07c5ed39faf614",
+  "server/runs.py": "8953335f0e45fcd992e1971360726d9bd5123b1c3ec376996d57841ebada3e61",
+  "server/maintenance/governance.py": "f1e4b0087c69e51e67fed73f5d6319d8a903a1a39b2c1fa6657d3f77a1cc29e7",
+  "server/maintenance/contract.py": "f3d1893a52f461623308c88a714384a5c5b0fc5e1cd450190098a7c3dd328b16",
+  "server/maintenance/kpis.py": "2ea3276caa5a64d0a3d647d32a9a33bf83da3b9c59a8b1bd42cefd436025a462",
+  "server/modelling.py": "6dda5968e4dcd6c05724d9518227cfbbdd6aa8fb6ec1de2c5ecce12a16c24194",
+  "config.json": "aaf07d788edb7292de2facc2c40bd781e90c1e1e9d1b8fecdb08e8522287a420",
+  "requirements.txt": "f5c1c73a546f4a2c5c770f7ecf626c50cffb48c79e3aaccb913f426fa038b612"
+}
