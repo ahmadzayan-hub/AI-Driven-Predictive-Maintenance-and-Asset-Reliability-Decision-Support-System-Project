@@ -711,3 +711,28 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Done:** moved the repository home to the product's name (ADR 0043). The snapshot repository was renamed by the owner to `AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project`; the GitHub API returns `Moved Permanently` for the previous name, so it is a rename and not a copy. `origin` now addresses it directly. Forward-looking pointers moved (clone commands, the contributing guide, the Vercel import target, `Memory.md` and the brain's project note); the CI run and commit links in `docs/design/VALIDATION.md` were deliberately left, because they record where the work happened.
 - **Verified (later):** `scripts/brain_check.py --strict` exits 0 with 27 notes and no broken links; `tests.test_docs` and `tests.test_product_identity` run 9 tests, OK. No other suite was rerun for the documentation change.
 - **Blockers (owner actions on GitHub, no authenticated CLI here):** set the new repository's default branch to `claude/agentic-os-final-project-53j6ql`, and re-point the Vercel project's Git integration — until then the deployment keeps building from the old repository.
+
+## 2026-10-18 · `06562819` · claude/agentic-os-final-project-53j6ql (automatic)
+
+_Written by the SessionEnd hook (other) because the session-end skill did not run. Facts only: review it at the start of the next session and add what was decided._
+
+- Commits: 15 (newest first, at most 15)
+    - `a212f4e` The repository takes the product's name (ADR 0043)
+    - `ac88239` Session log: 2026-10-18, structure review and the repository split
+    - `6df1c22` The shipped registry, an honest threshold and a gap that is not a zero (ADRs 0041, 0042)
+    - `1cebe62` Remediation round: role trust, the fatal policy and maintenance risk models (ADR 0040)
+    - `47857ef` Session log: 2026-10-17, S2 governed diagnostics
+    - `c0b58ce` S2: structural detectors run as a governed stage (ADR 0039)
+    - `45a9f6e` Session log: 2026-10-17, restructure and the maintenance domain
+    - `3514589` Separate the engine, the maintenance domain and the private delivery
+    - `dccbbf5` Memory: Windows console and GitHub sync gotchas
+    - `a8596e4` Session log: 2026-10-17, governance detectors
+    - `200965b` Governance detectors: find what a dataset's documentation does not admit
+    - `a2ec230` Track the capstone roles and the private team workspace
+    - `9e5222e` Session log: 2026-10-17, Analytics OS milestones A3 to A7 built
+    - `b78e4a4` A7: live data â€” connectors, scheduled refreshes, pushed updates (ADR 0034)
+    - `94520a4` A6: modelling stages, each against a baseline (ADRs 0033, 0035)
+- Uncommitted changes when the session ended: 0 file(s)
+- Next: not recorded
+- **Done (later):** verified the operating system's structure and repaired the one defect it had. The structure is sound: three hooks wired in `.claude/settings.json` with all three scripts present, 15 skills, 7 agents matching the five reviewers and two makers that `docs/AGENT_TEAM.md` declares, 43 decision records, 16 scripts, 46 test modules, 34 server modules and 27 brain notes. All 174 path references in `CLAUDE.md`, `AGENTS.md`, `.claude/README.md`, `docs/AGENT_TEAM.md` and `docs/PLAYBOOK.md` resolve; the nine a first pass flagged were a faulty resolver, three of them files `.gitignore` excludes on purpose. `docs/ARCHITECTURE.md` was the exception: untouched since 10 August, it still said runs recover "without a background worker", called SQLite-over-PostgreSQL a choice yet to be revisited, and listed 7 frontend feature folders where there are 14. All three are corrected against the code, with the superseding ADRs named rather than the original reasoning erased, and the document now carries the date it was last held against the code.
+- **Verified (later):** 119 tests across `test_project_os`, `test_agent_team`, `test_docs`, `test_evals`, `test_rta_style`, `test_verify` and `test_motion`, with 0 assertion failures and 1 error, a `WinError 32` in `setUpClass` from the temporary-database cleanup race. After the edit, `test_docs` and `test_product_identity` run 9 tests OK and the strict brain check exits 0.
