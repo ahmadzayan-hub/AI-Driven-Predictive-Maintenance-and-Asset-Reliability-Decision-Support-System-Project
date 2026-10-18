@@ -473,6 +473,13 @@ export const ar: Record<MessageKey, string> = {
   // نظرة عامة
   'overview.aria': 'نظرة عامة',
   'overview.title': 'نظرة عامة',
+  'overview.evidenceHeading': 'أدلة الوكلاء في أحدث تحليل',
+  'overview.evidenceStages': 'اكتملت {done} من {total} مرحلة تحليل',
+  'overview.evidenceMissing': 'لا يوجد تحليل متاح يحتوي على نتائج',
+  'overview.evidenceUnavailable': 'لا توجد نتيجة تحقق حتى الآن',
+  'overview.evidencePassed': 'اجتازت أدلة التحليل فحوصات التحقق',
+  'overview.evidencePending': 'التحقق غير مكتمل أو يحتاج إلى مراجعة',
+  'overview.evidenceScope': 'تفحص هذه الحالة الحسابات والأدلة المسجلة لهذا التحليل فقط، ولا تعني اعتماد دقة نماذج الذكاء الاصطناعي أو السلامة أو التشغيل الفعلي.',
   'overview.desc': 'ما توصّلت إليه تحليلاتك، وما ينتظر قرارك، وما خزّنته من بيانات.',
   'overview.start': 'ابدأ تحليلًا',
   'overview.loading': 'جارٍ تحميل النظرة العامة',
