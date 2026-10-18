@@ -55,11 +55,38 @@ Keep only what a future session needs and cannot get quickly from the code: user
 - If the user's goals or preferences changed, update `brain/User.md`.
 - Run `python scripts/brain_check.py --strict`. It must report no broken links, missing fields or missing sources.
 
-## 6. Commit and push
+## 6. Commit, push, and merge to `main`
 
-- Commit the tracking files with a message such as `Session log: <date>, <one-line summary>`.
-- Push to the working branch only, with `git push -u origin <branch>`.
-- Never force-push, and never commit secrets, `.env` files, course files or personal data.
+The owner gave standing permission on 18 October for every session to end on
+`main`, because the team and the course instructors read the repository there.
+This replaces the earlier "working branch only" rule. Nothing else in the Git
+rules changes: no force-push, no history rewriting, no branch deletion.
+
+1. Commit the tracking files, with a message such as
+   `Session log: <date>, <one-line summary>`.
+2. Push the working branch: `git push origin HEAD:refs/heads/<branch>`.
+3. **Fetch first** — `main` moves between sessions, and more than once in a
+   single day. `git fetch origin` and check `git log origin/main` for commits
+   you have not integrated.
+4. **If `main` has work you lack, integrate it before merging**, or the merge
+   silently drops it. Take the files, renumber any colliding ADR, keep the
+   course material out, and run the checks. ADR 0047 records how and why.
+5. Merge, keeping both parents so nothing is rewritten:
+
+   ```bash
+   TREE=$(git rev-parse HEAD^{tree})
+   M=$(git commit-tree "$TREE" -p origin/main -p HEAD -m "Merge: <summary>")
+   git push origin "$M:refs/heads/main"
+   ```
+
+   `origin/main` is the first parent, so the push is a fast-forward and needs
+   no force. A rejection means `main` moved again: fetch, integrate, rebuild
+   the merge commit. Never force it through.
+6. Confirm both refs and that the trees match:
+   `git diff --quiet origin/main HEAD`.
+
+- Never force-push, and never commit secrets, `.env` files, course files or
+  personal data. The merge is additive; it is not a licence to rewrite.
 
 ## Rules
 
