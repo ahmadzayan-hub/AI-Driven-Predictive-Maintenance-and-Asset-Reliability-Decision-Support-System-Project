@@ -1,8 +1,10 @@
-import { forwardRef, useImperativeHandle, useRef, useState } from 'react'
+import { forwardRef, lazy, Suspense, useImperativeHandle, useRef, useState } from 'react'
 import { useI18n } from '../../i18n'
+import { ViewBoundary } from '../../app/lazyViews'
 import { Icon } from '../../shared/components/Icon'
 import { useSessionDraft } from '../../shared/useSessionDraft'
-import { VoiceDictation } from './VoiceDictation'
+
+const VoiceInput = lazy(() => import('./VoiceInput').then((module) => ({ default: module.VoiceInput })))
 
 export interface ComposerHandle {
   insert: (text: string) => void
@@ -16,13 +18,14 @@ interface ComposerProps {
   offline?: boolean
   placeholder?: string
   draftKey?: string
+  sessionId?: string
 }
 
 /** Multiline message input. Enter sends, Shift+Enter adds a line break.
  *  While a request is in flight the send action is disabled, which also
  *  prevents duplicate submissions. */
 export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Composer(
-  { onSend, busy, disabled = false, offline = false, placeholder, draftKey = 'composer' },
+  { onSend, busy, disabled = false, offline = false, placeholder, draftKey = 'composer', sessionId },
   ref,
 ) {
   const { t, tx, locale } = useI18n()
@@ -69,7 +72,13 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
 
   return (
     <div className="composer">
-        <VoiceDictation
+      <ViewBoundary fallback={<div className="voice-console" role="alert"><p>{t('app.viewFailed')}</p>
+        <button type="button" className="btn btn--ghost" onClick={() => window.location.reload()}>{t('app.reload')}</button>
+      </div>}><Suspense fallback={<div className="voice-console"><div className="voice-console__copy">
+        <strong>{t('voice.title')}</strong><span role="status">{t('voice.paused')}</span>
+      </div></div>}>
+        <VoiceInput
+          sessionId={sessionId}
           language={locale}
           disabled={disabled || busy || submitting}
           onActiveChange={setCapturing}
@@ -78,6 +87,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
             requestAnimationFrame(() => { textareaRef.current?.focus(); autosize() })
           }}
         />
+      </Suspense></ViewBoundary>
 
       <form
         className="composer__inner"

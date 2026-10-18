@@ -23,13 +23,15 @@
 | Visual system | `frontend/src/shared/styles/tokens.css`, `frontend/src/features/chat/miyaar.css` | Theme, surfaces, logical properties, responsive layout |
 | Welcome and conversation | `frontend/src/features/chat/ChatView.tsx`, `MessageBubble.tsx` | Real workflow actions, source labels, pending/error/follow-up states |
 | Chat continuity | `frontend/src/app/store.tsx`, `shared/api.ts` | Same session endpoint; duplicate and stale-response protection; bounded request timeout |
-| Voice input/output | `VoiceDictation.tsx`, `VoicePlayback.tsx` | Browser events, consent, interim/final distinction, cancellation, playback ownership |
+| Voice input/output | `VoiceInput.tsx`, `VoiceServerDictation.tsx`, `VoiceDictation.tsx`, `VoicePlayback.tsx` | Optional local Whisper, browser fallback, consent, cancellation, editable drafts and playback ownership |
 | Deferred pages | Feature CSS and `messages.ts` packs | Keep secondary view assets off the initial load |
 
 The product remains **Asset Reliability / موثوقية الأصول**; the assistant
 is **Miyaar / معيار**. Internal Agentic OS identifiers, persisted keys, server
-transcripts and API response evidence are preserved. No backend, authentication,
-data model or orchestration code is changed.
+transcripts and API response evidence are preserved. The follow-up installation
+request adds an optional authenticated transcription endpoint and local model
+launcher ([ADR 0055](../adr/0055-opt-in-local-model-and-whisper-runtime.md));
+existing authentication, data models and orchestration contracts are preserved.
 
 Welcome actions open the existing upload/analysis, asset intelligence and
 approval flows. “Compare assets” opens asset evidence; this change does not add
@@ -38,6 +40,13 @@ SVG, explicitly labeled as an illustration. No asset health score, alert,
 prediction, KPI or system heartbeat is fabricated.
 
 ## Voice and model boundaries / حدود التشغيل
+
+- The optional local Whisper adapter records after explicit permission and
+  transcribes on the server using preinstalled CPU/int8 weights. It discovers
+  availability before selecting this transport and otherwise retains browser
+  speech. Recording stops below the server's duration ceiling; audio is neither
+  persisted nor sent to a cloud provider by this adapter. Transcriptions become
+  editable drafts. See [local setup](../LOCAL_AI_SETUP.md) for exact limits.
 
 - Browser speech recognition needs a supported browser, microphone permission
   and a secure context (HTTPS or localhost). The permission API is optional.
@@ -53,7 +62,9 @@ prediction, KPI or system heartbeat is fabricated.
   sixty seconds.
 - A `rules`/`chat` reply is identified as limited mode. Full conversational
   intelligence depends on a configured server model/runtime; this frontend
-  does not add a provider, invent a model reply or validate a deployed provider.
+  does not invent a model reply. The local launcher selects the installed
+  Ollama provider. Local acceptance evidence is recorded in README; it does not
+  validate a deployed cloud provider.
 - The status card describes session/request connectivity. It is not a new
   asset telemetry feed. Maintenance findings retain their existing evidence
   and limitations.
@@ -80,8 +91,10 @@ Axe checks do not replace a screen-reader or hardware voice review.
 
 The first-load download ceilings remain unchanged. Total cross-view budgets
 increase explicitly for the requested visual/voice features; measured values
-and rationale are in [ADR 0054](../adr/0054-miyaar-workspace-and-honest-voice.md).
-No new runtime dependency or font was added.
+and rationale are in [ADR 0054](../adr/0054-miyaar-workspace-and-honest-voice.md)
+and [ADR 0055](../adr/0055-opt-in-local-model-and-whisper-runtime.md).
+No new browser runtime dependency or font was added. Server voice dependencies
+are explicitly optional in `requirements-voice.txt`.
 
 ## Screenshots
 

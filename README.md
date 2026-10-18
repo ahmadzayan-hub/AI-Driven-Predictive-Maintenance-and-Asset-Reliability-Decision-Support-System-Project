@@ -355,6 +355,23 @@ cd frontend && npm run dev                              # terminal 2 → http://
 python main.py
 ```
 
+## Local AI runtime / تشغيل الذكاء الاصطناعي محليًا
+
+The optional local profile adds Ollama chat and multilingual Whisper dictation.
+On Windows, with the project virtual environment already created:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/local_runtime.py install --voice --agents
+.\.venv\Scripts\python.exe scripts/local_runtime.py doctor
+.\.venv\Scripts\python.exe scripts/local_runtime.py start --worker
+```
+
+Open `http://localhost:8000`. The profile uses a local Gemma 3 4B model and
+Whisper small, preserves the existing governed workflows, and needs no cloud
+key. Microphone text stays an editable draft. See the bilingual
+[setup guide](docs/LOCAL_AI_SETUP.md) for prerequisites, installed skills,
+hardware expectations, hosted configuration and acceptance limits.
+
 ## Testing
 
 ```bash
@@ -365,10 +382,10 @@ python main.py
 # mapping, joins, the cleaned-table queries, modelling stages, live sources and the event stream, uneven periods, docs, and the repository's operating system:
 # brain checker, session hooks, the verify script, the motion skill, the
 # agent team's tools, agent evaluation, the house style and the interface
-# budget (1,188 tests discovered in the current local suite)
+# budget (1,209 tests executed in the last full local run)
 python -m unittest discover tests
 
-# Frontend unit tests (163 tests)
+# Frontend unit tests (180 tests)
 
 cd frontend && npm test
 
@@ -386,25 +403,33 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
-### Miyaar redesign validation — 19 October 2026
+### Miyaar redesign and local runtime validation — 19 October 2026
 
 The redesign handoff is in
 [MIYAAR_UI_HANDOFF.md](docs/design/MIYAAR_UI_HANDOFF.md), in Arabic and English.
 The dedicated branch is `feature/miyaar-ui-redesign`.
 
-- Frontend unit tests: **163 passed**; TypeScript and the production build pass.
+- Frontend unit tests: **180 passed**, no errors, with one worker; TypeScript and the production build pass.
   This includes delayed and failed chat requests, session changes, microphone
   event ordering, interim/final speech, playback ownership and bilingual packs.
 - Native run/snapshot contracts: **5 passed**. Documentation and verifier tests:
   **27 passed**. The strict brain check passes.
-- After integrating main at `e0b9c4e`, the full local Python run discovered
-  **1,188 tests** and reported **21 errors, 140 skipped, no assertion failures**.
-  All 21 error blocks were classified: Windows SQLite cleanup locks
-  (`PermissionError [WinError 32]`) in backup, custom-stage and tenancy fixtures.
-  This improves on the initial run's 123 errors but remains **not green**;
-  PostgreSQL is not configured locally. Linux CI is checked separately.
+- Full local Python verification with optional SDKs: **1,209 tests, 129 skipped,
+  no errors or assertion failures**. The earlier Windows SQLite cleanup locks
+  are fixed through explicit fixture connection cleanup. The affected backup,
+  custom-stage and tenancy suites also pass separately (**61 tests, 13 skipped**).
+  PostgreSQL is not configured locally; conditional skips are not a claim that
+  every optional backend or hosted configuration was verified.
+- The optional voice/auth/API regression group passes **76 tests**, including
+  **19 speech tests**. The integrated fixture, launcher, gateway, documentation
+  and verifier group passes **109 tests with 13 skips**, including the local
+  proxy, hosted-database and worker-configuration guards.
 - Miyaar visual/browser suite: **12 passed**, covering English/Arabic, 375/768/1024/1440 px, light theme, command dialog, accessibility, reduced motion, two-turn chat, failures, voice preview and a pending-request session switch.
-- Fresh production budget passes: initial JS **98.6 / 100 KB**, total JS **162.7 / 165 KB**, largest chunk **13.1 / 30 KB**, initial CSS **10.0 / 10 KB**, total CSS **19.6 / 20 KB**, fonts **119.4 / 120 KB** (gzip level 9 except fonts). Initial ceilings are unchanged; ADR 0054 records the total-ceiling increase.
+- Fresh production budget passes: initial JS **97.8 / 100 KB**, total JS **167.3 / 170 KB**, largest chunk **13.1 / 30 KB**, initial CSS **10.0 / 10 KB**, total CSS **19.6 / 20 KB**, fonts **119.4 / 120 KB** (gzip level 9 except fonts). Initial ceilings are unchanged; ADRs 0054 and 0055 record the explicit feature allowances.
+- Real Whisper CPU/int8 inference passed on public English and Arabic speech
+  fixtures. English recognition took **13.83 seconds**; the Arabic FLEURS
+  fixture took **7.67 seconds** and contained word/name errors. These are two
+  actual probes, not a general accuracy benchmark or a microphone-device test.
 - Initial full FastAPI browser run: **95 passed, 9 failed, 4 skipped**. The failures covered stale welcome assertions, offline retry, phone help access and Windows report-path separators; all were corrected. The focused final journey/accessibility suite passed **20 checks with 1 viewport-only skip**; one additional latency-injection timeout exposed a service-worker routing race. After blocking service workers only in route-controlled tests, **8 repeated desktop/phone recovery and latency checks passed**. The ordinary application service worker is unchanged. Full Linux CI remains a separate check on the PR.
 
 The isolated Miyaar suite runs with

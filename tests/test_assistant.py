@@ -442,6 +442,40 @@ class ModelPathTestCase(unittest.TestCase):
         self.assertEqual(outcome["text"], "Ask me to analyse the sales data and I will.")
         self.assertEqual(outcome["source"], "model")
 
+    def test_missing_blank_or_nested_chat_reply_is_an_honest_rules_fallback(self):
+        for fields in ({}, {"reply": None}, {"reply": ""}, {"reply": "  "},
+                       {"reply": 5}, {"arguments": {"reply": "Not a top-level answer"}}):
+            with self.subTest(fields=fields):
+                outcome, _ = self.handle(json.dumps({"action": "chat", **fields}),
+                                         "Suggest a pump reliability checklist")
+                self.assertEqual(outcome["source"], "rules")
+                self.assertNotIn("provider", outcome)
+                self.assertIn("the rules decided instead", outcome["why"])
+                self.assertNotIn("Not a top-level answer", outcome["text"])
+
+    def test_nonchat_actions_still_accept_an_empty_reply_and_use_the_agents_text(self):
+        outcome, _ = self.handle(json.dumps({"action": "remember",
+            "arguments": {"information": "Inspect the pump at the approved interval"}, "reply": ""}),
+            "Remember the approved inspection interval")
+        self.assertEqual(outcome["source"], "model")
+        self.assertEqual(outcome["text"], "Information saved.")
+        self.assertIn("Inspect the pump at the approved interval", self.session.agent.memory.values())
+
+    def test_general_domain_chat_keeps_both_languages_and_no_automated_action(self):
+        for language, question, answer in (
+            ("English", "Suggest a pump checklist", "Use the approved inspection procedure; review leaks and maintenance history."),
+            ("Arabic", "اقترح قائمة فحص للمضخة", "راجع سجل الصيانة وفق إجراءات الفحص المعتمدة؛ هذه إرشادات عامة وليست قياسات للأصل."),
+        ):
+            with self.subTest(language=language):
+                self.session = FakeSession(make_agent(language))
+                outcome, gateway = self.handle(json.dumps({"action": "chat", "arguments": {}, "reply": answer}), question)
+                self.assertEqual(outcome["action"], "chat")
+                self.assertEqual(outcome["text"], answer)
+                self.assertEqual(self.engine.list_runs(owner="local-owner"), [])
+                self.assertEqual(self.session.agent.memory, {})
+                self.assertIn("Miyaar", gateway.asked[0][0])
+                self.assertIn("at the TOP LEVEL", gateway.asked[0][0])
+
     def test_an_answer_that_is_not_an_intent_hands_over_to_the_rules(self):
         outcome, _ = self.handle("I think you want me to remember something.",
                                  "remember that the review is on Monday")

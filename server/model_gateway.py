@@ -22,6 +22,7 @@ narrator, which is reported honestly as the source in the report itself.
 
 import os
 import re
+import math
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
@@ -75,6 +76,34 @@ class ModelGateway:
         self.anthropic_model = env.get("ANTHROPIC_MODEL", DEFAULT_ANTHROPIC_MODEL)
         self.groq_key = env.get("GROQ_API_KEY") or None
         self.groq_model = env.get("GROQ_MODEL", DEFAULT_GROQ_MODEL)
+        # CPU-hosted models need a bounded cold-start window. Hosted defaults
+        # remain unchanged; callers can explicitly allow up to one minute.
+        try:
+            timeout = float(env.get("AGENTIC_OS_MODEL_TIMEOUT_SECONDS", TIMEOUT_SECONDS))
+            self.timeout = min(60, max(1, timeout)) if math.isfinite(timeout) else TIMEOUT_SECONDS
+        except (TypeError, ValueError):
+            self.timeout = TIMEOUT_SECONDS
+        thinking = str(env.get("OLLAMA_THINK", "")).lower()
+        self.ollama_think = (False if thinking in ("0", "false")
+                             else True if thinking in ("1", "true") else None)
+        self.ollama_options = {}
+        for variable, option, low, high, default in (
+                ("OLLAMA_CONTEXT_LENGTH", "num_ctx", 512, 8192, 4096),
+                ("OLLAMA_NUM_THREAD", "num_thread", 1, 16, 6)):
+            if variable in env:
+                try:
+                    value = int(env[variable])
+                except (TypeError, ValueError):
+                    value = default
+                self.ollama_options[option] = min(high, max(low, value))
+        if "OLLAMA_TEMPERATURE" in env:
+            try:
+                temperature = float(env["OLLAMA_TEMPERATURE"])
+            except (TypeError, ValueError):
+                temperature = 0.2
+            if not math.isfinite(temperature):
+                temperature = 0.2
+            self.ollama_options["temperature"] = min(2, max(0, temperature))
 
         # Local first: it is the only provider that sends nothing off the
         # machine, so it wins when the operator has configured one.
@@ -170,8 +199,12 @@ class ModelGateway:
         try:
             import httpx
 
-            response = httpx.post(url, headers=headers, json=payload,
-                                  timeout=TIMEOUT_SECONDS)
+            options = {"timeout": self.timeout}
+            if url == self.ollama_host.rstrip("/") + "/api/chat":
+                # A loopback provider must not send verified context through
+                # an ambient HTTP_PROXY. Cloud provider behavior is unchanged.
+                options["trust_env"] = False
+            response = httpx.post(url, headers=headers, json=payload, **options)
             if response.status_code != 200:
                 return None
             return response.json()
@@ -210,12 +243,16 @@ class ModelGateway:
 
     # The wire calls, one per provider, over an arbitrary system + user pair.
     def _complete_ollama(self, system, user, max_tokens=None):
+        payload = {"model": self.ollama_model, "stream": False,
+                   "options": {"num_predict": max_tokens or LOCAL_OUTPUT_TOKENS,
+                               **self.ollama_options},
+                   "messages": [{"role": "system", "content": system},
+                                {"role": "user", "content": user}]}
+        if self.ollama_think is not None:
+            payload["think"] = self.ollama_think
         body = self._post(
             self.ollama_host.rstrip("/") + "/api/chat", {},
-            {"model": self.ollama_model, "stream": False,
-             "options": {"num_predict": max_tokens or LOCAL_OUTPUT_TOKENS},
-             "messages": [{"role": "system", "content": system},
-                          {"role": "user", "content": user}]})
+            payload)
         try:
             return self._clean(body["message"]["content"])
         except (TypeError, KeyError, IndexError):

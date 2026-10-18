@@ -26,7 +26,7 @@ export function speechRecognitionSupported(): boolean {
   const browser = window as VoiceWindow
   return Boolean(browser.SpeechRecognition || browser.webkitSpeechRecognition)
 }
-interface DictationProps {
+export interface DictationProps {
   language: 'en' | 'ar'
   disabled: boolean
   onTranscript: (text: string) => void

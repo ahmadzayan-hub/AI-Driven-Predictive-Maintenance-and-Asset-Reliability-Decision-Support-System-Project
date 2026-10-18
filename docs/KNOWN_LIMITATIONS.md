@@ -286,9 +286,10 @@ required local files. Both behaviors are covered by tests
     the totals; the app's report does not yet.
 23. The agent team (`docs/AGENT_TEAM.md`) is tooling for this
     repository and its deliverables, not part of the app.
-    - **Local models:** the free models behind `scripts/consult.py` are
-      tested only against a stub server. This environment cannot
-      download them, so no local model has answered a request here.
+    - **Local models:** provider and framework tests normally use stubs.
+      Local Ollama and Whisper are now installed through the opt-in profile
+      (ADR 0055). See README for actual live probes; those do not validate
+      every model or turn the separate reviewer tooling into an app feature.
     - **Reviewers:** they are Claude subagents. Their findings are
       checked by recomputation before they are acted on, but a reviewer
       can miss what it was not asked about.
@@ -356,13 +357,10 @@ required local files. Both behaviors are covered by tests
     until the stream ends. A connector's error is stored in the
     language it was created in.
 
-30. The maintenance KPI register (`server/maintenance/kpis.py`) is not
-    yet read by any endpoint, stage or view: its only importers are its
-    own package and its tests. The governed diagnostics and risk models
-    on the `maintenance` profile do not compute these KPIs, and the
-    executive maintenance screens at `?design=maintenance` still draw
-    every figure from fictional fixtures (ADR 0037). Binding the register
-    to a run, and that run to those screens, is open work. The register
+30. The maintenance KPI register (`server/maintenance/kpis.py`) is bound
+    to cleaned runs through the KPI endpoint and Asset Intelligence view
+    (ADRs 0049 and 0051). The separate `?design=maintenance` preview still
+    uses explicitly fictional fixtures (ADR 0037). The register
     excludes a record from a measure when any column that measure's
     arithmetic reads is missing, and reports the count as
     `records_unmeasured` (ADR 0042); a view that binds these KPIs must
@@ -384,11 +382,9 @@ required local files. Both behaviors are covered by tests
     it would turn a red run green without making anything work. CI on Linux
     is the authority for this test. Verified 19 October 2026.
 
--   **The interface budget passes with almost no headroom.** As of
-    19 October 2026: css first load 10.0 of 10 KB, css total 16.0 of 16 KB,
-    fonts 119.4 of 120 KB, js total 157.6 of 160 KB, js first load 98.6 of
-    100 KB. Three of the six measures are at or within 0.6 KB of their
-    limit, so the next stylesheet rule or font subset breaks the gate. The
-    sanctioned responses are unchanged: trim, or record a justified budget
-    change in an ADR. Raising a limit to make a failing run pass is not one
-    of them.
+-   **Initial CSS and fonts have little budget headroom.** Current measured
+    values are maintained in [README testing](../README.md#testing). ADRs
+    0054 and 0055 record the explicit allowances for the visual and local voice
+    features; initial ceilings remain unchanged. Further features need
+    measurement and trimming or a justified design decision, not an unexplained
+    gate increase.

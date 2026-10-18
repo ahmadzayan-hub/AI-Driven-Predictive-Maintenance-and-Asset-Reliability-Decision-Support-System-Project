@@ -157,7 +157,7 @@ export function ChatView({
       if (container) container.scrollTop = container.scrollHeight
       setPinnedToBottom(true)
     }}><Icon name="arrowDown" size={14} />{t('chat.latest')}</button> : null}
-    <Composer draftKey={`${session.session_id}:composer`} ref={composerRef} onSend={onSend}
+    <Composer sessionId={session.session_id} draftKey={`${session.session_id}:composer`} ref={composerRef} onSend={onSend}
       busy={sending} disabled={session.ended || offline} offline={offline} />
   </section>
 }

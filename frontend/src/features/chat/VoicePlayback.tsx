@@ -24,6 +24,9 @@ export function VoicePlayback({ text }: { text: string }) {
     }
   }
   const stop = useCallback(() => { release(); setState('idle') }, [])
+  // Enumeration starts asynchronous voice discovery without speaking. Read the
+  // list again on the user's click, when device voices may have finished loading.
+  useEffect(() => { window.speechSynthesis?.getVoices?.() }, [])
   useEffect(() => () => release(), [text])
 
   function toggle() {
@@ -32,7 +35,10 @@ export function VoicePlayback({ text }: { text: string }) {
     if (!text.trim()) return
     stopCurrent?.()
     const utterance = new SpeechSynthesisUtterance(text.slice(0, 1800))
-    utterance.lang = /[\u0600-\u06ff]/.test(text) ? 'ar-AE' : 'en-US'
+    const language = /[\u0600-\u06ff]/.test(text) ? 'ar' : 'en'
+    const voice = window.speechSynthesis.getVoices?.().find((candidate) => candidate.lang.toLowerCase().split('-')[0] === language)
+    utterance.lang = voice?.lang ?? (language === 'ar' ? 'ar-AE' : 'en-US')
+    if (voice) utterance.voice = voice
     utterance.rate = 0.95
     utteranceRef.current = utterance
     stopCurrent = stop

@@ -7,6 +7,7 @@ credential is ever used.
 """
 
 import unittest
+from unittest.mock import patch, Mock
 
 from server.model_gateway import ModelGateway
 
@@ -120,6 +121,44 @@ class ProviderCallTestCase(unittest.TestCase):
                                     {"message": {"content": "ok"}})
         gateway.narrate("goal", ["A fact."])
         self.assertEqual(self.sent["payload"]["options"]["num_predict"], 600)
+
+    def test_cpu_install_can_disable_reasoning_without_changing_provider_defaults(self):
+        gateway = self.gateway_with({"OLLAMA_MODEL": "qwen3:4b", "OLLAMA_THINK": "0"},
+                                    {"message": {"content": "Ready."}})
+        self.assertEqual(gateway.ask("system", "user"), "Ready.")
+        self.assertIs(self.sent["payload"]["think"], False)
+        gateway = self.gateway_with({"OLLAMA_MODEL": "m"},
+                                    {"message": {"content": "Ready."}})
+        gateway.ask("system", "user")
+        self.assertNotIn("think", self.sent["payload"])
+
+    def test_timeout_is_bounded_and_invalid_configuration_keeps_default(self):
+        for value, expected in (("45", 45), ("999", 60), ("0", 1),
+                                ("bad", 12), ("nan", 12), ("inf", 12)):
+            with self.subTest(value=value):
+                self.assertEqual(ModelGateway(env={"AGENTIC_OS_MODEL_TIMEOUT_SECONDS": value}).timeout,
+                                 expected)
+
+    def test_local_context_bypasses_ambient_proxies(self):
+        gateway = ModelGateway(env={"OLLAMA_MODEL": "m"})
+        response = Mock(status_code=200)
+        response.json.return_value = {"message": {"content": "Ready."}}
+        with patch("httpx.post", return_value=response) as post:
+            self.assertEqual(gateway.ask("system", "private verified facts"), "Ready.")
+            self.assertIs(post.call_args.kwargs["trust_env"], False)
+
+    def test_explicit_local_resource_settings_are_bounded(self):
+        for context, threads, expected in (("99999", "999", (8192, 16)),
+                                           ("invalid", "invalid", (4096, 6))):
+            with self.subTest(context=context):
+                gateway = self.gateway_with({"OLLAMA_MODEL": "m", "OLLAMA_CONTEXT_LENGTH": context,
+                                             "OLLAMA_NUM_THREAD": threads,
+                                             "OLLAMA_TEMPERATURE": "nan"},
+                                            {"message": {"content": "Ready."}})
+                gateway.ask("system", "user")
+                options = self.sent["payload"]["options"]
+                self.assertEqual((options["num_ctx"], options["num_thread"]), expected)
+                self.assertEqual(options["temperature"], 0.2)
 
     def test_a_provider_failure_degrades_to_deterministic_and_says_so(self):
         for response in (None, {}, {"content": []}, {"message": {"content": "   "}}):

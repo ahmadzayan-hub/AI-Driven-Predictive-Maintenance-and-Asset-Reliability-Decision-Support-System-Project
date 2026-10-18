@@ -5,6 +5,7 @@ vi.mock('../../i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }))
 class SpokenText {
   static last: SpokenText
   lang = ''
+  voice: SpeechSynthesisVoice | null = null
   rate = 1
   onstart: (() => void) | null = null
   onend: (() => void) | null = null
@@ -49,5 +50,29 @@ describe('VoicePlayback', () => {
     fireEvent.click(screen.getByRole('button', { name: 'voice.readReply' }))
     act(() => vi.advanceTimersByTime(10000))
     expect(screen.getByText('voice.playbackUnavailable')).toBeInTheDocument()
+  })
+  it('selects an available Arabic device voice after discovery without claiming playback before onstart', () => {
+    const english = { name: 'Microsoft David', lang: 'en-US' } as SpeechSynthesisVoice
+    const arabic = { name: 'Microsoft Naayf', lang: 'ar-SA' } as SpeechSynthesisVoice
+    let available = [english]
+    const getVoices = vi.fn(() => available)
+    Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: { speak, cancel, getVoices } })
+    const view = render(<VoicePlayback text="راجع موثوقية المضخة" />)
+    expect(getVoices).toHaveBeenCalledOnce()
+    expect(speak).not.toHaveBeenCalled()
+    // Chrome may publish its OneCore voices after the component has mounted.
+    available = [english, arabic]
+    fireEvent.click(screen.getByRole('button', { name: 'voice.readReply' }))
+    expect(SpokenText.last.voice).toBe(arabic)
+    expect(SpokenText.last.lang).toBe('ar-SA')
+    expect(screen.getByText('voice.playbackQueued')).toBeInTheDocument()
+    expect(screen.queryByText('voice.playing')).not.toBeInTheDocument()
+    act(() => SpokenText.last.onstart?.())
+    expect(screen.getByText('voice.playing')).toBeInTheDocument()
+    view.unmount()
+    render(<VoicePlayback text="Review the pump reliability" />)
+    fireEvent.click(screen.getByRole('button', { name: 'voice.readReply' }))
+    expect(SpokenText.last.voice).toBe(english)
+    expect(SpokenText.last.lang).toBe('en-US')
   })
 })
