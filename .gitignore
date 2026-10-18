@@ -18,6 +18,43 @@ private/
 # may ever reach this public repository. The team workspace is a separate
 # private repository with its own CLAUDE.md, Memory.md and session logs.
 inputs/
+
+# Course material and the private review, by name. On 18 October four pull
+# requests on this repository's `main` copied all of this out of `private/`
+# into the repository root and published it: the 5,000-row course dataset,
+# a file holding five registration numbers, teammates' names, and the
+# private assessment and its probe output. Ignoring the paths is not what
+# fixes that -- only the owner can contain what is already in a public
+# history -- but it stops the same upload happening twice. See ADR 0047.
+Group_9226_*
+Team3_*
+/roles/
+/PROJECT_ASSESSMENT.md
+/REQUIREMENT_EVIDENCE_MATRIX.md
+/UI_AGENT_IMPROVEMENT_PLAN_*.md
+/ANTHROPIC_AGENTIC_OS_RESEARCH_*.md
+/CLAUDE_CODE_UI_AGENTS_HARNESS_PROMPT.md
+/AI_Driven_Predictive_Maintenance_SaaS_Playbook.md
+/workbook-review.xlsx
+# The private review's own scripts and captured output.
+/probes.py
+/probes.json
+/probes-output.txt
+/verify_with_logs.py
+/verification.txt
+/python-tests.txt
+/python-error-summary.json
+/frontend-unit-tests.txt
+/type-check.txt
+/production-build.txt
+/interface-budget.txt
+/brain-check.txt
+/reviewed-source-sha256.json
+# The capstone workspace's own tools, when copied up from private/capstone.
+/check_governance.py
+/check_package.py
+/profile_dataset.py
+/_dataset.py
 # Claude Code: per-person settings and the hooks' per-session state.
 .claude/settings.local.json
 .claude/state/

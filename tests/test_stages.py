@@ -545,7 +545,11 @@ class ShippedConfigTestCase(unittest.TestCase):
     is a document, not behaviour, so the shipped registry is tested here.
     """
 
-    MAINTENANCE = ("maintenance_governance", "maintenance_risk")
+    # The maintenance profile's membership is pinned on purpose: a stage
+    # joining it is a decision about what an opt-in maintenance run does,
+    # so it should fail here until a record says otherwise. Rail asset
+    # screening joined under ADR 0046.
+    MAINTENANCE = ("maintenance_governance", "maintenance_risk", "rail_asset_manager")
 
     def setUp(self):
         root = Path(__file__).resolve().parent.parent

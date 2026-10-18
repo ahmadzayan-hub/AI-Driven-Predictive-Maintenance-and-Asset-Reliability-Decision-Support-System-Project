@@ -14,7 +14,8 @@
         "server.modelling.ClusteringModel",
         "server.modelling.SeasonalForecast",
         "server.maintenance.governance.MaintenanceGovernance",
-        "server.maintenance.targets.MaintenanceRisk"
+        "server.maintenance.targets.MaintenanceRisk",
+        "server.maintenance.rail_stage.RailAssetManagerStage"
     ],
     "profiles": {
         "default": [],
@@ -26,7 +27,8 @@
         ],
         "maintenance": [
             "maintenance_governance",
-            "maintenance_risk"
+            "maintenance_risk",
+            "rail_asset_manager"
         ]
     }
 }
