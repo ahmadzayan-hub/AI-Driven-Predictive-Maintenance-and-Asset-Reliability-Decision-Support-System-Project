@@ -686,3 +686,24 @@ produce real analysis, reports and computed dashboards.
 - **Verified:** the draft completeness check found all nine required topics and resolved all seventeen checked existing input references. Documentation tests printed `Ran 8 tests` / `OK`. The strict brain check exited successfully with no broken links, stale notes, duplicate candidates, unlinked mentions or orphans; daily maintenance remains due. No application, browser, plugin activation, provider or model-quality tests were run for this prompt-writing task.
 - **Decided:** treat the image as the owner's taxonomy, not an official Anthropic product specification. Reuse current architecture and reviewers; measure whether extra scaffolding helps. Prompt specifically requires checking the plugin guide's automatic-loading claim against installed CLI behavior. Development tools/subscriptions and customer runtime capabilities remain separate.
 - **Next:** run the saved implementation prompt in Claude Code from this workspace. The prompt has not been executed; no application changes, external messages, installation, deployment or publication occurred in this session.
+
+## 2026-10-18 · `4de79e2d` · main (automatic)
+
+_Written by the SessionEnd hook (other) because the session-end skill did not run. Facts only: review it at the start of the next session and add what was decided._
+
+- Commits: 0
+- Uncommitted changes when the session ended: 20 file(s)
+- Next: not recorded
+
+## 2026-10-18 · `2ead7a20` · claude/agentic-os-final-project-53j6ql
+
+**Goal:** review the project structure against the capstone and SaaS objectives, then push the work to GitHub.
+
+- **Done:** read the charter, the 42 ADRs, the private 17 October assessment and the course brief against the code, and wrote a two-track build plan: a capstone track (evidence export, the PBIX as a human task, closing the report placeholders) and a SaaS track mapped to the charter's P2–P5.
+- **Done:** committed the previous session's ADR 0041 and 0042 work, which the SessionEnd hook recorded as 20 uncommitted files and no commits.
+- **Found:** this Desktop working copy had been pushed on 18 October as a single squashed `first commit` into a *separate* repository, `agentic-os-final-project-claude-agentic-os-final-project-53j6ql`, whose history is unrelated to the project's. The canonical public repository `ahmadzayan-hub/agentic-os-final-project` was still at `47857ef`, ending at ADR 0039. The Desktop tree is a strict superset of it: no file exists only in the canonical repository.
+- **Verified:** the focused Python suites `test_maintenance`, `test_maintenance_governance`, `test_maintenance_targets`, `test_stages` and `test_modelling` ran **132 tests with 0 failures and 14 errors**, every error a `PermissionError [WinError 32]` raised while removing a temporary database, the known Windows cleanup race. `scripts/brain_check.py --strict` exits 0. The full Python suite, the frontend unit suite, the browser suites and PostgreSQL were **not run** in this session.
+- **Verified:** nothing private is tracked. 723 tracked files, none from `private/`, `inputs/` or `vault/`; a secret scan over every tracked file found no key, token or private-key block.
+- **Decided:** push to the canonical repository's working branch, replaying the Desktop content onto `47857ef` as ordinary commits, so the branch fast-forwards. No force-push and no history rewriting. The snapshot repository is left as it is; it is not deleted and not pushed to.
+- **Open / next:** the capstone track's evidence export (`scripts/analyse.py` plus the maintenance profile, emitting the governance checks, the KPI register and the model card), and then charter P2, binding the KPI register to a run behind `GET /api/runs/{id}/kpis`.
+- **Blockers:** the `.pbix` cannot be produced from here and is unassigned. The official submission deadline is still "to be announced" in the course files.
