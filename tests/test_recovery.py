@@ -15,7 +15,6 @@ a disaster.
 
 import json
 import os
-import signal
 import subprocess
 import sys
 import tempfile
@@ -211,7 +210,12 @@ class WorkerDeathTestCase(unittest.TestCase):
 
         where = self.wait_for(caught_mid_stage, interval=0.01)
         self.assertTrue(where, "the worker never started the run")
-        worker.send_signal(signal.SIGKILL)
+        # Popen.kill() is SIGKILL on POSIX and TerminateProcess on Windows:
+        # both end the process at once, and neither can be caught or cleaned
+        # up after, which is the crash this test stages. The SIGKILL constant
+        # does not exist on Windows, so naming it made the suite unrunnable
+        # there for a reason unrelated to what is being tested.
+        worker.kill()
         worker.wait(timeout=10)
         return where
 

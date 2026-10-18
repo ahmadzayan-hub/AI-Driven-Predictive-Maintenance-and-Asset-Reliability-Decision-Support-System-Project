@@ -13,6 +13,7 @@ PostgreSQL (see RunEnginePostgresTestCase for the same pattern).
 """
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -249,13 +250,32 @@ class BackupRestoreTestCase(unittest.TestCase):
         self.assertEqual(set(payload["tables"]), set(TABLES))
 
     # -- CLI --------------------------------------------------------------
+    @staticmethod
+    def bare_environment(root=None):
+        """The smallest environment the script can still run in.
+
+        The point is that the script reads its configuration from --config and
+        needs nothing from the caller's environment. On Windows that cannot be
+        taken literally: Winsock initialises from SystemRoot, so a subprocess
+        without it fails every socket call, and psycopg2 reports it as an
+        OperationalError carrying no message at all. The SQLite drill passed and
+        the PostgreSQL one failed for that reason alone. SystemRoot is the
+        platform's floor, not a dependency of the script.
+        """
+        env = {"PATH": "/usr/bin:/bin", "HOME": str(root)}
+        if os.name == "nt":
+            for key in ("SystemRoot", "SYSTEMROOT"):
+                if key in os.environ:
+                    env[key] = os.environ[key]
+        return env
+
     def run_script(self, name, *args):
         """Run the operator-facing script and return its JSON summary."""
         completed = subprocess.run(
             [sys.executable, str(PROJECT_ROOT / "scripts" / name),
              *args, "--config", str(self.config_path)],
             capture_output=True, text=True, cwd=str(PROJECT_ROOT),
-            env={"PATH": "/usr/bin:/bin", "HOME": str(self.root)})
+            env=self.bare_environment(self.root))
         self.assertEqual(completed.returncode, 0, completed.stderr)
         return json.loads(completed.stdout)
 
