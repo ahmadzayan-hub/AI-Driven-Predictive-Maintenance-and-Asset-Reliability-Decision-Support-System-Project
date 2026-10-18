@@ -2625,3 +2625,30 @@ form.field {
     flex-direction: column;
   }
 }
+
+/* Latest-run evidence: real server-backed status, never a simulated AI score. */
+.overview__evidence {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-block: var(--space-4);
+  padding: var(--space-4);
+  border-inline-start: 3px solid var(--accent);
+}
+.overview__evidence-head {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex: 1 1 220px;
+}
+.overview__evidence-head > svg { flex-shrink: 0; color: var(--accent); }
+.overview__evidence-head .card__title { margin: 0; }
+.overview__evidence-head .card__meta { margin-top: var(--space-1); }
+.overview__evidence-state { flex: 2 1 290px; }
+.overview__evidence-state strong { display: block; font-size: var(--text-s); }
+.overview__evidence-state p { color: var(--text-muted); margin-top: var(--space-1); font-size: var(--text-s); }
+.overview__evidence .btn { flex-shrink: 0; }
+@media (max-width: 640px) {
+  .overview__evidence { align-items: stretch; }
+}
