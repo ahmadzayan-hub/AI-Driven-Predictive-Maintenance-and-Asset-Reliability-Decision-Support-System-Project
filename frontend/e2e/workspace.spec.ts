@@ -2,7 +2,8 @@ import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import { composerInput, openTab, skipOnboarding } from './helpers'
 
-test.use({ contextOptions: { reducedMotion: 'reduce' } })
+// Route-controlled latency must reach Playwright rather than a service worker.
+test.use({ serviceWorkers: 'block', contextOptions: { reducedMotion: 'reduce' } })
 
 test('a late start response preserves the destination and the durable run', async ({ page }) => {
   await skipOnboarding(page)

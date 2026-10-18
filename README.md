@@ -397,13 +397,15 @@ The dedicated branch is `feature/miyaar-ui-redesign`.
   event ordering, interim/final speech, playback ownership and bilingual packs.
 - Native run/snapshot contracts: **5 passed**. Documentation and verifier tests:
   **27 passed**. The strict brain check passes.
-- The full local Python run discovered **1,188 tests** and reported
-  **123 errors, 140 skipped, no assertion failures**. The reported tail is the
-  existing Windows SQLite temporary-file lock failure (`WinError 32`).
-  This run is **not green**; PostgreSQL is not configured locally.
+- After integrating main at `e0b9c4e`, the full local Python run discovered
+  **1,188 tests** and reported **21 errors, 140 skipped, no assertion failures**.
+  All 21 error blocks were classified: Windows SQLite cleanup locks
+  (`PermissionError [WinError 32]`) in backup, custom-stage and tenancy fixtures.
+  This improves on the initial run's 123 errors but remains **not green**;
+  PostgreSQL is not configured locally. Linux CI is checked separately.
 - Miyaar visual/browser suite: **12 passed**, covering English/Arabic, 375/768/1024/1440 px, light theme, command dialog, accessibility, reduced motion, two-turn chat, failures, voice preview and a pending-request session switch.
 - Fresh production budget passes: initial JS **98.6 / 100 KB**, total JS **162.7 / 165 KB**, largest chunk **13.1 / 30 KB**, initial CSS **10.0 / 10 KB**, total CSS **19.6 / 20 KB**, fonts **119.4 / 120 KB** (gzip level 9 except fonts). Initial ceilings are unchanged; ADR 0054 records the total-ceiling increase.
-- The full backend-connected browser run and its focused regression rerun are recorded below before handoff.
+- Initial full FastAPI browser run: **95 passed, 9 failed, 4 skipped**. The failures covered stale welcome assertions, offline retry, phone help access and Windows report-path separators; all were corrected. The focused final journey/accessibility suite passed **20 checks with 1 viewport-only skip**; one additional latency-injection timeout exposed a service-worker routing race. After blocking service workers only in route-controlled tests, **8 repeated desktop/phone recovery and latency checks passed**. The ordinary application service worker is unchanged. Full Linux CI remains a separate check on the PR.
 
 The isolated Miyaar suite runs with
 `npx playwright test --config=playwright.miyaar.config.ts` after building.
