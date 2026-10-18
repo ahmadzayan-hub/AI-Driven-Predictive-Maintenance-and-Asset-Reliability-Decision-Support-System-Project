@@ -9,6 +9,15 @@
 import type { MessageKey, PluralForms, PluralKey } from './en'
 
 export const ar: Record<MessageKey, string> = {
+  'decision.eyebrow': 'قرارك القادم',
+  'decision.heading': 'مركز قيادة ذكاء القرار',
+  'decision.subtitle': 'انتقل مباشرة إلى الأدلة والتحليلات والموافقات المعلقة، دون عرض مؤشرات تشغيلية مفترضة.',
+  'decision.upload': 'تحليل مجموعة بيانات',
+  'decision.uploadHelp': 'استيراد البيانات والتحقق منها وتشغيل التحليلات الموثقة',
+  'decision.dashboard': 'استعراض لوحة المعلومات',
+  'decision.dashboardHelp': 'عرض نتائج التحليل والأرقام المستندة إلى الأدلة',
+  'decision.approvals': 'مراجعة القرارات',
+  'decision.approvalsHelp': 'اعتماد تقرير محدد أو رفضه',
   'voice.start': 'إملاء صوتي بالميكروفون',
   'voice.stop': 'إيقاف التسجيل',
   'voice.privacyTitle': 'قبل استخدام الإدخال الصوتي',
