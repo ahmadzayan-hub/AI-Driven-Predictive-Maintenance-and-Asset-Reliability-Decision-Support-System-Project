@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 320" role="img" aria-labelledby="heroTitle heroDesc">
+<title id="heroTitle">Asset Reliability AI, decision intelligence illustration</title>
+<desc id="heroDesc">Abstract railway tracks, an evidence graph and a safeguarded decision path; illustration without performance data.</desc>
+<defs>
+ <linearGradient id="deep" x1="0" x2="1"><stop stop-color="#07192f"/><stop offset=".58" stop-color="#0d3250"/><stop offset="1" stop-color="#0e4e61"/></linearGradient>
+ <linearGradient id="path" x1="0" x2="1"><stop stop-color="#12658b"/><stop offset=".55" stop-color="#24bbbc"/><stop offset="1" stop-color="#e8b75b"/></linearGradient>
+ <pattern id="grid" width="44" height="44" patternUnits="userSpaceOnUse"><path d="M44 0H0V44" stroke="#a1e2ed" opacity=".09" fill="none"/></pattern>
+</defs>
+<rect width="1240" height="320" rx="28" fill="url(#deep)"/>
+<rect width="1240" height="320" rx="28" fill="url(#grid)"/>
+<g opacity=".2" fill="none" stroke="#86bed1" stroke-width="2"><path d="M620 310 850 140M700 310 875 140M780 310 900 140M860 310 924 140M940 310 950 140"/></g>
+<g opacity=".18" stroke="#c3ebf1" stroke-width="3"><path d="M645 286h340M680 264h295M715 242h248M748 220h202M778 198h169M800 180h145"/></g>
+<path d="M560 210c88 9 152-67 227-59s99 50 174-4 95-90 190-65" fill="none" stroke="#081e37" stroke-width="30" stroke-linecap="round" opacity=".8"/>
+<path d="M560 210c88 9 152-67 227-59s99 50 174-4 95-90 190-65" fill="none" stroke="url(#path)" stroke-width="8" stroke-linecap="round"/>
+<path d="M560 210c88 9 152-67 227-59s99 50 174-4 95-90 190-65" fill="none" stroke="#f0c16a" stroke-width="2.5" stroke-linecap="round"/>
+<g fill="#f1c46e" stroke="#14415b" stroke-width="5"><circle cx="687" cy="184" r="9"/><circle cx="826" cy="166" r="9"/><circle cx="969" cy="143" r="9"/><circle cx="1081" cy="87" r="9"/></g>
+<path d="M152 225 258 59h37l115 166h-49L276 99l-77 126z" fill="none" stroke="#117fa1" stroke-width="16" stroke-linejoin="round"/>
+<path d="M203 243h161m-139 18h117m-98 18h75" stroke="#55c2c6" stroke-width="4" opacity=".56"/>
+<path d="M404 176 448 160l32 16v37c0 34-15 50-38 61-23-11-38-27-38-61z" fill="#0a2945" stroke="#53bfc6" stroke-width="4"/>
+<path d="m426 215 14 13 26-29" fill="none" stroke="#efc56a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

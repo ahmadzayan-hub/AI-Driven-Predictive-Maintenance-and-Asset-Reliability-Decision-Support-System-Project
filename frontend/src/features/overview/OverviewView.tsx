@@ -6,6 +6,7 @@ import { stateLabel, typeLabel } from '../../shared/labels'
 import type { RunDetail, RunSummary, Usage } from '../../shared/types'
 import type { RunPreset } from '../runs/RunsView'
 import { countRuns, latestWithFindings, recentRuns, RUN_PAGE, waitingForApproval } from './summary'
+import { summarizeRunEvidence } from './evidence'
 
 interface OverviewViewProps {
   onOpenRun: (id: string) => void
@@ -120,8 +121,9 @@ export function OverviewView({ onOpenRun, onStart, onApprovals }: OverviewViewPr
         <div className="panel__inner panel__inner--wide">
           {header}
           <div className="card empty">
+            <img className="overview__onboarding-art" src="/artwork/asset-reliability-hero.svg" alt="" width={800} height={206} loading="lazy" />
             <div className="empty__icon">
-              <Icon name="dashboard" size={32} />
+              <img src="/artwork/asset-intelligence-icon.svg" alt="" width={32} height={32} />
             </div>
             <h3 className="empty__title">{t('overview.emptyTitle')}</h3>
             <p className="empty__text">{t('overview.emptyText')}</p>
@@ -148,6 +150,9 @@ export function OverviewView({ onOpenRun, onStart, onApprovals }: OverviewViewPr
   const recent = recentRuns(runs)
   const findings = latest ? latest.reports.filter((report) => (report.headline ?? '').trim()) : []
   const reportLang = latest?.report_language === 'ar' ? 'ar' : 'en'
+  // A run's independent validator is evidence about that run, not a claim
+  // that every model is accurate or operationally approved.
+  const evidence = summarizeRunEvidence(latest)
 
   const tiles = [
     {
@@ -205,6 +210,32 @@ export function OverviewView({ onOpenRun, onStart, onApprovals }: OverviewViewPr
         {counts.capped ? (
           <p className="panel__note">{t('overview.capped', { n: formatNumber(RUN_PAGE) })}</p>
         ) : null}
+
+        <section className="card overview__evidence" aria-label={t('overview.evidenceHeading')}>
+          <div className="overview__evidence-head">
+            <Icon name="shield" size={22} />
+            <div>
+              <h3 className="card__title">{t('overview.evidenceHeading')}</h3>
+              <p className="card__meta">{latest
+                ? t('overview.evidenceStages', {
+                    done: formatNumber(evidence.completed),
+                    total: formatNumber(evidence.total),
+                  })
+                : t('overview.evidenceMissing')}</p>
+            </div>
+          </div>
+          <div className="overview__evidence-state">
+            <strong>{!latest ? t('overview.evidenceUnavailable')
+              : evidence.status === 'passed' ? t('overview.evidencePassed')
+                : t('overview.evidencePending')}</strong>
+            <p>{t('overview.evidenceScope')}</p>
+          </div>
+          {latest ? (
+            <button type="button" className="btn btn--ghost" onClick={() => onOpenRun(latest.id)}>
+              {t('overview.openAnalysis')}
+            </button>
+          ) : null}
+        </section>
 
         <div className="overview__grid">
           <div className="card">

@@ -49,6 +49,9 @@ jobs:
       - name: Python tests (agent, utils, API, runs)
         run: python -m unittest discover tests -v
 
+      - name: Agent classification and evidence-quality gates
+        run: python scripts/evaluate_agents.py --check
+
       - name: Python dependency audit (informational)
         # Advisory only: a new transitive CVE should be visible without
         # blocking unrelated changes; triage findings in the PR.

@@ -45,17 +45,22 @@
 }
 
 .brand__mark {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   border-radius: 9px;
-  background: var(--accent-solid);
-  color: var(--on-accent);
   display: grid;
   place-items: center;
-  font-weight: 700;
-  font-size: var(--text-s);
+  overflow: hidden;
   flex-shrink: 0;
-  box-shadow: 0 0 14px var(--accent-glow);
+  background: var(--surface-sunken);
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+.brand__mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .brand__name {
@@ -2619,4 +2624,43 @@ form.field {
   .field__row {
     flex-direction: column;
   }
+}
+
+/* Latest-run evidence: real server-backed status, never a simulated AI score. */
+.overview__evidence {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-block: var(--space-4);
+  padding: var(--space-4);
+  border-inline-start: 3px solid var(--accent);
+}
+.overview__evidence-head {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex: 1 1 220px;
+}
+.overview__evidence-head > svg { flex-shrink: 0; color: var(--accent); }
+.overview__evidence-head .card__title { margin: 0; }
+.overview__evidence-head .card__meta { margin-top: var(--space-1); }
+.overview__evidence-state { flex: 2 1 290px; }
+.overview__evidence-state strong { display: block; font-size: var(--text-s); }
+.overview__evidence-state p { color: var(--text-muted); margin-top: var(--space-1); font-size: var(--text-s); }
+.overview__evidence .btn { flex-shrink: 0; }
+@media (max-width: 640px) {
+  .overview__evidence { align-items: stretch; }
+}
+
+/* Product identity in the zero-data state; never a static fake dashboard. */
+.overview__onboarding-art {
+  display: block;
+  width: min(100%, 820px);
+  height: auto;
+  aspect-ratio: 1240 / 320;
+  border-radius: var(--radius-l);
+  margin-inline: auto;
+  margin-block-end: var(--space-5);
+  object-fit: cover;
 }
