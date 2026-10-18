@@ -2620,3 +2620,61 @@ form.field {
     flex-direction: column;
   }
 }
+
+/* Voice companion: push-to-talk only, no ambient listening or autoplay. */
+.voice-capture { flex: 0 0 auto; position: relative; display: flex; align-items: center; }
+.voice-capture__button {
+  min-width: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-m);
+  color: var(--text);
+}
+.voice-capture__button:hover:not(:disabled) { border-color: var(--accent); }
+.voice-capture__button--listening {
+  background: var(--danger-soft);
+  color: var(--danger-strong);
+  border-color: var(--danger);
+}
+.voice-capture__button:disabled { opacity: 0.48; cursor: not-allowed; }
+.voice-capture__consent {
+  position: absolute;
+  z-index: 15;
+  bottom: calc(100% + var(--space-3));
+  inset-inline-end: 0;
+  width: min(340px, 85vw);
+  padding: var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-3);
+  background: var(--surface-raised);
+  color: var(--text);
+  line-height: 1.5;
+  font-size: var(--text-s);
+}
+.voice-capture__consent p { margin-top: var(--space-2); color: var(--text-muted); }
+.voice-capture__choices { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
+.voice-capture__choices button {
+  min-height: 44px;
+  border: 1px solid var(--border-strong);
+  padding: var(--space-2);
+  border-radius: var(--radius-s);
+}
+.voice-capture__choices button:first-child { background: var(--accent-solid); color: var(--on-accent); border-color: var(--accent-solid); }
+.voice-capture__status {
+  position: absolute;
+  inset-inline-end: 0;
+  bottom: calc(100% + var(--space-2));
+  padding: var(--space-2);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  box-shadow: var(--shadow-1);
+  width: min(285px, 80vw);
+  font-size: var(--text-xs);
+  color: var(--text);
+  pointer-events: none;
+}
