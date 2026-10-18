@@ -15,6 +15,7 @@ import urllib.request
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+from utils import load_config
 MODEL_REPO = "Systran/faster-whisper-small"
 MODEL_REVISION = "536b0662742c02347bc0e980a01041f333bce120"
 MODEL_FILES = ("config.json", "model.bin", "tokenizer.json", "vocabulary.txt")
@@ -138,8 +139,26 @@ def install(model_dir, voice, agents=False, model=LLM):
 
 
 def start(model_dir, port, worker, model=LLM):
-    if os.environ.get("DATABASE_URL") or os.environ.get("AGENTIC_OS_ENV") == "production":
+    if os.environ.get("DATABASE_URL") or os.environ.get("AGENTIC_OS_ENV", "").lower() == "production":
         raise SystemExit("Use the hosted launcher for a hosted database/production environment; this profile is for local SQLite.")
+    # The API resolves a relative config from ROOT after os.chdir below.
+    # Check that same file before starting a service or prewarming a model.
+    selected_config = os.environ.get("AGENTIC_OS_CONFIG")
+    config_path = Path(selected_config) if selected_config else ROOT / "config.json"
+    if not config_path.is_absolute():
+        config_path = ROOT / config_path
+    try:
+        config = load_config(config_path)
+    except FileNotFoundError:
+        if selected_config:
+            raise SystemExit("The selected local configuration is missing; no service was started.") from None
+        # Keep the existing missing-default path: later app startup reports
+        # its missing config, rather than changing other launcher checks.
+        config = {}
+    except (OSError, ValueError):
+        raise SystemExit("The local configuration could not be read; no service was started.") from None
+    if config.get("database_url"):
+        raise SystemExit("Use the hosted launcher for a configured hosted database; this profile is for local SQLite.")
     if not (ROOT / "frontend" / "dist" / "index.html").is_file():
         raise SystemExit("Build the frontend first: npm --prefix frontend run build")
     models = ensure_ollama().get("models", [])
@@ -159,6 +178,7 @@ def start(model_dir, port, worker, model=LLM):
     os.environ["AGENTIC_OS_WHISPER_MODEL_DIR"] = str(model_dir)
     os.environ["HF_HUB_OFFLINE"] = "1"
     os.environ["LANGCHAIN_TRACING_V2"] = "false"
+    os.environ["LANGSMITH_TRACING"] = "false"
     os.environ["OTEL_SDK_DISABLED"] = "true"
     print("Loading local model into memory: " + model, flush=True)
     try:

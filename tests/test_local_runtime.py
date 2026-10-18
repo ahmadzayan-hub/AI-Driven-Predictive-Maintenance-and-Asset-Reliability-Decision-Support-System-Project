@@ -33,7 +33,8 @@ class LocalRuntimeTest(unittest.TestCase):
             warming = patch.object(runtime, "local_json", return_value={"done": True})
             warming.start()
             self.addCleanup(warming.stop)
-            with patch.dict(os.environ, {"AGENTIC_OS_CONFIG": str(config)}, clear=True), \
+            with patch.dict(os.environ, {"AGENTIC_OS_CONFIG": str(config),
+                                         "LANGCHAIN_TRACING_V2": "true", "LANGSMITH_TRACING": "true"}, clear=True), \
                     patch.object(runtime, "ROOT", root), \
                     patch.object(runtime.os, "chdir") as change_directory, \
                     patch.object(runtime, "ensure_ollama", return_value={"models": [{"name": runtime.LLM, "size": 2_000_000}]}), \
@@ -45,6 +46,8 @@ class LocalRuntimeTest(unittest.TestCase):
                                                           "--config", str(config)])
                 self.assertEqual(spawn.call_args.kwargs["cwd"], root)
                 self.assertEqual(os.environ["AGENTIC_OS_CONFIG"], str(config))
+                self.assertEqual(os.environ["LANGCHAIN_TRACING_V2"], "false")
+                self.assertEqual(os.environ["LANGSMITH_TRACING"], "false")
                 change_directory.assert_called_once_with(root)
                 run.assert_called_once_with("server.app:app", host="127.0.0.1", port=8012, log_level="warning")
                 child.terminate.assert_called_once()
@@ -97,3 +100,31 @@ class LocalRuntimeTest(unittest.TestCase):
                 runtime.start(Path("unused"), 8000, False)
             self.assertNotIn("never-display-this", str(stopped.exception))
             ollama.assert_not_called()
+
+    def test_configured_hosted_database_is_refused_without_an_environment_database_url(self):
+        for explicit in (False, True):
+            with self.subTest(explicit_config=explicit), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                config = root / ("selected.json" if explicit else "config.json")
+                config.write_text(json.dumps({"database_url": "postgresql://never-display-config-value"}), encoding="utf-8")
+                environment = {"AGENTIC_OS_CONFIG": str(config)} if explicit else {}
+                with patch.dict(os.environ, environment, clear=True), \
+                        patch.object(runtime, "ROOT", root), \
+                        patch.object(runtime, "ensure_ollama") as service, \
+                        patch.object(runtime, "local_json") as prewarm, \
+                        patch.object(runtime.subprocess, "Popen") as spawn:
+                    with self.assertRaises(SystemExit) as stopped:
+                        runtime.start(root / "model", 8012, True)
+                    self.assertNotIn("never-display-config-value", str(stopped.exception))
+                    service.assert_not_called()
+                    prewarm.assert_not_called()
+                    spawn.assert_not_called()
+
+    def test_missing_selected_config_is_refused_before_services_start(self):
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.dict(os.environ, {"AGENTIC_OS_CONFIG": str(Path(directory) / "missing.json")}, clear=True), \
+                patch.object(runtime, "ensure_ollama") as service:
+            with self.assertRaises(SystemExit) as stopped:
+                runtime.start(Path(directory), 8012, True)
+            self.assertNotIn(directory, str(stopped.exception))
+            service.assert_not_called()
