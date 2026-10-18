@@ -365,7 +365,7 @@ python main.py
 # mapping, joins, the cleaned-table queries, modelling stages, live sources and the event stream, uneven periods, docs, and the repository's operating system:
 # brain checker, session hooks, the verify script, the motion skill, the
 # agent team's tools, agent evaluation, the house style and the interface
-# budget (1090 tests discovered in the current local suite)
+# budget (1,177 tests discovered in the current local suite)
 python -m unittest discover tests
 
 # Frontend unit tests (120 tests)
@@ -415,7 +415,8 @@ run; the complete 108-check backend browser suite was not rerun. The focused
 dataset Python suite reports 55 tests, 9 skipped, OK.
 
 Local verification on 18 October 2026, on this Windows workspace, after the
-fixes in ADRs 0041 and 0042: the Python suite discovers **1155 tests** and
+work through ADR 0047: `python scripts/verify.py --quick` reports **1 of 4
+steps failed: Python tests**. The Python suite discovers **1,177 tests** and
 reports **0 failures, 123 errors and 140 skipped**. Every error block was
 classified by parsing the output: all 123 end in a Windows file-lock cleanup
 exception (`PermissionError [WinError 32]`), none in an assertion. The two
@@ -436,11 +437,13 @@ weakest for causal wording at 69%. The focused maintenance, detector and
 governance suites pass 69 tests, and the new work adds 8 KPI
 missing-value tests, 4 shipped-registry tests and 1 threshold-leakage test.
 
-The frontend unit suite could **not** be run on this workspace: vitest fails
-to start its workers under both the forks and the threads pool, so the
-120-test figure above rests on the 17 October evidence and was not
-reconfirmed. PostgreSQL was not configured and the 108-check backend browser
-suite was not rerun. These results do not establish production readiness.
+The frontend unit suite **ran and passed on this workspace on 18 October**:
+`120 passed (120)`, in the same verifier run. An earlier note here said it
+could not start its workers; that is no longer true and the figure is no
+longer carried from older evidence. The strict brain check passes over 27
+notes with no broken links, and type checking passes. PostgreSQL was not
+configured and the 108-check backend browser suite was not rerun. These
+results do not establish production readiness.
 
 Five of the 1025 load real LLMRouter routers and **skip unless LLMRouter
 is installed**, which in CI it is not. With the eleven framework tests,
