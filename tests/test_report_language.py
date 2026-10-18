@@ -9,6 +9,7 @@ translation that drifts from a figure is rejected rather than published.
 import copy
 import json
 import re
+import contextlib
 import tempfile
 import unittest
 from pathlib import Path
@@ -419,11 +420,15 @@ class TheAssistantStartsRunsInTheReadersLanguage(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             engine = engine_in(directory)
-            outcome = Assistant(ModelGateway(env={}), engine).handle(
-                "analyse the sample sales data", FakeSession(make_agent("Arabic")))
-            self.assertEqual(outcome.get("action"), "start_run")
-            run = engine.get_run(outcome["result"]["run_id"])
-            self.assertEqual(run["report_language"], "ar")
+            # The directory goes at the end of this block, before teardown
+            # would have run, so the store closes here.
+            with contextlib.closing(engine.store):
+                outcome = Assistant(ModelGateway(env={}), engine).handle(
+                    "analyse the sample sales data",
+                    FakeSession(make_agent("Arabic")))
+                self.assertEqual(outcome.get("action"), "start_run")
+                run = engine.get_run(outcome["result"]["run_id"])
+                self.assertEqual(run["report_language"], "ar")
 
 
 if __name__ == "__main__":

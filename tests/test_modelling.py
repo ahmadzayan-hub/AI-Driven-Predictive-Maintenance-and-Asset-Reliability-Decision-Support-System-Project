@@ -16,6 +16,7 @@ from pathlib import Path
 from server import analytics
 from server import modelling as m
 from server import stages
+from tests.support import closing
 from tests.test_runs import FASTAPI_AVAILABLE
 
 if FASTAPI_AVAILABLE:
@@ -317,7 +318,7 @@ class ModelsInARunTests(unittest.TestCase):
             "database_file": str(root / "a.db"), "vault_dir": str(root / "v"),
             "stages": STAGE_PATHS, "profiles": {"default": [], "models": ROLES}}),
             encoding="utf-8")
-        self.app = create_app(path)
+        self.app = closing(self, create_app(path))
         self.client = TestClient(self.app, raise_server_exceptions=False)
 
     def run_to_gate(self, **body):

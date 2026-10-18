@@ -50,7 +50,7 @@ class RailAssetStageTests(unittest.TestCase):
     def test_opt_in_profile_registry(self):
         import json
         from pathlib import Path
-        cfg = json.loads((Path(__file__).parents[1] / "config.json").read_text())
+        cfg = json.loads((Path(__file__).parents[1] / "config.json").read_text(encoding="utf-8"))
         stages, issues = load_stages(env={}, config=cfg)
         self.assertEqual(issues, [])
         self.assertIn("rail_asset_manager", stages)

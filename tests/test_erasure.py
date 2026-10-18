@@ -23,6 +23,7 @@ from server import analytics
 from server.erasure import DELETE_ORDER, erase, not_reached, survey
 from server.model_gateway import ModelGateway
 from server.runs import RunEngine
+from tests.support import closing_store
 from server.storage import RESTORE_ORDER, open_store
 
 
@@ -197,13 +198,14 @@ class ErasureMixin:
 @unittest.skipUnless(FASTAPI_AVAILABLE, "fastapi is not installed")
 class SqliteErasureTestCase(ErasureMixin, unittest.TestCase):
     def build_store(self):
-        return open_store(None, self.root / "agentic.db")
+        return closing_store(
+            self, open_store(None, self.root / "agentic.db"))
 
 
 @unittest.skipUnless(_postgres_available(), "test PostgreSQL is not reachable")
 class PostgresErasureTestCase(ErasureMixin, unittest.TestCase):
     def build_store(self):
-        store = open_store(PG_TEST_URL)
+        store = closing_store(self, open_store(PG_TEST_URL))
         for table in reversed(RESTORE_ORDER):
             store._exec(f"DELETE FROM {table}")
         return store

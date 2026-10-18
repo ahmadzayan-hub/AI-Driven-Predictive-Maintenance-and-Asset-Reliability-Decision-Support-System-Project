@@ -279,8 +279,12 @@ class MisconfigurationIsVisibleTestCase(unittest.TestCase):
             }), encoding="utf-8")
             stderr = io.StringIO()
             with redirect_stderr(stderr):
-                build_worker(env={"AGENTIC_OS_ROUTER": "nope.NotARouter"},
-                             config_path=str(config))
+                worker = build_worker(
+                    env={"AGENTIC_OS_ROUTER": "nope.NotARouter"},
+                    config_path=str(config))
+            # The directory goes at the end of this block, and Windows
+            # will not delete the database while the worker holds it.
+            worker.store.close()
 
         said = stderr.getvalue()
         self.assertIn("nope.NotARouter", said)

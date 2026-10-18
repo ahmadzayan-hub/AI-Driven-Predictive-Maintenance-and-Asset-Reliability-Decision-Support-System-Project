@@ -229,7 +229,7 @@ class TableApiTestCase(unittest.TestCase):
         config.update(self.database_config())
         path = self.root / "config.json"
         path.write_text(json.dumps(config), encoding="utf-8")
-        self.app = create_app(path)
+        self.app = closing(self, create_app(path))
         self.client = TestClient(self.app, raise_server_exceptions=False)
 
     def upload(self, text, name):
