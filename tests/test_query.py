@@ -359,6 +359,7 @@ class TableTenancyTests(unittest.TestCase):
     def calls(self, run_id):
         return (("get", f"/api/runs/{run_id}/data.csv", None),
                 ("get", f"/api/runs/{run_id}/fields", None),
+                ("get", f"/api/runs/{run_id}/kpis", None),
                 ("post", f"/api/runs/{run_id}/query", {"measures": [{"agg": "count"}]}),
                 ("post", f"/api/runs/{run_id}/records", {}))
 
@@ -390,6 +391,102 @@ class TableTenancyTests(unittest.TestCase):
                         path, headers=headers, **({"json": body} if body is not None else {}))
                     self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(self.client.get(f"/api/runs/{run['id']}/fields").status_code, 401)
+
+
+#: Two records, and one of them never had its downtime read. The blank is
+#: the whole point: ADR 0042 made an unmeasured cell stop counting as a
+#: measured zero, so downtime per record must be 10.0 over one record and
+#: say so, not 5.0 over two.
+MAINTENANCE_CSV = (
+    "Record_Date,Work_Order_Type,Downtime_Hours,Production_Loss_USD,"
+    "Operating_Hours,Planned_Operating_Hours,Maintenance_Cost_USD,"
+    "Preventive_WO_Count,Corrective_WO_Count,Completed_WO_Count,"
+    "Overdue_WO_Count,First_Time_Fix_Count,Repeat_Repair_Count\n"
+    "2026-01,Corrective,10,5000,90,100,400,1,3,4,1,2,1\n"
+    "2026-02,Corrective,,4000,80,100,600,3,1,4,0,1,0\n")
+
+
+class MaintenanceKpiEndpointTests(unittest.TestCase):
+    """`GET /api/runs/{id}/kpis` — the register bound to a run."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+        path = self.root / "config.json"
+        path.write_text(json.dumps({
+            "agent_name": "KPI Test",
+            "memory_file": str(self.root / "memory.json"),
+            "vault_dir": str(self.root / "vault"),
+            "database_file": str(self.root / "agentic.db"),
+        }), encoding="utf-8")
+        self.app = create_app(path)
+        self.addCleanup(self.app.state.store.close)
+        self.client = TestClient(self.app, raise_server_exceptions=False)
+
+    def finished_run(self, text=MAINTENANCE_CSV):
+        dataset = self.client.post("/api/datasets?name=maintenance.csv",
+                                   content=text.encode()).json()["dataset"]["id"]
+        run = self.client.post("/api/runs", json={"goal": "Maintenance KPIs",
+                                                  "dataset_id": dataset}).json()
+        for _ in range(80):
+            if run["state"] not in ("queued", "running"):
+                break
+            run = self.client.post(f"/api/runs/{run['id']}/advance").json()
+        return run
+
+    def measures(self, run_id, language="en"):
+        body = self.client.get(f"/api/runs/{run_id}/kpis?language={language}").json()
+        return body, {m["key"]: m for m in body["measures"]}
+
+    def test_every_measure_carries_the_counts_that_make_it_auditable(self):
+        run = self.finished_run()
+        self.assertEqual(run["state"], "awaiting_approval", run.get("error"))
+        body, measures = self.measures(run["id"])
+        self.assertEqual(body["records"], 2)
+        self.assertTrue(measures, "the register produced no measure")
+        for key, measure in measures.items():
+            for field in ("value", "formula", "population", "records",
+                          "records_excluded", "records_unmeasured",
+                          "missing_policy", "undefined_reason", "scale"):
+                self.assertIn(field, measure, f"{key} is missing {field}")
+
+    def test_a_gap_is_disclosed_rather_than_counted_as_a_zero(self):
+        # The defect ADR 0042 fixed, now guarded at the API boundary.
+        run = self.finished_run()
+        _, measures = self.measures(run["id"])
+        downtime = measures["downtime_per_record"]
+        self.assertEqual(downtime["value"], 10.0)
+        self.assertEqual(downtime["records"], 1)
+        self.assertEqual(downtime["records_unmeasured"], 1)
+
+    def test_dividing_the_numerator_by_records_reproduces_the_value(self):
+        # A card must be checkable by hand; that is what `records` is for.
+        run = self.finished_run()
+        _, measures = self.measures(run["id"])
+        downtime = measures["downtime_per_record"]
+        self.assertAlmostEqual(downtime["numerator"] / downtime["records"],
+                               downtime["value"], places=6)
+
+    def test_a_measure_the_data_cannot_support_is_named_not_omitted(self):
+        thin = "Record_Date,Downtime_Hours\n2026-01,10\n2026-02,4\n"
+        run = self.finished_run(thin)
+        body, measures = self.measures(run["id"])
+        self.assertIn("downtime_per_record", measures)
+        self.assertIn("availability", body["unavailable"])
+        self.assertIn("Operating_Hours", body["unavailable"]["availability"])
+
+    def test_the_titles_come_back_in_the_reader_s_language(self):
+        run = self.finished_run()
+        _, english = self.measures(run["id"], "en")
+        _, arabic = self.measures(run["id"], "ar")
+        self.assertNotEqual(english["downtime_per_record"]["title"],
+                            arabic["downtime_per_record"]["title"])
+        for measure in arabic.values():
+            self.assertNotIn("title_ar", measure)
+
+    def test_an_unknown_run_is_a_404(self):
+        self.assertEqual(self.client.get("/api/runs/nope/kpis").status_code, 404)
 
 
 if __name__ == "__main__":

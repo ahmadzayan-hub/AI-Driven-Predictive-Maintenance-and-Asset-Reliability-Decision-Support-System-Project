@@ -1,4 +1,8 @@
-# ADR 0044: Bounded voice companion rather than cloning JARVIS
+# ADR 0050 — Bounded voice companion rather than cloning JARVIS
+
+*Renumbered from 0044 when this work was merged onto the project's main
+history: 0044 there is the vault-path override. The decision is unchanged
+(ADR 0047 records why these collisions keep happening).*
 
 Status: Proposed for review, 2026-10-18.
 
