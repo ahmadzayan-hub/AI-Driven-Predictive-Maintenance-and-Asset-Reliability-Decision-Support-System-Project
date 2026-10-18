@@ -1,4 +1,8 @@
-# ADR 0046: Dedicated Supabase data plane and managed Auth bootstrap
+# ADR 0053: Dedicated Supabase data plane and managed Auth bootstrap
+
+*Renumbered from 0046 on 19 October 2026. It was merged as 0046 while
+0046 was already taken by the opt-in maintenance decision profile, so two
+records shared one number. Nothing about the decision changed.*
 
 Date: 2026-10-18 · Status: Database applied; Auth integration staged, not activated.
 
