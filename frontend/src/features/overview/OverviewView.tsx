@@ -6,6 +6,7 @@ import { stateLabel, typeLabel } from '../../shared/labels'
 import type { RunDetail, RunSummary, Usage } from '../../shared/types'
 import type { RunPreset } from '../runs/RunsView'
 import { countRuns, latestWithFindings, recentRuns, RUN_PAGE, waitingForApproval } from './summary'
+import { summarizeRunEvidence } from './evidence'
 
 interface OverviewViewProps {
   onOpenRun: (id: string) => void
@@ -150,13 +151,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals }: OverviewViewPr
   const reportLang = latest?.report_language === 'ar' ? 'ar' : 'en'
   // A run's independent validator is evidence about that run, not a claim
   // that every model is accurate or operationally approved.
-  const evidence = latest?.tasks.find((task) => task.role === 'validator')
-  const evidencePassed = evidence?.state === 'succeeded'
-    && evidence.quality_checks.length > 0
-    && evidence.quality_checks.every((check) => check.passed)
-  const stageCount = latest?.tasks.filter((task) => task.role !== 'publish').length ?? 0
-  const stagesComplete = latest?.tasks.filter((task) =>
-    task.role !== 'publish' && task.state === 'succeeded').length ?? 0
+  const evidence = summarizeRunEvidence(latest)
 
   const tiles = [
     {
@@ -222,15 +217,15 @@ export function OverviewView({ onOpenRun, onStart, onApprovals }: OverviewViewPr
               <h3 className="card__title">{t('overview.evidenceHeading')}</h3>
               <p className="card__meta">{latest
                 ? t('overview.evidenceStages', {
-                    done: formatNumber(stagesComplete),
-                    total: formatNumber(stageCount),
+                    done: formatNumber(evidence.completed),
+                    total: formatNumber(evidence.total),
                   })
                 : t('overview.evidenceMissing')}</p>
             </div>
           </div>
           <div className="overview__evidence-state">
             <strong>{!latest ? t('overview.evidenceUnavailable')
-              : evidencePassed ? t('overview.evidencePassed')
+              : evidence.status === 'passed' ? t('overview.evidencePassed')
                 : t('overview.evidencePending')}</strong>
             <p>{t('overview.evidenceScope')}</p>
           </div>
