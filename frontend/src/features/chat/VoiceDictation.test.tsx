@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { VoiceDictation } from './VoiceDictation'
 
 vi.mock('../../i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }))
@@ -42,7 +42,9 @@ describe('VoiceDictation, explicit opt-in and draft-only safety', () => {
     render(<VoiceDictation language="en" disabled={false} onTranscript={onTranscript} />)
     fireEvent.click(screen.getByRole('button', { name: 'voice.start' }))
     fireEvent.click(screen.getByRole('button', { name: 'voice.allow' }))
-    MockRecognition.instance.onresult?.({ resultIndex: 0, results: [[{ transcript: '  summarize asset risk  ' }]] })
+    act(() => {
+      MockRecognition.instance.onresult?.({ resultIndex: 0, results: [[{ transcript: '  summarize asset risk  ' }]] })
+    })
     expect(onTranscript).toHaveBeenCalledWith('summarize asset risk')
     expect(screen.getByText('voice.review')).toBeTruthy()
   })
