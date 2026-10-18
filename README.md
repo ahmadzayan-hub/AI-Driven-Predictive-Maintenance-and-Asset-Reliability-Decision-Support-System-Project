@@ -8,7 +8,7 @@
 
 **Product status:** Under development. A successful build is not proof of predictive model quality, customer isolation or measurable savings. The maintenance design view uses fictional fixtures; the authenticated analysis workflow is separate.
 
-**Start here:** [Product charter](docs/PROJECT_CHARTER.md) · [Agent catalog](docs/AGENT_CATALOG.md) · [UI/brand system](docs/design/ASSET_RELIABILITY_BRAND_SYSTEM.md) · [Validated analysis](docs/DATASET_ANALYTICS.md) · [Known limitations](docs/KNOWN_LIMITATIONS.md)
+**Start here:** [Product charter](docs/PROJECT_CHARTER.md) · [Agent catalog](docs/AGENT_CATALOG.md) · [UI/brand system](docs/design/ASSET_RELIABILITY_BRAND_SYSTEM.md) · [Agent evidence & validation matrix](docs/AGENT_VALIDATION_REGISTER.md) · [Validated analysis](docs/DATASET_ANALYTICS.md) · [Known limitations](docs/KNOWN_LIMITATIONS.md)
 
 
 A maintenance and asset reliability decision-support product being developed
