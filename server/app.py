@@ -34,6 +34,7 @@ from server import joins as joining
 from server import live
 from server import mapping as colmap
 from server import query as table_query
+from server.maintenance import kpis as kpi_register
 from server.assistant import Assistant
 from server.connectors import Busy, ConnectorError, Connectors, TooSoon
 from server.model_gateway import ModelGateway
@@ -948,6 +949,50 @@ def create_app(config_path=None, env=None, dist_dir=None):
         table, _ = await run_table(run_id, principal, language)
         return {"fields": await run_in_threadpool(table_query.fields, table),
                 "records": len(table.rows)}
+
+    @app.get("/api/runs/{run_id}/kpis")
+    async def maintenance_kpis(run_id: str,
+                               language: str = Query(default="en", pattern="^(en|ar)$"),
+                               principal=Depends(requires("read"))):
+        """The maintenance KPI register, computed on this run's cleaned table.
+
+        Every measure is a ratio of sums over a named population, never a
+        mean of row rates, and each one travels with the counts that make
+        it auditable: `records` is what it was computed on, so dividing the
+        numerator by it reproduces the printed value by hand.
+
+        `records_unmeasured` is the one a caller must not drop. ADR 0042
+        made an unmeasured cell stop counting as a measured zero, and said
+        that a card hiding the exclusions re-creates the defect one layer
+        up. It is returned for every measure, and it is non-zero exactly
+        when the figure rests on less than its whole population.
+        """
+        table, _ = await run_table(run_id, principal, language)
+
+        def compute():
+            # The register reads rows by column name; the analysis table
+            # holds them as tuples in column order.
+            rows = [dict(zip(table.columns, row)) for row in table.rows]
+            return kpi_register.compute_all(table.columns, rows)
+
+        computed = await run_in_threadpool(compute)
+        arabic = language == "ar"
+        measures = []
+        for result in computed["results"]:
+            measure = dict(result)
+            if arabic and measure.get("title_ar"):
+                measure["title"] = measure["title_ar"]
+            measure.pop("title_ar", None)
+            measures.append(measure)
+        return {
+            "run": run_id,
+            "language": language,
+            "records": len(table.rows),
+            "measures": measures,
+            # Why a register entry produced nothing, named rather than
+            # left as an absent card.
+            "unavailable": computed["unavailable"],
+        }
 
     @app.post("/api/runs/{run_id}/query")
     async def query_table(run_id: str, body: QueryIn,
