@@ -69,10 +69,20 @@ rules changes: no force-push, no history rewriting, no branch deletion.
    single day. `git fetch origin`, then ask what *content* it has that you
    lack, not what commits:
 
+   Write it as a gate that **stops**, not a line that prints. On
+   18 October this check warned correctly and the merge ran anyway, because
+   it was a `||` fallback inside an `&&` chain; three files and two fixes
+   were dropped from `main` and had to be restored by hand:
+
    ```bash
-   git diff --name-status origin/main HEAD | grep '^D'   # files only on main
-   git diff --stat origin/main HEAD                      # everything that differs
+   ONLY_MAIN=$(git diff --name-status origin/main HEAD | grep '^D' || true)
+   if [ -n "$ONLY_MAIN" ]; then echo "STOP"; echo "$ONLY_MAIN"; exit 1; fi
    ```
+
+   `git diff --stat origin/main HEAD` shows everything that differs, which
+   is worth reading even when the gate passes: a file `main` *modified*
+   does not appear as `D`, and reverting someone's one-line fix is as
+   damaging as deleting their file.
 
    Comparing commits (`git log origin/main --not HEAD`) always lists the
    previous merge commits, because a merge commit on `main` is not an
