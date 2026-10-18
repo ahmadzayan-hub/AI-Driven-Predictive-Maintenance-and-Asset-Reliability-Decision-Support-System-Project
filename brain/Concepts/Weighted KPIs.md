@@ -3,9 +3,9 @@ type: concept
 aliases: [KPI register, Ratio of sums]
 tags: [measurement]
 status: active
-updated: 2026-10-16
+updated: 2026-10-18
 review_every_days: 60
-sources: [server/metrics.py, project-progress.md, docs/adr/0026-uneven-periods-are-read-per-record.md, docs/AGENT_TEAM.md]
+sources: [server/metrics.py, server/maintenance/kpis.py, project-progress.md, docs/adr/0026-uneven-periods-are-read-per-record.md, docs/adr/0042-an-unmeasured-cell-is-not-a-zero.md, docs/AGENT_TEAM.md]
 ---
 
 # Weighted KPIs
@@ -24,10 +24,11 @@ On the [[Team 3 maintenance dataset]], the register values are right: first-time
 
 The 985 preventive records store placeholder rates: a first-time-fix rate of 0, and MTBF equal to operating hours. They made the gaps look about three times larger than weighting alone does. The stored SLA score (75.8% on average) is min(1, target ÷ actual), a different measure from the share of targets met, so it is not a weighting example at all. The analytics reviewer found this in the first review loop, and a recomputation confirmed it ([[Agent team]]).
 
-Two lessons:
+Three lessons:
 
 - Check what a row's rate means before averaging or comparing it. A placeholder is not a zero.
 - The same care applies to counts. A total over periods or groups of different sizes moves with the number of records, so read it per record (ADR 0026).
+- And a gap is not a zero either. Summing `value or 0` over a population turns every unmeasured cell into a measurement of none, which is why the maintenance register reported 5 hours of downtime per record from a single reading of 10 across two records. A record now counts towards a measure only when every column that measure's arithmetic reads holds a finite number, and the excluded count is reported beside the figure (ADR 0042, 18 October 2026). Whether a blank means "none happened" is a fact about a source, declared per KPI, never a default.
 
 ## In the product
 

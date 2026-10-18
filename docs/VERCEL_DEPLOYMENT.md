@@ -38,7 +38,7 @@ Serverless hardening already in place:
 
 ## Deploy it
 
-1. In Vercel, **Add New → Project → import `ahmadzayan-hub/agentic-os-final-project`**.
+1. In Vercel, **Add New → Project → import `ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project`**.
    `vercel.json` supplies every build setting; if a framework preset is
    offered, "Other" is correct. Vercel makes the repository's **default
    branch** production — currently

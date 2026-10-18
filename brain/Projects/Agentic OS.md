@@ -3,7 +3,7 @@ type: project
 aliases: [Agentic OS project]
 tags: [project]
 status: active
-updated: 2026-10-17
+updated: 2026-10-18
 review_every_days: 14
 sources: [README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0024-the-dataset-api.md, docs/adr/0028-views-load-on-demand.md, scripts/verify.py]
 ---
@@ -14,7 +14,7 @@ The engine in this repository, described in [[Identity]]: a governed business-an
 
 ## Where it lives
 
-- **Repository:** `ahmadzayan-hub/agentic-os-final-project`, public. The old name `ahmadzayan-hub/11` redirects.
+- **Repository:** `ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project`, public, since [[Decision log]] 0043. The earlier names `ahmadzayan-hub/agentic-os-final-project` and `ahmadzayan-hub/11` both redirect, so older clone URLs and the CI run links cited as evidence keep resolving.
 - **Default and working branch:** `claude/agentic-os-final-project-53j6ql`. `main` is behind it, and it stays the default until after submission.
 - **Production:** a Vercel deployment behind Vercel Authentication. It is verified for a signed-in owner only, and auth and the database are unverified there.
 

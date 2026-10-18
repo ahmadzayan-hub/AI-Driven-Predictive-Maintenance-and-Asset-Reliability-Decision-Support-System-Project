@@ -388,6 +388,8 @@ export const ar: Record<MessageKey, string> = {
   'runs.profileStages': 'هذا الملف يضيف: {list}.',
   'runs.profileNone': 'هذا الملف لا يضيف شيئًا.',
   'runs.profileDefault': 'الافتراضي',
+  'runs.profileModels': 'نماذج استكشافية',
+  'runs.profileMaintenance': 'الصيانة (محكومة)',
   'runs.start': 'بدء التحليل',
   'runs.previous': 'التحليلات السابقة',
   'runs.slowing': 'إبطاء الوتيرة للبقاء ضمن حد الطلبات…',

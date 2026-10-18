@@ -30,7 +30,7 @@ an amended academic allocation.
 | Governed orchestration | `server/analytics.py`, `server/stages.py` | Existing custom stage registry |
 | Role-specific screening | `server/rail_asset_decisions.py` | Deterministic library, not an API endpoint or registered stage |
 | Screening contract tests | `tests/test_rail_asset_decisions.py` | Must be executed and reported |
-| Decision rationale | `docs/adr/0041-rail-asset-manager-screening.md` | Proposed, not corporate policy |
+| Decision rationale | `docs/adr/0045-rail-asset-manager-screening.md` | Proposed, not corporate policy |
 | Human review | `server/runs.py` | Existing publication gate does not authorize railway work |
 | Modelling | `server/modelling.py` | Generic baseline evaluation; no validated railway failure prediction |
 | UI | `frontend/` | Domain-specific integrated dashboard remains to be verified |
@@ -115,7 +115,7 @@ saving may be generated or implied from absent data.
 ## Delivery status
 
 **Implemented in this branch:** initial deterministic screening helper,
-synthetic unit tests and ADR 0041.
+synthetic unit tests and ADR 0045.
 
 **Not implemented yet:** authenticated API authorization, persisted audit
 events for this role, registered railway specialist stage, validated

@@ -17,6 +17,7 @@ a manipulated client cannot publish unapproved or altered content.
 import copy
 import hashlib
 import json
+import os
 import re
 import threading
 import uuid
@@ -29,6 +30,37 @@ from server import joins as joining
 from server import query
 from server import mapping as colmap
 from server import stages as stage_registry
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
+def resolve_vault_dir(env=None, config=None, root=None):
+    """The folder approved reports are published into.
+
+    Sources, in order:
+
+        AGENTIC_OS_VAULT_DIR    a folder, `~` expanded
+        config["vault_dir"]     the same, from config.json
+        <root>/vault            the repository's own folder
+
+    The environment variable exists because an operator's own Obsidian
+    vault is a machine path, usually holding a user name, and
+    `config.json` is tracked in a public repository. This is how that
+    path is given without committing it.
+
+    A relative path resolves against `root`, the repository, not the
+    working directory, so the API, the worker and the MCP server publish
+    to one place however they were started. A blank or whitespace value
+    is treated as unset rather than as the current directory.
+    """
+    env = os.environ if env is None else env
+    root = Path(root) if root else PROJECT_ROOT
+    for value in (env.get("AGENTIC_OS_VAULT_DIR"), (config or {}).get("vault_dir")):
+        if value is not None and str(value).strip():
+            path = Path(str(value).strip()).expanduser()
+            return path if path.is_absolute() else root / path
+    return root / "vault"
+
 
 RUN_STATES = {"queued", "running", "awaiting_approval", "verifying",
               "completed", "partially_completed", "failed", "cancelled"}

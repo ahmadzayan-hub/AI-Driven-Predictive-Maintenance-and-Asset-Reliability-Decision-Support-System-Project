@@ -1,4 +1,8 @@
-# ADR 0043: Distinctive brand integration with explicit agent-evidence gates
+# ADR 0048 — Distinctive brand integration with explicit agent-evidence gates
+
+*Renumbered from 0043 when this work was merged onto the project's main
+history: 0043 was already the repository rename. The decision is unchanged
+(ADR 0047 records why the renumbering was needed).*
 
 Date: 2026-10-18. Status: proposed for review.
 

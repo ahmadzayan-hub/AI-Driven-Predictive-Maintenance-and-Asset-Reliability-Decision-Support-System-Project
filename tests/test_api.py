@@ -319,11 +319,15 @@ class InterfaceServingTestCase(unittest.TestCase):
         root = Path(self.temp_dir.name)
         dist = root / "dist"
         (dist / "assets").mkdir(parents=True)
+        # newline="" writes these bytes exactly as given. Without it, Windows
+        # translates each line feed to a carriage return and line feed on disk,
+        # and the tests below compare the server's faithful bytes with the
+        # original text.
         (dist / "index.html").write_text(
             "<!doctype html><title>Agentic OS</title>" + "<!-- page -->" * 120,
-            encoding="utf-8")
-        (dist / "sw.js").write_text("self.addEventListener('fetch', () => {})\n", encoding="utf-8")
-        (dist / "assets" / "index-AbC123.js").write_text(self.SCRIPT, encoding="utf-8")
+            encoding="utf-8", newline="")
+        (dist / "sw.js").write_text("self.addEventListener('fetch', () => {})\n", encoding="utf-8", newline="")
+        (dist / "assets" / "index-AbC123.js").write_text(self.SCRIPT, encoding="utf-8", newline="")
         config = root / "config.json"
         config.write_text(json.dumps({
             "agent_name": "Serving Test", "version": "1",

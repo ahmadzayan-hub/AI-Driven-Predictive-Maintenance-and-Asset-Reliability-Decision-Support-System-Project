@@ -43,44 +43,50 @@ def analyse(path, goal=None, mapping=None, suggest=False, language="en", glossar
     parsed = reader.read(path.read_bytes(), path.name)
     with tempfile.TemporaryDirectory() as tmp:
         store = open_store(sqlite_path=str(Path(tmp) / "analysis.db"))
-        engine = RunEngine(store, Path(tmp) / "vault", ModelGateway(env={}),
-                           glossary=glossary or {"metrics": [], "problems": []})
-        dataset, _ = engine.store_upload(parsed, path.name, OWNER)
-        used = None
-        if mapping or suggest:
-            chosen = mapping or engine.dataset_detail(dataset["id"], OWNER)["suggestion"]
-            used = engine.save_mapping(dataset["id"], OWNER, chosen)["mapping"]
-        run = engine.create_run(goal or f"Analyse {path.name} and produce a business report",
-                                owner=OWNER, dataset_id=dataset["id"], language=language)
-        for _ in range(200):
-            run = engine.advance(run["id"])
-            if run["state"] not in ("queued", "running"):
-                break
-        tasks = store.get_tasks(run["id"])
-        calculations, claims, checks, stages, prepared = [], [], [], [], {}
-        for task in tasks:
-            result = json.loads(task["result_json"]) if task["result_json"] else {}
-            stages.append({"role": task["role"], "state": task["state"], "summary": task["summary"]})
-            for calc in result.get("calculations", []):
-                calculations.append({"ref": f"{task['role']}.{calc['id']}", "stage": task["role"], **calc})
-            for claim in result.get("claims", []):
-                claims.append({"stage": task["role"], **claim})
-            for check in result.get("quality_checks", []):
-                checks.append({"stage": task["role"], **check})
-            if task["role"] == "preparer":
-                output = result.get("output", {})
-                prepared = {k: output.get(k) for k in KEEP_FROM_PREPARER}
-        return {
-            "dataset": {"name": path.name, "format": parsed.source_format, "rows": len(parsed.rows),
-                        "columns": parsed.columns, "sha256": dataset["sha256"]},
-            "goal": run["goal"], "language": language, "state": run["state"], "error": run.get("error"),
-            "mapping": used, "prepared": prepared,
-            "headlines": [{"type": r["type"], "title": r["title"], "headline": r["headline"]}
-                          for r in run.get("reports", [])],
-            "charts": run.get("charts", []),
-            "stages": stages, "calculations": calculations, "claims": claims,
-            "failed_checks": [c for c in checks if not c.get("passed", True)],
-        }
+        try:
+            engine = RunEngine(store, Path(tmp) / "vault", ModelGateway(env={}),
+                               glossary=glossary or {"metrics": [], "problems": []})
+            dataset, _ = engine.store_upload(parsed, path.name, OWNER)
+            used = None
+            if mapping or suggest:
+                chosen = mapping or engine.dataset_detail(dataset["id"], OWNER)["suggestion"]
+                used = engine.save_mapping(dataset["id"], OWNER, chosen)["mapping"]
+            run = engine.create_run(goal or f"Analyse {path.name} and produce a business report",
+                                    owner=OWNER, dataset_id=dataset["id"], language=language)
+            for _ in range(200):
+                run = engine.advance(run["id"])
+                if run["state"] not in ("queued", "running"):
+                    break
+            tasks = store.get_tasks(run["id"])
+            calculations, claims, checks, stages, prepared = [], [], [], [], {}
+            for task in tasks:
+                result = json.loads(task["result_json"]) if task["result_json"] else {}
+                stages.append({"role": task["role"], "state": task["state"], "summary": task["summary"]})
+                for calc in result.get("calculations", []):
+                    calculations.append({"ref": f"{task['role']}.{calc['id']}", "stage": task["role"], **calc})
+                for claim in result.get("claims", []):
+                    claims.append({"stage": task["role"], **claim})
+                for check in result.get("quality_checks", []):
+                    checks.append({"stage": task["role"], **check})
+                if task["role"] == "preparer":
+                    output = result.get("output", {})
+                    prepared = {k: output.get(k) for k in KEEP_FROM_PREPARER}
+            return {
+                "dataset": {"name": path.name, "format": parsed.source_format, "rows": len(parsed.rows),
+                            "columns": parsed.columns, "sha256": dataset["sha256"]},
+                "goal": run["goal"], "language": language, "state": run["state"], "error": run.get("error"),
+                "mapping": used, "prepared": prepared,
+                "headlines": [{"type": r["type"], "title": r["title"], "headline": r["headline"]}
+                              for r in run.get("reports", [])],
+                "charts": run.get("charts", []),
+                "stages": stages, "calculations": calculations, "claims": claims,
+                "failed_checks": [c for c in checks if not c.get("passed", True)],
+            }
+        finally:
+            # Windows will not delete a file another handle still holds
+            # open, so the temporary directory's own cleanup raises
+            # WinError 32 and loses the analysis that already succeeded.
+            store.close()
 
 
 def write_aggregates(analysis, folder):

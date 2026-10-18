@@ -407,6 +407,8 @@ export const en = {
   'runs.profileStages': 'This one adds: {list}.',
   'runs.profileNone': 'This one adds none.',
   'runs.profileDefault': 'Default',
+  'runs.profileModels': 'Exploratory models',
+  'runs.profileMaintenance': 'Maintenance (governed)',
   'runs.start': 'Start run',
   'runs.previous': 'Previous runs',
   'runs.slowing': 'Slowing down to stay within the request limit…',

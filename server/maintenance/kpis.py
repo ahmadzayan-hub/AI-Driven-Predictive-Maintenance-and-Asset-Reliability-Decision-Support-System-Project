@@ -6,7 +6,7 @@ figure cannot mean two things: if the report says first-time fix is 76.6%
 and a slide says 64.7%, the disagreement is not a rounding question, it
 is two different measures wearing one name.
 
-Three rules are enforced here rather than left to each caller.
+Four rules are enforced here rather than left to each caller.
 
 **A rate is a ratio of sums.** The numerator and denominator are summed
 over the population and then divided. The mean of per-row rates is a
@@ -21,6 +21,13 @@ measured.
 
 **A zero denominator is not perfect performance.** It is an absence, and
 it is reported as one.
+
+**An unmeasured cell is not a zero** (ADR 0042). A record counts only when
+every column the arithmetic reads holds a finite number; the rest are
+excluded from the sums and from the record count, and reported as
+`records_unmeasured`. A blank means "none happened" only where a KPI
+declares `missing=ZERO`, because that is a fact about a source rather
+than a default.
 """
 
 import math
@@ -73,6 +80,18 @@ every_record.columns = ()
 # expressible without inventing a column of ones.
 RECORDS = "__records__"
 
+# What a KPI does with a record whose formula columns are not all
+# measurable. EXCLUDE drops the record from the sums *and* from the
+# record count, and reports it; ZERO declares that a blank is a measured
+# zero for this KPI. EXCLUDE is the default because the alternative is to
+# claim a measurement nobody took: a missing downtime reading counted as
+# zero downtime lowers the average and reads as good news. ZERO is only
+# correct where the source leaves a count blank to mean none happened,
+# which is a fact about that source, so it is declared per KPI and never
+# assumed.
+EXCLUDE, ZERO = "exclude", "zero"
+MISSING_POLICIES = (EXCLUDE, ZERO)
+
 
 class Kpi:
     """One controlled measure.
@@ -89,7 +108,8 @@ class Kpi:
     """
 
     def __init__(self, key, title, title_ar, numerator, denominator, population,
-                 population_name, scale, meaning, *, edge_cases=None):
+                 population_name, scale, meaning, *, edge_cases=None,
+                 missing=EXCLUDE):
         self.key = key
         self.title = title
         self.title_ar = title_ar
@@ -100,6 +120,10 @@ class Kpi:
         self.scale = scale
         self.meaning = meaning
         self.edge_cases = edge_cases or ""
+        if missing not in MISSING_POLICIES:
+            raise ValueError(f"{key}: missing policy {missing!r} is not one of "
+                             f"{', '.join(MISSING_POLICIES)}")
+        self.missing = missing
 
     @staticmethod
     def _columns(term):
@@ -114,11 +138,33 @@ class Kpi:
             return "count(records)"
         return f"sum({' + '.join(cls._columns(term))})"
 
-    def _total(self, term, population):
+    def _total(self, term, rows):
+        """The sum of a term over rows already known to be measurable.
+
+        No `or 0` here. An unmeasured cell is not a zero, and deciding
+        that is `measurable` and `compute`'s job, above this arithmetic.
+        """
         if term == RECORDS:
-            return float(len(population))
-        return sum((_num(r.get(c)) or 0)
-                   for r in population for c in self._columns(term))
+            return float(len(rows))
+        total = 0.0
+        for row in rows:
+            for column in self._columns(term):
+                number = _num(row.get(column))
+                # Under EXCLUDE every cell here is already a number;
+                # under ZERO a blank is this source's way of writing none.
+                total += 0.0 if number is None else number
+        return total
+
+    def measurable(self, row):
+        """Whether every column this KPI's arithmetic reads is a number.
+
+        Under the ZERO policy a blank counts as a measured zero, so every
+        row qualifies. Under EXCLUDE a row with a gap in the formula is
+        not a record this measure can speak for.
+        """
+        if self.missing == ZERO:
+            return True
+        return all(_num(row.get(c)) is not None for c in self.formula_columns)
 
     @property
     def formula(self):
@@ -165,11 +211,23 @@ class Kpi:
         auditable, and every consumer here needs those to print a claim.
         """
         population = self.rows_in_population(rows)
-        numerator = self._total(self.numerator, population)
-        denominator = self._total(self.denominator, population)
+        measured = [r for r in population if self.measurable(r)]
+        unmeasured = len(population) - len(measured)
+        numerator = self._total(self.numerator, measured)
+        denominator = self._total(self.denominator, measured)
         value = None if denominator == 0 else numerator / denominator
         if self.scale == contract.PERCENT and value is not None:
             value *= 100
+        if not measured and population:
+            undefined = (f"no record in the {self.population_name} population has "
+                         f"a measurement in every column of {self.formula}, so the "
+                         f"measure is undefined rather than zero")
+        elif value is None:
+            undefined = (f"{self._describe(self.denominator)} is zero over the "
+                         f"population, so the measure is undefined rather "
+                         f"than zero")
+        else:
+            undefined = None
         return {
             "key": self.key,
             "title": self.title,
@@ -180,14 +238,16 @@ class Kpi:
             "denominator": denominator,
             "formula": self.formula,
             "population": self.population_name,
-            "records": len(population),
+            # `records` is what the figure is actually computed on, so a
+            # reader dividing numerator by it gets the printed value.
+            # The two counts beside it say who was left out and why.
+            "records": len(measured),
             "records_excluded": len(rows) - len(population),
+            "records_unmeasured": unmeasured,
+            "missing_policy": self.missing,
             # An absence, said out loud. A caller that prints 0% here is
             # claiming perfection from no evidence.
-            "undefined_reason": (None if value is not None else
-                                 f"{self._describe(self.denominator)} is zero over the "
-                                 f"population, so the measure is undefined rather "
-                                 f"than zero"),
+            "undefined_reason": undefined,
             "edge_cases": self.edge_cases,
         }
 

@@ -2,8 +2,12 @@ from tests.support import closing
 """Tests for the durable run engine and analytics pipeline."""
 
 from server import analytics
+from server.model_gateway import ModelGateway
+from server.runs import RunEngine, resolve_vault_dir
+from server.storage import open_store
 
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -296,6 +300,65 @@ class RunEnginePostgresTestCase(RunEngineTestCase):
         second = fresh.post("/api/sessions").json()
         self.assertIn("Hosted fact", second["memory"].values())
         self.assertFalse((self.root / "memory.json").exists())
+
+
+class VaultDirResolutionTests(unittest.TestCase):
+    """Where approved reports are published (ADR 0044).
+
+    An operator's own Obsidian vault is a machine path holding a user
+    name, and config.json is tracked in a public repository, so the
+    environment variable is the only place that path can be given.
+    """
+
+    def setUp(self):
+        self.root = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.root, True)
+
+    def resolve(self, env=None, config=None):
+        return resolve_vault_dir(env=env or {}, config=config, root=self.root)
+
+    def test_the_repository_folder_is_the_default(self):
+        self.assertEqual(self.resolve(), self.root / "vault")
+
+    def test_config_is_used_when_the_environment_is_silent(self):
+        elsewhere = self.root.parent / "notes-from-config"
+        self.assertEqual(self.resolve(config={"vault_dir": str(elsewhere)}), elsewhere)
+
+    def test_the_environment_wins_over_config(self):
+        mine = self.root.parent / "notes-from-env"
+        theirs = self.root.parent / "notes-from-config"
+        chosen = self.resolve(env={"AGENTIC_OS_VAULT_DIR": str(mine)},
+                              config={"vault_dir": str(theirs)})
+        self.assertEqual(chosen, mine)
+
+    def test_a_home_relative_path_is_expanded(self):
+        chosen = self.resolve(env={"AGENTIC_OS_VAULT_DIR": "~/Obsidian Vault"})
+        self.assertEqual(chosen, Path.home() / "Obsidian Vault")
+        self.assertTrue(chosen.is_absolute())
+
+    def test_a_relative_path_resolves_against_the_repository_not_the_cwd(self):
+        # The worker may be started from anywhere; it must still publish
+        # where the API publishes.
+        self.assertEqual(self.resolve(env={"AGENTIC_OS_VAULT_DIR": "notes"}),
+                         self.root / "notes")
+
+    def test_a_blank_value_is_unset_not_the_current_directory(self):
+        for blank in ("", "   ", "\t"):
+            self.assertEqual(self.resolve(env={"AGENTIC_OS_VAULT_DIR": blank},
+                                          config={"vault_dir": blank}),
+                             self.root / "vault",
+                             f"blank value {blank!r} should fall through")
+
+    def test_the_engine_publishes_where_the_variable_points(self):
+        store = open_store(None, self.root / "runs.db")
+        self.addCleanup(store.close)
+        engine = RunEngine(
+            store,
+            resolve_vault_dir(env={"AGENTIC_OS_VAULT_DIR": "elsewhere"},
+                              root=self.root),
+            ModelGateway(env={}),
+        )
+        self.assertEqual(engine.vault_dir, self.root / "elsewhere")
 
 
 if __name__ == "__main__":

@@ -1,9 +1,0 @@
-{
-  "error_blocks": 259,
-  "categories": {
-    "PermissionError WinError 32": 259
-  },
-  "example_tests": {
-    "PermissionError WinError 32": "test_a_pending_confirmation_still_belongs_to_the_rules (test_agent_runtime.AssistantRuntimeTestCase.test_a_pending_confirmation_still_belongs_to_the_rules)"
-  }
-}

@@ -4,7 +4,7 @@ This page takes a team member from no access to a first merged change.
 You do not need to write code to take part. Using the app and reporting
 what you find counts, and so does improving a document.
 
-Repository: <https://github.com/ahmadzayan-hub/agentic-os-final-project>
+Repository: <https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project>
 (the old address, `ahmadzayan-hub/11`, redirects here).
 
 ## Ways to take part
@@ -55,7 +55,8 @@ For a typo or a clearer sentence you need no local setup:
 You need Python 3.10 or newer, Node.js 20.19+ or 22+, and Git.
 
 ```bash
-git clone https://github.com/ahmadzayan-hub/agentic-os-final-project.git
+# The repository's name is long; give the clone a short folder on Windows.
+git clone https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project.git agentic-os
 cd agentic-os-final-project
 
 python -m venv .venv

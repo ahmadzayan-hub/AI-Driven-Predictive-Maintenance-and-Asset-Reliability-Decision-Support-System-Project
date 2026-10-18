@@ -333,9 +333,14 @@ required local files. Both behaviors are covered by tests
     beyond the documented settings. The models are associations, not
     causes. A model cannot know which inputs were recorded after the
     outcome, so an input like that makes it look better than it is; every
-    model says so, but none can check it. Fewer than 30 records, or fewer
-    than three seasons for the seasonal forecast, is reported as a
-    limitation and shows no card.
+    model says so, but none of the four can check it. Only the
+    `maintenance` profile can: its risk models read the domain contract's
+    per-column timing and withhold outcome, derived and
+    unestablished-timing columns (ADR 0040). Where the classifier derives
+    its own label from the measure, the quartile that defines the label is
+    now taken from the training rows alone (ADR 0041). Fewer than 30
+    records, or fewer than three seasons for the seasonal forecast, is
+    reported as a limitation and shows no card.
 29. Live sources (ADR 0034) fetch public files over https only: no
     credentials, databases or APIs that need a key, and no proxy, so a
     server that reaches the internet only through one cannot refresh.
@@ -350,3 +355,17 @@ required local files. Both behaviors are covered by tests
     request's length is fine; one that buffers responses delays events
     until the stream ends. A connector's error is stored in the
     language it was created in.
+
+30. The maintenance KPI register (`server/maintenance/kpis.py`) is not
+    yet read by any endpoint, stage or view: its only importers are its
+    own package and its tests. The governed diagnostics and risk models
+    on the `maintenance` profile do not compute these KPIs, and the
+    executive maintenance screens at `?design=maintenance` still draw
+    every figure from fictional fixtures (ADR 0037). Binding the register
+    to a run, and that run to those screens, is open work. The register
+    excludes a record from a measure when any column that measure's
+    arithmetic reads is missing, and reports the count as
+    `records_unmeasured` (ADR 0042); a view that binds these KPIs must
+    show that count, or it re-creates the defect one layer up. Whether a
+    blank in a particular source means "none happened" is a question for
+    that source's owner and is declared per KPI.

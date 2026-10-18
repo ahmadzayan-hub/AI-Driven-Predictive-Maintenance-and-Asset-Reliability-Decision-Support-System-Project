@@ -1,16 +1,5 @@
 # AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project
 
-<p align="center"><img src="frontend/public/artwork/asset-reliability-mark.svg" width="90" alt="Asset Reliability AI brand mark" /></p>
-
-<p align="center"><strong>Asset Reliability AI</strong><br/>An evidence-led workspace for predictive maintenance, asset risk and human-reviewed decisions.</p>
-
-![Illustrative railway reliability identity, not operational performance data](frontend/public/artwork/asset-reliability-hero.svg)
-
-**Product status:** Under development. A successful build is not proof of predictive model quality, customer isolation or measurable savings. The maintenance design view uses fictional fixtures; the authenticated analysis workflow is separate.
-
-**Start here:** [Product charter](docs/PROJECT_CHARTER.md) · [Agent catalog](docs/AGENT_CATALOG.md) · [UI/brand system](docs/design/ASSET_RELIABILITY_BRAND_SYSTEM.md) · [Agent evidence & validation matrix](docs/AGENT_VALIDATION_REGISTER.md) · [Validated analysis](docs/DATASET_ANALYTICS.md) · [Known limitations](docs/KNOWN_LIMITATIONS.md)
-
-
 A maintenance and asset reliability decision-support product being developed
 as software as a service, powered by **Agentic OS**, its governed analytics
 engine. The web workspace supports data preparation, analysis, model evaluation,
@@ -100,6 +89,14 @@ environment — not a replacement for Windows, macOS, or Linux.
   the obvious baseline (the average, the most common class, last
   season), reports a weak model as weak, and shows a model card with the
   verdict first (ADR 0033)
+- **Maintenance, under its own contract** — a run on the `maintenance`
+  profile adds the governed diagnostics (what this dataset can and
+  cannot support, as evidence that cites its own calculation) and the
+  risk models, whose inputs are curated by the contract's record timing
+  so an outcome column cannot flatter a score. Each target names the
+  decision it supports and must beat an informative baseline by 5% and
+  reach 0.55 in absolute terms to count as useful (ADRs 0039, 0040,
+  0041). Both are opt-in: the default profile adds neither
 - **Live data** — a live source is a saved `https://` address that
   snapshots into a dataset, now or every 15 minutes to a week. New
   content is analysed and stops at the approval gate; the same content
@@ -313,7 +310,8 @@ and returns fresh state snapshots.
 ## Installation
 
 ```bash
-git clone https://github.com/ahmadzayan-hub/agentic-os-final-project.git
+# The repository's name is long; give the clone a short folder on Windows.
+git clone https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project.git agentic-os
 cd agentic-os-final-project
 
 # Web interface dependencies
@@ -367,7 +365,7 @@ python main.py
 # mapping, joins, the cleaned-table queries, modelling stages, live sources and the event stream, uneven periods, docs, and the repository's operating system:
 # brain checker, session hooks, the verify script, the motion skill, the
 # agent team's tools, agent evaluation, the house style and the interface
-# budget (1090 tests discovered in the current local suite)
+# budget (1,177 tests discovered in the current local suite)
 python -m unittest discover tests
 
 # Frontend unit tests (120 tests)
@@ -416,15 +414,36 @@ approval gate. The 10 existing dataset/model checks also passed in the focused
 run; the complete 108-check backend browser suite was not rerun. The focused
 dataset Python suite reports 55 tests, 9 skipped, OK.
 
-The full local verifier reports **1 of 6 steps failed**: Python tests.
-Its 1090 discovered tests report 2 failures, 259 errors and 140 skipped.
-The 17 October project review retained the full output: every reported error
-block ends in a Windows file-lock cleanup exception, and both assertion
-failures are CRLF fixture mismatches. The focused maintenance, detector and
-governance suites pass 68 tests; integration behavior still needs separate checks.
-PostgreSQL was not configured. See the session log for the complete local
-record; these results do not replace earlier CI evidence or establish
-production readiness.
+Local verification on 18 October 2026, on this Windows workspace, after the
+work through ADR 0047: `python scripts/verify.py --quick` reports **1 of 4
+steps failed: Python tests**. The Python suite discovers **1,177 tests** and
+reports **0 failures, 123 errors and 140 skipped**. Every error block was
+classified by parsing the output: all 123 end in a Windows file-lock cleanup
+exception (`PermissionError [WinError 32]`), none in an assertion. The two
+CRLF assertion failures the 17 October review reported are fixed — the
+serving tests now write their stand-in build with `newline=""`, and all 6
+pass. That error count has been 259, 243, 124 and 123 across runs of the
+same code, which is what a cleanup race looks like rather than a defect. A
+run taken while the frontend was rebuilding added 2 more, from `dist`
+vanishing mid-test; both pass on their own. This is still not a green suite,
+and it is not a substitute for CI.
+
+Type checking, the production build, the strict brain check and the interface
+budget pass. Budget: JS first load 93.6 of 100 KB, total 150.0 of 160 KB,
+largest chunk 13.1 of 30 KB; CSS first load 9.4 of 10 KB, total 14.5 of
+16 KB; fonts 119.4 of 120 KB. Every agent evaluation meets its floor
+(`scripts/evaluate_agents.py --check`, exit 0); blind-holdout recall is
+weakest for causal wording at 69%. The focused maintenance, detector and
+governance suites pass 69 tests, and the new work adds 8 KPI
+missing-value tests, 4 shipped-registry tests and 1 threshold-leakage test.
+
+The frontend unit suite **ran and passed on this workspace on 18 October**:
+`120 passed (120)`, in the same verifier run. An earlier note here said it
+could not start its workers; that is no longer true and the figure is no
+longer carried from older evidence. The strict brain check passes over 27
+notes with no broken links, and type checking passes. PostgreSQL was not
+configured and the 108-check backend browser suite was not rerun. These
+results do not establish production readiness.
 
 Five of the 1025 load real LLMRouter routers and **skip unless LLMRouter
 is installed**, which in CI it is not. With the eleven framework tests,

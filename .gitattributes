@@ -1,0 +1,32 @@
+# Line endings are normalised to LF in the repository and in the working
+# tree, on every platform. Two reasons, both found the hard way on
+# 18 October 2026:
+#
+#   * `tests/test_api.py` writes a stand-in build and then compares the
+#     bytes the server returns with the text it wrote. With CRLF in the
+#     working tree those differ on Windows, and two tests failed for a
+#     reason that had nothing to do with the server. The test now writes
+#     with `newline=""`; this file removes the trap rather than the
+#     symptom, for the next fixture nobody thinks about.
+#   * With `core.autocrlf=true` and no rules here, Git kept reporting
+#     files as staged that nothing had staged, whenever a tool wrote them
+#     with LF into a CRLF working tree.
+#
+# CI runs on Linux, so LF is what the tested bytes are anyway. An editor
+# on Windows handles LF files without help.
+* text=auto eol=lf
+
+# Files Git must never translate. A byte changed inside a font, an image
+# or a workbook corrupts it, and `text=auto` guesses from content.
+*.ttf binary
+*.woff binary
+*.woff2 binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.xlsx binary
+*.mp4 binary
+*.zip binary

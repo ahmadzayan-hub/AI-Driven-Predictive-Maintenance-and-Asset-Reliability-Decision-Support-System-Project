@@ -1,4 +1,7 @@
-# ADR 0042: Opt-in maintenance decision profile
+# ADR 0046 — Opt-in maintenance decision profile
+
+*Renumbered from 0042 for the same reason as ADR 0045 (see ADR 0047). The
+decision is unchanged.*
 
 Date: 2026-10-18. Status: Proposed, awaiting PR review.
 

@@ -518,23 +518,25 @@ class ClassificationModel:
         role = self.role
         rows, columns, numeric, measure, date = _table(ctx)
         title = _say(ctx, "Which class will a record be in?", "في أي فئة سيقع السجل؟")
+        derived = None
         if self.target and self.target in columns and self.target not in numeric:
             target = self.target
             labels_of = lambda row: str(row.get(target) or "")  # noqa: E731
             exclude = {target, date}
             target_name = target
         else:
-            values = sorted(r[measure] for r in rows if isinstance(r.get(measure), (int, float)))
+            values = [r[measure] for r in rows if isinstance(r.get(measure), (int, float))]
             if len(values) < MIN_ROWS:
                 return _thin(ctx, role, title, MIN_ROWS, len(values), "records", "السجلات")
-            cut = values[int(len(values) * 0.75)]
-            top_en = _say(ctx, "top quarter", "الربع الأعلى")
-            rest_en = _say(ctx, "rest", "البقية")
-            labels_of = lambda row: (top_en if isinstance(row.get(measure), (int, float))  # noqa: E731
-                                     and row[measure] >= cut else rest_en)
+            # The label is a threshold on the measure, so the threshold is
+            # part of the model, not a property of the table. Taking it
+            # from every row would read the held-out outcomes to decide
+            # what counts as "top quarter", and the score would flatter
+            # itself. It is computed from the training rows alone, below,
+            # once the split is known.
             exclude = {measure, date}
-            target_name = _say(ctx, f"{measure} in its top quarter (≥ {cut:,.2f})",
-                               f"{measure} في ربعه الأعلى (≥ {cut:,.2f})")
+            derived = measure
+            labels_of, target_name = None, None
         numbers, texts = _inputs(rows, columns, numeric, exclude)
         names, vector = _vectoriser(numbers, texts)
         if not names:
@@ -542,14 +544,26 @@ class ClassificationModel:
         usable = [r for r in rows if vector(r) is not None]
         if len(usable) < MIN_ROWS:
             return _thin(ctx, role, title, MIN_ROWS, len(usable), "records", "السجلات")
+        train, test, split = _split(usable, date)
+        if len(train) < MIN_ROWS - 10 or len(test) < 5:
+            train, test, split = _split(usable, None)
+        if derived:
+            train_values = sorted(v for v in (usable[i].get(derived) for i in train)
+                                  if isinstance(v, (int, float)))
+            if len(train_values) < 4:
+                return _thin(ctx, role, title, 4, len(train_values), "records", "السجلات")
+            cut = train_values[int(len(train_values) * 0.75)]
+            top_en = _say(ctx, "top quarter", "الربع الأعلى")
+            rest_en = _say(ctx, "rest", "البقية")
+            labels_of = lambda row: (top_en if isinstance(row.get(derived), (int, float))  # noqa: E731
+                                     and row[derived] >= cut else rest_en)
+            target_name = _say(ctx, f"{derived} in its top quarter (≥ {cut:,.2f})",
+                               f"{derived} في ربعه الأعلى (≥ {cut:,.2f})")
         classes = Counter(labels_of(r) for r in usable)
         if len(classes) < 2:
             return _thin(ctx, role, title, 2, len(classes), "classes", "الفئات")
         if len(classes) > MAX_CLASSES:
             return _too_many_classes(ctx, role, title, target_name, len(classes))
-        train, test, split = _split(usable, date)
-        if len(train) < MIN_ROWS - 10 or len(test) < 5:
-            train, test, split = _split(usable, None)
         train_rows = _even([usable[i] for i in train], TRAIN_CAP)
         test_rows = [usable[i] for i in test]
         raw = [vector(r) for r in train_rows]

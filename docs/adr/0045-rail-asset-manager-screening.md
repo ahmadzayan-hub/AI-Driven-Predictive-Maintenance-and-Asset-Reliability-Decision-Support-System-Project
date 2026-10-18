@@ -1,4 +1,8 @@
-# ADR 0041: Railway Asset Manager decision-screening contract
+# ADR 0045 — Railway Asset Manager decision-screening contract
+
+*Renumbered from 0041 when this work was reconciled onto the project's main
+history: 0041 and 0042 were already taken by the shipped-registry and
+missing-value decisions. The decision itself is unchanged (ADR 0047).*
 
 Status: Proposed implementation for review (2026-10-18).
 
