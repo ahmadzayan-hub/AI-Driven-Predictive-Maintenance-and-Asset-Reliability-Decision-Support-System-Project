@@ -42,7 +42,9 @@ class RailAssetStageTests(unittest.TestCase):
         ctx = context([row()])
         ctx["report_language"] = "ar"
         result = RailAssetManagerStage().run(ctx)
-        self.assertEqual(result["claims"][0]["text_ar"].count("1"), 1)
+        from server.analytics import figures
+        self.assertEqual(figures(result["claims"][0]["text"]),
+                         figures(result["claims"][0]["text_ar"]))
         validate_result("rail_asset_manager", result)
 
     def test_opt_in_profile_registry(self):
