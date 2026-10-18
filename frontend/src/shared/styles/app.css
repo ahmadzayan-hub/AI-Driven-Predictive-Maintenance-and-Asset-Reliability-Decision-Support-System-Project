@@ -2652,3 +2652,15 @@ form.field {
 @media (max-width: 640px) {
   .overview__evidence { align-items: stretch; }
 }
+
+/* Product identity in the zero-data state; never a static fake dashboard. */
+.overview__onboarding-art {
+  display: block;
+  width: min(100%, 820px);
+  height: auto;
+  aspect-ratio: 1240 / 320;
+  border-radius: var(--radius-l);
+  margin-inline: auto;
+  margin-block-end: var(--space-5);
+  object-fit: cover;
+}
