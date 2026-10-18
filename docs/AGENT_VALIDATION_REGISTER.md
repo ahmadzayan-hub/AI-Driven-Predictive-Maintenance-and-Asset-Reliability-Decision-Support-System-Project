@@ -39,6 +39,36 @@ python scripts/verify.py --e2e
 
 GitHub CI now runs the deterministic labelled-agent evaluation as a named step in addition to the existing broad test suite. Preserve the command output and GitHub run reference for every release. Do not copy historical test counts into live status cards.
 
+## Measured synthetic holdout snapshot, 18 October 2026
+
+Recorded from GitHub Actions run **39147453294**, Python agent-quality stage.
+These values are **not** estimated live customer accuracy:
+
+| Labelled check | Holdout cases | Measured result |
+| --- | ---: | ---: |
+| Conversation intent routing | 60 | **72%** macro recall |
+| Column role selection | 33 | **100%** macro recall |
+| Personal-data field detector | 33 | **100%** recall |
+| Model provider router | 12 | **90%** macro recall |
+| Raw-row disclosure guard | 7 | **100%** recall |
+| Statistical-jargon detection | 24 | **92%** recall |
+| Unsupported causal wording detector | 32 | **69%** recall |
+| Unsourced/wrong figure detection | 11 | **100%** recall |
+
+**Risk interpretation:** 69% causal-wording recall and 72% intent macro
+recall are inadequate evidence for unattended executive publishing.
+Retain independent validation and human approval, expand truly blind
+language-domain and Arabic adversarial sets, and compare against
+model-based baselines before permitting wider autonomous actions.
+The 100% marks come from very small educational test cases and must
+not be marketed as 100% reliability.
+
+The informational Python dependency audit also reported
+`setuptools 79.0.1` with advisory `PYSEC-2026-3447` and a suggested
+fix version 83.0.0. Verify whether it is a build-tool-only exposure or a
+shipped runtime dependency, then update or document an explicit risk
+decision. Do not silently suppress security findings.
+
 ## Remaining release blockers
 
 1. Authenticated multi-tenant penetration and isolation checks against deployed environment.
