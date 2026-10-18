@@ -7,6 +7,15 @@
  *  — the server localises its own replies from the session's language
  *  preference (agent.py). */
 export const en = {
+  'decision.eyebrow': 'Your next decision',
+  'decision.heading': 'Decision Intelligence Command Centre',
+  'decision.subtitle': 'Go directly to the evidence, analysis or pending approval. No invented operational indicators.',
+  'decision.upload': 'Analyze a dataset',
+  'decision.uploadHelp': 'Import, validate and run governed analytics',
+  'decision.dashboard': 'Explore a dashboard',
+  'decision.dashboardHelp': 'View validated analysis and supporting figures',
+  'decision.approvals': 'Review decisions',
+  'decision.approvalsHelp': 'Approve or reject an exact report',
   'voice.start': 'Dictate with microphone',
   'voice.stop': 'Stop recording',
   'voice.privacyTitle': 'Before using voice input',
