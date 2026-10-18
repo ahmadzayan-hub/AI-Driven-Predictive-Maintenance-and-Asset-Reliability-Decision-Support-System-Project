@@ -1,5 +1,5 @@
 import '../../shared/styles/analytics.css'
-import './activity.css'
+import '../../shared/styles/session.css'
 import { useEffect, useState } from 'react'
 import { usePack } from '../../i18n/pack'
 import { activityMessages } from './messages'

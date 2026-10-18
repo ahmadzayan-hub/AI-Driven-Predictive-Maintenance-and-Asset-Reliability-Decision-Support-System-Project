@@ -17,6 +17,8 @@ import './shared/styles/tokens.css'
 import './shared/styles/base.css'
 import './shared/styles/app.css'
 import './shared/styles/workspace.css'
+// Approved Miyaar shell overrides load after the retained base styles.
+import './features/chat/miyaar.css'
 
 applyLocale(currentLocale(), false)
 // A self-contained design surface: fictional fixtures only, no StoreProvider,

@@ -400,8 +400,9 @@ The dedicated branch is `feature/miyaar-ui-redesign`.
   **123 errors, 140 skipped, no assertion failures**. The reported tail is the
   existing Windows SQLite temporary-file lock failure (`WinError 32`).
   This run is **not green**; PostgreSQL is not configured locally.
-- Backend-connected browser and final visual/budget results are being recorded
-  below before the review PR is finalized.
+- Miyaar visual/browser suite: **12 passed**, covering English/Arabic, 375/768/1024/1440 px, light theme, command dialog, accessibility, reduced motion, two-turn chat, failures, voice preview and a pending-request session switch.
+- Fresh production budget passes: initial JS **98.6 / 100 KB**, total JS **162.7 / 165 KB**, largest chunk **13.1 / 30 KB**, initial CSS **10.0 / 10 KB**, total CSS **19.6 / 20 KB**, fonts **119.4 / 120 KB** (gzip level 9 except fonts). Initial ceilings are unchanged; ADR 0053 records the total-ceiling increase.
+- The full backend-connected browser run and its focused regression rerun are recorded below before handoff.
 
 The isolated Miyaar suite runs with
 `npx playwright test --config=playwright.miyaar.config.ts` after building.
@@ -478,7 +479,7 @@ which was over at the time. Everything else passed — which also settles
 the 123 Windows errors above: they do not occur there, so they are an
 artefact of this machine's file locking rather than a defect. Two
 workflows assert the budget, `ci.yml` since 17 October and the faster
-`ui-budget-fast.yml` added on the 18th; both are green on the current head.
+`ui-budget-fast.yml` added on the 18th; both were green on that revision.
 
 Five of the 1025 load real LLMRouter routers and **skip unless LLMRouter
 is installed**, which in CI it is not. With the eleven framework tests,

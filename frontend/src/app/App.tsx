@@ -356,6 +356,10 @@ export function App() {
         ))}
       </nav>
       <div className="sidebar__footer">
+        <button type="button" className="btn btn--subtle miyaar-mobile-help"
+          onClick={() => { setDrawerOpen(false); setHelpOpen(true) }}>
+          <Icon name="help" size={16} />{t('help.aria')}
+        </button>
         <button
           type="button"
           className="btn btn--ghost"

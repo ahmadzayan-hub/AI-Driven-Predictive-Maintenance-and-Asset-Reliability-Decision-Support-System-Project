@@ -9,7 +9,6 @@ import type { ConnectionStatus, SessionState } from '../../shared/types'
 import { Composer } from './Composer'
 import type { ComposerHandle } from './Composer'
 import { MessageBubble } from './MessageBubble'
-import './miyaar.css'
 
 export interface Suggestion { label: MessageKey; icon: IconName; insert: MessageKey }
 export const SUGGESTIONS: Suggestion[] = [

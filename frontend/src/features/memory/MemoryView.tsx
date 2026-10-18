@@ -1,4 +1,4 @@
-import './memory.css'
+import '../../shared/styles/session.css'
 import { useMemo, useState } from 'react'
 import { usePack } from '../../i18n/pack'
 import { memoryMessages } from './messages'

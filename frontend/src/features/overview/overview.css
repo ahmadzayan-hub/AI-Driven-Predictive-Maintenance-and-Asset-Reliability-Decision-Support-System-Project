@@ -106,7 +106,7 @@
   padding: var(--space-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-l);
-  background: var(--surface);
+  background: var(--panel-fill);
 }
 .decision-actions__eyebrow {
   color: var(--accent);

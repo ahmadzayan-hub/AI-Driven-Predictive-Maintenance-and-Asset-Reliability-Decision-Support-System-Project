@@ -53,7 +53,7 @@ test('all views and dialogs pass automated WCAG 2.2 AA checks', async ({ page })
   await expectNoViolations(page, 'command palette')
   await page.keyboard.press('Escape')
 
-  await page.getByRole('button', { name: 'Help and commands' }).click()
+  await openTab(page, /^Help and commands$/)
   await page.getByRole('dialog', { name: 'Commands' }).waitFor()
   await expectNoViolations(page, 'help dialog')
 })
