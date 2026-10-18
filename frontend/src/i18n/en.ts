@@ -7,6 +7,20 @@
  *  — the server localises its own replies from the session's language
  *  preference (agent.py). */
 export const en = {
+  'voice.start': 'Dictate with microphone',
+  'voice.stop': 'Stop recording',
+  'voice.privacyTitle': 'Before using voice input',
+  'voice.privacyText': 'Your browser may send microphone audio to its speech provider. Do not dictate confidential or sensitive data. This app does not store an audio recording, and you review the text before sending.',
+  'voice.allow': 'I understand, start recording',
+  'voice.cancel': 'Cancel',
+  'voice.listening': 'Listening. Select the microphone again to stop.',
+  'voice.review': 'Transcript added. Review before sending.',
+  'voice.unsupported': 'Speech recognition is unavailable in this browser. You can still type.',
+  'voice.denied': 'Microphone unavailable or blocked. Check browser permissions.',
+  'voice.error': 'Speech recognition failed. Try typing instead.',
+  'voice.readReply': 'Read this reply aloud',
+  'voice.stopReading': 'Stop reading',
+  'voice.playbackUnavailable': 'Speech playback is unavailable on this device.',
   'state.paused': 'Paused',
   'cockpit.readPublished': 'Read the published report',
   "datasets.previewTitle": "Preview uploaded data",
