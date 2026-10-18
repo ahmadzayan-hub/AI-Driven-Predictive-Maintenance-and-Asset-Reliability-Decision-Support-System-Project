@@ -22,8 +22,10 @@ inputs/
 .claude/settings.local.json
 .claude/state/
 .claude/agent-memory-local/
-# Obsidian's per-device files when brain/ is opened as a vault.
-brain/.obsidian/workspace*.json
+# Obsidian's own folder when brain/ is opened as a vault. All of it is
+# per-device: layout, enabled plugins, appearance, hotkeys. The repository
+# is public, so none of it belongs here.
+brain/.obsidian/
 brain/.trash/
 __pycache__/
 *.pyc
