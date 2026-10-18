@@ -9,6 +9,20 @@
 import type { MessageKey, PluralForms, PluralKey } from './en'
 
 export const ar: Record<MessageKey, string> = {
+  'voice.start': 'إملاء صوتي بالميكروفون',
+  'voice.stop': 'إيقاف التسجيل',
+  'voice.privacyTitle': 'قبل استخدام الإدخال الصوتي',
+  'voice.privacyText': 'قد يرسل المتصفح الصوت إلى مزود خدمة التعرف على الكلام. لا تُمِلِ بيانات سرية أو حساسة. لا يحفظ التطبيق ملفاً صوتياً، ويمكنك مراجعة النص قبل إرساله.',
+  'voice.allow': 'فهمت، ابدأ التسجيل',
+  'voice.cancel': 'إلغاء',
+  'voice.listening': 'جارٍ الاستماع. اضغط الميكروفون مجدداً للإيقاف.',
+  'voice.review': 'أُضيف النص. راجعه قبل الإرسال.',
+  'voice.unsupported': 'التعرف الصوتي غير مدعوم في هذا المتصفح. يمكنك الكتابة.',
+  'voice.denied': 'تعذر تشغيل الميكروفون. راجع أذونات المتصفح.',
+  'voice.error': 'تعذر التعرف على الكلام. يمكنك المحاولة بالكتابة.',
+  'voice.readReply': 'استمع إلى هذا الرد',
+  'voice.stopReading': 'إيقاف القراءة',
+  'voice.playbackUnavailable': 'القراءة الصوتية غير متاحة على هذا الجهاز.',
   'state.paused': 'متوقف مؤقتًا',
   'cockpit.readPublished': 'قراءة التقرير المنشور',
   "datasets.previewTitle": "معاينة البيانات المرفوعة",
