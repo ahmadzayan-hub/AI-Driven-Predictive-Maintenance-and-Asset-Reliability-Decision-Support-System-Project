@@ -2,6 +2,7 @@ import { forwardRef, useImperativeHandle, useRef, useState } from 'react'
 import { useI18n } from '../../i18n'
 import { Icon } from '../../shared/components/Icon'
 import { useSessionDraft } from '../../shared/useSessionDraft'
+import { VoiceDictation } from './VoiceDictation'
 
 export interface ComposerHandle {
   insert: (text: string) => void
@@ -23,7 +24,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
   { onSend, busy, disabled = false, placeholder, draftKey = 'composer' },
   ref,
 ) {
-  const { t, tx } = useI18n()
+  const { t, tx, locale } = useI18n()
   const [text, setText] = useSessionDraft(draftKey, () => '')
   const [submitting, setSubmitting] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -94,6 +95,14 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
               event.preventDefault()
               void submit()
             }
+          }}
+        />
+        <VoiceDictation
+          language={locale}
+          disabled={disabled || busy || submitting}
+          onTranscript={(value) => {
+            setText((existing) => [existing.trim(), value].filter(Boolean).join(' '))
+            requestAnimationFrame(() => textareaRef.current?.focus())
           }}
         />
         <button
