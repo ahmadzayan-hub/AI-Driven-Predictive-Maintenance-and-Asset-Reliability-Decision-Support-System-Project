@@ -469,6 +469,13 @@ export const en = {
   // Overview
   'overview.aria': 'Overview',
   'overview.title': 'Overview',
+  'overview.evidenceHeading': 'Agent evidence for the latest analysis',
+  'overview.evidenceStages': '{done} of {total} analysis stages completed',
+  'overview.evidenceMissing': 'No analysis with findings available',
+  'overview.evidenceUnavailable': 'No validation result yet',
+  'overview.evidencePassed': 'Run-level evidence checks passed',
+  'overview.evidencePending': 'Validation incomplete or needs review',
+  'overview.evidenceScope': 'This checks the recorded calculations and evidence in one run. It does not certify AI model accuracy, safety or live operations.',
   'overview.desc': 'What your analyses found, what is waiting for you, and what you have stored.',
   'overview.start': 'Start an analysis',
   'overview.loading': 'Loading the overview',
