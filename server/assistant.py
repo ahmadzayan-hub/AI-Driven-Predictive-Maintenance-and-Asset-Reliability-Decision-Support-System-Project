@@ -43,48 +43,33 @@ MAX_REPLY_CHARS = 600
 # Local reasoning models think before they answer; the JSON must not be
 # what gets cut off.
 LOCAL_TOKENS = 900
+NON_REASONING_LOCAL_TOKENS = 600
 HOSTED_TOKENS = 400
 
 SYSTEM_PROMPT = (
-    "You are Miyaar (معيار), the asset reliability assistant inside "
-    "Asset Reliability, a governed business-analytics "
-    "workspace. Read the person's message and the context, decide what they "
-    "want, and answer with ONE JSON object and nothing else:\n"
-    '{"action": "<action>", "arguments": {...}, "reply": "<nonempty answer for chat; otherwise empty>"}\n'
-    "Allowed actions and their arguments:\n"
-    "- chat: no arguments; reply is your useful answer, at the TOP LEVEL.\n"
-    "- help: ONLY an explicit question about this app's capabilities or commands.\n"
-    "- remember: information (string), category (general|profile|work|"
-    "projects|preferences).\n"
-    "- recall: query (string or null).\n"
-    "- forget: key (a memory key like memory_3, or \"all\").\n"
-    "- clear_history: no arguments.\n"
-    "- set_preference: key (tone|language|user_name|save_history), value.\n"
-    "- start_run: goal (one sentence), dataset (a stored dataset name, or "
-    "\"sample\").\n"
-    "- run_status: no arguments.\n"
-    "- explain_report: section (descriptive|diagnostic|experiment|predictive|"
-    "prescriptive|all).\n"
-    "Conceptual maintenance, reliability, equipment and checklist questions "
-    "are chat: answer them with useful general guidance, not help or an empty "
-    "reply. A follow-up about this conversation is also chat. Do not start a "
-    "run unless the person asks to analyse data. General guidance is not an "
-    "assessment of their equipment: never invent measurements, diagnoses, "
-    "operating limits, predictions or savings. Inspection guidance must respect "
-    "approved site procedures and safe isolation by qualified personnel.\n"
-    "Keep the equipment type named in the question and use ordinary, accurate "
-    "technical terms. Write clear standard Arabic for an Arabic reply.\n"
-    "Examples of valid output (reply is never inside arguments):\n"
-    "Message: How should an electric motor inspection checklist be prepared?\n"
-    '{"action":"chat","arguments":{},"reply":"Use the approved manufacturer and site procedures, including safe isolation by qualified personnel, to review service history, connections and bearings. This is general guidance, not a diagnosis or measured assessment of the motor."}\n'
-    "Message: كيف أبدأ مراجعة موثوقية ضاغط هواء؟\n"
-    '{"action":"chat","arguments":{},"reply":"ابدأ بدليل المصنّع وإجراءات الموقع المعتمدة والعزل الآمن بواسطة مختص، ثم راجع سجل صيانة الضاغط والتسربات والاهتزاز وفق تلك الإجراءات. هذه إرشادات عامة؛ تقييم الضاغط نفسه يحتاج إلى بياناته وقياساته."}\n'
-    "Rules you must follow: you never see data rows, so never state a number "
-    "or a finding of your own — for explain_report and run_status the system "
-    "quotes the report itself, so leave reply empty. Deleting anything needs "
-    "the person's confirmation; the system asks, you do not. Write reply in "
-    "{language}, at most two sentences and 600 characters, and never claim an action has already "
-    "happened."
+    "You are Miyaar (معيار), Asset Reliability's governed assistant. Return ONLY "
+    "one JSON object: {\"action\":\"name\",\"arguments\":{},\"reply\":\"text\"}.\n"
+    "Actions (only these arguments): chat{}; help{}; "
+    "remember{information,category:general|profile|work|projects|preferences}; "
+    "recall{query:string|null} reads saved long-term memory ONLY, never conversation history; "
+    "forget{key:memory_N|all}; clear_history{}; "
+    "set_preference{key:tone|language|user_name|save_history,value}; "
+    "start_run{goal,dataset:stored name|sample}; run_status{}; "
+    "explain_report{section:descriptive|diagnostic|experiment|predictive|prescriptive|all}.\n"
+    "Conversation follow-ups use Context and chat, NEVER recall. "
+    "Conceptual maintenance/checklists use chat: answer the specified question "
+    "directly and briefly; do not ask whether to give the checklist already requested. "
+    "Give useful general guidance with a NONEMPTY reply at the TOP LEVEL, never "
+    "inside arguments. Keep the named equipment type. Use help ONLY for an "
+    "explicit question about app capabilities; start_run ONLY to analyse data.\n"
+    "You never see data rows. Never invent measurements, findings, diagnoses, "
+    "operating limits, predictions or savings. General guidance is not a measured "
+    "asset assessment. Inspections follow approved site/manufacturer procedures "
+    "and safe isolation by qualified personnel.\n"
+    "The system executes actions, confirms deletions, and quotes reports for "
+    "run_status/explain_report. Leave reply empty for non-chat actions; never "
+    "claim an action already happened. Answer in {language}, at most two short "
+    "sentences and 600 characters; escape newlines inside JSON strings."
 )
 
 
@@ -151,12 +136,18 @@ class Assistant:
         status = self.gateway.status()
         if not status.get("configured"):
             return understand(text)
-        raw = self.gateway.ask(
+        ask = getattr(self.gateway, "ask_json", None)
+        if not callable(ask):
+            ask = self.gateway.ask
+        local_tokens = (NON_REASONING_LOCAL_TOKENS
+                        if getattr(self.gateway, "ollama_think", None) is False
+                        else LOCAL_TOKENS)
+        raw = ask(
             SYSTEM_PROMPT.replace("{language}",
                                   "Arabic" if session.agent.language() == "ar"
                                   else "English"),
-            self._context(session) + "\nMessage: " + text,
-            max_tokens=LOCAL_TOKENS if status.get("provider") == "ollama"
+            self._context(session, current_message=text) + "\nMessage: " + text,
+            max_tokens=local_tokens if status.get("provider") == "ollama"
             else HOSTED_TOKENS,
         )
         parsed = self._parse(raw, session)
@@ -168,7 +159,7 @@ class Assistant:
         parsed["provider"] = status.get("provider")
         return parsed
 
-    def _context(self, session):
+    def _context(self, session, current_message=None):
         """What the model is told. Verified sentences and settings only —
         the dataset is not here, and nothing here is a row of it."""
         agent = session.agent
@@ -191,6 +182,11 @@ class Assistant:
                 if section.get("headline"):
                     lines.append(f"  {section['type']}: {section['headline']}")
         turns = [e for e in session.transcript if e.get("role") in ("user", "agent")]
+        if (current_message is not None and turns and turns[-1].get("role") == "user"
+                and turns[-1].get("text") == current_message):
+            # The API appends the current turn before asking. It is sent
+            # below as Message, so retain history without duplicating it.
+            turns = turns[:-1]
         for entry in turns[-MAX_TURNS_IN_CONTEXT:]:
             lines.append(f"{entry['role']}: {str(entry.get('text', ''))[:300]}")
         return "\n".join(lines)

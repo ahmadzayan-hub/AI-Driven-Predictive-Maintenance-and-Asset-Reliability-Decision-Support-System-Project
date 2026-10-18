@@ -15,6 +15,70 @@ from scripts import local_runtime as runtime
 
 
 class LocalRuntimeTest(unittest.TestCase):
+    def test_cli_selects_the_project_node_without_changing_the_remaining_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            portable = root / "private" / "tools" / "node-v24.22.0-win-x64"
+            portable.mkdir(parents=True)
+            (portable / "node.exe").write_bytes(b"fixture; never executed")
+            inherited = os.pathsep.join((str(root / "other-tools"), str(root / "system-node")))
+            with patch.object(runtime, "ROOT", root), patch.object(runtime.sys, "platform", "win32"), \
+                    patch.dict(os.environ, {"PATH": inherited}), \
+                    patch.object(runtime.sys, "argv", ["local_runtime.py", "doctor"]), \
+                    patch.object(runtime, "doctor", return_value=0) as doctor:
+                self.assertEqual(runtime.main(), 0)
+                self.assertEqual(os.environ["PATH"], str(portable) + os.pathsep + inherited)
+                runtime.activate_project_node()
+                self.assertEqual(os.environ["PATH"], str(portable) + os.pathsep + inherited)
+                doctor.assert_called_once()
+
+    def test_absent_project_runtime_leaves_the_system_selection_unchanged(self):
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.object(runtime, "ROOT", Path(directory)), \
+                patch.object(runtime.sys, "platform", "win32"), \
+                patch.dict(os.environ, {"PATH": "inherited-tools"}):
+            runtime.activate_project_node()
+            self.assertEqual(os.environ["PATH"], "inherited-tools")
+
+    def test_doctor_requires_a_supported_node_even_when_all_other_local_tools_are_ready(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            interface = root / "frontend" / "dist"
+            interface.mkdir(parents=True)
+            (interface / "index.html").write_text("fixture", encoding="utf-8")
+            model = root / "model"
+            model.mkdir()
+            for name in runtime.MODEL_FILES:
+                (model / name).write_bytes(b"fixture")
+            cases = ((None, False), ("22.22.1", False), ("22.22.2", True),
+                     ("23.9.0", False), ("24.14.0", False), ("24.15.0", True),
+                     ("24.22.0", True), ("25.9.0", False), ("26.0.0", True))
+            for version, ready in cases:
+                with self.subTest(version=version), \
+                        patch.object(runtime, "ROOT", root), \
+                        patch.object(runtime, "packages", return_value={
+                            "fastapi": "1", "uvicorn": "1", "httpx": "1", "faster-whisper": "1"}), \
+                        patch.object(runtime, "node_version", return_value=version), \
+                        patch.object(runtime.shutil, "which", return_value="installed-tool"), \
+                        patch.object(runtime, "local_json", return_value={"models": [{"name": runtime.LLM, "size": 2_000_000}]}), \
+                        contextlib.redirect_stdout(io.StringIO()) as output:
+                    self.assertEqual(runtime.doctor(model), 0 if ready else 1)
+                    report = json.loads(output.getvalue())
+                    self.assertTrue(report["node"])
+                    self.assertEqual(report["node_version"], version)
+                    self.assertEqual(report["node_supported"], ready)
+                    self.assertEqual(report["local_profile_ready"], ready)
+
+    def test_node_version_probe_is_bounded_and_rejects_a_broken_executable(self):
+        with patch.object(runtime.shutil, "which", return_value="selected-node"), \
+                patch.object(runtime.subprocess, "run", return_value=SimpleNamespace(
+                    stdout="v24.22.0\n", returncode=0)) as run:
+            self.assertEqual(runtime.node_version(), "24.22.0")
+            self.assertEqual(run.call_args.args[0], ["selected-node", "--version"])
+            self.assertEqual(run.call_args.kwargs["timeout"], 5)
+            run.return_value = SimpleNamespace(stdout="unusable", returncode=0)
+            self.assertIsNone(runtime.node_version())
+
     def test_worker_forwards_the_apis_private_acceptance_configuration(self):
         # No real service/process starts, and os.chdir is mocked so this
         # fixture cannot change the test runner's current directory.

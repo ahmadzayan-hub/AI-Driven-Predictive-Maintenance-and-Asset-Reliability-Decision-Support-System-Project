@@ -6,6 +6,7 @@ import importlib.metadata
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -21,7 +22,41 @@ MODEL_REVISION = "536b0662742c02347bc0e980a01041f333bce120"
 MODEL_FILES = ("config.json", "model.bin", "tokenizer.json", "vocabulary.txt")
 MODEL_DIR = Path.home() / ".cache" / "miyaar" / "models" / "faster-whisper-small"
 OLLAMA_URL = "http://127.0.0.1:11434"
-LLM = "gemma3:4b"
+LLM = "qwen3:4b-instruct-2507-q4_K_M"
+
+
+def activate_project_node():
+    """Prefer the opt-in portable Windows runtime for this process and children."""
+    if sys.platform != "win32":
+        return
+    directory = ROOT / "private" / "tools" / "node-v24.22.0-win-x64"
+    if not (directory / "node.exe").is_file():
+        return
+    current = os.environ.get("PATH", "")
+    if current.split(os.pathsep)[0] != str(directory):
+        os.environ["PATH"] = str(directory) + (os.pathsep + current if current else "")
+
+
+def node_version():
+    executable = shutil.which("node")
+    if not executable:
+        return None
+    try:
+        result = subprocess.run([executable, "--version"], capture_output=True,
+                                text=True, timeout=5, check=False)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    version = result.stdout.strip().removeprefix("v")
+    return version if result.returncode == 0 and re.fullmatch(r"\d+\.\d+\.\d+", version) else None
+
+
+def supported_node(version):
+    """Match the installed jsdom engine contract, including its excluded majors."""
+    if not version or not re.fullmatch(r"\d+\.\d+\.\d+", version):
+        return False
+    parts = tuple(int(part) for part in version.split("."))
+    return (parts[0] == 22 and parts >= (22, 22, 2)
+            or parts[0] == 24 and parts >= (24, 15, 0) or parts[0] >= 26)
 
 
 def local_json(path, payload=None, timeout=5):
@@ -86,8 +121,10 @@ def installed_local(models, model):
 
 
 def doctor(model_dir, model=LLM):
+    selected_node = node_version()
     result = {"python": sys.version.split()[0], "packages": packages(),
               "node": bool(shutil.which("node")), "git": bool(shutil.which("git")),
+              "node_version": selected_node, "node_supported": supported_node(selected_node),
               "ollama_installed": bool(ollama_executable()),
               "whisper_model_ready": all((model_dir / name).is_file() for name in MODEL_FILES),
               "cloud_credentials_present": {name: bool(os.environ.get(name)) for name in
@@ -104,7 +141,8 @@ def doctor(model_dir, model=LLM):
     required = ("fastapi", "uvicorn", "httpx")
     result["local_profile_ready"] = bool(all(result["packages"][n] for n in required)
         and result["local_llm_ready"] and result["packages"]["faster-whisper"]
-        and result["whisper_model_ready"] and (ROOT / "frontend/dist/index.html").is_file())
+        and result["whisper_model_ready"] and result["node_supported"]
+        and (ROOT / "frontend/dist/index.html").is_file())
     print(json.dumps(result, indent=2))
     return 0 if result["local_profile_ready"] else 1
 
@@ -172,7 +210,7 @@ def start(model_dir, port, worker, model=LLM):
     os.environ["OLLAMA_CONTEXT_LENGTH"] = "4096"
     os.environ["OLLAMA_NUM_THREAD"] = "6"
     os.environ["OLLAMA_TEMPERATURE"] = "0.2"
-    os.environ["AGENTIC_OS_MODEL_TIMEOUT_SECONDS"] = "45"
+    os.environ["AGENTIC_OS_MODEL_TIMEOUT_SECONDS"] = "60"
     os.environ["AGENTIC_OS_WHISPER_ENABLED"] = "1" if all(
         (model_dir / name).is_file() for name in MODEL_FILES) else "0"
     os.environ["AGENTIC_OS_WHISPER_MODEL_DIR"] = str(model_dir)
@@ -212,6 +250,7 @@ def start(model_dir, port, worker, model=LLM):
 
 
 def main():
+    activate_project_node()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("doctor", "install", "start"))
     parser.add_argument("--model-dir", type=Path, default=MODEL_DIR)

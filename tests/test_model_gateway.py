@@ -67,6 +67,28 @@ class ProviderCallTestCase(unittest.TestCase):
         self.assertEqual(self.sent["headers"], {})  # no credential, none needed
         self.assertFalse(self.sent["payload"]["stream"])
 
+    def test_json_mode_is_used_only_for_intents_not_narration_or_ordinary_ask(self):
+        gateway = self.gateway_with({"OLLAMA_MODEL": "m"},
+                                    {"message": {"content": '{"action":"chat","reply":"Useful."}'}})
+        gateway.ask_json("system", "conceptual question", max_tokens=600)
+        self.assertEqual(self.sent["payload"]["format"], "json")
+        self.assertEqual(self.sent["payload"]["options"]["num_predict"], 600)
+        gateway.narrate("goal", ["A verified fact."])
+        self.assertNotIn("format", self.sent["payload"])
+        gateway.ask("system", "ordinary runtime question")
+        self.assertNotIn("format", self.sent["payload"])
+
+    def test_hosted_json_intent_keeps_each_existing_provider_request_contract(self):
+        for environment, response in (({"ANTHROPIC_API_KEY": "test"}, {"content": [{"text": "{}"}]}),
+                                       ({"GROQ_API_KEY": "test"}, {"choices": [{"message": {"content": "{}"}}]})):
+            with self.subTest(provider=environment):
+                gateway = self.gateway_with(environment, response)
+                gateway.ask("system", "user", max_tokens=400)
+                ordinary = self.sent
+                gateway.ask_json("system", "user", max_tokens=400)
+                self.assertEqual(self.sent, ordinary)
+                self.assertNotIn("format", self.sent["payload"])
+
     def test_anthropic_sends_the_versioned_header_and_reads_its_reply(self):
         gateway = self.gateway_with({"ANTHROPIC_API_KEY": "k"},
                                     {"content": [{"text": "Costs are rising."}]})

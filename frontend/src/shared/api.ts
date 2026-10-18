@@ -179,11 +179,12 @@ export const api = {
     }),
   getSession: (id: string) => request<SessionState>(`/api/sessions/${id}`),
   endSession: (id: string) => request<SessionState>(`/api/sessions/${id}`, { method: 'DELETE' }),
+  // Leave transport headroom around the server's bounded 60-second local inference.
   sendMessage: (id: string, text: string) =>
     request<MessageResult>(`/api/sessions/${id}/messages`, {
       method: 'POST',
       body: JSON.stringify({ text }),
-    }, 60_000),
+    }, 90_000),
   clearHistory: (id: string) =>
     request<OperationResult>(`/api/sessions/${id}/history`, { method: 'DELETE' }),
   setPreference: (id: string, key: string, value: string) =>

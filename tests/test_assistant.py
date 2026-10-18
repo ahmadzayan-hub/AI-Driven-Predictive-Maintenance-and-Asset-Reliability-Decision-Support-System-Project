@@ -14,6 +14,7 @@ Three layers, tested separately because they fail separately:
 import json
 import tempfile
 import unittest
+from unittest.mock import Mock
 from pathlib import Path
 
 import assistant
@@ -441,6 +442,51 @@ class ModelPathTestCase(unittest.TestCase):
             "hi there")
         self.assertEqual(outcome["text"], "Ask me to analyse the sales data and I will.")
         self.assertEqual(outcome["source"], "model")
+
+    def test_structured_intent_is_optional_and_nonreasoning_budget_is_bounded(self):
+        answer = json.dumps({"action": "chat", "arguments": {}, "reply": "A general inspection needs approved procedures."})
+        gateway = FakeGateway(answer)
+        gateway.ollama_think = False
+        gateway.ask_json = Mock(return_value=answer)
+        gateway.ask = Mock(side_effect=AssertionError("ordinary ask must not handle structured intent"))
+        outcome = Assistant(gateway, self.engine).handle("Explain a general inspection", self.session)
+        self.assertEqual(outcome["source"], "model")
+        self.assertEqual(outcome["action"], "chat")
+        self.assertEqual(gateway.ask_json.call_args.kwargs["max_tokens"], 600)
+        gateway.ask.assert_not_called()
+
+    def test_legacy_gateway_duck_keeps_ordinary_ask_and_reasoning_budget(self):
+        gateway = FakeGateway("")
+        gateway.ask = Mock(return_value=json.dumps({"action": "chat", "reply": "A useful answer."}))
+        outcome = Assistant(gateway, self.engine).handle("A conceptual question", self.session)
+        self.assertEqual(outcome["text"], "A useful answer.")
+        self.assertEqual(gateway.ask.call_args.kwargs["max_tokens"], 900)
+
+    def test_current_turn_is_sent_once_while_followup_history_is_preserved(self):
+        self.session.add_entry("user", "We are discussing a centrifugal pump.")
+        self.session.add_entry("agent", "Its inspection follows approved procedures.")
+        question = "Which equipment did I mention?"
+        self.session.add_entry("user", question)
+        _, gateway = self.handle(json.dumps({"action": "chat", "reply": "A centrifugal pump."}), question)
+        context = gateway.asked[0][1]
+        self.assertEqual(context.count(question), 1)
+        self.assertIn("user: We are discussing a centrifugal pump.", context)
+        self.assertIn("agent: Its inspection follows approved procedures.", context)
+        self.assertIn("Message: " + question, context)
+
+    def test_intent_boundary_receives_the_full_action_catalog(self):
+        # Every executable action must be represented in the model's catalog.
+        _, gateway = self.handle(None, "Explain a general inspection")
+        system = gateway.asked[0][0]
+        for action in assistant.ACTIONS:
+            self.assertIn(action + "{", system)
+
+    def test_an_older_matching_turn_is_not_removed_from_history(self):
+        question = "Which equipment did I mention?"
+        self.session.add_entry("user", question)
+        self.session.add_entry("agent", "You mentioned a pump.")
+        _, gateway = self.handle(json.dumps({"action": "chat", "reply": "A pump."}), question)
+        self.assertEqual(gateway.asked[0][1].count(question), 2)
 
     def test_missing_blank_or_nested_chat_reply_is_an_honest_rules_fallback(self):
         for fields in ({}, {"reply": None}, {"reply": ""}, {"reply": "  "},
