@@ -3,6 +3,7 @@ import { useI18n } from '../../i18n'
 import { Icon } from '../../shared/components/Icon'
 import type { TranscriptEntry } from '../../shared/types'
 import { ResultCard, ToolCards } from './ResultCard'
+import { VoicePlayback } from './VoicePlayback'
 
 interface MessageBubbleProps {
   entry: TranscriptEntry
@@ -52,6 +53,7 @@ export function MessageBubble({ entry, agentName, onOpenRun }: MessageBubbleProp
               <Icon name={copied ? 'check' : 'copy'} size={13} />
               {copied ? t('msg.copied') : t('msg.copy')}
             </button>
+            <VoicePlayback text={entry.text} />
             {/* Honest about who understood: a model's phrasing is
                 labelled as such, the way a report names its narrator. */}
             {entry.source === 'model' ? (

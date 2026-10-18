@@ -2,6 +2,9 @@
 // ships no icon-font or external icon dependency.
 
 const PATHS = {
+  mic: 'M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z M19 10v2a7 7 0 0 1-14 0v-2 M12 19v3 M8 22h8',
+  volume: 'M11 5 6 9H3v6h3l5 4V5Z M15 9a5 5 0 0 1 0 6 M18 6a9 9 0 0 1 0 12',
+  volumeOff: 'M11 5 6 9H3v6h3l5 4V5Z M16 9l6 6 M22 9l-6 6',
   chat: 'M21 12a8 8 0 0 1-8 8H5l-2 2V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8Z',
   memory: 'M12 3a4 4 0 0 0-4 4v1a4 4 0 0 0-2 7.5V17a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4v-1.5A4 4 0 0 0 16 8V7a4 4 0 0 0-4-4Z M12 3v18',
   settings:
