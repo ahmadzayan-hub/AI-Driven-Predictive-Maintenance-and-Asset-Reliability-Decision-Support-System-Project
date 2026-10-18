@@ -242,7 +242,10 @@ def public_auth_config(identity, env=None):
     )
     flows = []
     if provider_url and publishable_key:
-        flows = ["password", "magic_link"]
+        # Password sign-in is implemented. Magic-link callback token
+        # verification/redirect handling is not yet implemented, so it
+        # must not be advertised as a working sign-in option.
+        flows = ["password"]
     return {
         "mode": "jwt",
         "provider": "supabase" if provider_url else "custom",

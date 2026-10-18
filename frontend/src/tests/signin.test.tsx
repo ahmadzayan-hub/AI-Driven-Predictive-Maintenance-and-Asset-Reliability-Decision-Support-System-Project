@@ -48,6 +48,19 @@ describe('SignIn', () => {
     expect(init.headers.apikey).toBe('publishable-anon-key')
   })
 
+  it('uses a modern publishable key only in the apikey header', async () => {
+    const fetchMock = mockFetch({ ok: true, body: { access_token: 'token-123' } })
+    const user = userEvent.setup()
+    render(<SignIn config={{ ...CONFIG, publishable_key: 'sb_publishable_testing_only', flows: ['password'] }} onSignedIn={vi.fn()} />)
+    await user.type(screen.getByLabelText('Email'), 'analyst@example.com')
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce())
+    const [, init] = fetchMock.mock.calls[0]
+    expect(init.headers.apikey).toBe('sb_publishable_testing_only')
+    expect(init.headers.Authorization).toBeUndefined()
+    expect(screen.queryByRole('button', { name: 'Email me a link' })).not.toBeInTheDocument()
+  })
+
   it('shows the provider error and signs nobody in when credentials fail', async () => {
     mockFetch({ ok: false, body: { error_description: 'Invalid login credentials' } })
     const onSignedIn = vi.fn()

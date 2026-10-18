@@ -275,6 +275,8 @@ class AuthConfigTestCase(unittest.TestCase):
         self.assertEqual(body["provider"], "supabase")
         self.assertEqual(body["publishable_key"], "publishable-anon-key")
         self.assertIn("password", body["flows"])
+        # Password-only until safe magic-link callback support exists.
+        self.assertNotIn("magic_link", body["flows"])
         # The signing secret must never appear in a public response.
         self.assertNotIn(SECRET, response.text)
 

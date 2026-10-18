@@ -31,7 +31,10 @@ export function SignIn({ config, onSignedIn }: SignInProps) {
       headers: {
         'Content-Type': 'application/json',
         apikey: config.publishable_key,
-        Authorization: `Bearer ${config.publishable_key}`,
+        // Modern sb_publishable_* keys are opaque API keys, not JWTs;
+        // never send them as an Authorization Bearer credential.
+        ...(config.publishable_key.startsWith('sb_publishable_')
+          ? {} : { Authorization: `Bearer ${config.publishable_key}` }),
       },
       body: JSON.stringify(body),
     })
@@ -149,14 +152,16 @@ export function SignIn({ config, onSignedIn }: SignInProps) {
                 {busy ? <span className="spinner" aria-hidden="true" /> : null}
                 {t('signin.submit')}
               </button>
-              <button
-                type="button"
-                className="btn btn--ghost"
-                onClick={() => void sendMagicLink()}
-                disabled={busy}
-              >
-                {t('signin.magic')}
-              </button>
+              {config.flows.includes('magic_link') ? (
+                <button
+                  type="button"
+                  className="btn btn--ghost"
+                  onClick={() => void sendMagicLink()}
+                  disabled={busy}
+                >
+                  {t('signin.magic')}
+                </button>
+              ) : null}
             </div>
           </form>
         ) : (
