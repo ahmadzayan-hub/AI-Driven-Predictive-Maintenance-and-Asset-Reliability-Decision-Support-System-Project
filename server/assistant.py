@@ -40,6 +40,20 @@ from server.tools import ToolBox
 MAX_MEMORY_IN_CONTEXT = 20
 MAX_TURNS_IN_CONTEXT = 6
 MAX_REPLY_CHARS = 600
+INTENT_SCHEMA = {
+    "oneOf": [
+        {"type": "object", "properties": {
+            "action": {"const": "chat"},
+            "arguments": {"type": "object", "properties": {}, "additionalProperties": False},
+            "reply": {"type": "string", "minLength": 1, "maxLength": MAX_REPLY_CHARS}},
+         "required": ["action", "arguments", "reply"], "additionalProperties": False},
+        {"type": "object", "properties": {
+            "action": {"type": "string", "enum": sorted(set(ACTIONS) - {"chat"})},
+            "arguments": {"type": "object"},
+            "reply": {"const": ""}},
+         "required": ["action", "arguments", "reply"], "additionalProperties": False},
+    ]
+}
 # Local reasoning models think before they answer; the JSON must not be
 # what gets cut off.
 LOCAL_TOKENS = 900
@@ -137,18 +151,22 @@ class Assistant:
         if not status.get("configured"):
             return understand(text)
         ask = getattr(self.gateway, "ask_json", None)
-        if not callable(ask):
+        structured = callable(ask)
+        if not structured:
             ask = self.gateway.ask
         local_tokens = (NON_REASONING_LOCAL_TOKENS
                         if getattr(self.gateway, "ollama_think", None) is False
                         else LOCAL_TOKENS)
+        options = {"max_tokens": local_tokens if status.get("provider") == "ollama"
+                   else HOSTED_TOKENS}
+        if structured:
+            options["schema"] = INTENT_SCHEMA
         raw = ask(
             SYSTEM_PROMPT.replace("{language}",
                                   "Arabic" if session.agent.language() == "ar"
                                   else "English"),
             self._context(session, current_message=text) + "\nMessage: " + text,
-            max_tokens=local_tokens if status.get("provider") == "ollama"
-            else HOSTED_TOKENS,
+            **options,
         )
         parsed = self._parse(raw, session)
         if parsed is None:

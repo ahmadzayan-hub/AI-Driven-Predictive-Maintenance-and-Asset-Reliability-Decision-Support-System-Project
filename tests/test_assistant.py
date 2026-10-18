@@ -21,7 +21,7 @@ import assistant
 from agent import Agent
 from server import analytics
 from tests.support import closing, closing_store
-from server.assistant import Assistant
+from server.assistant import Assistant, INTENT_SCHEMA
 from server.model_gateway import ModelGateway
 from server.runs import RunEngine
 from server.storage import open_store
@@ -453,6 +453,7 @@ class ModelPathTestCase(unittest.TestCase):
         self.assertEqual(outcome["source"], "model")
         self.assertEqual(outcome["action"], "chat")
         self.assertEqual(gateway.ask_json.call_args.kwargs["max_tokens"], 600)
+        self.assertEqual(gateway.ask_json.call_args.kwargs["schema"], INTENT_SCHEMA)
         gateway.ask.assert_not_called()
 
     def test_legacy_gateway_duck_keeps_ordinary_ask_and_reasoning_budget(self):
@@ -461,6 +462,7 @@ class ModelPathTestCase(unittest.TestCase):
         outcome = Assistant(gateway, self.engine).handle("A conceptual question", self.session)
         self.assertEqual(outcome["text"], "A useful answer.")
         self.assertEqual(gateway.ask.call_args.kwargs["max_tokens"], 900)
+        self.assertNotIn("schema", gateway.ask.call_args.kwargs)
 
     def test_current_turn_is_sent_once_while_followup_history_is_preserved(self):
         self.session.add_entry("user", "We are discussing a centrifugal pump.")

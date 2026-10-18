@@ -195,14 +195,15 @@ class ModelGateway:
     def _prompt(self, goal, facts):
         return "Goal: " + goal + "\nVerified facts:\n- " + "\n- ".join(facts)
 
-    def ask_json(self, system, user, provider=None, max_tokens=None):
+    def ask_json(self, system, user, provider=None, max_tokens=None, schema=None):
         """Intent-only structured output; report narration keeps plain text.
 
         Hosted providers retain their existing request contracts. A caller
         without this optional method can continue exposing ordinary ask.
         """
         if (provider or self.provider) == "ollama":
-            return self._complete_ollama(system, user, max_tokens, json_output=True)
+            return self._complete_ollama(system, user, max_tokens, json_output=True,
+                                         schema=schema)
         return self.ask(system, user, provider=provider, max_tokens=max_tokens)
 
     def _post(self, url, headers, payload):
@@ -252,7 +253,7 @@ class ModelGateway:
                                    MAX_OUTPUT_TOKENS)
 
     # The wire calls, one per provider, over an arbitrary system + user pair.
-    def _complete_ollama(self, system, user, max_tokens=None, json_output=False):
+    def _complete_ollama(self, system, user, max_tokens=None, json_output=False, schema=None):
         payload = {"model": self.ollama_model, "stream": False,
                    "options": {"num_predict": max_tokens or LOCAL_OUTPUT_TOKENS,
                                **self.ollama_options},
@@ -261,7 +262,7 @@ class ModelGateway:
         if self.ollama_think is not None:
             payload["think"] = self.ollama_think
         if json_output:
-            payload["format"] = "json"
+            payload["format"] = schema if schema is not None else "json"
         body = self._post(
             self.ollama_host.rstrip("/") + "/api/chat", {},
             payload)

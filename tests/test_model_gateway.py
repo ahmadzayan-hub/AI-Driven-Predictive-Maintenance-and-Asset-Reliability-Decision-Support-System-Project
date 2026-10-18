@@ -10,6 +10,7 @@ import unittest
 from unittest.mock import patch, Mock
 
 from server.model_gateway import ModelGateway
+from server.assistant import INTENT_SCHEMA
 
 
 class ProviderSelectionTestCase(unittest.TestCase):
@@ -75,6 +76,14 @@ class ProviderCallTestCase(unittest.TestCase):
         self.assertEqual(self.sent["payload"]["options"]["num_predict"], 600)
         gateway.narrate("goal", ["A verified fact."])
         self.assertNotIn("format", self.sent["payload"])
+
+    def test_intent_schema_is_sent_to_ollama_without_changing_plain_text_calls(self):
+        gateway = self.gateway_with({"OLLAMA_MODEL": "m"},
+                                    {"message": {"content": '{"action":"chat","arguments":{},"reply":"Useful."}'}})
+        self.assertTrue(gateway.ask_json("system", "question", max_tokens=600, schema=INTENT_SCHEMA))
+        self.assertEqual(self.sent["payload"]["format"], INTENT_SCHEMA)
+        gateway.narrate("goal", ["A verified fact."])
+        self.assertNotIn("format", self.sent["payload"])
         gateway.ask("system", "ordinary runtime question")
         self.assertNotIn("format", self.sent["payload"])
 
@@ -85,7 +94,7 @@ class ProviderCallTestCase(unittest.TestCase):
                 gateway = self.gateway_with(environment, response)
                 gateway.ask("system", "user", max_tokens=400)
                 ordinary = self.sent
-                gateway.ask_json("system", "user", max_tokens=400)
+                gateway.ask_json("system", "user", max_tokens=400, schema=INTENT_SCHEMA)
                 self.assertEqual(self.sent, ordinary)
                 self.assertNotIn("format", self.sent["payload"])
 
