@@ -2678,3 +2678,47 @@ form.field {
   color: var(--text);
   pointer-events: none;
 }
+
+/* Action-first Executive Command Centre: content before decoration. */
+.decision-actions {
+  margin: var(--space-4) 0 var(--space-5);
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l);
+  background: var(--surface);
+}
+.decision-actions__eyebrow {
+  color: var(--accent);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+.decision-actions__intro h3 {
+  font-size: var(--text-xl);
+  margin-top: var(--space-1);
+}
+.decision-actions__intro p { margin-top: var(--space-2); color: var(--text-muted); font-size: var(--text-s); }
+.decision-actions__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+.decision-actions__grid button {
+  display: flex;
+  text-align: start;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-height: 88px;
+  padding: var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-m);
+  background: var(--bg);
+}
+.decision-actions__grid button:hover { border-color: var(--accent); background: var(--accent-soft); }
+.decision-actions__grid svg { flex-shrink: 0; color: var(--accent); }
+.decision-actions__grid strong { display: block; font-size: var(--text-s); }
+.decision-actions__grid small { display: block; margin-top: 5px; color: var(--text-muted); line-height: 1.5; }
+@media (max-width: 780px) {
+  .decision-actions__grid { grid-template-columns: 1fr; }
+  .decision-actions__grid button { min-height: 64px; }
+}
