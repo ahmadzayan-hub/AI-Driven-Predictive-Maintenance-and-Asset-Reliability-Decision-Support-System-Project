@@ -61,6 +61,18 @@ describe('VoiceDictation, explicit opt-in and draft-only safety', () => {
     expect((screen.getByRole('button', { name: 'voice.start' }) as HTMLButtonElement).disabled).toBe(true)
   })
 
+  it('stops an active microphone when the session is disabled', () => {
+    ;(window as unknown as { webkitSpeechRecognition: typeof MockRecognition }).webkitSpeechRecognition = MockRecognition
+    const onTranscript = vi.fn()
+    const view = render(<VoiceDictation language="en" disabled={false} onTranscript={onTranscript} />)
+    fireEvent.click(screen.getByRole('button', { name: 'voice.start' }))
+    fireEvent.click(screen.getByRole('button', { name: 'voice.allow' }))
+    const recognition = MockRecognition.instance
+    view.rerender(<VoiceDictation language="en" disabled={true} onTranscript={onTranscript} />)
+    expect(recognition.stop).toHaveBeenCalled()
+    expect(onTranscript).not.toHaveBeenCalled()
+  })
+
   it('explains unsupported browsers rather than attempting an API request', () => {
     render(<VoiceDictation language="en" disabled={false} onTranscript={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'voice.start' }))
