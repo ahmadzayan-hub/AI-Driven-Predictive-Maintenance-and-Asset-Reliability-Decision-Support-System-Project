@@ -66,8 +66,18 @@ rules changes: no force-push, no history rewriting, no branch deletion.
    `Session log: <date>, <one-line summary>`.
 2. Push the working branch: `git push origin HEAD:refs/heads/<branch>`.
 3. **Fetch first** — `main` moves between sessions, and more than once in a
-   single day. `git fetch origin` and check `git log origin/main` for commits
-   you have not integrated.
+   single day. `git fetch origin`, then ask what *content* it has that you
+   lack, not what commits:
+
+   ```bash
+   git diff --name-status origin/main HEAD | grep '^D'   # files only on main
+   git diff --stat origin/main HEAD                      # everything that differs
+   ```
+
+   Comparing commits (`git log origin/main --not HEAD`) always lists the
+   previous merge commits, because a merge commit on `main` is not an
+   ancestor of the branch it merged. That looks alarming and means nothing.
+   The tree is the truth.
 4. **If `main` has work you lack, integrate it before merging**, or the merge
    silently drops it. Take the files, renumber any colliding ADR, keep the
    course material out, and run the checks. ADR 0047 records how and why.
