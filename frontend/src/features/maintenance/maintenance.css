@@ -3,7 +3,8 @@
 .maintenance__layout { display: flex; min-height: 100vh; }
 .maintenance__rail { width: 236px; flex-shrink: 0; background: var(--nav-surface); color: var(--nav-text); display: flex; flex-direction: column; padding: 28px 16px 22px; position: sticky; top: 0; height: 100vh; }
 .maintenance__brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 37px; }
-.maintenance__brand-mark { width: 37px; height: 37px; border: 1px solid var(--nav-border); border-radius: 10px; display: grid; place-items: center; color: var(--nav-accent); flex-shrink: 0; }
+.maintenance__brand-mark { width: 40px; height: 40px; border: 1px solid var(--nav-border); border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; overflow: hidden; }
+.maintenance__brand-mark img { width: 100%; height: 100%; object-fit: contain; }
 .maintenance__brand strong { display: block; font-size: 16px; letter-spacing: var(--tracking-tight); }
 .maintenance__brand span:not(.maintenance__brand-mark) { display: block; color: var(--nav-muted); font-size: 11px; margin-top: 3px; }
 .maintenance__rail-label { font-size: 10px; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--nav-muted); padding: 0 12px; margin-bottom: 12px; }
@@ -154,3 +155,26 @@
 @media (max-width: 1200px) { .maintenance__rail { width: 208px; } .maintenance__content { padding: 22px; } .maintenance__heading { align-items: start; } .maintenance__metrics { gap: 12px; } .maintenance__metric { padding: 16px; } .maintenance__charts { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); } .maintenance__condition { gap: 10px; padding-inline: 14px; } .maintenance__donut { width: 122px; height: 122px; } .maintenance__lower { grid-template-columns: 1fr; } .maintenance__brief { display: grid; grid-template-columns: 1fr auto; column-gap: 30px; } .maintenance__brief-head, .maintenance__brief h2, .maintenance__brief > p { grid-column: 1; } .maintenance__brief .btn { grid-column: 2; grid-row: 2 / 4; align-self: center; } .maintenance__human { grid-column: 1 / -1; } }
 @media (max-width: 900px) { .maintenance__layout { display: block; } .maintenance__rail { width: 100%; height: auto; position: static; padding: 14px 18px 10px; } .maintenance__brand { padding: 0 0 16px; } .maintenance__rail > .maintenance__rail-label, .maintenance__rail-secondary, .maintenance__rail-foot { display: none; } .maintenance__nav { display: flex; gap: 7px; flex-wrap: wrap; } .maintenance__nav button { font-size: 12px; padding: 8px 10px; } .maintenance__topbar { padding: 10px 22px; } .maintenance__breadcrumb { font-size: 11px; } .maintenance__requirements { gap: 12px; } }
 @media (max-width: 620px) { .maintenance__content { padding: 16px; } .maintenance__heading { display: block; margin-block: 24px; } .maintenance__heading h1 { font-size: 27px; } .maintenance__heading .btn { margin-top: 18px; } .maintenance__sample { align-items: start; flex-direction: column; } .maintenance__sample > span > span { display: block; width: 100%; } .maintenance__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .maintenance__metric > strong { font-size: 22px; } .maintenance__metric { padding: 14px 12px; } .maintenance__metric h2 { font-size: 11px; } .maintenance__metric svg { width: 15px; } .maintenance__charts, .maintenance__requirements { grid-template-columns: 1fr; gap: 16px; } .maintenance__condition { justify-content: start; gap: 28px; } .maintenance__donut { width: 150px; height: 150px; } .maintenance__topbar { padding: 8px 16px; gap: 8px; } .maintenance__breadcrumb { display: none; } .maintenance__top-actions { width: 100%; justify-content: end; } .maintenance__preview-tag { margin-inline-end: auto; } .maintenance__nav { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px; } .maintenance__nav button { flex-direction: column; justify-content: start; text-align: center; gap: 6px; font-size: 10px; padding: 9px 4px; } .maintenance__nav button[aria-current] { box-shadow: inset 0 -2px 0 var(--nav-accent); } :lang(ar) .maintenance__nav button[aria-current] { box-shadow: inset 0 -2px 0 var(--nav-accent); } .maintenance__filters { gap: 10px; } .maintenance__filters label { flex: 1 1 130px; min-width: 0; } .maintenance__filters input, .maintenance__filters select { width: 100%; min-width: 0; } .maintenance__search { max-width: none; } .maintenance__scope { width: 100%; padding-top: 0; } .maintenance__brief { display: block; } .maintenance__brief .btn { margin-top: 2px; } .maintenance__cost-row { grid-template-columns: 1fr auto; gap: 10px; } .maintenance__cost-row > div { grid-column: 1 / -1; grid-row: 2; } .maintenance__evidence dl { grid-template-columns: 1fr; } .maintenance__evidence .dialog__actions { flex-wrap: wrap; } }
+
+
+/* Generated-art direction, converted to lightweight original SVG artwork.
+   Kept intentionally subtle: the actual KPI cards are source-backed or
+   explicitly fictional, not images of invented operational performance. */
+.maintenance__heading {
+  position: relative;
+  isolation: isolate;
+}
+.maintenance__heading::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: min(28%, 280px);
+  background: url('/artwork/asset-reliability-hero.svg') center / cover no-repeat;
+  opacity: 0.12;
+  pointer-events: none;
+  z-index: -1;
+}
+@media (max-width: 760px) {
+  .maintenance__heading::after { display: none; }
+}
