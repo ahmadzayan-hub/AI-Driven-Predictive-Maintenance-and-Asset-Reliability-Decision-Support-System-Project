@@ -453,3 +453,35 @@ export interface ModelCard {
   beats_baseline: boolean
   details: Record<string, unknown>
 }
+
+/** One controlled maintenance measure, as `GET /api/runs/{id}/kpis`
+ *  returns it (ADR 0049). The counts are not decoration: `records` is what
+ *  the figure was computed on, so numerator ÷ records reproduces `value`,
+ *  and `records_unmeasured` says how much of the population had no reading.
+ *  ADR 0042 is explicit that a card hiding it re-creates the defect it
+ *  fixed, so anything rendering these must show it when it is non-zero. */
+export interface KpiMeasure {
+  key: string
+  title: string
+  value: number | null
+  scale: 'percent' | 'hours' | 'money' | string
+  numerator: number
+  denominator: number
+  formula: string
+  population: string
+  records: number
+  records_excluded: number
+  records_unmeasured: number
+  missing_policy: string
+  undefined_reason: string | null
+  edge_cases: string
+}
+
+export interface RunKpis {
+  run: string
+  language: string
+  records: number
+  measures: KpiMeasure[]
+  /** Each KPI the dataset cannot support, mapped to the columns it needed. */
+  unavailable: Record<string, string>
+}

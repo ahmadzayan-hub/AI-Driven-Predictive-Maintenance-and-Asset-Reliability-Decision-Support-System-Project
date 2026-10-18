@@ -1,27 +1,5 @@
 import { translate } from '../i18n'
-import type {
-  AuthConfig,
-  ColumnMapping,
-  DatasetDetail,
-  DatasetSummary,
-  ExportPayload,
-  IdentityInfo,
-  JoinPreview,
-  JoinSpec,
-  MappingProblem,
-  Pipelines,
-  QueryAnswer,
-  QuerySpec,
-  RecordsPage,
-  RecordsSpec,
-  RunDetail,
-  RunSummary,
-  SessionState,
-  TableField,
-  TranscriptEntry,
-  UploadResult,
-  Usage,
-} from './types'
+import type { AuthConfig, ColumnMapping, DatasetDetail, DatasetSummary, ExportPayload, IdentityInfo, JoinPreview, JoinSpec, MappingProblem, Pipelines, QueryAnswer, QuerySpec, RecordsPage, RecordsSpec, RunDetail, RunKpis, RunSummary, SessionState, TableField, TranscriptEntry, UploadResult, Usage } from './types'
 
 export const API_BASE = import.meta.env.VITE_API_BASE ?? ''
 const REQUEST_TIMEOUT_MS = 10_000
@@ -285,6 +263,10 @@ export const api = {
   listRuns: () => request<{ runs: RunSummary[] }>('/api/runs'),
   usage: () => request<Usage>('/api/usage'),
   getRun: (id: string) => request<RunDetail>(`/api/runs/${id}`),
+  /** The maintenance KPI register computed on a run's cleaned table
+   *  (ADR 0049). 409 until the run has finished cleaning. */
+  runKpis: (id: string, language: 'en' | 'ar' = 'en') =>
+    request<RunKpis>(`/api/runs/${id}/kpis?language=${language}`),
   advanceRun: (id: string) => request<RunDetail>(`/api/runs/${id}/advance`, { method: 'POST' }),
   pauseRun: (id: string) => request<RunDetail>(`/api/runs/${id}/pause`, { method: 'POST' }),
   resumeRun: (id: string) => request<RunDetail>(`/api/runs/${id}/resume`, { method: 'POST' }),
