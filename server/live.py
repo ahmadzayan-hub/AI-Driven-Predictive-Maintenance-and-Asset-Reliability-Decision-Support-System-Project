@@ -14,7 +14,6 @@ client treats every event as "look again", never as a total.
 """
 
 import json
-import os
 import re
 from datetime import datetime, timedelta
 
@@ -23,17 +22,6 @@ from server.runs import _stamp, _utcnow
 POLL_SECONDS = 1.0
 HEARTBEAT_SECONDS = 15.0
 MAX_SECONDS = 55.0
-# Vercel's Python function in this project has a 30-second maximum runtime.
-# Keeping a server-sent stream open for 55 seconds causes a timeout on
-# every quiet reconnect. Use a bounded stream and let EventSource reconnect.
-SERVERLESS_MAX_SECONDS = 20.0
-
-
-def stream_budget(wait, environ=None):
-    """Cap stream duration on ephemeral serverless runtimes only."""
-    environment = os.environ if environ is None else environ
-    return min(float(wait), SERVERLESS_MAX_SECONDS) if environment.get("VERCEL") else float(wait)
-
 OVERLAP_SECONDS = 5
 RETRY_MS = 3000
 # Open streams one owner may hold in this process; more is refused (429).

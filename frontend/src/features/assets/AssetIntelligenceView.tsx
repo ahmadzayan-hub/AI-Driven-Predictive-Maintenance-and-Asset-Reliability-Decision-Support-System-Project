@@ -5,6 +5,8 @@ import { Icon } from '../../shared/components/Icon'
 import type { Pipelines } from '../../shared/types'
 import { findAssetEvidence } from './assetEvidence'
 import type { AssetEvidence } from './assetEvidence'
+import { formatValue, needsDisclosure } from './kpiDisplay'
+import type { RunKpis } from '../../shared/types'
 import './assets.css'
 
 interface Props {
@@ -13,9 +15,10 @@ interface Props {
 }
 
 export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const [evidence, setEvidence] = useState<AssetEvidence | null>(null)
   const [pipelines, setPipelines] = useState<Pipelines | null>(null)
+  const [kpis, setKpis] = useState<RunKpis | null>(null)
   const [busy, setBusy] = useState(true)
   const [error, setError] = useState('')
   const [reload, setReload] = useState(0)
@@ -42,6 +45,16 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
       .finally(() => { if (alive) setBusy(false) })
     return () => { alive = false }
   }, [reload, t])
+
+  const runId = evidence?.run.id ?? null
+  useEffect(() => {
+    if (!runId) { setKpis(null); return }
+    let alive = true
+    api.runKpis(runId, locale === 'ar' ? 'ar' : 'en')
+      .then((result) => { if (alive) setKpis(result) })
+      .catch(() => { if (alive) setKpis(null) })
+    return () => { alive = false }
+  }, [runId, locale])
 
   const enabled = Boolean(pipelines?.profiles.maintenance?.includes('rail_asset_manager'))
   return (
@@ -104,6 +117,36 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
                   </li>
                 ))}
               </ul>
+              {kpis && kpis.measures.length ? (
+                <div className="asset-intelligence__finding">
+                  <strong>{t('assets.kpiHeading')}</strong>
+                  <ul className="asset-intelligence__checks">
+                    {kpis.measures.map((measure) => {
+                      const shown = formatValue(measure, locale === 'ar' ? 'ar' : 'en')
+                      return (
+                        <li key={measure.key}>
+                          <span dir="auto">{shown ?? t('assets.kpiUndefined')}</span>
+                          <span dir="auto">
+                            {measure.title} · {measure.population} ·{' '}
+                            {t('assets.kpiRecords', { records: String(measure.records) })}
+                            {needsDisclosure(measure) ? ' · ' + (measure.value === null
+                              ? t('assets.kpiNoEvidence')
+                              : t('assets.kpiUnmeasured',
+                                  { unmeasured: String(measure.records_unmeasured) })) : ''}
+                          </span>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                  {Object.keys(kpis.unavailable).length ? (
+                    <p className="asset-intelligence__caution" dir="auto">
+                      {t('assets.kpiUnavailable',
+                         { measures: Object.keys(kpis.unavailable).join(', ') })}
+                    </p>
+                  ) : null}
+                  <p className="asset-intelligence__caution">{t('assets.kpiScope')}</p>
+                </div>
+              ) : null}
               <button type="button" className="btn btn--primary" onClick={() => onOpenRun(evidence.run.id)}>
                 {t('assets.openRun')}
               </button>

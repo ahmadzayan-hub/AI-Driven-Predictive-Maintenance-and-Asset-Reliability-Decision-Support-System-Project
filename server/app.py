@@ -1121,7 +1121,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         async def body():
             try:
                 async for part in live.stream(reader, poll, asyncio.sleep, time.monotonic,
-                                              request.is_disconnected, max_seconds=live.stream_budget(wait)):
+                                              request.is_disconnected, max_seconds=wait):
                     yield part
             finally:
                 with streams_lock:
