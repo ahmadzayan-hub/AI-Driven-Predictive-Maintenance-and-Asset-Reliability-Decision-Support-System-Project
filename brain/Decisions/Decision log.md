@@ -57,5 +57,6 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 | 0040 | Maintenance risk models: inputs curated by timing, an informative baseline, a verdict needing two tests | [[Custom stages]], [[Governed pipeline]] |
 | 0041 | The shipped configuration registers every stage, and a derived label's threshold is set on the training rows alone | [[Custom stages]], [[Governed pipeline]] |
 | 0042 | An unmeasured cell is not a zero: a per-KPI missing-value policy with disclosed counts | [[Weighted KPIs]], [[Governed pipeline]] |
+| 0043 | The repository takes the product's name; historical links stay where the work happened | [[Agentic OS]] |
 
 All seven [[Analytics OS roadmap]] milestones have their records.

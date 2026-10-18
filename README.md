@@ -310,7 +310,8 @@ and returns fresh state snapshots.
 ## Installation
 
 ```bash
-git clone https://github.com/ahmadzayan-hub/agentic-os-final-project.git
+# The repository's name is long; give the clone a short folder on Windows.
+git clone https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project.git agentic-os
 cd agentic-os-final-project
 
 # Web interface dependencies
