@@ -261,6 +261,32 @@ class AnalyseAndDashboardTests(unittest.TestCase):
         self.assertNotIn('"rows": [', text)
         self.assertNotIn("45360.0", text)  # the first row's revenue, a raw value
 
+    def test_the_store_is_closed_before_the_temporary_directory_goes(self):
+        # analyse() holds its database inside a TemporaryDirectory. Windows
+        # will not delete a file another handle still has open, so leaving
+        # the store open made the directory's own cleanup raise WinError 32
+        # and lose an analysis that had already succeeded.
+        closed = []
+        real_open_store = analyse.open_store
+
+        def spy(**kwargs):
+            store = real_open_store(**kwargs)
+            original_close = store.close
+
+            def close():
+                closed.append(True)
+                original_close()
+
+            store.close = close
+            return store
+
+        analyse.open_store = spy
+        try:
+            analyse.analyse(self.dir / "sample.csv", suggest=True)
+        finally:
+            analyse.open_store = real_open_store
+        self.assertTrue(closed, "analyse() must close its store before the directory goes")
+
     def test_aggregates_are_written_as_small_csv_files(self):
         written = analyse.write_aggregates(self.analysis, self.dir / "agg")
         self.assertEqual(sorted(p.name for p in written), ["by_group.csv", "calculations.csv", "trend.csv"])
