@@ -157,7 +157,7 @@ export const api = {
     request<MessageResult>(`/api/sessions/${id}/messages`, {
       method: 'POST',
       body: JSON.stringify({ text }),
-    }),
+    }, 60_000),
   clearHistory: (id: string) =>
     request<OperationResult>(`/api/sessions/${id}/history`, { method: 'DELETE' }),
   setPreference: (id: string, key: string, value: string) =>

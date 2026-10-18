@@ -17,7 +17,7 @@ test.describe('main user journey', () => {
     // 1. Start the application and open a session.
     await page.goto('/')
     await expect(page.getByRole('status').filter({ hasText: 'Ready' })).toBeVisible()
-    await expect(page.getByText('Welcome to Agentic OS (version 1.0.0)')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Every asset. A clearer decision.' })).toBeVisible()
 
     // 2. Send a message.
     await sendMessage(page, 'Hello there')
@@ -113,7 +113,7 @@ test.describe('main user journey', () => {
 
     await clickQuickAction(page, /^New session/)
     await expect(composerInput(page)).toBeEnabled()
-    await expect(page.getByText('Welcome to Agentic OS (version 1.0.0)')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Every asset. A clearer decision.' })).toBeVisible()
 
     // 10. The whole journey must produce no browser console errors.
     expect(consoleErrors).toEqual([])

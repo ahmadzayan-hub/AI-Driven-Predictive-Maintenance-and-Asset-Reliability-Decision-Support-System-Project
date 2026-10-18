@@ -41,7 +41,7 @@ test('drafts, deep links, evidence and exact-report keyboard approval', async ({
   await page.reload()
   await expect(composerInput(page)).toHaveValue('Keep my unsent question')
 
-  await openTab(page, /^Runs/)
+  await openTab(page, /^Analytics/)
   await page.getByLabel('Goal').fill('Find what changed in sample sales')
   await page.reload()
   await expect(page.getByLabel('Goal')).toHaveValue('Find what changed in sample sales')

@@ -4,7 +4,7 @@ import { openTab, skipOnboarding } from './helpers'
 test('analytics run: goal to approved, published, evidence-backed report', async ({ page }) => {
   await skipOnboarding(page)
   await page.goto('/')
-  await openTab(page, /^Runs/)
+  await openTab(page, /^Analytics/)
 
   await expect(page.getByLabel('Goal')).toHaveValue(/sample sales dataset/)
   await page.getByRole('button', { name: 'Start run' }).click()
@@ -51,7 +51,7 @@ test('analytics run: goal to approved, published, evidence-backed report', async
 test('an analytics run can be paused and then cancelled', async ({ page }) => {
   await skipOnboarding(page)
   await page.goto('/')
-  await openTab(page, /^Runs/)
+  await openTab(page, /^Analytics/)
   await page.getByRole('button', { name: 'Start run' }).click()
 
   // Pause first so the pipeline stops advancing; cancelling is then a
@@ -68,7 +68,7 @@ test('an analytics run can be paused and then cancelled', async ({ page }) => {
 test('a CSV file can be uploaded and is analyzed', async ({ page }) => {
   await skipOnboarding(page)
   await page.goto('/')
-  await openTab(page, /^Runs/)
+  await openTab(page, /^Analytics/)
 
   await page.getByRole('button', { name: 'Upload a file or paste CSV', exact: true }).click()
   await page.getByLabel('Choose a file').setInputFiles({

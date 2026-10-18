@@ -1,0 +1,45 @@
+/* Key figures: the label names the figure, the figure is the largest
+   thing on the tile, set in tabular numerals so tiles do not jitter. */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  background: var(--panel-fill);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l);
+  padding: var(--space-3) var(--space-4);
+}
+
+/* Something waits on the reader: the one place amber marks the grid. */
+.kpi--attention {
+  background: var(--highlight-soft);
+  border-color: var(--highlight);
+}
+
+.kpi__label {
+  font-size: var(--text-s);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.kpi__value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-display);
+  font-weight: 500;
+  line-height: 1.1;
+  color: var(--text);
+}
+
+.kpi__sub {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}

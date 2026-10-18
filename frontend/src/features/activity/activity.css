@@ -1,0 +1,112 @@
+/* Activity timeline */
+.timeline {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline__item {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  position: relative;
+}
+
+.timeline__item::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 15px;
+  top: 44px;
+  bottom: -4px;
+  width: 2px;
+  background: var(--border);
+}
+
+.timeline__item:last-child::before {
+  display: none;
+}
+
+.timeline__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: var(--accent-soft);
+  color: var(--accent);
+  position: relative;
+  z-index: 1;
+}
+
+.timeline__icon--success {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.timeline__icon--error {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.timeline__body {
+  min-width: 0;
+  flex: 1;
+}
+
+.activity__label {
+  font-weight: 600;
+  font-size: var(--text-s);
+}
+
+.activity__detail {
+  color: var(--text-muted);
+  font-size: var(--text-s);
+  overflow-wrap: anywhere;
+}
+
+.activity__time {
+  margin-inline-start: auto;
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Session health */
+.health {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.health__row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.health__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+.health__dot--ok {
+  background: var(--success);
+  box-shadow: 0 0 8px var(--success);
+}
+
+.health__dot--warn {
+  background: var(--warning);
+}
+
+.health__dot--bad {
+  background: var(--danger);
+  box-shadow: 0 0 8px var(--danger);
+}

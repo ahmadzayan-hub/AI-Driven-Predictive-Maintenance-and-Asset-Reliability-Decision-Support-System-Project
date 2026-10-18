@@ -1,3 +1,5 @@
+import '../../shared/styles/kpi.css'
+import '../../shared/styles/analytics.css'
 /** Dashboard pages over one run's cleaned table (ADR 0032).
  *
  *  Every figure is asked of the server (ADR 0031): totals by group under

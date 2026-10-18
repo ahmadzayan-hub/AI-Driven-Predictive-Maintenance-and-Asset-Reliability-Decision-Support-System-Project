@@ -1,10 +1,12 @@
 # Project progress
 
-Last updated: 2026-10-18, session `2ead7a20` (structure review, build plan, ADRs 0041 and 0042 committed and pushed to the canonical repository). The session-end skill keeps this file current; the SessionStart hook reads the *Now* section into every new session.
+Last updated: 2026-10-19, session `miyaar-ui-redesign` (owner-requested feature branch and review PR; ADR 0053). Earlier milestones below retain their original dates.
 
 **Vision.** **AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project** uses Agentic OS as its governed analytics engine. It digests several datasets with dynamic inputs, then carries them through preparation, cleaning and modelling to a multi-page interactive dashboard with live data, with insights and key findings that are always traceable to a calculation. The product scope and remaining domain work are in `docs/PROJECT_CHARTER.md`; the reusable engine milestones are in `brain/Projects/Analytics OS roadmap.md`.
 
 ## Now
+
+- **Miyaar UI redesign: 2026-10-19.** Implemented the approved midnight/cyan shell, bilingual workspace and honest browser voice states on `feature/miyaar-ui-redesign`. Existing API, auth, dataset/run/approval and Hermes contracts are preserved. Handoff: `docs/design/MIYAAR_UI_HANDOFF.md`; current validation evidence: `README.md#testing`. The owner requested an open reviewable PR, which supersedes the standing automatic main merge for this work.
 
 - **Repository home moved to the product's name: 2026-10-18** (ADR 0043). The snapshot repository was renamed to `AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project` and now carries the full history on the working branch. ADR 0036's clause keeping the repository identifier is reversed for the repository only; package, storage, API, export and deployment identifiers and the local folder are unchanged. `agentic-os-final-project` is neither deleted nor rewritten, keeps its pull requests and CI evidence, and stops being a push target. Two owner actions remain on GitHub: the new repository's default branch, and re-pointing Vercel, which still builds from the old repository.
 - **Role specification verified: 2026-10-18.** Every numeric claim in the owner's supplied role mapping holds against the master CSV. Its design needs three corrections: no asset is observed twice, so a future-failure target cannot be built; the proposed three-part entity key collapses to `Asset_Class|Asset_ID`; and the as-of-date tooling has no input. The Agentic OS role it records as pending was settled at the 17 October kickoff.

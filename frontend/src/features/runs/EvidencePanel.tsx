@@ -1,3 +1,4 @@
+import '../../shared/styles/analytics.css'
 import { useI18n } from '../../i18n'
 import { Dialog } from '../../shared/components/Dialog'
 import { Icon } from '../../shared/components/Icon'

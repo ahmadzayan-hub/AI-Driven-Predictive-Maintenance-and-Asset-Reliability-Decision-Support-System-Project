@@ -105,6 +105,10 @@ jobs:
         run: npx playwright test
         working-directory: frontend
 
+      - name: Miyaar bilingual, voice and accessibility tests
+        run: npx playwright test --config=playwright.miyaar.config.ts
+        working-directory: frontend
+
       - name: Interface budget
         run: python -c "from scripts.verify import check_budget; import sys; ok, detail = check_budget(); print(detail); sys.exit(0 if ok else 1)"
 

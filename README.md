@@ -365,10 +365,10 @@ python main.py
 # mapping, joins, the cleaned-table queries, modelling stages, live sources and the event stream, uneven periods, docs, and the repository's operating system:
 # brain checker, session hooks, the verify script, the motion skill, the
 # agent team's tools, agent evaluation, the house style and the interface
-# budget (1,177 tests discovered in the current local suite)
+# budget (1,188 tests discovered in the current local suite)
 python -m unittest discover tests
 
-# Frontend unit tests (120 tests)
+# Frontend unit tests (163 tests)
 cd frontend && npm test
 
 # End-to-end + accessibility (108 checks across desktop and mobile,
@@ -384,6 +384,30 @@ cd frontend && npm run typecheck
 # Playwright)
 python scripts/verify.py
 ```
+
+### Miyaar redesign validation — 19 October 2026
+
+The redesign handoff is in
+[MIYAAR_UI_HANDOFF.md](docs/design/MIYAAR_UI_HANDOFF.md), in Arabic and English.
+The dedicated branch is `feature/miyaar-ui-redesign`.
+
+- Frontend unit tests: **163 passed**; TypeScript and the production build pass.
+  This includes delayed and failed chat requests, session changes, microphone
+  event ordering, interim/final speech, playback ownership and bilingual packs.
+- Native run/snapshot contracts: **5 passed**. Documentation and verifier tests:
+  **27 passed**. The strict brain check passes.
+- The full local Python run discovered **1,188 tests** and reported
+  **123 errors, 140 skipped, no assertion failures**. The reported tail is the
+  existing Windows SQLite temporary-file lock failure (`WinError 32`).
+  This run is **not green**; PostgreSQL is not configured locally.
+- Backend-connected browser and final visual/budget results are being recorded
+  below before the review PR is finalized.
+
+The isolated Miyaar suite runs with
+`npx playwright test --config=playwright.miyaar.config.ts` after building.
+Its API responses and speech events are synthetic test fixtures. These checks
+do not prove a real microphone, installed Arabic voice or production LLM
+provider. CI runs this suite alongside the existing FastAPI browser suite.
 
 The same suite runs automatically in CI (`.github/workflows/ci.yml`) on
 every push, including the run-engine and backup suites against a real

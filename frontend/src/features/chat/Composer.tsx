@@ -13,6 +13,7 @@ interface ComposerProps {
   onSend: (text: string) => void | Promise<boolean>
   busy: boolean
   disabled?: boolean
+  offline?: boolean
   placeholder?: string
   draftKey?: string
 }
@@ -21,12 +22,14 @@ interface ComposerProps {
  *  While a request is in flight the send action is disabled, which also
  *  prevents duplicate submissions. */
 export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Composer(
-  { onSend, busy, disabled = false, placeholder, draftKey = 'composer' },
+  { onSend, busy, disabled = false, offline = false, placeholder, draftKey = 'composer' },
   ref,
 ) {
   const { t, tx, locale } = useI18n()
   const [text, setText] = useSessionDraft(draftKey, () => '')
   const [submitting, setSubmitting] = useState(false)
+  const [capturing, setCapturing] = useState(false)
+  const submittingRef = useRef(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useImperativeHandle(ref, () => ({
@@ -54,17 +57,28 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
 
   async function submit() {
     const value = text.trim()
-    if (!value || busy || submitting || disabled) return
+    if (!value || busy || submittingRef.current || disabled || capturing) return
+    submittingRef.current = true
     setSubmitting(true)
     try {
       const sent = await onSend(value)
       if (sent !== false) setText((current) => current.trim() === value ? '' : current)
     } catch { /* The caller reports the error; retain this draft for recovery. */ }
-    finally { setSubmitting(false); requestAnimationFrame(autosize) }
+    finally { submittingRef.current = false; setSubmitting(false); requestAnimationFrame(autosize) }
   }
 
   return (
     <div className="composer">
+        <VoiceDictation
+          language={locale}
+          disabled={disabled || busy || submitting}
+          onActiveChange={setCapturing}
+          onTranscript={(value) => {
+            setText((existing) => [existing.trim(), value].filter(Boolean).join(' '))
+            requestAnimationFrame(() => { textareaRef.current?.focus(); autosize() })
+          }}
+        />
+
       <form
         className="composer__inner"
         onSubmit={(event) => {
@@ -84,31 +98,23 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
           rows={1}
           dir="auto"
           value={text}
-          placeholder={disabled ? t('composer.ended') : (placeholder ?? t('composer.placeholder'))}
+          placeholder={disabled ? t(offline ? 'composer.offline' : 'composer.ended') : (placeholder ?? t('composer.placeholder'))}
           disabled={disabled}
           onChange={(event) => {
             setText(event.target.value)
             autosize()
           }}
           onKeyDown={(event) => {
-            if (event.key === 'Enter' && !event.shiftKey) {
+            if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
               event.preventDefault()
               void submit()
             }
           }}
         />
-        <VoiceDictation
-          language={locale}
-          disabled={disabled || busy || submitting}
-          onTranscript={(value) => {
-            setText((existing) => [existing.trim(), value].filter(Boolean).join(' '))
-            requestAnimationFrame(() => textareaRef.current?.focus())
-          }}
-        />
         <button
           type="submit"
           className="composer__send"
-          disabled={busy || submitting || disabled || !text.trim()}
+          disabled={busy || submitting || disabled || capturing || !text.trim()}
           aria-label={busy ? t('composer.sending') : t('composer.send')}
         >
           {busy ? <span className="spinner" aria-hidden="true" /> : <Icon name="send" size={18} />}

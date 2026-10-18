@@ -88,7 +88,6 @@ button { min-inline-size: 44px; min-block-size: 44px; }
 .tool-card pre { white-space: pre-wrap; font-size: var(--text-xs); }
 .tool-card__allowed { color: var(--success); }
 .tool-card__refused { color: var(--danger); }
-.hero__artwork { inline-size: min(420px, 100%); block-size: 150px; object-fit: cover; border-radius: var(--radius-m); margin-block-end: var(--space-5); }
 .install-card > p { margin-block-end: var(--space-3); }
 .install-card ul { padding-inline-start: var(--space-5); margin-block-end: var(--space-4); color: var(--text-muted); }
 .install-card li + li { margin-block-start: var(--space-2); }
@@ -102,7 +101,6 @@ button { min-inline-size: 44px; min-block-size: 44px; }
   .decision__facts div { grid-column: 1 / -1; }
   .dialog__actions { flex-wrap: wrap; }
   .approval-inbox .panel__header { flex-wrap: wrap; }
-  .hero__artwork { block-size: 110px; inline-size: min(320px, 100%); }
   .result-card .btn { inline-size: 100%; justify-content: center; }
   .dialog { padding-block-end: max(var(--space-5), env(safe-area-inset-bottom)); }
 }

@@ -1,54 +1,62 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useI18n } from '../../i18n'
 import { Icon } from '../../shared/components/Icon'
 
-/** Optional browser text-to-speech for a user-selected agent reply.
- * It never starts on its own or executes the reply's contents as actions. */
+// Ownership is shared so selecting a different reply also resets the old UI.
+let stopCurrent: (() => void) | null = null
+
 export function VoicePlayback({ text }: { text: string }) {
   const { t } = useI18n()
-  const [speaking, setSpeaking] = useState(false)
-  const [error, setError] = useState(false)
+  const [state, setState] = useState<'idle' | 'queued' | 'speaking' | 'error'>('idle')
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const active = state === 'queued' || state === 'speaking'
 
-  useEffect(() => () => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel()
+  function release() {
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = null
+    const utterance = utteranceRef.current
+    if (utterance) utterance.onstart = utterance.onend = utterance.onerror = null
+    utteranceRef.current = null
+    if (stopCurrent === stop) {
+      stopCurrent = null
+      window.speechSynthesis?.cancel()
     }
-  }, [])
+  }
+  const stop = useCallback(() => { release(); setState('idle') }, [])
+  useEffect(() => () => release(), [text])
 
   function toggle() {
-    if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
-      setError(true)
-      return
-    }
-    const engine = window.speechSynthesis
-    if (speaking) {
-      engine.cancel()
-      setSpeaking(false)
-      return
-    }
+    if (active) { stop(); return }
+    if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) { setState('error'); return }
     if (!text.trim()) return
-    engine.cancel()
+    stopCurrent?.()
     const utterance = new SpeechSynthesisUtterance(text.slice(0, 1800))
     utterance.lang = /[\u0600-\u06ff]/.test(text) ? 'ar-AE' : 'en-US'
     utterance.rate = 0.95
-    utterance.onend = () => setSpeaking(false)
-    utterance.onerror = () => { setSpeaking(false); setError(true) }
-    try {
-      engine.speak(utterance)
-      setSpeaking(true)
-      setError(false)
-    } catch {
-      setError(true)
+    utteranceRef.current = utterance
+    stopCurrent = stop
+    const fail = () => { release(); setState('error') }
+    utterance.onstart = () => {
+      if (utteranceRef.current !== utterance) return
+      if (timer.current) clearTimeout(timer.current)
+      setState('speaking')
     }
+    utterance.onend = () => { release(); setState('idle') }
+    utterance.onerror = fail
+    setState('queued')
+    timer.current = setTimeout(fail, 10000)
+    try { window.speechSynthesis.speak(utterance) } catch { fail() }
   }
-
   return <>
     <button type="button" className="msg__copy" onClick={toggle}
-      aria-label={speaking ? t('voice.stopReading') : t('voice.readReply')}
-      aria-pressed={speaking}>
-      <Icon name={speaking ? 'volumeOff' : 'volume'} size={15} />
-      {speaking ? t('voice.stopReading') : t('voice.readReply')}
+      aria-label={active ? t('voice.stopReading') : t('voice.readReply')} aria-pressed={active}>
+      <Icon name={active ? 'volumeOff' : 'volume'} size={15} />
+      {active ? t('voice.stopReading') : t('voice.readReply')}
     </button>
-    {error ? <span role="status">{t('voice.playbackUnavailable')}</span> : null}
+    {state !== 'idle' ? <span className="msg__source" role="status">{t(
+      state === 'error' ? 'voice.playbackUnavailable' : state === 'queued' ? 'voice.playbackQueued' : 'voice.playing'
+    )}</span> : null}
+    {active && text.length > 1800 ? <span className="msg__source">{t('voice.playbackLimit')}</span> : null}
   </>
 }

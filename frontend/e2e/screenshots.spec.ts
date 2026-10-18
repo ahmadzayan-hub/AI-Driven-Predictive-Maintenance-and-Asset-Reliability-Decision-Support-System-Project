@@ -46,7 +46,7 @@ test('capture interface screenshots', async ({ page }, testInfo) => {
     await page.getByText('Session health').waitFor()
     await shot('activity-dark')
 
-    await openTab(page, /^Runs/)
+    await openTab(page, /^Analytics/)
     await page.getByRole('button', { name: 'Start run' }).click()
     await page
       .getByRole('region', { name: 'Approval required' })

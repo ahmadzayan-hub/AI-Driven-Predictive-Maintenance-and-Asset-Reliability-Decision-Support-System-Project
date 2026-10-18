@@ -44,8 +44,7 @@ export function useTheme() {
       document.documentElement.dataset.theme = choice
     }
     try {
-      if (choice === 'system') localStorage.removeItem(THEME_KEY)
-      else localStorage.setItem(THEME_KEY, choice)
+      localStorage.setItem(THEME_KEY, choice)
     } catch {
       /* private mode — theme resets next visit */
     }

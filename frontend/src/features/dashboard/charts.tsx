@@ -1,3 +1,4 @@
+import '../../shared/styles/analytics.css'
 /** The dashboard's charts (ADR 0032): drawn as SVG or plain boxes from
  *  design tokens, no library. Each is an image with a text alternative;
  *  the numbers, and the way to the rows behind them, are in the table
