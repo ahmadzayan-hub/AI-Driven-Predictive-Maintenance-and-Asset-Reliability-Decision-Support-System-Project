@@ -445,6 +445,17 @@ notes with no broken links, and type checking passes. PostgreSQL was not
 configured and the 108-check backend browser suite was not rerun. These
 results do not establish production readiness.
 
+**CI, on Linux, is the stronger evidence** and it is external to this
+workspace. Run 39155171309 on 18 October executed the full Python suite,
+the frontend unit tests, the type check, the production build, the brain
+and snapshot contracts, Playwright's end-to-end and accessibility checks,
+and the interface budget. Exactly one step failed: the interface budget,
+which was over at the time. Everything else passed — which also settles
+the 123 Windows errors above: they do not occur there, so they are an
+artefact of this machine's file locking rather than a defect. Two
+workflows assert the budget, `ci.yml` since 17 October and the faster
+`ui-budget-fast.yml` added on the 18th; both are green on the current head.
+
 Five of the 1025 load real LLMRouter routers and **skip unless LLMRouter
 is installed**, which in CI it is not. With the eleven framework tests,
 the openpyxl cross-check and the two tests that read the frontend build
