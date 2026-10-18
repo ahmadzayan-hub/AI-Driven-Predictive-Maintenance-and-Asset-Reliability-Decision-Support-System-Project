@@ -93,7 +93,7 @@ export function MaintenancePreview() {
     <div className="maintenance__layout" inert={selected !== null}>
       <a className="skiplink" href="#maintenance-main" onClick={(event) => { event.preventDefault(); heading.current?.focus() }}>{t('maint.skip')}</a>
       <aside className="maintenance__rail">
-        <div className="maintenance__brand"><span className="maintenance__brand-mark" aria-hidden="true"><Icon name="activity" size={24} /></span><div><strong>{t('maint.product')}</strong><span>{t('maint.subtitle')}</span></div></div>
+        <div className="maintenance__brand"><span className="maintenance__brand-mark" aria-hidden="true"><img src="/artwork/asset-reliability-mark.svg" alt="" width={37} height={37} /></span><div><strong>{t('maint.product')}</strong><span>{t('maint.subtitle')}</span></div></div>
         <p className="maintenance__rail-label">{t('maint.workspace')}</p>
         <nav aria-label={t('maint.menu')} className="maintenance__nav">{PAGES.map((item) => <button key={item} aria-current={page === item ? 'page' : undefined} onClick={() => setPage(item)}><Icon name={PAGE_ICONS[item]} size={19} /><span>{t(`maint.${item}`)}</span></button>)}</nav>
         <div className="maintenance__rail-secondary"><p className="maintenance__rail-label">{t('maint.manage')}</p><a href="./#/datasets"><Icon name="database" size={18} />{t('maint.sources')}</a><a href="./#/approvals"><Icon name="shield" size={18} />{t('maint.approvals')}</a></div>

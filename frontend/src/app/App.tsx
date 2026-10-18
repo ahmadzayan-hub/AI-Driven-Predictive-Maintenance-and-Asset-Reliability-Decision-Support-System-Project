@@ -284,9 +284,7 @@ export function App() {
       <div className="shell">
         <header className="shell__header">
           <div className="brand">
-            <span className="brand__mark" aria-hidden="true">
-              A
-            </span>
+            <span className="brand__mark" aria-hidden="true"><img src="/artwork/asset-reliability-mark.svg" alt="" width={32} height={32} /></span>
             <span className="brand__name" title={t('brand.fullName')}>{t('brand.name')}</span>
           </div>
           <div className="header__spacer" style={{ flex: 1 }} />
@@ -424,9 +422,7 @@ export function App() {
           <Icon name="menu" />
         </button>
         <div className="brand">
-          <span className="brand__mark" aria-hidden="true">
-            A
-          </span>
+          <span className="brand__mark" aria-hidden="true"><img src="/artwork/asset-reliability-mark.svg" alt="" width={32} height={32} /></span>
           <h1 className="brand__name" title={t('brand.fullName')}>{t('brand.name')}</h1>
         </div>
         <div className="header__search">
