@@ -14,6 +14,7 @@ import { Icon } from '../shared/components/Icon'
 const loaders = {
   approvals: () => import('../features/approvals/ApprovalsView'),
   overview: () => import('../features/overview/OverviewView'),
+  assets: () => import('../features/assets/AssetIntelligenceView'),
   datasets: () => import('../features/datasets/DatasetsView'),
   runs: () => import('../features/runs/RunsView'),
   dashboard: () => import('../features/dashboard/DashboardView'),
@@ -28,6 +29,7 @@ const loaders = {
 
 export const ApprovalsView = lazy(() => loaders.approvals().then((m) => ({ default: m.ApprovalsView })))
 export const OverviewView = lazy(() => loaders.overview().then((m) => ({ default: m.OverviewView })))
+export const AssetIntelligenceView = lazy(() => loaders.assets().then((m) => ({ default: m.AssetIntelligenceView })))
 export const DatasetsView = lazy(() => loaders.datasets().then((m) => ({ default: m.DatasetsView })))
 export const RunsView = lazy(() => loaders.runs().then((m) => ({ default: m.RunsView })))
 export const DashboardView = lazy(() => loaders.dashboard().then((m) => ({ default: m.DashboardView })))
