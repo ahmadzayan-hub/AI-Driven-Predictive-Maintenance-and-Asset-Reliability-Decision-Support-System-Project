@@ -43,6 +43,7 @@ Never publish an HS256 secret, service_role key or `DATABASE_URL`.
 - Confirmed: Supabase project active, 9 tables present, all RLS, direct
   anon/authenticated table SELECT and INSERT denied.
 - Confirmed: Vercel has five encrypted non-activating Auth configuration variables.
+- Confirmed: active ES256 public JWKS endpoint, preview-only `AGENTIC_OS_JWKS_URL` and `AGENTIC_OS_REQUIRE_AUTH=1` encrypted variables.
 - Pending: Secure `DATABASE_URL` transfer via Supabase Connect/Vercel Settings,
   project JWT signing key mode, invited user account, assignment of approved
   engineer/analyst role, restricted email redirects and real-user session QA.
