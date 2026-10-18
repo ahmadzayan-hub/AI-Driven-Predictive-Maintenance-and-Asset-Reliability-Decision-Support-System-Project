@@ -1,0 +1,16 @@
+# Team 3 review ownership (not folder-level access control).
+# IMPORTANT: GitHub requests CODEOWNERS review only when a branch rule requires it.
+# GitHub user must have write access for CODEOWNERS assignment to be effective.
+# Owner remains code owner until invitations are accepted and verified.
+* @ahmadzayan-hub
+/roles/ @ahmadzayan-hub
+/roles/01-zaian-agentic-os-ai/ @ahmadzayan-hub
+/roles/02-rashed-bi-dashboard/ @ahmadzayan-hub @afmrashed84-maker
+/roles/03-malak-data-prep-presentation/ @ahmadzayan-hub @malakphilippe
+/roles/04-ali-operations/ @ahmadzayan-hub @bioengali
+# Khaled's GitHub username has not been verified; update after acceptance.
+/roles/05-khaled-cost-finance/ @ahmadzayan-hub
+# Engineering paths require owner review pending dedicated technical reviewers.
+/server/ @ahmadzayan-hub
+/tests/ @ahmadzayan-hub
+/.github/ @ahmadzayan-hub
