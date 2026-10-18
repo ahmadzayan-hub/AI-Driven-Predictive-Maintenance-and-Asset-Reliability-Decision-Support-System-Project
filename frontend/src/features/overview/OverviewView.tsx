@@ -121,8 +121,9 @@ export function OverviewView({ onOpenRun, onStart, onApprovals }: OverviewViewPr
         <div className="panel__inner panel__inner--wide">
           {header}
           <div className="card empty">
+            <img className="overview__onboarding-art" src="/artwork/asset-reliability-hero.svg" alt="" width={800} height={206} loading="lazy" />
             <div className="empty__icon">
-              <Icon name="dashboard" size={32} />
+              <img src="/artwork/asset-intelligence-icon.svg" alt="" width={32} height={32} />
             </div>
             <h3 className="empty__title">{t('overview.emptyTitle')}</h3>
             <p className="empty__text">{t('overview.emptyText')}</p>
