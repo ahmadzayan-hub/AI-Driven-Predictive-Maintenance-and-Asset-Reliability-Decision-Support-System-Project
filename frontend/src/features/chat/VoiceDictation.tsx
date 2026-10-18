@@ -57,9 +57,21 @@ export function VoiceDictation({ language, disabled, onTranscript }: DictationPr
     }
   }, [])
 
+  // Session end or offline transition must terminate an active microphone.
+  useEffect(() => {
+    if (disabled && recognitionRef.current) {
+      recognitionRef.current.stop()
+      recognitionRef.current = null
+      setListening(false)
+      setMessage('')
+    }
+  }, [disabled])
+
   function stop() {
     recognitionRef.current?.stop()
+    recognitionRef.current = null
     setListening(false)
+    setMessage('')
   }
 
   function start() {
@@ -90,6 +102,7 @@ export function VoiceDictation({ language, disabled, onTranscript }: DictationPr
       recognition.onend = () => {
         setListening(false)
         recognitionRef.current = null
+        setMessage((current) => current === t('voice.listening') ? '' : current)
       }
       recognitionRef.current = recognition
       recognition.start()
