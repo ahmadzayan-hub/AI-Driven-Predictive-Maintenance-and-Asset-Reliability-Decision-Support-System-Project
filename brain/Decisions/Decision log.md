@@ -58,5 +58,15 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 | 0041 | The shipped configuration registers every stage, and a derived label's threshold is set on the training rows alone | [[Custom stages]], [[Governed pipeline]] |
 | 0042 | An unmeasured cell is not a zero: a per-KPI missing-value policy with disclosed counts | [[Weighted KPIs]], [[Governed pipeline]] |
 | 0043 | The repository takes the product's name; historical links stay where the work happened | [[Agentic OS]] |
+| 0044 | The vault path comes from the environment | [[Governed pipeline]] |
+| 0045 | Railway Asset Manager decision-screening contract | [[Custom stages]], [[Governed pipeline]] |
+| 0046 | Opt-in maintenance decision profile | [[Custom stages]], [[Governed pipeline]] |
+| 0047 | Reconciling the two histories in one repository | [[Agentic OS]] |
+| 0048 | Distinctive brand integration with explicit agent-evidence gates | [[Design system]], [[House style]], [[Agent evaluation]] |
+| 0049 | The KPI register reaches a run | [[Weighted KPIs]], [[Governed pipeline]] |
+| 0050 | Bounded voice companion rather than cloning JARVIS | [[Agent runtimes and MCP]] |
+| 0051 | The executive view reads measurements, not fixtures | [[Weighted KPIs]], [[Design system]] |
+| 0052 | Bounded serverless event streams | [[Governed pipeline]] |
+| 0053 | Dedicated Supabase data plane and managed Auth bootstrap (renumbered from a duplicate 0046) | [[Agentic OS]] |
 
 All seven [[Analytics OS roadmap]] milestones have their records.

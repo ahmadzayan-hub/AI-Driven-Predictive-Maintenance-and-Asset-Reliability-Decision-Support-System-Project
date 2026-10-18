@@ -369,3 +369,26 @@ required local files. Both behaviors are covered by tests
     show that count, or it re-creates the defect one layer up. Whether a
     blank in a particular source means "none happened" is a question for
     that source's owner and is declared per KPI.
+
+-   **A child interpreter can fail to start under full-suite load on
+    Windows.** `tests/test_backup.test_a_destroyed_database_is_rebuilt_from_a_backup`
+    runs `backup.py` as a subprocess, and on this workspace that child
+    sometimes dies before any of its code executes:
+    `Fatal Python error: _Py_HashRandomization_Init: failed to get random
+    numbers to initialize Python`. The interpreter is asking the operating
+    system for entropy to seed hash randomisation and not getting it. No
+    change to `backup.py` can address this, because `backup.py` never runs;
+    a child Python launched from an idle shell starts normally, so it is
+    resource pressure during the full suite rather than a defect in the
+    script or the test. The assertion was deliberately left strict: relaxing
+    it would turn a red run green without making anything work. CI on Linux
+    is the authority for this test. Verified 19 October 2026.
+
+-   **The interface budget passes with almost no headroom.** As of
+    19 October 2026: css first load 10.0 of 10 KB, css total 16.0 of 16 KB,
+    fonts 119.4 of 120 KB, js total 157.6 of 160 KB, js first load 98.6 of
+    100 KB. Three of the six measures are at or within 0.6 KB of their
+    limit, so the next stylesheet rule or font subset breaks the gate. The
+    sanctioned responses are unchanged: trim, or record a justified budget
+    change in an ADR. Raising a limit to make a failing run pass is not one
+    of them.
