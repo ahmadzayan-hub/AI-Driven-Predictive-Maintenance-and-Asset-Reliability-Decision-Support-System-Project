@@ -48,7 +48,7 @@ python scripts/evaluate_agents.py --check [--html r.html] # every agent's confus
 
 ## Rules
 
-- Follow `brain/Soul.md`. In short: no secrets anywhere in Git; raw data never goes to a model; no force-push, history rewriting or branch deletion; no production deploy or push to another branch without explicit permission; no pull request unless asked; no fabricated numbers, screenshots or URLs.
+- Follow `brain/Soul.md`. In short: no secrets anywhere in Git; raw data never goes to a model; no force-push, history rewriting or branch deletion; no production deploy without explicit permission; no pull request unless asked; **`main` is the exception — the owner gave standing permission on 18 October for each session to end by merging there, fetching and integrating first**; no fabricated numbers, screenshots or URLs.
 - The repository is public. Course files, registration numbers and other people's personal data never go in it; use the git-ignored `private/` folders.
 - A behaviour change needs an ADR and tests. Docs that state counts or limits are tested by `tests/test_docs.py`.
 - Every user-facing string ships in English and Arabic.
