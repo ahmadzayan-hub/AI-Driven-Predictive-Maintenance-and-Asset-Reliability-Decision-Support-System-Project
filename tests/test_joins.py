@@ -8,6 +8,7 @@ recount the rows itself. The API is tested on SQLite and PostgreSQL, and
 across the tenant boundary.
 """
 
+import contextlib
 import json
 import sqlite3
 import tempfile
@@ -287,7 +288,7 @@ class JoinApiTestCase(unittest.TestCase):
         config.update(self.database_config())
         path = self.root / "config.json"
         path.write_text(json.dumps(config), encoding="utf-8")
-        self.app = create_app(path)
+        self.app = closing(self, create_app(path))
         self.client = TestClient(self.app, raise_server_exceptions=False)
 
     def upload(self, text, name):
@@ -550,10 +551,13 @@ class JoinMigrationTests(unittest.TestCase):
               created_at TEXT NOT NULL, updated_at TEXT NOT NULL, error TEXT)""")
             conn.commit()
             conn.close()
-            open_store(sqlite_path=str(path))
-            names = [row[1] for row in sqlite3.connect(path).execute("PRAGMA table_info(runs)")]
+            with contextlib.closing(open_store(sqlite_path=str(path))):
+                pass
+            with contextlib.closing(sqlite3.connect(path)) as probe:
+                names = [row[1] for row in probe.execute("PRAGMA table_info(runs)")]
             self.assertIn("joins_json", names)
-            open_store(sqlite_path=str(path))  # repeatable
+            with contextlib.closing(open_store(sqlite_path=str(path))):
+                pass  # repeatable
 
 
 if __name__ == "__main__":

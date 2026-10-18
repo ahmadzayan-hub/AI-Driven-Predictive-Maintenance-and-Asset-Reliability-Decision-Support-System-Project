@@ -6,6 +6,7 @@ mapped data and on unmapped data, which must run exactly as before. The
 API is tested on SQLite and PostgreSQL, and across the tenant boundary.
 """
 
+import contextlib
 import csv
 import io
 import json
@@ -308,7 +309,7 @@ class MappingApiTestCase(unittest.TestCase):
         config.update(self.database_config())
         path = self.root / "config.json"
         path.write_text(json.dumps(config), encoding="utf-8")
-        self.app = create_app(path)
+        self.app = closing(self, create_app(path))
         self.client = TestClient(self.app, raise_server_exceptions=False)
 
     def upload(self, text, name="shop.csv"):
@@ -567,12 +568,15 @@ class MappingMigrationTests(unittest.TestCase):
                          "'local-owner','2026-01-01T00:00:00+00:00')")
             conn.commit()
             conn.close()
-            store = open_store(sqlite_path=str(path))
-            self.assertIsNone(store.list_datasets("local-owner")[0]["mapping_updated_at"])
-            self.assertIn("mapping_json", store.get_dataset("d1"))
-            names = [row[1] for row in sqlite3.connect(path).execute("PRAGMA table_info(runs)")]
+            with contextlib.closing(open_store(sqlite_path=str(path))) as store:
+                self.assertIsNone(
+                    store.list_datasets("local-owner")[0]["mapping_updated_at"])
+                self.assertIn("mapping_json", store.get_dataset("d1"))
+            with contextlib.closing(sqlite3.connect(path)) as probe:
+                names = [row[1] for row in probe.execute("PRAGMA table_info(runs)")]
             self.assertIn("mapping_json", names)
-            open_store(sqlite_path=str(path))  # repeatable
+            with contextlib.closing(open_store(sqlite_path=str(path))):
+                pass  # repeatable
 
 
 if __name__ == "__main__":

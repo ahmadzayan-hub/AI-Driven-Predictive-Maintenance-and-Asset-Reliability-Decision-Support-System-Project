@@ -27,7 +27,7 @@ if FASTAPI_AVAILABLE:
     from server.app import create_app
 
 from server import analytics
-from tests.support import closing
+from tests.support import closing, closing_store
 from server.backup import (BACKUP_VERSION, backup_counts, create_backup,
                            open_configured_store, restore_backup)
 from server.storage import TABLES
@@ -49,7 +49,17 @@ class BackupRestoreTestCase(unittest.TestCase):
         return {"database_file": str(self.root / "agentic.db")}
 
     def wipe_database(self):
-        """Destroy the database the way an incident would."""
+        """Destroy the database the way an incident would.
+
+        An incident takes the file once the process holding it is gone, so
+        the open handles are released first. Windows refuses to unlink a
+        file another handle still has open, and `close` is idempotent.
+        """
+        client = getattr(self, "client", None)
+        store = getattr(getattr(getattr(client, "app", None), "state", None),
+                        "store", None)
+        if store is not None and callable(getattr(store, "close", None)):
+            store.close()
         for suffix in ("", "-wal", "-shm"):
             Path(str(self.root / "agentic.db") + suffix).unlink(missing_ok=True)
 
@@ -313,13 +323,14 @@ class CrossDialectRestoreTestCase(unittest.TestCase):
                 break
         self.assertEqual(run["state"], "awaiting_approval")
 
-        payload = create_backup(open_store(None, root / "agentic.db"))
+        payload = create_backup(
+            closing_store(self, open_store(None, root / "agentic.db")))
 
         conn = psycopg2.connect(PG_TEST_URL)
         conn.autocommit = True
         conn.cursor().execute(f"DROP TABLE IF EXISTS {', '.join(TABLES)} CASCADE")
         conn.close()
-        restore_backup(open_store(PG_TEST_URL), payload)
+        restore_backup(closing_store(self, open_store(PG_TEST_URL)), payload)
 
         hosted_config = root / "hosted.json"
         hosted_config.write_text(json.dumps({

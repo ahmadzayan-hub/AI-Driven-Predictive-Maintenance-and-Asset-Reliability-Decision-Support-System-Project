@@ -18,7 +18,7 @@ if FASTAPI_AVAILABLE:
     from server.app import create_app
 
 from server import analytics
-from tests.support import closing
+from tests.support import closing, closing_store
 from server.model_gateway import ModelGateway
 from server.runs import RunEngine
 from server.storage import TABLES, open_store
@@ -61,8 +61,8 @@ class WorkerTestCase(unittest.TestCase):
     def new_worker(self, worker_id, clock=None, lease_seconds=30):
         """A worker in its own process-equivalent: its own store handle."""
         config = json.loads(self.config_path.read_text(encoding="utf-8"))
-        store = open_store(config.get("database_url"),
-                           config.get("database_file"))
+        store = closing_store(self, open_store(config.get("database_url"),
+                                              config.get("database_file")))
         engine = RunEngine(store, self.vault, ModelGateway())
         return RunWorker(engine, store, worker_id=worker_id,
                          lease_seconds=lease_seconds,

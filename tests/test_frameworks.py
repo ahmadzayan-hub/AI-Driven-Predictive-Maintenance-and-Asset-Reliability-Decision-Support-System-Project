@@ -20,6 +20,7 @@ from server.model_gateway import ModelGateway
 from server.runs import RunEngine
 from server.storage import open_store
 from server.tools import ToolBox
+from tests.support import closing_store
 
 try:
     import langgraph  # noqa: F401
@@ -42,8 +43,16 @@ class FakeSession:
         self.id = "thread-1"
 
 
-def workspace(directory, stages=None):
+def workspace(directory, stages=None, case=None):
+    """A runtime workspace over a throwaway store.
+
+    Pass `case` to have the connection closed in that test's teardown,
+    so an unclosed store does not turn a passing test into a cleanup
+    ERROR on Windows.
+    """
     store = open_store(None, Path(directory) / "agentic.db")
+    if case is not None:
+        closing_store(case, store)
     engine = RunEngine(store, Path(directory) / "vault", ModelGateway(env={}),
                        stages=stages or {})
     session = FakeSession(Agent({"agent_name": "Agentic OS", "version": "1.0.0"}))
@@ -76,7 +85,7 @@ class LangGraphRuntimeTestCase(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
-        self.engine, self.assistant, self.session = workspace(self.tmp.name)
+        self.engine, self.assistant, self.session = workspace(self.tmp.name, case=self)
 
     def context(self, ask):
         return {"language": "en", "notes": "Context: none", "thread_id": self.session.id,
@@ -141,7 +150,7 @@ class PydanticAIRuntimeTestCase(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
-        self.engine, self.assistant, self.session = workspace(self.tmp.name)
+        self.engine, self.assistant, self.session = workspace(self.tmp.name, case=self)
 
     @staticmethod
     def model(turns):
@@ -206,7 +215,7 @@ class GraphStageTestCase(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
 
     def run_with(self, stage):
-        engine, _, _ = workspace(self.tmp.name, stages={stage.role: stage})
+        engine, _, _ = workspace(self.tmp.name, stages={stage.role: stage}, case=self)
         run = engine.create_run("Analyse the sample sales dataset")
         return engine, settle(engine, run["id"])
 

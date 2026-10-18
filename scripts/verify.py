@@ -181,6 +181,17 @@ def main(argv=None):
     mode.add_argument("--e2e", action="store_true", help="also run the Playwright suite")
     parser.add_argument("--list", action="store_true", help="print the steps and exit")
     args = parser.parse_args(argv)
+    # A step's own output is quoted back in the summary line, and a suite that
+    # printed an undecodable byte leaves U+FFFD in it. A Windows console is
+    # cp1252 by default, which cannot encode that character, so printing the
+    # line raised UnicodeEncodeError and killed the run -- after step one, with
+    # the remaining steps never run and nothing saying so. Report the steps in
+    # whatever the console can take rather than stop reporting.
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
     group = "quick" if args.quick else "e2e" if args.e2e else "full"
     chosen = [s for s in steps() if group in s.groups]
 
