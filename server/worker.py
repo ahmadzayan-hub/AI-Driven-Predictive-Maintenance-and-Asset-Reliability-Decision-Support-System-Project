@@ -35,7 +35,7 @@ from server.connectors import Connectors
 from server.model_gateway import ModelGateway
 from server.routing import RoutedGateway, build_router
 from server.stages import load_stages
-from server.runs import RunEngine, _stamp, _utcnow
+from server.runs import RunEngine, _stamp, _utcnow, resolve_vault_dir
 from server.storage import open_store
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -163,7 +163,7 @@ def build_worker(env=None, config_path=None, **kwargs):
     stage_registry, stage_problems = load_stages(env, config)
     for stage_problem in stage_problems:
         print(stage_problem, file=sys.stderr, flush=True)
-    engine = RunEngine(store, config.get("vault_dir") or PROJECT_ROOT / "vault",
+    engine = RunEngine(store, resolve_vault_dir(config=config),
                        gateway, stages=stage_registry,
                        profiles=config.get("profiles") or {})
     return RunWorker(engine, store, connectors=Connectors(engine, env=env), **kwargs)

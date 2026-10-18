@@ -7,9 +7,21 @@ instructions.
 
 ## What is implemented
 
-- The `vault/` folder (configurable via `vault_dir` in `config.json`) is a
-  plain markdown vault: open it directly in Obsidian (`Open folder as
-  vault`).
+- The vault is a plain markdown folder: open it directly in Obsidian
+  (`Open folder as vault`). It is the repository's `vault/` unless you
+  point the engine somewhere else, which is how you publish straight
+  into a vault you already keep (ADR 0044):
+
+  ```bash
+  AGENTIC_OS_VAULT_DIR="~/Documents/Obsidian Vault" python scripts/serve.py
+  ```
+
+  `AGENTIC_OS_VAULT_DIR` wins over `vault_dir` in `config.json`, which
+  wins over `vault/`. Prefer the variable: `config.json` is tracked in a
+  public repository and a vault path usually holds your user name. `~` is
+  expanded, a relative path resolves against the repository, and the
+  folder is created if it does not exist. The server, the worker and the
+  MCP server all read the same setting, so they publish to one place.
 - Approving a run's publish step writes exactly two notes:
   - `vault/Reports/<goal-slug>-<run-id>.md` — the full report with YAML
     provenance frontmatter (`type`, `run`, `generated`, `status:

@@ -39,7 +39,8 @@ from server.connectors import Busy, ConnectorError, Connectors, TooSoon
 from server.model_gateway import ModelGateway
 from server.routing import RoutedGateway, build_router
 from server.stages import describe, load_stages
-from server.runs import RunEngine, TableNotReady, dataset_summary
+from server.runs import (RunEngine, TableNotReady, dataset_summary,
+                         resolve_vault_dir)
 from server.auth import AuthError, build_identity, public_auth_config
 from server.quota import QuotaExceeded, load_limits
 from server.quota import usage as quota_usage
@@ -334,7 +335,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
     app.state.stage_problems = stage_problems
     engine = RunEngine(
         store,
-        config.get("vault_dir") or PROJECT_ROOT / "vault",
+        resolve_vault_dir(env, config),
         gateway,
         limits=limits,
         stages=stage_registry,
