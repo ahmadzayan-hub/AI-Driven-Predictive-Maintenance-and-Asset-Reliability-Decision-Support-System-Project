@@ -13,6 +13,7 @@ import { languageLabel, toneLabel } from '../shared/labels'
 import type { CommandInfo } from '../shared/types'
 import {
   ActivityView,
+  AssetIntelligenceView,
   ApprovalsView,
   CommandPalette,
   DatasetsView,
@@ -49,6 +50,7 @@ const NAV_GROUPS: Array<{ id: string; label: MessageKey | null; items: NavItem[]
     label: 'nav.analyse',
     items: [
       { id: 'overview', label: 'nav.overview', icon: 'dashboard' },
+      { id: 'assets', label: 'nav.assets', icon: 'activity' },
       { id: 'datasets', label: 'nav.datasets', icon: 'database' },
       { id: 'runs', label: 'nav.runs', icon: 'sparkle' },
       { id: 'dashboard', label: 'nav.dashboard', icon: 'dashboard' },
@@ -487,6 +489,10 @@ export function App() {
         <main className="main" id="workspace-main" inert={drawerOpen} tabIndex={-1} key={`${session.session_id}:${store.identity?.principal.subject ?? 'local'}:${store.identity?.principal.role ?? 'local'}`}>
           {pane('overview', (
             <OverviewView onOpenRun={openRun} onStart={startAnalysis} onApprovals={() => go('approvals')} onOpenDashboard={() => go('dashboard')} />
+          ))}
+          {pane('assets', (
+            <AssetIntelligenceView onOpenRun={openRun}
+              onUpload={() => startAnalysis({ kind: 'upload' })} />
           ))}
           {pane('datasets', (
             <DatasetsView
