@@ -23,7 +23,7 @@ if FASTAPI_AVAILABLE:
 
     from server.app import create_app
 
-from tests.support import closing
+from tests.support import closing, closing_store
 from server.auth import issue_local_test_token
 from server.storage import RESTORE_ORDER, open_store
 
@@ -186,6 +186,10 @@ class MemoryMigrationTestCase(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.path = Path(self.tmp.name) / "agentic.db"
 
+    def opened(self):
+        """A store over the migrated database, closed before the directory goes."""
+        return closing_store(self, open_store(None, self.path))
+
     def old_database(self):
         """A database as it was written before memory had an owner."""
         import sqlite3
@@ -202,7 +206,7 @@ class MemoryMigrationTestCase(unittest.TestCase):
 
     def test_memories_written_before_owners_existed_survive(self):
         self.old_database()
-        store = open_store(None, self.path)   # opening runs the migration
+        store = self.opened()   # opening runs the migration
         remembered = store.memory_load("local-owner")
         self.assertEqual(len(remembered), 2)
         self.assertEqual(remembered["memory_1"]["text"], "A fact from before")
@@ -212,8 +216,8 @@ class MemoryMigrationTestCase(unittest.TestCase):
         """Every start-up runs it. The second one must be a no-op, not a
         second rebuild that copies rows onto themselves."""
         self.old_database()
-        open_store(None, self.path)
-        store = open_store(None, self.path)
+        self.opened()
+        store = self.opened()
         self.assertEqual(len(store.memory_load("local-owner")), 2)
         leftovers = store._exec(
             "SELECT name FROM sqlite_master WHERE type = 'table' "
@@ -223,7 +227,7 @@ class MemoryMigrationTestCase(unittest.TestCase):
 
     def test_a_migrated_database_can_hold_two_owners(self):
         self.old_database()
-        store = open_store(None, self.path)
+        store = self.opened()
         store.memory_save({"memory_1": {"text": "Bob's", "category": "General",
                                         "updated": "2026-02-01"}}, "bob")
         self.assertEqual(store.memory_load("local-owner")["memory_1"]["text"],

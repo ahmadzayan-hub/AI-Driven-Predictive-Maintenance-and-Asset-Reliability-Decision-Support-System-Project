@@ -29,7 +29,7 @@ from pathlib import Path
 
 from examples.stages.target_attainment import TargetAttainment
 from server import analytics
-from tests.support import closing
+from tests.support import closing, closing_store
 from server.model_gateway import ModelGateway
 from server.runs import RunEngine
 from server.stages import (ContractViolation, check_descriptor, describe,
@@ -318,7 +318,7 @@ class GovernanceTestCase(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
 
     def run_with(self, *stages, profiles=None, profile=None):
-        engine = engine_in(self.tmp.name, registry(*stages), profiles)
+        engine = engine_in(self.tmp.name, registry(*stages), profiles, case=self)
         run = engine.create_run("Analyse the sample sales dataset", profile=profile)
         return engine, settle(engine, run["id"])
 
@@ -403,7 +403,7 @@ class GovernanceTestCase(unittest.TestCase):
         # A stage that appended its own certified "revenue" to it would
         # have every later report say so — unless it was handed a copy.
         # Removing the deepcopy in _advance_custom fails this test.
-        store = open_store(None, Path(self.tmp.name) / "agentic.db")
+        store = closing_store(self, open_store(None, Path(self.tmp.name) / "agentic.db"))
         engine = RunEngine(store, Path(self.tmp.name) / "vault", ModelGateway(env={}),
                            glossary={"metrics": [], "problems": []},
                            stages=registry(GlossaryHijacker("hijacker")))
@@ -449,7 +449,7 @@ class GovernanceTestCase(unittest.TestCase):
     def test_profiles_choose_which_custom_stages_run(self):
         profiles = {"default": [], "targets": ["target_attainment"]}
         stages = registry(TargetAttainment(target=1))
-        engine = engine_in(self.tmp.name, stages, profiles)
+        engine = engine_in(self.tmp.name, stages, profiles, case=self)
 
         plain = engine.create_run("Goal")
         self.assertNotIn("target_attainment", [t["role"] for t in plain["tasks"]])
@@ -461,17 +461,17 @@ class GovernanceTestCase(unittest.TestCase):
         self.assertIn("targets", str(caught.exception))
 
         # No profiles configured: every registered stage runs.
-        every = engine_in(self.tmp.name + "", stages)
+        every = engine_in(self.tmp.name + "", stages, case=self)
         self.assertEqual(every.custom_roles_for(None), ["target_attainment"])
 
     def test_a_profile_naming_an_unregistered_stage_is_refused(self):
-        engine = engine_in(self.tmp.name, {}, {"default": ["ghost"]})
+        engine = engine_in(self.tmp.name, {}, {"default": ["ghost"]}, case=self)
         with self.assertRaises(ValueError) as caught:
             engine.create_run("Goal")
         self.assertIn("not registered: ghost", str(caught.exception))
 
     def test_a_run_whose_stage_was_unregistered_says_so(self):
-        engine = engine_in(self.tmp.name, registry(Stage("gone")))
+        engine = engine_in(self.tmp.name, registry(Stage("gone")), case=self)
         run = engine.create_run("Goal")
         engine.stages.clear()
         for _ in range(40):

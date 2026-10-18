@@ -51,14 +51,13 @@ class BackupRestoreTestCase(unittest.TestCase):
     def wipe_database(self):
         """Destroy the database the way an incident would.
 
-        An incident takes the file once the process holding it is gone, so
-        the open handles are released first. Windows refuses to unlink a
-        file another handle still has open, and `close` is idempotent.
+        An incident takes the file once the processes holding it are gone,
+        so every handle this test opened is released first - earlier
+        clients, and the stores the test opened itself, not just the
+        latest client. Windows refuses to unlink a file another handle
+        still has open, and `close` is idempotent.
         """
-        client = getattr(self, "client", None)
-        store = getattr(getattr(getattr(client, "app", None), "state", None),
-                        "store", None)
-        if store is not None and callable(getattr(store, "close", None)):
+        for store in self.handles:
             store.close()
         for suffix in ("", "-wal", "-shm"):
             Path(str(self.root / "agentic.db") + suffix).unlink(missing_ok=True)
@@ -66,6 +65,7 @@ class BackupRestoreTestCase(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp_dir.cleanup)
+        self.handles = []
         self.root = Path(self.temp_dir.name)
         self.vault = self.root / "vault"
         self.config_path = self.root / "config.json"
@@ -80,11 +80,17 @@ class BackupRestoreTestCase(unittest.TestCase):
 
     def new_client(self):
         """A fresh application instance over the same database."""
-        return TestClient(closing(self, create_app(self.config_path)),
-                          raise_server_exceptions=False)
+        app = closing(self, create_app(self.config_path))
+        store = getattr(getattr(app, "state", None), "store", None)
+        if store is not None:
+            self.handles.append(store)
+        return TestClient(app, raise_server_exceptions=False)
 
     def store(self):
-        return open_configured_store(env={}, config_path=self.config_path)
+        store = closing_store(
+            self, open_configured_store(env={}, config_path=self.config_path))
+        self.handles.append(store)
+        return store
 
     # -- helpers ----------------------------------------------------------
     def advance_until(self, run_id, stop_states, limit=None):
