@@ -16,6 +16,10 @@ describe('run evidence status', () => {
   it('shows unavailable when no run has been inspected', () => {
     expect(summarizeRunEvidence(null).status).toBe('unavailable')
   })
+  it('fails closed for older responses with no task array', () => {
+    const incomplete = {} as Pick<import('../../shared/types').RunDetail, 'tasks'>
+    expect(summarizeRunEvidence(incomplete)).toEqual({ status: 'pending', completed: 0, total: 0 })
+  })
   it('does not claim success without independent validator evidence', () => {
     expect(summarizeRunEvidence({ tasks: [task('planner', 'succeeded')] }).status).toBe('pending')
     expect(summarizeRunEvidence({ tasks: [task('validator', 'succeeded')] }).status).toBe('pending')
