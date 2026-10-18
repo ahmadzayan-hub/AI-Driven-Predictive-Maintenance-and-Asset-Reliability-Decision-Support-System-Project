@@ -96,6 +96,28 @@ SCHEMA_STATEMENTS = [
 
 
 class SqlStore:
+    """Shared SQL behaviour. Subclasses supply the connection and dialect."""
+
+    def close(self):
+        """Release the connection.
+
+        Windows will not delete a file another handle still has open, so
+        a test that drops its temporary directory while the database is
+        connected fails in cleanup with WinError 32 - noise that buries
+        whatever the test was actually asserting. Closing is cheap and
+        idempotent; callers that never close are unaffected.
+        """
+        connection = getattr(self, "_conn", None)
+        if connection is None:
+            return
+        try:
+            connection.close()
+        except Exception:
+            # Already closed, or a backend mid-reconnect. Nothing here is
+            # worth failing a teardown over.
+            pass
+        self._conn = None
+
     """Dialect-neutral SQL access. Subclasses provide the connection and
     the parameter placeholder."""
 

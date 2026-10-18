@@ -19,6 +19,7 @@ from pathlib import Path
 import assistant
 from agent import Agent
 from server import analytics
+from tests.support import closing
 from server.assistant import Assistant
 from server.model_gateway import ModelGateway
 from server.runs import RunEngine
@@ -511,7 +512,7 @@ class AssistantApiTestCase(unittest.TestCase):
             "database_file": str(root / "agentic.db"),
             "vault_dir": str(root / "vault"),
         }), encoding="utf-8")
-        self.client = TestClient(create_app(config), raise_server_exceptions=False)
+        self.client = TestClient(closing(self, create_app(config)), raise_server_exceptions=False)
         self.sid = self.client.post("/api/sessions").json()["session_id"]
 
     def send(self, text):

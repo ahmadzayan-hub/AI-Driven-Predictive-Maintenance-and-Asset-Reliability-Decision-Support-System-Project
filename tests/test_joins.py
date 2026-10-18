@@ -23,6 +23,7 @@ if FASTAPI_AVAILABLE:
 
     from server.app import create_app
 
+from tests.support import closing
 from server.auth import issue_local_test_token
 
 SECRET = "joins-test-secret-not-used-anywhere-else"
@@ -491,8 +492,8 @@ class JoinTenancyTests(unittest.TestCase):
         path.write_text(json.dumps({"agent_name": "T", "database_file": str(root / "a.db"),
                                     "memory_file": str(root / "m.json"),
                                     "vault_dir": str(root / "v")}), encoding="utf-8")
-        self.client = TestClient(create_app(path, env={
-            "AGENTIC_OS_JWT_SECRET": SECRET, "AGENTIC_OS_ENV": "production"}),
+        self.client = TestClient(closing(self, create_app(path, env={
+            "AGENTIC_OS_JWT_SECRET": SECRET, "AGENTIC_OS_ENV": "production"})),
             raise_server_exceptions=False)
 
     def auth(self, subject, role="owner"):

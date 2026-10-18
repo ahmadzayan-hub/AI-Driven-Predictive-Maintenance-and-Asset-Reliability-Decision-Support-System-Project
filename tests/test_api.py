@@ -1,3 +1,4 @@
+from tests.support import closing
 """Unit tests for the FastAPI adapter in server/app.py.
 
 These tests run the API in-process against a temporary configuration and
@@ -42,7 +43,7 @@ class ApiTestCase(unittest.TestCase):
             ),
             encoding="utf-8",
         )
-        self.client = TestClient(create_app(config_path), raise_server_exceptions=False)
+        self.client = TestClient(closing(self, create_app(config_path)), raise_server_exceptions=False)
 
     def open_session(self):
         response = self.client.post("/api/sessions")
@@ -252,7 +253,7 @@ class ApiTestCase(unittest.TestCase):
                         json={"key": "tone", "value": "formal"})
 
         # Simulate a full restart: a brand-new app over the same config.
-        fresh = TestClient(create_app(self.config_path),
+        fresh = TestClient(closing(self, create_app(self.config_path)),
                            raise_server_exceptions=False)
         restored = fresh.get(f"/api/sessions/{sid}")
         self.assertEqual(restored.status_code, 200)
@@ -330,7 +331,7 @@ class InterfaceServingTestCase(unittest.TestCase):
             "database_file": str(root / "agentic.db"),
             "vault_dir": str(root / "vault"),
         }), encoding="utf-8")
-        self.client = TestClient(create_app(config, dist_dir=dist), raise_server_exceptions=False)
+        self.client = TestClient(closing(self, create_app(config, dist_dir=dist)), raise_server_exceptions=False)
 
     def get(self, path, encoding="gzip"):
         return self.client.get(path, headers={"Accept-Encoding": encoding})

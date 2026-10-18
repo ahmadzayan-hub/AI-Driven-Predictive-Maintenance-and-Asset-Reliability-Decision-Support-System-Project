@@ -18,6 +18,7 @@ if FASTAPI_AVAILABLE:
     from server.app import create_app
 
 from server import analytics
+from tests.support import closing
 from server.model_gateway import ModelGateway
 from server.runs import RunEngine
 from server.storage import TABLES, open_store
@@ -54,7 +55,7 @@ class WorkerTestCase(unittest.TestCase):
                   "vault_dir": str(self.vault)}
         config.update(self.database_config())
         self.config_path.write_text(json.dumps(config), encoding="utf-8")
-        self.client = TestClient(create_app(self.config_path),
+        self.client = TestClient(closing(self, create_app(self.config_path)),
                                  raise_server_exceptions=False)
 
     def new_worker(self, worker_id, clock=None, lease_seconds=30):
@@ -203,7 +204,7 @@ class WorkerTestCase(unittest.TestCase):
     def test_pause_survives_a_restart(self):
         run = self.create_run()
         self.client.post(f"/api/runs/{run['id']}/pause")
-        fresh = TestClient(create_app(self.config_path),
+        fresh = TestClient(closing(self, create_app(self.config_path)),
                            raise_server_exceptions=False)
         self.assertTrue(fresh.get(f"/api/runs/{run['id']}").json()["paused"])
 

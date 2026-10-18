@@ -356,7 +356,7 @@ python main.py
 # mapping, joins, the cleaned-table queries, modelling stages, live sources and the event stream, uneven periods, docs, and the repository's operating system:
 # brain checker, session hooks, the verify script, the motion skill, the
 # agent team's tools, agent evaluation, the house style and the interface
-# budget (1066 tests discovered in the current local suite)
+# budget (1090 tests discovered in the current local suite)
 python -m unittest discover tests
 
 # Frontend unit tests (120 tests)
@@ -406,9 +406,11 @@ run; the complete 108-check backend browser suite was not rerun. The focused
 dataset Python suite reports 55 tests, 9 skipped, OK.
 
 The full local verifier reports **1 of 6 steps failed**: Python tests.
-Its 1066 discovered tests report 2 failures, 259 errors and 140 skipped.
-The failure output includes Windows SQLite cleanup locks and CRLF fixture
-mismatches; the full set of errors has not been individually diagnosed.
+Its 1090 discovered tests report 2 failures, 259 errors and 140 skipped.
+The 17 October project review retained the full output: every reported error
+block ends in a Windows file-lock cleanup exception, and both assertion
+failures are CRLF fixture mismatches. The focused maintenance, detector and
+governance suites pass 68 tests; integration behavior still needs separate checks.
 PostgreSQL was not configured. See the session log for the complete local
 record; these results do not replace earlier CI evidence or establish
 production readiness.

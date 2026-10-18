@@ -65,6 +65,7 @@ class DispatchTestCase(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         store = open_store(None, Path(self.tmp.name) / "agentic.db")
+        self.addCleanup(store.close)
         self.engine = RunEngine(store, Path(self.tmp.name) / "vault", ModelGateway(env={}))
         self.session = FakeSession(Agent({"agent_name": "Agentic OS", "version": "1.0.0"}))
         self.server = McpServer(Assistant(ModelGateway(env={}), self.engine), self.session,
@@ -192,6 +193,7 @@ class StdioTestCase(unittest.TestCase):
         self.assertIn("Analyse the sample sales", responses[3]["result"]["content"][0]["text"])
         # The run went into the same store the web interface reads.
         store = open_store(None, self.root / "agentic.db")
+        self.addCleanup(store.close)
         engine = RunEngine(store, self.root / "vault", ModelGateway(env={}))
         self.assertEqual(len(engine.list_runs(owner="local-owner")), 1)
 

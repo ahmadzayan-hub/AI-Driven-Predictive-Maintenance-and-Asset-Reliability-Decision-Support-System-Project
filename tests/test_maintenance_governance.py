@@ -236,3 +236,111 @@ class ReportTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ---------------------------------------------------------------------------
+# Under the engine (assessment finding R2)
+# ---------------------------------------------------------------------------
+
+try:
+    from tests.test_stages import engine_in, registry, settle, task
+    ENGINE_AVAILABLE = True
+except Exception:  # pragma: no cover - CLI-only environments
+    ENGINE_AVAILABLE = False
+
+
+@unittest.skipUnless(ENGINE_AVAILABLE, "the run engine's test helpers are unavailable")
+class FatalPolicyUnderTheEngineTest(unittest.TestCase):
+    """The configured policy has to be the policy the engine applies.
+
+    The earlier test for this asserted the *stage's returned status* and
+    passed while the run carried on to a report and an approval request,
+    because the engine reads `can_fail_run` off the descriptor and the
+    descriptor still said False. A stage-level assertion cannot see that;
+    only driving the engine can. The assessment reproduced exactly this:
+    task_state=failed, run_state=awaiting_approval, report produced.
+    """
+
+    def setUp(self):
+        import tempfile
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+
+    # A dataset that provably triggers a high-severity finding: one
+    # switch drives the type, the downtime and the failure count, so the
+    # leakage detector fires. Relying on the built-in sample made these
+    # tests skip, which is indistinguishable from passing.
+    @staticmethod
+    def leaky_csv(rows=240):
+        """One switch drives type, downtime and failures, so leakage fires.
+
+        Every row is unique. The cleaner drops duplicates, and an earlier
+        version of this fixture repeated rows until the minority side of
+        the split fell under the detector's floor - so the stage found
+        nothing and the tests below proved nothing.
+        """
+        lines = ["record_id,month,work_order_type,downtime_hours,failure_count"]
+        for i in range(rows):
+            corrective = i % 4 != 0
+            lines.append(
+                f"R{i:04d},2026-{(i % 12) + 1:02d},"
+                f"{'Corrective' if corrective else 'Preventive'},"
+                f"{(10 + i * 0.25) if corrective else 0},"
+                f"{2 if corrective else 0}")
+        return chr(10).join(lines) + chr(10)
+
+    def run_with(self, stage):
+        engine = engine_in(self.tmp.name, registry(stage))
+        self.addCleanup(engine.store.close)
+        run = engine.create_run("Find the largest downtime concentration",
+                                self.leaky_csv(), "leaky.csv")
+        return engine, settle(engine, run["id"])
+
+    def assert_fired(self, run):
+        """The fixture must actually produce the finding under test."""
+        governance = task(run, "maintenance_governance")
+        self.assertEqual(
+            governance["state"], "failed",
+            "the fixture must trigger a high-severity finding, or this test "
+            f"proves nothing (state={governance['state']}, "
+            f"summary={governance.get('summary')!r})")
+        return governance
+
+    def test_the_descriptor_policy_follows_the_configured_option(self):
+        self.assertTrue(MaintenanceGovernance(fail_on_high=True).can_fail_run)
+        self.assertFalse(MaintenanceGovernance().can_fail_run)
+        self.assertTrue(
+            stages.describe(MaintenanceGovernance(fail_on_high=True))["can_fail_run"])
+
+    def test_the_fatal_option_stops_the_run(self):
+        engine, run = self.run_with(MaintenanceGovernance(fail_on_high=True))
+        self.assert_fired(run)
+        self.assertEqual(run["state"], "failed",
+                         "a fatal governance finding must stop the run")
+
+    def test_nothing_downstream_runs_after_a_fatal_finding(self):
+        engine, run = self.run_with(MaintenanceGovernance(fail_on_high=True))
+        self.assert_fired(run)
+        roles = [t["role"] for t in run["tasks"]]
+        index = roles.index("maintenance_governance")
+        for later in run["tasks"][index + 1:]:
+            self.assertNotEqual(
+                later["state"], "succeeded",
+                f"{later['role']} ran after a fatal governance failure")
+
+    def test_no_report_or_publishing_approval_follows_a_fatal_finding(self):
+        engine, run = self.run_with(MaintenanceGovernance(fail_on_high=True))
+        self.assert_fired(run)
+        self.assertIsNone(engine.store.latest_artifact(run["id"]),
+                          "a stopped run must not publish a report")
+        approvals = [t for t in run["tasks"]
+                     if t["role"] == "publish" and t["state"] == "awaiting_approval"]
+        self.assertEqual(approvals, [],
+                         "a stopped run must not request publishing approval")
+
+    def test_the_nonfatal_configuration_still_continues_with_its_findings(self):
+        engine, run = self.run_with(MaintenanceGovernance())
+        governance = task(run, "maintenance_governance")
+        self.assertEqual(governance["state"], "succeeded")
+        self.assertNotEqual(run["state"], "failed",
+                            "the deliberate nonfatal case must carry on")

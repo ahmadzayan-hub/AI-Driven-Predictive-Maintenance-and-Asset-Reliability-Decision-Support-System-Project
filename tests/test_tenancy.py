@@ -23,6 +23,7 @@ if FASTAPI_AVAILABLE:
 
     from server.app import create_app
 
+from tests.support import closing
 from server.auth import issue_local_test_token
 from server.storage import RESTORE_ORDER, open_store
 
@@ -147,8 +148,8 @@ class HostedPostgresTenancyTestCase(TenantIsolationMixin, unittest.TestCase):
             "vault_dir": str(root / "vault"),
         }), encoding="utf-8")
         return TestClient(
-            create_app(config, env={"AGENTIC_OS_JWT_SECRET": SECRET,
-                                    "AGENTIC_OS_ENV": "production"}),
+            closing(self, create_app(config, env={"AGENTIC_OS_JWT_SECRET": SECRET,
+                                    "AGENTIC_OS_ENV": "production"})),
             raise_server_exceptions=False)
 
 
@@ -165,8 +166,8 @@ class HostedSqliteTenancyTestCase(TenantIsolationMixin, unittest.TestCase):
             "vault_dir": str(root / "vault"),
         }), encoding="utf-8")
         return TestClient(
-            create_app(config, env={"AGENTIC_OS_JWT_SECRET": SECRET,
-                                    "AGENTIC_OS_ENV": "production"}),
+            closing(self, create_app(config, env={"AGENTIC_OS_JWT_SECRET": SECRET,
+                                    "AGENTIC_OS_ENV": "production"})),
             raise_server_exceptions=False)
 
 
@@ -248,7 +249,7 @@ class LocalModeTestCase(unittest.TestCase):
             "memory_file": str(self.memory_file),
             "vault_dir": str(self.root / "vault"),
         }), encoding="utf-8")
-        self.client = TestClient(create_app(config, env={}),
+        self.client = TestClient(closing(self, create_app(config, env={})),
                                  raise_server_exceptions=False)
 
     def test_memory_still_lands_in_the_documented_json_file(self):

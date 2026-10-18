@@ -23,16 +23,25 @@ measured.
 it is reported as one.
 """
 
+import math
 from collections import OrderedDict
 
 from . import contract
 
 
 def _num(value):
+    """A finite float, or None.
+
+    None means "not a measurement here" and is never silently treated as
+    zero. An infinity or a NaN is also None: both arise from a broken
+    upstream calculation, and averaging them produces a figure that looks
+    like an answer.
+    """
     try:
-        return float(str(value).strip().replace(",", ""))
+        number = float(str(value).strip().replace(",", ""))
     except (TypeError, ValueError, AttributeError):
         return None
+    return number if math.isfinite(number) else None
 
 
 def corrective_only(row):
@@ -40,13 +49,22 @@ def corrective_only(row):
     return str(row.get("Work_Order_Type", "")).strip().lower() == "corrective"
 
 
+corrective_only.columns = ("Work_Order_Type",)
+
+
 def with_failure(row):
     """Records where at least one failure was recorded."""
     return (_num(row.get("Failure_Count")) or 0) > 0
 
 
+with_failure.columns = ("Failure_Count",)
+
+
 def every_record(row):
     return True
+
+
+every_record.columns = ()
 
 
 # A denominator that is the number of records in the population rather
@@ -107,9 +125,34 @@ class Kpi:
         return f"{self._describe(self.numerator)} / {self._describe(self.denominator)}"
 
     @property
+    def formula_columns(self):
+        """Columns the arithmetic reads, each named once."""
+        seen, out = set(), []
+        for column in self._columns(self.numerator) + self._columns(self.denominator):
+            if column not in seen:
+                seen.add(column)
+                out.append(column)
+        return tuple(out)
+
+    @property
+    def population_columns(self):
+        """Columns the population predicate reads.
+
+        Without these the predicate silently matches nothing or
+        everything, and the KPI is reported on a population that was
+        never actually selected.
+        """
+        return tuple(getattr(self.population, "columns", ()))
+
+    @property
     def source_columns(self):
-        """Every column this KPI reads."""
-        return self._columns(self.numerator) + self._columns(self.denominator)
+        """Every column this KPI needs, formula and population alike."""
+        seen, out = set(), []
+        for column in self.formula_columns + self.population_columns:
+            if column not in seen:
+                seen.add(column)
+                out.append(column)
+        return tuple(out)
 
     def rows_in_population(self, rows):
         return [r for r in rows if self.population(r)]

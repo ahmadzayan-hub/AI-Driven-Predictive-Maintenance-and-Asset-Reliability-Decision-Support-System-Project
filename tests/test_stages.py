@@ -29,6 +29,7 @@ from pathlib import Path
 
 from examples.stages.target_attainment import TargetAttainment
 from server import analytics
+from tests.support import closing
 from server.model_gateway import ModelGateway
 from server.runs import RunEngine
 from server.stages import (ContractViolation, check_descriptor, describe,
@@ -129,8 +130,16 @@ class Publisher(Stage):
     after = "publish"
 
 
-def engine_in(directory, stages=None, profiles=None):
+def engine_in(directory, stages=None, profiles=None, case=None):
+    """An engine over a throwaway store.
+
+    Pass `case` to have the connection closed in that test's teardown:
+    Windows will not delete the database file while a handle is open, so
+    an unclosed store turns a passing test into a cleanup ERROR.
+    """
     store = open_store(None, Path(directory) / "agentic.db")
+    if case is not None:
+        case.addCleanup(store.close)
     return RunEngine(store, Path(directory) / "vault", ModelGateway(env={}),
                      stages=stages or {}, profiles=profiles or {})
 
@@ -500,7 +509,7 @@ class PipelinesApiTestCase(unittest.TestCase):
             ],
             "profiles": {"default": [], "with-target": ["target_attainment"]},
         }), encoding="utf-8")
-        self.client = TestClient(create_app(self.config_path),
+        self.client = TestClient(closing(self, create_app(self.config_path)),
                                  raise_server_exceptions=False)
 
     def test_the_catalogue_lists_stages_profiles_and_problems(self):

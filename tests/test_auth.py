@@ -21,6 +21,7 @@ try:
         build_identity,
         issue_local_test_token,
     )
+    from tests.support import closing
     DEPS_AVAILABLE = True
 except ImportError:  # pragma: no cover - CLI-only environments
     DEPS_AVAILABLE = False
@@ -149,9 +150,9 @@ class ApiAuthorizationTestCase(unittest.TestCase):
             "vault_dir": str(root / "vault"),
         }), encoding="utf-8")
         self.client = TestClient(
-            create_app(self.config_path,
+            closing(self, create_app(self.config_path,
                        env={"AGENTIC_OS_JWT_SECRET": SECRET,
-                            "AGENTIC_OS_ENV": "production"}),
+                            "AGENTIC_OS_ENV": "production"})),
             raise_server_exceptions=False)
 
     def auth(self, subject, role):
@@ -254,7 +255,7 @@ class AuthConfigTestCase(unittest.TestCase):
             "database_file": str(root / "agentic.db"),
             "vault_dir": str(root / "vault"),
         }), encoding="utf-8")
-        return TestClient(create_app(config_path, env=env),
+        return TestClient(closing(self, create_app(config_path, env=env)),
                           raise_server_exceptions=False)
 
     def test_local_mode_advertises_no_sign_in(self):
@@ -302,9 +303,9 @@ class RateLimitTestCase(unittest.TestCase):
             "vault_dir": str(root / "vault"),
         }), encoding="utf-8")
         self.client = TestClient(
-            create_app(config_path,
+            closing(self, create_app(config_path,
                        env={"AGENTIC_OS_RATE_LIMIT": "3",
-                            "AGENTIC_OS_RATE_WINDOW": "60"}),
+                            "AGENTIC_OS_RATE_WINDOW": "60"})),
             raise_server_exceptions=False)
 
     def test_writes_are_limited_and_report_retry_after(self):

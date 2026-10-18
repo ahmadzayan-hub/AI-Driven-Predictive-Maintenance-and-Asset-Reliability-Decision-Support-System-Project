@@ -14,6 +14,7 @@ import unittest
 from pathlib import Path
 
 from server import analytics
+from tests.support import closing
 from server.model_gateway import ModelGateway
 from server.routing import RoutedGateway
 
@@ -364,7 +365,7 @@ class ArabicRunsThroughTheApi(unittest.TestCase):
             "memory_file": str(root / "memory.json"),
             "vault_dir": str(self.vault),
             "database_file": str(root / "agentic.db")}), encoding="utf-8")
-        self.client = TestClient(create_app(config_path),
+        self.client = TestClient(closing(self, create_app(config_path)),
                                  raise_server_exceptions=False)
 
     def advance_until(self, run_id, states):

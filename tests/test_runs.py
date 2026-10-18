@@ -1,3 +1,4 @@
+from tests.support import closing
 """Tests for the durable run engine and analytics pipeline."""
 
 from server import analytics
@@ -57,7 +58,7 @@ class RunEngineTestCase(unittest.TestCase):
         }
         config.update(self.database_config())
         self.config_path.write_text(json.dumps(config), encoding="utf-8")
-        self.client = TestClient(create_app(self.config_path),
+        self.client = TestClient(closing(self, create_app(self.config_path)),
                                  raise_server_exceptions=False)
 
     def create_run(self, goal="Analyze the sample sales dataset"):
@@ -147,7 +148,7 @@ class RunEngineTestCase(unittest.TestCase):
         for _ in range(4):
             self.client.post(f"/api/runs/{run['id']}/advance")
         # Simulate a full application restart with the same database.
-        fresh = TestClient(create_app(self.config_path),
+        fresh = TestClient(closing(self, create_app(self.config_path)),
                            raise_server_exceptions=False)
         recovered = fresh.get(f"/api/runs/{run['id']}").json()
         self.assertEqual(recovered["id"], run["id"])
@@ -290,7 +291,7 @@ class RunEnginePostgresTestCase(RunEngineTestCase):
 
         # A brand-new app instance over the same DATABASE_URL sees the
         # memory — and no local memory file was ever written.
-        fresh = TestClient(create_app(self.config_path),
+        fresh = TestClient(closing(self, create_app(self.config_path)),
                            raise_server_exceptions=False)
         second = fresh.post("/api/sessions").json()
         self.assertIn("Hosted fact", second["memory"].values())

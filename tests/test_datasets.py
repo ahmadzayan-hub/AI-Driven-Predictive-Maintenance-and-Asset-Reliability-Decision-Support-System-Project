@@ -19,6 +19,7 @@ from pathlib import Path
 from unittest import mock
 
 from server import datasets
+from tests.support import closing
 from server.datasets import DatasetError, read
 from tests.test_runs import FASTAPI_AVAILABLE, PG_TEST_URL, _postgres_available
 from tests.xlsx_builder import (DATE, QUARTERLY_SALES, REGIONAL_SALES, STRICT_MAIN, TIME,
@@ -390,7 +391,7 @@ class DatasetApiTestCase(unittest.TestCase):
         config.update(self.database_config())
         path = self.root / "config.json"
         path.write_text(json.dumps(config), encoding="utf-8")
-        self.client = TestClient(create_app(path, env=self.env()),
+        self.client = TestClient(closing(self, create_app(path, env=self.env())),
                                  raise_server_exceptions=False)
         self.addCleanup(self.client.app.state.store._conn.close)
 
@@ -534,9 +535,9 @@ class DatasetQuotaAndTenancyTests(unittest.TestCase):
         path.write_text(json.dumps({"agent_name": "T", "database_file": str(root / "a.db"),
                                     "memory_file": str(root / "m.json"),
                                     "vault_dir": str(root / "v")}), encoding="utf-8")
-        self.client = TestClient(create_app(path, env={
+        self.client = TestClient(closing(self, create_app(path, env={
             "AGENTIC_OS_JWT_SECRET": SECRET, "AGENTIC_OS_ENV": "production",
-            "AGENTIC_OS_QUOTA_DATASETS": "1"}), raise_server_exceptions=False)
+            "AGENTIC_OS_QUOTA_DATASETS": "1"})), raise_server_exceptions=False)
         self.addCleanup(self.client.app.state.store._conn.close)
 
     def auth(self, subject, role="owner"):

@@ -1,3 +1,4 @@
+from tests.support import closing
 """The agent answers in the language it was asked to.
 
 The interface can be in Arabic; if the agent kept answering "Happy to
@@ -160,7 +161,7 @@ class SessionLanguageTestCase(unittest.TestCase):
             "database_file": str(root / "agentic.db"),
             "vault_dir": str(root / "vault"),
         }), encoding="utf-8")
-        self.client = TestClient(create_app(config_path),
+        self.client = TestClient(closing(self, create_app(config_path)),
                                  raise_server_exceptions=False)
 
     def test_a_session_can_be_created_in_arabic(self):

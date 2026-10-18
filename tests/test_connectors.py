@@ -19,6 +19,7 @@ from pathlib import Path
 
 from server import connectors as c
 from server import live
+from tests.support import closing
 from server.erasure import erase
 from server.model_gateway import ModelGateway
 from server.runs import RunEngine, _stamp
@@ -221,7 +222,9 @@ class ConnectorEngineTestCase(unittest.TestCase):
     """Connectors over the run engine, on SQLite."""
 
     def make_store(self):
-        return open_store(None, self.root / "agentic.db")
+        store = open_store(None, self.root / "agentic.db")
+        self.addCleanup(store.close)
+        return store
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -569,10 +572,10 @@ class ConnectorApiTestCase(unittest.TestCase):
         path.write_text(json.dumps({"agent_name": "T", "database_file": str(root / "a.db"),
                                     "memory_file": str(root / "m.json"),
                                     "vault_dir": str(root / "v")}), encoding="utf-8")
-        self.app = create_app(path, env={
+        self.app = closing(self, create_app(path, env={
             "AGENTIC_OS_JWT_SECRET": SECRET, "AGENTIC_OS_ENV": "production",
             "AGENTIC_OS_CONNECTOR_FIXTURES": str(fixtures),
-            "AGENTIC_OS_CONNECTOR_COOLDOWN": "0"})
+            "AGENTIC_OS_CONNECTOR_COOLDOWN": "0"}))
         self.client = TestClient(self.app, raise_server_exceptions=False)
         self.alice = self.auth("alice")
 

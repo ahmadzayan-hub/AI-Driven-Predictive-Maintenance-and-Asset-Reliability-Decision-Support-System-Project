@@ -94,6 +94,13 @@ class MaintenanceGovernance:
 
     def __init__(self, fail_on_high=False, max_cells=MAX_CELLS, max_findings=12):
         self.fail_on_high = bool(fail_on_high)
+        # The engine decides whether a failed stage stops the run by
+        # reading this off the descriptor, not by inspecting the result.
+        # Leaving it at the class default made `fail_on_high` a promise
+        # the descriptor contradicted: the stage returned "failed" and
+        # the run carried on to a report and an approval request. The
+        # option and the policy are one thing, so they are set together.
+        self.can_fail_run = self.fail_on_high
         self.max_cells = int(max_cells)
         # The contract allows 50 claims. A cap well under it keeps the
         # report readable and the most severe findings at the top.

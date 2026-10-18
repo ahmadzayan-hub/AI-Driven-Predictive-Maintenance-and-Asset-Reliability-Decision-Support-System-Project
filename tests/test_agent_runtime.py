@@ -22,6 +22,7 @@ from pathlib import Path
 import assistant as rules
 from agent import Agent
 from server import analytics
+from tests.support import closing
 from server.agent_runtime import build_runtime
 from server.assistant import MAX_REPLY_CHARS, Assistant
 from server.model_gateway import ModelGateway
@@ -443,7 +444,7 @@ class RuntimeApiTestCase(unittest.TestCase):
             "agent_runtime": {"path": "tests.test_agent_runtime.ScriptedRuntime",
                               "options": {"calls": [["help", {}]], "closing": "Over to you."}},
         }), encoding="utf-8")
-        self.client = TestClient(create_app(self.config_path), raise_server_exceptions=False)
+        self.client = TestClient(closing(self, create_app(self.config_path)), raise_server_exceptions=False)
 
     def test_health_names_the_runtime(self):
         body = self.client.get("/api/health").json()
@@ -475,7 +476,7 @@ class RuntimeApiTestCase(unittest.TestCase):
             "database_file": str(root / "agentic2.db"),
             "vault_dir": str(root / "vault2"),
             "agent_runtime": "nowhere.Nothing"}), encoding="utf-8")
-        client = TestClient(create_app(broken), raise_server_exceptions=False)
+        client = TestClient(closing(self, create_app(broken)), raise_server_exceptions=False)
         health = client.get("/api/health").json()
         self.assertIsNone(health["agent_runtime"])
         self.assertIn("could not be loaded", health["runtime_problem"])

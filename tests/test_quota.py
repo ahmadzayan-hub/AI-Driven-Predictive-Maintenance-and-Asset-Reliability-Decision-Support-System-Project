@@ -19,6 +19,7 @@ if FASTAPI_AVAILABLE:
     from server.app import create_app
 
 from server import quota
+from tests.support import closing
 from server.storage import TABLES
 
 
@@ -49,7 +50,7 @@ class QuotaTestCase(unittest.TestCase):
                   "vault_dir": str(self.root / "vault")}
         config.update(self.database_config())
         self.config_path.write_text(json.dumps(config), encoding="utf-8")
-        self.client = TestClient(create_app(self.config_path, env=self.quota_env),
+        self.client = TestClient(closing(self, create_app(self.config_path, env=self.quota_env)),
                                  raise_server_exceptions=False)
 
     def create_run(self, goal="Analyze the sample sales dataset", **body):
@@ -60,7 +61,7 @@ class QuotaTestCase(unittest.TestCase):
         different limits — how an operator would tighten a live one."""
         env = dict(self.quota_env)
         env.update(overrides)
-        return TestClient(create_app(self.config_path, env=env),
+        return TestClient(closing(self, create_app(self.config_path, env=env)),
                           raise_server_exceptions=False)
 
     # -- runs per day -----------------------------------------------------

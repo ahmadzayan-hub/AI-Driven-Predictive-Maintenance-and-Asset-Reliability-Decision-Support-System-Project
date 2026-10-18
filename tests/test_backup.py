@@ -27,6 +27,7 @@ if FASTAPI_AVAILABLE:
     from server.app import create_app
 
 from server import analytics
+from tests.support import closing
 from server.backup import (BACKUP_VERSION, backup_counts, create_backup,
                            open_configured_store, restore_backup)
 from server.storage import TABLES
@@ -69,7 +70,7 @@ class BackupRestoreTestCase(unittest.TestCase):
 
     def new_client(self):
         """A fresh application instance over the same database."""
-        return TestClient(create_app(self.config_path),
+        return TestClient(closing(self, create_app(self.config_path)),
                           raise_server_exceptions=False)
 
     def store(self):
@@ -301,7 +302,7 @@ class CrossDialectRestoreTestCase(unittest.TestCase):
             "agent_name": "Local", "memory_file": str(root / "memory.json"),
             "vault_dir": str(root / "vault"),
             "database_file": str(root / "agentic.db")}), encoding="utf-8")
-        local = TestClient(create_app(local_config), raise_server_exceptions=False)
+        local = TestClient(closing(self, create_app(local_config)), raise_server_exceptions=False)
         run = local.post("/api/runs", json={
             "goal": "Local work that must survive the move",
             "dataset_text": "team,sales\nA,100\nB,90\n",
@@ -325,7 +326,7 @@ class CrossDialectRestoreTestCase(unittest.TestCase):
             "agent_name": "Hosted", "memory_file": str(root / "memory.json"),
             "vault_dir": str(root / "vault-hosted"),
             "database_url": PG_TEST_URL}), encoding="utf-8")
-        hosted = TestClient(create_app(hosted_config), raise_server_exceptions=False)
+        hosted = TestClient(closing(self, create_app(hosted_config)), raise_server_exceptions=False)
         moved = hosted.get(f"/api/runs/{run['id']}").json()
         self.assertEqual(moved["report"]["content"], run["report"]["content"])
         self.assertIn("total_sales | 190.0", moved["report"]["content"])
