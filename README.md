@@ -388,14 +388,14 @@ hardware expectations, hosted configuration and acceptance limits.
 # mapping, joins, the cleaned-table queries, modelling stages, live sources and the event stream, uneven periods, docs, and the repository's operating system:
 # brain checker, session hooks, the verify script, the motion skill, the
 # agent team's tools, agent evaluation, the house style and the interface
-# budget (1,298 tests reported in the last full local run, including skips)
+# budget (1,303 tests reported in the last full CI run, including skips)
 python -m unittest discover tests
 
 # Frontend unit tests (213 tests)
 
 cd frontend && npm test
 
-# End-to-end + accessibility (114 checks defined across desktop and mobile,
+# End-to-end + accessibility (116 checks defined across desktop and mobile,
 # in English and Arabic;
 # requires the production build: npm run build)
 cd frontend && npx playwright test
@@ -411,14 +411,14 @@ python scripts/verify.py
 
 ### Executive business export validation — 19 October 2026
 
-Implementation `c66e25a` replaces the executive JSON handoff with HTML by
+Implementation `c66e25a`, with numeric-column refinement `f47bbf7`, replaces the executive JSON handoff with HTML by
 default and genuine Office Open XML `.docx` files. The separate PDF action
 opens the browser print dialog; the user chooses **Save as PDF**, rather
 than downloading a server-generated PDF. The [bilingual guide](docs/design/EXECUTIVE_DASHBOARD_HANDOFF.md)
 and [ADR 0059](docs/adr/0059-executive-business-document-exports.md) describe
 the formats and exact prepared-snapshot boundary.
 
-- New export renderer/API checks pass for authorization, readiness, genuine
+- **13 focused export renderer/API tests passed** for authorization, readiness, genuine
   file structure, escaping, both text directions, summary/audit parity and
   stale revisions. A task result changed while `run.updated_at` stayed
   identical; the old SHA-256 content revision was correctly rejected with 409.
@@ -435,9 +435,27 @@ the formats and exact prepared-snapshot boundary.
   **15.6 / 30 KB**, initial CSS **10.0 / 10 KB**, total CSS **20.7 / 21 KB**,
   fonts **119.4 / 120 KB**. TypeScript and the production build pass.
   No deployed runtime dependency or budget allowance was added.
-- [Fast budget for `c66e25a`](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39300474499)
-  passed. [Full CI for the same implementation](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39300474498)
-  is in progress; it is not yet claimed as successful.
+- [Full Linux CI on final source `f47bbf7`](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39301110432)
+  **passed**: **1,303 Python tests, 23 skipped**, with required PostgreSQL;
+  **213 frontend tests**, **5 snapshot contracts**, **112 browser checks passed,
+  4 skipped**, and **12 Miyaar checks passed**. The informational Python audit
+  retains the existing setuptools `PYSEC-2026-3447` advisory; frontend audit
+  reported zero vulnerabilities.
+- [Fast budget on `f47bbf7`](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39301110425)
+  passed with the same measurements. All eight executive business download,
+  print and stale-response cases passed in the full suite. The earlier
+  [base implementation CI](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39300474498)
+  also passed. No production deployment was performed in this session.
+- English/Arabic HTML-to-PDF and Word page renders were visually reviewed
+  across every page. Explicit LTR/RTL layout, repeated headers, formula/ID
+  wrapping and full-precision numeric columns pass. Served HTML/Word bytes
+  exactly match the reviewed fictional samples. LibreOffice and Poppler are
+  private local QA tools, not deployed server requirements.
+- Merged at `c74cb0e`, preserving incoming `0841416` tracking work and both
+  parents. The Desktop checkout was fast-forwarded, built and restarted on
+  `http://localhost:8000`; real Arabic HTML/Word exports succeeded there with
+  run state, approvals and publication unchanged. Code is identical to
+  `f47bbf7`; documentation/operating-system checks and strict brain check pass.
 - The [current Arabic business export controls](docs/screenshots/executive-business-ar.png)
   show fictional verification data. Production acceptance remains separate.
 
