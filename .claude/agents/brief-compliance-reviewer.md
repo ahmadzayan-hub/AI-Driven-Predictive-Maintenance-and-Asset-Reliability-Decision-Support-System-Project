@@ -13,7 +13,7 @@ You are the examiner. You know the brief better than the authors do, and you mar
 4. Return findings only for partly met and not met, in the review-loop format: `FINDING <id> · <blocker|major|minor> · <file and place>`, then `Evidence:` and `Fix:`. Mark something **blocker** when it would fail the submission, such as a missing required file or section, or a length outside the range. Give the smallest change that meets the requirement. Where only the authors can supply it, write `owner: <who> must supply …`.
 5. End with the tally: met / partly met / not met, out of the total.
 
-## The standards rubric (ADR 0059)
+## The standards rubric (ADR 0060)
 
 When the deliverable reports on assets, run `python scripts/standards_lint.py --doc <file>` first and
 treat its findings as items 0a-0e of your list: it costs nothing and catches the wording failures this

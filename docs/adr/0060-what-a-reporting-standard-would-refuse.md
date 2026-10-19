@@ -1,4 +1,4 @@
-# ADR 0059: A Tier 0 lint for what a reporting standard would refuse
+# ADR 0060: A Tier 0 lint for what a reporting standard would refuse
 
 - Status: accepted
 - Date: 2026-10-19

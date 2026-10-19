@@ -140,7 +140,7 @@ def _standards(cases):
     try:
         import standards_lint
     except ImportError:
-        return None   # the standards lint arrived with ADR 0059
+        return None   # the standards lint arrived with ADR 0060
     return [(c["label"], bool(standards_lint.refuses(c["text"])), c["text"]) for c in cases]
 
 

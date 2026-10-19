@@ -148,7 +148,7 @@ class RecallFixTests(unittest.TestCase):
         self.assertFalse(claims_lint.causal_phrases("زاد الإنتاج في الربع الأخير."))
 
     def test_each_standards_class_is_caught(self):
-        """One case per rule in ADR 0059, so a rewrite cannot drop one."""
+        """One case per rule in ADR 0060, so a rewrite cannot drop one."""
         import standards_lint
         for sentence in (
             "The model produces the optimal maintenance schedule.",
