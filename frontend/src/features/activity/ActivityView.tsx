@@ -1,5 +1,8 @@
+import '../../shared/styles/analytics.css'
+import '../../shared/styles/session.css'
 import { useEffect, useState } from 'react'
-import { useI18n } from '../../i18n'
+import { usePack } from '../../i18n/pack'
+import { activityMessages } from './messages'
 import type { MessageKey } from '../../i18n'
 import { api } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
@@ -10,7 +13,7 @@ import type { ActivityEvent, ConnectionStatus, SessionState, Usage } from '../..
 /** A limit the server enforces but the interface never shows is a trap:
  *  the first a user hears of it is a refusal. */
 function UsageCard() {
-  const { t, formatNumber } = useI18n()
+  const { t, formatNumber } = usePack(activityMessages)
   const [usage, setUsage] = useState<Usage | null>(null)
   const [failed, setFailed] = useState(false)
 
@@ -153,7 +156,7 @@ interface ActivityViewProps {
 /** Operational transparency: real events and real health facts only —
  *  no fabricated telemetry, no hidden reasoning. */
 export function ActivityView({ events, session, status, lastSyncedAt }: ActivityViewProps) {
-  const { t, plural, formatTime } = useI18n()
+  const { t, plural, formatTime } = usePack(activityMessages)
   const [filter, setFilter] = useState<ActivityFilter>('all')
   const online = status !== 'offline'
   const healthy = online && status !== 'error'

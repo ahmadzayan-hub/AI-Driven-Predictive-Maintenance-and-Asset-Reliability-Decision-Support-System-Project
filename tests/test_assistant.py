@@ -14,13 +14,14 @@ Three layers, tested separately because they fail separately:
 import json
 import tempfile
 import unittest
+from unittest.mock import Mock
 from pathlib import Path
 
 import assistant
 from agent import Agent
 from server import analytics
 from tests.support import closing, closing_store
-from server.assistant import Assistant
+from server.assistant import Assistant, INTENT_SCHEMA, MODEL_ACTION_ALIASES
 from server.model_gateway import ModelGateway
 from server.runs import RunEngine
 from server.storage import open_store
@@ -441,6 +442,143 @@ class ModelPathTestCase(unittest.TestCase):
             "hi there")
         self.assertEqual(outcome["text"], "Ask me to analyse the sales data and I will.")
         self.assertEqual(outcome["source"], "model")
+
+    def test_structured_intent_is_optional_and_nonreasoning_budget_is_bounded(self):
+        answer = json.dumps({"action": "chat", "arguments": {}, "reply": "A general inspection needs approved procedures."})
+        gateway = FakeGateway(answer)
+        gateway.ollama_think = False
+        gateway.ask_json = Mock(return_value=answer)
+        gateway.ask = Mock(side_effect=AssertionError("ordinary ask must not handle structured intent"))
+        outcome = Assistant(gateway, self.engine).handle("Explain a general inspection", self.session)
+        self.assertEqual(outcome["source"], "model")
+        self.assertEqual(outcome["action"], "chat")
+        self.assertEqual(gateway.ask_json.call_args.kwargs["max_tokens"], 600)
+        self.assertEqual(gateway.ask_json.call_args.kwargs["schema"], INTENT_SCHEMA)
+        gateway.ask.assert_not_called()
+
+    def test_legacy_gateway_duck_keeps_ordinary_ask_and_reasoning_budget(self):
+        gateway = FakeGateway("")
+        gateway.ask = Mock(return_value=json.dumps({"action": "chat", "reply": "A useful answer."}))
+        outcome = Assistant(gateway, self.engine).handle("A conceptual question", self.session)
+        self.assertEqual(outcome["text"], "A useful answer.")
+        self.assertEqual(gateway.ask.call_args.kwargs["max_tokens"], 900)
+        self.assertNotIn("schema", gateway.ask.call_args.kwargs)
+
+    def test_current_turn_is_sent_once_while_followup_history_is_preserved(self):
+        self.session.add_entry("user", "We are discussing a centrifugal pump.")
+        self.session.add_entry("agent", "Its inspection follows approved procedures.")
+        question = "Which equipment did I mention?"
+        self.session.add_entry("user", question)
+        _, gateway = self.handle(json.dumps({"action": "chat", "reply": "A centrifugal pump."}), question)
+        context = gateway.asked[0][1]
+        self.assertEqual(context.count(question), 1)
+        self.assertIn("user: We are discussing a centrifugal pump.", context)
+        self.assertIn("agent: Its inspection follows approved procedures.", context)
+        self.assertIn("Message: " + question, context)
+
+    def test_context_separates_saved_entries_from_conversation_without_saving_turns(self):
+        self.session.add_entry("user", "Discuss the exhaust fan.")
+        self.session.add_entry("agent", "We can discuss its maintenance.")
+        question = "Continue with this topic."
+        self.session.add_entry("user", question)
+        for saved in (False, True):
+            with self.subTest(saved=saved):
+                if saved:
+                    self.session.agent.process_input("remember the inspection review is Friday")
+                memories = dict(self.session.agent.memory)
+                transcript = [dict(entry) for entry in self.session.transcript]
+                _, gateway = self.handle(json.dumps({"action": "chat", "reply": "Useful guidance."}), question)
+                context = gateway.asked[0][1]
+                saved_section, recent = context.split("Recent conversation:", 1)
+                self.assertIn("Saved memory:", saved_section)
+                self.assertIn("memory_1: the inspection review is Friday" if saved else "Saved memory:\nnone", saved_section)
+                self.assertNotIn("Discuss the exhaust fan.", saved_section)
+                self.assertNotIn("memory_1:", recent)
+                self.assertIn("user: Discuss the exhaust fan.", recent)
+                self.assertIn("agent: We can discuss its maintenance.", recent)
+                self.assertEqual(context.count(question), 1)
+                self.assertEqual(self.session.agent.memory, memories)
+                self.assertEqual(self.session.transcript, transcript)
+
+    def test_model_catalog_and_schema_expose_only_the_mapped_action_names(self):
+        _, gateway = self.handle(None, "Explain a general inspection")
+        system = gateway.asked[0][0]
+        aliases = {internal: model for model, internal in MODEL_ACTION_ALIASES.items()}
+        expected = {aliases.get(action, action) for action in assistant.ACTIONS}
+        for action in expected:
+            self.assertIn(action + "{", system)
+        for internal in MODEL_ACTION_ALIASES.values():
+            self.assertNotIn(internal + "{", system)
+        chat, other = INTENT_SCHEMA["oneOf"]
+        exposed = {chat["properties"]["action"]["const"]} | set(other["properties"]["action"]["enum"])
+        self.assertEqual(exposed, expected)
+
+    def test_saved_memory_aliases_and_legacy_names_keep_internal_action_contracts(self):
+        for store_name, search_name in (("store_saved_memory", "search_saved_memory"), ("remember", "recall")):
+            with self.subTest(store=store_name, search=search_name):
+                self.session = FakeSession(make_agent())
+                saved, _ = self.handle(json.dumps({"action": store_name,
+                    "arguments": {"information": "The shift log is reviewed on Friday"}, "reply": ""}),
+                    "Save the shift review schedule")
+                self.assertEqual(saved["action"], "remember")
+                self.assertEqual(saved["text"], "Information saved.")
+                self.assertEqual(len(self.session.agent.memory), 1)
+                found, _ = self.handle(json.dumps({"action": search_name,
+                    "arguments": {"query": "shift log"}, "reply": ""}), "Search saved notes about the shift log")
+                self.assertEqual(found["action"], "recall")
+                self.assertIn("The shift log is reviewed on Friday", found["text"])
+                self.assertEqual(len(self.session.agent.memory), 1)
+
+    def test_aliases_pass_through_existing_argument_validation(self):
+        for action, arguments in (("store_saved_memory", {"information": "  "}),
+                                  ("store_saved_memory", {}),
+                                  ("delete_saved_memory", {"key": "all"})):
+            with self.subTest(action=action):
+                parsed = Assistant(FakeGateway(None), self.engine)._parse(
+                    json.dumps({"action": action, "arguments": arguments, "reply": ""}), self.session)
+                self.assertIsNone(parsed)
+        self.assertEqual(self.session.agent.memory, {})
+
+    def test_an_older_matching_turn_is_not_removed_from_history(self):
+        question = "Which equipment did I mention?"
+        self.session.add_entry("user", question)
+        self.session.add_entry("agent", "You mentioned a pump.")
+        _, gateway = self.handle(json.dumps({"action": "chat", "reply": "A pump."}), question)
+        self.assertEqual(gateway.asked[0][1].count(question), 2)
+
+    def test_missing_blank_or_nested_chat_reply_is_an_honest_rules_fallback(self):
+        for fields in ({}, {"reply": None}, {"reply": ""}, {"reply": "  "},
+                       {"reply": 5}, {"arguments": {"reply": "Not a top-level answer"}}):
+            with self.subTest(fields=fields):
+                outcome, _ = self.handle(json.dumps({"action": "chat", **fields}),
+                                         "Suggest a pump reliability checklist")
+                self.assertEqual(outcome["source"], "rules")
+                self.assertNotIn("provider", outcome)
+                self.assertIn("the rules decided instead", outcome["why"])
+                self.assertNotIn("Not a top-level answer", outcome["text"])
+
+    def test_nonchat_actions_still_accept_an_empty_reply_and_use_the_agents_text(self):
+        outcome, _ = self.handle(json.dumps({"action": "remember",
+            "arguments": {"information": "Inspect the pump at the approved interval"}, "reply": ""}),
+            "Remember the approved inspection interval")
+        self.assertEqual(outcome["source"], "model")
+        self.assertEqual(outcome["text"], "Information saved.")
+        self.assertIn("Inspect the pump at the approved interval", self.session.agent.memory.values())
+
+    def test_general_domain_chat_keeps_both_languages_and_no_automated_action(self):
+        for language, question, answer in (
+            ("English", "Suggest a pump checklist", "Use the approved inspection procedure; review leaks and maintenance history."),
+            ("Arabic", "اقترح قائمة فحص للمضخة", "راجع سجل الصيانة وفق إجراءات الفحص المعتمدة؛ هذه إرشادات عامة وليست قياسات للأصل."),
+        ):
+            with self.subTest(language=language):
+                self.session = FakeSession(make_agent(language))
+                outcome, gateway = self.handle(json.dumps({"action": "chat", "arguments": {}, "reply": answer}), question)
+                self.assertEqual(outcome["action"], "chat")
+                self.assertEqual(outcome["text"], answer)
+                self.assertEqual(self.engine.list_runs(owner="local-owner"), [])
+                self.assertEqual(self.session.agent.memory, {})
+                self.assertIn("Miyaar", gateway.asked[0][0])
+                self.assertIn("at the TOP LEVEL", gateway.asked[0][0])
 
     def test_an_answer_that_is_not_an_intent_hands_over_to_the_rules(self):
         outcome, _ = self.handle("I think you want me to remember something.",

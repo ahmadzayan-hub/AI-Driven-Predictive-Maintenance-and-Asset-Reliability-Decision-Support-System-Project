@@ -1,5 +1,6 @@
 import { Activity, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
+import { MiyaarMark } from '../shared/components/MiyaarMark'
 import { ChatView } from '../features/chat/ChatView'
 import type { ComposerHandle } from '../features/chat/Composer'
 import type { RunPreset } from '../features/runs/RunsView'
@@ -329,6 +330,9 @@ export function App() {
 
   const sidebar = (
     <div className="sidebar">
+      <button type="button" className="miyaar-sidebar" onClick={() => go('chat')}>
+        <MiyaarMark /><span><strong>{t('assistant.name')}</strong><small>{t('miyaar.workspace')}</small></span>
+      </button>
       <nav className="sidebar__nav" aria-label={t('nav.main')}>
         {NAV_GROUPS.map((group) => (
           <div key={group.id} className="sidebar__group">
@@ -352,6 +356,10 @@ export function App() {
         ))}
       </nav>
       <div className="sidebar__footer">
+        <button type="button" className="btn btn--subtle miyaar-mobile-help"
+          onClick={() => { setDrawerOpen(false); setHelpOpen(true) }}>
+          <Icon name="help" size={16} />{t('help.aria')}
+        </button>
         <button
           type="button"
           className="btn btn--ghost"
@@ -380,7 +388,7 @@ export function App() {
             {(store.identity?.principal.email || userName || 'A').charAt(0).toUpperCase()}
           </span>
           <span className="sidebar__who">
-            <span dir="auto">{store.identity?.principal.email || userName || session.agent_name}</span>
+            <span dir="auto">{store.identity?.principal.email || userName || t('session.roleLocal')}</span>
             <span className="sidebar__meta">
               v{session.version} · {store.identity?.principal.role ?? t('session.roleLocal')}
             </span>
@@ -503,9 +511,18 @@ export function App() {
           ))}
           {pane('chat', (
             <ChatView
+              key={session.session_id}
               session={session}
               sending={store.sending}
               failedText={store.failedText}
+              pendingText={store.pendingText}
+              requestError={store.requestError}
+              connectionStatus={status}
+              onAction={(action) => {
+                if (action === 'analyse' || action === 'report') startAnalysis({ kind: 'upload' })
+                else if (action === 'approvals') go('approvals')
+                else go('assets')
+              }}
               offline={status === 'offline'}
               userName={userName}
               onSend={store.send}
@@ -570,11 +587,12 @@ export function App() {
         {tab === 'chat' ? (
           <aside className="rail" aria-label={t('rail.aria')}>
             <div className="rail__section">
-              <h2 className="rail__title">{t('rail.context')}</h2>
+              <MiyaarMark large />
+              <h2 className="rail__title">{t('miyaar.context')}</h2>
               <dl>
                 <div className="rail__row">
                   <dt>{t('rail.agent')}</dt>
-                  <dd dir="auto">{session.agent_name}</dd>
+                  <dd dir="auto">{t('assistant.name')}</dd>
                 </div>
                 <div className="rail__row">
                   <dt>{t('rail.messages')}</dt>

@@ -77,6 +77,9 @@ export async function request<T>(
   timeoutMs = REQUEST_TIMEOUT_MS,
 ): Promise<T> {
   const controller = new AbortController()
+  const cancel = () => controller.abort()
+  if (init.signal?.aborted) cancel()
+  else init.signal?.addEventListener('abort', cancel, { once: true })
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   let response: Response
   const { headers, ...rest } = init
@@ -102,6 +105,7 @@ export async function request<T>(
     )
   } finally {
     clearTimeout(timer)
+    init.signal?.removeEventListener('abort', cancel)
   }
 
   let body: unknown = null
@@ -133,6 +137,21 @@ export interface MessageResult {
   state: SessionState
 }
 
+export interface VoiceStatus {
+  enabled: boolean
+  available: boolean
+  provider: 'faster-whisper'
+  model: string | null
+  max_seconds: number
+  max_bytes: number
+}
+
+export interface VoiceTranscript {
+  text: string
+  language: 'en' | 'ar'
+  provider: 'faster-whisper'
+}
+
 /** The file name a download was given, from Content-Disposition. */
 function attachmentName(header: string | null, fallback: string): string {
   const match = header?.match(/filename="([^"]+)"/)
@@ -140,6 +159,13 @@ function attachmentName(header: string | null, fallback: string): string {
 }
 
 export const api = {
+  voiceStatus: () => request<VoiceStatus>('/api/voice/status'),
+  transcribeSession: (id: string, audio: Blob, language: 'en' | 'ar', signal: AbortSignal) =>
+    request<VoiceTranscript>(
+      `/api/sessions/${encodeURIComponent(id)}/transcriptions?language=${language}`,
+      { method: 'POST', body: audio, headers: { 'Content-Type': audio.type || 'application/octet-stream' }, signal },
+      90_000,
+    ),
   health: () => request<{ status: string; agent_name: string; version: string }>('/api/health'),
   authConfig: () => request<AuthConfig>('/api/auth/config'),
   identity: () => request<IdentityInfo>('/api/identity'),
@@ -153,11 +179,12 @@ export const api = {
     }),
   getSession: (id: string) => request<SessionState>(`/api/sessions/${id}`),
   endSession: (id: string) => request<SessionState>(`/api/sessions/${id}`, { method: 'DELETE' }),
+  // Leave transport headroom around the server's bounded 60-second local inference.
   sendMessage: (id: string, text: string) =>
     request<MessageResult>(`/api/sessions/${id}/messages`, {
       method: 'POST',
       body: JSON.stringify({ text }),
-    }),
+    }, 90_000),
   clearHistory: (id: string) =>
     request<OperationResult>(`/api/sessions/${id}/history`, { method: 'DELETE' }),
   setPreference: (id: string, key: string, value: string) =>

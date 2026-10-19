@@ -6,9 +6,56 @@ relates to
 [`ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project`](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project),
 and the routine for pushing local progress to it.
 
-Comparison made 19 October 2026, after `git fetch origin --prune`.
+## Current merge status — 19 October 2026
 
-## The headline
+[PR #15](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/pull/15)
+is merged into `main` at `893986da6565852ef18d9b076aa7360e1a8c5eba`,
+with both parents preserved. Its tree matches the verified feature head
+`ed1834d`. The earlier feature branches are snapshots of pull requests that
+already landed; #15 was the only outstanding pull request and has now landed
+too. Surviving branch names do not imply additional work to merge.
+
+Both the active `miyaar` workspace and the separate Desktop checkout named
+above were fast-forwarded to the merged `main`. Their pre-merge audits found
+clean trees and no unpushed work. The Desktop's previous working branch
+`claude/agentic-os-final-project-53j6ql` at `3bc4081` and previous local `main`
+at `9a4199b` are ancestors of the merge. The Desktop checkout now selects
+`main`; no reset or history rewrite was needed.
+
+Use `origin`, the home repository linked above. `canonical` in the Desktop
+checkout is an older remote, not a push target. Ignored private, course and
+runtime files stay private; merging code is not permission to add them.
+Verification results and test counts belong in [README — Testing](../README.md#testing).
+
+## Safely update the Desktop checkout
+
+Run these commands from that checkout's root. Continue only when the first
+status command shows a clean tree. This downloads the latest refs and
+fast-forwards local `main` without rewriting its history.
+
+```bash
+git status --short
+git fetch origin refs/heads/main:refs/remotes/origin/main
+git switch main
+git merge --ff-only origin/main
+git status --short --branch
+```
+
+If a branch has gained local work and a fast-forward is refused, stop and
+inspect that divergence; preserve it with an ordinary merge. Do not discard
+local changes, force-push, rewrite history or delete branches. For future
+development, fetch and integrate before editing, verify the changes, and
+follow the session-end merge procedure in [AGENTS.md](../AGENTS.md).
+
+## Historical comparison — before PR #15
+
+The rest of this document preserves the earlier 19 October comparison,
+made after `git fetch origin --prune` when `origin/main` was `f744fd6`.
+Its refs, differences and open-item observations describe that earlier
+snapshot, not the current merge status. The old reset recipe has been
+replaced by the fast-forward procedure above.
+
+### The headline at that time
 
 **The direction is the reverse of what it looks like.** The local folder has
 nothing GitHub is missing. GitHub's `main` is one pull request ahead of the
@@ -33,7 +80,7 @@ The 19 commits are the merge commits that carried this branch into `main`
 plus the pull requests merged there (#1, #2, #3, #4, #6, #9, #11, #12, #14).
 Only one of them, #14, changes the tree relative to the local copy.
 
-## What exactly differs
+### What differed at that time
 
 `git diff --name-status HEAD origin/main` — 8 files, all from PR #14,
 316 insertions and 10 deletions:
@@ -43,15 +90,15 @@ Only one of them, #14, changes the tree relative to the local copy.
 | added | `database/migrations/20261018_asset_reliability_ai_initial.sql` | the initial Supabase schema migration |
 | added | `docs/SUPABASE_SECURE_CONNECTION.md` | how the secure connection is set up |
 | added | `docs/adr/0046-dedicated-supabase-schema-and-auth-bootstrap.md` | the decision record |
-| added | `tests/test_supabase_schema_snapshot.py` | 3 tests checking the migration against `server.storage` |
+| added | `tests/test_supabase_schema_snapshot.py` | checks the migration against `server.storage` |
 | modified | `server/auth.py` | `public_auth_config` now advertises `["password"]` only; the magic-link callback is not implemented, so it is no longer offered |
 | modified | `tests/test_auth.py` | asserts `magic_link` is absent from the advertised flows |
 | modified | `frontend/src/features/auth/SignIn.tsx` | an `sb_publishable_*` key goes in the `apikey` header only, never as an `Authorization: Bearer` credential; the magic-link button renders only when the flow is advertised |
-| modified | `frontend/src/tests/signin.test.tsx` | 1 test covering the modern-key header and the hidden button |
+| modified | `frontend/src/tests/signin.test.tsx` | covers the modern-key header and the hidden button |
 
 Decision records: 52 locally, 53 on `origin/main`.
 
-## What the local folder holds that GitHub does not
+### What the local folder held that GitHub did not
 
 Nothing tracked. The tree is clean, with no modified and no untracked files.
 
@@ -63,87 +110,14 @@ scripts and captured output, `.claude/settings.local.json`, `.claude/state/`,
 public; course files, registration numbers and other people's personal data
 never go in it.
 
-Local `main` is a dead end, not work to preserve. It is 1 commit ahead of and
-142 behind `origin/main`, and is not an ancestor of it — it is the
-pre-reconciliation history from ADR 0039/0047. Its one unique commit
-`a71e030` is the ADR 0041/0042 work, and that content is already on
-`origin/main` by the route the working branch took. Nothing is lost by
-discarding it.
+At this earlier snapshot, local `main` at `a71e030` was one commit ahead of
+and 142 behind `origin/main`, with pre-reconciliation history from ADR
+0039/0047. Its ADR 0041/0042 content was already on `origin/main` through the
+working branch. That old divergence has since been reconciled: the latest
+pre-merge Desktop audit found local `main` at `9a4199b`, so only the safe fast-forward
+procedure above applies now.
 
-## Bringing the local folder up to date
-
-Run from the repository root. Each step is safe: no force-push, no history
-rewriting, no branch deletion.
-
-```bash
-git fetch origin --prune
-
-# 1. Put the working branch on top of what GitHub already has.
-git switch claude/agentic-os-final-project-53j6ql
-git merge --ff-only origin/main        # fast-forwards; origin/main contains HEAD
-
-# 2. Repoint the stale local main at GitHub's main.
-git switch main
-git reset --hard origin/main           # discards a71e030, whose content is already on main
-git switch claude/agentic-os-final-project-53j6ql
-```
-
-Then verify before trusting it:
-
-```bash
-python -m unittest discover tests
-npm --prefix frontend ci
-npm --prefix frontend run typecheck && npm --prefix frontend test && npm --prefix frontend run build
-python scripts/brain_check.py --strict
-python scripts/verify.py                # all of the above in one run, with real counts
-```
-
-## The routine for future local -> GitHub updates
-
-This is the loop to use from here on, every session.
-
-```bash
-# 1. Start from what GitHub has, before writing anything.
-git fetch origin --prune
-git switch claude/agentic-os-final-project-53j6ql
-git merge --ff-only origin/main
-
-# 2. Do the work. A behaviour change needs a decision record and tests.
-
-# 3. Prove it.
-python scripts/verify.py
-
-# 4. Record it in the working-memory files, then commit.
-#    session-logs.md (one entry), project-progress.md (the board),
-#    Memory.md (durable facts only), the brain notes the work touched.
-git add -A
-git commit            # end the message with the Co-Authored-By line
-
-# 5. Push the working branch.
-git push origin claude/agentic-os-final-project-53j6ql
-
-# 6. End the session on main (standing permission, given 18 October).
-git switch main
-git merge --ff-only origin/main
-git merge --no-ff claude/agentic-os-final-project-53j6ql
-git push origin main
-git switch claude/agentic-os-final-project-53j6ql
-```
-
-The `session-end` skill does steps 4 to 6, and a Stop hook blocks once if
-commits were made and nothing was logged. Prefer the skill over running the
-commands by hand.
-
-Two rules that this comparison exists to protect:
-
-- **Fetch before you write, not after.** PR #14 landed on GitHub an hour
-  after the last local commit. Had the next session started by editing
-  `server/auth.py`, it would have reverted a security fix without noticing.
-- **Never force-push, rewrite history or delete a branch here.** The
-  divergence above is resolved by merging and resetting a local-only
-  pointer, nothing more.
-
-## Open items this comparison turned up
+### Open items the earlier comparison turned up
 
 Each one is real and checkable, listed heaviest first. Items 2, 3 and 4
 were **closed on 19 October**, in the session that found them, and each
@@ -184,20 +158,14 @@ item 5 follows from it.
    maintenance-profile record, which keeps its number, so it needed no
    edit.
 
-4. **The `README.md` verification record is behind the tree.** It states
-   that the suite discovers 1,177 tests, measured on 18 October. The local
-   tree now discovers 1,185, and 1,188 once PR #14 is pulled in. The record
-   is dated, so it is not wrong about that date — but a fresh
-   `python scripts/verify.py` run should replace it.
+4. **The `README.md` verification record was behind the tree.** Its dated
+   measurements needed a fresh verification run after PR #14.
 
-   **Closed 19 October.** The live figures now read 1,188 Python and 143
-   frontend tests; the dated records of 17 and 18 October stand as they
-   are. Two defects turned up behind this one. The 93 cleanup errors were
-   a real defect — stores left open inside a `TemporaryDirectory`, so
-   Windows refused to unlink the file and passing tests were reported as
-   errors — and are now **0**. And `scripts/verify.py` had been dying on
-   its own output on a cp1252 console, killing the run after its first
-   step while appearing to report on all six.
+   **Closed 19 October.** The record was refreshed. Two defects turned up:
+   stores left open inside `TemporaryDirectory` made Windows report cleanup
+   errors after passing test bodies, and `scripts/verify.py` could die on
+   its own output on a cp1252 console. Current results and counts are kept
+   only in [README — Testing](../README.md#testing).
 
 5. **The stale remote feature branches are missing everything merged after
    them** — between 100 and 136 files differ from `origin/main` on each.
@@ -205,26 +173,11 @@ item 5 follows from it.
    `origin/infra/supabase-secure-init-20261018` matches `origin/main`
    exactly, because it is PR #14's own source branch.
 
-## Not checked here
+### Historical verification boundary
 
-The comparison above is a measurement of git refs and file trees, and made
-no claim about whether either side was green. It has since been run.
-Measured on 19 October 2026, after the fixes in items 2 to 4:
-
-| Step | Result |
-| --- | --- |
-| Python tests | 1188 tests, **0 errors**, 1 failure, 132 skipped |
-| Brain check | pass — 27 notes, 0 broken links, 0 orphans |
-| Type check | pass |
-| Frontend unit tests | pass — 143 of 143 |
-| Production build | pass |
-| Interface budget | pass, with almost no headroom |
-
-The one remaining failure is environmental and was deliberately not
-papered over: `test_backup.test_a_destroyed_database_is_rebuilt_from_a_backup`
-launches `backup.py` as a subprocess, and under full-suite load on this
-workspace that child interpreter dies before any of its code runs with
-`_Py_HashRandomization_Init: failed to get random numbers`. No change to
-`backup.py` can address that. CI on Linux is the authority for it.
-
-The Playwright suite and PostgreSQL were **not** run here.
+The original comparison measured Git refs and file trees. Its later local
+verification encountered a child-interpreter startup failure under suite
+load; Playwright and PostgreSQL were not run in that comparison. This is a
+historical observation, not a statement about the newly merged release.
+Use [README — Testing](../README.md#testing) for the current measured results
+and remaining acceptance limits.

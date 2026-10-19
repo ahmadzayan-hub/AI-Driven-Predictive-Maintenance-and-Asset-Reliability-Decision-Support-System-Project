@@ -791,6 +791,16 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Budget, passing with almost no headroom:** css first load 10.0 of 10 KB, css total 16.0 of 16 KB, fonts 119.4 of 120 KB, js total 157.6 of 160 KB, js first load 98.6 of 100 KB. Nothing was trimmed and **no limit was raised** — raising a budget to make it green is gaming the gate. The next addition of either kind forces the owner's decision.
 - **Next:** the executive view reads the KPI endpoint only in `AssetIntelligenceView`; the `?design=maintenance` preview still shows fixtures. The Playwright suite and PostgreSQL were not run here.
 
+## 2026-10-19 · `miyaar-ui-redesign` · feature/miyaar-ui-redesign
+
+**Goal:** implement the owner's approved Miyaar frontend direction and deliver an open review PR.
+
+- **Done:** bilingual midnight/cyan shell, welcome actions, contextual chat, observable dictation and read-aloud states, stale/duplicate request guards, deferred view assets, screenshots and bilingual handoff. ADR 0054 records the decision and total-byte budget tradeoff.
+- **Verified:** frontend unit suite, native snapshot contracts, documentation/verifier tests, type checking, production build and strict brain check. Current counts and final browser/budget results live in README's Testing section. The local Python suite remains non-green with Windows SQLite cleanup errors; PostgreSQL is unavailable locally.
+- **Decisions:** the explicit request for a reviewable PR supersedes the standing session-end merge instruction. No backend, auth, data model or orchestration rewrite; no fabricated model/voice/asset state.
+- **Integrated:** main at `e0b9c4e`, retaining its Windows fixture fixes, documentation and supplied design reference. Renumbered the Miyaar record to ADR 0054 because main now owns 0053 for Supabase.
+- **Open / next:** [PR #15](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/pull/15) is open against main. Visual and targeted FastAPI checks pass; full CI status is reported on the PR. Windows fixture cleanup errors remain and are classified in README. Real-device voice and configured-provider acceptance remain before release. No merge or production deployment.
+
 ## 2026-10-19 · `5eae2c78` · main
 
 **Goal:** connect to the repository from a fresh clone, install dependencies, confirm the checkout is healthy, then fix every remaining suite error and run the brain round.
@@ -805,3 +815,23 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Obsidian:** the second brain is open as a live vault. Both project vaults were already registered and point at the **OneDrive** copy, which is the live one; the clone's `brain/` was deliberately *not* registered, because two vaults of the same name holding diverging notes is how notes get edited in the wrong place. `.obsidian/` is git-ignored and the tree stayed clean.
 - **Noticed, not acted on:** `e0b9c4e` "Saas user interface" landed on `main` during the session as a single **1.7 MB PNG** with an Arabic filename and no accompanying code, in a public repository.
 - **Open / next:** the Playwright suite and PostgreSQL were not run here. The five remote branches still publishing the course files remain the owner's call, unchanged from yesterday.
+
+## 2026-10-19 · `local-ai-runtime` · feature/miyaar-ui-redesign
+
+**Goal:** install and connect the tools required for the owner's local bilingual SaaS workspace, rather than treating package presence as feature acceptance.
+
+- **Done:** pinned faster-whisper and multilingual small weights, a source clone of its official release in the ignored vendor directory, optional agent SDKs, curated Codex development skills, local model downloads and the install/doctor/start launcher. Existing GitHub/Supabase connectors were usable; the optional OpenAI Developers plugin still requires completing the offered installation UI.
+- **Integrated behavior:** explicit local voice consent, real MediaRecorder upload, authenticated session ownership, bounded CPU inference, cancellable editable drafts, browser fallback and language-matched read-aloud selection. The local launcher checks both environment and selected configuration for hosted databases, disables inherited tracing and passes the exact same private/local configuration to its worker.
+- **Measured:** actual public English/Arabic audio and real Chrome WebM recording through Whisper. Static backend, frontend, browser and budget evidence is recorded only in `README.md#testing`; commands and the inspected voice screenshot are in `docs/LOCAL_AI_SETUP.md`. Physical microphone and audible playback were not tested.
+- **Model acceptance:** the old thinking Qwen tag exposed reasoning/empty output, a small Qwen candidate failed Arabic quality, and Gemma failed conversation-history routing. Native JSON syntax and few-shot wording alone also failed actual intent probes. The final intent schema and explicit model-facing saved-memory names preserve hosted/narration contracts and public action names while separating recent conversation from durable storage. After a host interruption, the unchanged strict probe passed on the selected instruction-only Qwen model: English/Arabic checklist chat, equipment-context follow-ups and actual Whisper transcriptions, with no transcription-to-chat mutation. The earlier interrupted log is retained; no generic fallback was counted as a model success. Arabic wording remains imprecise and needs domain review.
+- **Upstream:** integrated main through `6cf4694`, including its authoritative Windows fixture cleanup and design-reference relocation, preserving both parents and both session records. No history rewrite, branch deletion or merge to main.
+- **Open:** hosted identity/PostgreSQL configuration, physical-device voice checks and real maintenance/model-quality acceptance remain separate from a local install. [PR #15](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/pull/15) remains the review surface.
+
+## 2026-10-19 · `merge-all` · main
+
+**Goal:** carry out the owner's "merge all" request after the Miyaar and local runtime review.
+
+- **Done:** merged [PR #15](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/pull/15) at `893986d`, preserving `6cf4694` and `ed1834d` as its parents. Confirmed the merge tree exactly matches the tested feature head. Both the active Miyaar workspace and Desktop checkout selected `main` and fast-forwarded without discarding local work.
+- **Verified:** audited all live branches and open PRs; #15 was the only outstanding merge. Older apparently diverged refs correspond to already-merged PRs or ancestors. All source-head CI, browser, budget and Vercel checks succeeded; exact counts and the informational audit finding are in `README.md#testing`. Refreshed synchronization guidance, project status and the brain's branch/decision records; post-merge documentation/operating-system checks and strict brain validation passed.
+- **Decisions:** the latest explicit request releases the prior review hold. Retain historical branch refs and private ignored files. No force-push, reset, history rewrite, branch deletion or production deployment.
+- **Open / next:** hosted identity/database and device/domain acceptance remain as recorded in `docs/LOCAL_AI_SETUP.md`; merging source does not establish production readiness.

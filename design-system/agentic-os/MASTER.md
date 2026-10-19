@@ -15,15 +15,15 @@
 
 ## Agentic OS decisions (these override everything below)
 
-Recorded in `docs/adr/0023-the-analytics-workspace-interface.md`; the full plan is in `docs/UI_PLAN.md`. Where the generated rules below disagree with this section, this section wins.
+Updated by `docs/adr/0054-miyaar-workspace-and-honest-voice.md` for the owner-approved Miyaar redesign. Originally recorded in `docs/adr/0023-the-analytics-workspace-interface.md`; the full plan is in `docs/UI_PLAN.md`. Where the generated rules below disagree with this section, this section wins.
 
-1. **Colour tokens are the ones in `frontend/src/shared/styles/tokens.css`,** listed in UI_PLAN §3. They keep this file's navy, blue and amber direction, with every text pairing at 4.5:1 or better and every control border at 3:1 or better. The generated `--color-border #DBEAFE` (about 1.2:1 against white) is used only for decorative dividers, never for inputs.
-2. **The primary action is blue** (`--accent-solid`). Amber (`--highlight`) marks what needs a person: approvals, provisional figures. The amber "Primary Button" below does not apply.
+1. **Colour tokens come from `frontend/src/shared/styles/tokens.css`.** Midnight navy surfaces and cyan/teal actions are primary; light and explicit system modes remain supported. Test rendered contrast with axe in each theme; decorative borders are not input borders.
+2. **The primary action is cyan/teal** (`--accent-solid`). Amber (`--highlight`) marks what needs a person: approvals, provisional figures. The amber "Primary Button" below does not apply.
 3. **Typography:** Fira Sans for text and headings; Fira Code, with tabular numerals, for numbers, IDs and code. Both are bundled from `@fontsource` and never fetched from Google. Arabic uses the system stack in `tokens.css`. The generated "Heading: Fira Code" does not apply.
 4. **Page pattern:** an application shell with sidebar navigation (bottom bar on phones), not "Enterprise Gateway". Ignore the CTA and section-order rules below; they describe a marketing site.
-5. **Motion:** CSS transitions only (`--motion-fast` 140 ms, `--motion-medium` 220 ms), disabled by both reduced-motion settings. No GSAP or scroll reveals.
+5. **Motion:** CSS transitions and lightweight state-driven keyframes only (`--motion-fast` 140 ms, `--motion-medium` 220 ms), disabled by both reduced-motion settings. No GSAP or scroll reveals.
 6. **Cards** lift on hover only when the whole card is a link or button. Static cards do not move, and `cursor: pointer` goes only on things that act.
-7. **No gradients, glow or glass.** Flat fills, a 1 px border, shadows only on floating layers.
+7. **Restrained gradients, glow and glass are approved.** Use semantic surface tokens, subtle borders and bounded blur on the shell. Keep data readable; reserve animation for actual interaction states. The industrial motif is decorative and conveys no measured asset health.
 8. **Charts:** hand-drawn SVG with titles that state the finding. Negative bars are drawn from zero, forecasts are dashed after a labelled boundary, and every chart has a table of the same numbers.
 
 ---

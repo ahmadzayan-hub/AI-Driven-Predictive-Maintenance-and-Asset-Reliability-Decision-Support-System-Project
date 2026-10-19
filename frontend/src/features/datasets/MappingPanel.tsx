@@ -1,3 +1,5 @@
+import './mapping.css'
+import '../../shared/styles/analytics.css'
 import { useEffect, useId, useRef, useState } from 'react'
 import type { MessageKey } from '../../i18n'
 import { useI18n } from '../../i18n'

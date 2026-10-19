@@ -1,3 +1,5 @@
+import '../../shared/styles/kpi.css'
+import './overview.css'
 import { useEffect, useState } from 'react'
 import { useI18n } from '../../i18n'
 import { api, ApiError } from '../../shared/api'

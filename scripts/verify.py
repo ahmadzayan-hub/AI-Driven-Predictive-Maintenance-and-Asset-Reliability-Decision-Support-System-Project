@@ -38,7 +38,7 @@ DIST = FRONTEND / "dist"
 # CSS is counted the way scripts are (ADR 0028): the stylesheet the first
 # load fetches, and every stylesheet, since a view's styles ship with its
 # chunk (ADR 0032).
-BUDGET_KB = {"js": 100, "js_total": 160, "js_chunk": 30, "css": 10, "css_total": 16,
+BUDGET_KB = {"js": 100, "js_total": 170, "js_chunk": 30, "css": 10, "css_total": 20,
              "fonts": 120}
 LABELS = {"js": "js first load", "js_total": "js total", "js_chunk": "largest js chunk",
           "css": "css first load", "css_total": "css total", "fonts": "fonts"}

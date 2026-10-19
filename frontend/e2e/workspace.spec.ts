@@ -2,7 +2,8 @@ import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import { composerInput, openTab, skipOnboarding } from './helpers'
 
-test.use({ contextOptions: { reducedMotion: 'reduce' } })
+// Route-controlled latency must reach Playwright rather than a service worker.
+test.use({ serviceWorkers: 'block', contextOptions: { reducedMotion: 'reduce' } })
 
 test('a late start response preserves the destination and the durable run', async ({ page }) => {
   await skipOnboarding(page)
@@ -41,7 +42,7 @@ test('drafts, deep links, evidence and exact-report keyboard approval', async ({
   await page.reload()
   await expect(composerInput(page)).toHaveValue('Keep my unsent question')
 
-  await openTab(page, /^Runs/)
+  await openTab(page, /^Analytics/)
   await page.getByLabel('Goal').fill('Find what changed in sample sales')
   await page.reload()
   await expect(page.getByLabel('Goal')).toHaveValue('Find what changed in sample sales')
@@ -85,7 +86,7 @@ test('drafts, deep links, evidence and exact-report keyboard approval', async ({
   await page.keyboard.press('Enter')
   await expect(page.getByRole('status').filter({ hasText: 'Publication confirmed' })).toBeVisible()
   await page.goto(linked)
-  await expect(page.locator('.privacy-note').filter({ hasText: 'Reports/' })).toBeVisible()
+  await expect(page.locator('.privacy-note').filter({ hasText: /Reports[\\/]/ })).toBeVisible()
   await page.getByRole('button', { name: 'Read the published report', exact: true }).click()
   await expect(page.locator('.runreport--full')).toBeFocused()
 })

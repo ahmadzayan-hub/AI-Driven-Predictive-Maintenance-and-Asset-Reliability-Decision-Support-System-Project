@@ -73,7 +73,7 @@ test.describe('Arabic interface', () => {
 
     // The session was created with the interface language, so the
     // welcome message needed no second request to be in Arabic.
-    await expect(page.getByText('مرحبًا بك في Agentic OS')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'لكل أصل، قرار أوضح.' })).toBeVisible()
 
     await sendArabic(page, 'مرحبا')
     await expect(lastAgentBubble(page)).toContainText('يسعدني المساعدة')

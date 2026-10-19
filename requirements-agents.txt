@@ -1,0 +1,5 @@
+# Optional existing runtime examples and official MCP-client verification.
+# These are not required by the governed core or the local chat gateway.
+langgraph==1.2.16
+pydantic-ai-slim==2.57.0
+mcp==2.3.0

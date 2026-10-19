@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useI18n } from '../../i18n'
+import { usePack } from '../../i18n/pack'
+import { assetMessages } from './messages'
 import { api, ApiError } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
 import type { Pipelines } from '../../shared/types'
@@ -15,7 +16,7 @@ interface Props {
 }
 
 export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
-  const { t, locale } = useI18n()
+  const { t, locale } = usePack(assetMessages)
   const [evidence, setEvidence] = useState<AssetEvidence | null>(null)
   const [pipelines, setPipelines] = useState<Pipelines | null>(null)
   const [kpis, setKpis] = useState<RunKpis | null>(null)

@@ -1,3 +1,4 @@
+import '../../shared/styles/analytics.css'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useSessionDraft } from '../../shared/useSessionDraft'
 import { useI18n } from '../../i18n'

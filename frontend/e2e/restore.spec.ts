@@ -1,6 +1,9 @@
 import { expect, test } from '@playwright/test'
 import { composerInput, lastAgentBubble, sendMessage, skipOnboarding } from './helpers'
 
+// These tests inject transport failures; service-worker ownership must not bypass routing.
+test.use({ serviceWorkers: 'block' })
+
 test('session survives a page refresh', async ({ page }) => {
   await skipOnboarding(page)
   await page.goto('/')

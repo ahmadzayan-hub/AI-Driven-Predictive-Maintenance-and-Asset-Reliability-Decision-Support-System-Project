@@ -40,7 +40,7 @@ test('all views and dialogs pass automated WCAG 2.2 AA checks', async ({ page })
   // The Runs view is the most complex screen in the app — approval card,
   // charts, and the analytics-type tablist — so it is scanned in the
   // state that has all of them on screen at once.
-  await openTab(page, /^Runs/)
+  await openTab(page, /^Analytics/)
   await expectNoViolations(page, 'runs view (setup)')
   await page.getByRole('button', { name: 'Start run' }).click()
   await expect(page.getByRole('region', { name: 'Approval required' })).toBeVisible({
@@ -53,7 +53,7 @@ test('all views and dialogs pass automated WCAG 2.2 AA checks', async ({ page })
   await expectNoViolations(page, 'command palette')
   await page.keyboard.press('Escape')
 
-  await page.getByRole('button', { name: 'Help and commands' }).click()
+  await openTab(page, /^Help and commands$/)
   await page.getByRole('dialog', { name: 'Commands' }).waitFor()
   await expectNoViolations(page, 'help dialog')
 })

@@ -48,6 +48,7 @@ from server.quota import QuotaExceeded, load_limits
 from server.quota import usage as quota_usage
 from server.rate_limit import WRITE_METHODS, RateLimiter
 from server.storage import DbMemoryBackend, PostgresStore, open_store
+from server.speech import LocalSpeech, SpeechError, MAX_BYTES as MAX_AUDIO_BYTES, content_format
 from utils import load_config
 
 MAX_SESSIONS = 32
@@ -394,6 +395,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
     )
 
     environ = os.environ if env is None else env
+    app.state.speech = LocalSpeech(environ)
     # Live sources (ADR 0034). The fence reads its host list and the test
     # fixture folder from the same environment as everything else.
     connectors = Connectors(engine, env=environ)
@@ -456,7 +458,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         response.headers.setdefault("Referrer-Policy", "same-origin")
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault(
-            "Permissions-Policy", "camera=(), microphone=(), geolocation=()"
+            "Permissions-Policy", "camera=(), microphone=(self), geolocation=()"
         )
         path = request.url.path
         if path.startswith("/api/"):
@@ -584,6 +586,58 @@ def create_app(config_path=None, env=None, dist_dir=None):
     # ------------------------------------------------------------------
     # Conversation
     # ------------------------------------------------------------------
+    @app.get("/api/voice/status")
+    def voice_status(principal=Depends(requires("read"))):
+        return app.state.speech.status()
+
+    @app.post("/api/sessions/{session_id}/transcriptions")
+    async def transcribe_recording(session_id: str, request: Request,
+                                  language: str = Query(default="en"),
+                                  principal=Depends(requires("write"))):
+        # Validate ownership before reading or decoding an untrusted body.
+        with lock:
+            session = get_session(session_id, principal)
+            if session.ended:
+                raise HTTPException(status_code=409, detail=(
+                    "انتهت الجلسة. ابدأ جلسة جديدة للمتابعة." if language == "ar" else
+                    "This session has ended. Start a new session to continue."))
+        try:
+            if language not in ("en", "ar"):
+                raise SpeechError("language")
+            service = app.state.speech
+            service.ensure_available()
+            content_type = request.headers.get("content-type", "")
+            if not content_format(content_type):
+                raise SpeechError("unsupported")
+            length = request.headers.get("content-length")
+            if length:
+                try:
+                    declared_length = int(length)
+                except ValueError:
+                    raise SpeechError("invalid") from None
+                if declared_length < 0:
+                    raise SpeechError("invalid")
+                if declared_length > MAX_AUDIO_BYTES:
+                    raise SpeechError("too_large")
+            audio = bytearray()
+            async for chunk in request.stream():
+                if len(audio) + len(chunk) > MAX_AUDIO_BYTES:
+                    raise SpeechError("too_large")
+                audio.extend(chunk)
+            result = await run_in_threadpool(service.transcribe, bytes(audio), content_type, language)
+            # A session can end while the CPU job runs. Do not return its
+            # late transcript into a now-closed conversation.
+            with lock:
+                if get_session(session_id, principal).ended:
+                    raise HTTPException(status_code=409, detail=(
+                        "انتهت الجلسة. ابدأ جلسة جديدة للمتابعة." if language == "ar" else
+                        "This session has ended. Start a new session to continue."))
+            return result
+        except SpeechError as error:
+            headers = {"Retry-After": "2"} if error.code == "busy" else None
+            raise HTTPException(status_code=error.status, detail=error.message(language),
+                                headers=headers) from None
+
     @app.post("/api/sessions/{session_id}/messages")
     def send_message(session_id: str, message: MessageIn, principal=Depends(requires("write"))):
         text = message.text.strip()

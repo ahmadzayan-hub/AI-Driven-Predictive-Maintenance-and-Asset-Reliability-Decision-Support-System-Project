@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useI18n } from '../../i18n'
+import { MiyaarMark } from '../../shared/components/MiyaarMark'
 import { Icon } from '../../shared/components/Icon'
 import type { TranscriptEntry } from '../../shared/types'
 import { ResultCard, ToolCards } from './ResultCard'
@@ -11,7 +12,7 @@ interface MessageBubbleProps {
   onOpenRun?: (id: string) => void
 }
 
-export function MessageBubble({ entry, agentName, onOpenRun }: MessageBubbleProps) {
+export function MessageBubble({ entry, onOpenRun }: MessageBubbleProps) {
   const { t, plural, formatTime } = useI18n()
   const [copied, setCopied] = useState(false)
   const isAgent = entry.role === 'agent'
@@ -30,11 +31,9 @@ export function MessageBubble({ entry, agentName, onOpenRun }: MessageBubbleProp
     <article className={`msg msg--${entry.role}`} aria-label={isAgent ? t('msg.agent') : t('msg.you')}>
       {isAgent ? (
         <div className="msg__head">
-          <span className="msg__avatar" aria-hidden="true">
-            A
-          </span>
+          <MiyaarMark />
           <span className="msg__author" dir="auto">
-            {agentName}
+            {t('assistant.name')}
           </span>
           <time dateTime={entry.time}>{formatTime(entry.time)}</time>
         </div>
@@ -56,6 +55,7 @@ export function MessageBubble({ entry, agentName, onOpenRun }: MessageBubbleProp
             <VoicePlayback text={entry.text} />
             {/* Honest about who understood: a model's phrasing is
                 labelled as such, the way a report names its narrator. */}
+            {entry.source === 'rules' || entry.source === 'command' ? <span className="msg__source">{t(entry.source === 'rules' ? 'miyaar.rules' : 'miyaar.command')}</span> : null}
             {entry.source === 'model' ? (
               <span className="msg__source">
                 {t('msg.viaModel', { provider: entry.provider ?? 'model' })}

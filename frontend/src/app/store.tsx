@@ -36,6 +36,8 @@ interface Store {
   status: ConnectionStatus
   sending: boolean
   failedText: string | null
+  pendingText: string | null
+  requestError: string | null
   events: ActivityEvent[]
   lastSyncedAt: string | null
   /** A run the assistant just started from the chat; the shell opens it. */
@@ -90,6 +92,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [events, setEvents] = useState<ActivityEvent[]>([])
   const [sending, setSending] = useState(false)
   const [failedText, setFailedText] = useState<string | null>(null)
+  const [pendingText, setPendingText] = useState<string | null>(null)
+  const [requestError, setRequestError] = useState<string | null>(null)
+  const sessionGeneration = useRef(0)
+  const sendInFlight = useRef(false)
   const [offline, setOffline] = useState(!navigator.onLine)
   const [lastError, setLastError] = useState(false)
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null)
@@ -146,6 +152,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // A 401 anywhere means the token is missing, expired, or revoked:
   // drop it and return the user to the sign-in screen.
   const handleUnauthorized = useCallback(() => {
+    sessionGeneration.current += 1
+    sendInFlight.current = false
+    setSending(false)
+    setPendingText(null)
+    setFailedText(null)
+    setRequestError(null)
     storeToken(null)
     setIdentity(null)
     setSession(null)
@@ -153,6 +165,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const start = useCallback(async () => {
+    const generation = ++sessionGeneration.current
+    sendInFlight.current = false
+    setSending(false)
+    setPendingText(null)
+    setRequestError(null)
     beginWork()
     setBootError(null)
     try {
@@ -160,14 +177,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       // preference; seeding it from the interface language means the
       // welcome message is already in the right language.
       const state = await api.createSession(preferenceFor(currentLocale()))
+      if (generation !== sessionGeneration.current) return
       setSession(state)
       storeSessionId(state.session_id)
       setFailedText(null)
       setLastError(false)
       setOffline(false)
       setLastSyncedAt(new Date().toISOString())
-      pushEvent('event.session.started', 'success', state.agent_name)
+      pushEvent('event.session.started', 'success', translate('assistant.name'))
     } catch (error) {
+      if (generation !== sessionGeneration.current) return
       if (error instanceof ApiError && error.status === 401) {
         handleUnauthorized()
         return
@@ -305,12 +324,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const send = useCallback(
     async (text: string) => {
-      if (!session || sending) return false
+      if (!session || session.ended || sendInFlight.current) return false
+      const generation = sessionGeneration.current
+      sendInFlight.current = true
+      setPendingText(text)
+      setRequestError(null)
       setSending(true)
       setFailedText(null)
       beginWork()
       try {
         const result = await api.sendMessage(session.session_id, text)
+        if (generation !== sessionGeneration.current) return false
+        if (!result?.reply?.text?.trim() || result.state?.session_id !== session.session_id) throw new Error('Invalid conversation response')
         setSession(result.state)
         setLastError(false)
         // Any confirmed server response proves connectivity — never stay
@@ -330,18 +355,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
         return true
       } catch (error) {
+        if (generation !== sessionGeneration.current) return false
+        if (error instanceof ApiError && error.status === 401) { handleUnauthorized(); return false }
         const message = error instanceof ApiError ? error.message : translate('outcome.requestFailed')
+        setRequestError(message)
         setFailedText(text)
         setLastError(true)
         if (error instanceof ApiError && error.offline) setOffline(true)
         pushEvent('event.request.failed', 'error', message)
         return false
       } finally {
-        setSending(false)
+        if (generation === sessionGeneration.current) {
+          sendInFlight.current = false
+          setPendingText(null)
+          setSending(false)
+        }
         endWork()
       }
     },
-    [session, sending, beginWork, endWork, pushEvent],
+    [session, beginWork, endWork, pushEvent, handleUnauthorized],
   )
 
   const retryFailed = useCallback(async () => {
@@ -351,7 +383,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     await send(text)
   }, [failedText, send])
 
-  const dismissFailed = useCallback(() => setFailedText(null), [])
+  const dismissFailed = useCallback(() => { setFailedText(null); setRequestError(null) }, [])
 
   const runOperation = useCallback(
     async (
@@ -453,9 +485,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const endSession = useCallback(async (): Promise<OperationOutcome> => {
     if (!session) return { ok: false, message: translate('outcome.noSession') }
+    const generation = sessionGeneration.current
     beginWork()
     try {
       const state = await api.endSession(session.session_id)
+      if (generation !== sessionGeneration.current) return { ok: false, message: '' }
+      sessionGeneration.current += 1
+      sendInFlight.current = false
+      setSending(false)
+      setPendingText(null)
+      setFailedText(null)
+      setRequestError(null)
       setSession(state)
       pushEvent('event.session.ended', 'info')
       return { ok: true, message: translate('outcome.sessionEnded') }
@@ -490,6 +530,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       status,
       sending,
       failedText,
+      pendingText,
+      requestError,
       events,
       lastSyncedAt,
       openRun,
@@ -518,6 +560,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       status,
       sending,
       failedText,
+      pendingText,
+      requestError,
       events,
       lastSyncedAt,
       openRun,

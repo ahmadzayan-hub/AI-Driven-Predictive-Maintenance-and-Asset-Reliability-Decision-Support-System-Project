@@ -99,7 +99,7 @@ test('a file the server cannot read is explained, not stored', async ({ page }) 
 test('a workbook uploaded in the Runs view is analysed by reference', async ({ page }) => {
   await skipOnboarding(page)
   await page.goto('/')
-  await openTab(page, /^Runs/)
+  await openTab(page, /^Analytics/)
   await page.getByRole('button', { name: 'Upload a file or paste CSV', exact: true }).click()
   await page.getByLabel('Choose a file').setInputFiles(WORKBOOK)
   await expect(page.getByRole('status').filter({ hasText: 'regional-sales.xlsx' })).toContainText(

@@ -1,0 +1,3 @@
+# Optional local-only speech service (ADR for runtime setup).
+# PyAV bundles decoding libraries; no torch or standalone FFmpeg is required.
+faster-whisper==1.2.1
