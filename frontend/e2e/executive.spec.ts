@@ -95,10 +95,12 @@ test('filtered executive measures, evidence and downloaded brief share the exact
   expect(expected.scope).toEqual({ records: 3, total_records: 4, filters: NORTH })
   // These constants come from the fixture, independently of the endpoint:
   // (8 + 15) / (10 + 30), excluding the preventive record, not a mean of rates.
-  expect(expected.kpis.measures.find((m) => m.key === 'first_time_fix')).toMatchObject({
-    value: 57.5, numerator: 23, denominator: 40, records: 2,
+  const firstTimeFix = expected.kpis.measures.find((m) => m.key === 'first_time_fix')
+  expect(firstTimeFix).toMatchObject({
+    numerator: 23, denominator: 40, records: 2,
     records_excluded: 1, records_unmeasured: 0, undefined_reason: null,
   })
+  expect(firstTimeFix!.value).toBeCloseTo(57.5, 12)
   expect(expected.kpis.measures.find((m) => m.key === 'availability')).toMatchObject({
     numerator: 265, denominator: 300, records: 3,
   })
