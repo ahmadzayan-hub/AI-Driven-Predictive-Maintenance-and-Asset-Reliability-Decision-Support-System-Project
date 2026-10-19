@@ -382,14 +382,14 @@ hardware expectations, hosted configuration and acceptance limits.
 # mapping, joins, the cleaned-table queries, modelling stages, live sources and the event stream, uneven periods, docs, and the repository's operating system:
 # brain checker, session hooks, the verify script, the motion skill, the
 # agent team's tools, agent evaluation, the house style and the interface
-# budget (1,209 tests reported in the last full local run, including skips)
+# budget (1,289 tests reported in the last full local run, including skips)
 python -m unittest discover tests
 
-# Frontend unit tests (180 tests)
+# Frontend unit tests (196 tests)
 
 cd frontend && npm test
 
-# End-to-end + accessibility (108 checks across desktop and mobile,
+# End-to-end + accessibility (114 checks defined across desktop and mobile,
 # in English and Arabic;
 # requires the production build: npm run build)
 cd frontend && npx playwright test
@@ -402,6 +402,40 @@ cd frontend && npm run typecheck
 # Playwright)
 python scripts/verify.py
 ```
+
+### Executive dashboard validation — 19 October 2026
+
+The [Arabic/English operating handoff](docs/design/EXECUTIVE_DASHBOARD_HANDOFF.md)
+explains the redesigned overview, read-only executive agent, controlled KPI
+populations, evidence navigation, filter-preserving drilldowns and JSON brief.
+[Integration research](docs/design/EXECUTIVE_DASHBOARD_RESEARCH.md) distinguishes
+the installed project `/dashboards` skill and `dashboard-analyst` instructions
+from conditional hosted Claude Artifacts. ADR 0058 records the behavior and
+explicit total-bundle allowance. Implementation commits are `dccb156` and
+`f1c894d`; no production deployment or hosted Artifact was performed.
+
+- Final Windows `python scripts/verify.py`: **all six steps passed** —
+  **1,289 Python tests reported, 131 skipped**, strict brain check, TypeScript,
+  **196 frontend unit tests**, production build and interface budget.
+  PostgreSQL is not configured in this local run; conditional skips do not
+  establish every optional backend or hosted configuration.
+- New executive browser scenarios: **6 passed** across desktop and 375 px
+  mobile, using the real API and fictional CSV records. The period/drill and
+  Arabic light/dark scenarios passed together; the two numeric/export scenarios
+  passed after a test-only IEEE floating-point tolerance correction. Exact
+  numerator/denominator/population, displayed precision, exported JSON equality,
+  unchanged approvals, axe accessibility and overflow assertions remain checked.
+  Existing dashboard and model-card browser regressions: **12 passed**.
+- Fresh budget: initial JS **97.9 / 100 KB**, total JS **172.8 / 175 KB**,
+  largest chunk **13.9 / 30 KB**, initial CSS **10.0 / 10 KB**, total CSS
+  **20.6 / 21 KB**, fonts **119.4 / 120 KB** (gzip level 9 except fonts).
+  No new runtime dependency, external font or CDN was added.
+- Manual browser review confirmed Arabic RTL light mode at desktop and phone
+  widths, English dark mode, response-owned snapshot date/time and a prepared
+  executive brief. These [Arabic brief](docs/screenshots/executive-ar-brief.png)
+  and [phone](docs/screenshots/executive-ar-mobile.png) captures show fictional
+  verification data, not live customer telemetry. Domain terminology, real
+  predictive targets and production acceptance remain open as documented.
 
 ### Miyaar redesign and local runtime validation — 19 October 2026
 

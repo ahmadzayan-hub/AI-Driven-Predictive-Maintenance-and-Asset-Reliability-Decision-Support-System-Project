@@ -35,6 +35,7 @@ from server import joins as joining
 from server import live
 from server import mapping as colmap
 from server import query as table_query
+from server.executive import ExecutiveDashboardAgent, parse_filters as executive_filters
 from server.maintenance import kpis as kpi_register
 from server.assistant import Assistant
 from server.connectors import Busy, ConnectorError, Connectors, TooSoon
@@ -1087,6 +1088,27 @@ def create_app(config_path=None, env=None, dist_dir=None):
             # left as an absent card.
             "unavailable": computed["unavailable"],
         }
+
+    @app.get("/api/runs/{run_id}/executive")
+    async def executive_brief(run_id: str,
+                              language: str = Query(default="en", pattern="^(en|ar)$"),
+                              filters: str = Query(default="[]"),
+                              principal=Depends(requires("read"))):
+        # Ownership and table readiness are checked before parsing a request.
+        table, _ = await run_table(run_id, principal, language)
+        try:
+            chosen = executive_filters(filters)
+            with lock:
+                # Cleaning may have been followed by more stages while the
+                # table loaded. Capture their stored metadata with the tasks.
+                run = engine.store.get_run(run_id)
+                if run is None or not owns(principal, run.get("owner") or "local-owner"):
+                    raise HTTPException(status_code=404, detail="Run not found.")
+                tasks = engine.store.get_tasks(run_id)
+            return await run_in_threadpool(ExecutiveDashboardAgent().brief,
+                                           table, run, tasks, chosen, language)
+        except table_query.QueryError as error:
+            raise HTTPException(status_code=422, detail=error.detail(language))
 
     @app.post("/api/runs/{run_id}/query")
     async def query_table(run_id: str, body: QueryIn,

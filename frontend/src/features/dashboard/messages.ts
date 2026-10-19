@@ -6,6 +6,9 @@ export const dashMessages = definePack(
   {
     'dash.title': 'Dashboard',
     'dash.pick': 'Choose an analysis to explore. Every figure is computed from its cleaned table.',
+    'dash.uploadMaintenance': 'Analyse maintenance data',
+    'dash.failed': 'The analyses could not be loaded. Please try again.',
+    'dash.retry': 'Try again',
     'dash.none': 'No analysis has a cleaned table yet. Start one, and its dashboard appears here.',
     'dash.loading': 'Loading the dashboard',
     'dash.other': 'Another analysis',
@@ -75,6 +78,9 @@ export const dashMessages = definePack(
   {
     'dash.title': 'لوحة المعلومات',
     'dash.pick': 'اختر تحليلاً لاستكشافه. كل رقم محسوب من جدوله المنظَّف.',
+    'dash.uploadMaintenance': 'تحليل بيانات الصيانة',
+    'dash.failed': 'تعذّر تحميل التحليلات. يرجى المحاولة مجددًا.',
+    'dash.retry': 'المحاولة مجددًا',
     'dash.none': 'لا يوجد تحليل له جدول منظَّف بعد. ابدأ تحليلاً وستظهر لوحته هنا.',
     'dash.loading': 'جارٍ تحميل لوحة المعلومات',
     'dash.other': 'تحليل آخر',

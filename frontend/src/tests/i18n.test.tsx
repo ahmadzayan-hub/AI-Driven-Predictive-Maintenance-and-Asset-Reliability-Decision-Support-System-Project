@@ -13,6 +13,7 @@ import {
 } from '../i18n'
 import { usePack } from '../i18n/pack'
 import { dashMessages } from '../features/dashboard/messages'
+import { executiveMessages } from '../features/dashboard/executiveMessages'
 import { joinMessages, modelMessages } from '../features/runs/messages'
 import { liveMessages } from '../features/live/messages'
 import { maintenanceMessages } from '../features/maintenance/messages'
@@ -175,7 +176,7 @@ describe('useI18n', () => {
 // rules: the same keys and placeholders in both languages, none blank or
 // left in English, and no key that the main dictionary also defines.
 describe('message packs', () => {
-  const packs = { dashMessages, joinMessages, modelMessages, liveMessages, maintenanceMessages, intakeMessages, assetMessages, memoryMessages, prefsMessages, activityMessages, voiceMessages }
+  const packs = { dashMessages, executiveMessages, joinMessages, modelMessages, liveMessages, maintenanceMessages, intakeMessages, assetMessages, memoryMessages, prefsMessages, activityMessages, voiceMessages }
   const names = (text: string) => (text.match(/\{\w+\}/g) ?? []).sort()
 
   for (const [name, pack] of Object.entries(packs)) {

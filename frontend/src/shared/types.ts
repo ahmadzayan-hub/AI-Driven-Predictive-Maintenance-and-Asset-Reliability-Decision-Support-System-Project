@@ -434,25 +434,35 @@ export interface RecordsPage {
 
 /** A model's card (ADR 0033): what it predicts, from what, how it was
  *  tested, and how it did against the plain baseline it must beat. */
-export interface ModelCard {
+interface ModelCardBase {
   role: string
   title: string
-  kind: 'regression' | 'classification' | 'clustering' | 'seasonal'
+  kind: 'regression' | 'classification' | 'clustering' | 'seasonal' | 'maintenance_risk'
   target: string
+  details: Record<string, unknown>
+}
+
+export interface FittedModelCard extends ModelCardBase {
+  fitted?: true
   inputs: string[]
   train_records: number
   test_records: number
   split: { kind: 'time' | 'every_fifth' | 'last_season' | 'none'; first_held_out?: string }
   metric: {
-    name: 'average_error' | 'balanced_accuracy' | 'separation'
+    name: 'average_error' | 'balanced_accuracy' | 'separation' | 'balanced accuracy'
     model: number
     baseline: number
     baseline_name: string
   }
   improvement: number
   beats_baseline: boolean
-  details: Record<string, unknown>
 }
+
+export interface UnsupportedModelCard extends ModelCardBase {
+  fitted: false
+}
+
+export type ModelCard = FittedModelCard | UnsupportedModelCard
 
 /** One controlled maintenance measure, as `GET /api/runs/{id}/kpis`
  *  returns it (ADR 0049). The counts are not decoration: `records` is what
@@ -485,3 +495,23 @@ export interface RunKpis {
   /** Each KPI the dataset cannot support, mapped to the columns it needed. */
   unavailable: Record<string, string>
 }
+
+/** An executive brief is calculated server-side for this exact filter scope.
+ * Stored findings and model evaluations retain their whole-run population. */
+export interface RunExecutive {
+  run: { id: string; dataset_name: string; state: string; updated_at?: string | null }
+  language: 'en' | 'ar'
+  source: 'engine'
+  scope: { records: number; total_records: number; filters: TableFilter[] }
+  headline: string
+  readiness: { status: 'ready' | 'limited' | 'empty'; limitations: string[] }
+  kpis: { measures: KpiMeasure[]; unavailable: Record<string, string> }
+  priorities: Array<{ id: string; title: string; detail: string; evidence_refs: string[]; drilldown_id: string | null }>
+  questions: Array<{ id: string; text: string; evidence_refs: string[] }>
+  findings: Array<{ id: string; text: string; stage: string; kind: string; evidence_refs: string[]; scope: 'whole_run' }>
+  models: Array<Omit<Partial<FittedModelCard>, 'fitted'> & { kind: ModelCard['kind']; target: string; fitted?: boolean; details: Record<string, unknown>; scope: 'whole_run' }>
+  evidence: Array<{ id: string; kind: 'scope' | 'kpi' | 'calculation'; label: string; value: number | null; method: string; scope: 'filtered' | 'whole_run' }>
+  drilldowns: Array<{ id: string; label: string; filters: TableFilter[] }>
+}
+
+export type ExecutiveBrief = RunExecutive
