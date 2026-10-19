@@ -28,6 +28,7 @@ from starlette.concurrency import run_in_threadpool
 
 from agent import Agent, language_code
 from server.agent_runtime import build_runtime
+from server import knowledge as knowledge_module
 from server import analytics
 from server import datasets as dataset_reader
 from server import joins as joining
@@ -400,6 +401,22 @@ def create_app(config_path=None, env=None, dist_dir=None):
     # Open event streams per owner in this process (ADR 0034): each polls
     # the database every second, so one owner cannot open hundreds.
     open_streams = {}
+    # Knowledge collections are read-only Markdown, so they are loaded once
+    # and rebuilt only when a file's size or timestamp moves. Re-importing
+    # the same bytes therefore changes nothing (ADR 0055).
+    knowledge_cache = {}
+
+    def knowledge_store():
+        root = Path(os.environ.get("AGENTIC_OS_KNOWLEDGE_DIR")
+                    or knowledge_module.DEFAULT_ROOT).expanduser()
+        stamp = tuple(sorted(
+            (str(f.relative_to(root)), f.stat().st_mtime_ns, f.stat().st_size)
+            for f in root.rglob("*.md"))) if root.is_dir() else ()
+        if knowledge_cache.get("stamp") != stamp:
+            knowledge_cache["stamp"] = stamp
+            knowledge_cache["store"] = knowledge_module.load(root)
+        return knowledge_cache["store"]
+
     streams_lock = threading.Lock()
     # The default must exceed the application's own legitimate write
     # cadence: a client-stepped analytics run issues ~3 advance calls per
@@ -708,6 +725,29 @@ def create_app(config_path=None, env=None, dist_dir=None):
             if note is None:
                 raise HTTPException(status_code=404, detail="Note not found.")
             return note
+
+    # ------------------------------------------------------------------
+    # Knowledge: Markdown collections, searched and cited (ADR 0055)
+    # ------------------------------------------------------------------
+    @app.get("/api/knowledge")
+    def list_knowledge(principal=Depends(requires("read"))):
+        """What is indexed, from where, and at which version."""
+        return {"collections": knowledge_store().describe()}
+
+    @app.get("/api/knowledge/search")
+    def search_knowledge(q: str = Query(..., min_length=2, max_length=400),
+                         collection: str = Query(None, max_length=120),
+                         limit: int = Query(5, ge=1, le=20),
+                         principal=Depends(requires("read"))):
+        """Passages for a question, each carrying the citation to its section.
+
+        The text returned is reference material. It is quoted to a reader
+        or handed to a model as evidence; it never instructs the system.
+        """
+        hits = knowledge_store().search(q, collection=collection, limit=limit)
+        return {"query": q,
+                "results": [dict(h.passage.as_dict(score=h.score),
+                                 matched=list(h.matched)) for h in hits]}
 
     # ------------------------------------------------------------------
     # Runs: goal -> plan -> tasks -> approval -> artifact

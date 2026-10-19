@@ -38,6 +38,7 @@ python scripts/evaluate_agents.py --check [--html r.html] # every agent's confus
 ## Map
 
 - `server/analytics.py`: the pipeline stages and dataset limits. `server/runs.py`: the durable run engine. `server/app.py`: the API.
+- `server/knowledge.py`: searchable Markdown knowledge collections, cited back to their headings (ADR 0055); content lives outside the repository under `AGENTIC_OS_KNOWLEDGE_DIR`.
 - `server/metrics.py`: the metric glossary. `server/stages.py`: custom stages (ADR 0020). `server/agent_runtime.py`, `server/tools.py`, `server/mcp.py`: runtimes and MCP (ADR 0021).
 - `frontend/src/features/*`: views. `frontend/src/i18n/`: English and Arabic strings. `frontend/e2e/`: Playwright tests.
 - `docs/AGENT_TEAM.md`: the agent team, model tiers and the review loop. `scripts/review_gate.py`, `scripts/figures_check.py`, `scripts/analyse.py`, `scripts/consult.py`: its zero-cost tools.

@@ -37,6 +37,7 @@ ACTIONS = {
     "start_run": ("goal", "dataset"),
     "run_status": ("run_id",),
     "explain_report": ("section", "run_id"),
+    "search_knowledge": ("query", "collection"),
 }
 # These delete something. Whoever understood the sentence — rules or
 # model — the system asks first, and only a "yes" in the next message
@@ -44,7 +45,7 @@ ACTIONS = {
 # around that.
 DESTRUCTIVE = {"forget", "clear_history"}
 # These need the run engine, which the command-line interface does not have.
-SERVER_ONLY = {"start_run", "run_status", "explain_report"}
+SERVER_ONLY = {"start_run", "run_status", "explain_report", "search_knowledge"}
 PREFERENCE_KEYS = ("tone", "language", "user_name", "save_history")
 TONES = ("friendly", "concise", "formal")
 SECTIONS = ("descriptive", "diagnostic", "experiment", "predictive", "prescriptive")
@@ -135,6 +136,17 @@ REPLIES = {
         "cli_needs_web":
             "Analytics runs need the web interface: start it with "
             "`python scripts/serve.py` and ask there.",
+        "knowledge_found":
+            "From {collection}:\n\n{passages}\n\nQuoted from the knowledge "
+            "base, not paraphrased. Follow a citation to read the section in "
+            "full.",
+        "knowledge_none":
+            "Nothing in the knowledge base matches “{query}”. I would rather "
+            "say so than answer from memory.",
+        "knowledge_empty":
+            "No knowledge collection is loaded. Point "
+            "AGENTIC_OS_KNOWLEDGE_DIR at a folder of Markdown, or add one to "
+            "private/knowledge/.",
         "run_started":
             "Started analysis {run_id} on {dataset}: “{goal}”. It is open in "
             "Runs — the pipeline advances while that view is open, and "
@@ -209,6 +221,16 @@ REPLIES = {
         "cli_needs_web":
             "عمليات التحليل تحتاج واجهة الويب: شغّلها بـ "
             "`python scripts/serve.py` واطلب منها هناك.",
+        "knowledge_found":
+            "من {collection}:\n\n{passages}\n\nمقتبس من قاعدة المعرفة دون "
+            "إعادة صياغة. اتبع المرجع لقراءة القسم كاملاً.",
+        "knowledge_none":
+            "لا يوجد في قاعدة المعرفة ما يطابق «{query}». أقول ذلك بدل أن "
+            "أجيب من الذاكرة.",
+        "knowledge_empty":
+            "لم تُحمَّل أي مجموعة معرفة. وجّه "
+            "AGENTIC_OS_KNOWLEDGE_DIR إلى مجلد ماركداون، أو أضف واحداً إلى "
+            "private/knowledge/.",
         "run_started":
             "بدأت التحليل {run_id} على {dataset}: «{goal}». مفتوح في "
             "التحليلات — يتقدّم خط المعالجة أثناء فتح تلك الشاشة، والنشر "

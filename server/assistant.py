@@ -34,8 +34,18 @@ from assistant import (ACTIONS, DESTRUCTIVE, PREFERENCE_KEYS, RUN_STATES,
                        SECTION_QUESTIONS, arguments_valid, confirmation_prompt,
                        execute_local, fallback, intent, is_no, is_yes, reply,
                        understand)
-from server import quota
+from server import knowledge, quota
 from server.tools import ToolBox
+
+# Enough passages that the answer is usually among them, few enough that a
+# large collection costs a few hundred tokens rather than being injected
+# whole. The retrieval layer is right first about eight times in ten and
+# within its top three more often than that (ADR 0055), so the reader is
+# given the shortlist, not a single guess.
+KNOWLEDGE_HITS = 3
+# A quoted passage is trimmed on a line boundary: a table cut mid-row is
+# harder to read than one that stops early and says so.
+KNOWLEDGE_EXCERPT_CHARS = 700
 
 MAX_MEMORY_IN_CONTEXT = 20
 MAX_TURNS_IN_CONTEXT = 6
@@ -71,6 +81,18 @@ SYSTEM_PROMPT = (
     "{language}, at most two sentences, and never claim an action has already "
     "happened."
 )
+
+
+def _excerpt(text, limit=KNOWLEDGE_EXCERPT_CHARS):
+    """The head of a passage, cut on a line boundary, marked when shortened."""
+    body = text.strip()
+    if len(body) <= limit:
+        return body
+    cut = body[:limit]
+    edge = cut.rfind(chr(10))
+    if edge > limit // 2:
+        cut = cut[:edge]
+    return cut.rstrip() + chr(10) + "…"
 
 
 class Assistant:
@@ -262,12 +284,47 @@ class Assistant:
             outcome.update(self._run_status(session))
         elif action == "explain_report":
             outcome.update(self._explain(arguments, session))
+        elif action == "search_knowledge":
+            outcome.update(self._search_knowledge(arguments, text, language))
         else:
             outcome["text"] = execute_local(action, arguments, agent, text,
                                             model_reply=model_reply)
         if outcome.get("provider") is None:
             outcome.pop("provider", None)
         return outcome
+
+    def _search_knowledge(self, arguments, text, language):
+        """Quote the passages that answer a question, with their citations.
+
+        The assistant quotes; it does not paraphrase, and it does not
+        answer from memory when the question is about indexed material.
+        Only the best few passages are returned, so a 100 KB collection
+        costs a few hundred tokens rather than being injected whole.
+
+        What comes back is reference text. It is quoted to the reader and
+        it never decides what the system does - the same rule this
+        repository applies to dataset contents and to fetched web pages.
+        """
+        query = str(arguments.get("query") or "").strip() or text.strip()
+        collection = str(arguments.get("collection") or "").strip() or None
+        store = knowledge.load()
+        if not store:
+            return {"text": reply(language, "knowledge_empty"), "result": None}
+        hits = store.search(query, collection=collection, limit=KNOWLEDGE_HITS)
+        if not hits:
+            return {"text": reply(language, "knowledge_none", query=query),
+                    "result": None}
+        blank, newline = chr(10) * 2, chr(10)
+        passages = blank.join(
+            hit.citation + newline + _excerpt(hit.passage.text)
+            for hit in hits)
+        names = sorted({hit.passage.collection for hit in hits})
+        return {"text": reply(language, "knowledge_found",
+                              collection=", ".join(names), passages=passages),
+                "result": {"query": query,
+                           "results": [dict(hit.passage.as_dict(score=hit.score),
+                                            matched=list(hit.matched))
+                                       for hit in hits]}}
 
     def _start_run(self, arguments, session, text):
         agent = session.agent
