@@ -3,7 +3,7 @@ import '../../shared/styles/analytics.css'
  *  design tokens, no library. Each is an image with a text alternative;
  *  the numbers, and the way to the rows behind them, are in the table
  *  that every chart carries. Axes read left to right in both languages. */
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useI18n } from '../../i18n'
 import { usePack } from '../../i18n/pack'
 import { dashMessages } from './messages'
@@ -19,6 +19,28 @@ function span(values: number[]) {
   return { min, max, range: max - min || 1 }
 }
 
+
+/** A pointer tooltip for a chart's marks.
+ *
+ *  The numbers table under every figure stays the way to read a value
+ *  exactly, and the way a keyboard or a screen reader reads it. This adds
+ *  what a pointer expects: the value under the cursor, without leaving the
+ *  chart. It is drawn inside the figure, so it cannot escape the page.
+ */
+function useTip() {
+  const [tip, setTip] = useState<{ text: string; x: number; y: number } | null>(null)
+  const show = (text: string) => (event: { currentTarget: Element; clientX: number; clientY: number }) => {
+    const box = event.currentTarget.closest('.dash-plot')?.getBoundingClientRect()
+    if (!box) return
+    setTip({ text, x: event.clientX - box.left, y: event.clientY - box.top })
+  }
+  const hide = () => setTip(null)
+  const node = tip
+    ? <span className="dash-tip" style={{ insetInlineStart: `${tip.x}px`, top: `${Math.max(0, tip.y - 28)}px` }}>{tip.text}</span>
+    : null
+  return { show, hide, node }
+}
+
 /** A figure: its title, the chart, and the same numbers as a table. */
 export function Figure({ title, chart, table, open = false }: {
   title: string
@@ -32,7 +54,7 @@ export function Figure({ title, chart, table, open = false }: {
       <figcaption className="field__label" dir="auto">
         {title}
       </figcaption>
-      <div dir="ltr">{chart}</div>
+      <div dir="ltr" className="dash-plot">{chart}</div>
       <details className="runchart__data" dir={isRtl ? 'rtl' : 'ltr'} open={open}>
         <summary>{t('dash.numbers')}</summary>
         <div className="evidence__table">{table}</div>
@@ -44,16 +66,25 @@ export function Figure({ title, chart, table, open = false }: {
 /** Horizontal bars from a zero line, largest first as given. */
 export function Bars({ items, label }: { items: Point[]; label: string }) {
   const { formatNumber } = useI18n()
+  const tip = useTip()
   const values = items.map((item) => item.value ?? 0)
   const { min, range } = span(values)
   const zero = (-min / range) * 100
   return (
     <div className="dash-bars" role="img" aria-label={label}>
+      {tip.node}
       {items.map((item, index) => {
         const value = values[index]
         const width = (Math.abs(value) / range) * 100
+        const reading = `${item.label || '—'} · ${
+          item.value === null ? '—' : formatNumber(item.value, { maximumFractionDigits: 2 })}`
         return (
-          <div className="dash-bars__row" key={`${item.label}-${index}`}>
+          <div
+            className="dash-bars__row"
+            key={`${item.label}-${index}`}
+            onMouseMove={tip.show(reading)}
+            onMouseLeave={tip.hide}
+          >
             <span className="dash-bars__label" dir="auto">
               {item.label || '—'}
             </span>
@@ -74,6 +105,7 @@ export function Bars({ items, label }: { items: Point[]; label: string }) {
 /** A line over periods; empty periods break the line. */
 export function Line({ points, label }: { points: Point[]; label: string }) {
   const { formatNumber } = useI18n()
+  const tip = useTip()
   const values = points.map((p) => p.value).filter((v): v is number => v !== null)
   const { min, max, range } = span(values)
   const x = (index: number) => (points.length > 1 ? (index / (points.length - 1)) * 92 + 6 : 50)
@@ -84,8 +116,23 @@ export function Line({ points, label }: { points: Point[]; label: string }) {
     else segments[segments.length - 1].push(`${x(index)},${y(point.value)}`)
   })
   return (
+    <>
+    {tip.node}
     <svg viewBox="0 0 100 58" role="img" aria-label={label} className="dash-svg">
       <line x1="6" y1={y(0)} x2="98" y2={y(0)} stroke="var(--border-strong)" strokeWidth="0.4" />
+      {points.map((point, index) =>
+        point.value === null ? null : (
+          <circle
+            key={`hit-${index}`}
+            cx={x(index)}
+            cy={y(point.value)}
+            r="3"
+            fill="transparent"
+            onMouseMove={tip.show(`${point.label} · ${formatNumber(point.value, { maximumFractionDigits: 2 })}`)}
+            onMouseLeave={tip.hide}
+          />
+        ),
+      )}
       {segments.filter((s) => s.length > 1).map((segment, index) => (
         <polyline key={index} points={segment.join(' ')} fill="none" stroke="var(--accent-solid)" strokeWidth="1.2" />
       ))}
@@ -106,6 +153,7 @@ export function Line({ points, label }: { points: Point[]; label: string }) {
         {points[points.length - 1]?.label}
       </text>
     </svg>
+    </>
   )
 }
 

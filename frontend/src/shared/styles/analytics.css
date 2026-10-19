@@ -228,3 +228,27 @@
   max-height: 420px;
   overflow: auto;
 }
+
+/* A pointer tooltip for a chart's marks. The numbers table under every
+   figure remains how a value is read exactly, and how a keyboard or a
+   screen reader reads it; this is what a pointer expects. Drawn inside
+   the figure's own box so it cannot leave the page. */
+.dash-plot {
+  position: relative;
+}
+
+.dash-tip {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  padding: 2px var(--space-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-s);
+  background: var(--surface-raised);
+  color: var(--text);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  box-shadow: var(--shadow-s);
+}

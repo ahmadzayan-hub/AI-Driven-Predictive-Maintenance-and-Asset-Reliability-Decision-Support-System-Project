@@ -989,33 +989,6 @@ kbd {
   margin-top: var(--space-3);
 }
 
-/* A stored dataset chosen for a run, in place of the sample/upload switch. */
-.chosen {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  padding: var(--space-3);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-m);
-  background: var(--surface-sunken);
-  color: var(--text-muted);
-}
-
-.chosen__body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.chosen__name {
-  font-weight: 600;
-  color: var(--text);
-  overflow-wrap: anywhere;
-}
-
 .datasets {
   list-style: none;
   padding: 0;
