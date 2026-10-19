@@ -300,6 +300,41 @@ export const api = {
       `/api/runs/${encodeURIComponent(id)}/executive?${new URLSearchParams({ language, filters: JSON.stringify(filters) })}`,
       { signal }, UPLOAD_TIMEOUT_MS,
     ),
+  /** Business files are rendered from owned server evidence. The version guard
+   * prevents silently exporting a different snapshot from the prepared brief. */
+  downloadExecutive: async (id: string, language: 'en' | 'ar', filters: TableFilter[], expectedUpdatedAt: string, expectedSnapshotId: string,
+    format: 'html' | 'docx' = 'html', signal?: AbortSignal) => {
+    const controller = new AbortController()
+    const cancel = () => controller.abort()
+    if (signal?.aborted) cancel()
+    else signal?.addEventListener('abort', cancel, { once: true })
+    const timer = setTimeout(cancel, UPLOAD_TIMEOUT_MS)
+    try {
+      const params = new URLSearchParams({ language, format, filters: JSON.stringify(filters), expected_updated_at: expectedUpdatedAt, expected_snapshot_id: expectedSnapshotId })
+      const response = await fetch(`${API_BASE}/api/runs/${encodeURIComponent(id)}/executive/export?${params}`, {
+        headers: authHeaders(), signal: controller.signal,
+      })
+      if (!response.ok) {
+        let message: string | null = null
+        try { message = readDetail(await response.json()).message } catch { /* use the status below */ }
+        throw new ApiError(message ?? translate('api.failed', { status: response.status }), response.status)
+      }
+      const expectedType = format === 'html' ? 'text/html' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      if (response.headers.get('content-type')?.split(';')[0].trim() !== expectedType) {
+        throw new ApiError(translate('api.failed', { status: response.status }), response.status)
+      }
+      const blob = await response.blob()
+      const fallback = `miyaar-executive-${id.replace(/[^a-zA-Z0-9_-]/g, '_')}-${language}.${format}`
+      return { blob, name: attachmentName(response.headers.get('content-disposition'), fallback) }
+    } catch (error) {
+      if (error instanceof ApiError) throw error
+      const aborted = error instanceof DOMException && error.name === 'AbortError'
+      throw new ApiError(translate(aborted ? 'api.timeout' : 'api.unreachable'), 0, !aborted)
+    } finally {
+      clearTimeout(timer)
+      signal?.removeEventListener('abort', cancel)
+    }
+  },
   advanceRun: (id: string) => request<RunDetail>(`/api/runs/${id}/advance`, { method: 'POST' }),
   pauseRun: (id: string) => request<RunDetail>(`/api/runs/${id}/pause`, { method: 'POST' }),
   resumeRun: (id: string) => request<RunDetail>(`/api/runs/${id}/resume`, { method: 'POST' }),

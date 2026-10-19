@@ -15,27 +15,57 @@ interface Props {
   children: ReactNode
 }
 
+interface ExportJob {
+  controller: AbortController
+  scope: string
+  popup: Window | null
+  url?: string
+  poll?: ReturnType<typeof setInterval>
+  timeout?: ReturnType<typeof setTimeout>
+  ready?: () => void
+  printing?: boolean
+  printed?: () => void
+}
+
 /** Each response belongs to one exact run, language and filter scope.
  * No cross-user/module cache; changing scope aborts and hides old figures. */
 export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill, children }: Props) {
   const { t, locale, isRtl, formatNumber } = usePack(executiveMessages)
   const key = JSON.stringify([runId, locale, filters])
   const [revision, setRevision] = useState(0)
+  const requestKey = `${key}:${revision}`
   const [answer, setAnswer] = useState<{ key: string; data: RunExecutive | null; failed: boolean }>({ key: '', data: null, failed: false })
   const [brief, setBrief] = useState<RunExecutive | null>(null)
   const [evidenceOpen, setEvidenceOpen] = useState(false)
   const [selectedEvidence, setSelectedEvidence] = useState<string[]>([])
+  const [exportFormat, setExportFormat] = useState<'html' | 'docx'>('html')
+  const [exportBusy, setExportBusy] = useState(false)
+  const [exportError, setExportError] = useState<keyof typeof executiveMessages.en | null>(null)
+  const [exportStatus, setExportStatus] = useState<keyof typeof executiveMessages.en | null>(null)
+  const exportRef = useRef<ExportJob | null>(null)
+  const objectUrls = useRef(new Set<string>())
+  const currentScope = useRef('')
+  currentScope.current = requestKey
   const evidenceRef = useRef<HTMLDetailsElement>(null)
   useEffect(() => {
     const controller = new AbortController()
     let current = true
-    setAnswer({ key, data: null, failed: false })
+    setAnswer({ key: requestKey, data: null, failed: false })
+    setBrief(null)
     setEvidenceOpen(false)
     setSelectedEvidence([])
+    setExportBusy(false)
+    setExportError(null)
+    setExportStatus(null)
     api.runExecutive(runId, locale, filters, controller.signal)
-      .then((data) => { if (current) setAnswer({ key, data, failed: false }) })
-      .catch(() => { if (current) setAnswer({ key, data: null, failed: true }) })
-    return () => { current = false; controller.abort() }
+      .then((data) => { if (current) setAnswer({ key: requestKey, data, failed: false }) })
+      .catch(() => { if (current) setAnswer({ key: requestKey, data: null, failed: true }) })
+    return () => {
+      current = false
+      controller.abort()
+      if (exportRef.current) disposeExport(exportRef.current)
+      for (const url of objectUrls.current) revoke(url)
+    }
     // The serialized key includes the complete request, independent of prop identity.
   }, [key, revision]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -46,8 +76,8 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
     else evidenceRef.current?.querySelector('summary')?.focus()
   }, [evidenceOpen, selectedEvidence])
 
-  const data = answer.key === key ? answer.data : null
-  const failed = answer.key === key && answer.failed
+  const data = answer.key === requestKey ? answer.data : null
+  const failed = answer.key === requestKey && answer.failed
   const number = (value: number | null | undefined) => value == null ? '—' : formatNumber(value, { maximumFractionDigits: 2 })
 
   function inspectEvidence(ids: string[]) {
@@ -60,14 +90,98 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
       <Icon name="shield" size={14} /><span>{t('exec.viewSources', { n: formatNumber(ids.length) })}</span>
     </button>
   }
-  function download() {
-    if (!data) return
-    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' }))
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `miyaar-executive-${runId.replace(/[^a-zA-Z0-9_-]/g, '_')}-${locale}.json`
-    link.click()
-    setTimeout(() => URL.revokeObjectURL(url), 0)
+  function revoke(url: string) {
+    if (objectUrls.current.delete(url)) URL.revokeObjectURL(url)
+  }
+  function disposeExport(job: ExportJob) {
+    job.controller.abort()
+    clearInterval(job.poll)
+    clearTimeout(job.timeout)
+    try {
+      if (job.printed) job.popup?.removeEventListener('afterprint', job.printed)
+      if (job.popup && !job.popup.closed) job.popup.close()
+    } catch { /* A closed or externally navigated preview is no longer usable. */ }
+    if (job.url) revoke(job.url)
+    if (exportRef.current === job) exportRef.current = null
+  }
+  function isCurrent(job: ExportJob) {
+    return exportRef.current === job && job.scope === currentScope.current && !job.controller.signal.aborted
+  }
+  function finishExport(job: ExportJob, error: keyof typeof executiveMessages.en | null, status: keyof typeof executiveMessages.en | null = null) {
+    if (!isCurrent(job)) return
+    disposeExport(job)
+    setExportBusy(false)
+    setExportError(error)
+    setExportStatus(status)
+  }
+  function cancelExport() {
+    if (exportRef.current) finishExport(exportRef.current, null, 'exec.exportCancelled')
+  }
+  async function exportReport(print: boolean) {
+    if (!data || brief !== data || exportRef.current) return
+    setExportError(null)
+    setExportStatus(null)
+    const stamp = brief.run.updated_at
+    const snapshotId = brief.snapshot_id
+    if (!stamp || !snapshotId) { setExportError('exec.exportStale'); return }
+    let popup: Window | null = null
+    if (print) {
+      // Reserve the preview while this explicit user gesture is still active.
+      try {
+        popup = window.open('', '_blank')
+        if (popup) popup.opener = null
+      } catch { popup?.close(); popup = null }
+      if (!popup) { setExportError('exec.popupBlocked'); return }
+    }
+    const job: ExportJob = { controller: new AbortController(), scope: currentScope.current, popup }
+    exportRef.current = job
+    setExportBusy(true)
+    if (popup) job.poll = setInterval(() => {
+      if (popup.closed) finishExport(job, null, 'exec.printClosed')
+      else job.ready?.()
+    }, 400)
+    try {
+      const result = await api.downloadExecutive(brief.run.id, brief.language, brief.scope.filters, stamp, snapshotId, print ? 'html' : exportFormat, job.controller.signal)
+      if (!isCurrent(job)) return
+      if (popup?.closed) { finishExport(job, null, 'exec.printClosed'); return }
+      const url = URL.createObjectURL(result.blob)
+      objectUrls.current.add(url)
+      if (!popup) {
+        const link = document.createElement('a')
+        link.href = url
+        link.download = result.name
+        try { link.click() } catch (error) { revoke(url); throw error }
+        // The browser may consume the blob after the click handler returns.
+        setTimeout(() => revoke(url), 1_000)
+        finishExport(job, null, 'exec.downloadReady')
+        return
+      }
+      job.url = url
+      const loaded = () => popup.location.href === url && popup.document.URL === url && popup.document.readyState === 'complete'
+      // Navigation replaces the blank window's global and its load listeners.
+      // Poll the actual report document, then enter the font/print path once.
+      job.ready = async () => {
+        try {
+          if (job.printing || !isCurrent(job) || popup.closed || !loaded()) return
+          job.printing = true
+          await popup.document.fonts?.ready
+          if (!isCurrent(job)) return
+          if (popup.closed) { finishExport(job, null, 'exec.printClosed'); return }
+          if (!loaded()) { finishExport(job, 'exec.printFailed'); return }
+          clearTimeout(job.timeout)
+          job.printed = () => finishExport(job, null, 'exec.printDone')
+          popup.addEventListener('afterprint', job.printed, { once: true })
+          popup.focus()
+          setExportStatus('exec.printRequested')
+          popup.print()
+        } catch { finishExport(job, 'exec.printFailed') }
+      }
+      job.timeout = setTimeout(() => finishExport(job, 'exec.printFailed'), 30_000)
+      popup.location.href = url
+    } catch (error) {
+      const stale = error instanceof Error && 'status' in error && error.status === 409
+      finishExport(job, stale ? 'exec.exportStale' : 'exec.exportFailed')
+    }
   }
 
   if (!data) return <section className="card exec-pending" aria-label={t('exec.title')}>
@@ -113,7 +227,15 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
           <p className="exec-headline" dir="auto">{data.headline}</p>
           <h4>{t('exec.questions')}</h4>
           {data.questions.length ? <ol>{data.questions.map((question) => <li key={question.id}><p dir="auto">{question.text}</p>{refs(question.evidence_refs)}</li>)}</ol> : <p>{t('exec.noQuestions')}</p>}
-          <button type="button" className="btn btn--ghost" onClick={download}><Icon name="download" size={16} />{t('exec.download')}</button>
+          <div className="exec-export" aria-busy={exportBusy}>
+            <div className="field"><label className="field__label" htmlFor="exec-format">{t('exec.format')}</label><select className="field__select" id="exec-format" value={exportFormat} disabled={exportBusy} onChange={(event) => setExportFormat(event.target.value as 'html' | 'docx')}><option value="html">{t('exec.html')}</option><option value="docx">{t('exec.word')}</option></select></div>
+            <button type="button" className="btn btn--ghost" disabled={exportBusy} onClick={() => void exportReport(false)}><Icon name="download" size={16} />{t('exec.download')}</button>
+            <button type="button" className="btn btn--ghost" disabled={exportBusy} aria-describedby="exec-pdf-help" onClick={() => void exportReport(true)}>{t('exec.print')}</button>
+            {exportBusy ? <button type="button" className="btn btn--subtle" onClick={cancelExport}>{t('exec.cancelExport')}</button> : null}
+          </div>
+          <p className="exec-muted" id="exec-pdf-help">{t('exec.pdfHelp')}</p>
+          {exportError ? <div><p role="alert">{t(exportError)}</p>{exportError === 'exec.exportStale' ? <button type="button" className="btn btn--subtle" onClick={() => setRevision((v) => v + 1)}>{t('exec.refresh')}</button> : null}</div> : null}
+          <p className="exec-muted" role="status">{exportStatus ? t(exportStatus) : exportBusy ? t('exec.exportBusy') : ''}</p>
         </div> : <button type="button" className="btn btn--primary" onClick={() => setBrief(data)}><Icon name="sparkle" size={16} />{t('exec.prepare')}</button>}
         <p className="exec-boundary"><Icon name="shield" size={16} />{t('exec.human')}</p>
       </section>

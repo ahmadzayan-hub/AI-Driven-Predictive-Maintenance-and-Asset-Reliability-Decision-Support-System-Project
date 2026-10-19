@@ -499,6 +499,7 @@ export interface RunKpis {
 /** An executive brief is calculated server-side for this exact filter scope.
  * Stored findings and model evaluations retain their whole-run population. */
 export interface RunExecutive {
+  snapshot_id?: string
   run: { id: string; dataset_name: string; state: string; updated_at?: string | null }
   language: 'en' | 'ar'
   source: 'engine'
