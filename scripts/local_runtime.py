@@ -176,6 +176,25 @@ def install(model_dir, voice, agents=False, model=LLM):
     return doctor(model_dir, model)
 
 
+def stop_worker(child):
+    """Stop only the worker this launcher owns, including Windows venv children."""
+    if child is None or child.poll() is not None:
+        return
+    if sys.platform == "win32":
+        # A venv python.exe may be a redirector with the actual worker below it.
+        # Killing only that stub leaves the worker alive. Scope taskkill to this
+        # still-live Popen PID and its descendants, never a process-name match.
+        taskkill = Path(os.environ.get("SystemRoot", "C:/Windows")) / "System32" / "taskkill.exe"
+        result = subprocess.run([str(taskkill), "/PID", str(child.pid), "/T", "/F"],
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                timeout=10, check=False, creationflags=subprocess.CREATE_NO_WINDOW)
+        if result.returncode and child.poll() is None:
+            raise RuntimeError("The owned background worker process tree could not be stopped.")
+    else:
+        child.terminate()
+    child.wait(timeout=10)
+
+
 def start(model_dir, port, worker, model=LLM):
     if os.environ.get("DATABASE_URL") or os.environ.get("AGENTIC_OS_ENV", "").lower() == "production":
         raise SystemExit("Use the hosted launcher for a hosted database/production environment; this profile is for local SQLite.")
@@ -243,9 +262,7 @@ def start(model_dir, port, worker, model=LLM):
         import uvicorn
         uvicorn.run("server.app:app", host="127.0.0.1", port=port, log_level="warning")
     finally:
-        if child and child.poll() is None:
-            child.terminate()
-            child.wait(timeout=10)
+        stop_worker(child)
     return 0
 
 

@@ -103,6 +103,7 @@ class LocalRuntimeTest(unittest.TestCase):
                     patch.object(runtime.os, "chdir") as change_directory, \
                     patch.object(runtime, "ensure_ollama", return_value={"models": [{"name": runtime.LLM, "size": 2_000_000}]}), \
                     patch.object(runtime.subprocess, "Popen", return_value=child) as spawn, \
+                    patch.object(runtime, "stop_worker") as cleanup, \
                     patch.dict(sys.modules, {"uvicorn": SimpleNamespace(run=run)}), \
                     contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(runtime.start(root / "model", 8012, True), 0)
@@ -114,8 +115,75 @@ class LocalRuntimeTest(unittest.TestCase):
                 self.assertEqual(os.environ["LANGSMITH_TRACING"], "false")
                 change_directory.assert_called_once_with(root)
                 run.assert_called_once_with("server.app:app", host="127.0.0.1", port=8012, log_level="warning")
-                child.terminate.assert_called_once()
-                child.wait.assert_called_once_with(timeout=10)
+                cleanup.assert_called_once_with(child)
+
+    def test_windows_worker_cleanup_targets_only_the_owned_live_process_tree(self):
+        child = Mock(pid=4321)
+        child.poll.return_value = None
+        with patch.object(runtime.sys, "platform", "win32"), \
+                patch.dict(os.environ, {"SystemRoot": "C:/Windows"}), \
+                patch.object(runtime.subprocess, "CREATE_NO_WINDOW", 0x08000000, create=True), \
+                patch.object(runtime.subprocess, "run", return_value=SimpleNamespace(returncode=0)) as run:
+            runtime.stop_worker(child)
+            self.assertEqual(run.call_args.args[0], [str(Path("C:/Windows") / "System32" / "taskkill.exe"),
+                                                    "/PID", "4321", "/T", "/F"])
+            self.assertEqual(run.call_args.kwargs["timeout"], 10)
+            self.assertFalse(run.call_args.kwargs["check"])
+            self.assertEqual(run.call_args.kwargs["creationflags"], 0x08000000)
+            child.terminate.assert_not_called()
+            child.wait.assert_called_once_with(timeout=10)
+
+    def test_completed_worker_or_absent_worker_is_not_targeted(self):
+        child = Mock(pid=4321)
+        child.poll.return_value = 0
+        with patch.object(runtime.subprocess, "run") as run:
+            runtime.stop_worker(None)
+            runtime.stop_worker(child)
+            run.assert_not_called()
+            child.terminate.assert_not_called()
+            child.wait.assert_not_called()
+
+    def test_non_windows_worker_cleanup_preserves_terminate_and_bounded_wait(self):
+        child = Mock(pid=4321)
+        child.poll.return_value = None
+        with patch.object(runtime.sys, "platform", "linux"), \
+                patch.object(runtime.subprocess, "run") as run:
+            runtime.stop_worker(child)
+            run.assert_not_called()
+            child.terminate.assert_called_once()
+            child.wait.assert_called_once_with(timeout=10)
+
+    def test_failed_windows_tree_cleanup_reports_failure_without_targeting_any_other_process(self):
+        child = Mock(pid=4321)
+        child.poll.return_value = None
+        with patch.object(runtime.sys, "platform", "win32"), \
+                patch.object(runtime.subprocess, "CREATE_NO_WINDOW", 0x08000000, create=True), \
+                patch.object(runtime.subprocess, "run", return_value=SimpleNamespace(returncode=1)) as run:
+            with self.assertRaisesRegex(RuntimeError, "owned background worker process tree"):
+                runtime.stop_worker(child)
+            run.assert_called_once()
+            self.assertEqual(run.call_args.args[0][-4:], ["/PID", "4321", "/T", "/F"])
+            child.terminate.assert_not_called()
+
+    def test_worker_cleanup_runs_when_the_api_raises(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            interface = root / "frontend" / "dist"
+            interface.mkdir(parents=True)
+            (interface / "index.html").write_text("fixture", encoding="utf-8")
+            child = Mock()
+            run = Mock(side_effect=RuntimeError("fixture API exit"))
+            with patch.dict(os.environ, {}, clear=True), patch.object(runtime, "ROOT", root), \
+                    patch.object(runtime.os, "chdir"), \
+                    patch.object(runtime, "ensure_ollama", return_value={"models": [{"name": runtime.LLM, "size": 2_000_000}]}), \
+                    patch.object(runtime, "local_json", return_value={"done": True}), \
+                    patch.object(runtime.subprocess, "Popen", return_value=child), \
+                    patch.object(runtime, "stop_worker") as cleanup, \
+                    patch.dict(sys.modules, {"uvicorn": SimpleNamespace(run=run)}), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                with self.assertRaisesRegex(RuntimeError, "fixture API exit"):
+                    runtime.start(root / "model", 8012, True)
+                cleanup.assert_called_once_with(child)
 
     def test_local_profile_rejects_a_cloud_alias_before_loading(self):
         with patch.dict(os.environ, {}, clear=True), tempfile.TemporaryDirectory() as directory:
