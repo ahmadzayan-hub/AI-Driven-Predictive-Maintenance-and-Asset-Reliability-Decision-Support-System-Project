@@ -147,6 +147,41 @@ class RecallFixTests(unittest.TestCase):
         self.assertFalse(claims_lint.causal_phrases("زاد الإنتاج بنسبة 12% في الربع الأخير."))
         self.assertFalse(claims_lint.causal_phrases("زاد الإنتاج في الربع الأخير."))
 
+    def test_each_standards_class_is_caught(self):
+        """One case per rule in ADR 0059, so a rewrite cannot drop one."""
+        import standards_lint
+        for sentence in (
+            "The model produces the optimal maintenance schedule.",
+            "The programme saved USD 4.2 million last year.",
+            "Total maintenance cost for the period was USD 50.4 million.",
+            "289 high-risk assets require intervention.",
+            "We recommend replacing the pumping station bearings.",
+        ):
+            self.assertTrue(standards_lint.refuses(sentence), sentence)
+
+    def test_the_compliant_wording_of_each_class_passes(self):
+        """The lint must not punish the sentence the standard asks for."""
+        import standards_lint
+        for sentence in (
+            "The ranking orders assets by consequence; it is not an optimal allocation.",
+            "The programme is expected to save USD 4.2 million, not yet realised.",
+            "Servicing is charged to profit or loss and the overhaul is a component under IAS 16.",
+            "289 high-risk observations were recorded, not 289 distinct assets.",
+            "We recommend compressor 14 to protect the availability objective, owned by the depot manager.",
+            "متوسط الجاهزية بلغ 96.8% خلال الفترة.",
+        ):
+            self.assertFalse(standards_lint.refuses(sentence), sentence)
+
+    def test_no_pattern_carries_a_stray_control_character(self):
+        """A literal backspace once stood where a word boundary was meant, and
+        the pattern silently matched nothing it was written to match."""
+        import standards_lint
+        for pattern in (standards_lint.OPTIMISATION, standards_lint.REALISED,
+                        standards_lint.CAPITALISATION, standards_lint.GRAIN,
+                        standards_lint.TREATMENT, standards_lint.META,
+                        standards_lint.RECOMMENDATION, standards_lint.LINE_OF_SIGHT):
+            self.assertNotIn(chr(8), pattern.pattern)
+
     def test_the_adversarial_probe_is_labelled_as_one(self):
         """probe_v5 must never be read as a blind holdout: it was written with
         the patterns in view, so its recall is a worst case, not a measurement

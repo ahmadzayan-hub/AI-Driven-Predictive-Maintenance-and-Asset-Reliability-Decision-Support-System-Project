@@ -136,6 +136,14 @@ def _causal(cases):
     return [(c["label"], bool(claims_lint.causal_phrases(c["text"])), c["text"]) for c in cases]
 
 
+def _standards(cases):
+    try:
+        import standards_lint
+    except ImportError:
+        return None   # the standards lint arrived with ADR 0059
+    return [(c["label"], bool(standards_lint.refuses(c["text"])), c["text"]) for c in cases]
+
+
 def _figures(cases):
     """Each figure in a document is one item: bad ones should be flagged."""
     import figures_check as fc
@@ -177,6 +185,9 @@ SUITES = {
                "agent": "Claims lint: causal wording in deliverables", "module": "scripts/claims_lint.causal_phrases"},
     "figures": {"file": "figures.json", "predict": _figures, "positive": True, "labels": [True, False],
                 "agent": "Figures check: unsourced or wrong figures", "module": "scripts/figures_check.check"},
+    "standards": {"file": "standards.json", "predict": _standards, "positive": True,
+                  "agent": "Standards lint: what a reporting standard would refuse",
+                  "module": "scripts/standards_lint.refuses"},
 }
 
 
