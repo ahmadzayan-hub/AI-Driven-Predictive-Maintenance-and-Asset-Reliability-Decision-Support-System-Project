@@ -412,7 +412,8 @@ populations, evidence navigation, filter-preserving drilldowns and JSON brief.
 the installed project `/dashboards` skill and `dashboard-analyst` instructions
 from conditional hosted Claude Artifacts. ADR 0058 records the behavior and
 explicit total-bundle allowance. Implementation commits are `dccb156` and
-`f1c894d`; no production deployment or hosted Artifact was performed.
+`f1c894d`, with browser-state repair `18536de`; no production deployment or
+hosted Artifact was performed.
 
 - Final Windows `python scripts/verify.py`: **all six steps passed** —
   **1,289 Python tests reported, 131 skipped**, strict brain check, TypeScript,
@@ -426,10 +427,16 @@ explicit total-bundle allowance. Implementation commits are `dccb156` and
   numerator/denominator/population, displayed precision, exported JSON equality,
   unchanged approvals, axe accessibility and overflow assertions remain checked.
   Existing dashboard and model-card browser regressions: **12 passed**.
-- The first full Linux browser run exposed that helper's premature checkbox
-  assertion; its other **106 checks passed, 4 skipped**. The corrected helper
-  separately verifies the checked state, exact URL filter and scoped population.
-  Runtime calculations and navigation behavior are unchanged; full CI is rerunning.
+- [Full Linux CI on main `18536de`](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39293549816)
+  **passed**: **1,289 Python tests reported, 23 skipped**, with the required
+  PostgreSQL service; **196 frontend tests**; **110 browser/accessibility checks
+  passed, 4 skipped**; and **12 Miyaar bilingual/voice/accessibility checks passed**.
+  All six executive cases passed, including the checked-state, exact URL filter,
+  population, evidence and export assertions. Contracts, production build,
+  BOM/licence and interface budget passed. [Fast budget](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39293549812)
+  also passed. The informational Python audit still reports the existing
+  setuptools advisory `PYSEC-2026-3447` (suggested version 83.0.0); it is not a
+  failing test. Frontend dependency audit reported zero vulnerabilities.
 - Fresh budget: initial JS **97.9 / 100 KB**, total JS **172.8 / 175 KB**,
   largest chunk **13.9 / 30 KB**, initial CSS **10.0 / 10 KB**, total CSS
   **20.6 / 21 KB**, fonts **119.4 / 120 KB** (gzip level 9 except fonts).
