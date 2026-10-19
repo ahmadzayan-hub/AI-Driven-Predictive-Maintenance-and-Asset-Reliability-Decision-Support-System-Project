@@ -40,15 +40,33 @@ from server.tools import ToolBox
 MAX_MEMORY_IN_CONTEXT = 20
 MAX_TURNS_IN_CONTEXT = 6
 MAX_REPLY_CHARS = 600
+# Model tool names distinguish durable storage from ordinary conversation.
+# Internal actions, user commands and response action names stay compatible.
+MODEL_ACTION_ALIASES = {"search_saved_memory": "recall", "store_saved_memory": "remember"}
+_MODEL_ACTION_NAMES = {internal: model for model, internal in MODEL_ACTION_ALIASES.items()}
+_MODEL_ARGUMENT_HINTS = {
+    ("remember", "category"): "category:general|profile|work|projects|preferences",
+    ("recall", "query"): "query:string|null",
+    ("forget", "key"): "key:memory_N|all",
+    ("set_preference", "key"): "key:tone|language|user_name|save_history",
+    ("start_run", "dataset"): "dataset:stored name|sample",
+    ("explain_report", "section"): "section:descriptive|diagnostic|experiment|predictive|prescriptive|all",
+}
+MODEL_ACTION_CATALOG = "; ".join(
+    _MODEL_ACTION_NAMES.get(action, action) + "{" +
+    ",".join(_MODEL_ARGUMENT_HINTS.get((action, argument), argument) for argument in arguments) + "}"
+    for action, arguments in ACTIONS.items()
+)
 INTENT_SCHEMA = {
     "oneOf": [
         {"type": "object", "properties": {
             "action": {"const": "chat"},
             "arguments": {"type": "object", "properties": {}, "additionalProperties": False},
-            "reply": {"type": "string", "minLength": 1, "maxLength": MAX_REPLY_CHARS}},
+            "reply": {"type": "string", "minLength": 1}},
          "required": ["action", "arguments", "reply"], "additionalProperties": False},
         {"type": "object", "properties": {
-            "action": {"type": "string", "enum": sorted(set(ACTIONS) - {"chat"})},
+            "action": {"type": "string", "enum": sorted(
+                _MODEL_ACTION_NAMES.get(action, action) for action in ACTIONS if action != "chat")},
             "arguments": {"type": "object"},
             "reply": {"const": ""}},
          "required": ["action", "arguments", "reply"], "additionalProperties": False},
@@ -63,15 +81,9 @@ HOSTED_TOKENS = 400
 SYSTEM_PROMPT = (
     "You are Miyaar (معيار), Asset Reliability's governed assistant. Return ONLY "
     "one JSON object: {\"action\":\"name\",\"arguments\":{},\"reply\":\"text\"}.\n"
-    "Actions (only these arguments): chat{}; help{}; "
-    "remember{information,category:general|profile|work|projects|preferences}; "
-    "recall{query:string|null} reads saved long-term memory ONLY, never conversation history; "
-    "forget{key:memory_N|all}; clear_history{}; "
-    "set_preference{key:tone|language|user_name|save_history,value}; "
-    "start_run{goal,dataset:stored name|sample}; run_status{}; "
-    "explain_report{section:descriptive|diagnostic|experiment|predictive|prescriptive|all}.\n"
-    "recall searches Saved memory entries, never the Recent conversation transcript. "
-    "Conversation follow-ups use Recent conversation and chat, NEVER recall. "
+    "Actions (only these arguments): " + MODEL_ACTION_CATALOG + ".\n"
+    "search_saved_memory searches Saved memory entries. "
+    "Answer conversation follow-ups from Recent conversation using chat. "
     "Conceptual maintenance/checklists use chat: answer the specified question "
     "directly and briefly; do not ask whether to give the checklist already requested. "
     "Give useful general guidance with a NONEMPTY reply at the TOP LEVEL, never "
@@ -81,13 +93,6 @@ SYSTEM_PROMPT = (
     "operating limits, predictions or savings. General guidance is not a measured "
     "asset assessment. Inspections follow approved site/manufacturer procedures "
     "and safe isolation by qualified personnel.\n"
-    "Examples (not current context):\n"
-    "Recent conversation: user: Our topic is a belt conveyor. agent: We can discuss its inspection.\n"
-    "Message: Repeat the asset from this conversation.\n"
-    "{\"action\":\"chat\",\"arguments\":{},\"reply\":\"You described a belt conveyor.\"}\n"
-    "Recent conversation: user: أناقش ضاغط هواء. agent: يمكنني توضيح فحصه.\n"
-    "Message: كرر الأصل من هذه المحادثة.\n"
-    "{\"action\":\"chat\",\"arguments\":{},\"reply\":\"ذكرت ضاغط هواء.\"}\n"
     "The system executes actions, confirms deletions, and quotes reports for "
     "run_status/explain_report. Leave reply empty for non-chat actions; never "
     "claim an action already happened. Answer in {language}, at most two short "
@@ -234,6 +239,7 @@ class Assistant:
         if not isinstance(data, dict):
             return None
         action = str(data.get("action") or "").strip()
+        action = MODEL_ACTION_ALIASES.get(action, action)
         if action not in ACTIONS:
             return None
         allowed = ACTIONS[action]

@@ -21,7 +21,7 @@ import assistant
 from agent import Agent
 from server import analytics
 from tests.support import closing, closing_store
-from server.assistant import Assistant, INTENT_SCHEMA
+from server.assistant import Assistant, INTENT_SCHEMA, MODEL_ACTION_ALIASES
 from server.model_gateway import ModelGateway
 from server.runs import RunEngine
 from server.storage import open_store
@@ -500,12 +500,44 @@ class ModelPathTestCase(unittest.TestCase):
                 self.assertEqual(self.session.agent.memory, memories)
                 self.assertEqual(self.session.transcript, transcript)
 
-    def test_intent_boundary_receives_the_full_action_catalog(self):
-        # Every executable action must be represented in the model's catalog.
+    def test_model_catalog_and_schema_expose_only_the_mapped_action_names(self):
         _, gateway = self.handle(None, "Explain a general inspection")
         system = gateway.asked[0][0]
-        for action in assistant.ACTIONS:
+        aliases = {internal: model for model, internal in MODEL_ACTION_ALIASES.items()}
+        expected = {aliases.get(action, action) for action in assistant.ACTIONS}
+        for action in expected:
             self.assertIn(action + "{", system)
+        for internal in MODEL_ACTION_ALIASES.values():
+            self.assertNotIn(internal + "{", system)
+        chat, other = INTENT_SCHEMA["oneOf"]
+        exposed = {chat["properties"]["action"]["const"]} | set(other["properties"]["action"]["enum"])
+        self.assertEqual(exposed, expected)
+
+    def test_saved_memory_aliases_and_legacy_names_keep_internal_action_contracts(self):
+        for store_name, search_name in (("store_saved_memory", "search_saved_memory"), ("remember", "recall")):
+            with self.subTest(store=store_name, search=search_name):
+                self.session = FakeSession(make_agent())
+                saved, _ = self.handle(json.dumps({"action": store_name,
+                    "arguments": {"information": "The shift log is reviewed on Friday"}, "reply": ""}),
+                    "Save the shift review schedule")
+                self.assertEqual(saved["action"], "remember")
+                self.assertEqual(saved["text"], "Information saved.")
+                self.assertEqual(len(self.session.agent.memory), 1)
+                found, _ = self.handle(json.dumps({"action": search_name,
+                    "arguments": {"query": "shift log"}, "reply": ""}), "Search saved notes about the shift log")
+                self.assertEqual(found["action"], "recall")
+                self.assertIn("The shift log is reviewed on Friday", found["text"])
+                self.assertEqual(len(self.session.agent.memory), 1)
+
+    def test_aliases_pass_through_existing_argument_validation(self):
+        for action, arguments in (("store_saved_memory", {"information": "  "}),
+                                  ("store_saved_memory", {}),
+                                  ("delete_saved_memory", {"key": "all"})):
+            with self.subTest(action=action):
+                parsed = Assistant(FakeGateway(None), self.engine)._parse(
+                    json.dumps({"action": action, "arguments": arguments, "reply": ""}), self.session)
+                self.assertIsNone(parsed)
+        self.assertEqual(self.session.agent.memory, {})
 
     def test_an_older_matching_turn_is_not_removed_from_history(self):
         question = "Which equipment did I mention?"
