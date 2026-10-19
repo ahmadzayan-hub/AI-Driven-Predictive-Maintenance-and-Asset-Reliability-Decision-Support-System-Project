@@ -1,7 +1,11 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
-import type { APIRequestContext, Download, Page } from '@playwright/test'
+import type { APIRequestContext, Download, Locator, Page } from '@playwright/test'
+import { execFile } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
+import { promisify } from 'node:util'
 import type { RunDetail, RunExecutive, TableFilter } from '../src/shared/types'
 import { skipOnboarding } from './helpers'
 
@@ -73,10 +77,179 @@ async function chooseNorth(page: Page) {
   await expect(page.locator('.exec-scope strong')).toHaveText('3')
 }
 
-async function readBrief(download: Download) {
+async function downloadPath(download: Download) {
   const path = await download.path()
-  expect(path, 'the evidence brief should be a real downloaded JSON file').not.toBeNull()
-  return JSON.parse(await readFile(path!, 'utf8')) as RunExecutive
+  expect(path, 'the report should be a real downloaded file').not.toBeNull()
+  return path!
+}
+
+interface DocumentContents {
+  text: string
+  tables: string[][][]
+}
+
+async function inspectHtml(page: Page, html: string, language: 'en' | 'ar') {
+  expect(html).toMatch(/^<!doctype html>/i)
+  expect(() => JSON.parse(html)).toThrow()
+  const document = await page.evaluate((source) => {
+    // DOMParser is inert: inspecting a downloaded report does not run its code.
+    const doc = new DOMParser().parseFromString(source, 'text/html')
+    const text = (node: Element) => (node.textContent ?? '').replace(/\s+/gu, ' ').trim()
+    return {
+      lang: doc.documentElement.lang, dir: doc.documentElement.dir,
+      text: text(doc.body),
+      tables: Array.from(doc.querySelectorAll('table'), (table) =>
+        Array.from(table.rows, (row) => Array.from(row.cells, text))),
+      executable: doc.querySelectorAll('script,iframe,object,embed,form').length,
+    }
+  }, html)
+  expect(document.lang).toBe(language)
+  expect(document.dir).toBe(language === 'ar' ? 'rtl' : 'ltr')
+  expect(document.executable).toBe(0)
+  expect(document.text).not.toContain('MIYAAR-FICTIONAL-')
+  return document
+}
+
+async function inspectDocx(download: Download, language: 'en' | 'ar') {
+  const path = await downloadPath(download)
+  expect((await readFile(path)).subarray(0, 4).toString('hex')).toBe('504b0304')
+  // Match playwright.config.ts's interpreter selection; no ZIP dependency or
+  // Office installation is needed to inspect the actual downloaded package.
+  const localPython = fileURLToPath(new URL(process.platform === 'win32'
+    ? '../../.venv/Scripts/python.exe' : '../../.venv/bin/python', import.meta.url))
+  const python = process.env.PYTHON_EXECUTABLE ?? (existsSync(localPython) ? localPython : 'python3')
+  const script = [
+    'import json, sys, zipfile, xml.etree.ElementTree as ET',
+    'ns = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}',
+    'def text(node): return " ".join("".join(node.itertext()).split())',
+    'with zipfile.ZipFile(sys.argv[1]) as archive:',
+    '    assert archive.testzip() is None',
+    '    doc = ET.fromstring(archive.read("word/document.xml"))',
+    '    tables = [[[text(cell) for cell in row.findall("w:tc", ns)] for row in table.findall("w:tr", ns)] for table in doc.findall(".//w:tbl", ns)]',
+    '    print(json.dumps({"members": archive.namelist(), "text": text(doc), "tables": tables, "bidi": len(doc.findall(".//w:bidi", ns)), "rtl": len(doc.findall(".//w:rtl", ns)), "bidiVisual": len(doc.findall(".//w:bidiVisual", ns))}, ensure_ascii=False))',
+  ].join('\n')
+  const { stdout } = await promisify(execFile)(python, ['-c', script, path], {
+    encoding: 'utf8', env: { ...process.env, PYTHONUTF8: '1' }, maxBuffer: 1_000_000,
+  })
+  const document = JSON.parse(stdout) as DocumentContents & {
+    members: string[]; bidi: number; rtl: number; bidiVisual: number
+  }
+  expect(document.members).toEqual(expect.arrayContaining(['[Content_Types].xml', '_rels/.rels', 'word/document.xml', 'word/styles.xml']))
+  expect(document.members.some((name) => /vbaProject|embeddings\//i.test(name))).toBe(false)
+  expect(document.text).not.toContain('MIYAAR-FICTIONAL-')
+  if (language === 'ar') {
+    expect(document.bidi).toBeGreaterThan(0)
+    expect(document.rtl).toBeGreaterThan(0)
+    expect(document.bidiVisual).toBeGreaterThan(0)
+  }
+  return document
+}
+
+function expectReportScope(document: DocumentContents, snapshot: RunExecutive) {
+  const ar = snapshot.language === 'ar'
+  const rows = document.tables.flat()
+  const labels = ar ? {
+    run: 'معرّف التشغيل', dataset: 'مجموعة البيانات', updated: 'آخر تحديث للقطة',
+    selected: 'السجلات المحددة', total: 'إجمالي السجلات', formula: 'الصيغة',
+    value: 'القيمة', scale: 'مقياس القيمة',
+    numerator: 'البسط', denominator: 'المقام', population: 'مجموعة القياس',
+    measured: 'السجلات المقاسة', unmeasured: 'السجلات غير المقاسة', excluded: 'السجلات المستبعدة',
+  } : {
+    run: 'Run ID', dataset: 'Dataset', updated: 'Snapshot updated',
+    selected: 'Selected records', total: 'Total records', formula: 'Formula',
+    value: 'Value', scale: 'Scale',
+    numerator: 'Numerator', denominator: 'Denominator', population: 'Population',
+    measured: 'Measured records', unmeasured: 'Unmeasured records', excluded: 'Excluded records',
+  }
+  for (const row of [
+    [labels.run, snapshot.run.id], [labels.dataset, snapshot.run.dataset_name],
+    [labels.updated, snapshot.run.updated_at], [labels.selected, '3'], [labels.total, '4'],
+  ]) expect(rows).toContainEqual(row)
+  expect(document.text).toContain(snapshot.headline)
+  expect(rows.some((row) => row.includes('Site') && row.some((cell) => cell.includes('North')))).toBe(true)
+  const firstFix = snapshot.kpis.measures.find((measure) => measure.key === 'first_time_fix')!
+  const scale = ar ? 'نسبة مئوية، من 0 إلى 100 (percent)' : 'Percent, 0–100 (percent)'
+  const population = ar ? `سجلات الصيانة التصحيحية (${firstFix.population})` : firstFix.population
+  expect(rows).toContainEqual([firstFix.title, '57.5', scale, '2'])
+  const properties = document.tables.find((table) => table.some((row) =>
+    row[0] === labels.formula && row[1] === firstFix.formula))
+  expect(properties, 'the exported first-time-fix definition must retain its controlled population').toBeDefined()
+  for (const row of [
+    [labels.value, '57.5'], [labels.scale, scale],
+    [labels.numerator, '23'], [labels.denominator, '40'], [labels.population, population],
+    [labels.measured, '2'], [labels.unmeasured, '0'], [labels.excluded, '1'],
+  ]) expect(properties).toContainEqual(row)
+  for (const question of snapshot.questions) expect(document.text).toContain(question.text)
+  for (const evidence of snapshot.evidence) expect(document.text).toContain(evidence.id)
+  expect(document.text).toContain(ar ? 'تقييمات نماذج التشغيل الكامل' : 'Whole-run model evaluations')
+  expect(document.text).toContain(ar
+    ? 'لا يتوفر تقييم نموذج؛ ولا يُدّعى وجود أداء تنبؤي.'
+    : 'No model evaluation is available; predictive performance is not claimed.')
+}
+
+async function downloadReport(page: Page, prepared: Locator, snapshot: RunExecutive, format: 'html' | 'docx') {
+  const ar = snapshot.language === 'ar'
+  const selector = prepared.getByRole('combobox', { name: ar ? 'تنسيق التقرير' : 'Report format', exact: true })
+  if (format === 'html') await expect(selector).toHaveValue('html')
+  else await selector.selectOption('docx')
+  const [download, response] = await Promise.all([
+    page.waitForEvent('download'),
+    page.waitForResponse((response) => new URL(response.url()).pathname === `/api/runs/${snapshot.run.id}/executive/export`),
+    prepared.getByRole('button', { name: ar ? 'تنزيل التقرير' : 'Download report', exact: true }).click(),
+  ])
+  expect(response.status()).toBe(200)
+  const params = new URL(response.url()).searchParams
+  expect(params.get('format')).toBe(format)
+  expect(params.get('language')).toBe(snapshot.language)
+  expect(JSON.parse(params.get('filters')!)).toEqual(snapshot.scope.filters)
+  expect(snapshot.run.updated_at).toBeTruthy()
+  expect(params.get('expected_updated_at')).toBe(snapshot.run.updated_at)
+  expect(snapshot.snapshot_id).toMatch(/^[a-f0-9]{64}$/)
+  expect(params.get('expected_snapshot_id')).toBe(snapshot.snapshot_id)
+  expect(response.headers()['content-type']).toContain(format === 'html'
+    ? 'text/html' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+  expect(download.suggestedFilename()).toBe(`miyaar-executive-${snapshot.run.id}-${snapshot.language}.${format}`)
+  const document = format === 'html'
+    ? await inspectHtml(page, await readFile(await downloadPath(download), 'utf8'), snapshot.language)
+    : await inspectDocx(download, snapshot.language)
+  expectReportScope(document, snapshot)
+}
+
+async function printReport(page: Page, prepared: Locator, snapshot: RunExecutive) {
+  // This applies to the popup again when it navigates to the HTML Blob. Check
+  // the print request without opening a native dialog or inventing a PDF file.
+  await page.context().addInitScript(() => {
+    window.print = () => { window.document.documentElement.dataset.printRequested = 'true' }
+  })
+  const downloads: Download[] = []
+  const recordDownload = (download: Download) => downloads.push(download)
+  page.on('download', recordDownload)
+  const [popup, response] = await Promise.all([
+    page.waitForEvent('popup'),
+    page.waitForResponse((response) => new URL(response.url()).pathname === `/api/runs/${snapshot.run.id}/executive/export`),
+    prepared.getByRole('button', { name: snapshot.language === 'ar' ? 'طباعة / حفظ بصيغة PDF' : 'Print / Save as PDF', exact: true }).click(),
+  ])
+  expect(response.status()).toBe(200)
+  const params = new URL(response.url()).searchParams
+  expect(params.get('format')).toBe('html')
+  expect(params.get('language')).toBe(snapshot.language)
+  expect(JSON.parse(params.get('filters')!)).toEqual(snapshot.scope.filters)
+  expect(params.get('expected_updated_at')).toBe(snapshot.run.updated_at)
+  expect(snapshot.snapshot_id).toMatch(/^[a-f0-9]{64}$/)
+  expect(params.get('expected_snapshot_id')).toBe(snapshot.snapshot_id)
+  await expect(popup).toHaveURL(/^blob:/)
+  await expect(popup.locator('html')).toHaveAttribute('lang', snapshot.language)
+  expect(await popup.evaluate(() => window.print.toString()),
+    'the test print stub must survive Blob navigation before checking whether the application called it').toContain('printRequested')
+  await expect(popup.locator('html')).toHaveAttribute('data-print-requested', 'true')
+  const document = await inspectHtml(page, await popup.content(), snapshot.language)
+  expectReportScope(document, snapshot)
+  expect(downloads, 'printing requests a browser dialog, not a direct PDF download').toEqual([])
+  page.off('download', recordDownload)
+  await popup.close()
+  await expect(prepared.getByRole('button', {
+    name: snapshot.language === 'ar' ? 'طباعة / حفظ بصيغة PDF' : 'Print / Save as PDF', exact: true,
+  })).toBeEnabled()
 }
 
 async function expectAccessible(page: Page, context: string) {
@@ -89,7 +262,7 @@ async function expectAccessible(page: Page, context: string) {
     `${context} must fit the viewport, including an open evidence table`).toBeLessThanOrEqual(0)
 }
 
-test('filtered executive measures, evidence and downloaded brief share the exact scope', async ({ page }) => {
+test('filtered executive measures, evidence and downloaded reports share the exact scope', async ({ page }) => {
   test.setTimeout(75_000)
   await skipOnboarding(page)
   const run = await maintenanceRun(page.request)
@@ -140,14 +313,9 @@ test('filtered executive measures, evidence and downloaded brief share the exact
   const prepared = page.getByRole('region', { name: 'Brief prepared for the current scope', exact: true })
   await expect(prepared).toContainText(expected.headline)
   for (const question of expected.questions) await expect(prepared).toContainText(question.text)
-  const [download] = await Promise.all([
-    page.waitForEvent('download'),
-    prepared.getByRole('button', { name: 'Download evidence brief (JSON)', exact: true }).click(),
-  ])
-  expect(download.suggestedFilename()).toBe(`miyaar-executive-${run.id}-en.json`)
-  const exported = await readBrief(download)
-  expect(exported).toEqual(expected)
-  expect(JSON.stringify(exported)).not.toContain('MIYAAR-FICTIONAL-')
+  await expect(prepared.getByRole('option', { name: /JSON/ })).toHaveCount(0)
+  await downloadReport(page, prepared, expected, 'html')
+  await downloadReport(page, prepared, expected, 'docx')
   await expectAccessible(page, 'English executive brief and selected evidence')
 
   // Preparing and exporting a brief cannot satisfy the publication approval.
@@ -209,7 +377,7 @@ test('an executive priority preserves the period filter when drilling into recor
   await expect(page.getByLabel('From', { exact: true })).toHaveValue('2026-03')
 })
 
-test('Arabic RTL executive evidence and its JSON brief work in light and dark themes', async ({ page }) => {
+test('Arabic RTL business reports and PDF print preview retain evidence in both themes', async ({ page }) => {
   test.setTimeout(90_000)
   await skipOnboarding(page)
   await page.addInitScript(() => {
@@ -253,13 +421,50 @@ test('Arabic RTL executive evidence and its JSON brief work in light and dark th
   await expect(prepared).toContainText(expected.headline)
   await expect(page.getByRole('region', { name: 'جودة النماذج', exact: true }))
     .toContainText('لا توجد نماذج مقيّمة في هذا التحليل. لا تتوفر درجة أداء.')
-  const [download] = await Promise.all([
-    page.waitForEvent('download'),
-    prepared.getByRole('button', { name: 'تنزيل الموجز وأدلته (JSON)', exact: true }).click(),
-  ])
-  expect(download.suggestedFilename()).toBe(`miyaar-executive-${run.id}-ar.json`)
-  expect(await readBrief(download)).toEqual(expected)
+  await downloadReport(page, prepared, expected, 'html')
+  await downloadReport(page, prepared, expected, 'docx')
+  await printReport(page, prepared, expected)
   await expectAccessible(page, 'Arabic dark executive brief')
+
+  const after = await (await page.request.get(`/api/runs/${run.id}`)).json() as RunDetail
+  expect(after.state).toBe('awaiting_approval')
+  expect(after.approvals).toEqual(run.approvals)
+  expect(after.report?.published_path).toBeNull()
+})
+
+test('a stale export reports the snapshot conflict without downloading a document', async ({ page }) => {
+  test.setTimeout(75_000)
+  await skipOnboarding(page)
+  const run = await maintenanceRun(page.request)
+  await openOverview(page, run.id)
+  await chooseNorth(page)
+  await page.getByRole('button', { name: 'Prepare executive brief', exact: true }).click()
+  const prepared = page.getByRole('region', { name: 'Brief prepared for the current scope', exact: true })
+  const snapshot = await executive(page.request, run.id, NORTH)
+  const message = 'The analysis changed. Refresh the overview before exporting.'
+  const downloads: Download[] = []
+  page.on('download', (download) => downloads.push(download))
+  let intercepted = 0
+  // Only this one response is simulated. The run, scope, KPI calculations and
+  // surrounding page remain real; the renderer's stale guard has API tests.
+  await page.route((url) => url.pathname === `/api/runs/${run.id}/executive/export`, async (route) => {
+    intercepted += 1
+    const params = new URL(route.request().url()).searchParams
+    expect(route.request().method()).toBe('GET')
+    expect(params.get('format')).toBe('html')
+    expect(params.get('expected_updated_at')).toBe(snapshot.run.updated_at)
+    expect(params.get('expected_snapshot_id')).toBe(snapshot.snapshot_id)
+    expect(JSON.parse(params.get('filters')!)).toEqual(NORTH)
+    await route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ detail: message }) })
+  }, { times: 1 })
+  await prepared.getByRole('button', { name: 'Download report', exact: true }).click()
+  await expect(prepared.getByRole('alert')).toHaveText('This snapshot is no longer current or has no verifiable content revision. Refresh the overview and prepare the brief again before exporting.')
+  expect(intercepted).toBe(1)
+  expect(downloads).toEqual([])
+  await expectScope(page, 3, 4)
+  const after = await (await page.request.get(`/api/runs/${run.id}`)).json() as RunDetail
+  expect(after.approvals).toEqual(run.approvals)
+  expect(after.report?.published_path).toBeNull()
 })
 
 // The compact scope presents the selected count and total in separate elements.

@@ -26,6 +26,7 @@ house-style tokens; old generated palette examples are not new CSS tokens.
 | Available analyses | `api.listRuns()` → `GET /api/runs` | Select an authorized run explicitly; do not silently mix runs. |
 | Run state, reports and evidence | `api.getRun(id)` → `GET /api/runs/{id}` | Keep queued/running/failed/approval states visible. |
 | Filtered executive briefing | `api.runExecutive(id, language, filters, signal)` → `GET /api/runs/{id}/executive` | Preserve the selected filter scope and separate filtered measures from whole-run findings/model evaluations. |
+| Executive business report | `api.downloadExecutive(id, language, filters, updatedAt, snapshotId, format, signal)` → `GET /api/runs/{id}/executive/export` | Default HTML or genuine DOCX; require both prepared timestamp and content revision. On 409, refresh and reprepare. Native Print / Save as PDF opens the browser dialog. |
 | Whole-run maintenance KPI register | `api.runKpis(id, language)` → `GET /api/runs/{id}/kpis` | Preserve formula, population, unit, numerator, denominator and coverage. |
 | Available fields | `api.tableFields(id, language)` → `GET /api/runs/{id}/fields` | Offer only fields supported by that cleaned table. |
 | Filtered chart aggregates | `api.queryTable(id, spec, language)` → `POST /api/runs/{id}/query` | Use the typed query DSL, not SQL or browser-side copies of raw data. |
@@ -37,6 +38,10 @@ Prefer the executive contract for the filtered executive page. Its
 priorities/questions are deterministic decision support, not an autonomous
 work-order executor. Filtering does not rerun model training or revalidate
 whole-run findings; retain the server's scope labels and limitations.
+Business reports carry these boundaries, calculation references and missingness
+into English/Arabic files. Keep JSON as internal API transport, not the default
+executive handoff. Print only after the actual report document and fonts load;
+an initial blank popup's load listener may be lost during Blob navigation.
 
 The older KPI endpoint computes the whole run and accepts a language,
 not dashboard filters. Label those cards as run-wide when charts are

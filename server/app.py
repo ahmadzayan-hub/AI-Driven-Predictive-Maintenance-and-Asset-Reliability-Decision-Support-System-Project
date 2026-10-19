@@ -36,6 +36,7 @@ from server import live
 from server import mapping as colmap
 from server import query as table_query
 from server.executive import ExecutiveDashboardAgent, parse_filters as executive_filters
+from server import executive_export
 from server.maintenance import kpis as kpi_register
 from server.assistant import Assistant
 from server.connectors import Busy, ConnectorError, Connectors, TooSoon
@@ -1109,6 +1110,33 @@ def create_app(config_path=None, env=None, dist_dir=None):
                                            table, run, tasks, chosen, language)
         except table_query.QueryError as error:
             raise HTTPException(status_code=422, detail=error.detail(language))
+
+    @app.get("/api/runs/{run_id}/executive/export")
+    async def export_executive_brief(run_id: str,
+                                    expected_updated_at: str = Query(min_length=1, max_length=160),
+                                    expected_snapshot_id: str = Query(min_length=64, max_length=64, pattern="^[a-f0-9]{64}$"),
+                                    format: str = Query(default="html", pattern="^(html|docx)$"),
+                                    language: str = Query(default="en", pattern="^(en|ar)$"),
+                                    filters: str = Query(default="[]"),
+                                    principal=Depends(requires("read"))):
+        # Reuse the complete ownership, readiness, filter and evidence boundary.
+        # No client-supplied metric or report body is ever trusted.
+        brief = await executive_brief(run_id, language, filters, principal)
+        if (brief["run"]["updated_at"] != expected_updated_at
+                or brief["snapshot_id"] != expected_snapshot_id):
+            raise HTTPException(status_code=409, detail=(
+                "تغير التشغيل منذ إعداد الموجز. حدّث الموجز ثم أعد التصدير."
+                if language == "ar" else
+                "The run changed after this brief was prepared. Refresh the brief before exporting."))
+        render = executive_export.render_docx if format == "docx" else executive_export.render_html
+        content = await run_in_threadpool(render, brief)
+        mime = executive_export.DOCX_MIME if format == "docx" else executive_export.HTML_MIME
+        return Response(content, media_type=mime, headers={
+            "Content-Disposition": 'attachment; filename="' + executive_export.attachment_name(run_id, language, format) + '"',
+            "Cache-Control": "no-store",
+            "X-Content-Type-Options": "nosniff",
+            "Content-Security-Policy": executive_export.CONTENT_POLICY,
+        })
 
     @app.post("/api/runs/{run_id}/query")
     async def query_table(run_id: str, body: QueryIn,

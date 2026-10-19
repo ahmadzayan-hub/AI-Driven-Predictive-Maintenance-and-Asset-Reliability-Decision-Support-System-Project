@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { applyLocale } from '../../i18n'
@@ -8,10 +8,11 @@ import { ExecutiveOverview } from './ExecutiveOverview'
 import { executiveDrill, EMPTY, rolesOf, toFilters } from './state'
 import { executiveMessages } from './executiveMessages'
 
-vi.mock('../../shared/api', () => ({ api: { runExecutive: vi.fn() } }))
+vi.mock('../../shared/api', () => ({ api: { runExecutive: vi.fn(), downloadExecutive: vi.fn() } }))
 
 const snapshot = (): RunExecutive => ({
-  run: { id: 'r1', dataset_name: 'maintenance.csv', state: 'awaiting_approval' }, language: 'en', source: 'engine',
+  snapshot_id: 'a'.repeat(64),
+  run: { id: 'r1', dataset_name: 'maintenance.csv', state: 'awaiting_approval', updated_at: '2026-10-19T08:00:00Z' }, language: 'en', source: 'engine',
   scope: { records: 3, total_records: 10, filters: [{ column: 'site', op: 'in', values: ['North'] }] },
   headline: 'Review missing downtime before deciding.', readiness: { status: 'limited', limitations: ['Two downtime readings are missing.'] },
   kpis: { measures: [{ key: 'downtime', title: 'Downtime', value: null, scale: 'hours', numerator: 0, denominator: 0, formula: 'sum(downtime)', population: 'Selected work orders', records: 1, records_excluded: 0, records_unmeasured: 2, missing_policy: 'Exclude absent readings', undefined_reason: 'Insufficient readings', edge_cases: '' }], unavailable: { availability: 'Operating hours are required.' } },
@@ -30,8 +31,9 @@ function mount(filters: TableFilter[] = []) {
 beforeEach(() => {
   applyLocale('en')
   vi.mocked(api.runExecutive).mockResolvedValue(snapshot())
+  vi.mocked(api.downloadExecutive).mockResolvedValue({ blob: new Blob(['<html>Report</html>'], { type: 'text/html' }), name: 'report.html' })
 })
-afterEach(() => { act(() => applyLocale('en')); vi.restoreAllMocks(); vi.clearAllMocks(); vi.unstubAllGlobals() })
+afterEach(() => { cleanup(); act(() => applyLocale('en')); vi.restoreAllMocks(); vi.clearAllMocks(); vi.unstubAllGlobals() })
 
 describe('executive decision overview', () => {
   it('uses the requested scope, exposes missing evidence and keeps unfitted models unscored', async () => {
@@ -68,7 +70,7 @@ describe('executive decision overview', () => {
     expect(screen.queryByText('Meets evaluation criteria')).not.toBeInTheDocument()
   })
 
-  it('prepares a deterministic briefing on demand and downloads the same sourced snapshot', async () => {
+  it('prepares a deterministic briefing and downloads authenticated HTML for the captured scope and timestamp', async () => {
     const user = userEvent.setup()
     const create = vi.fn(() => 'blob:executive')
     const revoke = vi.fn()
@@ -80,11 +82,15 @@ describe('executive decision overview', () => {
     await user.click(screen.getByRole('button', { name: 'Prepare executive brief' }))
     expect(screen.getByRole('region', { name: 'Brief prepared for the current scope' })).toHaveTextContent('Who will verify the missing readings?')
     expect(screen.getAllByText('Deterministic · governed evidence').length).toBeGreaterThan(0)
-    await user.click(screen.getByRole('button', { name: 'Download evidence brief (JSON)' }))
+    expect(screen.getByRole('combobox', { name: 'Report format' })).toHaveValue('html')
+    await user.click(screen.getByRole('button', { name: 'Download report' }))
+    expect(api.downloadExecutive).toHaveBeenCalledWith('r1', 'en', snapshot().scope.filters, snapshot().run.updated_at, snapshot().snapshot_id, 'html', expect.any(AbortSignal))
     expect(create).toHaveBeenCalledWith(expect.any(Blob))
     expect(click).toHaveBeenCalledOnce()
     expect(api.runExecutive).toHaveBeenCalledOnce()
-    await waitFor(() => expect(revoke).toHaveBeenCalledWith('blob:executive'))
+    const anchor = click.mock.instances[0] as HTMLAnchorElement
+    expect(anchor.download).toBe('report.html')
+    await waitFor(() => expect(revoke).toHaveBeenCalledWith('blob:executive'), { timeout: 2_000 })
   })
 
   it('shows a recoverable API failure without invented figures', async () => {
@@ -149,6 +155,247 @@ describe('executive decision overview', () => {
     expect(screen.queryByText('Review missing downtime before deciding.')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Prepare executive brief' }))
     expect(screen.getByText('Refreshed evidence')).toBeVisible()
+  })
+})
+
+function mockObjectUrls() {
+  const create = vi.fn(() => 'blob:report')
+  const revoke = vi.fn()
+  vi.stubGlobal('URL', class extends URL { static createObjectURL = create; static revokeObjectURL = revoke })
+  return { create, revoke }
+}
+
+function mockPopup(fonts: Promise<unknown> = Promise.resolve()) {
+  const events = new EventTarget()
+  const popup = Object.assign(events, {
+    closed: false, opener: {} as unknown,
+    location: { href: 'about:blank' }, document: { URL: 'about:blank', readyState: 'loading', fonts: { ready: fonts } },
+    focus: vi.fn(), close: vi.fn(), print: vi.fn(),
+  })
+  popup.close.mockImplementation(() => { popup.closed = true })
+  popup.print.mockImplementation(() => popup.dispatchEvent(new Event('afterprint')))
+  vi.spyOn(window, 'open').mockReturnValue(popup as unknown as Window)
+  return popup
+}
+
+async function prepare() {
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('button', { name: 'Prepare executive brief' }))
+  return user
+}
+
+describe('business report export lifecycle', () => {
+  it('keeps Arabic report selection, request language and stale-state recovery localized', async () => {
+    applyLocale('ar')
+    const data = snapshot()
+    data.language = 'ar'
+    vi.mocked(api.runExecutive).mockResolvedValueOnce(data)
+    vi.mocked(api.downloadExecutive).mockRejectedValueOnce(Object.assign(new Error('stale'), { status: 409 }))
+    mount()
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'إعداد الموجز التنفيذي' }))
+    await user.selectOptions(screen.getByRole('combobox', { name: 'تنسيق التقرير' }), 'docx')
+    await user.click(screen.getByRole('button', { name: 'تنزيل التقرير' }))
+    expect(api.downloadExecutive).toHaveBeenCalledWith('r1', 'ar', data.scope.filters, data.run.updated_at, data.snapshot_id, 'docx', expect.any(AbortSignal))
+    expect(await screen.findByRole('alert')).toHaveTextContent('حدّث النظرة التنفيذية وأعد إعداد الموجز')
+    expect(screen.getByRole('button', { name: 'طباعة / حفظ بصيغة PDF' })).toBeVisible()
+  })
+
+  it('downloads a real Word response with the prepared language, filters and revision', async () => {
+    mockObjectUrls()
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    vi.mocked(api.downloadExecutive).mockResolvedValueOnce({ blob: new Blob(['docx bytes'], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), name: 'report.docx' })
+    mount()
+    const user = await prepare()
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Report format' }), 'docx')
+    await user.click(screen.getByRole('button', { name: 'Download report' }))
+    await waitFor(() => expect(click).toHaveBeenCalledOnce())
+    expect(api.downloadExecutive).toHaveBeenCalledWith('r1', 'en', snapshot().scope.filters, snapshot().run.updated_at, snapshot().snapshot_id, 'docx', expect.any(AbortSignal))
+    expect((click.mock.instances[0] as HTMLAnchorElement).download).toBe('report.docx')
+    expect(screen.queryByText(/JSON/)).not.toBeInTheDocument()
+  })
+
+  it('retains the prepared brief on a download error and permits a retry', async () => {
+    const { create } = mockObjectUrls()
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    vi.mocked(api.downloadExecutive).mockRejectedValueOnce(new Error('network failed'))
+    mount()
+    const user = await prepare()
+    await user.click(screen.getByRole('button', { name: 'Download report' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Your brief and filters are preserved')
+    expect(screen.getByText('Who will verify the missing readings?')).toBeVisible()
+    expect(create).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Download report' }))
+    await waitFor(() => expect(create).toHaveBeenCalledOnce())
+    expect(api.downloadExecutive).toHaveBeenCalledTimes(2)
+  })
+
+  it('announces a server stale-snapshot conflict and requires refresh before a new prepared snapshot', async () => {
+    vi.mocked(api.downloadExecutive).mockRejectedValueOnce(Object.assign(new Error('changed'), { status: 409 }))
+    mount()
+    const user = await prepare()
+    await user.click(screen.getByRole('button', { name: 'Download report' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Refresh the overview and prepare the brief again')
+    expect(screen.getByText('Who will verify the missing readings?')).toBeVisible()
+    await user.click(within(screen.getByRole('alert').parentElement!).getByRole('button', { name: 'Refresh overview' }))
+    await screen.findByRole('button', { name: 'Prepare executive brief' })
+    expect(screen.queryByText('Who will verify the missing readings?')).not.toBeInTheDocument()
+  })
+
+  it('refuses an unversioned snapshot without requesting a file or opening a popup', async () => {
+    const data = snapshot()
+    data.run.updated_at = null
+    vi.mocked(api.runExecutive).mockResolvedValueOnce(data)
+    const open = vi.spyOn(window, 'open')
+    mount()
+    const user = await prepare()
+    await user.click(screen.getByRole('button', { name: 'Print / Save as PDF' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('has no verifiable content revision')
+    expect(api.downloadExecutive).not.toHaveBeenCalled()
+    expect(open).not.toHaveBeenCalled()
+  })
+
+  it('refuses a snapshot without its content revision even when its timestamp is present', async () => {
+    const data = snapshot()
+    delete data.snapshot_id
+    vi.mocked(api.runExecutive).mockResolvedValueOnce(data)
+    mount()
+    const user = await prepare()
+    await user.click(screen.getByRole('button', { name: 'Download report' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('has no verifiable content revision')
+    expect(api.downloadExecutive).not.toHaveBeenCalled()
+  })
+
+  it('aborts export on scope change and never downloads a late response', async () => {
+    let complete!: (value: { blob: Blob; name: string }) => void
+    vi.mocked(api.downloadExecutive).mockImplementationOnce(() => new Promise((resolve) => { complete = resolve }))
+    const { create } = mockObjectUrls()
+    const { rerender, props } = mount()
+    const user = await prepare()
+    await user.click(screen.getByRole('button', { name: 'Download report' }))
+    expect(screen.getByRole('button', { name: 'Download report' })).toBeDisabled()
+    const signal = vi.mocked(api.downloadExecutive).mock.calls[0][6]!
+    rerender(<ExecutiveOverview {...props} filters={[{ column: 'site', op: 'in', values: ['South'] }]} />)
+    await screen.findByRole('button', { name: 'Prepare executive brief' })
+    expect(signal.aborted).toBe(true)
+    await act(async () => complete({ blob: new Blob(['old report']), name: 'old.html' }))
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('cancels an export when refreshing the overview revision', async () => {
+    let complete!: (value: { blob: Blob; name: string }) => void
+    vi.mocked(api.downloadExecutive).mockImplementationOnce(() => new Promise((resolve) => { complete = resolve }))
+    const { create } = mockObjectUrls()
+    mount()
+    const user = await prepare()
+    await user.click(screen.getByRole('button', { name: 'Download report' }))
+    const signal = vi.mocked(api.downloadExecutive).mock.calls[0][6]!
+    await user.click(screen.getByRole('button', { name: 'Refresh overview' }))
+    await screen.findByRole('button', { name: 'Prepare executive brief' })
+    expect(signal.aborted).toBe(true)
+    await act(async () => complete({ blob: new Blob(['old revision']), name: 'old.html' }))
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('reports a blocked print popup without fetching or pretending a PDF was downloaded', async () => {
+    vi.spyOn(window, 'open').mockReturnValue(null)
+    mount()
+    const user = await prepare()
+    await user.click(screen.getByRole('button', { name: 'Print / Save as PDF' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Allow popups for this site')
+    expect(screen.getByText(/not a direct PDF download/)).toBeVisible()
+    expect(api.downloadExecutive).not.toHaveBeenCalled()
+  })
+
+  it('prints the completed blob document without a load event, waits for fonts and cleans up once', async () => {
+    let ready!: () => void
+    const fonts = new Promise<void>((resolve) => { ready = resolve })
+    const popup = mockPopup(fonts)
+    const readFonts = vi.fn(() => ({ ready: fonts }))
+    Object.defineProperty(popup.document, 'fonts', { get: readFonts })
+    const { create, revoke } = mockObjectUrls()
+    mount()
+    const user = await prepare()
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Report format' }), 'docx')
+    await user.click(screen.getByRole('button', { name: 'Print / Save as PDF' }))
+    expect(window.open).toHaveBeenCalledWith('', '_blank')
+    expect(popup.opener).toBeNull()
+    expect(api.downloadExecutive).toHaveBeenCalledWith('r1', 'en', snapshot().scope.filters, snapshot().run.updated_at, snapshot().snapshot_id, 'html', expect.any(AbortSignal))
+    await waitFor(() => expect(popup.location.href).toBe('blob:report'))
+    expect(create).toHaveBeenCalledOnce()
+    expect(revoke).not.toHaveBeenCalled()
+    // The initial about:blank listener is gone: no load event is dispatched.
+    popup.document.URL = 'blob:report'
+    popup.document.readyState = 'complete'
+    await waitFor(() => expect(readFonts).toHaveBeenCalledOnce())
+    expect(popup.print).not.toHaveBeenCalled()
+    await act(async () => ready())
+    expect(popup.print).toHaveBeenCalledOnce()
+    expect(popup.close).toHaveBeenCalledOnce()
+    expect(revoke).toHaveBeenCalledWith('blob:report')
+    expect(screen.getByText(/A PDF is saved only if you chose/)).toBeVisible()
+  })
+
+  it('does not print a late font-ready result after cancellation', async () => {
+    let ready!: () => void
+    const fonts = new Promise<void>((resolve) => { ready = resolve })
+    const popup = mockPopup(fonts)
+    const readFonts = vi.fn(() => ({ ready: fonts }))
+    Object.defineProperty(popup.document, 'fonts', { get: readFonts })
+    const { revoke } = mockObjectUrls()
+    mount()
+    const user = await prepare()
+    await user.click(screen.getByRole('button', { name: 'Print / Save as PDF' }))
+    await waitFor(() => expect(popup.location.href).toBe('blob:report'))
+    popup.document.URL = 'blob:report'
+    popup.document.readyState = 'complete'
+    await waitFor(() => expect(readFonts).toHaveBeenCalledOnce())
+    await user.click(screen.getByRole('button', { name: 'Cancel export' }))
+    await act(async () => ready())
+    expect(popup.print).not.toHaveBeenCalled()
+    expect(popup.close).toHaveBeenCalledOnce()
+    expect(revoke).toHaveBeenCalledWith('blob:report')
+  })
+
+  it('cancels a pending print fetch, closes its blank popup and discards the late file', async () => {
+    let complete!: (value: { blob: Blob; name: string }) => void
+    vi.mocked(api.downloadExecutive).mockImplementationOnce(() => new Promise((resolve) => { complete = resolve }))
+    const popup = mockPopup()
+    const { create } = mockObjectUrls()
+    mount()
+    const user = await prepare()
+    await user.click(screen.getByRole('button', { name: 'Print / Save as PDF' }))
+    const signal = vi.mocked(api.downloadExecutive).mock.calls[0][6]!
+    await user.click(screen.getByRole('button', { name: 'Cancel export' }))
+    expect(signal.aborted).toBe(true)
+    expect(popup.closed).toBe(true)
+    expect(screen.getByText('Export cancelled.')).toBeVisible()
+    await act(async () => complete({ blob: new Blob(['late']), name: 'late.html' }))
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('aborts and closes a pending preview when the component unmounts', async () => {
+    vi.mocked(api.downloadExecutive).mockImplementationOnce(() => new Promise(() => {}))
+    const popup = mockPopup()
+    const { unmount } = mount()
+    const user = await prepare()
+    await user.click(screen.getByRole('button', { name: 'Print / Save as PDF' }))
+    const signal = vi.mocked(api.downloadExecutive).mock.calls[0][6]!
+    unmount()
+    expect(signal.aborted).toBe(true)
+    expect(popup.close).toHaveBeenCalledOnce()
+  })
+
+  it('announces a manually closed preview and aborts the pending request', async () => {
+    vi.mocked(api.downloadExecutive).mockImplementationOnce(() => new Promise(() => {}))
+    const popup = mockPopup()
+    mount()
+    const user = await prepare()
+    await user.click(screen.getByRole('button', { name: 'Print / Save as PDF' }))
+    popup.closed = true
+    await screen.findByText('Print preview closed.')
+    expect(vi.mocked(api.downloadExecutive).mock.calls[0][6]!.aborted).toBe(true)
+    expect(screen.getByRole('button', { name: 'Download report' })).toBeEnabled()
   })
 })
 
