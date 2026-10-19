@@ -60,7 +60,15 @@ async function chooseNorth(page: Page) {
     has: page.locator('summary').filter({ hasText: /^Site:/ }),
   })
   await filter.locator('summary').click()
-  await filter.getByRole('checkbox', { name: 'North', exact: true }).check()
+  const checkbox = filter.getByRole('checkbox', { name: 'North', exact: true })
+  await checkbox.click()
+  // The hash is the controlled input's source of truth; wait for hashchange
+  // to settle its new prop rather than requiring a synchronous check action.
+  await expect(checkbox).toBeChecked()
+  await expect(page).toHaveURL((url) => {
+    const values = new URLSearchParams(url.hash.split('?')[1]).getAll('f.Site')
+    return values.length === 1 && values[0] === 'North'
+  })
   await filter.locator('summary').click()
   await expect(page.locator('.exec-scope strong')).toHaveText('3')
 }

@@ -15,7 +15,7 @@ The engine in this repository, described in [[Identity]]: a governed business-an
 ## Where it lives
 
 - **Repository:** `ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project`, public, since [[Decision log]] 0043. The earlier names `ahmadzayan-hub/agentic-os-final-project` and `ahmadzayan-hub/11` both redirect, so older clone URLs and the CI run links cited as evidence keep resolving.
-- **Default and integration branch:** `main`, verified on 19 October. The owner authorized merging all completed work; PR #15 brought the Miyaar workspace and local AI profile into it with both parents preserved. The Desktop and active Miyaar checkouts select `main`. Older feature refs are retained snapshots of work already landed.
+- **Default and integration branch:** `main`, verified on 19 October. The owner authorized merging all completed work; PR #15 brought the Miyaar workspace and local AI profile into it with both parents preserved. The scoped executive implementation subsequently merged at `1b08b59`, preserving incoming main and the verified feature tree. The Desktop and active Miyaar checkouts select `main`. Older feature refs are retained snapshots of work already landed.
 - **Production:** a Vercel deployment behind Vercel Authentication. It is verified for a signed-in owner only, and auth and the database are unverified there.
 
 ## What it does today

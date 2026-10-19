@@ -420,12 +420,16 @@ explicit total-bundle allowance. Implementation commits are `dccb156` and
   PostgreSQL is not configured in this local run; conditional skips do not
   establish every optional backend or hosted configuration.
 - New executive browser scenarios: **6 passed** across desktop and 375 px
-  mobile, using the real API and fictional CSV records. The period/drill and
-  Arabic light/dark scenarios passed together; the two numeric/export scenarios
-  passed after a test-only IEEE floating-point tolerance correction. Exact
+  mobile, using the real API and fictional CSV records. All six pass together
+  after the helper waits for the URL-controlled checkbox state to settle. The
+  numeric assertion uses an IEEE floating-point tolerance; exact
   numerator/denominator/population, displayed precision, exported JSON equality,
   unchanged approvals, axe accessibility and overflow assertions remain checked.
   Existing dashboard and model-card browser regressions: **12 passed**.
+- The first full Linux browser run exposed that helper's premature checkbox
+  assertion; its other **106 checks passed, 4 skipped**. The corrected helper
+  separately verifies the checked state, exact URL filter and scoped population.
+  Runtime calculations and navigation behavior are unchanged; full CI is rerunning.
 - Fresh budget: initial JS **97.9 / 100 KB**, total JS **172.8 / 175 KB**,
   largest chunk **13.9 / 30 KB**, initial CSS **10.0 / 10 KB**, total CSS
   **20.6 / 21 KB**, fonts **119.4 / 120 KB** (gzip level 9 except fonts).

@@ -6,26 +6,32 @@ relates to
 [`ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project`](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project),
 and the routine for pushing local progress to it.
 
-## Current merge status — 19 October 2026
+## Current merge status - 19 October 2026
+
+The executive dashboard and evidence agent merged into `main` at `1b08b59`,
+with parents `13171ce` and `a1c4af8`. The merge tree exactly matches its verified
+feature tree. The source commits are `dccb156` and `f1c894d`; ADR 0058 and the
+[Arabic/English handoff](design/EXECUTIVE_DASHBOARD_HANDOFF.md) record the
+behavior and capability boundaries. Main's incoming Arabic causal lint and
+Markdown knowledge collection work (ADRs 0056/0057) is preserved.
+
+Both the active `miyaar` workspace and the Desktop checkout above select
+`main` and were synchronized without discarding changes. The Desktop was
+fast-forwarded from `6a03bba`, its frontend rebuilt under the supported Node
+runtime, and its local server restarted on `http://localhost:8000`. A read-only
+Arabic executive API smoke passed on an existing authorized run. The isolated
+fictional preview remains separate from the Desktop database. Local operation
+is not a production deployment or hosted Claude Artifact activation.
 
 [PR #15](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/pull/15)
-is merged into `main` at `893986da6565852ef18d9b076aa7360e1a8c5eba`,
-with both parents preserved. Its tree matches the verified feature head
-`ed1834d`. The earlier feature branches are snapshots of pull requests that
-already landed; #15 was the only outstanding pull request and has now landed
-too. Surviving branch names do not imply additional work to merge.
-
-Both the active `miyaar` workspace and the separate Desktop checkout named
-above were fast-forwarded to the merged `main`. Their pre-merge audits found
-clean trees and no unpushed work. The Desktop's previous working branch
-`claude/agentic-os-final-project-53j6ql` at `3bc4081` and previous local `main`
-at `9a4199b` are ancestors of the merge. The Desktop checkout now selects
-`main`; no reset or history rewrite was needed.
+previously merged the Miyaar/local-AI implementation at `893986d`. Historical
+feature refs are retained snapshots; they do not imply additional unmerged
+work. This executive session created no pull request.
 
 Use `origin`, the home repository linked above. `canonical` in the Desktop
 checkout is an older remote, not a push target. Ignored private, course and
-runtime files stay private; merging code is not permission to add them.
-Verification results and test counts belong in [README — Testing](../README.md#testing).
+runtime files stay private. Verification results and counts belong in
+[README - Testing](../README.md#testing).
 
 ## Safely update the Desktop checkout
 
