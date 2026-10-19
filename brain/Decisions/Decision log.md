@@ -3,7 +3,7 @@ type: decision
 aliases: [ADR index, Architecture decisions]
 tags: [decisions]
 status: active
-updated: 2026-10-17
+updated: 2026-10-19
 review_every_days: 30
 sources: [docs/adr]
 ---
@@ -68,5 +68,7 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 | 0051 | The executive view reads measurements, not fixtures | [[Weighted KPIs]], [[Design system]] |
 | 0052 | Bounded serverless event streams | [[Governed pipeline]] |
 | 0053 | Dedicated Supabase data plane and managed Auth bootstrap (renumbered from a duplicate 0046) | [[Agentic OS]] |
+| 0054 | Miyaar bilingual workspace redesign and honest browser voice states | [[Agentic OS]], [[Design system]] |
+| 0055 | Opt-in local instruction model, bounded Whisper transport and reproducible runtime setup | [[Agentic OS]], [[Model gateway]] |
 
 All seven [[Analytics OS roadmap]] milestones have their records.

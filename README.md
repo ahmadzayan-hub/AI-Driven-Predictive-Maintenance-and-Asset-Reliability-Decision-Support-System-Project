@@ -407,13 +407,24 @@ python scripts/verify.py
 
 The redesign handoff is in
 [MIYAAR_UI_HANDOFF.md](docs/design/MIYAAR_UI_HANDOFF.md), in Arabic and English.
-The dedicated branch is `feature/miyaar-ui-redesign`.
+The source branch is `feature/miyaar-ui-redesign`. The owner authorized the
+merge and [PR #15](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/pull/15)
+landed on `main` at `893986d`, with the same tree as verified head `ed1834d`.
+
+- [Full Linux PR CI](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39201419168)
+  on `ed1834d` passed: **1,242 Python tests reported, 21 skipped**, with the
+  required PostgreSQL service; **180 frontend tests**; **104 browser and
+  accessibility checks passed, 4 skipped**; and **12 Miyaar checks passed**.
+  Brain/contracts, production build, frontend dependency audit and interface
+  budgets passed. The matching push CI and both fast budget runs also passed.
+  The informational Python audit reported a setuptools advisory
+  (`PYSEC-2026-3447`); it is not a failing test and the audit remains advisory.
 
 - Frontend unit tests: **180 passed**, no errors, with one worker under supported Node **24.22.0** after the final client change. TypeScript and the fresh production build pass.
   This includes delayed and failed chat requests, session changes, microphone
   event ordering, interim/final speech, playback ownership and bilingual packs.
-- Native run/snapshot contracts: **5 passed**. Documentation and verifier tests:
-  **27 passed**. The strict brain check passes.
+- Native run/snapshot contracts: **5 passed**. Post-merge documentation,
+  verifier and operating-system checks: **57 passed**. The strict brain check passes.
 - Full local Python verification with optional SDKs: **1,209 tests, 129 skipped,
   no errors or assertion failures**. The earlier Windows SQLite cleanup locks
   are fixed through explicit fixture connection cleanup. The affected backup,
@@ -427,7 +438,7 @@ The dedicated branch is `feature/miyaar-ui-redesign`.
   configured hosted-database, worker-configuration and Windows worker-cleanup
   guards. A real benign venv process-tree exit probe also passed. The broader
   full Python run above predates this last intent optimization and Node helper;
-  current CI is tracked on the PR. Doctor selects supported Node **24.22.0**
+  full Linux CI is recorded above. Doctor selects supported Node **24.22.0**
   with npm **11.19.1** without replacing the system installation.
 - Miyaar visual/browser suite: **12 passed**, covering English/Arabic, 375/768/1024/1440 px, light theme, command dialog, accessibility, reduced motion, two-turn chat, failures, voice preview and a pending-request session switch.
 - Fresh production budget passes: initial JS **97.8 / 100 KB**, total JS **167.2 / 170 KB**, largest chunk **13.1 / 30 KB**, initial CSS **10.0 / 10 KB**, total CSS **19.6 / 20 KB**, fonts **119.4 / 120 KB** (gzip level 9 except fonts). Initial ceilings are unchanged; ADRs 0054 and 0055 record the explicit feature allowances.
@@ -449,7 +460,7 @@ The dedicated branch is `feature/miyaar-ui-redesign`.
   **200**, and filled an editable draft without sending or appending a chat
   message. An installed Arabic browser voice was enumerated; physical
   microphone recording and audible playback were not tested.
-- Initial full FastAPI browser run: **95 passed, 9 failed, 4 skipped**. The failures covered stale welcome assertions, offline retry, phone help access and Windows report-path separators; all were corrected. The focused final journey/accessibility suite passed **20 checks with 1 viewport-only skip**; one additional latency-injection timeout exposed a service-worker routing race. After blocking service workers only in route-controlled tests, **8 repeated desktop/phone recovery and latency checks passed**. The ordinary application service worker is unchanged. Full Linux CI remains a separate check on the PR.
+- Initial full FastAPI browser run: **95 passed, 9 failed, 4 skipped**. The failures covered stale welcome assertions, offline retry, phone help access and Windows report-path separators; all were corrected. The focused final journey/accessibility suite passed **20 checks with 1 viewport-only skip**; one additional latency-injection timeout exposed a service-worker routing race. After blocking service workers only in route-controlled tests, **8 repeated desktop/phone recovery and latency checks passed**. The ordinary application service worker is unchanged. The final full Linux browser run passed as recorded above.
 
 The isolated Miyaar suite runs with
 `npx playwright test --config=playwright.miyaar.config.ts` after building.

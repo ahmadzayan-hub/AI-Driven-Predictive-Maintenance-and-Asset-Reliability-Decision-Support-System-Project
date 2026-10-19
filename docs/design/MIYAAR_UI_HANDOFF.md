@@ -112,8 +112,10 @@ Screenshots are actual Chromium renders with synthetic test sessions.
 
 ## Review and next steps
 
-Review the feature branch against main; this request authorizes a reviewable
-PR, not a merge or production deployment. Confirm the visual direction on
+The owner subsequently requested "merge all". PR #15 merged into `main` on
+19 October 2026 at `893986d`, preserving both parents and the tested feature
+tree. This records a source merge; no production deployment was performed.
+Confirm the visual direction on
 actual target devices, test microphone capture and Arabic playback with the
 deployment's supported browsers, and validate multi-turn answers against the
 chosen server provider. Real-time streaming or hands-free voice would require

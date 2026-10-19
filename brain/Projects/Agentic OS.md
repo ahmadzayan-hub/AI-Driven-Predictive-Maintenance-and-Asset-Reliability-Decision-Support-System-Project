@@ -3,7 +3,7 @@ type: project
 aliases: [Agentic OS project]
 tags: [project]
 status: active
-updated: 2026-10-18
+updated: 2026-10-19
 review_every_days: 14
 sources: [README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0024-the-dataset-api.md, docs/adr/0028-views-load-on-demand.md, scripts/verify.py]
 ---
@@ -15,12 +15,13 @@ The engine in this repository, described in [[Identity]]: a governed business-an
 ## Where it lives
 
 - **Repository:** `ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project`, public, since [[Decision log]] 0043. The earlier names `ahmadzayan-hub/agentic-os-final-project` and `ahmadzayan-hub/11` both redirect, so older clone URLs and the CI run links cited as evidence keep resolving.
-- **Default and working branch:** `claude/agentic-os-final-project-53j6ql`. `main` is behind it, and it stays the default until after submission.
+- **Default and integration branch:** `main`, verified on 19 October. The owner authorized merging all completed work; PR #15 brought the Miyaar workspace and local AI profile into it with both parents preserved. The Desktop and active Miyaar checkouts select `main`. Older feature refs are retained snapshots of work already landed.
 - **Production:** a Vercel deployment behind Vercel Authentication. It is verified for a signed-in owner only, and auth and the database are unverified there.
 
 ## What it does today
 
-- Chat in English or Arabic that maps a sentence to a typed action.
+- Chat in English or Arabic that maps a sentence to a typed action, in the Miyaar workspace (ADR 0054).
+- An opt-in local instruction model and authenticated Whisper voice input with editable drafts (ADR 0055). Setup and bounded actual acceptance are recorded in `docs/LOCAL_AI_SETUP.md` and `README.md`; device checks and production acceptance remain separate.
 - Analyses through the [[Governed pipeline]], sequenced by the [[Hermes orchestrator]], of a dataset in CSV, TSV, Excel, JSON or JSON Lines (ADR 0024), joined with up to four others on declared keys (ADR 0030).
 - A six-page dashboard per analysis over its cleaned table (ADRs 0031, 0032), optional models each tested against a baseline (ADR 0033), and live sources that refresh on a schedule and push changes to open pages (ADR 0034).
 - Reports with claims linked to calculations, published through the [[Approval gate]].
