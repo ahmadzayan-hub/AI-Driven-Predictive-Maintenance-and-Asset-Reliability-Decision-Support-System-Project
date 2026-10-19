@@ -1,4 +1,4 @@
-"""Markdown knowledge collections: chunking, citation and retrieval (ADR 0055).
+"""Markdown knowledge collections: chunking, citation and retrieval (ADR 0057).
 
 The fixtures here are synthetic. The repository is public, so the real
 collection - course material with an institution, a group and an
@@ -168,7 +168,7 @@ class RetrievalTestCase(unittest.TestCase):
 
 
 class AgentToolTestCase(unittest.TestCase):
-    """The tool the model is offered, and what it hands back (ADR 0055)."""
+    """The tool the model is offered, and what it hands back (ADR 0057)."""
 
     def setUp(self):
         from assistant import ACTIONS, SERVER_ONLY

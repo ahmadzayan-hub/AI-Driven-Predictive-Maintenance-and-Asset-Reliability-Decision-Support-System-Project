@@ -1,4 +1,4 @@
-# ADR 0054: The causal lint learns Arabic word order, and a blind set shows what it is worth
+# ADR 0056: The causal lint learns Arabic word order, and a blind set shows what it is worth
 
 - Status: accepted
 - Date: 2026-10-19

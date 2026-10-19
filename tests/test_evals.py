@@ -126,7 +126,7 @@ class RecallFixTests(unittest.TestCase):
         self.assertFalse(claims_lint.causal_phrases("We cannot claim a cause from this data."))
 
     def test_the_round_six_constructions_are_found(self):
-        """One case per class added in ADR 0054, so a rewrite cannot drop one."""
+        """One case per class added in ADR 0056, so a rewrite cannot drop one."""
         for sentence in (
             "خفّض التدريب الجديد على التشغيل زمن التوقف غير المخطط في محطة الضخ.",
             "يعود تراجع دقة التنبؤ إلى نقص البيانات في الأشهر الأخيرة.",
@@ -150,7 +150,7 @@ class RecallFixTests(unittest.TestCase):
     def test_the_adversarial_probe_is_labelled_as_one(self):
         """probe_v5 must never be read as a blind holdout: it was written with
         the patterns in view, so its recall is a worst case, not a measurement
-        of field performance (ADR 0054)."""
+        of field performance (ADR 0056)."""
         suite = json.loads((ev.EVALS / "causal.json").read_text(encoding="utf-8"))
         self.assertIn("probe_v5", suite)
         self.assertEqual(len(suite["probe_v5"]), 32)

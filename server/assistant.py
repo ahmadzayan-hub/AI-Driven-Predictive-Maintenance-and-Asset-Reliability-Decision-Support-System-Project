@@ -40,7 +40,7 @@ from server.tools import ToolBox
 # Enough passages that the answer is usually among them, few enough that a
 # large collection costs a few hundred tokens rather than being injected
 # whole. The retrieval layer is right first about eight times in ten and
-# within its top three more often than that (ADR 0055), so the reader is
+# within its top three more often than that (ADR 0057), so the reader is
 # given the shortlist, not a single guess.
 KNOWLEDGE_HITS = 3
 # A quoted passage is trimmed on a line boundary: a table cut mid-row is

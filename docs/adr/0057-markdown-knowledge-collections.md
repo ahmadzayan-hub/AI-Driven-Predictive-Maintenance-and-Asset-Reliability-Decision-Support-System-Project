@@ -1,4 +1,4 @@
-# ADR 0055: Markdown knowledge collections, searched and cited
+# ADR 0057: Markdown knowledge collections, searched and cited
 
 - Status: accepted
 - Date: 2026-10-19
@@ -75,7 +75,7 @@ It was implemented, measured and removed rather than kept because it is
 standard.
 
 **The scorer was chosen against those ten questions, so they no longer measure
-generalisation.** This is the same contamination recorded in ADR 0054, named
+generalisation.** This is the same contamination recorded in ADR 0056, named
 here for the same reason: a number produced by tuning against a set is not
 evidence about anything else.
 

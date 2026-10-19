@@ -15,7 +15,7 @@ Retrieval is deterministic keyword scoring - no embeddings, no model, no
 tokens. `docs/OBSIDIAN_INTEGRATION.md` records that embeddings and vector
 retrieval are deliberately absent, and a corpus of this size does not need
 them: the index is built in memory in milliseconds and every score can be
-explained from the words that produced it. ADR 0055.
+explained from the words that produced it. ADR 0057.
 
 Where the content lives is configuration, never a committed path. This
 repository is public and course material, client documents and personal
@@ -223,7 +223,7 @@ class KnowledgeStore:
         length normalisation pushes down the long glossary passage that
         actually holds the formula reference. A corpus of 73 passages of
         very uneven length is not what BM25's averages assume. The
-        measurement is in ADR 0055; the simpler rule stays until a larger
+        measurement is in ADR 0057; the simpler rule stays until a larger
         corpus makes it fail.
         """
         wanted = _words(query or "")

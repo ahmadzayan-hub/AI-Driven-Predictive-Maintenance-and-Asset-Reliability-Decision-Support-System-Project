@@ -405,7 +405,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
     open_streams = {}
     # Knowledge collections are read-only Markdown, so they are loaded once
     # and rebuilt only when a file's size or timestamp moves. Re-importing
-    # the same bytes therefore changes nothing (ADR 0055).
+    # the same bytes therefore changes nothing (ADR 0057).
     knowledge_cache = {}
 
     def knowledge_store():
@@ -781,7 +781,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
             return note
 
     # ------------------------------------------------------------------
-    # Knowledge: Markdown collections, searched and cited (ADR 0055)
+    # Knowledge: Markdown collections, searched and cited (ADR 0057)
     # ------------------------------------------------------------------
     @app.get("/api/knowledge")
     def list_knowledge(principal=Depends(requires("read"))):
