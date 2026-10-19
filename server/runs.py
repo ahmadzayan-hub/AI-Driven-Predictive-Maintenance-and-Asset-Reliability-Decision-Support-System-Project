@@ -111,6 +111,23 @@ def _stamp(moment):
     return moment.strftime("%Y-%m-%dT%H:%M:%S.%f+00:00")
 
 
+
+def model_cards(result):
+    """Both fitted and unsupported cards, without inventing missing scores.
+
+    A maintenance stage returns several cards; generic stages retain their
+    existing single-card contract. Invalid list members are not model cards.
+    """
+    output = (result or {}).get("output", {})
+    candidates = [output["model_card"]] if isinstance(output.get("model_card"), dict) else []
+    batch = output.get("models", [])
+    if isinstance(batch, list):
+        candidates.extend(card for card in batch if isinstance(card, dict)
+                          and isinstance(card.get("kind"), str)
+                          and isinstance(card.get("target"), str))
+    return candidates[:12]
+
+
 class RunEngine:
     def __init__(self, store, vault_dir, gateway, limits=None, glossary=None,
                  stages=None, profiles=None):
@@ -789,9 +806,9 @@ class RunEngine:
                                     "headline": result["output"].get("headline", ""),
                                     "content": content})
             # A model reports its card, baseline included (ADR 0033).
-            card = (result or {}).get("output", {}).get("model_card")
-            if card and t["state"] == "succeeded":
-                models.append({**card, "role": t["role"], "title": t["title"]})
+            if t["state"] == "succeeded":
+                models.extend({**card, "role": t["role"], "title": t["title"]}
+                              for card in model_cards(result))
             # A custom stage that wrote a section gets its own tab too.
             if result and t["role"] not in analytics.ROLE_TITLES:
                 content = result["output"].get("report_markdown")

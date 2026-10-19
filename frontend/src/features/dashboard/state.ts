@@ -145,3 +145,29 @@ export function drill(state: DashState, column: string, value: string, date: str
   }
   return next
 }
+
+/** Represent a server-provided drill faithfully in the existing bookmark format.
+ * Unsupported operators are refused rather than silently widening the scope. */
+export function executiveDrill(filters: TableFilter[], state: DashState, roles: Roles): DashState | null {
+  const next: DashState = { ...state, filters: {}, from: null, to: null, lo: null, hi: null, offset: 0 }
+  for (const filter of filters) {
+    if (filter.op === 'in' && filter.values?.every((v) => typeof v === 'string')) {
+      const values = filter.values as string[]
+      next.filters[filter.column] = next.filters[filter.column]?.filter((v) => values.includes(v)) ?? values
+      // An empty selection means "all" in the address format, not "no rows".
+      if (!next.filters[filter.column].length) return null
+    } else if (filter.column === roles.date && typeof filter.value === 'string' && (filter.op === 'gte' || filter.op === 'lte')) {
+      if (filter.op === 'gte') next.from = next.from === null || filter.value > next.from ? filter.value : next.from
+      else next.to = next.to === null || filter.value < next.to ? filter.value : next.to
+    } else if (filter.column === roles.measure && typeof filter.value === 'number' && Number.isFinite(filter.value)) {
+      if (filter.op === 'gte') next.lo = Math.max(next.lo ?? -Infinity, filter.value)
+      else if (filter.op === 'lt' || filter.op === 'lte') {
+        if (next.hi === null || filter.value < next.hi || (filter.value === next.hi && filter.op === 'lt')) {
+          next.hi = filter.value
+          next.hiop = filter.op
+        }
+      } else return null
+    } else return null
+  }
+  return next
+}

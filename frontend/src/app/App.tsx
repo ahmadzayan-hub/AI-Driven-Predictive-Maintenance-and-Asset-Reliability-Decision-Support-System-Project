@@ -500,7 +500,7 @@ export function App() {
           ))}
           {pane('assets', (
             <AssetIntelligenceView onOpenRun={openRun}
-              onUpload={() => startAnalysis({ kind: 'upload' })} />
+              onUpload={() => startAnalysis({ kind: 'upload', profile: 'maintenance' })} />
           ))}
           {pane('datasets', (
             <DatasetsView
@@ -535,11 +535,11 @@ export function App() {
           {pane('runs', (
             <RunsView
               draftScope={session.session_id}
-              key={currentRunId ?? `form-${runNonce.current}-${route.source ?? ''}`}
+              key={currentRunId ?? `form-${runNonce.current}-${route.source ?? ''}-${route.profile ?? ''}`}
               onRunSelected={selectRun}
               openRunId={currentRunId}
               openNonce={runTarget?.nonce ?? 0}
-              preset={route.source === 'upload' && !route.runId ? { kind: 'upload' } : runPreset}
+              preset={route.source === 'upload' && !route.runId ? { kind: 'upload', profile: route.profile } : runPreset}
               onOpenDashboard={openDashboard}
             />
           ))}
