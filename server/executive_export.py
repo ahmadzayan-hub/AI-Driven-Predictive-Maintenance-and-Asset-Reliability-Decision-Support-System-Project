@@ -137,7 +137,7 @@ def report_sections(brief):
         kpis.tables.append(Table((tr("Measure", "المؤشر"), tr("Value", "القيمة"),
             tr("Scale", "مقياس القيمة"), tr("Measured records", "السجلات المقاسة")),
             [(measure["title"], value(measure["value"]), labelled(measure["scale"], scales),
-              value(measure["records"])) for measure in brief["kpis"]["measures"]], (42, 14, 26, 18)))
+              value(measure["records"])) for measure in brief["kpis"]["measures"]], (38, 20, 24, 18)))
     for measure in brief["kpis"]["measures"]:
         kpis.tables.append(properties([
             (tr("Measure", "المؤشر"), measure["title"]),
@@ -221,7 +221,7 @@ def report_sections(brief):
     evidence.tables.append(Table((tr("Evidence ID", "معرّف الدليل"), tr("Label and scope", "الوصف والنطاق"),
         tr("Value", "القيمة"), tr("Method", "الطريقة")), [(
             item["id"], item["label"] + "\n" + (tr("Selected scope", "النطاق المحدد") if item["scope"] == "filtered" else tr("Whole run", "التشغيل الكامل")),
-            value(item["value"]), item["method"]) for item in brief["evidence"]], (24, 24, 12, 40)))
+            value(item["value"]), item["method"]) for item in brief["evidence"]], (22, 22, 20, 36)))
     return tr("Executive evidence brief", "موجز الأدلة التنفيذي"), [metadata, selected, summary, kpis, priorities, questions, findings, models, evidence]
 
 
