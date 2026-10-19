@@ -5,7 +5,7 @@ tags: [project]
 status: active
 updated: 2026-10-19
 review_every_days: 14
-sources: [README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0024-the-dataset-api.md, docs/adr/0028-views-load-on-demand.md, scripts/verify.py]
+sources: [README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0024-the-dataset-api.md, docs/adr/0028-views-load-on-demand.md, scripts/verify.py, docs/adr/0058-executive-dashboard-agent-and-scoped-evidence.md]
 ---
 
 # Agentic OS
@@ -24,6 +24,7 @@ The engine in this repository, described in [[Identity]]: a governed business-an
 - An opt-in local instruction model and authenticated Whisper voice input with editable drafts (ADR 0055). Setup and bounded actual acceptance are recorded in `docs/LOCAL_AI_SETUP.md` and `README.md`; device checks and production acceptance remain separate.
 - Analyses through the [[Governed pipeline]], sequenced by the [[Hermes orchestrator]], of a dataset in CSV, TSV, Excel, JSON or JSON Lines (ADR 0024), joined with up to four others on declared keys (ADR 0030).
 - A six-page dashboard per analysis over its cleaned table (ADRs 0031, 0032), optional models each tested against a baseline (ADR 0033), and live sources that refresh on a schedule and push changes to open pages (ADR 0034).
+- A scoped executive overview and read-only evidence agent (ADR 0058): controlled KPIs, populations, review priorities, linked calculations and sourced JSON in English and Arabic RTL. Model evaluations remain run-wide; briefs do not approve reports. Claude dashboard development instructions are integrated; hosted Artifact availability is separate.
 - Reports with claims linked to calculations, published through the [[Approval gate]].
 - Optional narration through the [[Model gateway]]; extension through [[Custom stages]] and [[Agent runtimes and MCP]].
 - The bundled [[Sample sales data]] works without an upload.

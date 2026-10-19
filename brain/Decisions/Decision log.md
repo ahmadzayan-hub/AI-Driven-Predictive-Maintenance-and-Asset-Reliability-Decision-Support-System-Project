@@ -71,4 +71,8 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 | 0054 | Miyaar bilingual workspace redesign and honest browser voice states | [[Agentic OS]], [[Design system]] |
 | 0055 | Opt-in local instruction model, bounded Whisper transport and reproducible runtime setup | [[Agentic OS]], [[Model gateway]] |
 
+| 0056 | Causal-claim lint covers Arabic as well as English | [[Governed pipeline]] |
+| 0057 | Local Markdown knowledge collections with heading citations | [[Agent runtimes and MCP]] |
+| 0058 | Scoped executive evidence agent, bilingual dashboards and capability-aware Claude skills | [[Agentic OS]], [[Design system]], [[Weighted KPIs]] |
+
 All seven [[Analytics OS roadmap]] milestones have their records.
