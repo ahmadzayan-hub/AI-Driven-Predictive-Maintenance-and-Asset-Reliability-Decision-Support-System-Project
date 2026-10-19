@@ -1,5 +1,5 @@
 import { translate } from '../i18n'
-import type { AuthConfig, ColumnMapping, DatasetDetail, DatasetSummary, ExportPayload, IdentityInfo, JoinPreview, JoinSpec, MappingProblem, Pipelines, QueryAnswer, QuerySpec, RecordsPage, RecordsSpec, RunDetail, RunKpis, RunSummary, SessionState, TableField, TranscriptEntry, UploadResult, Usage } from './types'
+import type { AuthConfig, ColumnMapping, DatasetDetail, DatasetSummary, ExportPayload, IdentityInfo, JoinPreview, JoinSpec, MappingProblem, Pipelines, QueryAnswer, QuerySpec, RecordsPage, RecordsSpec, RunDetail, RunExecutive, RunKpis, RunSummary, SessionState, TableField, TableFilter, TranscriptEntry, UploadResult, Usage } from './types'
 
 export const API_BASE = import.meta.env.VITE_API_BASE ?? ''
 const REQUEST_TIMEOUT_MS = 10_000
@@ -294,6 +294,12 @@ export const api = {
    *  (ADR 0049). 409 until the run has finished cleaning. */
   runKpis: (id: string, language: 'en' | 'ar' = 'en') =>
     request<RunKpis>(`/api/runs/${id}/kpis?language=${language}`),
+  /** Read-only, evidence-linked brief over the same filters as the dashboard. */
+  runExecutive: (id: string, language: 'en' | 'ar' = 'en', filters: TableFilter[] = [], signal?: AbortSignal) =>
+    request<RunExecutive>(
+      `/api/runs/${encodeURIComponent(id)}/executive?${new URLSearchParams({ language, filters: JSON.stringify(filters) })}`,
+      { signal }, UPLOAD_TIMEOUT_MS,
+    ),
   advanceRun: (id: string) => request<RunDetail>(`/api/runs/${id}/advance`, { method: 'POST' }),
   pauseRun: (id: string) => request<RunDetail>(`/api/runs/${id}/pause`, { method: 'POST' }),
   resumeRun: (id: string) => request<RunDetail>(`/api/runs/${id}/resume`, { method: 'POST' }),

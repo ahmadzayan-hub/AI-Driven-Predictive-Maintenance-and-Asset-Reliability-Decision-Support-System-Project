@@ -14,9 +14,9 @@ placeholder controls — absent capabilities have no UI.
    sentence outside the vocabulary gets an honest "not understood, here
    is what you can ask"; one action per sentence; "explain" quotes the
    report's verified headlines rather than reasoning over the report;
-   and **no live model has handled a sentence from this environment**
-   (the model path is tested against a fake), so the first real one is
-   unverified and the rules fallback is what makes that safe.
+   and bounded local Qwen/Whisper acceptance is recorded in
+   [README testing](../README.md#testing). That conversational smoke does
+   not establish maintenance-domain or hosted-production acceptance.
 2. The analytics pipeline covers all four types (descriptive,
    diagnostic, predictive, prescriptive) deterministically, and each has
    a boundary worth knowing:
@@ -384,7 +384,19 @@ required local files. Both behaviors are covered by tests
 
 -   **Initial CSS and fonts have little budget headroom.** Current measured
     values are maintained in [README testing](../README.md#testing). ADRs
-    0054 and 0055 record the explicit allowances for the visual and local voice
-    features; initial ceilings remain unchanged. Further features need
+    0054, 0055 and 0058 record the explicit allowances for the visual, local voice
+    and scoped executive features; initial ceilings remain unchanged. Further features need
     measurement and trimming or a justified design decision, not an unexplained
     gate increase.
+
+
+## Executive decision support
+
+The executive agent (ADR 0058) is a deterministic, read-only briefing over an
+authorized cleaned run. Filters recompute controlled measures and priorities;
+model evaluations and historical findings retain their whole-run scope. The
+brief can be inspected and exported, but it does not issue work orders, retrain
+models, approve publication or prove a future-failure prediction. Missing
+evidence and unsupported targets stay visible. Claude dashboard skills are
+development instructions; hosted Artifact availability is account-dependent
+and was not activated by this implementation.

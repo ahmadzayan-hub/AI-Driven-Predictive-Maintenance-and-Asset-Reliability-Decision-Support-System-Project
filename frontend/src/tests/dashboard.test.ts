@@ -12,6 +12,12 @@ const FIELDS: TableField[] = [
 ]
 
 describe('dashboard addresses (ADR 0032)', () => {
+  it('selects only known upload profiles and keeps existing runs unchanged', () => {
+    const route = { tab: 'runs' as const, source: 'upload' as const, profile: 'maintenance' as const }
+    expect(parseRoute(routeHash(route))).toEqual(route)
+    expect(parseRoute('#/runs?source=upload&profile=untrusted')).toEqual({ tab: 'runs', source: 'upload' })
+    expect(parseRoute('#/runs/r1?source=upload&profile=maintenance')).toEqual({ tab: 'runs', runId: 'r1' })
+  })
   it('links directly to a real upload form without replacing an existing run', () => {
     expect(parseRoute('#/runs?source=upload')).toEqual({ tab: 'runs', source: 'upload' })
     expect(routeHash({ tab: 'runs', source: 'upload' })).toBe('#/runs?source=upload')

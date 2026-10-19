@@ -141,7 +141,7 @@ function nextTabIndex(key: string, current: number, count: number, rtl: boolean)
 /** What another view asked the form to start with: the upload fields
  *  open, or a dataset already stored on the server. The view is mounted
  *  afresh on each visit, so the preset seeds its first render. */
-export type RunPreset = { kind: 'upload' } | { kind: 'stored'; id: string; name: string }
+export type RunPreset = ({ kind: 'upload' } | { kind: 'stored'; id: string; name: string }) & { profile?: 'maintenance' | 'models' }
 
 interface RunsViewProps {
   draftScope?: string
@@ -220,7 +220,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
   // Custom stages and profiles (ADR 0020). The picker exists only when
   // an operator configured profiles; a default install shows nothing.
   const [pipelines, setPipelines] = useState<Pipelines | null>(null)
-  const [profile, setProfile] = useState('')
+  const [profile, setProfile] = useState<string>(preset?.profile ?? '')
   // Other stored datasets joined onto the main one (ADR 0030).
   const [downloading, setDownloading] = useState(false)
   const [joins, setJoins] = useState<JoinSpec[]>([])

@@ -1,79 +1,134 @@
 ---
 name: dashboards
-description: Deep analysis of a dataset through the governed pipeline (scripts/analyse.py), then a dashboard where every figure shows its source. In claude.ai cloud sessions it builds a real Claude Dashboard with the Dashboard artifact type; anywhere else, or offline, it writes a free self-contained HTML dashboard (render.py). Use for KPI pages, scorecards, management dashboards, capstone or client dashboards, and "analyse this file and show me".
+description: >-
+  Analyse authorized data with the governed pipeline and build executive
+  decision dashboards with traceable figures. Use for the Asset Reliability
+  SaaS dashboard, KPI scorecards, Arabic RTL views, evidence-led dashboard
+  redesigns, or a sourced standalone HTML export. Reuse real run APIs and the
+  existing React design system; use hosted Claude artifacts only when that
+  capability is actually available and requested.
 ---
 
 # Dashboards
 
-Claude Dashboards, announced by Anthropic on 8 October 2026, is a hosted claude.ai feature in beta on paid plans. It turns questions about data into a dashboard that stays current, and clicking a number shows its query. It has no package to install. This skill reaches it where it exists and gives the same standard everywhere else: **every figure comes from a calculation you can point to.**
+Build a dashboard that helps its reader decide what deserves attention and
+shows the evidence behind that decision. The assistant can explain verified
+results; calculations and authority remain in the governed server pipeline.
 
-## Step 1: analyse with the governed pipeline
+## Choose the delivery route
+
+| User's outcome | Route |
+| --- | --- |
+| Develop or redesign this SaaS | Read [the SaaS workflow](references/saas-workflow.md), then extend the existing React views and run-scoped APIs. |
+| Analyse a file and hand over a portable dashboard | Use the deterministic analysis and offline renderer below. |
+| Create a Claude-hosted artifact | Check the capabilities exposed by the current session, then follow their returned instructions. Read the [research and integration boundaries](../../../docs/design/EXECUTIVE_DASHBOARD_RESEARCH.md). |
+
+Claude Code skills are project instructions. The existing
+`dashboard-analyst` development agent preloads this skill; that does not
+register a new SaaS runtime agent or install an Artifact SDK. Product agent
+behavior belongs in the existing server runtime/tool contracts and its tests.
+
+## 1. Establish the decision and evidence
+
+Record the reader, decision, selected run or input, period, population, unit,
+comparison and output language. Use the task's current run selection and
+available project context; ask only for information that blocks the work.
+
+For every proposed card or chart, identify its source before drawing it:
+
+- Run ID and calculation/KPI key, or a register reference for a file export.
+- Formula, unit, population, numerator/denominator and missing-value policy.
+- Data coverage and any failed checks, unavailable measures or limitations.
+- A comparison only when both populations and periods are comparable.
+- A proposed action and its actual supported next step. A recommendation
+  remains advisory until the existing human approval workflow authorizes it.
+
+Use ratios of sums rather than averages of row rates. Show record counts and
+per-record comparisons when coverage differs. Missing or unmeasured data is
+not a measured zero. Show a target, risk score, forecast or asset-health
+indicator only when its definition and evidence exist.
+
+## 2. SaaS implementation
+
+Follow [references/saas-workflow.md](references/saas-workflow.md) for the API
+map, executive hierarchy, English/Arabic behavior and acceptance checks.
+Reuse `frontend/src/shared/api.ts`, its types, existing state and the
+run's authorization boundary. Read the actual DTO before changing a view.
+
+Use the current semantic tokens in
+`frontend/src/shared/styles/tokens.css`, the project decisions in
+`design-system/agentic-os/MASTER.md` and the dashboard page rules. Keep
+charts as accessible SVG with a table of the same values. Preserve lazy
+views and feature translation packs. The current bundle budget is enforced
+by `scripts/verify.py`; measure it rather than copying an old budget figure.
+
+The official Anthropic design skills are useful references for deliberate
+hierarchy and critique. Their artifact scaffolding stack is for an isolated
+prototype, not an instruction to replace this application's build system.
+Do not introduce a CDN, font, chart library or runtime dependency without
+the project's recorded reason and an actual budget check.
+
+## 3. Deterministic analysis and offline handover
+
+Run from the project root with the project Python environment. Replace the
+example paths; put course/client input, aggregates and outputs in an
+authorized directory outside the public repository.
 
 ```bash
-python scripts/analyse.py data.xlsx --suggest --out analysis.json --csv-dir aggregates/
-python scripts/analyse.py data.csv --mapping mapping.json --goal "Why did margin fall?" --language ar --out analysis.json
+python scripts/analyse.py path/to/data.xlsx --suggest --out path/to/review/analysis.json --csv-dir path/to/review/aggregates
+python scripts/analyse.py path/to/data.csv --mapping path/to/mapping.json --goal "Which maintenance problem deserves review?" --language ar --out path/to/review/analysis.json
 ```
 
-- **What it runs:** the app's own pipeline: reading (ADR 0024), the column mapping (ADR 0025, or `--suggest` to accept the suggested one), and every specialist stage up to the approval gate.
-- **Cost:** it calls no model and costs nothing. The sample analyses in a quarter of a second.
-- **`analysis.json`:**
-    - every calculation, with a `ref` such as `preparer.c_total` and its method;
-    - every claim, with the calculations behind it;
-    - the failed quality checks;
-    - the charts, and a headline for each analytics type;
-    - the prepared aggregates.
-
-  It never holds rows.
-- **`--csv-dir`:** writes `by_group.csv`, `trend.csv` and `calculations.csv`, small aggregate files fit to be dashboard datasets. Each total carries its record count and per-record value.
-
-Read `failed_checks` and the claims marked `limitation` or `warning` before choosing what to show. A dashboard must not hide them.
-
-**Per record before totals (ADR 0026).** When periods or groups hold different numbers of records, totals move with the count. On the capstone data, monthly loss "fell 39%" only because 2026 months hold 83 records against 167. Per record it was flat, and the criticality level with the largest total was not the one with the largest loss per record. The pipeline names this in a `cl_uneven_periods` limitation, and the default page adds per-record charts.
-
-## Step 2a: a Claude Dashboard (claude.ai cloud sessions)
-
-When the `Artifact` tool is available and lists the **Dashboard** type (`Artifact` `action: "list"`, `scope: "types"`):
-
-1. Create it with that type's `type_url` and a title, then follow the instructions the create result returns. They are the authority.
-2. **Data:**
-    - Attach the aggregate CSVs from step 1 as file datasets. Upload with `asset: true`, and attach aggregates, never the raw file, unless the person asks for it.
-    - If the data lives in a connected warehouse, use a live query instead, so the dashboard stays current.
-3. **Marks:** every figure, chart and table on the page is marked with its dataset (`data-source`, `data-field`). That is how a reader clicks through to where a number came from.
-4. **Hand-over:** say what it shows and what was assumed. Name any limitation from the analysis.
-
-## Step 2b: an offline dashboard (free, anywhere)
+`--suggest` accepts the suggested mapping; inspect it before relying on it.
+The CLI uses a deterministic gateway and exports calculations, sourced
+claims, failed checks, chart data, headlines and prepared aggregates. It
+does not send dataset rows to a model. Read the warnings and limitations
+before choosing the figures. Aggregates can still be confidential.
 
 ```bash
-python .claude/skills/dashboards/render.py --analysis analysis.json --out dashboard.html --write-spec spec.json
-python .claude/skills/dashboards/render.py --spec spec.json --check     # validate an edited spec
-python .claude/skills/dashboards/render.py --spec spec.json --out dashboard.html
+python .claude/skills/dashboards/render.py --analysis path/to/review/analysis.json --write-spec path/to/review/spec.json --out path/to/review/dashboard.html
+python .claude/skills/dashboards/render.py --spec path/to/review/spec.json --check
+python .claude/skills/dashboards/render.py --spec path/to/review/spec.json --out path/to/review/dashboard.html
 ```
 
-- **The default page:** from an analysis, `render.py` builds the following. Edit `spec.json` to choose and order what matters for the audience.
-    - Key figures.
-    - A "Read with care" section of limitations and failed checks, before any chart.
-    - The trend and the breakdown, with per-record versions when sizes differ.
-    - The headlines.
-    - A table of every claim with its evidence.
-- **The spec:**
-    - sections of type `kpis`, `bars`, `line` (with `forecast_from`), `table` and `text`;
-    - every KPI and bar item needs a `source`, and so does every line and table. The renderer refuses one without.
-- **The output:**
-    - one HTML file with SVG charts drawn in Python: no scripts, no network;
-    - numbered sources at the foot, and each chart's numbers in a table;
-    - English or Arabic, light or dark, printable.
+The existing renderer supports `kpis`, `bars`, `line`, `table` and `text`.
+Every numeric section needs its source. It produces one offline HTML file
+with SVG, source references, table equivalents, English/Arabic, themes and
+print styles. The file is a snapshot; a live refresh claim needs a working
+data path and observed refresh behavior.
 
-## Rules
+## 4. Claude-hosted output, when available
 
-1. Figures come from `analysis.json`, a KPI register or another verified source, and nothing else. Cite each one: a calculation `ref` or a register row.
-2. Raw data never goes to a model. The analysis is deterministic; only aggregates are attached to a dashboard.
-3. Course and client dashboards are written outside the repository. Only sample-data examples belong here.
-4. Before handing over, check that every number on the page is sourced:
+Current Anthropic documentation describes Claude Code artifact publishing
+and a hosted Dashboards beta. Availability depends on the signed-in
+account, plan, organization settings and current surface. Check the actual
+session's tools; use only their documented schemas. Do not assume a
+Dashboard `type_url`, call an invented SDK or claim publishing succeeded
+without a returned URL. When no publishing capability exists, hand over
+the local file and its evidence instead.
 
-    ```bash
-    python scripts/figures_check.py --register aggregates/calculations.csv --value-column value \
-        --label-columns ref,name --doc dashboard.html --reference analysis.json \
-        --reference aggregates/trend.csv --reference aggregates/by_group.csv --sourcing-only
-    ```
+A hosted artifact does not provide this SaaS's FastAPI backend, tenancy or
+approval engine. Its published page cannot call this project's local MCP
+server. Preserve those services in the application. External publishing
+must be within the user's authorized scope; local implementation and
+review do not require a new permission question.
 
-    Run the `review-loop` skill for anything that will be submitted.
+## 5. Verification and handover
+
+For an offline export:
+
+```bash
+python scripts/figures_check.py --register path/to/review/aggregates/calculations.csv --value-column value --label-columns ref,name --doc path/to/review/dashboard.html --reference path/to/review/analysis.json --reference path/to/review/aggregates/trend.csv --reference path/to/review/aggregates/by_group.csv --sourcing-only
+```
+
+Include only reference files the analysis actually produced. Inspect the
+rendered page and its tables; a matching number alone does not prove a
+correct denominator or population. For a submitted deliverable, apply the
+existing `review-loop` gates. For a SaaS change, follow the verification
+matrix in the SaaS workflow and report the commands that actually ran.
+
+Return the implementation/output paths, selected run or source, decisions
+supported, formulas and limitations, measured verification, and remaining
+acceptance work. Never send raw rows to a model, expose credentials or
+private course data, invent evidence, hide failed checks, or turn an
+association into a causal finding.

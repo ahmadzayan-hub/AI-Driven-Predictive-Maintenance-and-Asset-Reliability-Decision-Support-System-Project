@@ -28,8 +28,9 @@ import type {
 import type { Route } from '../../app/routing'
 import { routeHash } from '../../app/routing'
 import { Bars, Figure, Histogram, Line, Scatter } from './charts'
+import { ExecutiveOverview } from './ExecutiveOverview'
 import type { Point } from './charts'
-import { drill, EMPTY, filterCount, pagesFor, readState, rolesOf, toFilters, writeState } from './state'
+import { drill, EMPTY, executiveDrill, filterCount, pagesFor, readState, rolesOf, toFilters, writeState } from './state'
 import type { DashState, Page, Roles } from './state'
 import './dashboard.css'
 
@@ -55,16 +56,20 @@ export function DashboardView({ runId, page, query, onNavigate, onOpenRun }: Das
 function RunPicker({ onPick }: { onPick: (id: string) => void }) {
   const { t } = usePack(dashMessages)
   const [runs, setRuns] = useState<RunSummary[] | null>(null)
+  const [failed, setFailed] = useState(false)
+  const [revision, setRevision] = useState(0)
   useEffect(() => {
     let cancelled = false
+    setRuns(null)
+    setFailed(false)
     api
       .listRuns()
       .then((result) => !cancelled && setRuns(result.runs.filter((run) => READY_STATES.includes(run.state))))
-      .catch(() => !cancelled && setRuns([]))
+      .catch(() => { if (!cancelled) { setFailed(true); setRuns([]) } })
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [revision])
   return (
     <section className="panel" aria-labelledby="dash-title">
       <div className="panel__inner panel__inner--wide">
@@ -73,9 +78,12 @@ function RunPicker({ onPick }: { onPick: (id: string) => void }) {
             <h2 className="panel__title" id="dash-title">{t('dash.title')}</h2>
             <p className="panel__desc">{t('dash.pick')}</p>
           </div>
+          <a className="btn btn--primary" href="#/runs?source=upload&profile=maintenance"><Icon name="plus" size={16} />{t('dash.uploadMaintenance')}</a>
         </div>
         <div className="card">
-          {runs === null ? (
+          {failed ? (
+            <><p role="alert" className="statusline statusline--error">{t('dash.failed')}</p><button type="button" className="btn btn--ghost" onClick={() => setRevision((v) => v + 1)}>{t('dash.retry')}</button></>
+          ) : runs === null ? (
             <div role="status" aria-label={t('dash.loading')} className="skeleton skeleton--line" />
           ) : runs.length === 0 ? (
             <p className="card__empty">{t('dash.none')}</p>
@@ -102,24 +110,16 @@ function RunPicker({ onPick }: { onPick: (id: string) => void }) {
   )
 }
 
-/** Answers kept for this session, so a page revisited is instant. */
-const answers = new Map<string, unknown>()
-
 function useAnswer<T>(key: string | null, load: () => Promise<T>) {
   const [state, setState] = useState<{ key: string | null; data: T | null; error: string | null }>({
     key: null, data: null, error: null,
   })
   useEffect(() => {
     if (key === null) return
-    if (answers.has(key)) {
-      setState({ key, data: answers.get(key) as T, error: null })
-      return
-    }
     let cancelled = false
-    setState((previous) => ({ ...previous, key, error: null }))
+    setState({ key, data: null, error: null })
     load()
       .then((data) => {
-        answers.set(key, data)
         if (!cancelled) setState({ key, data, error: null })
       })
       .catch((error) => {
@@ -268,7 +268,11 @@ function Dashboard({ runId, page, query, onNavigate, onOpenRun }: {
 
         <div className="dash-page">
           <h3 className="visually-hidden">{t(`dash.page.${current}` as DashKey)}</h3>
-          {current === 'overview' ? <OverviewPage {...props} /> : null}
+          {current === 'overview' ? <ExecutiveOverview runId={runId} filters={filters}
+            onOpenRun={() => onOpenRun(runId)} canDrill={(next) => executiveDrill(next, state, roles) !== null}
+            onDrill={(next) => { const scoped = executiveDrill(next, state, roles); if (scoped) setState(scoped, 'records') }}>
+            <OverviewPage {...props} />
+          </ExecutiveOverview> : null}
           {current === 'breakdown' ? <BreakdownPage {...props} /> : null}
           {current === 'trend' ? <TrendPage {...props} /> : null}
           {current === 'distribution' ? <DistributionPage {...props} /> : null}
@@ -424,7 +428,7 @@ function OverviewPage({ runId, roles, state, filters, setState }: PageProps) {
   const trend = useQuery(runId, roles.date ? {
     group_by: [roles.date], measures: [{ agg: 'sum', column: m }, { agg: 'count' }], filters, limit: 1000,
   } : null)
-  const values = totals.data?.groups[0]?.values ?? [0, null, null]
+  const values = totals.data?.groups[0]?.values ?? [null, null, null]
   const total = values[1]
   const leader = top.data?.groups[0]
   const trendPoints: Point[] = (trend.data?.groups ?? []).map((g) => ({ label: keyText(g.keys[0]), value: g.values[0] }))
@@ -442,7 +446,7 @@ function OverviewPage({ runId, roles, state, filters, setState }: PageProps) {
             <span className="kpi__label" dir="auto">{t('dash.kpi.largest', { breakdown: roles.breakdown })}</span>
             <span className="kpi__value" dir="auto">{keyText(leader.keys[0]) || t('dash.blank')}</span>
             <span className="kpi__sub">
-              {total ? t('dash.kpi.share', { share: formatNumber((leader.values[0] ?? 0) / total, { style: 'percent', maximumFractionDigits: 1 }) }) : null}
+              {total && leader.values[0] !== null ? t('dash.kpi.share', { share: formatNumber(leader.values[0] / total, { style: 'percent', maximumFractionDigits: 1 }) }) : null}
             </span>
           </div>
         ) : null}

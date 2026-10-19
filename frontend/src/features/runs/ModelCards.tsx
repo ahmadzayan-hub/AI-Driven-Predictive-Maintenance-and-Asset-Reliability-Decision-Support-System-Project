@@ -3,7 +3,7 @@
  *  it predicts, from what, and how it was tested. */
 import { usePack } from '../../i18n/pack'
 import { modelMessages, type ModelKey } from './messages'
-import type { ModelCard } from '../../shared/types'
+import type { FittedModelCard, ModelCard } from '../../shared/types'
 import './models.css'
 
 const MAX_INPUTS = 6
@@ -11,20 +11,21 @@ const MAX_INPUTS = 6
 export function ModelCards({ models, language }: { models: ModelCard[]; language: 'en' | 'ar' }) {
   const { t, formatNumber } = usePack(modelMessages)
   if (!models.length) return null
-  const value = (card: ModelCard, number: number) =>
-    card.metric.name === 'balanced_accuracy'
+  const value = (card: FittedModelCard, number: number) =>
+    card.metric.name.replaceAll(' ', '_') === 'balanced_accuracy'
       ? formatNumber(number, { style: 'percent', maximumFractionDigits: 1 })
       : formatNumber(number, { maximumFractionDigits: 2 })
   const percent = (number: number) => formatNumber(number, { style: 'percent', maximumFractionDigits: 0 })
   // Clustering predicts nothing, so its verdict is whether groups exist;
   // its improvement is the share of the spread the groups explain.
-  const verdict = (card: ModelCard) => {
+  const accepted = (card: FittedModelCard) => card.beats_baseline && card.details.verdict !== 'weak'
+  const verdict = (card: FittedModelCard) => {
     if (card.kind === 'clustering') {
       return card.beats_baseline
         ? t('models.groups', { n: formatNumber(Number(card.details.groups ?? 0)), pct: percent(card.improvement) })
         : t('models.noGroups')
     }
-    return card.beats_baseline ? t('models.beats', { pct: percent(card.improvement) }) : t('models.weak')
+    return accepted(card) ? t('models.beats', { pct: percent(card.improvement) }) : t('models.weak')
   }
   return (
     <section className="card" aria-labelledby="models-title">
@@ -32,25 +33,36 @@ export function ModelCards({ models, language }: { models: ModelCard[]; language
       <p className="field__help">{t('models.help')}</p>
       <div className="finding-grid">
         {models.map((card) => {
+          if (card.fitted === false) return (
+            <article className="finding-card" key={`${card.role}:${card.target}`}>
+              <p className="eyebrow" dir="auto" lang={language}>{card.title}</p>
+              <p className="model-verdict model-verdict--weak">{t('models.notSupported')}</p>
+              <p dir="auto">{card.target}</p>
+              <p dir="auto">{String(card.details.reason ?? '')}</p>
+              {typeof card.details.decision === 'string' ? <p dir="auto">{t('models.decision')}: {card.details.decision}</p> : null}
+            </article>
+          )
           const shown = card.inputs.slice(0, MAX_INPUTS)
+          const baselineKey = `models.baseline.${card.metric.baseline_name}`
+          const baselineName = baselineKey in modelMessages.en ? t(baselineKey as ModelKey) : card.metric.baseline_name
           const split =
             card.split.kind === 'time'
               ? t('models.split.time', { first: card.split.first_held_out ?? '' })
               : t(`models.split.${card.split.kind}` as ModelKey)
           return (
-            <article className="finding-card" key={card.role}>
+            <article className="finding-card" key={`${card.role}:${card.target}`}>
               <p className="eyebrow" dir="auto" lang={language}>{card.title.split(' — ')[0].split(': ')[0]}</p>
-              <p className={`model-verdict ${card.beats_baseline ? 'model-verdict--beats' : 'model-verdict--weak'}`}>
+              <p className={`model-verdict ${accepted(card) ? 'model-verdict--beats' : 'model-verdict--weak'}`}>
                 {verdict(card)}
               </p>
               <dl className="model-facts">
                 <div>
-                  <dt>{t(`models.metric.${card.metric.name}` as ModelKey)}</dt>
+                  <dt>{t(`models.metric.${card.metric.name.replaceAll(' ', '_')}` as ModelKey)}</dt>
                   <dd>
                     {t('models.versus', {
                       model: value(card, card.metric.model),
                       baseline: value(card, card.metric.baseline),
-                      name: t(`models.baseline.${card.metric.baseline_name}` as ModelKey),
+                      name: baselineName,
                     })}
                   </dd>
                 </div>
@@ -76,6 +88,12 @@ export function ModelCards({ models, language }: { models: ModelCard[]; language
                       : t('models.records', { train: formatNumber(card.train_records), test: formatNumber(card.test_records) })}
                   </dd>
                 </div>
+                {typeof card.details.horizon === 'string' ? (
+                  <div><dt>{t('models.horizon')}</dt><dd dir="auto">{card.details.horizon}</dd></div>
+                ) : null}
+                {typeof card.details.decision === 'string' ? (
+                  <div><dt>{t('models.decision')}</dt><dd dir="auto">{card.details.decision}</dd></div>
+                ) : null}
               </dl>
             </article>
           )
