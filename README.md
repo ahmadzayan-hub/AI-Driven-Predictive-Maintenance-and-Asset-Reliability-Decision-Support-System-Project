@@ -366,7 +366,7 @@ On Windows, with the project virtual environment already created:
 .\.venv\Scripts\python.exe scripts/local_runtime.py start --worker
 ```
 
-Open `http://localhost:8000`. The profile uses a local Gemma 3 4B model and
+Open `http://localhost:8000`. The profile uses the local Qwen3 4B Instruct 2507 model and
 Whisper small, preserves the existing governed workflows, and needs no cloud
 key. Microphone text stays an editable draft. See the bilingual
 [setup guide](docs/LOCAL_AI_SETUP.md) for prerequisites, installed skills,
@@ -382,7 +382,7 @@ hardware expectations, hosted configuration and acceptance limits.
 # mapping, joins, the cleaned-table queries, modelling stages, live sources and the event stream, uneven periods, docs, and the repository's operating system:
 # brain checker, session hooks, the verify script, the motion skill, the
 # agent team's tools, agent evaluation, the house style and the interface
-# budget (1,209 tests executed in the last full local run)
+# budget (1,209 tests reported in the last full local run, including skips)
 python -m unittest discover tests
 
 # Frontend unit tests (180 tests)
@@ -409,7 +409,7 @@ The redesign handoff is in
 [MIYAAR_UI_HANDOFF.md](docs/design/MIYAAR_UI_HANDOFF.md), in Arabic and English.
 The dedicated branch is `feature/miyaar-ui-redesign`.
 
-- Frontend unit tests: **180 passed**, no errors, with one worker; TypeScript and the production build pass.
+- Frontend unit tests: **180 passed**, no errors, with one worker under supported Node **24.22.0** after the final client change. TypeScript and the fresh production build pass.
   This includes delayed and failed chat requests, session changes, microphone
   event ordering, interim/final speech, playback ownership and bilingual packs.
 - Native run/snapshot contracts: **5 passed**. Documentation and verifier tests:
@@ -420,16 +420,35 @@ The dedicated branch is `feature/miyaar-ui-redesign`.
   custom-stage and tenancy suites also pass separately (**61 tests, 13 skipped**).
   PostgreSQL is not configured locally; conditional skips are not a claim that
   every optional backend or hosted configuration was verified.
-- The optional voice/auth/API regression group passes **76 tests**, including
-  **19 speech tests**. The integrated fixture, launcher, gateway, documentation
-  and verifier group passes **109 tests with 13 skips**, including the local
-  proxy, hosted-database and worker-configuration guards.
+- After the final intent schema, launcher and timeout changes, the changed-backend
+  regression group passes **263 tests**, with no errors, failures or skips:
+  assistant, agent runtime, local launcher, gateway, speech, API, authentication,
+  authorization, documentation and verifier. This includes the local proxy,
+  configured hosted-database, worker-configuration and Windows worker-cleanup
+  guards. A real benign venv process-tree exit probe also passed. The broader
+  full Python run above predates this last intent optimization and Node helper;
+  current CI is tracked on the PR. Doctor selects supported Node **24.22.0**
+  with npm **11.19.1** without replacing the system installation.
 - Miyaar visual/browser suite: **12 passed**, covering English/Arabic, 375/768/1024/1440 px, light theme, command dialog, accessibility, reduced motion, two-turn chat, failures, voice preview and a pending-request session switch.
-- Fresh production budget passes: initial JS **97.8 / 100 KB**, total JS **167.3 / 170 KB**, largest chunk **13.1 / 30 KB**, initial CSS **10.0 / 10 KB**, total CSS **19.6 / 20 KB**, fonts **119.4 / 120 KB** (gzip level 9 except fonts). Initial ceilings are unchanged; ADRs 0054 and 0055 record the explicit feature allowances.
+- Fresh production budget passes: initial JS **97.8 / 100 KB**, total JS **167.2 / 170 KB**, largest chunk **13.1 / 30 KB**, initial CSS **10.0 / 10 KB**, total CSS **19.6 / 20 KB**, fonts **119.4 / 120 KB** (gzip level 9 except fonts). Initial ceilings are unchanged; ADRs 0054 and 0055 record the explicit feature allowances.
+- Actual local-model acceptance passed with `qwen3:4b-instruct-2507-q4_K_M`:
+  English checklist and equipment-context follow-up took **8.03 / 3.44 seconds**;
+  Arabic equivalents took **12.66 / 9.08 seconds**. All responses reported
+  `source=model`, `provider=ollama`, `action=chat`, with no fallback. This bounded
+  scenario verifies routing and conversation context; the Arabic checklist used
+  imprecise technical terms and is not an approved maintenance procedure.
+  The unchanged smoke was repeated after a host interruption and passed in
+  **43.67 seconds**, including actual English/Arabic Whisper HTTP requests
+  (**6.55 / 3.42 seconds**), no transcription-to-chat mutation and session cleanup.
 - Real Whisper CPU/int8 inference passed on public English and Arabic speech
   fixtures. English recognition took **13.83 seconds**; the Arabic FLEURS
   fixture took **7.67 seconds** and contained word/name errors. These are two
   actual probes, not a general accuracy benchmark or a microphone-device test.
+  Actual Chrome `MediaRecorder` capture from a fake JFK microphone file also
+  passed: **100,313 bytes** of WebM/Opus reached real Whisper, returned HTTP
+  **200**, and filled an editable draft without sending or appending a chat
+  message. An installed Arabic browser voice was enumerated; physical
+  microphone recording and audible playback were not tested.
 - Initial full FastAPI browser run: **95 passed, 9 failed, 4 skipped**. The failures covered stale welcome assertions, offline retry, phone help access and Windows report-path separators; all were corrected. The focused final journey/accessibility suite passed **20 checks with 1 viewport-only skip**; one additional latency-injection timeout exposed a service-worker routing race. After blocking service workers only in route-controlled tests, **8 repeated desktop/phone recovery and latency checks passed**. The ordinary application service worker is unchanged. Full Linux CI remains a separate check on the PR.
 
 The isolated Miyaar suite runs with

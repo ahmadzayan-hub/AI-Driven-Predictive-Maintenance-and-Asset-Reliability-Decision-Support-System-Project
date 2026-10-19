@@ -10,16 +10,20 @@ This profile runs the workspace, analytics worker, local model and optional Whis
 
 ## Start / البدء
 
-Open PowerShell in the repository root. Use the project virtual environment; Node.js 24 and npm must be on `PATH` for installation/build.
+Open PowerShell in the repository root. Use the project virtual environment; A supported Node.js and npm must be available for installation/build: Node 24.15+ within the 24 LTS line, or Node 22.22.2+ within the 22 line (Node 26+ is also supported). This workspace uses verified official Node 24.22.0 side by side under `private/tools`; the local launcher selects it for its own process without replacing system Node. On a fresh clone, use the installed `uv` tool to create the project environment first (the repository pins Python 3.12; the existing Windows environment was also verified on Python 3.11).
 
 <div dir="rtl">
 
-افتح PowerShell في جذر المستودع. استخدم بيئة Python الخاصة بالمشروع، واجعل Node.js 24 وnpm متاحين في `PATH` للتثبيت والبناء.
+افتح PowerShell في جذر المستودع. استخدم بيئة Python الخاصة بالمشروع، واستخدم إصدار Node مدعومًا مع npm للتثبيت والبناء: 24.15 أو أحدث ضمن سلسلة LTS 24، أو 22.22.2 أو أحدث ضمن السلسلة 22. يستخدم هذا المشروع نسخة Node 24.22.0 محلية داخل `private/tools` يختارها المشغّل دون استبدال نسخة النظام.
 
 </div>
 
 ```powershell
 $env:PYTHONUTF8 = '1'
+# Fresh clone only; preserve an existing environment:
+if (-not (Test-Path '.venv/Scripts/python.exe')) {
+    uv venv --python 3.12 .venv
+}
 .\.venv\Scripts\python.exe scripts/local_runtime.py doctor
 # Reproduce dependencies, download pinned voice weights, and build the frontend:
 .\.venv\Scripts\python.exe scripts/local_runtime.py install --voice --agents
@@ -35,32 +39,52 @@ Open <http://localhost:8000>. Keep this terminal open; `Ctrl+C` stops the worksp
 
 </div>
 
+For manual `npm` commands, select the same portable runtime in this PowerShell terminal only (run from the repository root). / لاستخدام أوامر `npm` مباشرة، اختر النسخة نفسها لهذه الطرفية فقط من جذر المشروع:
+
+```powershell
+$projectNode = Join-Path $PWD 'private/tools/node-v24.22.0-win-x64'
+if (Test-Path (Join-Path $projectNode 'node.exe')) {
+    $env:PATH = "$projectNode;$env:PATH"
+}
+node --version
+npm --version
+```
+
+Use a local SQLite configuration and a shell without hosted `DATABASE_URL` or `AGENTIC_OS_ENV=production` settings. The local launcher also refuses `database_url` inside the selected configuration. `AGENTIC_OS_CONFIG` selects another local configuration; the API and worker use the same file. The launcher does not rewrite hosted settings on disk.
+
+<div dir="rtl">
+
+استخدم إعداد SQLite محليًا وطرفية دون متغيرات قاعدة البيانات المستضافة أو وضع الإنتاج. يرفض المشغّل المحلي أيضًا `database_url` داخل ملف الإعداد المختار. يختار `AGENTIC_OS_CONFIG` ملفًا محليًا آخر ويستخدمه الخادم والعامل معًا، دون تعديل إعدادات الاستضافة المحفوظة. في نسخة جديدة فقط، ينشئ الأمر `uv venv` بيئة المشروع بإصدار Python المثبّت في المستودع.
+
+</div>
+
 ## Installed components / المكونات المثبتة
 
 | Component / المكوّن | Status / الحالة |
 | --- | --- |
 | Python web dependencies / اعتماديات خادم Python | Installed in `.venv`; dependency consistency check passed. / مثبّتة في `.venv`، واجتازت فحص توافق الاعتماديات. |
-| Ollama and local chat / المحادثة المحلية | Gemma 3 4B: installation and bilingual response acceptance in progress. / تثبيت Gemma 3 والتحقق من ردوده بالعربية والإنجليزية قيد التنفيذ. |
+| Node / npm | Verified project-local Node `24.22.0`, npm `11.19.1`; official ZIP SHA256 checked. / نسخة محلية للمشروع، مع التحقق من بصمة الأرشيف الرسمي. |
+| Ollama and local chat / المحادثة المحلية | `qwen3:4b-instruct-2507-q4_K_M`: installed; real English/Arabic chat and equipment-context follow-ups passed. / ثُبّتت نسخة Qwen3 المخصّصة للتعليمات، ونجحت المحادثة الفعلية باللغتين مع تذكّر نوع المعدة في سؤال المتابعة. |
 | Local voice / الصوت المحلي | `faster-whisper==1.2.1`, multilingual `small`, CPU INT8. / نموذج `small` متعدد اللغات، يعمل على المعالج بدقة INT8. |
 | Optional agent examples / أمثلة الوكلاء الاختيارية | `langgraph==1.2.16`, `pydantic-ai-slim==2.57.0`, `mcp==2.3.0` installed. Installation alone does not select a runtime; the core does not require these frameworks. / مثبّتة؛ لا يفعّل التثبيت وحده مسار وكيل، ولا يتطلبها المحرك الأساسي. |
 
-The selected Gemma 3 weights are subject to [Gemma's terms](https://ai.google.dev/gemma/terms). The local profile uses a bounded context and one inference model; validate model quality for your actual tasks before production.
+The selected instruction-only [Qwen3 4B Instruct 2507](https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507) weights use Apache 2.0. This is a different model from the older thinking `qwen3:4b` tag. The local profile uses one inference model, a 4096-token context and six CPU threads. Startup prewarms it before accepting requests; inference allows up to 60 seconds. Actual English and Arabic checklist conversations and equipment-context follow-ups passed with model responses rather than fallback text. The Arabic checklist used imprecise technical wording; this bounded scenario does not validate a maintenance procedure or establish general model accuracy. Earlier CPU probes approached the timeout. Validate model quality for actual maintenance tasks before production.
 
-The voice installer pins `Systran/faster-whisper-small` to revision `536b0662742c02347bc0e980a01041f333bce120`. Its default directory is `~/.cache/miyaar/models/faster-whisper-small`, outside the repository. A real English sample transcribed successfully; actual microphone capture and Arabic transcription accuracy still need device acceptance. Results and test counts have one source: [README — Testing](../README.md#testing).
+The voice installer pins `Systran/faster-whisper-small` to revision `536b0662742c02347bc0e980a01041f333bce120`. Its default directory is `~/.cache/miyaar/models/faster-whisper-small`, outside the repository. Public English and Arabic speech samples transcribed through the actual CPU adapter; the Arabic output contained word/name errors. Physical microphone capture and actual audible playback still need device acceptance. Results and test counts have one source: [README — Testing](../README.md#testing).
 
 <div dir="rtl">
 
-تخضع أوزان Gemma 3 لشروط Gemma المرتبطة أعلاه. يستخدم الإعداد المحلي سياقًا محدودًا ونموذج استدلال واحدًا؛ تحقّق من جودة النموذج على مهامك الفعلية قبل الإنتاج.
+تستخدم أوزان Qwen3 المخصّصة للتعليمات ترخيص Apache 2.0. وهي نموذج مختلف عن الوسم القديم `qwen3:4b` الذي يعتمد التفكير. يستخدم الإعداد المحلي نموذج استدلال واحدًا وسياقًا من 4096 رمزًا وستة خيوط للمعالج. يُحمّل النموذج قبل قبول الطلبات، وتصل مهلة الاستدلال إلى 60 ثانية. نجحت محادثة قائمة الفحص وسؤال المتابعة عن نوع المعدة باللغتين بردود فعلية من النموذج، دون احتساب النص البديل كنجاح. احتوت القائمة العربية على تعبيرات فنية غير دقيقة؛ نجاح هذا السيناريو المحدود لا يعتمد إجراء صيانة ولا يثبت دقة النموذج عمومًا. اقتربت اختبارات سابقة على المعالج من المهلة؛ تحقّق من الجودة على مهام الصيانة الفعلية قبل الإنتاج.
 
-يثبّت مُثبّت الصوت مراجعة النموذج المحددة أعلاه في `~/.cache/miyaar/models/faster-whisper-small` خارج المستودع. نجح تفريغ عينة إنجليزية فعلية؛ ما زال تسجيل الميكروفون الحقيقي ودقة التفريغ العربي يحتاجان اختبارًا على الجهاز. النتائج وأعداد الاختبارات موثقة في [قسم الاختبارات في README](../README.md#testing).
+يثبّت مُثبّت الصوت مراجعة النموذج المحددة أعلاه في `~/.cache/miyaar/models/faster-whisper-small` خارج المستودع. نجح تفريغ عينتين صوتيتين فعليتين بالعربية والإنجليزية عبر المعالج، مع أخطاء في كلمات وأسماء عربية. ما زال تسجيل الميكروفون الحقيقي وسماع القراءة الصوتية يحتاجان اختبارًا على الجهاز. النتائج وأعداد الاختبارات موثقة في [قسم الاختبارات في README](../README.md#testing).
 
 </div>
 
-Existing Docker and standalone FFmpeg installations are optional for this profile. Whisper uses PyAV's bundled decoding libraries. No NVIDIA/CUDA hardware was detected, so this profile uses CPU inference. LLMRouter and its large Torch/CUDA dependency stack were not installed.
+The official `SYSTRAN/faster-whisper` source was cloned at release `v1.2.1` into the ignored local vendor directory; the application imports the pinned Python package. Existing Docker and standalone FFmpeg installations are optional for this profile. Whisper uses PyAV's bundled decoding libraries. No NVIDIA/CUDA hardware was detected, so this profile uses CPU inference. LLMRouter and its large Torch/CUDA dependency stack were not installed.
 
 <div dir="rtl">
 
-لا يتطلب هذا الإعداد تثبيتات Docker أو FFmpeg المستقلة الموجودة على الجهاز؛ يستخدم Whisper مكتبات فك الصوت المضمنة مع PyAV. لم يُكتشف عتاد NVIDIA/CUDA، لذلك يعمل الاستدلال على المعالج. لم تُثبّت حزمة LLMRouter واعتماديات Torch/CUDA الكبيرة.
+استُنسخ المصدر الرسمي لـ `SYSTRAN/faster-whisper` عند الإصدار `v1.2.1` إلى مجلد محلي مستبعد من Git، ويستخدم التطبيق حزمة Python المثبّتة. لا يتطلب هذا الإعداد تثبيتات Docker أو FFmpeg المستقلة الموجودة على الجهاز؛ يستخدم Whisper مكتبات فك الصوت المضمنة مع PyAV. لم يُكتشف عتاد NVIDIA/CUDA، لذلك يعمل الاستدلال على المعالج. لم تُثبّت حزمة LLMRouter واعتماديات Torch/CUDA الكبيرة.
 
 </div>
 
@@ -80,11 +104,17 @@ Existing Docker and standalone FFmpeg installations are optional for this profil
 
 </div>
 
+Actual Chrome recording from a public test-audio fixture reached local Whisper and filled this editable draft without sending a chat message. This capture uses a fake audio source, not a physical microphone. / وصل تسجيل Chrome من ملف صوت اختبار عام إلى Whisper المحلي وظهر في مسودة قابلة للتعديل دون إرسال رسالة؛ مصدر الصوت ملف اختبار، وليس ميكروفونًا حقيقيًا.
+
+![Actual local Whisper transcript in the Miyaar composer](screenshots/miyaar-local-whisper-preview.png)
+
 ## Cloud setup and acceptance / إعداد السحابة والتحقق
 
 `doctor` reports installed packages and model presence; it is not a successful conversation or speech test. Check a real English and Arabic conversation, microphone recording, editable transcript, denied permission, retry, upload-to-report flow, approval, and restart before accepting the installation. Keep the model's actual failure/fallback status visible.
 
 Hosted Supabase identity and PostgreSQL require protected server configuration and a real deployment check; local installation does not create cloud accounts, organizations, subscriptions or billing. Follow [.env.example](../.env.example) and [known limitations](KNOWN_LIMITATIONS.md). Supply secrets through protected environment settings, never API-key messages in chat or tracked files. A model listening on this computer is not reachable from a hosted server automatically.
+
+Existing GitHub and Supabase connectors were usable in this session. The optional OpenAI Developers plugin was offered in the installation UI and is not installed; it requires completing that UI action. It is not required for this local runtime.
 
 The installed Codex skills `gh-fix-ci`, `gh-address-comments`, `transcribe`, `speech`, `security-best-practices`, and `security-threat-model` become available on your next Codex turn. They assist development; they are not SaaS runtime features or subscriptions.
 
@@ -94,8 +124,10 @@ The installed Codex skills `gh-fix-ci`, `gh-address-comments`, `transcribe`, `sp
 
 تحتاج هوية Supabase وقاعدة PostgreSQL المستضافتان إعدادًا محميًا للخادم واختبار نشر فعليًا. لا ينشئ التثبيت المحلي حسابات السحابة أو المؤسسات أو الاشتراكات أو الفوترة. اتبع ملف الإعداد النموذجي والقيود المعروفة المرتبطين أعلاه، وضع الأسرار في إعدادات البيئة المحمية، ولا ترسل مفاتيح API في المحادثة أو تحفظها في ملفات متتبعة. لا يستطيع الخادم المستضاف الوصول تلقائيًا إلى نموذج يعمل على هذا الجهاز.
 
+أمكن استخدام موصّلي GitHub وSupabase في هذه الجلسة. عُرضت إضافة OpenAI Developers الاختيارية في واجهة التثبيت ولم تُثبّت؛ تحتاج إكمال الخطوة من تلك الواجهة، ولا يتطلبها التشغيل المحلي.
+
 تتوفر مهارات Codex المذكورة أعلاه في رسالتك التالية إلى Codex. تساعد في التطوير ولا تمثل ميزات تشغيلية أو اشتراكات داخل المنصة.
 
 </div>
 
-Upstream references / المصادر الأصلية: [faster-whisper](https://github.com/SYSTRAN/faster-whisper), [Ollama Gemma 3](https://ollama.com/library/gemma3:4b).
+Upstream references / المصادر الأصلية: [faster-whisper](https://github.com/SYSTRAN/faster-whisper), [Ollama Qwen3 Instruct](https://ollama.com/library/qwen3:4b-instruct-2507-q4_K_M), [structured output schemas](https://docs.ollama.com/capabilities/structured-outputs), [Node 24.22 LTS](https://nodejs.org/en/blog/release/v24.22.0).

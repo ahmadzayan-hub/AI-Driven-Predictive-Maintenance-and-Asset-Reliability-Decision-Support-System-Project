@@ -5,7 +5,7 @@ Date: 2026-10-19
 ## Context
 
 The owner requested installation and activation of the tools needed for working
-chat and voice. Browser recognition alone depends on a remote browser service;
+chat and voice. Browser recognition may depend on a remote browser service;
 installing Whisper without an application transport would not improve it.
 The inspected Windows laptop has roughly sixteen gigabytes of memory and an
 Intel integrated GPU, so CUDA dependencies and large inference stacks are not
@@ -38,17 +38,37 @@ appropriate defaults.
   profile, with loopback bindings, a persistent optional connector worker,
   Whisper and an Ollama model. The first existing Qwen3 installation returned
   reasoning or empty text in real probes; the local profile instead selects
-  Gemma 3 with bounded local context after bilingual acceptance. The small
-  Qwen2.5 candidate also failed Arabic quality checks. Other installed local
+  the instruction-only Qwen3 4B Instruct 2507 with bounded local context after
+  bilingual acceptance. Gemma 3 failed conversation-history routing, and the
+  small Qwen2.5 candidate failed Arabic quality checks. Other installed local
   models can be selected explicitly with `--model`; cloud tags are refused.
-  Installation alone is
-  not acceptance: actual provider and audio probes must be reported.
+  Prewarm the selected model before accepting requests and limit the local
+  profile to a 4096-token context, six CPU threads and a one-minute inference
+  timeout; the browser allows response overhead. Installation alone is not
+  acceptance: actual provider and audio probes must be reported.
+- Stop only the launcher's owned worker on shutdown. On Windows a venv
+  redirector can have the actual Python worker below it, so stop the exact
+  live child PID tree with a bounded operation instead of terminating only
+  the redirector. Never match unrelated processes by name.
 - Add opt-in bounded model timeouts and the provider's thinking control.
   Ollama requests bypass ambient proxies so local context is not sent to an
   HTTP proxy. Hosted providers retain their existing behavior. Browser access
   to the microphone is permitted only for the application's own origin.
 - Make conceptual maintenance questions and follow-ups explicit chat cases in
-  the intent prompt. Reject a missing or blank model chat reply and retain the
+  a compact intent prompt. Native JSON syntax alone proved insufficient: a
+  real instruction-model response placed its answer inside arguments, so
+  schema-constrained fields are required. Remove the duplicate current user turn from that
+  context while preserving prior conversation. Label recent conversation and
+  saved memory separately, including the empty saved-memory case. Expose
+  explicit model-facing saved-memory tool names and normalize them back to
+  existing internal actions; user commands, stored data and action responses
+  retain their original names. Few-shot wording alone did not establish
+  reliable routing in actual probes. Use an Ollama native JSON
+  schema for intents only, requiring top-level action/arguments/reply and a
+  nonempty chat reply; free-form report narration and hosted request contracts
+  stay unchanged. Legacy gateways can continue exposing ordinary `ask`.
+  Explicitly non-thinking local intents use a smaller bounded output budget.
+  Reject a missing or blank model chat reply and retain the
   fallback reason, so a stock fallback cannot masquerade as a model answer.
   Non-chat action confirmations stay deterministic and governed.
 - Lazy-load the additional voice implementation, translations and discovery.
