@@ -53,6 +53,17 @@ class ExecutiveTests(unittest.TestCase):
     def brief(self, filters=None, tasks=(), language="en", current=None):
         return self.agent.brief(current or table(), run(), tasks, filters, language)
 
+    def test_content_revision_is_deterministic_and_covers_language_scope_and_stored_evidence(self):
+        first = self.brief(tasks=[stage()])
+        same = self.brief(tasks=[stage()])
+        self.assertRegex(first["snapshot_id"], r"^[a-f0-9]{64}$")
+        self.assertEqual(first["snapshot_id"], same["snapshot_id"])
+        self.assertNotEqual(first["snapshot_id"], self.brief(tasks=[stage()], language="ar")["snapshot_id"])
+        self.assertNotEqual(first["snapshot_id"], self.brief([{"column": "Site", "op": "in", "values": ["North"]}], [stage()])["snapshot_id"])
+        revised = stage()
+        revised["result"]["claims"][0]["text"] = "A revised stored observation over the same records."
+        self.assertNotEqual(first["snapshot_id"], self.brief(tasks=[revised])["snapshot_id"])
+
     def test_filters_reuse_query_semantics_and_kpis_keep_population_and_missing_counts(self):
         filters = [{"column": "Site", "op": "in", "values": ["North"]}]
         snapshot = copy.deepcopy(filters)

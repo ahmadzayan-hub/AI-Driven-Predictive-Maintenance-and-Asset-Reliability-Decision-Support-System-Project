@@ -5,6 +5,7 @@ Filtered observations and whole-run evaluation evidence stay separate (ADR 0058)
 """
 
 import copy
+import hashlib
 import json
 import math
 
@@ -303,7 +304,7 @@ class ExecutiveDashboardAgent:
                     if not selected else _say(language,
                         f"{len(selected)} records in scope; {len(measures)} controlled measures available for review.",
                         f"يتضمن النطاق {len(selected)} سجلاً؛ ويتاح {len(measures)} مؤشراً منضبطاً للمراجعة."))
-        return {"run": {"id": run["id"], "dataset_name": run.get("dataset_name", ""),
+        brief = {"run": {"id": run["id"], "dataset_name": run.get("dataset_name", ""),
                         "state": run.get("state"), "updated_at": run.get("updated_at")},
                 "language": language, "source": "engine", "scope": {"records": len(selected),
                 "total_records": len(table.rows), "filters": filters}, "headline": headline,
@@ -311,3 +312,10 @@ class ExecutiveDashboardAgent:
                 "kpis": {"measures": measures, "unavailable": unavailable},
                 "priorities": priorities, "questions": questions, "findings": findings,
                 "models": models, "evidence": evidence, "drilldowns": drilldowns}
+        # Task results may change without advancing the run row's timestamp.
+        # Bind downloads to every fact in the prepared response, including its
+        # language, filters, metadata and evidence, without trusting client data.
+        canonical = json.dumps(brief, sort_keys=True, separators=(",", ":"),
+                               ensure_ascii=True, allow_nan=False).encode("utf-8")
+        brief["snapshot_id"] = hashlib.sha256(canonical).hexdigest()
+        return brief

@@ -19,10 +19,20 @@
    سجل الأدلة وينقل التركيز إليه. يفتح فحص المجموعة سجلاتها مع الاحتفاظ
    بالمرشحات في العنوان، وتبقى هذه الاختيارات بعد إعادة التحميل؛ فتح الرابط
    يظل خاضعًا لصلاحيات الوصول إلى التحليل.
-4. اضغط **إعداد الموجز التنفيذي** لعرض أسئلة المراجعة المستندة إلى الأدلة، ثم
-   **تنزيل الموجز وأدلته (JSON)** لحفظ لقطة النطاق واللغة الحاليين. تغيير النطاق
-   يخفي الموجز السابق حتى يُعدّ مجددًا. تحديث النظرة يعيد قراءة التحليل الموجود؛
-   لا يجلب قياسات حية جديدة. التنزيل لا ينشر التقرير ولا يتجاوز الموافقة البشرية.
+4. اضغط **إعداد الموجز التنفيذي** لعرض أسئلة المراجعة المستندة إلى الأدلة.
+   من **تنسيق التقرير** اختر **تقرير HTML**، وهو الخيار الافتراضي، أو
+   **مستند Word (.docx)**، ثم اضغط **تنزيل التقرير**. ملف Word مستند DOCX
+   فعلي قابل للتحرير، وليس ملف HTML أُعيدت تسميته. يستخدم التصدير نطاق الموجز
+   المُعدّ ومرشحاته ولغته ووقت مراجعته ومعرّف مراجعة محتواه؛ يعيد الخادم التحقق من الصلاحيات وحداثة
+   اللقطة. عند تغيّر التحليل يُرفض التصدير بالحالة `409`: اضغط **تحديث النظرة
+   التنفيذية**، ثم أعد إعداد الموجز والتصدير. تغيير النطاق أو اللغة يخفي الموجز
+   السابق ويتجاهل نتائج التصدير الجاري؛ ويمكن استخدام **إلغاء التصدير** أثناء الانتظار.
+5. لإنشاء نسخة PDF، اضغط **طباعة / حفظ بصيغة PDF**، واسمح بالنوافذ المنبثقة
+   لهذا الموقع إذا حجب المتصفح نافذة المعاينة. يستخدم المسار تقرير HTML للنطاق
+   المُعدّ نفسه، ثم يفتح مربع الطباعة الأصلي في المتصفح؛ اختر **حفظ بصيغة PDF**
+   هناك. هذا ليس تنزيل PDF مباشرًا، ولا يُحفظ ملف بمجرد فتح مربع الطباعة.
+   تحديث النظرة يعيد قراءة التحليل الموجود ولا يجلب قياسات حية جديدة.
+   التنزيل والطباعة لا ينشران التقرير ولا يتجاوزان الموافقة البشرية.
 
 **جودة النماذج** والنتائج المخزنة تخصان **التحليل الكامل**. لا تعيد مرشحات اللوحة
 تدريب النماذج أو تقييمها. عند وجود بطاقات تقييم، تُعرض الأدلة وخطوط المقارنة
@@ -92,9 +102,22 @@ policy; unavailable evidence remains explicit.
 Use **View evidence** to focus the referenced calculation, or inspect a group
 to open its records. Filters remain in the address and survive reloads; access
 still requires permission to the run. **Prepare executive brief** reveals
-evidence-backed questions. Its JSON download is the current run/filter/language
-snapshot, and changing scope hides the previous prepared brief. Refresh reads
-the existing analysis rather than collecting live telemetry.
+evidence-backed questions. **Report format** defaults to **HTML report**; select
+**Word document (.docx)** for a genuine editable DOCX file, then choose
+**Download report**. The Word file is not renamed HTML. Both exports use the
+prepared brief's scope, filters, language, revision timestamp and content revision
+identifier. The server
+rechecks access and rejects a changed snapshot with `409`; **Refresh overview**,
+prepare the brief again, then retry. Changing scope or language hides the old
+brief and discards pending export results. **Cancel export** stops waiting for
+an in-flight export in the interface.
+
+**Print / Save as PDF** opens a print preview for the same prepared scope.
+Allow popups for this site if the browser blocks the preview. Choose **Save as
+PDF** in the browser's native print dialog; this is not a direct PDF download,
+and opening the dialog alone does not save a file. Refresh reads the existing
+analysis rather than collecting live telemetry. Downloads and printing do not
+publish a report or satisfy an approval.
 
 The briefing is deterministic engine output. It does not call an LLM, execute
 maintenance, publish a report or satisfy an approval. Stored findings and model

@@ -83,6 +83,12 @@ environment — not a replacement for Windows, macOS, or Linux.
   every group to the rows behind it. The page and filters live in the
   address, every chart has its numbers as a table, and axe checks every
   page in both languages (ADR 0032)
+- **Executive business reports** — prepare a scoped evidence brief, download
+  standalone HTML or an editable Word `.docx`, or use **Print / Save as PDF**
+  in the browser. English and Arabic RTL reports retain KPI definitions,
+  missing readings, limitations and calculation references. A timestamp and
+  content revision reject changed evidence until the brief is refreshed;
+  exporting does not approve or publish a run (ADR 0059).
 - **Models, each against a plain guess** — a run on the `models` profile
   adds a regression, a classification, a clustering and a seasonal
   forecast as governed stages. Each is tested on held-out data against
@@ -382,10 +388,10 @@ hardware expectations, hosted configuration and acceptance limits.
 # mapping, joins, the cleaned-table queries, modelling stages, live sources and the event stream, uneven periods, docs, and the repository's operating system:
 # brain checker, session hooks, the verify script, the motion skill, the
 # agent team's tools, agent evaluation, the house style and the interface
-# budget (1,289 tests reported in the last full local run, including skips)
+# budget (1,298 tests reported in the last full local run, including skips)
 python -m unittest discover tests
 
-# Frontend unit tests (196 tests)
+# Frontend unit tests (213 tests)
 
 cd frontend && npm test
 
@@ -403,11 +409,44 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
-### Executive dashboard validation — 19 October 2026
+### Executive business export validation — 19 October 2026
+
+Implementation `c66e25a` replaces the executive JSON handoff with HTML by
+default and genuine Office Open XML `.docx` files. The separate PDF action
+opens the browser print dialog; the user chooses **Save as PDF**, rather
+than downloading a server-generated PDF. The [bilingual guide](docs/design/EXECUTIVE_DASHBOARD_HANDOFF.md)
+and [ADR 0059](docs/adr/0059-executive-business-document-exports.md) describe
+the formats and exact prepared-snapshot boundary.
+
+- New export renderer/API checks pass for authorization, readiness, genuine
+  file structure, escaping, both text directions, summary/audit parity and
+  stale revisions. A task result changed while `run.updated_at` stayed
+  identical; the old SHA-256 content revision was correctly rejected with 409.
+- Final frontend unit run: **213 passed** in **31 files**, using one threads
+  worker on this Windows host. The initial concurrent run exhausted worker
+  headroom; it was not counted as a passing verification.
+- **8 executive browser scenarios passed** across desktop and 375 px mobile.
+  Real HTML/Word downloads preserve the independent numerator/denominator,
+  populations, exclusions, selected filters, evidence and unchanged approvals.
+  Arabic print preview must actually call print after the real Blob document
+  loads; the test intercepts only the native dialog. Stale failures create
+  no misleading download.
+- Initial JS **98.2 / 100 KB**, total JS **174.8 / 175 KB**, largest chunk
+  **15.6 / 30 KB**, initial CSS **10.0 / 10 KB**, total CSS **20.7 / 21 KB**,
+  fonts **119.4 / 120 KB**. TypeScript and the production build pass.
+  No deployed runtime dependency or budget allowance was added.
+- [Fast budget for `c66e25a`](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39300474499)
+  passed. [Full CI for the same implementation](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39300474498)
+  is in progress; it is not yet claimed as successful.
+- The [current Arabic business export controls](docs/screenshots/executive-business-ar.png)
+  show fictional verification data. Production acceptance remains separate.
+
+### Earlier executive dashboard validation — 19 October 2026
 
 The [Arabic/English operating handoff](docs/design/EXECUTIVE_DASHBOARD_HANDOFF.md)
 explains the redesigned overview, read-only executive agent, controlled KPI
-populations, evidence navigation, filter-preserving drilldowns and JSON brief.
+populations, evidence navigation and filter-preserving drilldowns. The business
+formats above supersede this implementation's original JSON download.
 [Integration research](docs/design/EXECUTIVE_DASHBOARD_RESEARCH.md) distinguishes
 the installed project `/dashboards` skill and `dashboard-analyst` instructions
 from conditional hosted Claude Artifacts. ADR 0058 records the behavior and

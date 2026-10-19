@@ -74,5 +74,6 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 | 0056 | Causal-claim lint covers Arabic as well as English | [[Governed pipeline]] |
 | 0057 | Local Markdown knowledge collections with heading citations | [[Agent runtimes and MCP]] |
 | 0058 | Scoped executive evidence agent, bilingual dashboards and capability-aware Claude skills | [[Agentic OS]], [[Design system]], [[Weighted KPIs]] |
+| 0059 | Business HTML and Word exports, native Print / Save as PDF and exact evidence revisions | [[Agentic OS]], [[Design system]], [[Weighted KPIs]] |
 
 All seven [[Analytics OS roadmap]] milestones have their records.
