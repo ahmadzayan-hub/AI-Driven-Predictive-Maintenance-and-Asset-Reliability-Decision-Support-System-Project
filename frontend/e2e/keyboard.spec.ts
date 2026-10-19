@@ -4,7 +4,7 @@ import { openTab, skipOnboarding } from './helpers'
 test('the report tabs follow the keyboard tabs pattern', async ({ page }) => {
   await skipOnboarding(page)
   await page.goto('/')
-  await openTab(page, /^Runs/)
+  await openTab(page, /^Analytics/)
   await page.getByRole('button', { name: 'Start run' }).click()
   await expect(page.getByRole('region', { name: 'Approval required' })).toBeVisible({
     timeout: 40_000,

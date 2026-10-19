@@ -1,5 +1,7 @@
+import '../../shared/styles/session.css'
 import { useMemo, useState } from 'react'
-import { useI18n } from '../../i18n'
+import { usePack } from '../../i18n/pack'
+import { memoryMessages } from './messages'
 import { ConfirmDialog } from '../../shared/components/ConfirmDialog'
 import { Icon } from '../../shared/components/Icon'
 import { categoryLabel } from '../../shared/labels'
@@ -29,7 +31,7 @@ export function MemoryView({
   onExport,
   onClearHistory,
 }: MemoryViewProps) {
-  const { t, tx, formatDate } = useI18n()
+  const { t, tx, formatDate } = usePack(memoryMessages)
   const [draft, setDraft] = useState('')
   const [draftCategory, setDraftCategory] = useState('general')
   const [query, setQuery] = useState('')

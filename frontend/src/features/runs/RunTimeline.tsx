@@ -1,3 +1,4 @@
+import '../../shared/styles/analytics.css'
 import { useState } from 'react'
 import { useI18n } from '../../i18n'
 import type { MessageKey } from '../../i18n'

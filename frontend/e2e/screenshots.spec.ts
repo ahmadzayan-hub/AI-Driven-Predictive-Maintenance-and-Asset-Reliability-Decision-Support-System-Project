@@ -24,7 +24,7 @@ test('capture interface screenshots', async ({ page }, testInfo) => {
     }, value)
 
   await theme('dark')
-  await page.getByText('What would you like to accomplish?').waitFor()
+  await page.getByRole('heading', { name: 'Every asset. A clearer decision.' }).waitFor()
   await shot('hero-dark')
 
   await sendMessage(page, 'Hello! What can you do?')
@@ -46,7 +46,7 @@ test('capture interface screenshots', async ({ page }, testInfo) => {
     await page.getByText('Session health').waitFor()
     await shot('activity-dark')
 
-    await openTab(page, /^Runs/)
+    await openTab(page, /^Analytics/)
     await page.getByRole('button', { name: 'Start run' }).click()
     await page
       .getByRole('region', { name: 'Approval required' })

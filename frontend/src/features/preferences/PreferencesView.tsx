@@ -3,7 +3,8 @@ import { useMotion } from '../../app/useMotion'
 import { useTheme } from '../../app/useTheme'
 import type { ThemeChoice } from '../../app/useTheme'
 import type { OperationOutcome } from '../../app/store'
-import { useI18n } from '../../i18n'
+import { usePack } from '../../i18n/pack'
+import { prefsMessages } from './messages'
 import type { Locale, MessageKey } from '../../i18n'
 import { toneLabel } from '../../shared/labels'
 import type { PreferenceValue } from '../../shared/types'
@@ -37,7 +38,7 @@ export function PreferencesView({
   onSet,
   onSetLanguage,
 }: PreferencesViewProps) {
-  const { t, tx } = useI18n()
+  const { t, tx } = usePack(prefsMessages)
   const { theme, setTheme } = useTheme()
   const { reducedMotion, setReducedMotion } = useMotion()
   const [statusMessage, setStatusMessage] = useState<{ ok: boolean; text: string } | null>(null)

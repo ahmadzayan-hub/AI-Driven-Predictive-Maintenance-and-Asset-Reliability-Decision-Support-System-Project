@@ -40,36 +40,63 @@ from server.tools import ToolBox
 MAX_MEMORY_IN_CONTEXT = 20
 MAX_TURNS_IN_CONTEXT = 6
 MAX_REPLY_CHARS = 600
+# Model tool names distinguish durable storage from ordinary conversation.
+# Internal actions, user commands and response action names stay compatible.
+MODEL_ACTION_ALIASES = {"search_saved_memory": "recall", "store_saved_memory": "remember"}
+_MODEL_ACTION_NAMES = {internal: model for model, internal in MODEL_ACTION_ALIASES.items()}
+_MODEL_ARGUMENT_HINTS = {
+    ("remember", "category"): "category:general|profile|work|projects|preferences",
+    ("recall", "query"): "query:string|null",
+    ("forget", "key"): "key:memory_N|all",
+    ("set_preference", "key"): "key:tone|language|user_name|save_history",
+    ("start_run", "dataset"): "dataset:stored name|sample",
+    ("explain_report", "section"): "section:descriptive|diagnostic|experiment|predictive|prescriptive|all",
+}
+MODEL_ACTION_CATALOG = "; ".join(
+    _MODEL_ACTION_NAMES.get(action, action) + "{" +
+    ",".join(_MODEL_ARGUMENT_HINTS.get((action, argument), argument) for argument in arguments) + "}"
+    for action, arguments in ACTIONS.items()
+)
+INTENT_SCHEMA = {
+    "oneOf": [
+        {"type": "object", "properties": {
+            "action": {"const": "chat"},
+            "arguments": {"type": "object", "properties": {}, "additionalProperties": False},
+            "reply": {"type": "string", "minLength": 1}},
+         "required": ["action", "arguments", "reply"], "additionalProperties": False},
+        {"type": "object", "properties": {
+            "action": {"type": "string", "enum": sorted(
+                _MODEL_ACTION_NAMES.get(action, action) for action in ACTIONS if action != "chat")},
+            "arguments": {"type": "object"},
+            "reply": {"const": ""}},
+         "required": ["action", "arguments", "reply"], "additionalProperties": False},
+    ]
+}
 # Local reasoning models think before they answer; the JSON must not be
 # what gets cut off.
 LOCAL_TOKENS = 900
+NON_REASONING_LOCAL_TOKENS = 600
 HOSTED_TOKENS = 400
 
 SYSTEM_PROMPT = (
-    "You are the assistant inside Agentic OS, a governed business-analytics "
-    "workspace. Read the person's message and the context, decide what they "
-    "want, and answer with ONE JSON object and nothing else:\n"
-    '{"action": "<action>", "arguments": {...}, "reply": "<text or empty>"}\n'
-    "Allowed actions and their arguments:\n"
-    "- chat: no arguments; reply is your answer.\n"
-    "- help: no arguments; the system lists what it can do.\n"
-    "- remember: information (string), category (general|profile|work|"
-    "projects|preferences).\n"
-    "- recall: query (string or null).\n"
-    "- forget: key (a memory key like memory_3, or \"all\").\n"
-    "- clear_history: no arguments.\n"
-    "- set_preference: key (tone|language|user_name|save_history), value.\n"
-    "- start_run: goal (one sentence), dataset (a stored dataset name, or "
-    "\"sample\").\n"
-    "- run_status: no arguments.\n"
-    "- explain_report: section (descriptive|diagnostic|experiment|predictive|"
-    "prescriptive|all).\n"
-    "Rules you must follow: you never see data rows, so never state a number "
-    "or a finding of your own — for explain_report and run_status the system "
-    "quotes the report itself, so leave reply empty. Deleting anything needs "
-    "the person's confirmation; the system asks, you do not. Write reply in "
-    "{language}, at most two sentences, and never claim an action has already "
-    "happened."
+    "You are Miyaar (معيار), Asset Reliability's governed assistant. Return ONLY "
+    "one JSON object: {\"action\":\"name\",\"arguments\":{},\"reply\":\"text\"}.\n"
+    "Actions (only these arguments): " + MODEL_ACTION_CATALOG + ".\n"
+    "search_saved_memory searches Saved memory entries. "
+    "Answer conversation follow-ups from Recent conversation using chat. "
+    "Conceptual maintenance/checklists use chat: answer the specified question "
+    "directly and briefly; do not ask whether to give the checklist already requested. "
+    "Give useful general guidance with a NONEMPTY reply at the TOP LEVEL, never "
+    "inside arguments. Keep the named equipment type. Use help ONLY for an "
+    "explicit question about app capabilities; start_run ONLY to analyse data.\n"
+    "You never see data rows. Never invent measurements, findings, diagnoses, "
+    "operating limits, predictions or savings. General guidance is not a measured "
+    "asset assessment. Inspections follow approved site/manufacturer procedures "
+    "and safe isolation by qualified personnel.\n"
+    "The system executes actions, confirms deletions, and quotes reports for "
+    "run_status/explain_report. Leave reply empty for non-chat actions; never "
+    "claim an action already happened. Answer in {language}, at most two short "
+    "sentences and 600 characters; escape newlines inside JSON strings."
 )
 
 
@@ -119,10 +146,13 @@ class Assistant:
                         "provider": understood.get("provider"),
                         "action": "confirm",
                         "pending": {"action": action, "arguments": arguments}}
-        return self._execute(action, arguments, session, text,
-                             source=understood["source"],
-                             provider=understood.get("provider"),
-                             model_reply=understood.get("reply"))
+        outcome = self._execute(action, arguments, session, text,
+                                source=understood["source"],
+                                provider=understood.get("provider"),
+                                model_reply=understood.get("reply"))
+        if understood.get("why"):
+            outcome["why"] = understood["why"]
+        return outcome
 
     # ------------------------------------------------------------------
     # Understanding
@@ -133,13 +163,23 @@ class Assistant:
         status = self.gateway.status()
         if not status.get("configured"):
             return understand(text)
-        raw = self.gateway.ask(
+        ask = getattr(self.gateway, "ask_json", None)
+        structured = callable(ask)
+        if not structured:
+            ask = self.gateway.ask
+        local_tokens = (NON_REASONING_LOCAL_TOKENS
+                        if getattr(self.gateway, "ollama_think", None) is False
+                        else LOCAL_TOKENS)
+        options = {"max_tokens": local_tokens if status.get("provider") == "ollama"
+                   else HOSTED_TOKENS}
+        if structured:
+            options["schema"] = INTENT_SCHEMA
+        raw = ask(
             SYSTEM_PROMPT.replace("{language}",
                                   "Arabic" if session.agent.language() == "ar"
                                   else "English"),
-            self._context(session) + "\nMessage: " + text,
-            max_tokens=LOCAL_TOKENS if status.get("provider") == "ollama"
-            else HOSTED_TOKENS,
+            self._context(session, current_message=text) + "\nMessage: " + text,
+            **options,
         )
         parsed = self._parse(raw, session)
         if parsed is None:
@@ -150,15 +190,17 @@ class Assistant:
         parsed["provider"] = status.get("provider")
         return parsed
 
-    def _context(self, session):
+    def _context(self, session, current_message=None):
         """What the model is told. Verified sentences and settings only —
         the dataset is not here, and nothing here is a row of it."""
         agent = session.agent
         lines = ["Context:"]
         memory = agent.memory_entries()[:MAX_MEMORY_IN_CONTEXT]
+        lines.append("Saved memory:")
         if memory:
-            lines.append("Memory:")
             lines.extend(f"- {e['key']}: {e['text'][:200]}" for e in memory)
+        else:
+            lines.append("none")
         prefs = {k: agent.preferences.get(k) for k in PREFERENCE_KEYS
                  if agent.preferences.get(k) is not None}
         lines.append("Preferences: " + json.dumps(prefs, ensure_ascii=False))
@@ -173,6 +215,12 @@ class Assistant:
                 if section.get("headline"):
                     lines.append(f"  {section['type']}: {section['headline']}")
         turns = [e for e in session.transcript if e.get("role") in ("user", "agent")]
+        if (current_message is not None and turns and turns[-1].get("role") == "user"
+                and turns[-1].get("text") == current_message):
+            # The API appends the current turn before asking. It is sent
+            # below as Message, so retain history without duplicating it.
+            turns = turns[:-1]
+        lines.append("Recent conversation:")
         for entry in turns[-MAX_TURNS_IN_CONTEXT:]:
             lines.append(f"{entry['role']}: {str(entry.get('text', ''))[:300]}")
         return "\n".join(lines)
@@ -191,6 +239,7 @@ class Assistant:
         if not isinstance(data, dict):
             return None
         action = str(data.get("action") or "").strip()
+        action = MODEL_ACTION_ALIASES.get(action, action)
         if action not in ACTIONS:
             return None
         allowed = ACTIONS[action]
@@ -198,6 +247,11 @@ class Assistant:
         arguments = {k: given[k] for k in allowed if k in given}
         text = data.get("reply")
         text = text.strip()[:MAX_REPLY_CHARS] if isinstance(text, str) else None
+        # A parsed chat intent without its own answer would execute the
+        # deterministic fallback while falsely labelling that text a model
+        # response. Reject the entire intent and disclose the rules fallback.
+        if action == "chat" and not text:
+            return None
         if not self._arguments_valid(action, arguments, session):
             return None
         return intent(action, arguments, text, source="model")

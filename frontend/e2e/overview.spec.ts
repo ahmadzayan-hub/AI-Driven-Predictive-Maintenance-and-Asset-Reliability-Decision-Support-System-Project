@@ -28,7 +28,7 @@ async function horizontalOverflow(page: Page) {
 /** Run the sample analysis up to the approval gate, so the Overview has
  *  findings and a run waiting, and the Datasets view a stored dataset. */
 async function runSampleToApproval(page: Page) {
-  await openTab(page, /^Runs/)
+  await openTab(page, /^Analytics/)
   await page.getByRole('button', { name: 'Start run' }).click()
   await expect(page.getByRole('region', { name: 'Approval required' })).toBeVisible({
     timeout: 40_000,
@@ -125,7 +125,7 @@ test('the new views do not scroll sideways at 320 px, in either language', async
   await page.goto('/')
   await page.setViewportSize({ width: 320, height: 640 })
 
-  for (const name of [/^Overview/, /^Datasets/, /^Runs/]) {
+  for (const name of [/^Overview/, /^Datasets/, /^Analytics/]) {
     await openTab(page, name)
     await expect(page.locator('main .panel__title:visible')).toBeVisible()
     await expect(page.locator('main .skeleton:visible')).toHaveCount(0)

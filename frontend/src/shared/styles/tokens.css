@@ -1,10 +1,5 @@
-/* Agentic OS design tokens — design system v2 (ADR 0023), generated with
-   the ui-ux-pro-max skill and adapted in design-system/agentic-os/MASTER.md.
-   Light and dark are equal variants.
-   All text/background pairings verified >= 4.5:1 (WCAG 2.2 AA).
-
-   Theme resolution: an explicit choice stamps data-theme="light|dark";
-   with no choice ("system") the prefers-color-scheme media query decides. */
+/* Shared Miyaar tokens (ADR 0054). Light/system remain explicit preferences.
+   Color and operational semantics are independent of decorative effects. */
 
 :root {
   /* Light neutrals (slate). --border is decorative only; anything a person
@@ -29,12 +24,12 @@
   /* Accent (navy/blue, from the ui-ux-pro-max analytics palette):
      --accent for text/icons/outlines/focus, --accent-solid for filled
      controls. */
-  --accent: #1e40af;
-  --accent-solid: #1e40af;
-  --accent-solid-hover: #1e3a8a;
-  --accent-soft: #dbeafe;
+  --accent: #006b73;
+  --accent-solid: #006b73;
+  --accent-solid-hover: #00555e;
+  --accent-soft: #dff5f4;
   --on-accent: #ffffff;
-  --accent-glow: rgb(30 64 175 / 0.22);
+  --accent-glow: rgb(0 107 115 / .18);
 
   /* Highlight (amber): what needs a person — an approval waiting, a
      provisional figure, a decrease. Never the primary action. */
@@ -65,8 +60,8 @@
 
   /* Shape */
   --radius-s: 8px;
-  --radius-m: 12px;
-  --radius-l: 16px;
+  --radius-m: 14px;
+  --radius-l: 18px;
 
   /* Spacing (8-point grid) */
   --space-1: 4px;
@@ -106,6 +101,14 @@
   --motion-medium: 220ms ease;
 
   color-scheme: light;
+  --radius-xl: 24px;
+  --surface-glass: rgb(255 255 255 / .94);
+  --accent-haze: rgb(0 107 115 / .08);
+  --workspace-bg: #f2f6fa;
+  --panel-fill: linear-gradient(130deg, var(--surface-raised), var(--surface));
+  --hero-fill: linear-gradient(120deg, #eaf7f7, #f7fafc 60%, #d9edee);
+  --hero-border: #9bc6ca;
+  --user-message: #e3f3f4;
 }
 
 /* Arabic. System fonts with full Arabic coverage, ordered so that Latin
@@ -126,22 +129,22 @@
 }
 
 [data-theme='dark'] {
-  --bg: #0b1220;
-  --surface: #111a2e;
-  --surface-raised: #17223a;
-  --surface-sunken: #070c18;
-  --border: #24304a;
-  --border-strong: #5b6b8c;
-  --text: #f1f5f9;
-  --text-muted: #a9b6cc;
-  --text-faint: #94a3b8;
+  --bg: #080f1e;
+  --surface: #0d182a;
+  --surface-raised: #122137;
+  --surface-sunken: #070e1b;
+  --border: #233349;
+  --border-strong: #647c98;
+  --text: #edf4fc;
+  --text-muted: #afc0d6;
+  --text-faint: #9aadc5;
 
-  --accent: #8db0ff;
-  --accent-solid: #2563eb;
-  --accent-solid-hover: #1d4ed8;
-  --accent-soft: #16244a;
-  --on-accent: #ffffff;
-  --accent-glow: rgb(37 99 235 / 0.3);
+  --accent: #59e0d5;
+  --accent-solid: #55dfd2;
+  --accent-solid-hover: #83eee3;
+  --accent-soft: #102f36;
+  --on-accent: #06262b;
+  --accent-glow: rgb(85 223 210 / .18);
 
   --highlight: #fbbf24;
   --highlight-soft: #2e2208;
@@ -160,26 +163,34 @@
   --shadow-3: 0 18px 48px rgb(0 0 0 / 0.6);
 
   color-scheme: dark;
+  --accent-haze: rgb(85 223 210 / .07);
+  --surface-glass: rgb(11 21 38 / .94);
+  --workspace-bg: radial-gradient(ellipse at 60% 0%, #102239, #080f1e 65%);
+  --panel-fill: linear-gradient(130deg, #122137, #0d182a);
+  --hero-fill: radial-gradient(ellipse at 90% 40%, #123c48, transparent 65%), linear-gradient(120deg, #122238, #0c192b);
+  --hero-border: #2c5967;
+  --user-message: #133740;
+  --switch-thumb: #06262b;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']):not([data-theme='dark']) {
-    --bg: #0b1220;
-    --surface: #111a2e;
-    --surface-raised: #17223a;
-    --surface-sunken: #070c18;
-    --border: #24304a;
-    --border-strong: #5b6b8c;
-    --text: #f1f5f9;
-    --text-muted: #a9b6cc;
-    --text-faint: #94a3b8;
+    --bg: #080f1e;
+    --surface: #0d182a;
+    --surface-raised: #122137;
+    --surface-sunken: #070e1b;
+    --border: #233349;
+    --border-strong: #647c98;
+    --text: #edf4fc;
+    --text-muted: #afc0d6;
+    --text-faint: #9aadc5;
 
-    --accent: #8db0ff;
-    --accent-solid: #2563eb;
-    --accent-solid-hover: #1d4ed8;
-    --accent-soft: #16244a;
-    --on-accent: #ffffff;
-    --accent-glow: rgb(37 99 235 / 0.3);
+    --accent: #59e0d5;
+    --accent-solid: #55dfd2;
+    --accent-solid-hover: #83eee3;
+    --accent-soft: #102f36;
+    --on-accent: #06262b;
+    --accent-glow: rgb(85 223 210 / .18);
 
     --highlight: #fbbf24;
     --highlight-soft: #2e2208;
@@ -198,6 +209,14 @@
     --shadow-3: 0 18px 48px rgb(0 0 0 / 0.6);
 
     color-scheme: dark;
+  --accent-haze: rgb(85 223 210 / .07);
+  --surface-glass: rgb(11 21 38 / .94);
+  --workspace-bg: radial-gradient(ellipse at 60% 0%, #102239, #080f1e 65%);
+  --panel-fill: linear-gradient(130deg, #122137, #0d182a);
+  --hero-fill: radial-gradient(ellipse at 90% 40%, #123c48, transparent 65%), linear-gradient(120deg, #122238, #0c192b);
+  --hero-border: #2c5967;
+  --user-message: #133740;
+  --switch-thumb: #06262b;
   }
 }
 

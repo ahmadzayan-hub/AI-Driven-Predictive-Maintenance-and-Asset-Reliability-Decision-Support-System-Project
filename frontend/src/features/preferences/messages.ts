@@ -1,0 +1,43 @@
+import { definePack } from '../../i18n/pack'
+
+export const prefsMessages = definePack(
+{
+  'prefs.aria': 'Preferences',
+  'prefs.title': 'Response preferences',
+  'prefs.tone': 'Tone',
+  'prefs.toneHelp': 'How the agent phrases its replies.',
+  'prefs.name': 'Your name',
+  'prefs.nameHelp': 'Used to greet you in the workspace.',
+  'prefs.namePlaceholder': 'e.g. Ahmad',
+  'prefs.language': 'Language',
+  'prefs.languageHelp':
+    'Changes the interface and the language the agent replies in. A report is written in the language in use when its run starts.',
+  'prefs.history': 'Record session history',
+  'prefs.historyHelp': 'When off, your requests are not recorded in this session’s history.',
+  'prefs.saving': 'Saving…',
+  'prefs.interface': 'Interface',
+  'prefs.interfaceDesc': 'Stored in this browser only.',
+  'prefs.theme': 'Theme',
+  'prefs.motion': 'Reduced motion',
+  'prefs.motionHelp': 'Minimize animations. System settings are always honored.',
+},
+{
+  'prefs.aria': 'التفضيلات',
+  'prefs.title': 'تفضيلات الرد',
+  'prefs.tone': 'الأسلوب',
+  'prefs.toneHelp': 'كيف يصوغ الوكيل ردوده.',
+  'prefs.name': 'اسمك',
+  'prefs.nameHelp': 'يُستخدم للترحيب بك في مساحة العمل.',
+  'prefs.namePlaceholder': 'مثال: أحمد',
+  'prefs.language': 'اللغة',
+  'prefs.languageHelp': 'تغيّر لغة الواجهة ولغة ردود الوكيل. ويُكتب كل تقرير باللغة المستخدمة عند بدء تحليله.',
+  'prefs.history': 'تسجيل سجل الجلسة',
+  'prefs.historyHelp': 'عند إيقافه، لا تُسجَّل طلباتك في سجل هذه الجلسة.',
+  'prefs.saving': 'جارٍ الحفظ…',
+  'prefs.interface': 'الواجهة',
+  'prefs.interfaceDesc': 'يُحفظ في هذا المتصفح فقط.',
+  'prefs.theme': 'المظهر',
+  'prefs.motion': 'تقليل الحركة',
+  'prefs.motionHelp': 'تقليل الرسوم المتحركة. تُحترم إعدادات النظام دائمًا.',
+},
+)
