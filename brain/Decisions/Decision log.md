@@ -76,6 +76,8 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 | 0058 | Scoped executive evidence agent, bilingual dashboards and capability-aware Claude skills | [[Agentic OS]], [[Design system]], [[Weighted KPIs]] |
 | 0059 | Business HTML and Word exports, native Print / Save as PDF and exact evidence revisions | [[Agentic OS]], [[Design system]], [[Weighted KPIs]] |
 | 0060 | Reporting-standards wording lint distinguishes supported statements from unsupported claims | [[Governed pipeline]] |
+| 2026-10-20-a-clips-number-must-be-in-its-source | A clip's figure is read against the file its source names, not merely required to cite one | [[Agent team]], [[Governed pipeline]] |
+| 2026-10-20-decision-records-are-dated-not-numbered | The sequential counter is closed at 0060; a new record is named for the day it was decided | [[Session lifecycle]] |
 | 2026-10-20-semantic-performance-colors | Explicit performance colors and sourced per-analysis display targets with neutral unknowns | [[Agentic OS]], [[Design system]], [[Weighted KPIs]] |
 
 All seven [[Analytics OS roadmap]] milestones have their records.

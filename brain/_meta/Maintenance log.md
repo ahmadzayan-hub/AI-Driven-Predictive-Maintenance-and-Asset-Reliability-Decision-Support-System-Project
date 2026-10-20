@@ -48,3 +48,11 @@ What each round of brain maintenance changed, newest last. The SessionStart hook
 - Added no notes and merged none. The one lesson of the day belongs in a note that already exists, and nothing today introduced a concept the brain was missing.
 - Corrected a record outside the brain, under the rule that the code wins: `Memory.md`'s environment line still said full Python verification fails on locked SQLite files and CRLF mismatches. It no longer does — 1188 tests, 142 skipped, 0 errors, 0 failures — so the line now states the green result, names the commits that closed it, and keeps only the two load-dependent flakes that are real.
 - `scripts/brain_check.py --strict` exits 0 after the edits.
+
+## 2026-10-20
+
+- `scripts/brain_check.py --json` reported a structurally clean brain: 27 notes, 323 links, and nothing under broken links, missing fields, bad dates, missing sources, stale, orphans, duplicates, unlinked mentions or weakly linked. Nothing structural was invented.
+- Refreshed [[Decision log]] with the two records this session decided, both named for the day rather than with the next number: the clip-source check, and the closing of the sequential counter at 0060. The log already carried 0058, 0059, 0060 and another session's dated record, which is the convention working in both directions on its first day.
+- Checked, and left alone: [[Session lifecycle]] was refreshed yesterday with "fetch before you write" and already describes the loop the dated-record rule belongs to; the rule itself lives in `docs/PLAYBOOK.md` and `AGENTS.md`, where a session reads it, rather than being copied into a note.
+- Added no notes and merged none. Neither of today's decisions introduces a concept the brain was missing: one is a naming convention, the other tightens a gate a note already describes.
+- `scripts/brain_check.py --strict` exits 0 after the edits.
