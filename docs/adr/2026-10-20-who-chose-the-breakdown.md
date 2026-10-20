@@ -123,8 +123,10 @@ against the unchanged tree:
 
 Measured in the project venv: `tests.test_analytics` **89 tests**,
 `tests.test_report_language`, `tests.test_model_privacy_boundary` and
-`tests.test_breakdown_contract` beside it, all passing. Counts for the whole
-suite are in [README testing](../../README.md#testing).
+`tests.test_breakdown_contract` beside it, all passing, and the whole suite at
+**1,418 tests, 0 failures, 0 errors, 142 skipped** for want of a local
+PostgreSQL. Counts and what was not run are in
+[README testing](../../README.md#testing).
 
 Live over the capstone file through the real stages, unmapped: the breakdown is
 `Asset_Class` with 5 groups, the reconciliation check passes on 5 recomputed

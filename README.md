@@ -541,13 +541,15 @@ and breakdown-refusal work landed. One dated decision:
 
 Run here in the project venv:
 
-- **The full Python suite: 1,403 tests, 0 failures, 0 errors, 144 skipped**
-  for want of a local PostgreSQL and other absent services
-  (`python -m unittest discover tests`, 186 s). This was the first completed
-  full-suite run on the merged tree, closing the gap the entry below could not
-  claim. It measured this session's own breakdown implementation, which was
-  then **withdrawn** in favour of the landed one, so it is evidence for the
-  tree's health at that commit and not for what shipped.
+- **The full Python suite on what shipped: 1,418 tests, 0 failures, 0 errors,
+  142 skipped** for want of a local PostgreSQL and other absent services
+  (`python -m unittest discover tests`, 202 s).
+- The same suite ran earlier on this session's own breakdown implementation,
+  before it was withdrawn: **1,403 tests, 0 failures, 144 skipped**, 186 s.
+  Between the two runs this session's work was replaced by the parallel
+  session's and the claim above was added. Either way these are the first
+  completed full-suite runs on the merged tree, closing the gap the entry
+  below had to leave open.
 - After the integration: `tests.test_analytics` **89 tests**, 5 of them new,
   with `tests.test_report_language`, `tests.test_model_privacy_boundary` and
   `tests.test_breakdown_contract` — **128 together, all passing**.
