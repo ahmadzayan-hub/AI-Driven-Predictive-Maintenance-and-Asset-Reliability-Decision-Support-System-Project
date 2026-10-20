@@ -493,7 +493,8 @@ def cleaner(ctx):
     to_number = colmap.parse_number if mapping else _to_number
     before = len(rows)
     cleaned, seen, dropped_empty, dropped_dupes, coercion_failures = [], set(), 0, 0, 0
-    for row in rows:
+    source_indices = []
+    for source_index, row in enumerate(rows):
         stripped = {k: (str(v).strip() if v is not None else "") for k, v in row.items() if k}
         if not any(stripped.values()):
             dropped_empty += 1
@@ -509,6 +510,7 @@ def cleaner(ctx):
                 coercion_failures += 1
             stripped[col] = number
         cleaned.append(stripped)
+        source_indices.append(source_index)
     after = len(cleaned)
     calcs = [
         {"id": "c_rows_before", "name": "rows_before", "value": before, "method": "count"},
@@ -560,7 +562,8 @@ def cleaner(ctx):
              f"(حُذف {dropped_empty} فارغ و{dropped_dupes} مكرر، وعُدّت "
              f"{coercion_failures} قيمة غير رقمية فارغة). يُذكر كل صف محذوف "
              "ولا يُخفى."),
-        output={"rows": cleaned, "rows_before": before, "rows_after": after,
+        output={"rows": cleaned, "source_indices": source_indices,
+                "rows_before": before, "rows_after": after,
                 "dropped": before - after, **dates},
         calculations=calcs,
         claims=claims,
@@ -601,8 +604,25 @@ def _merge_tables(ctx):
         joined.append({**item, "table": table})
         for finding in personal_data_findings(table.columns, table.screened):
             screens.append({**finding, "dataset": item["name"]})
-    merged = joining.merge(ctx["collector"]["columns"], clean["rows"],
+    # Keep a row's source position through left/inner joins without trusting
+    # an asset/record identifier or putting an internal field in the table.
+    source_indices = clean.get("source_indices")
+    marker = object()
+    source_rows = ([{**row, marker: index} for row, index in
+                    zip(clean["rows"], source_indices)]
+                   if source_indices is not None else clean["rows"])
+    merged = joining.merge(ctx["collector"]["columns"], source_rows,
                            ctx["profiler"]["numeric_columns"], joined, date)
+    if source_indices is not None:
+        merged["source_indices"] = [row.pop(marker) for row in merged["rows"]]
+    ignored = {column for column, role in (ctx.get("mapping") or {}).get("roles", {}).items()
+               if role == "ignore"}
+    for item, record in zip(joined, merged["joins"]):
+        for column, role in (item.get("mapping") or {}).get("roles", {}).items():
+            renamed = record["renamed"].get(column, column)
+            if role == "ignore" and renamed in record["added_columns"]:
+                ignored.add(renamed)
+    merged["ignored_columns"] = sorted(ignored)
     problem = joining.breakdown_problem(ctx.get("join_breakdown"), merged["columns"],
                                         merged["numeric_columns"])
     if problem:
@@ -724,6 +744,8 @@ def merge(ctx):
         "succeeded", summary,
         output={"rows": merged["rows"], "columns": merged["columns"],
                 "numeric_columns": merged["numeric_columns"],
+                "source_indices": merged.get("source_indices"),
+                "ignored_columns": merged["ignored_columns"],
                 "rows_before": rows_before, "rows_after": rows_after,
                 "joins": merged["joins"], "breakdown": ctx.get("join_breakdown"),
                 "snapshots": [r["snapshot"] for r in merged["joins"]],
@@ -1041,6 +1063,27 @@ def governance(ctx):
         calculations=calcs, claims=claims, checks=checks)
 
 
+AUTO_GROUP_LIMIT = 200
+
+
+def _automatic_group(columns, numeric_columns, date_col, rows):
+    """Choose a repeated category, never an implicit record/person identifier."""
+    candidates = []
+    for column in columns:
+        if (column in numeric_columns or column == date_col
+                or colmap._named_like_an_id(column) or colmap._named_like_a_date(column)):
+            continue
+        filled = [str(row.get(column) or "").strip() for row in rows
+                  if str(row.get(column) or "").strip()]
+        distinct = len(set(filled))
+        if 2 <= distinct <= AUTO_GROUP_LIMIT and distinct <= len(filled) / 2:
+            candidates.append(column)
+    # The detector accepts text, while joined/cleaned rows can contain numbers.
+    screened = [{c: str(row.get(c) or "") for c in candidates} for row in rows[:2000]]
+    personal = {finding["column"] for finding in personal_data_findings(candidates, screened)}
+    return next((c for c in candidates if c not in personal), None)
+
+
 def preparer(ctx):
     rows = _rows(ctx)
     numeric_columns = _numeric(ctx)
@@ -1057,8 +1100,7 @@ def preparer(ctx):
     else:
         date_col = next((c for c in columns if c.lower() in
                          ("month", "date", "period", "week", "year")), None)
-        group_col = next((c for c in columns
-                          if c not in numeric_columns and c != date_col), None)
+        group_col = _automatic_group(columns, numeric_columns, date_col, rows)
     # A breakdown chosen for a joined run wins: it is usually why the
     # lookup was joined at all (ADR 0030).
     breakdown = (ctx.get("merge") or {}).get("breakdown")
@@ -1673,6 +1715,17 @@ def _observational(ctx, values, measure):
     if sizing:
         first = sizing[1] if len(sizing) > 1 else sizing[0]
         index = DETECTABLE_LIFTS.index(first["lift"])
+        assumption_en = (
+            "Planning assumes independent observations, comparable variation in "
+            "the two groups and random assignment. The observed variability is "
+            "a planning estimate, not a guarantee for a future test.")
+        assumption_ar = (
+            "يفترض التخطيط مشاهدات مستقلة وتبايناً متقارباً بين المجموعتين "
+            "وتوزيعاً عشوائياً. التباين المرصود تقدير للتخطيط وليس ضماناً "
+            "لاختبار مستقبلي.")
+        claims.append(_claim(ctx, "cl_exp_planning", "assumption",
+                             assumption_en, assumption_ar, ["c_exp_spread"]))
+        lines += ["", _say(ctx, assumption_en, assumption_ar)]
         claims.append(_claim(
             ctx, "cl_exp_design", "recommendation",
             f"To prove a {first['lift']:.0%} change in {measure}, run a "

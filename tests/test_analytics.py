@@ -15,9 +15,10 @@ from server import analytics
 
 
 def run_pipeline(dataset_text, goal="Analyze the data", name="test.csv",
-                 gateway=None, glossary=None, language="en"):
+                 gateway=None, glossary=None, language="en", mapping=None):
     ctx = {"goal": goal, "dataset_name": name, "dataset_text": dataset_text,
-           "run_id": "test-run", "glossary": glossary, "report_language": language}
+           "run_id": "test-run", "glossary": glossary, "report_language": language,
+           "mapping": mapping}
     results = {}
     for role, stage in analytics.PIPELINE:
         result = (stage(ctx, gateway=gateway)
@@ -41,6 +42,75 @@ def linear_dataset():
     return "\n".join(lines) + "\n"
 
 
+def explicit_grouping(dimension="team", measure="sales"):
+    return {"version": 1, "roles": {"month": "date", dimension: "dimension",
+                                   measure: "measure"},
+            "measure": measure, "dimension": dimension, "date_order": "auto",
+            "grain": "month"}
+
+
+class AutomaticGroupingTests(unittest.TestCase):
+    def test_repeated_categories_are_supported_from_small_tables_to_the_display_limit(self):
+        for distinct in (2, 3, 12, 200):
+            with self.subTest(distinct=distinct):
+                rows = [{"category": f"group-{i % distinct}", "value": i}
+                        for i in range(distinct * 2)]
+                self.assertEqual(analytics._automatic_group(
+                    ["category", "value"], ["value"], None, rows), "category")
+        for distinct, count in ((201, 402), (3, 3), (2, 3), (1, 10)):
+            with self.subTest(distinct=distinct, count=count):
+                rows = [{"category": f"group-{i % distinct}", "value": i}
+                        for i in range(count)]
+                self.assertIsNone(analytics._automatic_group(
+                    ["category", "value"], ["value"], None, rows))
+
+    def test_identifier_and_unique_notes_do_not_hide_a_repeated_business_category(self):
+        source = "Record_ID,notes,Site,value\n" + "".join(
+            f"R{i},unique-note-{i},{'North' if i % 2 else 'South'},{i + 1}\n"
+            for i in range(500))
+        ctx, results = run_pipeline(source)
+        self.assertEqual(ctx["preparer"]["group_col"], "Site")
+        self.assertEqual(len(ctx["preparer"]["groups"]), 2)
+        self.assertEqual(results["validator"]["status"], "succeeded")
+
+    def test_date_named_columns_are_not_an_automatic_breakdown(self):
+        source = "Record_Date,Site,value\n" + "".join(
+            f"2025-0{1 + i % 2}-01,{'North' if i % 2 else 'South'},{i + 1}\n"
+            for i in range(12))
+        ctx, results = run_pipeline(source)
+        self.assertEqual(ctx["preparer"]["group_col"], "Site")
+        self.assertEqual(results["validator"]["status"], "succeeded")
+
+    def test_only_identifier_columns_produce_a_valid_ungrouped_report_in_both_languages(self):
+        source = "Record_ID,value\n" + "".join(f"R{i},{i + 1}\n" for i in range(30))
+        for language in ("en", "ar"):
+            with self.subTest(language=language):
+                ctx, results = run_pipeline(source, language=language)
+                self.assertIsNone(ctx["preparer"]["group_col"])
+                self.assertEqual(ctx["preparer"]["groups"], {})
+                self.assertEqual(results["validator"]["status"], "succeeded")
+                self.assertIn("reporter", results)
+                self.assertTrue(any(c["type"] == "assumption"
+                                    for c in results["experiment"]["claims"]))
+
+    def test_private_repeated_values_are_not_an_automatic_breakdown(self):
+        source = "contact,Site,value\n" + "".join(
+            f"user{i % 2}@example.test,{'North' if i % 2 else 'South'},{i + 1}\n"
+            for i in range(30))
+        ctx, _ = run_pipeline(source)
+        self.assertEqual(ctx["preparer"]["group_col"], "Site")
+
+    def test_explicit_mapping_can_still_choose_an_identifier(self):
+        source = "Record_ID,value\n" + "".join(f"R{i},{i + 1}\n" for i in range(30))
+        chosen = {"version": 1, "roles": {"Record_ID": "dimension", "value": "measure"},
+                  "measure": "value", "dimension": "Record_ID",
+                  "date_order": "auto", "grain": "auto"}
+        ctx, results = run_pipeline(source, mapping=chosen)
+        self.assertEqual(ctx["preparer"]["group_col"], "Record_ID")
+        self.assertEqual(len(ctx["preparer"]["groups"]), 30)
+        self.assertEqual(results["validator"]["status"], "succeeded")
+
+
 class FourAnalyticsTypesTestCase(unittest.TestCase):
     @staticmethod
     def fractional_groups():
@@ -53,7 +123,8 @@ class FourAnalyticsTypesTestCase(unittest.TestCase):
     def test_fractional_group_evidence_conserves_totals_and_changes_in_both_languages(self):
         for language in ("en", "ar"):
             with self.subTest(language=language):
-                ctx, results = run_pipeline(self.fractional_groups(), language=language)
+                ctx, results = run_pipeline(self.fractional_groups(), language=language,
+                                            mapping=explicit_grouping())
                 self.assertEqual(results["validator"]["status"], "succeeded",
                                  results["validator"]["quality_checks"])
                 prep = ctx["preparer"]
@@ -72,7 +143,7 @@ class FourAnalyticsTypesTestCase(unittest.TestCase):
                 self.assertIn("reporter", results)
 
     def test_precision_fix_still_rejects_inconsistent_group_and_change_evidence(self):
-        ctx, _ = run_pipeline(self.fractional_groups())
+        ctx, _ = run_pipeline(self.fractional_groups(), mapping=explicit_grouping())
         ctx["preparer"]["groups"]["G0000"] += 0.1
         ctx["diagnostic"]["contributions"][0]["change"] += 0.1
         checks = {c["name"]: c for c in analytics.validator(ctx)["quality_checks"]}
@@ -969,7 +1040,8 @@ class GroupReconciliationTestCase(unittest.TestCase):
         to two decimals at 300 groups they fell 0.60 short of the total
         — 2.22 against 2.222, three hundred times — and the run was
         rejected for arithmetic that was correct."""
-        ctx, results = run_pipeline(many_groups_dataset())
+        ctx, results = run_pipeline(many_groups_dataset(),
+                                    mapping=explicit_grouping("segment", "amount"))
         prep = ctx["preparer"]
         self.assertEqual(len(prep["groups"]), 300)
         # The published figures keep their precision, so they reach the
@@ -986,7 +1058,8 @@ class GroupReconciliationTestCase(unittest.TestCase):
     def test_a_real_mismatch_still_fails_the_check(self):
         """Guard against a tolerance that accepts anything: the same 300
         groups with a total nobody can reach from them is rejected."""
-        ctx, _ = run_pipeline(many_groups_dataset())
+        ctx, _ = run_pipeline(many_groups_dataset(),
+                              mapping=explicit_grouping("segment", "amount"))
         ctx["preparer"]["total"] = ctx["preparer"]["total"] + 50.0
         again = analytics.validator(ctx)
         check = next(c for c in again["quality_checks"]
@@ -997,7 +1070,8 @@ class GroupReconciliationTestCase(unittest.TestCase):
         """The reason the check recomputes instead of widening: half a
         cent per group would have hidden an error of half a unit across
         300 groups. It does not."""
-        ctx, _ = run_pipeline(many_groups_dataset())
+        ctx, _ = run_pipeline(many_groups_dataset(),
+                              mapping=explicit_grouping("segment", "amount"))
         ctx["preparer"]["total"] = round(ctx["preparer"]["total"] + 0.50, 2)
         again = analytics.validator(ctx)
         check = next(c for c in again["quality_checks"]
@@ -1008,7 +1082,8 @@ class GroupReconciliationTestCase(unittest.TestCase):
         """The published group figures are checked one by one, not only
         their sum: moving a unit from one group to another leaves the sum
         intact and must still be caught."""
-        ctx, _ = run_pipeline(many_groups_dataset())
+        ctx, _ = run_pipeline(many_groups_dataset(),
+                              mapping=explicit_grouping("segment", "amount"))
         keys = list(ctx["preparer"]["groups"])
         ctx["preparer"]["groups"][keys[0]] += 1.0
         ctx["preparer"]["groups"][keys[1]] -= 1.0

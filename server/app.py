@@ -17,6 +17,7 @@ import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -53,6 +54,53 @@ from server.rate_limit import WRITE_METHODS, RateLimiter
 from server.storage import DbMemoryBackend, PostgresStore, open_store
 from server.speech import LocalSpeech, SpeechError, MAX_BYTES as MAX_AUDIO_BYTES, content_format
 from utils import load_config
+
+# The only inline script is the fixed prepaint theme/language bootstrap in
+# frontend/index.html. Pin its exact bytes, never authorize arbitrary inline JS.
+PREPAINT_SCRIPT_HASH = "sha256-VPW7AEpPmugLy0qUATyKc9v5mNJnHZkoos20wLQ3uVI="
+API_CONTENT_POLICY = (
+    "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
+)
+
+
+def _browser_origin(value):
+    """One configured HTTP(S) origin, never credentials or CSP syntax."""
+    if not value or any(ord(c) < 33 or c in ";'\"<>" for c in value):
+        return None
+    try:
+        parts = urlsplit(value)
+        if parts.scheme not in ("http", "https") or not parts.hostname:
+            return None
+        if parts.username is not None or parts.password is not None:
+            return None
+        host = parts.hostname.encode("idna").decode("ascii")
+        if not re.fullmatch(r"[A-Za-z0-9.:-]+", host):
+            return None
+        host = f"[{host}]" if ":" in host else host
+        port = f":{parts.port}" if parts.port else ""
+        return f"{parts.scheme}://{host}{port}"
+    except (ValueError, UnicodeError):
+        return None
+
+
+def application_content_policy(env):
+    """Built shell policy; provider and optional API origins are operator-set.
+
+    Inline styles are retained for React chart positioning and blob report
+    previews, which inherit the opener's policy. Scripts never get that grant.
+    The local model and speech services are contacted only by the server.
+    """
+    origins = sorted({origin for name in ("SUPABASE_URL", "VITE_API_BASE")
+                      if (origin := _browser_origin(env.get(name, "")))})
+    connect = " ".join(["'self'", *origins])
+    return ("default-src 'none'; "
+            f"script-src 'self' '{PREPAINT_SCRIPT_HASH}'; script-src-attr 'none'; "
+            "style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; "
+            f"connect-src {connect}; media-src 'self' blob:; "
+            "worker-src 'self'; manifest-src 'self'; frame-src 'none'; "
+            "object-src 'none'; base-uri 'none'; form-action 'self'; "
+            "frame-ancestors 'none'")
+
 
 MAX_SESSIONS = 32
 MAX_TEXT_LENGTH = 4000
@@ -454,16 +502,22 @@ def create_app(config_path=None, env=None, dist_dir=None):
             return response
         return await call_next(request)
 
-    @app.middleware("http")
-    async def security_headers(request: Request, call_next):
-        response = await call_next(request)
+    shell_content_policy = application_content_policy(environ)
+
+    def apply_security_headers(response, path):
+        # Export routes already set a more restrictive document-specific CSP.
+        # JSON/errors cannot load subresources; shell/SW responses retain only
+        # the resources this interface actually uses.
+        api_response = (path == "/api" or path.startswith("/api/")
+                        or response.headers.get("Content-Type", "").startswith("application/json"))
+        response.headers.setdefault("Content-Security-Policy",
+                                    API_CONTENT_POLICY if api_response else shell_content_policy)
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("Referrer-Policy", "same-origin")
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault(
             "Permissions-Policy", "camera=(), microphone=(self), geolocation=()"
         )
-        path = request.url.path
         if path.startswith("/api/"):
             # Session, memory, and export payloads are private.
             response.headers.setdefault("Cache-Control", "no-store")
@@ -473,15 +527,19 @@ def create_app(config_path=None, env=None, dist_dir=None):
             response.headers.setdefault("Cache-Control", REVALIDATE)
         return response
 
+    @app.middleware("http")
+    async def security_headers(request: Request, call_next):
+        return apply_security_headers(await call_next(request), request.url.path)
+
     app.add_middleware(InterfaceGZip)
 
     @app.exception_handler(Exception)
     async def handle_unexpected_error(request: Request, exc: Exception):
         # Never leak stack traces or internal details to the browser.
-        return JSONResponse(
+        return apply_security_headers(JSONResponse(
             status_code=500,
             content={"detail": "Something went wrong on the server. Please try again."},
-        )
+        ), request.url.path)
 
     # ------------------------------------------------------------------
     # Identity and authorization

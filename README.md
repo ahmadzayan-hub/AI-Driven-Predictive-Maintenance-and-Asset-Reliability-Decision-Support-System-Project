@@ -325,12 +325,18 @@ and returns fresh state snapshots.
 ```bash
 # The repository's name is long; give the clone a short folder on Windows.
 git clone https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project.git agentic-os
-cd agentic-os-final-project
+cd agentic-os
 
 # Web interface dependencies
-pip install -r requirements.txt
-cd frontend && npm install && npm run build && cd ..
+pip install --require-hashes -r requirements.txt
+cd frontend && npm ci && npm run build && cd ..
 ```
+
+`requirements.in` declares Python dependency ranges; `requirements.txt` locks
+the full server dependency tree with platform markers and artifact hashes.
+Use the generation command at its top for reviewed updates. Optional agent
+and voice integrations remain separate. See the
+[dependency decision](docs/adr/2026-10-20-python-dependencies-are-locked.md).
 
 ## Running the Application
 
@@ -446,7 +452,8 @@ reproduced defects, corrections, limits and owner acceptance gates.
   dashboard notice fixture from 1,000 returned groups to three, while checking
   the exact EN/AR notice and the true total, then passed **4 / 4** dashboard
   tests. Backend query tests retain responsibility for the actual row limit.
-  This test-only follow-up leaves the CI-validated application source unchanged.
+  That test-only follow-up at `a11fc98` left application source unchanged;
+  later integration and corrections require their own combined-source checks.
 - Measured budget: initial JS **98.5 / 100 KB**, total JS **180.3 / 185 KB**,
   largest chunk **18.1 / 30 KB**, initial CSS **10.0 / 10 KB**, total CSS
   **21.2 / 22 KB**, fonts **119.4 / 120 KB**. Existing ceilings are unchanged.
@@ -1006,12 +1013,13 @@ tag or loses its comment.
 
 The bill of materials is generated on every CI run and kept as an
 artifact. It covers both ecosystems — npm from the lock file with
-integrity hashes, Python from the closure `requirements.txt` actually
+integrity hashes, Python from the installed closure `requirements.in` actually
 reaches — and needs no network, because an SBOM you cannot read during an
-incident is not worth having. Current composition: **302 components (275
-npm, 27 pypi); 286 permissive, 16 weak-copyleft, none strong**, of which
-exactly one copyleft package ships (`psycopg2-binary`, LGPL with
-exceptions) and is named in the build output every time. Details:
+incident is not worth having. The current measured composition is recorded
+under [Testing](#testing). The shipped `psycopg2-binary` package carries LGPL
+with exceptions and is named in the build output. Audit tooling uses a separate
+environment; server installs consume the hash-checked `requirements.txt` lock.
+Details:
 `docs/adr/0013-supply-chain.md`.
 
 ## Backup and restore

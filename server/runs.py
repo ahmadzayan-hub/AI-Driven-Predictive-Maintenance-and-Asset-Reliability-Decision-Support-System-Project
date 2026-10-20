@@ -351,6 +351,16 @@ class RunEngine:
         roles = self.roles_for(profile, joined=bool(joins))
         if language not in analytics.REPORT_LANGUAGES:
             raise ValueError(f"Reports are not written in “{language}”.")
+        if not joins and breakdown is not None and str(breakdown).strip():
+            # ADR 0030 defines this override only for a merged table.
+            # Refuse before admission rather than accept a grouping the
+            # preparer will never read. A single table uses its mapping.
+            raise ValueError(
+                "خيار التقسيم يتطلب مجموعة بيانات مدمجة واحدة على الأقل. "
+                "لمجموعة بيانات واحدة، اختر عمود التقسيم في تعيين الأعمدة المحفوظ."
+                if language == "ar" else
+                "The breakdown option requires at least one joined dataset. "
+                "For a single dataset, choose its breakdown in the saved column mapping.")
         joins_json = None
         joined_names = []
         if joins:

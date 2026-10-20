@@ -30,10 +30,11 @@ not re-opened here; choosing a threshold after seeing a holdout result is
 how an honest evaluation becomes a flattering one.
 """
 
+import math
 import statistics
 from collections import Counter, defaultdict
 
-from .. import analytics, modelling
+from .. import analytics, mapping, modelling
 from . import contract
 
 # Fewest labelled records, per side of the split, before a target is
@@ -63,9 +64,69 @@ def _corrective(row):
 
 def _num(value):
     try:
-        return float(value)
-    except (TypeError, ValueError):
+        number = mapping.parse_number(value)
+        return number if number is not None and math.isfinite(number) else None
+    except (TypeError, ValueError, OverflowError):
         return None
+
+
+def _model_table(ctx):
+    """Domain types and source chronology are independent of chart roles/grain.
+
+    Source positions identify retained rows after cleaning/joins, without
+    assuming Record_ID is unique. Legacy stage contexts fall back to their
+    existing cleaned values. Nothing here changes the analysis table.
+    """
+    table = ctx.get("merge") or ctx["cleaner"]
+    columns = analytics._columns(ctx)
+    fields, _ = contract.resolve(columns)
+    raw = (ctx.get("collector") or {}).get("rows") or []
+    primary = set((ctx.get("collector") or {}).get("columns") or [])
+    indices = table.get("source_indices")
+    retained = analytics._rows(ctx)
+    source_available = (isinstance(indices, list) and len(indices) == len(retained)
+                        and all(isinstance(i, int) and 0 <= i < len(raw) for i in indices))
+    rows = []
+    for position, row in enumerate(retained):
+        source = raw[indices[position]] if source_available else {}
+        rows.append({c: (source.get(c) if source_available and c in primary else row.get(c))
+                     for c in columns})
+    ignored = {c for c, role in (ctx.get("mapping") or {}).get("roles", {}).items()
+               if role == "ignore"}
+    ignored.update((ctx.get("merge") or {}).get("ignored_columns") or [])
+    categories = [c for c, field in fields.items()
+                  if field.scale == contract.CATEGORY and field.timing == contract.BEFORE]
+    screened = [{c: str(row.get(c) or "") for c in categories} for row in rows[:2000]]
+    personal = {f["column"] for f in analytics.personal_data_findings(categories, screened)}
+    usable, excluded = contract.model_inputs(columns)
+    for column in columns:
+        if column in ignored:
+            excluded[column] = "explicitly ignored by the saved column mapping"
+        elif column in personal:
+            excluded[column] = "detected personal data is not a model input"
+        elif column in fields and fields[column].scale == contract.DATE:
+            excluded[column] = "used for chronological evaluation, not as a categorical input"
+    usable = [c for c in usable if c not in excluded]
+    active_columns = [c for c in columns if c not in ignored and c not in personal]
+    numeric = {c for c, field in fields.items()
+               if field.scale in (contract.COUNT, contract.HOURS, contract.MONEY,
+                                  contract.FRACTION, contract.PERCENT, contract.SCORE)}
+    for row in rows:
+        for column in active_columns:
+            row[column] = (_num(row.get(column)) if column in numeric
+                           else str(row.get(column) or "").strip())
+    date = next((c for c, field in fields.items()
+                 if field.scale == contract.DATE and c in active_columns), None)
+    if date:
+        periods, _, ambiguous = mapping.read_dates(
+            [row.get(date) for row in rows], (ctx.get("mapping") or {}).get("date_order", "auto"))
+        if ambiguous:
+            # An unresolved day/month order cannot establish chronology.
+            date = None
+        else:
+            for row, period in zip(rows, periods):
+                row[date] = period.label(period.precision) if period else None
+    return rows, active_columns, usable, excluded, numeric, date
 
 
 class Target:
@@ -189,37 +250,36 @@ class MaintenanceRisk:
         self.targets = tuple(targets) if targets else TARGETS
 
     def run(self, ctx):
-        rows = analytics._rows(ctx)
-        columns = analytics._columns(ctx)
-        date = (ctx.get("preparer") or {}).get("date_col") \
-            or (ctx.get("cleaner") or {}).get("date_col")
-        usable, excluded = contract.model_inputs(columns)
+        rows, columns, usable, excluded, numeric, date = _model_table(ctx)
 
         calculations = [
             modelling._calc(self.role, "c_inputs_usable", "model_inputs_usable",
                             len(usable),
-                            "columns knowable before the decision, from the "
-                            "maintenance contract's timing field"),
+                            "known-before contract fields, excluding ignored, "
+                            "personal and date fields; domain numeric scales"),
             modelling._calc(self.role, "c_inputs_excluded", "model_inputs_excluded",
                             len(excluded),
                             "columns excluded as outcomes, derived from outcomes, "
-                            "identifiers, or of unestablished timing"),
+                            "identifiers, dates, ignored/personal fields, or of "
+                            "unestablished timing"),
         ]
         claims = [modelling._claim(
             ctx, self.role, "cl_inputs", "assumption",
             f"Only the {len(usable)} columns knowable before the work are offered "
             f"to these models; {len(excluded)} are withheld as outcomes, "
-            f"derivations of outcomes, identifiers or of unestablished timing. "
+            f"derivations of outcomes, identifiers, dates, ignored/personal fields "
+            f"or of unestablished timing. "
             f"This is what keeps a score honest rather than flattering.",
             f"تُعرض على هذه النماذج الأعمدة الـ{len(usable)} المعروفة قبل تنفيذ "
             f"العمل فقط، ويُحجب {len(excluded)} عموداً لأنها نتائج أو مشتقات منها "
-            f"أو مُعرِّفات أو غير محددة التوقيت. هذا ما يجعل النتيجة صادقة لا مُجمِّلة.",
+            f"أو مُعرِّفات أو تواريخ أو حقول مستبعدة أو شخصية أو غير محددة التوقيت. "
+            f"هذا ما يجعل النتيجة صادقة لا مُجمِّلة.",
             ["c_inputs_usable", "c_inputs_excluded"])]
 
         cards, checks, verdicts = [], [], []
         for target in self.targets:
             card, target_claims, target_calcs, check = self._evaluate(
-                ctx, target, rows, columns, usable, date)
+                ctx, target, rows, columns, usable, date, numeric)
             cards.append(card)
             claims += target_claims
             calculations += target_calcs
@@ -236,6 +296,7 @@ class MaintenanceRisk:
             "output": {
                 "models": cards,
                 "model_inputs_usable": usable,
+                "model_inputs_excluded": dict(excluded),
                 "headline": summary,
                 "question": self.question,
                 "report_markdown": self._report(ctx, verdicts, usable, excluded),
@@ -243,7 +304,7 @@ class MaintenanceRisk:
         }
 
     # -- one target -----------------------------------------------------
-    def _evaluate(self, ctx, target, rows, columns, usable, date):
+    def _evaluate(self, ctx, target, rows, columns, usable, date, numeric):
         prefix, key = self.role, target.key
         missing = [c for c in target.needs if c not in columns]
         if missing:
@@ -271,11 +332,10 @@ class MaintenanceRisk:
                 or len(set(train_labels)) < 2 or len(set(test_labels)) < 2):
             return self._unsupported(
                 ctx, target,
-                f"the chronological split leaves {len(train_rows)} training and "
+                f"the evaluation split leaves {len(train_rows)} training and "
                 f"{len(test_rows)} held-out records, or a single class on one "
                 f"side, so the result would not be measurable", f"c_{key}")
 
-        numeric = set(analytics._numeric(ctx))
         numbers = [c for c in usable if c in numeric]
         texts = []
         for column in usable:

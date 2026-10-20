@@ -27,7 +27,8 @@ storage adapter, so the backend can run on an ephemeral filesystem.
 | --- | --- |
 | `api/index.py` | ASGI entry point Vercel serves for `/api/*`; adds the repo root to `sys.path` and re-exports the unchanged FastAPI `app` |
 | `vercel.json` | Builds the frontend, routes `/api/*` to the function, rewrites everything else to the SPA, sets security headers, `no-store` on the API and immutable caching on hashed assets |
-| `requirements.txt` | Function dependencies (FastAPI, psycopg2, PyJWT) |
+| `requirements.in` | Direct server dependency declarations and optional-integration rationale |
+| `requirements.txt` | Exact transitive function dependencies with platform markers and artifact hashes |
 | `.python-version` | Pins the interpreter to 3.12 so the runtime cannot drift under the deployment |
 
 **No custom runtime is pinned.** Vercel's Python support is native: a
@@ -84,6 +85,19 @@ Serverless hardening already in place:
 Earlier sessions applied initial Supabase migrations. Current bootstrap schema
 and policy changes in source are not proof that a hosted database has received
 them; inspect and validate the intended environment before release.
+
+## Browser connection origins
+
+The static shell CSP in `vercel.json` allows same-origin API requests and
+`https://*.supabase.co` managed sign-in. Vercel does not substitute runtime
+`SUPABASE_URL` or `VITE_API_BASE` values into this checked-in header. For a custom
+auth domain or external API, add the exact HTTPS origin to `connect-src` in the
+non-API `Content-Security-Policy` rule before building and deploying. Prefer the
+exact Supabase project origin in place of the wildcard when it is known. Keep
+`script-src` unchanged; model providers run on the server. The external API must
+also allow the frontend origin through its CORS configuration. Verify sign-in
+and a synthetic API action after an approved release. See the
+[browser policy decision](adr/2026-10-20-browser-content-security-policy.md).
 
 ## Without `DATABASE_URL`
 

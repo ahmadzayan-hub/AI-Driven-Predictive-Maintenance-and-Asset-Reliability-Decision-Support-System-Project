@@ -44,7 +44,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install Python dependencies
-        run: pip install -r requirements.txt
+        run: pip install --require-hashes -r requirements.txt
 
       - name: Python tests (agent, utils, API, runs)
         run: python -m unittest discover tests -v
@@ -53,7 +53,11 @@ jobs:
         # Advisory only: a new transitive CVE should be visible without
         # blocking unrelated changes; triage findings in the PR.
         continue-on-error: true
-        run: pip install --quiet pip-audit && pip-audit
+        # Keep audit tooling out of the tested application environment and SBOM.
+        run: |
+          python -m venv "$RUNNER_TEMP/pip-audit"
+          "$RUNNER_TEMP/pip-audit/bin/pip" install --quiet pip-audit
+          "$RUNNER_TEMP/pip-audit/bin/pip-audit" --disable-pip --require-hashes -r requirements.txt
 
       - name: Bill of materials and licence check
         # Runs after the Python dependencies are installed and before the

@@ -11,7 +11,7 @@ from zipfile import ZipFile
 
 from server.executive import ExecutiveDashboardAgent, MAX_FILTER_CHARS
 from server.executive_export import (render_html, render_docx, attachment_name, W,
-                                     DOCX_MIME)
+                                     CONTENT_POLICY, DOCX_MIME)
 from tests import test_executive as fixtures
 
 
@@ -263,7 +263,7 @@ class ExecutiveExportApiTests(unittest.TestCase):
         for response in (html, word):
             self.assertEqual(response.headers["cache-control"], "no-store")
             self.assertEqual(response.headers["x-content-type-options"], "nosniff")
-            self.assertIn("default-src 'none'", response.headers["content-security-policy"])
+            self.assertEqual(response.headers["content-security-policy"], CONTENT_POLICY)
         properties = property_table(HtmlDocument(html.text).tables, "Selected records", "2")
         self.assertEqual(properties["Total records"], "3")
         self.assertTrue(word.content.startswith(b"PK\x03\x04"))
