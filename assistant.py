@@ -38,6 +38,7 @@ ACTIONS = {
     "run_status": ("run_id",),
     "explain_report": ("section", "run_id"),
     "search_knowledge": ("query", "collection"),
+    "agent_scorecard": ("suite",),
 }
 # These delete something. Whoever understood the sentence — rules or
 # model — the system asks first, and only a "yes" in the next message
@@ -45,7 +46,8 @@ ACTIONS = {
 # around that.
 DESTRUCTIVE = {"forget", "clear_history"}
 # These need the run engine, which the command-line interface does not have.
-SERVER_ONLY = {"start_run", "run_status", "explain_report", "search_knowledge"}
+SERVER_ONLY = {"start_run", "run_status", "explain_report", "search_knowledge",
+               "agent_scorecard"}
 PREFERENCE_KEYS = ("tone", "language", "user_name", "save_history")
 TONES = ("friendly", "concise", "formal")
 SECTIONS = ("descriptive", "diagnostic", "experiment", "predictive", "prescriptive")
@@ -147,6 +149,14 @@ REPLIES = {
             "No knowledge collection is loaded. Point "
             "AGENTIC_OS_KNOWLEDGE_DIR at a folder of Markdown, or add one to "
             "private/knowledge/.",
+        "scorecard":
+            "Agent scorecard ({when}). Recall is the share of real cases an "
+            "agent gets right; the holdout is the number to trust.\n{rows}"
+            "{notes}",
+        "scorecard_none":
+            "No agent evaluation is available in this deployment. Run "
+            "`python scripts/agent_loop.py` where the repository's evals/ "
+            "folder is present.",
         "run_started":
             "Started analysis {run_id} on {dataset}: “{goal}”. It is open in "
             "Runs — the pipeline advances while that view is open, and "
@@ -231,6 +241,14 @@ REPLIES = {
             "لم تُحمَّل أي مجموعة معرفة. وجّه "
             "AGENTIC_OS_KNOWLEDGE_DIR إلى مجلد ماركداون، أو أضف واحداً إلى "
             "private/knowledge/.",
+        "scorecard":
+            "بطاقة أداء الوكلاء ({when}). الاستدعاء هو نسبة الحالات الحقيقية "
+            "التي يصيبها الوكيل؛ والرقم الذي يُعتمد عليه هو رقم المجموعة "
+            "المحجوزة.\n{rows}{notes}",
+        "scorecard_none":
+            "لا يتوفر تقييم للوكلاء في هذا النشر. شغّل "
+            "`python scripts/agent_loop.py` حيث يوجد مجلد evals/ الخاص "
+            "بالمستودع.",
         "run_started":
             "بدأت التحليل {run_id} على {dataset}: «{goal}». مفتوح في "
             "التحليلات — يتقدّم خط المعالجة أثناء فتح تلك الشاشة، والنشر "

@@ -85,6 +85,17 @@ TOOLS = (
          "collection": {"type": "string",
                         "description": "One collection id, to search only it."},
      }, required=("query",))},
+    {"name": "agent_scorecard",
+     "description": "Read how well the project's classifying agents are doing: "
+                    "recall on held-out cases per agent, against the floor each "
+                    "must keep, and what regressed since the last measurement. "
+                    "It reads the latest recorded measurement and never "
+                    "changes a rule, a floor or a case.",
+     "inputSchema": _schema({
+         "suite": {"type": "string",
+                   "description": "One agent's suite id, such as intent or "
+                                  "jargon, to see only it."},
+     })},
     {"name": "explain_report",
      "description": "Quote the latest report's verified headlines — one "
                     "section or all of them. The assistant quotes; it does "

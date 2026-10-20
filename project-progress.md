@@ -1,11 +1,13 @@
 # Project progress
 
-Last updated: 2026-10-20, session `agent-collaboration`, preserving `privacy-containment`, `1eb4cedb`, `360-review`, semantic-color, standards and chart-test work. The session-end skill keeps this file current; the SessionStart hook reads the *Now* section into every new session.
+Last updated: 2026-10-20, session `agent-loop`, after `agent-collaboration`, preserving `privacy-containment`, `1eb4cedb`, `360-review`, semantic-color, standards and chart-test work. The session-end skill keeps this file current; the SessionStart hook reads the *Now* section into every new session.
 
 
 **Vision.** **AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project** uses Agentic OS as its governed analytics engine. It digests several datasets with dynamic inputs, then carries them through preparation, cleaning and modelling to a multi-page interactive dashboard with live data, with insights and key findings that are always traceable to a calculation. The product scope and remaining domain work are in `docs/PROJECT_CHARTER.md`; the reusable engine milestones are in `brain/Projects/Analytics OS roadmap.md`.
 
 ## Now
+
+- **Agent measurement loop: implemented 2026-10-20** ([decision](docs/adr/2026-10-20-agent-measurement-loop.md)). The agents' confusion matrices and recall are now recorded in a ledger, compared with the floors and the previous measurement, and reported by a bounded loop (`scripts/agent_loop.py`) that stops at `done`, `needs_person`, `stalled` or `budget`. The worker repeats it on a schedule, and a read-only `agent_scorecard` tool gives agent runtimes and MCP clients the numbers. New labelled cases enter through a queue that only a named person accepts, into dev only. The loop never edits a rule, a floor or a holdout case. **What it does not do:** create new labelled cases (harvesting chat sentences or mapping corrections needs its own decision on consent, tenancy and redaction), and `done` is not accuracy (intent is 72% on its holdout; the causal floor of 68% is stale against a holdout that was fitted to and was left alone). 44 new tests; the privacy guard caught one real defect during the build.
 
 - **Knowledge graph expanded: 2026-10-20.** Reviewed the owner's Obsidian screenshot and expanded the curated brain from 27 to 45 source-backed notes. Home groups the new agent, evidence, data, security, interface and operations topics; every addition has a related incoming link. Corrected stale pipeline and mapping descriptions. Strict structure and Home coverage checks pass. The [graph guide](docs/design/KNOWLEDGE_GRAPH.md) explains optional category colors and template filtering; local application validation remains in README.md#testing.
 

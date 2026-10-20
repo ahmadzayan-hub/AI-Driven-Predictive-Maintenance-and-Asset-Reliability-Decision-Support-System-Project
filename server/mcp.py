@@ -36,8 +36,9 @@ INSTRUCTIONS = (
     "Agentic OS is a governed business-analytics workspace. Its tools save "
     "and recall the person's memory, change reply preferences, start a "
     "deterministic analytics run, report its status and quote its report's "
-    "verified headlines. Publishing a report always waits for the person's "
-    "approval in the workspace; nothing here can delete anything."
+    "verified headlines, and read the project's agents' recall scorecard. "
+    "Publishing a report always waits for the person's approval in the "
+    "workspace; nothing here can delete anything."
 )
 
 

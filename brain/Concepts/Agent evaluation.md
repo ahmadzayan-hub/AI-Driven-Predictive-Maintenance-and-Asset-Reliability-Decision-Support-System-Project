@@ -5,7 +5,7 @@ tags: [measurement, quality, agents]
 status: active
 updated: 2026-10-20
 review_every_days: 30
-sources: [docs/adr/0027-agents-are-measured.md, scripts/evaluate_agents.py, scripts/score_review.py, evals/floors.json, evals/reviewers/README.md, evals/reviewers/summary.json]
+sources: [docs/adr/0027-agents-are-measured.md, docs/adr/2026-10-20-agent-measurement-loop.md, server/agent_learning.py, scripts/agent_loop.py, scripts/evaluate_agents.py, scripts/score_review.py, evals/floors.json, evals/reviewers/README.md, evals/reviewers/summary.json]
 ---
 
 # Agent evaluation
@@ -33,6 +33,7 @@ How [[Agentic OS]] knows how often each of its agents is right: labelled synthet
 - **Two lessons from the checker:**
     - A rule that derives figures must keep to prose. The capstone dashboard's data table broke it.
     - It must count one quantity once, which the figures holdout showed.
+- **Measured on a schedule (2026-10-20):** `scripts/agent_loop.py` records every measurement in a ledger, compares it with the floors and the previous line, and stops at `done`, `needs_person`, `stalled` or `budget`. The worker repeats it when `AGENTIC_OS_EVAL_INTERVAL_SECONDS` is set, and the `agent_scorecard` tool lets a runtime or MCP client read it. It never edits a rule or a floor and never shows an improver a held-out sentence. New cases come through a queue that only a named person accepts, into dev only. `done` is not accuracy: intent is 72% on its holdout and still reports `done`.
 - **Controlled comparison:** an edited subagent loads only in a new session. So prompt versions are compared by giving a general-purpose agent on the same model each version's instructions, and changing nothing else.
 
 ## Related

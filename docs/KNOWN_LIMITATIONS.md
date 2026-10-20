@@ -100,6 +100,12 @@ placeholder controls — absent capabilities have no UI.
    lessons accumulate as vault run logs for human review. Permanent 100%
    accuracy cannot honestly be promised by any AI system; deterministic
    calculations are exact for the operations implemented.
+   The agents are measured on a schedule and the result is kept
+   (`scripts/agent_loop.py`, `AGENTIC_OS_EVAL_INTERVAL_SECONDS`, the
+   [dated decision](adr/2026-10-20-agent-measurement-loop.md)), but the loop
+   stops at `needs_person`: it never edits a rule, a floor or a holdout case.
+   `done` means no floor is broken and nothing regressed, not that an agent
+   is accurate.
 6. Every classifying agent is measured on labelled **synthetic** cases
    (ADR 0027), and the numbers are only as good as those cases. On the
    intent holdout the rules reach 72% macro recall; jargon recall is 92%.

@@ -52,6 +52,12 @@ $env:PYTHONUTF8 = '1'
 
 The worker also stops for approval. It does not publish automatically.
 
+To have the same worker re-measure the classifying agents (confusion matrices
+and recall) on a schedule, set `AGENTIC_OS_EVAL_INTERVAL_SECONDS` (at least
+60; off by default). Each measurement is appended to `data/eval-ledger.jsonl`
+and a regression or a broken recall floor is logged on standard error. It
+changes no rule. `python scripts/agent_loop.py status` shows the trend.
+
 For API clients, choose a single dataset's grouping through
 `PUT /api/datasets/{id}/mapping` with the desired `dimension` and a role
 for every column, then create a run with that `dataset_id`. The run keeps

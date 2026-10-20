@@ -1,4 +1,7 @@
 data/memory.json
+# Agent measurements and proposed cases (docs/adr/2026-10-20-agent-measurement-loop.md): runtime records, not source.
+data/eval-ledger.jsonl
+data/eval-proposals.jsonl
 # The database plus the -wal/-shm sidecars WAL mode creates alongside it.
 data/agentic.db*
 # A relative `database_file` resolves against the working directory, so a

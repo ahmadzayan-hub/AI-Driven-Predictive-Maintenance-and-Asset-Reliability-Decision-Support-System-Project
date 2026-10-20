@@ -114,6 +114,7 @@ Every classifying agent is measured (ADR 0027), with a confusion matrix, precisi
     - C was written blind.
 
   Run a reviewer on a memo and save its reply in `evals/reviewers/runs/<agent>-<memo>-<tag>.txt`. Then `python scripts/score_review.py --summary` scores every saved run three ways: in its lane, by paragraph detection with false alarms, and as a category confusion matrix. `--figures-tool` scores the Tier 0 checker the same way.
+- **Keeping the numbers current:** `python scripts/agent_loop.py` measures every agent, appends the result to a ledger, compares it with the floors and the previous measurement, and stops at `done`, `needs_person`, `stalled` or `budget`. `status` shows the trend, `watch` repeats it, and `AGENTIC_OS_EVAL_INTERVAL_SECONDS` makes the worker do it. New labelled cases enter through `propose`, and only a named person can `accept` one, into the dev split only. The `agent_scorecard` tool lets an agent runtime or MCP client read the latest numbers. The loop never edits a rule or a floor and never shows an improver a held-out sentence ([decision](adr/2026-10-20-agent-measurement-loop.md)).
 - **Prompt changes:** a subagent's instructions load when a session starts, so an edited prompt is not live until the next session. To compare two versions now, give a general-purpose agent on the same model each version's instructions, and change nothing else ("ctl" runs).
 - **What the numbers say today:**
     - On the newest blind set (v4), recall is 72% for intent, 92% for jargon and 69% for causal wording.

@@ -31,6 +31,7 @@ import uuid
 from datetime import timedelta
 from pathlib import Path
 
+from server import agent_learning
 from server.connectors import Connectors
 from server.model_gateway import ModelGateway
 from server.quota import load_limits
@@ -59,7 +60,8 @@ def read_config(config_path=None):
 
 class RunWorker:
     def __init__(self, engine, store, worker_id=None,
-                 lease_seconds=DEFAULT_LEASE_SECONDS, clock=_utcnow, connectors=None):
+                 lease_seconds=DEFAULT_LEASE_SECONDS, clock=_utcnow, connectors=None,
+                 steward=None):
         self.engine = engine
         self.store = store
         self.worker_id = worker_id or f"worker-{uuid.uuid4().hex[:8]}"
@@ -67,6 +69,8 @@ class RunWorker:
         self.clock = clock
         # Live sources (ADR 0034); None leaves them to "Refresh now".
         self.connectors = connectors
+        # Periodic agent measurement (docs/adr/2026-10-20-agent-measurement-loop.md); None leaves it to the CLI.
+        self.steward = steward
 
     def _expiry(self):
         return _stamp(self.clock() + timedelta(seconds=self.lease_seconds))
@@ -134,6 +138,12 @@ class RunWorker:
                 print(f"{self.worker_id}: refresh failed: {error!r}",
                       file=sys.stderr, flush=True)
                 refreshed = None
+            try:
+                if self.steward is not None:
+                    self.steward.tick()
+            except Exception as error:  # one failed measurement, not a dead worker
+                print(f"{self.worker_id}: evaluation failed: {error!r}",
+                      file=sys.stderr, flush=True)
             if worked is None and refreshed is None:
                 sleep(poll_seconds)
 
@@ -167,7 +177,12 @@ def build_worker(env=None, config_path=None, **kwargs):
     engine = RunEngine(store, resolve_vault_dir(env=env, config=config),
                        gateway, limits=load_limits(env), stages=stage_registry,
                        profiles=config.get("profiles") or {})
-    return RunWorker(engine, store, connectors=Connectors(engine, env=env), **kwargs)
+    interval = agent_learning.interval_from(env)
+    steward = agent_learning.Steward(
+        interval, ledger=agent_learning.Ledger(agent_learning.ledger_path(env))) \
+        if interval else None
+    return RunWorker(engine, store, connectors=Connectors(engine, env=env),
+                     steward=steward, **kwargs)
 
 
 def main(argv=None):

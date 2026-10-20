@@ -29,12 +29,13 @@ do everything, and the reply says so (`source: "rules"`).
 
 import json
 import re
+from datetime import datetime, timezone
 
 from assistant import (ACTIONS, DESTRUCTIVE, PREFERENCE_KEYS, RUN_STATES,
                        SECTION_QUESTIONS, arguments_valid, confirmation_prompt,
                        execute_local, fallback, intent, is_no, is_yes, reply,
                        understand)
-from server import knowledge, model_privacy, quota
+from server import agent_learning, knowledge, model_privacy, quota
 from server.tools import ToolBox
 
 # Enough passages that the answer is usually among them, few enough that a
@@ -120,6 +121,16 @@ def _excerpt(text, limit=KNOWLEDGE_EXCERPT_CHARS):
     if edge > limit // 2:
         cut = cut[:edge]
     return cut.rstrip() + chr(10) + "…"
+
+
+def _measured_at(stamp):
+    """"20 Oct 2026 19:52 UTC". An ISO timestamp in a reply reads as a phone
+    number to the privacy guard, so the month is written out."""
+    try:
+        moment = datetime.fromisoformat(stamp).astimezone(timezone.utc)
+    except (TypeError, ValueError):
+        return "unknown time"
+    return moment.strftime("%d %b %Y %H:%M UTC")
 
 
 class Assistant:
@@ -371,12 +382,39 @@ class Assistant:
             outcome.update(self._explain(arguments, session))
         elif action == "search_knowledge":
             outcome.update(self._search_knowledge(arguments, text, language))
+        elif action == "agent_scorecard":
+            outcome.update(self._agent_scorecard(arguments, language))
         else:
             outcome["text"] = execute_local(action, arguments, agent, text,
                                             model_reply=model_reply)
         if outcome.get("provider") is None:
             outcome.pop("provider", None)
         return outcome
+
+    def _agent_scorecard(self, arguments, language):
+        """Read the agents' latest measurement: recall per suite, with the
+        holdout first. It reads; it never measures into the ledger, and the
+        held-out sentences are not in what it returns
+        (docs/adr/2026-10-20-agent-measurement-loop.md)."""
+        card = agent_learning.scorecard(str(arguments.get("suite") or "").strip() or None)
+        if card is None:
+            return {"text": reply(language, "scorecard_none"), "result": None}
+
+        def pct(value):
+            return "-" if value is None else f"{value:.0%}"
+
+        rows = "\n".join(
+            f"{row['suite']}: holdout {pct(row['holdout'])} "
+            f"(floor {pct(row['holdout_floor'])}), dev {pct(row['dev'])}"
+            for row in card["rows"])
+        notes = ""
+        if card["findings"]:
+            notes = "\n" + ", ".join(
+                f"{f['kind'].replace('_', ' ')}: {f['suite']} {f['split']}"
+                for f in card["findings"])
+        return {"text": reply(language, "scorecard", when=_measured_at(card["at"]),
+                              rows=rows, notes=notes),
+                "result": card}
 
     def _search_knowledge(self, arguments, text, language):
         """Quote the passages that answer a question, with their citations.
