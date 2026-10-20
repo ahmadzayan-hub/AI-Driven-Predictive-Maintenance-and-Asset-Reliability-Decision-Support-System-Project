@@ -3,14 +3,18 @@ type: concept
 aliases: [KPI register, Ratio of sums]
 tags: [measurement, data]
 status: active
-updated: 2026-10-20
+updated: 2026-10-21
 review_every_days: 60
-sources: [server/metrics.py, server/maintenance/kpis.py, project-progress.md, docs/adr/0026-uneven-periods-are-read-per-record.md, docs/adr/0042-an-unmeasured-cell-is-not-a-zero.md, docs/AGENT_TEAM.md]
+sources: [server/metrics.py, server/maintenance/kpis.py, project-progress.md, docs/adr/0026-uneven-periods-are-read-per-record.md, docs/adr/0042-an-unmeasured-cell-is-not-a-zero.md, docs/AGENT_TEAM.md, docs/adr/2026-10-21-register-availability-and-pooled-reliability-measures.md]
 ---
 
 # Weighted KPIs
 
 Every rate is computed as a summed numerator over a summed denominator, never as an average of row rates. Averaging rows gives a small record the same weight as a large one, and it averages placeholders as if they were measurements.
+
+## What the register holds (21 October 2026)
+
+Fifteen measures, each a ratio of sums over a declared population ([decision](../../docs/adr/2026-10-21-register-availability-and-pooled-reliability-measures.md)). Availability is `1 - downtime / planned` (96.96% on the course data). The register used to publish operating over planned under that name; that is **utilisation** (79.39%), now its own entry. MTBF is pooled with no-failure records counted as exposure, MTTR is downtime per failure, and SLA attainment is the share of records that met target. The sentence below about the register's values being right was true of the numbers, not yet of the register, which lacked MTBF and SLA until this change. Hours-based planned maintenance, wrench time, PM compliance, backlog in weeks and cost as a share of replacement value stay out until the fields exist.
 
 ## The example, corrected
 

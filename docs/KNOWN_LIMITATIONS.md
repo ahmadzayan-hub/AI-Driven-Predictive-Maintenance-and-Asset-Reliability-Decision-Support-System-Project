@@ -446,3 +446,31 @@ models, approve publication or prove a future-failure prediction. Missing
 evidence and unsupported targets stay visible. Claude dashboard skills are
 development instructions; hosted Artifact availability is account-dependent
 and was not activated by this implementation.
+
+## KPI register: what it cannot measure yet
+
+The register ([decision](adr/2026-10-21-register-availability-and-pooled-reliability-measures.md))
+holds 15 controlled measures, each a ratio of sums over a declared population.
+These common asset-management measures are **not** in it, because the exports
+this product reads do not carry the fields, and a stand-in would be a guess:
+
+- planned-maintenance percentage **in hours**, wrench time, PM compliance and
+  schedule compliance (need hours by work type, hands-on time, and
+  scheduled-versus-done counts);
+- backlog in crew-weeks (needs outstanding hours and weekly craft capacity;
+  the register's overdue rate is a count share and is named as one);
+- maintenance cost as a share of replacement value (needs replacement values
+  for a defined asset base).
+
+Three more limits on what the figures mean:
+
+- **Availability scope.** It is operational availability on planned time from
+  the downtime recorded. Where no preventive downtime is recorded it is not
+  technical availability, and logistic delay cannot be separated.
+- **MTBF assumes exposure.** The pooled MTBF and any interval around it assume
+  a constant failure rate and independent records. Records that are not unique
+  assets (the course data repeats every `Asset_ID` across all asset classes)
+  make per-asset reliability impossible.
+- **Stored target policies are not migrated.** A target saved against
+  `availability` before 21 October 2026 was set against utilisation and should
+  be reviewed.

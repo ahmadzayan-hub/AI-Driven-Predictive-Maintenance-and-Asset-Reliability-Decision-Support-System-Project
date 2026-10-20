@@ -74,7 +74,10 @@ class ExecutiveTests(unittest.TestCase):
         self.assertEqual(measures["downtime_per_record"]["records"], 1)
         self.assertEqual(measures["downtime_per_record"]["records_unmeasured"], 1)
         self.assertEqual(measures["first_time_fix"]["value"], 70.)
-        self.assertEqual(measures["availability"]["value"], 85.)
+        # One of the two North records has no downtime reading, so availability is
+        # measured on the other alone: 1 - 10 / 100. It is not read as zero downtime.
+        self.assertEqual(measures["availability"]["value"], 90.)
+        self.assertEqual((measures["availability"]["records"], measures["availability"]["records_unmeasured"]), (1, 1))
         self.assertEqual(filters, snapshot)
         self.assertEqual(table().rows, ROWS)
         self.assertEqual(result["source"], "engine")

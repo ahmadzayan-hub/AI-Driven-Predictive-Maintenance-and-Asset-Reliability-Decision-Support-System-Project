@@ -134,7 +134,7 @@ class KpiBoundaryTest(unittest.TestCase):
         self.assertIsNone(result["value"])
 
     def test_a_percentage_result_is_scaled_once(self):
-        rows = [record(Operating_Hours=80.0, Planned_Operating_Hours=100.0)]
+        rows = [record(Downtime_Hours=20.0, Planned_Operating_Hours=100.0)]
         self.assertAlmostEqual(
             kpis.REGISTER["availability"].compute(rows)["value"], 80.0)
 
@@ -215,7 +215,9 @@ class KpiAvailabilityTest(unittest.TestCase):
     def test_missing_columns_are_reported_with_what_they_need(self):
         available, unavailable = kpis.computable(
             ["Record_ID", "Operating_Hours", "Planned_Operating_Hours"])
-        self.assertEqual([k.key for k in available], ["availability"])
+        self.assertEqual([k.key for k in available], ["utilisation"])
+        self.assertIn("availability", unavailable)
+        self.assertIn("Downtime_Hours", unavailable["availability"])
         self.assertIn("first_time_fix", unavailable)
         self.assertIn("Corrective_WO_Count", unavailable["first_time_fix"])
 
@@ -260,3 +262,154 @@ class RegisterShapeTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class CorrectedMeasuresTest(unittest.TestCase):
+    """The pooled reliability definitions (2026-10-21 decision).
+
+    Three synthetic records, small enough to check by hand:
+
+        record  planned  operating  downtime  failures  preventive  corrective  overdue  SLA target/actual
+        R1        100       80         10        2          6           4          1        8 / 6   (met)
+        R2        100       70          0        0          5           0          0        8 / 8   (met, equal)
+        R3        100       90         20        3          5           5          2        8 / 12  (missed)
+
+    Totals: planned 300, operating 240, downtime 30, failures 5,
+    preventive 16, corrective 9, overdue 3. R2 had no failure, so its
+    operating hours are exposure with nothing to divide by: it is censored.
+    """
+
+    def rows(self):
+        base = dict(Work_Order_Type="Corrective", Planned_Operating_Hours=100.0, SLA_Target_Hours=8.0)
+        return [
+            record(Record_ID="R1", Operating_Hours=80.0, Downtime_Hours=10.0, Failure_Count=2,
+                   Preventive_WO_Count=6, Corrective_WO_Count=4, Overdue_WO_Count=1,
+                   Completed_WO_Count=9, SLA_Actual_Hours=6.0, **base),
+            record(Record_ID="R2", Operating_Hours=70.0, Downtime_Hours=0.0, Failure_Count=0,
+                   Preventive_WO_Count=5, Corrective_WO_Count=0, Overdue_WO_Count=0,
+                   Completed_WO_Count=5, SLA_Actual_Hours=8.0, **base),
+            record(Record_ID="R3", Operating_Hours=90.0, Downtime_Hours=20.0, Failure_Count=3,
+                   Preventive_WO_Count=5, Corrective_WO_Count=5, Overdue_WO_Count=2,
+                   Completed_WO_Count=8, SLA_Actual_Hours=12.0, **base),
+        ]
+
+    def value(self, key, rows=None):
+        return kpis.REGISTER[key].compute(self.rows() if rows is None else rows)
+
+    def test_availability_is_uptime_on_planned_time_not_utilisation(self):
+        result = self.value("availability")
+        self.assertAlmostEqual(result["value"], 90.0)             # 1 - 30 / 300
+        self.assertEqual(result["formula"], "1 - sum(Downtime_Hours) / sum(Planned_Operating_Hours)")
+        self.assertAlmostEqual(self.value("utilisation")["value"], 80.0)   # 240 / 300
+        self.assertNotEqual(kpis.REGISTER["availability"].formula,
+                            kpis.REGISTER["utilisation"].formula,
+                            "operating / planned is utilisation; the register must not call it availability")
+
+    def test_the_old_definition_is_not_what_availability_returns(self):
+        """ADR 0049 shipped operating / planned under this name and reported 79.39%
+        beside a team dashboard showing 97.0%. A hand-built case pins the fix."""
+        rows = [record(Operating_Hours=60.0, Downtime_Hours=1.0, Planned_Operating_Hours=100.0)]
+        self.assertAlmostEqual(self.value("availability", rows)["value"], 99.0)
+        self.assertAlmostEqual(self.value("utilisation", rows)["value"], 60.0)
+
+    def test_inherent_availability_is_mtbf_over_mtbf_plus_mttr(self):
+        mtbf, mttr = self.value("mtbf")["value"], self.value("mttr")["value"]
+        inherent = self.value("availability_inherent")
+        self.assertAlmostEqual(inherent["value"], 100 * mtbf / (mtbf + mttr))
+        self.assertAlmostEqual(inherent["value"], 100 * 240 / 270)
+        self.assertNotAlmostEqual(inherent["value"], self.value("availability")["value"],
+                                  msg="the two variants use different time bases and must not be confused")
+
+    def test_mtbf_is_pooled_and_a_record_with_no_failure_adds_exposure_only(self):
+        result = self.value("mtbf")
+        self.assertAlmostEqual(result["value"], 48.0)             # 240 / 5
+        self.assertEqual((result["numerator"], result["denominator"]), (240.0, 5.0))
+        # The wrong way: the stored per-record MTBF (operating / failures, with a
+        # no-failure record carrying its operating hours) averaged over records.
+        row_values = [80 / 2, 70.0, 90 / 3]
+        self.assertAlmostEqual(sum(row_values) / 3, 46.666666, places=5)
+        self.assertNotAlmostEqual(result["value"], sum(row_values) / 3, places=2)
+        # More censored exposure raises MTBF by exactly its hours / failures.
+        more = self.rows() + [record(Record_ID="R4", Operating_Hours=100.0, Downtime_Hours=0.0,
+                                     Failure_Count=0, Planned_Operating_Hours=100.0)]
+        self.assertAlmostEqual(self.value("mtbf", more)["value"], 68.0)   # 340 / 5
+        self.assertEqual(self.value("mtbf", more)["records"], 4)
+
+    def test_mtbf_with_no_failure_anywhere_is_undefined_not_zero_or_infinite(self):
+        rows = [record(Failure_Count=0, Downtime_Hours=0.0, Operating_Hours=80.0)]
+        result = self.value("mtbf", rows)
+        self.assertIsNone(result["value"])
+        self.assertIn("undefined", result["undefined_reason"])
+
+    def test_mttr_is_downtime_per_failure_on_records_that_had_a_failure(self):
+        result = self.value("mttr")
+        self.assertAlmostEqual(result["value"], 6.0)              # 30 / 5
+        self.assertEqual(result["records"], 2)
+        self.assertEqual(result["records_excluded"], 1)           # R2 had no failure
+        self.assertEqual(result["population"], "records with a failure")
+
+    def test_overdue_rate_and_overdue_share_are_two_named_measures(self):
+        rate, share = self.value("overdue_rate"), self.value("overdue_share")
+        self.assertAlmostEqual(rate["value"], 100 * 3 / 25)       # overdue / (preventive + corrective)
+        self.assertAlmostEqual(share["value"], 100 * 3 / 22)      # overdue / completed
+        self.assertNotEqual(rate["formula"], share["formula"])
+        self.assertNotEqual(kpis.REGISTER["overdue_rate"].title, kpis.REGISTER["overdue_share"].title)
+
+    def test_sla_attainment_counts_equality_as_met(self):
+        result = self.value("sla_attainment")
+        self.assertAlmostEqual(result["value"], 100 * 2 / 3)      # R1 met, R2 met on equality, R3 missed
+        self.assertEqual(result["formula"],
+                         "count(records where SLA_Actual_Hours <= SLA_Target_Hours) / count(records)")
+
+    def test_a_record_with_no_sla_reading_is_unmeasured_not_a_miss(self):
+        rows = self.rows()
+        rows[2]["SLA_Actual_Hours"] = None
+        result = self.value("sla_attainment", rows)
+        self.assertEqual((result["records"], result["records_unmeasured"]), (2, 1))
+        self.assertAlmostEqual(result["value"], 100.0)
+
+    def test_the_sla_score_is_not_attainment(self):
+        """The mean of MIN(1, target / actual) is a performance score. It must not
+        be offered under the compliance name, so it is not in the register."""
+        self.assertNotIn("sla_compliance", kpis.REGISTER)
+        self.assertNotIn("sla_score", kpis.REGISTER)
+        score = sum(min(1, 8 / a) for a in (6.0, 8.0, 12.0)) / 3
+        self.assertAlmostEqual(score, 0.8889, places=4)
+        self.assertGreater(100 * score, self.value("sla_attainment")["value"])
+
+    def test_first_time_fix_and_repeat_repair_use_corrective_work_and_sum_to_one(self):
+        rows = [record(Record_ID="C1", First_Time_Fix_Count=3, Repeat_Repair_Count=1, Corrective_WO_Count=4),
+                record(Record_ID="C2", First_Time_Fix_Count=4, Repeat_Repair_Count=2, Corrective_WO_Count=6),
+                record(Record_ID="P1", Work_Order_Type="Preventive", First_Time_Fix_Count=0,
+                       Repeat_Repair_Count=0, Corrective_WO_Count=0)]
+        first, repeat = self.value("first_time_fix", rows), self.value("repeat_repair", rows)
+        self.assertAlmostEqual(first["value"], 70.0)               # 7 / 10, not (75 + 66.7 + 0) / 3
+        self.assertAlmostEqual(first["value"] + repeat["value"], 100.0)
+        self.assertEqual(first["records_excluded"], 1)
+
+    def test_every_new_or_changed_measure_prints_its_formula_and_has_both_titles(self):
+        for key in ("availability", "utilisation", "availability_inherent", "mtbf", "mttr",
+                    "overdue_rate", "overdue_share", "sla_attainment"):
+            with self.subTest(kpi=key):
+                kpi = kpis.REGISTER[key]
+                self.assertIn("/", kpi.formula)
+                self.assertTrue(kpi.title.strip())
+                self.assertTrue(any("\u0600" <= ch <= "\u06ff" for ch in kpi.title_ar), key)
+                self.assertTrue(kpi.meaning.strip() and kpi.edge_cases.strip(), key)
+                self.assertIn(kpi.missing, kpis.MISSING_POLICIES)
+
+    def test_hours_based_and_replacement_value_measures_are_not_offered(self):
+        """These need fields no export here carries. Offering a stand-in would be
+        a guess presented as a measurement; they are named gaps instead."""
+        for key in ("planned_maintenance_hours", "wrench_time", "pm_compliance",
+                    "schedule_compliance", "backlog_weeks", "maintenance_cost_pct_rav"):
+            self.assertNotIn(key, kpis.REGISTER)
+
+    def test_availability_needs_downtime_and_planned_hours_and_says_so(self):
+        _, unavailable = kpis.computable(["Record_ID", "Operating_Hours", "Planned_Operating_Hours"])
+        self.assertIn("Downtime_Hours", unavailable["availability"])
+        available, unavailable = kpis.computable(["Downtime_Hours", "Planned_Operating_Hours"])
+        keys = [k.key for k in available]
+        self.assertIn("availability", keys)
+        self.assertNotIn("utilisation", keys)
+        self.assertIn("Operating_Hours", unavailable["utilisation"])
+

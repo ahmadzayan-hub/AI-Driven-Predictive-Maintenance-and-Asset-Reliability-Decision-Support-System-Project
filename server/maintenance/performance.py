@@ -44,8 +44,8 @@ class PolicyError(ValueError):
 def validate_rules(rules):
     """Validate, bound and normalize the complete replacement policy."""
     if not isinstance(rules, dict) or len(rules) > MAX_RULES:
-        raise PolicyError("Supply at most eight registered KPI target rules.",
-                          "حدد ثماني قواعد أهداف كحد أقصى لمؤشرات الأداء المسجلة.")
+        raise PolicyError(f"Supply at most {MAX_RULES} registered KPI target rules.",
+                          f"حدد {MAX_RULES} قاعدة أهداف كحد أقصى لمؤشرات الأداء المسجلة.")
     normalized = {}
     for key, raw in rules.items():
         if key not in REGISTER or not isinstance(raw, dict):

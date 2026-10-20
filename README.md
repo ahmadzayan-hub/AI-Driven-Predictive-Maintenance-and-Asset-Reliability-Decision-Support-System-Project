@@ -422,6 +422,18 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### KPI register: availability and pooled reliability measures — 21 October 2026
+
+Source-only change ([decision](docs/adr/2026-10-21-register-availability-and-pooled-reliability-measures.md)).
+`python scripts/verify.py --quick` on this change: **1,485 Python tests reported,
+153 skipped**, brain check (45 notes), type check, and **270 frontend unit tests**
+passed. The two Playwright specs that pinned the old availability figure,
+`executive` and `metric-colors`, passed **12 of 12** (desktop and phone, English
+and Arabic) against a fresh production build. The full Playwright suite and
+PostgreSQL were not run for this change. Checked outside the repository
+against the private 5,000-row course dataset: the register reproduces the
+corrected workbook and the Power BI report's printed figures.
+
 ### Commercial SaaS assessment — 21 October 2026
 
 The [competitive assessment](docs/assessments/2026-10-21-saas-competitive-benchmark.md)

@@ -22,6 +22,13 @@ measured.
 **A zero denominator is not perfect performance.** It is an absence, and
 it is reported as one.
 
+**A record with nothing to divide by is exposure, not an event.** MTBF is
+operating hours over failures, summed over every record. A record with no
+failure adds its operating hours to the numerator and nothing to the
+denominator: it is censored. Giving it one failure at the end of its hours,
+as a stored per-record MTBF does, and then averaging, overstates the result
+(the 2026-10-21 decision).
+
 **An unmeasured cell is not a zero** (ADR 0042). A record counts only when
 every column the arithmetic reads holds a finite number; the rest are
 excluded from the sums and from the record count, and reported as
@@ -80,6 +87,33 @@ every_record.columns = ()
 # expressible without inventing a column of ones.
 RECORDS = "__records__"
 
+class Count:
+    """A term that counts the records satisfying a condition.
+
+    For a share of records, not of a column's total: "the share of jobs that
+    met their SLA target" counts jobs. The condition names the columns it
+    reads (`columns`) so the register can require them and report a record
+    that lacks one as unmeasured instead of as a miss.
+    """
+
+    def __init__(self, predicate, columns, description):
+        self.predicate = predicate
+        self.columns = tuple(columns)
+        self.description = description
+
+
+def met_sla(row):
+    """Response time achieved is within the response time promised.
+
+    Equality counts as met: a job finished exactly on target kept its promise.
+    """
+    actual, target = _num(row.get("SLA_Actual_Hours")), _num(row.get("SLA_Target_Hours"))
+    return actual is not None and target is not None and actual <= target
+
+
+met_sla.columns = ("SLA_Actual_Hours", "SLA_Target_Hours")
+
+
 # What a KPI does with a record whose formula columns are not all
 # measurable. EXCLUDE drops the record from the sums *and* from the
 # record count, and reports it; ZERO declares that a blank is a measured
@@ -109,7 +143,7 @@ class Kpi:
 
     def __init__(self, key, title, title_ar, numerator, denominator, population,
                  population_name, scale, meaning, *, edge_cases=None,
-                 missing=EXCLUDE):
+                 missing=EXCLUDE, complement=False):
         self.key = key
         self.title = title
         self.title_ar = title_ar
@@ -124,16 +158,24 @@ class Kpi:
             raise ValueError(f"{key}: missing policy {missing!r} is not one of "
                              f"{', '.join(MISSING_POLICIES)}")
         self.missing = missing
+        # True for a measure defined as one minus a ratio of sums, such as
+        # availability: the time NOT lost. The result is still a ratio of
+        # sums, taken from the complement, so no per-record rate is averaged.
+        self.complement = complement
 
     @staticmethod
     def _columns(term):
-        """A term as the tuple of columns it sums over."""
+        """A term as the tuple of columns it reads."""
+        if isinstance(term, Count):
+            return term.columns
         if term == RECORDS:
             return ()
         return (term,) if isinstance(term, str) else tuple(term)
 
     @classmethod
     def _describe(cls, term):
+        if isinstance(term, Count):
+            return f"count(records where {term.description})"
         if term == RECORDS:
             return "count(records)"
         return f"sum({' + '.join(cls._columns(term))})"
@@ -144,6 +186,8 @@ class Kpi:
         No `or 0` here. An unmeasured cell is not a zero, and deciding
         that is `measurable` and `compute`'s job, above this arithmetic.
         """
+        if isinstance(term, Count):
+            return float(sum(1 for row in rows if term.predicate(row)))
         if term == RECORDS:
             return float(len(rows))
         total = 0.0
@@ -168,7 +212,8 @@ class Kpi:
 
     @property
     def formula(self):
-        return f"{self._describe(self.numerator)} / {self._describe(self.denominator)}"
+        ratio = f"{self._describe(self.numerator)} / {self._describe(self.denominator)}"
+        return f"1 - {ratio}" if self.complement else ratio
 
     @property
     def formula_columns(self):
@@ -216,6 +261,8 @@ class Kpi:
         numerator = self._total(self.numerator, measured)
         denominator = self._total(self.denominator, measured)
         value = None if denominator == 0 else numerator / denominator
+        if value is not None and self.complement:
+            value = 1 - value
         if self.scale == contract.PERCENT and value is not None:
             value *= 100
         if not measured and population:
@@ -300,20 +347,90 @@ _add(Kpi("repeat_repair", "Repeat repair rate", "معدل تكرار الإصل�
          "Share of corrective work that came back.",
          edge_cases="Same population as first-time fix, so the two agree."))
 
-_add(Kpi("overdue_share", "Overdue share of work orders", "نسبة أوامر العمل المتأخرة",
+_add(Kpi("overdue_share", "Overdue as a share of completed work",
+         "المتأخر كنسبة من الأعمال المنجزة",
          "Overdue_WO_Count", "Completed_WO_Count", every_record,
          "all records", contract.PERCENT,
          "Backlog pressure as a share of completed work.",
          edge_cases="Overdue is a stock at a moment; completed is activity over "
-                    "a period. Comparing them is a ratio, not a conservation."))
+                    "a period. Comparing them is a ratio, not a conservation. "
+                    "Not the overdue rate: that divides by all work raised "
+                    "(preventive plus corrective), so the two differ for the "
+                    "same data."))
+
+_add(Kpi("overdue_rate", "Overdue rate of work orders raised",
+         "معدل التأخر في أوامر العمل",
+         "Overdue_WO_Count",
+         ("Preventive_WO_Count", "Corrective_WO_Count"), every_record,
+         "all records", contract.PERCENT,
+         "Share of the work orders raised that are overdue.",
+         edge_cases="A count share, not a standards backlog: a backlog is "
+                    "outstanding work hours divided by weekly craft capacity, in "
+                    "weeks, which needs fields most exports lack. Matches the "
+                    "stored WO_Backlog_Rate per record, pooled."))
 
 _add(Kpi("availability", "Availability", "الجاهزية",
+         "Downtime_Hours", "Planned_Operating_Hours", every_record,
+         "all records", contract.PERCENT,
+         "Share of planned time the asset was not down.",
+         complement=True,
+         edge_cases="Operational availability on planned time: 1 - downtime / "
+                    "planned, pooled. It is only as complete as the downtime "
+                    "recorded: where no preventive downtime is recorded it is "
+                    "not technical availability, and it cannot separate logistic "
+                    "delay. Operating divided by planned is utilisation, a "
+                    "different measure that this register used to publish under "
+                    "this name. A stored Availability_Pct column is a per-record "
+                    "0-1 fraction; its mean is not this figure."))
+
+_add(Kpi("utilisation", "Utilisation", "نسبة الاستخدام",
          "Operating_Hours", "Planned_Operating_Hours", every_record,
          "all records", contract.PERCENT,
          "Share of planned hours the asset actually ran.",
-         edge_cases="A stored Availability_Pct column may use a different "
-                    "definition, usually (planned - downtime) / planned, and may "
-                    "be a 0-1 fraction. State which definition a figure uses."))
+         edge_cases="Idle time that was planned, or demand that was not there, "
+                    "lowers utilisation without any failure. It says how much of "
+                    "the plan was used, not how reliable the asset was."))
+
+_add(Kpi("availability_inherent", "Inherent availability (operating-time basis)",
+         "الجاهزية الذاتية (على أساس زمن التشغيل)",
+         "Operating_Hours", ("Operating_Hours", "Downtime_Hours"), every_record,
+         "all records", contract.PERCENT,
+         "Operating time as a share of operating time plus downtime.",
+         edge_cases="Equals MTBF / (MTBF + MTTR) when every downtime hour follows "
+                    "a failure. A different time base from availability, so the "
+                    "two differ for the same data: name the variant."))
+
+_add(Kpi("mtbf", "Mean time between failures", "متوسط الزمن بين الأعطال",
+         "Operating_Hours", "Failure_Count", every_record,
+         "all records", contract.HOURS,
+         "Operating hours per failure, for repairable items.",
+         edge_cases="Pooled: total operating hours over total failures. A record "
+                    "with no failure is censored; its hours count as exposure and "
+                    "it adds no failure. Averaging a stored per-record MTBF, "
+                    "which gives such a record one failure at the end of its "
+                    "hours, overstates the figure. Undefined, not zero or "
+                    "infinite, when no failure was recorded."))
+
+_add(Kpi("mttr", "Mean time to restore (downtime per failure)",
+         "متوسط زمن الاستعادة (التوقف لكل عطل)",
+         "Downtime_Hours", "Failure_Count", with_failure,
+         "records with a failure", contract.HOURS,
+         "Hours of downtime per failure.",
+         edge_cases="The restoration-time variant: all recorded downtime per "
+                    "failure, so it includes detection, waiting and logistic "
+                    "delay if the source recorded them. It is not active repair "
+                    "time. Confirm which a stored MTTR column holds before "
+                    "comparing."))
+
+_add(Kpi("sla_attainment", "SLA attainment", "نسبة تحقيق مستوى الخدمة",
+         Count(met_sla, met_sla.columns, "SLA_Actual_Hours <= SLA_Target_Hours"),
+         RECORDS, every_record,
+         "all records", contract.PERCENT,
+         "Share of records that met their service-level target.",
+         edge_cases="A record finished exactly on target counts as met. A record "
+                    "missing either hour reading is unmeasured, not a miss. The "
+                    "mean of min(1, target / actual) is a performance score, not "
+                    "attainment, and is deliberately not in this register."))
 
 _add(Kpi("downtime_per_record", "Downtime per record", "التوقف لكل سجل",
          "Downtime_Hours", RECORDS, every_record,

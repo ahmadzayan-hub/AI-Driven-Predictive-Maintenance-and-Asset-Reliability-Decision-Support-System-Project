@@ -284,7 +284,12 @@ test('filtered executive measures, evidence and downloaded reports share the exa
     records_excluded: 1, records_unmeasured: 0, undefined_reason: null,
   })
   expect(firstTimeFix!.value).toBeCloseTo(57.5, 12)
+  // Availability is 1 - downtime / planned: downtime 4 + 10 + 6 = 20 over planned 300.
+  // It used to be operating / planned (265 / 300), which is utilisation.
   expect(expected.kpis.measures.find((m) => m.key === 'availability')).toMatchObject({
+    numerator: 20, denominator: 300, records: 3,
+  })
+  expect(expected.kpis.measures.find((m) => m.key === 'utilisation')).toMatchObject({
     numerator: 265, denominator: 300, records: 3,
   })
   expect(expected.kpis.measures.find((m) => m.key === 'downtime_per_record')).toMatchObject({

@@ -474,7 +474,7 @@ class MaintenanceKpiEndpointTests(unittest.TestCase):
         body, measures = self.measures(run["id"])
         self.assertIn("downtime_per_record", measures)
         self.assertIn("availability", body["unavailable"])
-        self.assertIn("Operating_Hours", body["unavailable"]["availability"])
+        self.assertIn("Planned_Operating_Hours", body["unavailable"]["availability"])
 
     def test_the_titles_come_back_in_the_reader_s_language(self):
         run = self.finished_run()

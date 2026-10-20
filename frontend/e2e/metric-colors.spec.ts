@@ -128,7 +128,8 @@ async function expectFullScope(page: Page, language: Language) {
   await expect(page.locator('.exec-scope strong')).toHaveText('4')
   await expectMetric(page, 'first_time_fix', 'okay', /^75\s*%$/, language)
   await expectMetric(page, 'repeat_repair', 'bad', /^25\s*%$/, language)
-  await expectMetric(page, 'availability', 'okay', /^81\.25\s*%$/, language)
+  // 1 - (4 + 10 + 6 + 20) / 400: planned time not lost to downtime (was operating / planned, 81.25%).
+  await expectMetric(page, 'availability', 'okay', /^90\s*%$/, language)
   await expectMetric(page, 'downtime_per_record', 'good', language === 'ar' ? /^10\s*ساعة$/ : /^10\s*h$/, language)
   await expectMetric(page, 'preventive_share', 'unassessed', /^7\.69\s*%$/, language)
   await expectMetric(page, 'loss_per_downtime_hour', 'unavailable', language === 'ar' ? /^غير متاح\s*$/ : /^Not available\s*$/, language)

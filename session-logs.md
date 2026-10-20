@@ -1051,3 +1051,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** the suite runs end to end through the real `Assistant.understand` with a scripted provider (valid answer, invalid answer falling back to the rules, a required argument missing). It has not been run against a real model: no provider or key is configured here, and the session's own API endpoint is not the product's to use.
 - **Decisions:** the model suite is opt-in because it sends every case to a provider. No claim is made about how a model would score.
 - **Open / next:** configure a provider (a rotated key or a local Ollama model) and run `python scripts/evaluate_agents.py --suite intent_model --split blind_v7` to get the real number; compare it with the rules' 61% on that set.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (KPI register)
+
+**Goal:** add the corrected pooled KPI definitions to the KPI register, with tests.
+
+- **Done:** found that the register's own `availability` was operating over planned hours (utilisation), against the dataset's field, the dashboard and the standards family, and that MTBF, MTTR and SLA attainment were absent. Changed `availability`; added `utilisation`, `availability_inherent`, `mtbf`, `mttr`, `overdue_rate`, `sla_attainment`; retitled `overdue_share`. New mechanisms: `Kpi(complement=True)` and a `Count` term. Contract notes on `MTBF_Hours`/`MTTR_Hours`. Dated decision amending ADR 0049, bilingual handoff table, known limitations, brain, README validation entry.
+- **Verified:** `verify.py --quick`: 1485 Python tests (153 skipped), 270 frontend tests, brain and type checks passed. 12 of 12 Playwright cases for `executive` and `metric-colors` passed on a fresh build (desktop and phone, English and Arabic). The 14 new tests failed before the implementation (4 failures and 15 errors in the first run). Outside the repo, the register reproduced the corrected workbook and dashboard on the private 5,000-row dataset; that data stayed in the git-ignored `private/` folder.
+- **Decisions:** reversed ADR 0049's availability choice in a new dated record, not by editing the old one. The SLA performance score is deliberately not in the register. Hours-based and replacement-value measures are not offered: no stand-ins.
+- **Open / next:** stored target policies on `availability` are not migrated; a held-out review of the standards wording once the standards texts are available; the full Playwright suite and PostgreSQL were not run.
