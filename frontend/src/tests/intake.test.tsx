@@ -26,6 +26,16 @@ afterEach(() => {
 })
 
 describe('real data intake', () => {
+  it('uses Arabic custom stage names in the profile help and execution plan', async () => {
+    applyLocale('ar')
+    vi.mocked(api.pipelines).mockResolvedValue({
+      stages: [{ role: 'rail_asset_manager', title: 'English railway title', title_ar: 'وكيل أصول السكك', after: 'cleaner', question: null, can_fail_run: false }],
+      profiles: { maintenance: ['rail_asset_manager'] }, default: [], problems: [],
+    })
+    render(<RunsView preset={{ kind: 'upload', profile: 'maintenance' }} />)
+    await waitFor(() => expect(screen.getAllByText(/وكيل أصول السكك/)).toHaveLength(2))
+    expect(screen.queryByText(/English railway title/)).not.toBeInTheDocument()
+  })
   it('blocks empty upload and stored submissions instead of running sample data', async () => {
     const user = userEvent.setup()
     render(<RunsView preset={{ kind: 'upload' }} />)

@@ -18,7 +18,10 @@ is capped; and every call's own text is recorded, so what the driver
 did is on the transcript verbatim, whatever it says afterwards.
 """
 
+import json
+
 from assistant import ACTIONS, DESTRUCTIVE, PREFERENCE_KEYS, SECTIONS, arguments_valid, reply
+from server import model_privacy
 
 MAX_STEPS = 8
 MAX_STEP_TEXT = 2000
@@ -156,7 +159,19 @@ class ToolBox:
         # dataset names and as the fallback goal; a driver's arguments
         # are that sentence.
         text = " ".join(str(v) for v in arguments.values())
+        if name in ("explain_report", "run_status"):
+            reason = self.assistant._model_privacy_reason(self.session, text)
+            if reason:
+                return {"ok": False, "arguments": arguments,
+                        "result": None, "text": reason}
         outcome = self.assistant._execute(name, arguments, self.session, text,
                                           source="runtime")
+        # Tool replies are model input too, including an MCP client outside
+        # this process. Preserve completed side effects, but withhold any
+        # detected private reply and its structured result from that client.
+        if model_privacy.blocks_model(texts=[outcome["text"],
+                                            json.dumps(outcome.get("result"))]):
+            return {"ok": True, "arguments": arguments, "result": None,
+                    "text": model_privacy.notice(language)}
         return {"ok": True, "arguments": arguments,
                 "result": outcome.get("result"), "text": outcome["text"]}

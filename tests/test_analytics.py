@@ -15,9 +15,9 @@ from server import analytics
 
 
 def run_pipeline(dataset_text, goal="Analyze the data", name="test.csv",
-                 gateway=None, glossary=None):
+                 gateway=None, glossary=None, language="en"):
     ctx = {"goal": goal, "dataset_name": name, "dataset_text": dataset_text,
-           "run_id": "test-run", "glossary": glossary}
+           "run_id": "test-run", "glossary": glossary, "report_language": language}
     results = {}
     for role, stage in analytics.PIPELINE:
         result = (stage(ctx, gateway=gateway)
@@ -42,6 +42,43 @@ def linear_dataset():
 
 
 class FourAnalyticsTypesTestCase(unittest.TestCase):
+    @staticmethod
+    def fractional_groups():
+        lines = ["month,team,sales"]
+        for i in range(1000):
+            lines.extend((f"2026-01,G{i:04d},1.004",
+                          f"2026-02,G{i:04d},1.008"))
+        return "\n".join(lines) + "\n"
+
+    def test_fractional_group_evidence_conserves_totals_and_changes_in_both_languages(self):
+        for language in ("en", "ar"):
+            with self.subTest(language=language):
+                ctx, results = run_pipeline(self.fractional_groups(), language=language)
+                self.assertEqual(results["validator"]["status"], "succeeded",
+                                 results["validator"]["quality_checks"])
+                prep = ctx["preparer"]
+                self.assertAlmostEqual(prep["total"], 2012.0, places=10)
+                self.assertAlmostEqual(prep["groups"]["G0000"], 2.012, places=12)
+                self.assertAlmostEqual(prep["trend"]["2026-01"], 1004.0, places=10)
+                self.assertAlmostEqual(prep["trend"]["2026-02"], 1008.0, places=10)
+                self.assertAlmostEqual(math.fsum(prep["groups"].values()),
+                                       prep["total"], places=10)
+                changes = ctx["diagnostic"]["contributions"]
+                self.assertEqual(len(changes), 1000)
+                self.assertAlmostEqual(math.fsum(c["change"] for c in changes), 4.0,
+                                       places=10)
+                self.assertAlmostEqual(prep["groups"]["G0000"] / prep["total"],
+                                       0.001, places=12)
+                self.assertIn("reporter", results)
+
+    def test_precision_fix_still_rejects_inconsistent_group_and_change_evidence(self):
+        ctx, _ = run_pipeline(self.fractional_groups())
+        ctx["preparer"]["groups"]["G0000"] += 0.1
+        ctx["diagnostic"]["contributions"][0]["change"] += 0.1
+        checks = {c["name"]: c for c in analytics.validator(ctx)["quality_checks"]}
+        self.assertFalse(checks["group_totals_reconcile"]["passed"])
+        self.assertFalse(checks["change_decomposition_reconciles"]["passed"])
+
     def test_every_type_runs_and_produces_its_own_report(self):
         ctx, results = run_pipeline(analytics.sample_dataset())
         for name, question in analytics.ANALYTICS_TYPES:

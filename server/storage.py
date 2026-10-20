@@ -12,6 +12,10 @@ placeholder differs. Rows cross the boundary as plain dicts, so the
 engine never sees a driver type.
 """
 
+import hashlib
+import threading
+from contextlib import contextmanager
+
 # The single source of truth for which tables exist. Backup, restore and
 # test teardown all derive from this, so adding a table cannot leave one
 # of them stale (a bug that has already bitten once).
@@ -107,6 +111,54 @@ SCHEMA_STATEMENTS = [
 class SqlStore:
     """Shared SQL behaviour. Subclasses supply the connection and dialect."""
 
+    def __init__(self):
+        self._operation_lock = threading.RLock()
+        self._transaction_depth = 0
+
+    @contextmanager
+    def atomic(self, key):
+        """Serialize one logical mutation, including its checks and writes.
+
+        Nested calls share the outer transaction. PostgreSQL locks only the
+        named owner/run; SQLite serializes writers as its local-mode contract.
+        A lost connection aborts the operation, never retries a fragment of it.
+        """
+        with self._operation_lock:
+            if self._transaction_depth:
+                self._transaction_depth += 1
+                try:
+                    yield
+                finally:
+                    self._transaction_depth -= 1
+                return
+            self._begin_transaction()
+            self._transaction_depth = 1
+            try:
+                self._lock_transaction(key)
+                yield
+                self._finish_transaction("COMMIT")
+            except BaseException:
+                try:
+                    self._finish_transaction("ROLLBACK")
+                except Exception:
+                    pass  # Preserve the original failure, including connection loss.
+                raise
+            finally:
+                self._transaction_depth = 0
+
+    def _begin_transaction(self):
+        self._conn.execute("BEGIN IMMEDIATE")
+
+    def _lock_transaction(self, key):
+        pass  # SQLite's BEGIN IMMEDIATE already owns the write reservation.
+
+    def _finish_transaction(self, statement):
+        cursor = self._conn.cursor()
+        try:
+            cursor.execute(statement)
+        finally:
+            cursor.close()
+
     def close(self):
         """Release the connection.
 
@@ -139,20 +191,28 @@ class SqlStore:
         return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
     def _exec(self, sql, params=()):
-        cursor = self._conn.cursor()
-        cursor.execute(sql.replace("?", self.placeholder), params)
-        rows = self._rows(cursor)
-        self._commit()
-        return rows
+        with self._operation_lock:
+            cursor = self._conn.cursor()
+            try:
+                cursor.execute(sql.replace("?", self.placeholder), params)
+                rows = self._rows(cursor)
+                self._commit()
+                return rows
+            finally:
+                cursor.close()
 
     def _exec_rowcount(self, sql, params=()):
         """Like _exec, but reports how many rows the statement changed —
         which is how a lease claim knows whether it won the race."""
-        cursor = self._conn.cursor()
-        cursor.execute(sql.replace("?", self.placeholder), params)
-        count = cursor.rowcount
-        self._commit()
-        return count
+        with self._operation_lock:
+            cursor = self._conn.cursor()
+            try:
+                cursor.execute(sql.replace("?", self.placeholder), params)
+                count = cursor.rowcount
+                self._commit()
+                return count
+            finally:
+                cursor.close()
 
     def _create_schema(self):
         for statement in SCHEMA_STATEMENTS:
@@ -505,13 +565,30 @@ class SqlStore:
                                     "content": content,
                                     "created_at": created_at})
 
-    def list_notes(self):
-        return self._exec(
-            "SELECT path, run_id, created_at FROM vault_notes "
-            "ORDER BY created_at DESC")
+    def list_notes(self, owner=None):
+        """Published knowledge inherits its run's owner, including old notes.
 
-    def get_note(self, path):
-        rows = self._exec("SELECT * FROM vault_notes WHERE path = ?", (path,))
+        None is reserved for trusted operator callers. API requests supply
+        their subject unless the principal has platform administration.
+        Filtering in SQL keeps both note paths and contents out of another
+        customer's response; the filesystem is never a read fallback.
+        """
+        if owner is None:
+            return self._exec(
+                "SELECT path, run_id, created_at FROM vault_notes "
+                "ORDER BY created_at DESC")
+        return self._exec(
+            "SELECT n.path, n.run_id, n.created_at FROM vault_notes n "
+            "JOIN runs r ON r.id = n.run_id WHERE r.owner = ? "
+            "ORDER BY n.created_at DESC", (owner,))
+
+    def get_note(self, path, owner=None):
+        if owner is None:
+            rows = self._exec("SELECT * FROM vault_notes WHERE path = ?", (path,))
+        else:
+            rows = self._exec(
+                "SELECT n.* FROM vault_notes n JOIN runs r ON r.id = n.run_id "
+                "WHERE n.path = ? AND r.owner = ?", (path, owner))
         return rows[0] if rows else None
 
     # -- datasets ---------------------------------------------------------
@@ -607,6 +684,7 @@ class SQLiteStore(SqlStore):
     placeholder = "?"
 
     def __init__(self, path):
+        super().__init__()
         import os
         import sqlite3
         import tempfile
@@ -625,18 +703,22 @@ class SQLiteStore(SqlStore):
             path = Path(tempfile.gettempdir()) / "agentic-os" / path.name
             path.parent.mkdir(parents=True, exist_ok=True)
         self.path = path
-        self._conn = sqlite3.connect(str(path), check_same_thread=False)
+        # A bounded local narration can take 60 seconds. Other writers wait
+        # for that stage's atomic commit instead of failing after five seconds.
+        self._conn = sqlite3.connect(str(path), check_same_thread=False, timeout=65)
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._create_schema()
 
     def _commit(self):
-        self._conn.commit()
+        if not self._transaction_depth:
+            self._conn.commit()
 
 
 class PostgresStore(SqlStore):
     placeholder = "%s"
 
     def __init__(self, database_url):
+        super().__init__()
         import psycopg2  # lazy: only hosted mode needs the driver
 
         self._psycopg2 = psycopg2
@@ -648,6 +730,15 @@ class PostgresStore(SqlStore):
         conn = self._psycopg2.connect(self._database_url, connect_timeout=10)
         conn.autocommit = True
         return conn
+
+    def _begin_transaction(self):
+        # Reconnection is safe before the transaction has acquired any state.
+        self._exec("BEGIN")
+
+    def _lock_transaction(self, key):
+        identifier = int.from_bytes(hashlib.sha256(key.encode()).digest()[:8],
+                                    "big", signed=True)
+        self._exec("SELECT pg_advisory_xact_lock(?)", (identifier,))
 
     def _retrying(self, statement, sql, params):
         """Run a statement, reconnecting once if the connection is gone.
@@ -665,16 +756,19 @@ class PostgresStore(SqlStore):
         acknowledgement was lost, and `claim_run` checks for that
         directly rather than trusting the row count.
         """
-        try:
-            return statement(sql, params)
-        except (self._psycopg2.OperationalError,
-                self._psycopg2.InterfaceError):
+        with self._operation_lock:
             try:
-                self._conn.close()
-            except Exception:
-                pass
-            self._conn = self._connect()
-            return statement(sql, params)
+                return statement(sql, params)
+            except (self._psycopg2.OperationalError,
+                    self._psycopg2.InterfaceError):
+                if self._transaction_depth:
+                    raise  # The caller must retry the whole logical operation.
+                try:
+                    self._conn.close()
+                except Exception:
+                    pass
+                self._conn = self._connect()
+                return statement(sql, params)
 
     def _exec(self, sql, params=()):
         return self._retrying(super()._exec, sql, params)

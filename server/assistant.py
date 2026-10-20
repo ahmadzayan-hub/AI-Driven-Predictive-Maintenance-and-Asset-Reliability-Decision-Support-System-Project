@@ -34,7 +34,7 @@ from assistant import (ACTIONS, DESTRUCTIVE, PREFERENCE_KEYS, RUN_STATES,
                        SECTION_QUESTIONS, arguments_valid, confirmation_prompt,
                        execute_local, fallback, intent, is_no, is_yes, reply,
                        understand)
-from server import knowledge, quota
+from server import knowledge, model_privacy, quota
 from server.tools import ToolBox
 
 # Enough passages that the answer is usually among them, few enough that a
@@ -185,6 +185,11 @@ class Assistant:
         status = self.gateway.status()
         if not status.get("configured"):
             return understand(text)
+        privacy_reason = self._model_privacy_reason(session, text)
+        if privacy_reason:
+            outcome = understand(text)
+            outcome["why"] = privacy_reason
+            return outcome
         ask = getattr(self.gateway, "ask_json", None)
         structured = callable(ask)
         if not structured:
@@ -211,6 +216,27 @@ class Assistant:
             return fallback
         parsed["provider"] = status.get("provider")
         return parsed
+
+    def _model_privacy_reason(self, session, text=""):
+        """Keep detected personal report labels out of every model handoff.
+
+        A quoted report in conversation history remains private even after
+        a different run becomes the latest one. The rules still quote the
+        original report directly to its authorized reader.
+        """
+        latest = self._latest_run(session.owner)
+        run_ids = {latest["id"]} if latest else set()
+        for entry in session.transcript:
+            result = entry.get("result")
+            if isinstance(result, dict) and result.get("run_id"):
+                run_ids.add(result["run_id"])
+        if any(model_privacy.run_blocks_model(self.engine.store, run_id)
+               for run_id in run_ids):
+            return model_privacy.notice(session.agent.language())
+        if model_privacy.blocks_model(
+                texts=[self._context(session, current_message=text), text]):
+            return model_privacy.notice(session.agent.language())
+        return None
 
     def _context(self, session, current_message=None):
         """What the model is told. Verified sentences and settings only —
@@ -298,6 +324,11 @@ class Assistant:
         and the caller answers the sentence the ordinary way.
         """
         agent = session.agent
+        privacy_reason = self._model_privacy_reason(session, text)
+        if privacy_reason:
+            outcome = self._execute("chat", {}, session, text, source="rules")
+            outcome["why"] = privacy_reason
+            return outcome
         tools = ToolBox(self, session)
         context = {"language": agent.language(), "notes": self._context(session),
                    "thread_id": getattr(session, "id", None),

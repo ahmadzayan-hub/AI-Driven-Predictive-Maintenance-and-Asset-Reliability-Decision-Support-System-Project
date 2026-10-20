@@ -184,6 +184,10 @@ class RunEngine:
                            (len(parsed.rows), len(parsed.columns)))
 
     def _store(self, text, name, owner, source_format, shape=None):
+        with self.store.atomic("owner:" + owner):
+            return self._store_atomic(text, name, owner, source_format, shape)
+
+    def _store_atomic(self, text, name, owner, source_format, shape=None):
         rows, columns = shape or datasets.counts(text)
         digest = hashlib.sha256(text.encode()).hexdigest()
         existing = self.store.find_dataset(digest, owner)
@@ -335,6 +339,13 @@ class RunEngine:
     def create_run(self, goal, dataset_text=None, dataset_name=None,
                    owner="local-owner", dataset_id=None, profile=None,
                    language="en", joins=None, breakdown=None):
+        with self.store.atomic("owner:" + owner):
+            return self._create_run_atomic(goal, dataset_text, dataset_name, owner,
+                                           dataset_id, profile, language, joins, breakdown)
+
+    def _create_run_atomic(self, goal, dataset_text=None, dataset_name=None,
+                           owner="local-owner", dataset_id=None, profile=None,
+                           language="en", joins=None, breakdown=None):
         # An unknown profile, or a language reports are not written in, is
         # refused before anything is written.
         roles = self.roles_for(profile, joined=bool(joins))
@@ -468,6 +479,10 @@ class RunEngine:
         return self.store.get_tasks(run_id) if orphans else tasks
 
     def advance(self, run_id, lease_owner=None):
+        with self.store.atomic("run:" + run_id):
+            return self._advance_atomic(run_id, lease_owner)
+
+    def _advance_atomic(self, run_id, lease_owner=None):
         """Execute exactly one bounded task; every transition is durable.
 
         If a background worker holds a live lease on this run, a client's
@@ -617,6 +632,10 @@ class RunEngine:
         return self.get_run(run_id)
 
     def decide_approval(self, run_id, approval_id, decision):
+        with self.store.atomic("run:" + run_id):
+            return self._decide_approval_atomic(run_id, approval_id, decision)
+
+    def _decide_approval_atomic(self, run_id, approval_id, decision):
         approval = self.store.get_approval(approval_id, run_id)
         if approval is None:
             raise KeyError(approval_id)
@@ -681,6 +700,10 @@ class RunEngine:
         return note
 
     def set_paused(self, run_id, paused):
+        with self.store.atomic("run:" + run_id):
+            return self._set_paused_atomic(run_id, paused)
+
+    def _set_paused_atomic(self, run_id, paused):
         """Pause is durable, not a client-side toggle: a background worker
         must honour it too, or the button would stop meaning anything."""
         run = self._row(run_id)
@@ -691,6 +714,10 @@ class RunEngine:
         return self.get_run(run_id)
 
     def cancel(self, run_id):
+        with self.store.atomic("run:" + run_id):
+            return self._cancel_atomic(run_id)
+
+    def _cancel_atomic(self, run_id):
         self._set_run_state(run_id, "cancelled")
         for t in self.store.get_tasks(run_id):
             if t["state"] in ("pending", "awaiting_approval"):

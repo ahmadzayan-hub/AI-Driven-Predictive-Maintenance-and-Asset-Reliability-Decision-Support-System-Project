@@ -140,17 +140,27 @@ def steps():
     npm = "npm.cmd" if os.name == "nt" else "npm"
     python = sys.executable
     return [
+        Step("Server dependencies", [python, "-c",
+             "from fastapi.testclient import TestClient; import httpx, jwt, psycopg2, uvicorn"],
+             groups={"quick", "full", "e2e"}),
         Step("Python tests", [python, "-m", "unittest", "discover", "tests"],
-             summarise=summarise_unittest, groups={"quick", "full", "e2e"}),
+             summarise=summarise_unittest, groups={"quick", "full", "e2e"},
+             needs=("Server dependencies",)),
         Step("Brain check", [python, "scripts/brain_check.py", "--strict"],
              summarise=summarise_brain, groups={"quick", "full", "e2e"}),
         Step("Type check", [npm, "run", "typecheck"], cwd=FRONTEND,
              groups={"quick", "full", "e2e"}),
         Step("Frontend unit tests", [npm, "test"], cwd=FRONTEND,
              summarise=summarise_vitest, groups={"quick", "full", "e2e"}),
+        Step("Native run logic", ["node", "--experimental-strip-types",
+             "frontend/src/tests/native-run-logic.test.mjs"], groups={"quick", "full", "e2e"}),
         Step("Production build", [npm, "run", "build"], cwd=FRONTEND, groups={"full", "e2e"}),
         Step("Interface budget", ["budget"], groups={"full", "e2e"}, needs=("Production build",)),
         Step("End-to-end tests", [npm, "run", "e2e"], cwd=FRONTEND,
+             summarise=summarise_playwright, groups={"e2e"},
+             needs=("Production build", "Server dependencies")),
+        Step("Miyaar browser tests", [npm, "exec", "--", "playwright", "test",
+             "--config=playwright.miyaar.config.ts"], cwd=FRONTEND,
              summarise=summarise_playwright, groups={"e2e"}, needs=("Production build",)),
     ]
 

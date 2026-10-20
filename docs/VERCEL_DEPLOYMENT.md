@@ -1,8 +1,18 @@
 # Vercel Deployment
 
-The repository is deploy-ready as a **full-stack Vercel project**: the
-React frontend as static assets and the FastAPI backend as a Python
-serverless function.
+The repository includes a **full-stack Vercel configuration**: the React
+frontend as static assets and the FastAPI backend as a Python serverless
+function. Configuration is not hosted acceptance.
+
+**Current release policy, 2026-10-20:** `main` is the integration branch.
+`git.deploymentEnabled.main=false` prevents Git pushes from deploying it.
+GitHub Actions still runs. Production requires explicit owner approval and a
+separate deployment of the reviewed commit
+([decision](adr/2026-10-20-production-release-approval.md)).
+Read-only hosting metadata identifies production commit `42e53d00` and Vercel
+Authentication protection. It does not establish current application identity,
+database durability or worker readiness. The historical observations below
+apply only to the deployment and date they name.
 
 ## Why this is possible now
 
@@ -31,24 +41,25 @@ than left as a trap for the first deploy.
 
 Serverless hardening already in place:
 
-- `PostgresStore` reconnects once on `OperationalError`, so a pooler or
-  cold start dropping an idle connection does not fail a user request.
+- `PostgresStore` reconnects once outside an atomic operation when a pooler
+  or cold start drops an idle connection. It never replays a statement inside
+  a lost transaction; the caller must retry the complete operation.
 - `SQLiteStore` relocates to a writable temp directory when its target
   directory is read-only, instead of crashing at import (tested).
 
 ## Deploy it
 
-1. In Vercel, **Add New → Project → import `ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project`**.
+1. After release approval, use the existing Vercel project, or import
+   `ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project`
+   if setting up a new environment.
    `vercel.json` supplies every build setting; if a framework preset is
-   offered, "Other" is correct. Vercel makes the repository's **default
-   branch** production — currently
-   `claude/agentic-os-final-project-53j6ql`, which carries all the work.
-   `main` is behind it, so switch the default only after merging.
+   offered, "Other" is correct. Deploy the approved `main` commit explicitly;
+   do not enable automatic production publishing as a synchronization shortcut.
 2. Add environment variables (Project → Settings → Environment
-   Variables) — all server-side, never exposed to the browser. **None is
-   required for the first deploy**; without them the app runs in local
-   mode (single owner, no login) on ephemeral storage, which is enough to
-   see and use the interface:
+   Variables). Secrets remain server-side; only provider publishable settings
+   are returned to the browser. Real hosted use requires durable storage and
+   managed identity. A single-owner ephemeral configuration is a local demo,
+   not a production setup:
 
    | Variable | Needed for |
    | --- | --- |
@@ -58,12 +69,21 @@ Serverless hardening already in place:
    | `SUPABASE_URL`, `SUPABASE_ANON_KEY` | Browser sign-in (publishable) |
    | `ANTHROPIC_API_KEY` or `GROQ_API_KEY` | Optional model-phrased summaries. `OLLAMA_MODEL` is **not** useful here: a model on a laptop is unreachable from a serverless function |
 
-3. Redeploy after setting the variables and check `/api/health` — it
-   reports the model provider without revealing any secret.
+3. Check `/api/health`, sign-in and cross-owner isolation using test accounts,
+   then a synthetic run through approval and publication. Verify state after
+   a restart and execute a restore drill on an isolated database.
+4. Run `server.worker` on an approved persistent worker host with the same
+   database, configuration and resource-limit environment. A serverless HTTP
+   function does not provide the continuous worker loop. Exercise a scheduled
+   synthetic refresh against an allowed public host with direct egress.
+5. Fit provider deadlines and measured stage duration within the function
+   budget (`maxDuration` in `vercel.json`), including database/transaction time.
+   Record errors, timeouts, alert ownership and backup ownership. Do not infer
+   successful operation from the build status.
 
-The Supabase schema is already applied (project `agentic-os`,
-migrations `agentic_os_run_engine` and
-`agentic_os_sessions_memory_vault`, RLS deny-by-default).
+Earlier sessions applied initial Supabase migrations. Current bootstrap schema
+and policy changes in source are not proof that a hosted database has received
+them; inspect and validate the intended environment before release.
 
 ## Without `DATABASE_URL`
 
@@ -72,7 +92,7 @@ function's temp directory: state survives only while an instance stays
 warm and is lost on cold start. Acceptable for a first look, **not** for
 real use. Set `DATABASE_URL` before treating the deployment as usable.
 
-## Verification status — read this before claiming it works
+## Historical verification on 2026-10-02
 
 **Deployed on 2026-10-02** to the Vercel project `agentic-os-final-project`
 (team `celia2026-3923s-projects`), production domain
@@ -118,21 +138,21 @@ not reach it rather than because it failed:
   served, but the pin is evidently not what selects the runtime under
   this preset.
 
-Two things in the Vercel project to tidy by hand:
+Two observations from that historical deployment (recheck before acting):
 
 - A second project, `agentic-os-final-project-frontend`, was created by
   the same import with `frontend` as its root directory. Its builds fail
-  (`cd frontend` inside `frontend`) and it serves nothing. Delete it.
+  (`cd frontend` inside `frontend`) and served nothing then. Its current state
+  and removal require a separate owner decision.
 - A push to the branch produced a **preview** deployment, not a
   production one: the project's Production Branch is not this branch.
   The fixed build was promoted by creating a production deployment
-  explicitly. Set Project → Settings → Git → Production Branch to the
-  branch you deploy from, or merge into it, so that pushes update
-  production.
+  explicitly. Current policy keeps production deployment separate from Git
+  synchronization; the earlier suggestion to make pushes publish is superseded.
 
 ## Rollback
 
-Vercel keeps every deployment. Project → Deployments → select the last
-known-good build → **Promote to Production**. Database migrations are
-additive (`ADD COLUMN` / `CREATE TABLE IF NOT EXISTS`), so an older
-build keeps working against a newer schema.
+After owner approval, select the retained known-good deployment and promote it.
+Verify its compatibility with the current schema and stored artifacts first.
+Additive migrations reduce rollback risk but do not prove every older build
+can interpret newer data. Exercise the rollback/restore procedure in staging.

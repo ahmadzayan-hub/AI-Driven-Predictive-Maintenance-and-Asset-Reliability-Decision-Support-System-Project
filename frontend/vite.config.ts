@@ -16,6 +16,9 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    // Bound concurrent jsdom memory on Windows. Assertions and deadlines
+    // stay unchanged; CI retains its platform default.
+    maxWorkers: process.platform === 'win32' ? 1 : undefined,
     setupFiles: ['./src/tests/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
   },

@@ -334,6 +334,7 @@ export interface Pipelines {
   stages: Array<{
     role: string
     title: string
+    title_ar?: string | null
     after: string
     question: string | null
     can_fail_run: boolean
@@ -465,8 +466,8 @@ export interface UnsupportedModelCard extends ModelCardBase {
 export type ModelCard = FittedModelCard | UnsupportedModelCard
 
 /** One controlled maintenance measure, as `GET /api/runs/{id}/kpis`
- *  returns it (ADR 0049). The counts are not decoration: `records` is what
- *  the figure was computed on, so numerator ÷ records reproduces `value`,
+ *  returns it (ADR 0049). The counts are not decoration: `records` counts
+ *  measured rows; numerator ÷ denominator (×100 for percent) gives `value`,
  *  and `records_unmeasured` says how much of the population had no reading.
  *  ADR 0042 is explicit that a card hiding it re-creates the defect it
  *  fixed, so anything rendering these must show it when it is non-zero. */

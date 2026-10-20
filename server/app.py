@@ -394,7 +394,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         CORSMiddleware,
         allow_origins=allowed_origins,
         allow_methods=["GET", "POST", "PUT", "DELETE"],
-        allow_headers=["Content-Type"],
+        allow_headers=["Content-Type", "Authorization"],
     )
 
     environ = os.environ if env is None else env
@@ -773,12 +773,14 @@ def create_app(config_path=None, env=None, dist_dir=None):
     @app.get("/api/vault")
     def list_vault_notes(principal=Depends(requires("read"))):
         with lock:
-            return {"notes": store.list_notes()}
+            owner = None if principal.can("admin") else principal.subject
+            return {"notes": store.list_notes(owner=owner)}
 
     @app.get("/api/vault/note")
     def get_vault_note(path: str, principal=Depends(requires("read"))):
         with lock:
-            note = store.get_note(path)
+            owner = None if principal.can("admin") else principal.subject
+            note = store.get_note(path, owner=owner)
             if note is None:
                 raise HTTPException(status_code=404, detail="Note not found.")
             return note

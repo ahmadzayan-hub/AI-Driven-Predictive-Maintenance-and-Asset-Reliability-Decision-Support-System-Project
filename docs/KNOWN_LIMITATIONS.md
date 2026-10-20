@@ -52,13 +52,18 @@ placeholder controls — absent capabilities have no UI.
      recommends when to stop a test — that is a decision about cost and
      risk, not a statistic.
 3. The optional narrator (Ollama, Anthropic, or Groq) only phrases
-   already-verified facts and never receives the dataset. The wire
+   already-verified facts and never receives the dataset. Detected personal
+   data in the main or joined datasets, or in outgoing fact text, now keeps
+   narration and related assistant/runtime handoffs deterministic (ADR
+   2026-10-20-personal-data-model-boundary). Reports explain that choice in
+   their language. This is pattern-based screening, not exhaustive detection
+   or anonymization; human-readable evidence remains unchanged. The wire
    contract for each provider is tested against a local HTTP server —
    including a reasoning model's `<think>` scratchpad, which is stripped
-   and never reaches a report — but **no live provider call has been made
-   from this environment** (its egress policy blocks `ollama.com`,
-   `registry.ollama.ai`, and the model APIs), so first use against a real
-   endpoint is unconfirmed. A local Ollama must be reachable from the
+   and never reaches a report. Bounded local Qwen acceptance is recorded in
+   [README testing](../README.md#testing); the 20 October corrective review
+   used synthetic provider probes and made no live model call. Hosted provider
+   acceptance remains unconfirmed. A local Ollama must be reachable from the
    machine running the server: a model on a laptop is invisible to a
    hosted deployment. Any failure falls
    back to the deterministic narrator, and the report always names which
@@ -89,19 +94,22 @@ placeholder controls — absent capabilities have no UI.
    calculations are exact for the operations implemented.
 6. Every classifying agent is measured on labelled **synthetic** cases
    (ADR 0027), and the numbers are only as good as those cases. On the
-   newest blind holdout (v4, 17 October) the rules reach 72% macro recall
-   for chat intent, 92% recall for jargon and 69% for causal wording
-   (precision 92%). Hand-written rules generalise only so far: intent
+   intent holdout the rules reach 72% macro recall; jargon recall is 92%.
+   Causal wording originally reached 69% recall on v4 (precision 92%).
+   After fixes informed by that set, its measured recall and precision are
+   100%; it is no longer independent evidence. The newer adversarial
+   `probe_v5` reports only 6% recall and is not comparable with those sets
+   (ADR 0056). Hand-written rules generalise only so far: intent
    scored 80% on the previous blind set and 68% on this one before any
-   change, and a round of fixes from the earlier set lifted causal wording
-   by nothing here. A sentence the causal check passes may still claim a
+   change. A sentence the causal check passes may still claim a
    cause, and a chat sentence outside the vocabulary is answered as chat. The seeded reviewer memos were nearly too easy for the
    reviewer subagents: both scored at or near 100% with either prompt.
    So the prompt changes are justified on the dev memo, not proven on the
    held-out ones, and the subagents' run-to-run variation (zero to three
    false alarms on the same memo) is measured on one run per condition.
-   Local Ollama models and the hosted narrators are **not measured**: the
-   models could not be downloaded here, and no provider key was used. The
+   The local conversational smoke does not measure maintenance-domain
+   prediction or general narrator accuracy. Hosted narrators remain
+   unvalidated against an independently labelled task set. The
    figures checker cannot read a figure written in words ("one in five");
    the figures-auditor reads the text for those.
 

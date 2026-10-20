@@ -3,9 +3,10 @@ import { usePack } from '../../i18n/pack'
 import { assetMessages } from './messages'
 import { api, ApiError } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
+import { stateLabel } from '../../shared/labels'
 import { PerformanceValue, performanceTone } from '../../shared/components/PerformanceValue'
 import type { Pipelines } from '../../shared/types'
-import { findAssetEvidence } from './assetEvidence'
+import { loadAssetEvidence } from './assetEvidence'
 import type { AssetEvidence } from './assetEvidence'
 import { formatValue, needsDisclosure } from './kpiDisplay'
 import type { RunKpis } from '../../shared/types'
@@ -20,7 +21,8 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
   const { t, locale } = usePack(assetMessages)
   const [evidence, setEvidence] = useState<AssetEvidence | null>(null)
   const [pipelines, setPipelines] = useState<Pipelines | null>(null)
-  const [kpis, setKpis] = useState<RunKpis | null>(null)
+  const [kpiAnswer, setKpiAnswer] = useState<{ key: string; data: RunKpis } | null>(null)
+  const [searchCapped, setSearchCapped] = useState(false)
   const [busy, setBusy] = useState(true)
   const [error, setError] = useState('')
   const [reload, setReload] = useState(0)
@@ -29,17 +31,15 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
     let alive = true
     setBusy(true)
     setError('')
+    setEvidence(null)
     Promise.all([api.pipelines(), api.listRuns()])
       .then(async ([config, list]) => {
-        const candidates = [...list.runs]
-          .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
-          .slice(0, 8)
-        const details = await Promise.allSettled(candidates.map((run) => api.getRun(run.id)))
+        const result = await loadAssetEvidence(list.runs, api.getRun, () => !alive)
         if (!alive) return
         setPipelines(config)
-        setEvidence(findAssetEvidence(details.flatMap((item) =>
-          item.status === 'fulfilled' ? [item.value] : [])))
-        if (details.length && details.every((item) => item.status === 'rejected')) {
+        setSearchCapped(list.runs.length >= 50)
+        setEvidence(result.evidence)
+        if (result.incomplete) {
           setError(t('assets.unavailable'))
         }
       })
@@ -49,14 +49,16 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
   }, [reload, t])
 
   const runId = evidence?.run.id ?? null
+  const kpiKey = JSON.stringify([runId, evidence?.run.updated_at, locale])
+  const kpis = kpiAnswer?.key === kpiKey ? kpiAnswer.data : null
   useEffect(() => {
-    if (!runId) { setKpis(null); return }
+    if (!runId) return
     let alive = true
     api.runKpis(runId, locale === 'ar' ? 'ar' : 'en')
-      .then((result) => { if (alive) setKpis(result) })
-      .catch(() => { if (alive) setKpis(null) })
+      .then((result) => { if (alive) setKpiAnswer({ key: kpiKey, data: result }) })
+      .catch(() => { if (alive) setKpiAnswer(null) })
     return () => { alive = false }
-  }, [runId, locale])
+  }, [runId, locale, kpiKey])
 
   const enabled = Boolean(pipelines?.profiles.maintenance?.includes('rail_asset_manager'))
   return (
@@ -87,6 +89,7 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
             <span>{busy ? t('assets.loading') : enabled ? t('assets.profile') : t('assets.profileMissing')}</span>
           </div>
           {error ? <div role="alert"><p>{error}</p><button type="button" className="btn btn--ghost" onClick={() => setReload((n) => n + 1)}>{t('assets.retry')}</button></div> : null}
+          {searchCapped ? <p className="panel__note">{t('assets.searchScope')}</p> : null}
           {!busy && !error && !evidence ? (
             <div className="asset-intelligence__blank">
               <Icon name="database" size={31}/>
@@ -99,8 +102,8 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
             <>
               <dl className="asset-intelligence__source">
                 <div><dt>{t('assets.dataset')}</dt><dd dir="auto">{evidence.run.dataset_name}</dd></div>
-                <div><dt>{t('assets.runState')}</dt><dd>{evidence.run.state}</dd></div>
-                <div><dt>{t('assets.stage')}</dt><dd>{evidence.screen.state}</dd></div>
+                <div><dt>{t('assets.runState')}</dt><dd>{stateLabel(t, evidence.run.state)}</dd></div>
+                <div><dt>{t('assets.stage')}</dt><dd>{stateLabel(t, evidence.screen.state)}</dd></div>
               </dl>
               <div className="asset-intelligence__finding">
                 <strong>{t('assets.screening')}</strong>

@@ -33,6 +33,7 @@ from pathlib import Path
 
 from server.connectors import Connectors
 from server.model_gateway import ModelGateway
+from server.quota import load_limits
 from server.routing import RoutedGateway, build_router
 from server.stages import load_stages
 from server.runs import RunEngine, _stamp, _utcnow, resolve_vault_dir
@@ -142,12 +143,12 @@ def build_worker(env=None, config_path=None, **kwargs):
     import os
 
     env = os.environ if env is None else env
-    config = read_config(config_path)
+    config = read_config(config_path or env.get("AGENTIC_OS_CONFIG"))
     store = open_store(
         env.get("DATABASE_URL") or config.get("database_url"),
         config.get("database_file") or PROJECT_ROOT / "data" / "agentic.db",
     )
-    gateway = ModelGateway()
+    gateway = ModelGateway(env)
     # The worker narrates the same reports the API does, so it routes the
     # same way; a run advanced in the background must not be narrated by a
     # different model than one advanced in a browser.
@@ -163,8 +164,8 @@ def build_worker(env=None, config_path=None, **kwargs):
     stage_registry, stage_problems = load_stages(env, config)
     for stage_problem in stage_problems:
         print(stage_problem, file=sys.stderr, flush=True)
-    engine = RunEngine(store, resolve_vault_dir(config=config),
-                       gateway, stages=stage_registry,
+    engine = RunEngine(store, resolve_vault_dir(env=env, config=config),
+                       gateway, limits=load_limits(env), stages=stage_registry,
                        profiles=config.get("profiles") or {})
     return RunWorker(engine, store, connectors=Connectors(engine, env=env), **kwargs)
 

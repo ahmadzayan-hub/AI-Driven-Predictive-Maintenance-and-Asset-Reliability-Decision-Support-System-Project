@@ -378,6 +378,13 @@ function Loading() {
   return <div role="status" aria-label={t('dash.loading')} className="skeleton skeleton--line" />
 }
 
+function TrendCoverage({ answer }: { answer: QueryAnswer | null }) {
+  const { t, formatNumber } = usePack(dashMessages)
+  return answer?.truncated ? <p className="field__help" role="status">{t('dash.trendTruncated', {
+    shown: formatNumber(answer.groups.length), total: formatNumber(answer.group_count),
+  })}</p> : null
+}
+
 /** A group table: label, values, records, and the way to its rows. */
 function GroupTable({ head, rows, onDrill }: {
   head: string[]
@@ -465,6 +472,7 @@ function OverviewPage({ runId, roles, state, filters, setState }: PageProps) {
                   }))} />}
               />
             )}
+            <TrendCoverage answer={trend.data} />
           </div>
         ) : null}
         {roles.breakdown ? (
@@ -556,6 +564,7 @@ function TrendPage({ runId, roles, state, filters, setState }: PageProps) {
   return (
     <>
       <Problem message={answer.error} />
+      <TrendCoverage answer={answer.data} />
       {answer.loading ? <Loading /> : (
         <div className="dash-grid">
           <div className="card">

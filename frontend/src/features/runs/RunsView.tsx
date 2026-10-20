@@ -163,11 +163,11 @@ const PROFILE_LABELS: Record<string, 'runs.profileModels' | 'runs.profileMainten
   maintenance: 'runs.profileMaintenance',
 }
 
-function stageTitles(pipelines: Pipelines, profile: string): string[] {
+function stageTitles(pipelines: Pipelines, profile: string, locale: string): string[] {
   const roles = profile ? (pipelines.profiles[profile] ?? []) : pipelines.default
   return roles.map((role) => {
     const stage = pipelines.stages.find((s) => s.role === role)
-    return stage ? stage.title.split(' — ')[0] : role
+    return stage ? ((locale === 'ar' && stage.title_ar) || stage.title).split(' — ')[0] : role
   })
 }
 
@@ -600,8 +600,8 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                   </label>
                   <span className="field__help">
                     {t('runs.profileHelp')}{' '}
-                    {stageTitles(pipelines, profile).length > 0
-                      ? t('runs.profileStages', { list: stageTitles(pipelines, profile).join(', ') })
+                    {stageTitles(pipelines, profile, locale).length > 0
+                      ? t('runs.profileStages', { list: stageTitles(pipelines, profile, locale).join(', ') })
                       : t('runs.profileNone')}
                   </span>
                   <select

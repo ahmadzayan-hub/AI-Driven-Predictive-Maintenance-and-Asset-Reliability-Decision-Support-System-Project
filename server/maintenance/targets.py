@@ -281,7 +281,9 @@ class MaintenanceRisk:
         for column in usable:
             if column in numeric:
                 continue
-            levels = Counter(str(r.get(column) or "") for r in population_rows)
+            # The held-out records must not decide which inputs are admitted
+            # or which categorical levels the model learns.
+            levels = Counter(str(r.get(column) or "") for r in train_rows)
             if 2 <= len(levels) <= modelling.MAX_LEVELS:
                 texts.append((column, [l for l, _ in levels.most_common()]))
             if len(texts) == modelling.MAX_TEXT_INPUTS:
@@ -293,24 +295,36 @@ class MaintenanceRisk:
                 "so there is nothing honest to predict from", f"c_{key}")
 
         names, vector = modelling._vectoriser(numbers, texts)
-        train_vectors = [v for v in (vector(r) for r in train_rows) if v is not None]
-        kept_labels = [l for r, l in zip(train_rows, train_labels) if vector(r) is not None]
-        test_pairs = [(vector(r), l) for r, l in zip(test_rows, test_labels)]
-        test_pairs = [(v, l) for v, l in test_pairs if v is not None]
-        if len(train_vectors) < MIN_TRAIN or len(test_pairs) < MIN_TEST:
+        train_cohort = [(r, label, vector(r))
+                        for r, label in zip(train_rows, train_labels)]
+        test_cohort = [(r, label, vector(r))
+                       for r, label in zip(test_rows, test_labels)]
+        train_cohort = [(r, label, v) for r, label, v in train_cohort if v is not None]
+        test_cohort = [(r, label, v) for r, label, v in test_cohort if v is not None]
+        if len(train_cohort) < MIN_TRAIN or len(test_cohort) < MIN_TEST:
             return self._unsupported(
                 ctx, target, "too few records carry every input to fit", f"c_{key}")
+        train_vectors = [v for _, _, v in train_cohort]
+        kept_labels = [label for _, label, _ in train_cohort]
+        truth = [label for _, label, _ in test_cohort]
+        if len(set(kept_labels)) < 2 or len(set(truth)) < 2:
+            return self._unsupported(
+                ctx, target,
+                "records carrying every input have only one class on the "
+                "training or held-out side, so balanced accuracy cannot "
+                "evaluate both outcomes", f"c_{key}")
 
         scale = modelling._scaler(train_vectors)
         model = modelling.fit_naive_bayes([scale(v) for v in train_vectors], kept_labels)
-        truth = [l for _, l in test_pairs]
-        predicted = [modelling.predict_naive_bayes(model, scale(v)) for v, _ in test_pairs]
+        predicted = [modelling.predict_naive_bayes(model, scale(v))
+                     for _, _, v in test_cohort]
         model_score = _balanced_accuracy(truth, predicted)
 
         common = Counter(kept_labels).most_common(1)[0][0]
         majority_score = _balanced_accuracy(truth, [common] * len(truth))
         rule_column, rule_score = _grouping_rules(
-            train_rows, train_labels, test_rows, test_labels,
+            [r for r, _, _ in train_cohort], kept_labels,
+            [r for r, _, _ in test_cohort], truth,
             [c for c in usable if c not in numeric])
         baseline_score = max(majority_score, rule_score)
         baseline_name = (f"commonest label by {rule_column}"
@@ -329,7 +343,7 @@ class MaintenanceRisk:
 
         card = modelling._card(
             "maintenance_risk", f"{key}: {target.question}", names,
-            len(train_vectors), len(test_pairs), split, "balanced accuracy",
+            len(train_vectors), len(test_cohort), split, "balanced accuracy",
             round(model_score, 4), round(baseline_score, 4), baseline_name,
             round(improvement, 4), beats,
             {"verdict": verdict, "decision": target.decision,
@@ -339,7 +353,9 @@ class MaintenanceRisk:
                  sum(1 for t in truth if t) / len(truth), 4),
              "baseline_majority": round(majority_score, 4),
              "baseline_best_rule": round(rule_score, 4),
-             "baseline_rule_column": rule_column})
+             "baseline_rule_column": rule_column,
+             "train_records_unmeasured": len(train_rows) - len(train_cohort),
+             "test_records_unmeasured": len(test_rows) - len(test_cohort)})
 
         defining = [c for c in target.defines_label
                     if any(c == name or name.startswith(f"{c} =") for name in names)]
@@ -347,7 +363,7 @@ class MaintenanceRisk:
             modelling._calc(prefix, f"c_{key}_model", f"{key}_balanced_accuracy",
                             round(model_score, 4),
                             f"average of each class's hit rate on the held-out "
-                            f"records ({len(test_pairs)} of them)"),
+                            f"records ({len(test_cohort)} of them)"),
             modelling._calc(prefix, f"c_{key}_baseline", f"{key}_baseline",
                             round(baseline_score, 4),
                             f"strongest of the majority class "
@@ -359,23 +375,23 @@ class MaintenanceRisk:
                             "(model - baseline) / baseline on the same held-out "
                             "records"),
         ]
-        if beats:
+        if verdict == "useful":
             claim = modelling._claim(
                 ctx, prefix, f"cl_{key}", "calculation",
                 f"{target.question} Balanced accuracy {model_score:.0%} against "
                 f"{baseline_score:.0%} for the {baseline_name}, an improvement of "
-                f"{improvement:.0%} on {len(test_pairs)} held-out records. "
+                f"{improvement:.0%} on {len(test_cohort)} held-out records. "
                 f"{target.decision}",
                 f"{target.question_ar} دقة متوازنة {model_score:.0%} مقابل "
                 f"{baseline_score:.0%} لخط الأساس، بتحسن {improvement:.0%} على "
-                f"سجلات محجوزة. {target.decision_ar}",
+                f"{len(test_cohort)} سجلات محجوزة. {target.decision_ar}",
                 [f"c_{key}_model", f"c_{key}_baseline", f"c_{key}_improvement"])
         else:
             claim = modelling._claim(
                 ctx, prefix, f"cl_{key}", "limitation",
                 f"{target.question} The model reaches {model_score:.0%} balanced "
                 f"accuracy against {baseline_score:.0%} for the {baseline_name} "
-                f"on {len(test_pairs)} held-out records — an improvement of "
+                f"on {len(test_cohort)} held-out records — an improvement of "
                 f"{improvement:.0%}. "
                 f"It should not be used to decide."
                 + ("" if beats else " The margin over the baseline is short of 5%.")
@@ -384,8 +400,13 @@ class MaintenanceRisk:
                    f"absolute terms, and a majority-class baseline scores "
                    f"{CHANCE:.0%} under this metric by construction."),
                 f"{target.question_ar} يبلغ النموذج {model_score:.0%} دقة متوازنة "
-                f"مقابل {baseline_score:.0%} لخط الأساس، بتحسن {improvement:.0%} "
-                f"فقط وهو دون 5% المطلوبة، فلا ينبغي استخدامه في القرار.",
+                f"مقابل {baseline_score:.0%} لخط الأساس على {len(test_cohort)} "
+                f"سجلات محجوزة، بتحسن {improvement:.0%}. فلا ينبغي استخدامه في القرار."
+                + ("" if beats else " هامش التحسن على خط الأساس أقل من 5%.")
+                + ("" if above_chance else
+                   f" كما يقع ضمن {CHANCE_MARGIN:.0%} من التخمين العشوائي بالقيمة "
+                   f"المطلقة، ويسجل خط أساس الفئة الأكثر شيوعاً {CHANCE:.0%} "
+                   f"بحكم تعريف هذا المقياس."),
                 [f"c_{key}_model", f"c_{key}_baseline", f"c_{key}_improvement"])
         claims = [claim]
         if defining:
@@ -457,10 +478,17 @@ class MaintenanceRisk:
                 if parts else "No targets were evaluated.")
 
     def _report(self, ctx, verdicts, usable, excluded):
-        lines = [f"# {self.title.split(' — ')[0]} — {self.question}", "",
-                 f"**Inputs:** {len(usable)} columns knowable before the decision; "
-                 f"{len(excluded)} withheld by the maintenance contract.", "",
-                 "| Target | Decision it supports | Verdict | Model | Baseline |",
+        def say(en, ar):
+            return modelling._say(ctx, en, ar)
+
+        lines = [say(f"# {self.title.split(' — ')[0]} — {self.question}",
+                     f"# {self.title_ar}"), "",
+                 say(f"**Inputs:** {len(usable)} columns knowable before the decision; "
+                     f"{len(excluded)} withheld by the maintenance contract.",
+                     f"**المدخلات:** {len(usable)} أعمدة معروفة قبل القرار؛ "
+                     f"حُجب {len(excluded)} بموجب عقد الصيانة."), "",
+                 say("| Target | Decision supported by this result | Verdict | Model | Baseline |",
+                     "| الهدف | القرار المدعوم بهذه النتيجة | التقييم | النموذج | خط الأساس |"),
                  "| --- | --- | --- | --- | --- |"]
         for target, card in verdicts:
             details = card.get("details", {})
@@ -469,10 +497,25 @@ class MaintenanceRisk:
             model = f"{metric.get('model'):.3f}" if metric.get("model") is not None else "—"
             baseline = (f"{metric.get('baseline'):.3f} ({metric.get('baseline_name')})"
                         if metric.get("baseline") is not None else "—")
-            lines.append(f"| {target.question} | {target.decision} | {verdict} | "
+            decision = (say(target.decision, target.decision_ar) if verdict == "useful"
+                        else say("No decision is supported by this model.",
+                                 "لا يدعم هذا النموذج اتخاذ قرار."))
+            verdict_text = say(verdict, {
+                "useful": "يجتاز حدود التقييم", "weak": "ضعيف",
+                "not_supported": "غير مدعوم",
+            }.get(verdict, verdict))
+            lines.append(f"| {say(target.question, target.question_ar)} | "
+                         f"{decision} | {verdict_text} | "
                          f"{model} | {baseline} |")
-        lines += ["", "A model counts as useful only when it improves on the "
-                      "stronger of the majority class and the best known-before "
-                      "grouping rule by at least 5% (ADR 0033). A weak model is "
-                      "reported as weak rather than dropped."]
+        lines += ["", say(
+            "A model counts as useful only when it improves on the stronger of "
+            "the majority class and the best known-before grouping rule by at "
+            "least 5% and reaches at least 55% balanced accuracy (ADR 0040). "
+            "The model and baselines use the same measured training and held-out "
+            "records. A weak model supports no intervention decision.",
+            "يُعد النموذج مفيداً فقط إذا تحسن بنسبة 5% على الأقل على الأقوى من "
+            "خط أساس الفئة الأكثر شيوعاً وأفضل قاعدة تجميع معروفة قبل القرار، "
+            "وبلغ دقة متوازنة قدرها 55% على الأقل (ADR 0040). يستخدم النموذج "
+            "وخطوط الأساس سجلات التدريب والاختبار المقاسة نفسها. ولا يدعم "
+            "النموذج الضعيف قرار التدخل.")]
         return "\n".join(lines)

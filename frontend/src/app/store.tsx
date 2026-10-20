@@ -10,7 +10,7 @@ import {
   translatePlural,
 } from '../i18n'
 import type { Locale, MessageKey, Vars } from '../i18n'
-import { api, ApiError, hasToken, storeToken } from '../shared/api'
+import { api, ApiError, AUTH_EXPIRED_EVENT, hasToken, storeToken } from '../shared/api'
 import type {
   ActivityEvent,
   ActivityKind,
@@ -163,6 +163,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setSession(null)
     setNeedsSignIn(true)
   }, [])
+
+  useEffect(() => {
+    window.addEventListener(AUTH_EXPIRED_EVENT, handleUnauthorized)
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handleUnauthorized)
+  }, [handleUnauthorized])
 
   const start = useCallback(async () => {
     const generation = ++sessionGeneration.current
@@ -391,9 +396,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       code: MessageKey,
     ): Promise<OperationOutcome> => {
       if (!session) return { ok: false, message: translate('outcome.noSession') }
+      const generation = sessionGeneration.current
       beginWork()
       try {
         const result = await operation(session.session_id)
+        if (generation !== sessionGeneration.current) return { ok: false, message: '' }
         setSession(result.state)
         setLastError(false)
         setOffline(false)

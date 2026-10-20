@@ -42,6 +42,14 @@ function readDetail(body: unknown): { message: string | null; problems: MappingP
 }
 
 export const TOKEN_KEY = 'aos-token'
+export const AUTH_EXPIRED_EVENT = 'aos-auth-expired'
+
+/** A delayed refusal for an old credential must not log out a new identity. */
+function notifyUnauthorized(status: number, sentHeaders: Record<string, string>) {
+  if (status === 401 && sentHeaders.Authorization && sentHeaders.Authorization === authHeaders().Authorization) {
+    window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT))
+  }
+}
 
 export function storeToken(token: string | null) {
   try {
@@ -83,15 +91,12 @@ export async function request<T>(
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   let response: Response
   const { headers, ...rest } = init
+  const sentHeaders = { 'Content-Type': 'application/json', ...authHeaders(), ...(headers as Record<string, string> | undefined) }
   try {
     response = await fetch(`${API_BASE}${path}`, {
       ...rest,
       // A caller's headers add to these; the token is never dropped.
-      headers: {
-        'Content-Type': 'application/json',
-        ...authHeaders(),
-        ...(headers as Record<string, string> | undefined),
-      },
+      headers: sentHeaders,
       signal: controller.signal,
     })
   } catch (error) {
@@ -116,6 +121,7 @@ export async function request<T>(
   }
 
   if (!response.ok) {
+    notifyUnauthorized(response.status, sentHeaders)
     const { message, problems } = readDetail(body)
     throw new ApiError(
       message ?? translate('api.failed', { status: response.status }),
@@ -315,12 +321,14 @@ export const api = {
     if (signal?.aborted) cancel()
     else signal?.addEventListener('abort', cancel, { once: true })
     const timer = setTimeout(cancel, UPLOAD_TIMEOUT_MS)
+    const sentHeaders = authHeaders()
     try {
       const params = new URLSearchParams({ language, format, filters: JSON.stringify(filters), expected_updated_at: expectedUpdatedAt, expected_snapshot_id: expectedSnapshotId })
       const response = await fetch(`${API_BASE}/api/runs/${encodeURIComponent(id)}/executive/export?${params}`, {
-        headers: authHeaders(), signal: controller.signal,
+        headers: sentHeaders, signal: controller.signal,
       })
       if (!response.ok) {
+        notifyUnauthorized(response.status, sentHeaders)
         let message: string | null = null
         try { message = readDetail(await response.json()).message } catch { /* use the status below */ }
         throw new ApiError(message ?? translate('api.failed', { status: response.status }), response.status)
@@ -365,14 +373,16 @@ export const api = {
    *  plain link could not send, then handed to the browser to save. */
   downloadTable: async (id: string, language: 'en' | 'ar' = 'en') => {
     let response: Response
+    const sentHeaders = authHeaders()
     try {
       response = await fetch(`${API_BASE}/api/runs/${encodeURIComponent(id)}/data.csv?language=${language}`, {
-        headers: authHeaders(),
+        headers: sentHeaders,
       })
     } catch {
       throw new ApiError(translate('api.unreachable'), 0, true)
     }
     if (!response.ok) {
+      notifyUnauthorized(response.status, sentHeaders)
       let message: string | null = null
       try {
         message = readDetail(await response.json()).message
