@@ -71,10 +71,12 @@ declares both LTR and RTL as required by ADR 0059.
 Visual review also exposed a Word technical-cell defect: a Latin formula in
 an Arabic paragraph could display its denominator before the parenthesized
 numerator. Table cells now choose their paragraph direction from the first
-strong Unicode character, like HTML `bdi dir=auto`. Numeric-only text falls
-back to the document language. Titles, headings, section direction and Arabic
-table column order remain explicit; an entire Latin formula stays in one
-LTR run, including leading brackets and operators.
+strong Unicode character, like HTML `bdi dir=auto`. Cells without a strong
+character use LTR so negative signs, percentages and numeric ranges retain
+their written order. In Arabic tables these numeric cells remain right aligned
+with logical end alignment. Titles, headings, section direction and Arabic
+table column order remain explicit; an entire Latin formula or numeric value
+stays in one LTR run, including leading signs, brackets and operators.
 
 ## Delivery and performance bounds
 

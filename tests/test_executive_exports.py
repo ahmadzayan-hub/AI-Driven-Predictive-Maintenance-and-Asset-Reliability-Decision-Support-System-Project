@@ -157,13 +157,19 @@ class ExecutiveDocumentTests(unittest.TestCase):
         # it. Technical cells follow their text; Arabic document prose stays RTL.
         for paragraph in root.findall(".//w:p", NS):
             self.assertIn(paragraph.find("w:pPr/w:bidi", NS).get(f"{{{W}}}val"), {"0", "1"})
-            self.assertEqual(paragraph.find("w:pPr/w:jc", NS).get(f"{{{W}}}val"), "start")
+            self.assertIn(paragraph.find("w:pPr/w:jc", NS).get(f"{{{W}}}val"), {"start", "end"})
         for paragraph in root.findall("w:body/w:p", NS):
             self.assertEqual(paragraph.find("w:pPr/w:bidi", NS).get(f"{{{W}}}val"), "1")
+            self.assertEqual(paragraph.find("w:pPr/w:jc", NS).get(f"{{{W}}}val"), "start")
         measure = next(item for item in brief["kpis"]["measures"] if item["key"] == "first_time_fix")
         for value in ("executive.kpi.first_time_fix", measure["formula"], STAMP):
             paragraph = next(item for item in root.findall(".//w:tc/w:p", NS) if "".join(item.itertext()) == value)
             self.assertEqual(paragraph.find("w:pPr/w:bidi", NS).get(f"{{{W}}}val"), "0")
+            self.assertEqual(paragraph.find("w:pPr/w:jc", NS).get(f"{{{W}}}val"), "start")
+        for value in ("14", "20"):
+            paragraph = next(item for item in root.findall(".//w:tc/w:p", NS) if "".join(item.itertext()) == value)
+            self.assertEqual(paragraph.find("w:pPr/w:bidi", NS).get(f"{{{W}}}val"), "0")
+            self.assertEqual(paragraph.find("w:pPr/w:jc", NS).get(f"{{{W}}}val"), "end")
         self.assertTrue(root.findall(".//w:rPr/w:rtl[@w:val='1']", NS))
         self.assertTrue(root.findall(".//w:rPr/w:rtl[@w:val='0']", NS))
         self.assertEqual(len(root.findall(".//w:tbl", NS)), len(root.findall(".//w:tblPr/w:bidiVisual", NS)))

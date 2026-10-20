@@ -332,14 +332,19 @@ def _paragraph(parent, text, ar, style=None, bold=False, auto_direction=False):
     tone = getattr(text, "status", None)
     cleaned = _clean(text)
     paragraph_ar = ar
+    neutral_cell = False
     if auto_direction:
         # Tables retain the document's column order, while each technical
         # value follows its own first strong character, like HTML's bdi auto.
-        # Leading brackets, numbers and operators must not reverse a formula.
+        # With no strong character, keep signs, numbers and ranges in one LTR
+        # run; inheriting RTL splits the sign from the number and reverses it.
+        paragraph_ar = False
+        neutral_cell = True
         for character in cleaned:
             direction = unicodedata.bidirectional(character)
             if direction in {"L", "R", "AL"}:
                 paragraph_ar = direction != "L"
+                neutral_cell = False
                 break
     p = _w(parent, "p")
     pr = _w(p, "pPr")
@@ -348,7 +353,9 @@ def _paragraph(parent, text, ar, style=None, bold=False, auto_direction=False):
     # Explicit false values also matter: an English document must not inherit
     # an RTL office profile. Logical start is right in RTL and left in LTR.
     _w(pr, "bidi", val="1" if paragraph_ar else "0")
-    _w(pr, "jc", val="start")
+    # Numeric-only cells retain their Arabic table's right alignment, while
+    # their mathematical content reads from left to right.
+    _w(pr, "jc", val="end" if ar and neutral_cell else "start")
     # Latin identifiers/formulas stay in LTR runs inside Arabic paragraphs.
     parts = re.split(r"([A-Za-z0-9][A-Za-z0-9_./:+%(),<>= -]*)", cleaned) if paragraph_ar else [cleaned]
     for part in parts:

@@ -24,7 +24,9 @@ export default function KpiPolicyEditor({ runId, measures, onSaved, onClose }: {
   const [reload, setReload] = useState(0)
   const active = useRef<AbortController | null>(null)
   const heading = useRef<HTMLHeadingElement>(null)
+  const errorMessage = useRef<HTMLParagraphElement>(null)
   useEffect(() => { heading.current?.focus() }, [])
+  useEffect(() => { if (error) errorMessage.current?.focus() }, [error])
   useEffect(() => {
     const controller = new AbortController()
     let current = true
@@ -67,7 +69,7 @@ export default function KpiPolicyEditor({ runId, measures, onSaved, onClose }: {
   return <section className="exec-card policy-editor" aria-labelledby="policy-title" aria-busy={busy}>
     <div className="exec-section-head"><h3 id="policy-title" tabIndex={-1} ref={heading}>{t('policy.title')}</h3><button type="button" className="btn btn--ghost" disabled={busy} onClick={onClose}>{t('policy.cancel')}</button></div>
     <p className="exec-muted">{t('policy.help')}</p>
-    {error ? <p role="alert">{t(`policy.${error}`)}</p> : null}
+    {error ? <p role="alert" tabIndex={-1} ref={errorMessage}>{t(`policy.${error}`)}</p> : null}
     {!policy || error === 'conflict' ? <button type="button" className="btn btn--ghost" onClick={() => setReload((v) => v + 1)}>{t('policy.reload')}</button> : null}
     {!policy && !error ? <p role="status">{t('policy.loading')}</p> : null}
     {policy ? <form onSubmit={submit}>

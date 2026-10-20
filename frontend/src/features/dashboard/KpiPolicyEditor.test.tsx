@@ -46,6 +46,7 @@ it('rejects a reversed nested range before saving and recovers when the bounds a
   await user.type(screen.getByRole('textbox', { name: 'Target source / rationale' }), 'Test range')
   await user.click(screen.getByRole('button', { name: 'Save target' }))
   expect(screen.getByRole('alert')).toHaveTextContent('required order')
+  expect(screen.getByRole('alert')).toHaveFocus()
   expect(api.saveKpiPolicy).not.toHaveBeenCalled()
   await user.clear(screen.getByRole('spinbutton', { name: 'Okay minimum (inclusive)' }))
   await user.type(screen.getByRole('spinbutton', { name: 'Okay minimum (inclusive)' }), '4')

@@ -41,6 +41,35 @@ def paragraph_with(root, value):
 
 
 class ExecutiveExportDirectionTests(unittest.TestCase):
+    def test_numeric_signs_percent_and_ranges_stay_ltr_with_document_alignment(self):
+        methods = ["-12.5", "-12.5%", "−12.5", "−12.5%", "-12.5 – -2.5",
+                   "(-12.5)", "+12.5", "0", "95.5", "12.5%"]
+        for language in ("en", "ar"):
+            root = document(language, methods)
+            for method in methods:
+                with self.subTest(language=language, method=method):
+                    paragraph = paragraph_with(root, method)
+                    self.assertEqual(paragraph.find("w:pPr/w:bidi", NS).get(W + "val"), "0")
+                    self.assertEqual(paragraph.find("w:pPr/w:jc", NS).get(W + "val"),
+                                     "end" if language == "ar" else "start")
+                    runs = paragraph.findall("w:r", NS)
+                    self.assertEqual(len(runs), 1)
+                    self.assertEqual(runs[0].find("w:rPr/w:rtl", NS).get(W + "val"), "0")
+                    self.assertEqual(text(runs[0]), method)
+
+    def test_negative_scientific_values_keep_sign_and_exponent_in_one_ltr_run(self):
+        methods = ["-1.25e-3", "−1.25E−3", "-1.25e-3 – -2.5e-4"]
+        root = document("ar", methods)
+        for method in methods:
+            with self.subTest(method=method):
+                paragraph = paragraph_with(root, method)
+                self.assertEqual(paragraph.find("w:pPr/w:bidi", NS).get(W + "val"), "0")
+                self.assertEqual(paragraph.find("w:pPr/w:jc", NS).get(W + "val"), "start")
+                runs = paragraph.findall("w:r", NS)
+                self.assertEqual(len(runs), 1)
+                self.assertEqual(runs[0].find("w:rPr/w:rtl", NS).get(W + "val"), "0")
+                self.assertEqual(text(runs[0]), method)
+
     def test_latin_formulas_stay_one_ltr_run_inside_arabic_tables(self):
         methods = [
             "(model - baseline) / baseline on the same held-out records",
