@@ -2,6 +2,8 @@
 
 Reviewed 21 October 2026. Source baseline: `main` at `4b193f0`.
 
+Integration addendum: incoming `main` through `8d41121` was preserved. Its agent-rule, evaluation and limitation changes were reviewed; they add independent language-agent evidence but do not establish equipment prediction or customer outcomes. The assessed storage, authentication, connector and maintenance-model implementations are unchanged by that integration.
+
 ## Assessment
 
 The platform has a substantive, governed analytics foundation: traceable figures, maintenance-specific model checks, bilingual reporting and human-controlled publication. The evidence supports developing it into a focused reliability decision-support service. It does **not yet establish an operational CMMS replacement, field-validated failure prediction, or commercially proven SaaS**.
@@ -53,7 +55,7 @@ Local evidence: [analytics](../../server/analytics.py), [maintenance targets](..
 ## Strong points worth preserving
 
 1. **Traceable decision evidence.** Deterministic figures, explicit denominators and populations, calculation references and reconciliation give reviewers a way to challenge a conclusion. Preserve that path through every future integration and export.
-2. **Honest model limitations.** Maintenance models restrict inputs by decision-time availability, compare against informative baselines on the same eligible cohort, and disclose weakness. These are useful foundations for validation; synthetic agent evaluation and software tests are separate from predictive performance on operating equipment.
+2. **Honest model limitations.** Maintenance models restrict inputs by decision-time availability, compare against informative baselines on the same eligible cohort, and disclose weakness. These are useful foundations for validation; synthetic agent evaluation and software tests are separate from predictive performance on operating equipment. Incoming blind language-agent evaluations still report intent and causal-wording misses, so the presence of a wording guard cannot guarantee a correct interpretation or supported causal statement. See [known limitations](../KNOWN_LIMITATIONS.md).
 3. **Bilingual delivery with restrained motion.** English/Arabic reporting, RTL and reduced-motion behavior can support mixed-language management and operations teams. Validate actual task completion with those users before calling this an advantage over another product.
 4. **Human control and limited model access.** Publication approval is bound to the reviewed artifact; raw rows remain server-side and optional narration works from controlled evidence. Detection-based personal-data controls still need assessment against the actual customer data.
 5. **An adaptable engineering base.** Managed authentication, owner isolation, quotas, recoverable runs, an optional worker, custom stages and MCP interfaces reduce some implementation work. They do not by themselves establish organization-level SaaS operations.
