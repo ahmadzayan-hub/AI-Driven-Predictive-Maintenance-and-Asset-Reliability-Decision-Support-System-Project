@@ -1071,18 +1071,22 @@ def preparer(ctx):
         for row in rows:
             value = row.get(measure)
             if value is not None:
-                groups[row[group_col]] = groups.get(row[group_col], 0.0) + value
+                groups.setdefault(row[group_col], []).append(value)
                 group_counts[row[group_col]] = group_counts.get(row[group_col], 0) + 1
+        groups = {key: math.fsum(values) for key, values in groups.items()}
     trend, trend_counts = {}, {}
     if date_col:
         for row in rows:
             value = row.get(measure)
             if value is not None and not (mapping and row[date_col] is None):
-                trend[row[date_col]] = trend.get(row[date_col], 0.0) + value
+                trend.setdefault(row[date_col], []).append(value)
                 trend_counts[row[date_col]] = trend_counts.get(row[date_col], 0) + 1
-        trend = dict(sorted(trend.items()))
+        trend = {key: math.fsum(values) for key, values in sorted(trend.items())}
         trend_counts = {k: trend_counts[k] for k in trend}
-    total = round(sum(r[measure] for r in rows if r.get(measure) is not None), 2)
+    # Evidence retains source precision. Independently rounding each group
+    # accumulates into a false reconciliation failure (and changes ratios).
+    # Round only when formatting a figure for a reader.
+    total = math.fsum(r[measure] for r in rows if r.get(measure) is not None)
     grain = ctx["cleaner"].get("date_grain") if mapping else None
     grain_ar = {"day": "اليوم", "month": "الشهر", "quarter": "الربع", "year": "السنة"}
     return _result(
@@ -1100,9 +1104,9 @@ def preparer(ctx):
              + (" (ربط الأعمدة)" if mapping else "") + "."),
         output={"measure": measure, "group_col": group_col, "date_col": date_col,
                 "date_grain": grain,
-                "groups": {k: round(v, 2) for k, v in groups.items()},
+                "groups": groups,
                 "group_counts": group_counts,
-                "trend": {k: round(v, 2) for k, v in trend.items()},
+                "trend": trend,
                 "trend_counts": trend_counts,
                 "total": total},
         calculations=[{"id": "c_total", "name": f"total_{measure}", "value": total,
@@ -1293,18 +1297,18 @@ def diagnostic(ctx):
             value = row.get(measure)
             if value is None or row.get(date_col) not in (first, last):
                 continue
-            slot = by_group.setdefault(row[group_col], {"first": 0.0, "last": 0.0})
-            slot["first" if row[date_col] == first else "last"] += value
+            slot = by_group.setdefault(row[group_col], {"first": [], "last": []})
+            slot["first" if row[date_col] == first else "last"].append(value)
         total_change = prep["trend"][last] - prep["trend"][first]
         for name, slot in by_group.items():
-            delta = slot["last"] - slot["first"]
+            delta = math.fsum(slot["last"]) - math.fsum(slot["first"])
             contributions.append({
-                "group": name, "change": round(delta, 2),
+                "group": name, "change": delta,
                 "share_of_change": round(delta / total_change, 4) if total_change else None,
             })
         contributions.sort(key=lambda c: -abs(c["change"]))
         calcs.append({"id": "c_totalchange", "name": "total_change",
-                      "value": round(total_change, 2),
+                      "value": total_change,
                       "method": f"{measure} in {last} − {measure} in {first}"})
         for index, item in enumerate(contributions[:5]):
             calcs.append({"id": f"c_contrib_{index}",
@@ -3310,7 +3314,15 @@ def prescriptive(ctx, gateway=None):
             facts.append(f"Next period is forecast at {forecast[0]['value']:,.2f}.")
         facts.append(f"The recommended action is: {best['title']}.")
     goal = ctx.get("goal", "the analysis")
-    if not gateway:
+    from server.model_privacy import blocks_model, notice
+    private = blocks_model(privacy=ctx.get("privacy"), merged=ctx.get("merge"),
+                           texts=[goal, *facts])
+    if private:
+        # Aggregated sentences can still contain a raw identifying group
+        # label. Neither a provider nor a router receives those sentences.
+        narration = {"text": " ".join(facts), "source": "deterministic",
+                     "privacy_reason": notice(report_language(ctx))}
+    elif not gateway:
         narration = {"text": " ".join(facts), "source": "deterministic"}
     elif arabic:
         narration = gateway.narrate(goal, facts, language="ar")
@@ -3361,6 +3373,7 @@ def prescriptive(ctx, gateway=None):
         output={"headline": headline, "options": options, "recommendation": best,
                 "exec_summary": narration["text"],
                 "exec_summary_source": narration["source"],
+                "exec_summary_privacy_reason": narration.get("privacy_reason"),
                 # Who chose the narrator, when something did. The report
                 # already names which model wrote the summary; why that
                 # one belongs beside it (ADR 0017).
@@ -3380,27 +3393,27 @@ def validator(ctx):
     if prep["groups"]:
         # Recomputed here from the rows rather than added up from the
         # preparer's own figures: an independent sum reaching the same
-        # total is what this check is for. The published group totals are
-        # rounded to two decimals for display, so each may differ from the
-        # recomputation by half a cent and no more, while the sums
-        # themselves are compared unrounded. Comparing the rounded sums
-        # instead failed correct arithmetic as soon as a breakdown had a
-        # few hundred groups, because each group carried its own rounding.
+        # total is what this check is for, and it also catches a published
+        # group figure the rows do not support in a breakdown whose sum
+        # still adds up. The per-group rounding that used to make this
+        # check fail on a wide breakdown was removed at its source in the
+        # preparer, so the tolerances here stay fixed - a cent on the sum,
+        # half a cent on any one group - rather than growing with the data.
         measure, group_col = prep["measure"], prep["group_col"]
-        recomputed = {}
+        collected = {}
         for row in _rows(ctx):
             value = row.get(measure)
             if value is not None:
-                key = row[group_col]
-                recomputed[key] = recomputed.get(key, 0.0) + value
-        banked = sum(recomputed.values())
-        drift = max((abs(round(value, 2) - prep["groups"].get(key, 0.0))
+                collected.setdefault(row[group_col], []).append(value)
+        recomputed = {key: math.fsum(values) for key, values in collected.items()}
+        summed_groups = math.fsum(recomputed.values())
+        drift = max((abs(value - prep["groups"].get(key, 0.0))
                      for key, value in recomputed.items()), default=0.0)
         reconciled = (set(recomputed) == set(prep["groups"])
                       and drift <= 0.005
-                      and abs(banked - prep["total"]) < 0.01)
+                      and abs(summed_groups - prep["total"]) < 0.01)
         checks.append({"name": "group_totals_reconcile", "passed": reconciled,
-                       "detail": f"Σ(groups)={banked:,.2f} vs "
+                       "detail": f"Σ(groups)={summed_groups:,.2f} vs "
                                  f"total={prep['total']:,.2f}; recomputed "
                                  f"{len(recomputed)} group total(s), largest "
                                  f"difference from the published figure "
@@ -3469,7 +3482,7 @@ def validator(ctx):
         total_change = next(
             (c["value"] for c in ctx["diagnostic_result"]["calculations"]
              if c["id"] == "c_totalchange"), None)
-        summed = sum(item["change"] for item in contributions)
+        summed = math.fsum(item["change"] for item in contributions)
         reconciled = total_change is not None and abs(summed - total_change) < 0.01
         checks.append({"name": "change_decomposition_reconciles", "passed": reconciled,
                        "detail": f"Σ(segment changes)={summed:,.2f} vs "
@@ -3810,6 +3823,8 @@ def reporter(ctx):
             source=NARRATOR_AR.get(source, source) if arabic else source,
             routing=_routing_note(ctx["prescriptive"].get("exec_summary_routing"),
                                   source, language)),
+        *([ctx["prescriptive"]["exec_summary_privacy_reason"]]
+          if ctx["prescriptive"].get("exec_summary_privacy_reason") else []),
         "",
         text["questions"],
         text["questions_head"],

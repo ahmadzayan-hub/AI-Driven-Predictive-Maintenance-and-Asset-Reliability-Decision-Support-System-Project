@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { StoreProvider, useStore } from '../app/store'
 import { api, ApiError, type MessageResult } from '../shared/api'
 import type { SessionState } from '../shared/types'
@@ -29,12 +29,22 @@ beforeEach(() => {
   vi.spyOn(api, 'authConfig').mockResolvedValue({ mode: 'local', provider_url: '', publishable_key: '', flows: [] })
   vi.spyOn(api, 'createSession').mockImplementation(async () => session())
 })
+afterEach(() => vi.unstubAllGlobals())
 async function setup() {
   const hook = renderHook(() => useStore(), { wrapper: StoreProvider })
   await waitFor(() => expect(hook.result.current.session?.session_id).toBe('test-session'))
   return hook
 }
 describe('Miyaar chat request continuity', () => {
+  it('returns to sign-in when a non-chat API request receives an expired-token response', async () => {
+    const { result } = await setup()
+    localStorage.setItem('aos-token', 'expired')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401, json: async () => ({ detail: 'Expired' }) }))
+    await act(async () => { await expect(api.getDataset('dataset')).rejects.toMatchObject({ status: 401 }) })
+    expect(result.current.session).toBeNull()
+    expect(result.current.needsSignIn).toBe(true)
+    expect(localStorage.getItem('aos-token')).toBeNull()
+  })
   it('shows the pending question, blocks same-tick duplicates and accepts the next turn', async () => {
     const first = deferred<MessageResult>()
     const send = vi.spyOn(api, 'sendMessage').mockReturnValueOnce(first.promise).mockResolvedValueOnce(response('test-session','Follow-up','Second reply'))

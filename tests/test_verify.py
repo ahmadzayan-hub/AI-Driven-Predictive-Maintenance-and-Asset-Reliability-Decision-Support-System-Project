@@ -135,6 +135,25 @@ class StepTests(unittest.TestCase):
         self.assertIn("Python tests", quick)
         self.assertNotIn("Production build", quick)
         self.assertNotIn("End-to-end tests", quick)
+        self.assertNotIn("Miyaar browser tests", quick)
+
+    def test_broken_server_dependencies_fail_before_api_tests_can_silently_skip(self):
+        step = next(s for s in verify.steps() if s.name == "Server dependencies")
+        with tempfile.TemporaryDirectory() as directory:
+            Path(directory, "fastapi.py").write_text(
+                'raise ImportError("synthetic broken server dependency")\n',
+                encoding="utf-8")
+            step.cwd = Path(directory)
+            ok, _, output, _ = verify.run(step)
+        self.assertFalse(ok)
+        self.assertIn("synthetic broken server dependency", output)
+        python_tests = next(s for s in verify.steps() if s.name == "Python tests")
+        self.assertIn("Server dependencies", python_tests.needs)
+
+    def test_e2e_includes_both_ci_browser_suites_and_native_logic(self):
+        names = self.names("e2e")
+        for name in ("End-to-end tests", "Miyaar browser tests", "Native run logic"):
+            self.assertIn(name, names)
 
     def test_the_default_runs_what_ci_runs_without_a_browser(self):
         full = self.names("full")

@@ -32,8 +32,16 @@ suite uses.
 
 ## Decision
 
-The validator recomputes the group totals from the rows instead of adding up
-the preparer's own rounded figures, and then checks three things:
+A parallel session reached the same defect from its own review and removed the
+cause at its source in commit `1dd73ae`: the preparer no longer rounds a group
+total or the overall total at all, summing each with `math.fsum` and leaving
+rounding to whatever formats a figure for a reader. That is the better half of
+the fix and it is theirs; evidence should carry the precision of its source.
+The reproduction above is from before that commit.
+
+This record keeps the other half, which that change does not provide: the
+validator recomputes the group totals from the rows instead of adding up the
+preparer's own figures, and then checks three things:
 
 - its unrounded sum reaches the total, within `0.01`;
 - every published group figure is within half a cent of its recomputation;
@@ -50,16 +58,20 @@ rounding and was measured passing. At 5,000 groups it allows ±25.01, so a
 genuine mis-sum of 25 units in a total of 40,161 would have passed as rounding.
 A check that grows slack with the size of the data is a check that stops
 working exactly where the data gets interesting, so it was replaced rather than
-shipped.
+shipped. With the rounding gone from the preparer, the tolerances here stay
+fixed: a cent on the sum, half a cent on any one group.
 
 ## What this is worth, measured
 
 `tests/test_analytics.py` gains a `GroupReconciliationTestCase` of four tests,
 and every one was watched failing before the code that makes it pass:
 
-- 300 groups whose rounded totals fall 0.60 short of the total reconcile
-  (against the original flat cent, this errored: the run was rejected, so the
-  validator's output was not even recorded in the run context);
+- 300 groups reconcile, and the test states the arithmetic both ways: the
+  published figures reach the total to six places, while rounding each of them
+  first falls 0.60 short — which is what the rejected runs were rejected for.
+  Against the original flat cent this test errored rather than failed, because
+  the run was rejected and the validator's output was never recorded in the run
+  context;
 - a total 50.00 away from the rows is still rejected;
 - a total **0.50** away from the rows is still rejected — this is the test the
   rejected widened tolerance failed, and the reason it was rejected;
@@ -85,6 +97,8 @@ group total(s), largest difference from the published figure 0.0000
 
 - A high-cardinality breakdown no longer fails validation for rounding, so the
   unmapped first run of a wide table reaches a human instead of a rejection.
+  Commit `1dd73ae` is what makes that true; this record makes the check
+  independent as well as correct.
 - The check is now stricter than it was, not looser: it compares unrounded sums
   at one cent and each published group figure at half a cent, and it notices a
   group that the rows do not support even when the total still adds up.

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { api, ApiError } from '../shared/api'
+import { api, ApiError, AUTH_EXPIRED_EVENT } from '../shared/api'
 
 function mockFetchOnce(response: Partial<Response> & { json?: () => Promise<unknown> }) {
   const impl = {
@@ -13,9 +13,38 @@ function mockFetchOnce(response: Partial<Response> & { json?: () => Promise<unkn
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  localStorage.removeItem('aos-token')
 })
 
 describe('api client', () => {
+  it.each(['mapping', 'csv', 'executive'])('signals an expired credential from the %s transport', async (kind) => {
+    localStorage.setItem('aos-token', 'expired-token')
+    mockFetchOnce({ ok: false, status: 401, json: async () => ({ detail: 'Expired' }) })
+    const expired = vi.fn()
+    window.addEventListener(AUTH_EXPIRED_EVENT, expired)
+    try {
+      const operation = kind === 'mapping' ? api.getDataset('r1')
+        : kind === 'csv' ? api.downloadTable('r1')
+          : api.downloadExecutive('r1', 'en', [], 'stamp', 'snapshot', 'html')
+      await expect(operation).rejects.toMatchObject({ status: 401 })
+      expect(expired).toHaveBeenCalledOnce()
+    } finally { window.removeEventListener(AUTH_EXPIRED_EVENT, expired) }
+  })
+  it('does not expire a new login when an older credential receives a delayed 401', async () => {
+    localStorage.setItem('aos-token', 'old-token')
+    let finish!: (response: Partial<Response>) => void
+    vi.stubGlobal('fetch', vi.fn(() => new Promise((resolve) => { finish = resolve })))
+    const expired = vi.fn()
+    window.addEventListener(AUTH_EXPIRED_EVENT, expired)
+    try {
+      const operation = api.listDatasets()
+      localStorage.setItem('aos-token', 'new-token')
+      finish({ ok: false, status: 401, json: async () => ({ detail: 'Expired old token' }) })
+      await expect(operation).rejects.toMatchObject({ status: 401 })
+      expect(expired).not.toHaveBeenCalled()
+      expect(localStorage.getItem('aos-token')).toBe('new-token')
+    } finally { window.removeEventListener(AUTH_EXPIRED_EVENT, expired) }
+  })
   it('uses an owned run policy route, exact optimistic revision and the authenticated transport', async () => {
     localStorage.setItem('aos-token', 'tok')
     const policy = { revision: 'a'.repeat(64), rules: {} }

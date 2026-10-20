@@ -17,6 +17,7 @@ export const assetMessages = definePack(
   'assets.profile': 'Railway analysis available in maintenance profile',
   'assets.profileMissing': 'Railway profile not configured',
   'assets.unavailable': 'The latest asset analysis could not be loaded.',
+  'assets.searchScope': 'This search covers the 50 most recent analyses. Open an older analysis directly to inspect its railway evidence.',
   'assets.retry': 'Retry',
   'assets.empty': 'No validated railway asset analysis yet',
   'assets.emptyDetail': 'Upload a railway maintenance dataset, select the maintenance analysis profile and inspect the resulting run. No sample KPI is shown as real asset performance.',
@@ -36,7 +37,7 @@ export const assetMessages = definePack(
   'assets.kpiNoEvidence': 'no record carried a complete measurement',
   'assets.kpiUndefined': 'Not measured',
   'assets.kpiUnavailable': 'This dataset cannot support: {measures}.',
-  'assets.kpiScope': 'Each measure is a ratio of sums over its named population, not an average of row rates. Dividing its numerator by the records shown reproduces the figure. These are measurements of recorded data, not a prediction, a cause or a demonstrated saving.',
+  'assets.kpiScope': 'Each measure is a ratio of sums over its named population, not an average of row rates. Divide its numerator by its denominator, multiplying by 100 for a percentage, to reproduce the figure. These are measurements of recorded data, not a prediction, a cause or a demonstrated saving.',
 },
 {
   'assets.kicker': 'ذكاء الأصول · السكك الحديدية',
@@ -54,6 +55,7 @@ export const assetMessages = definePack(
   'assets.profile': 'تحليل الأصول متاح ضمن ملف الصيانة',
   'assets.profileMissing': 'ملف تحليل أصول السكك غير مهيأ',
   'assets.unavailable': 'تعذّر تحميل أحدث تحليل للأصول.',
+  'assets.searchScope': 'يشمل البحث أحدث 50 تحليلاً. افتح تحليلاً أقدم مباشرةً لمراجعة أدلته الخاصة بالسكك الحديدية.',
   'assets.retry': 'إعادة المحاولة',
   'assets.empty': 'لا يوجد تحليل موثق لأصول السكك بعد',
   'assets.emptyDetail': 'ارفع بيانات صيانة السكك واختر ملف تحليل الصيانة ثم راجع نتائج التشغيل. لا تُعرض بيانات نموذجية باعتبارها مؤشرات حقيقية.',
@@ -73,6 +75,6 @@ export const assetMessages = definePack(
   'assets.kpiNoEvidence': 'لا يوجد سجل يحمل قياسًا كاملًا',
   'assets.kpiUndefined': 'غير مقاس',
   'assets.kpiUnavailable': 'هذه البيانات لا تدعم: {measures}.',
-  'assets.kpiScope': 'كل مقياس هو نسبة مجاميع على مجتمعه المسمى، وليس متوسط معدلات الصفوف. قسمة البسط على عدد السجلات المعروض تعيد إنتاج الرقم. هذه قياسات لبيانات مسجلة، وليست تنبؤًا ولا سببًا ولا وفرًا محققًا.',
+  'assets.kpiScope': 'كل مقياس هو نسبة مجاميع على مجتمعه المسمى، وليس متوسط معدلات الصفوف. لإعادة إنتاج الرقم، اقسم البسط على المقام واضرب الناتج في 100 للنسب المئوية. هذه قياسات لبيانات مسجلة، وليست تنبؤًا ولا سببًا ولا وفرًا محققًا.',
 },
 )

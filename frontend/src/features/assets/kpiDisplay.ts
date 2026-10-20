@@ -33,7 +33,8 @@ export function formatValue(measure: KpiMeasure, locale: 'en' | 'ar' = 'en'): st
   return number
 }
 
-/** True when numerator ÷ records reproduces the printed value, which is the
+/** True when numerator ÷ denominator (×100 for percent) reproduces the value,
+ *  which is the
  *  property that lets a reader check a card by hand. A measure that fails it
  *  is not rendered as auditable. */
 export function isAuditable(measure: KpiMeasure): boolean {
