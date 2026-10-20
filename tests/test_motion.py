@@ -83,6 +83,12 @@ class ExampleFigureTests(unittest.TestCase):
         }
         cls.months = (by_month[months[0]], by_month[months[-1]])
 
+    def test_the_brand_cannot_wrap(self):
+        """It is an identifier in the corner of every frame; the long source
+        line beside it is what may wrap."""
+        css = (SKILL / "composition.html").read_text(encoding="utf-8")
+        self.assertIn("#brand { white-space: nowrap;", css)
+
     def test_every_example_figure_matches_the_sample(self):
         for name in ("sample-sales.json", "sample-sales.ar.json"):
             spec = json.loads((SKILL / "examples" / name).read_text(encoding="utf-8"))

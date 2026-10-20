@@ -68,6 +68,11 @@ body { font-family: 'Fira Sans', 'Noto Sans Arabic', 'Segoe UI', 'DejaVu Sans', 
 .note { font-size: 1.1em; color: var(--muted); line-height: 1.4; max-width: 46em; }
 .footer { position: absolute; inset-inline: 8%; bottom: 5%; display: flex; justify-content: space-between;
           gap: 2em; font-size: .95em; color: var(--muted); }
+/* The source line is long and may wrap; the brand is an identifier and must not.
+   Without this the flex row squeezed the brand and broke "Group 9226 - Team 3"
+   across two lines in the corner of every frame. */
+#footer { min-width: 0; }
+#brand { white-space: nowrap; flex: none; }
 .progress { position: absolute; inset-inline: 0; bottom: 0; height: .35em; background: var(--rule); }
 .progress__fill { height: 100%; width: 0; background: var(--accent); }
 [dir="rtl"] .progress__fill { margin-inline-start: auto; }
