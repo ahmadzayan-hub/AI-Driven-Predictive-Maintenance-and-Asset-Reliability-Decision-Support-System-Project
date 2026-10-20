@@ -45,7 +45,11 @@ export function carries(found, value) {
     Math.abs(Number(candidate.toFixed(places)) - value) < 1e-9)
 }
 
-const LOOKS_LIKE_A_PATH = /\.(csv|json|md|txt|tsv)(\s|$|[,;)])/i
+/** The file a source names, wherever it sits in the sentence.
+ *  The skill asks for a source a viewer can follow - "Team 3 workbook,
+ *  Executive KPIs (kpi_baseline.csv)" - so the file is rarely the first
+ *  thing in the string and must be found rather than assumed. */
+const NAMED_FILE = /([\w./\\-]+\.(?:csv|json|md|txt|tsv))/i
 
 
 /** Problems with the figures whose `source` names a file.
@@ -69,7 +73,8 @@ export function checkSources(spec, read) {
   })
   for (const [where, item] of figures) {
     const source = typeof item?.source === 'string' ? item.source.trim() : ''
-    const named = source.match(LOOKS_LIKE_A_PATH) ? source.split(/[,;]| at | cell /)[0].trim() : null
+    const found = source.match(NAMED_FILE)
+    const named = found ? found[1] : null
     if (!named) continue
     const text = read(named)
     if (text == null) {
@@ -209,7 +214,10 @@ async function render(spec, out) {
     }
     const columns = Math.min(3, scenes.length)
     const rows = Math.ceil(scenes.length / columns)
-    await ffmpeg(['-y', '-pattern_type', 'glob', '-i', path.join(tmp, 's*.png'),
+    // A numbered sequence, not a glob: the image2 demuxer's glob support is a
+    // build option, and the common Windows builds ship without it, which failed
+    // the whole render for the sake of the review sheet.
+    await ffmpeg(['-y', '-start_number', '0', '-i', path.join(tmp, 's%02d.png'),
       '-filter_complex', `scale=640:-1,tile=${columns}x${rows}:padding=8:color=0x888888`, '-frames:v', '1', `${base}.sheet.png`])
     fs.rmSync(tmp, { recursive: true, force: true })
     fs.writeFileSync(`${base}.txt`, await page.evaluate(() => window.motion.transcript()) + '\n')
