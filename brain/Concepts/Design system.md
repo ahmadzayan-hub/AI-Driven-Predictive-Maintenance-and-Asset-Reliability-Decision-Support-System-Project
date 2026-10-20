@@ -3,9 +3,9 @@ type: concept
 aliases: [Design system v2, UI design system, ui-ux-pro-max]
 tags: [interface, design]
 status: active
-updated: 2026-10-20
+updated: 2026-10-21
 review_every_days: 30
-sources: [frontend/src/tests/charts.test.tsx, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0028-views-load-on-demand.md, docs/UI_PLAN.md, design-system/agentic-os/MASTER.md, frontend/src/shared/styles/tokens.css, .claude/skills/ui-ux-pro-max/PROVENANCE.md, .claude/skills/design/PROVENANCE.md]
+sources: [frontend/src/tests/charts.test.tsx, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0028-views-load-on-demand.md, docs/UI_PLAN.md, design-system/agentic-os/MASTER.md, frontend/src/shared/styles/tokens.css, .claude/skills/ui-ux-pro-max/PROVENANCE.md, .claude/skills/design/PROVENANCE.md, docs/design/REACT_AGENT_CONNECTIONS_STUDY.md]
 ---
 
 # Design system
@@ -27,6 +27,10 @@ How the interface of [[Agentic OS]] looks and behaves, and where those choices c
 ## How to use it
 
 Read the master file, then ask the skill one focused question with `python3 .claude/skills/ui-ux-pro-max/scripts/search.py "<concern>" --domain ux`. Its advice never overrides [[Soul]]: no third-party requests, no fabricated screenshots, and every string in English and Arabic.
+
+## React graph exploration
+
+The 21 October study in `docs/design/REACT_AGENT_CONNECTIONS_STUDY.md` keeps the existing React/SVG approach for [[Agent collaboration]] and proposes an optional React Flow explorer only when canvas navigation earns its measured cost. Motion is an optional animation tool, not a graph or communication service. The study includes reproducible synthetic build comparisons; production dependencies and the current CSS-motion decision are unchanged.
 
 ## Related
 

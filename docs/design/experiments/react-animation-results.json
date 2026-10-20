@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-21",
+  "node": "v24.22.0",
+  "versions": {
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "@xyflow/react": "12.12.0",
+    "motion": "14.4.0",
+    "vite": "8.2.1"
+  },
+  "units": "decimal KB; sum of individual gzip level-9 JS/CSS assets",
+  "variants": {
+    "native": {
+      "js": 60.174,
+      "css": 0.773,
+      "jsDelta": 0,
+      "cssDelta": 0
+    },
+    "react-flow": {
+      "js": 116.483,
+      "css": 3.083,
+      "jsDelta": 56.309000000000005,
+      "cssDelta": 2.31
+    },
+    "motion-mini": {
+      "js": 63.281,
+      "css": 0.773,
+      "jsDelta": 3.1069999999999993,
+      "cssDelta": 0
+    },
+    "motion-lazy": {
+      "js": 89.309,
+      "css": 0.773,
+      "jsDelta": 29.134999999999998,
+      "cssDelta": 0
+    }
+  },
+  "lockSha256": "cc9d35bebbce1fc5b4f12c5985d6ad550a76d1b4b4166b2e03c14eb3e025d75f"
+}

@@ -995,3 +995,13 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** `verify.py --quick` passed after the merge (1462 Python tests, 262 frontend). The draft's claims about storage, erasure and the detector were read from the code. The legal summary comes from secondary commentary only and is marked unverified.
 - **Decisions:** none taken; the owner chooses. Recommendation: synthetic blind cases now, per-item contribution only after a measured mismatch and a pilot customer's written agreement.
 - **Open / next:** owner's choice; counsel on the UAE personal data law and on whether a government customer may allow this at all.
+
+## 2026-10-21 ? `react-animation-study` ? main
+
+**Goal:** compare React-based platform animation and agent-connection approaches, then recommend a concrete design.
+
+- **Done:** researched official React, React Flow, Motion and browser documentation; inspected current source through `827a584`; produced `docs/design/REACT_AGENT_CONNECTIONS_STUDY.md` with the stack comparison, shared adapter design, motion catalogue, relation semantics and staged acceptance. Added a reproducible isolated benchmark, pinned dependency lock, exact results and actual synthetic screenshots.
+- **Verified:** production-mode builds and desktop Chromium smoke scenarios for the experiment, with exact counts in README.md#testing. Native and React Flow captures visually inspected. No production source or dependency changed, so the full platform suites were not rerun; future explorer mobile/RTL, screen-reader, authorization integration and large-graph performance remain unverified.
+- **Decisions:** keep React/SVG/CSS as the compact default; use React Flow for a separately justified optional explorer; add Motion only for demonstrated animation complexity. Lazy loading protects first render but does not erase total bundle cost. Visual workflow edges do not establish actual agent communication. No behavior ADR was added because this is a study and an isolated experiment, not a production behavior or dependency change.
+- **Open / next:** implement a pure typed graph adapter and richer native stage connections first; measure an optional explorer against an explicit device workload and payload budget before integrating it. Real message history requires a durable authorized event contract.
+- **Blockers:** none for the study. Existing hosted/domain acceptance gates and the previously observed GitHub billing restriction were not resolved or revalidated here.
