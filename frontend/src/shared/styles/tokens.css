@@ -37,6 +37,7 @@
   --highlight-soft: #fef3c7;
 
   /* Semantic */
+  --metric-okay: #1d4ed8;
   --success: #0f7a55;
   --success-soft: #e2f4ec;
   --warning: #8a6100;
@@ -150,6 +151,7 @@
   --highlight-soft: #2e2208;
 
   --success: #34d399;
+  --metric-okay: #93c5fd;
   --success-soft: #0d2b1f;
   --warning: #fbbf24;
   --warning-soft: #302408;
@@ -196,6 +198,7 @@
     --highlight-soft: #2e2208;
 
     --success: #34d399;
+    --metric-okay: #93c5fd;
     --success-soft: #0d2b1f;
     --warning: #fbbf24;
     --warning-soft: #302408;

@@ -16,6 +16,20 @@ afterEach(() => {
 })
 
 describe('api client', () => {
+  it('uses an owned run policy route, exact optimistic revision and the authenticated transport', async () => {
+    localStorage.setItem('aos-token', 'tok')
+    const policy = { revision: 'a'.repeat(64), rules: {} }
+    mockFetchOnce({ json: () => Promise.resolve(policy) })
+    const controller = new AbortController()
+    await expect(api.kpiPolicy('run/one', 'ar', controller.signal)).resolves.toEqual(policy)
+    expect(vi.mocked(fetch).mock.calls[0][0]).toBe('/api/runs/run%2Fone/kpi-policy?language=ar')
+    await api.saveKpiPolicy('run/one', policy, 'ar', controller.signal)
+    const [, init] = vi.mocked(fetch).mock.calls[1]
+    expect(init?.headers).toMatchObject({ Authorization: 'Bearer tok' })
+    expect(init?.method).toBe('PUT')
+    expect(JSON.parse(String(init?.body))).toEqual({ expected_revision: policy.revision, rules: {} })
+    localStorage.removeItem('aos-token')
+  })
   it('returns parsed JSON for successful requests', async () => {
     mockFetchOnce({ json: () => Promise.resolve({ status: 'ok', agent_name: 'A', version: '1' }) })
     const result = await api.health()

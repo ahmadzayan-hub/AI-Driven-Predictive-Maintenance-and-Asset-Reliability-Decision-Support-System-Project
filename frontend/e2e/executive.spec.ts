@@ -289,7 +289,7 @@ test('filtered executive measures, evidence and downloaded reports share the exa
     numerator: 20, denominator: 3, records: 3,
   })
   const fix = page.locator('[data-source="kpi.first_time_fix"]')
-  await expect(fix.locator('.exec-kpi-value')).toHaveText('57.5 %')
+  await expect(fix.locator('.exec-kpi-value .performance-value__number')).toHaveText('57.5 %')
   await expect(fix.getByText('2 measured records', { exact: true })).toBeVisible()
   await fix.locator('summary').click()
   await expect(fix.locator('dd').first()).toContainText('23 / 40')
@@ -329,7 +329,7 @@ test('filtered executive measures, evidence and downloaded reports share the exa
   await expect(page.locator('.exec-scope strong')).toHaveText('2')
   await expect(prepared).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Prepare executive brief', exact: true })).toBeVisible()
-  await expect(fix.locator('.exec-kpi-value')).toHaveText('50 %')
+  await expect(fix.locator('.exec-kpi-value .performance-value__number')).toHaveText('50 %')
 })
 
 test('an executive priority preserves the period filter when drilling into records and reloading', async ({ page }) => {
@@ -373,7 +373,7 @@ test('an executive priority preserves the period filter when drilling into recor
   expect(expected.kpis.measures.find((m) => m.key === 'downtime_per_record')).toMatchObject({
     value: 20, numerator: 20, denominator: 1, records: 1,
   })
-  await expect(page.locator('[data-source="kpi.downtime_per_record"] .exec-kpi-value')).toHaveText('20 h')
+  await expect(page.locator('[data-source="kpi.downtime_per_record"] .exec-kpi-value .performance-value__number')).toHaveText('20 h')
   await expect(page.getByLabel('From', { exact: true })).toHaveValue('2026-03')
 })
 
@@ -395,7 +395,7 @@ test('Arabic RTL business reports and PDF print preview retain evidence in both 
   await expectScope(page, 3, 4, 'ar')
   const fix = page.locator('[data-source="kpi.first_time_fix"]')
   await expect(fix.getByRole('heading', { name: 'معدل الإصلاح من المرة الأولى' })).toBeVisible()
-  await expect(fix.locator('.exec-kpi-value')).toHaveText('57.5 %')
+  await expect(fix.locator('.exec-kpi-value .performance-value__number')).toHaveText('57.5 %')
   await fix.locator('summary').click()
   await expect(fix.locator('dd').first()).toContainText('23 / 40')
   const priority = page.locator('.exec-priorities > li').filter({

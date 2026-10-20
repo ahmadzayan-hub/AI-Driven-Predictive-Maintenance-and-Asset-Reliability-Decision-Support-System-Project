@@ -3,7 +3,7 @@ type: decision
 aliases: [ADR index, Architecture decisions]
 tags: [decisions]
 status: active
-updated: 2026-10-19
+updated: 2026-10-20
 review_every_days: 30
 sources: [docs/adr]
 ---
@@ -75,5 +75,7 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 | 0057 | Local Markdown knowledge collections with heading citations | [[Agent runtimes and MCP]] |
 | 0058 | Scoped executive evidence agent, bilingual dashboards and capability-aware Claude skills | [[Agentic OS]], [[Design system]], [[Weighted KPIs]] |
 | 0059 | Business HTML and Word exports, native Print / Save as PDF and exact evidence revisions | [[Agentic OS]], [[Design system]], [[Weighted KPIs]] |
+| 0060 | Reporting-standards wording lint distinguishes supported statements from unsupported claims | [[Governed pipeline]] |
+| 2026-10-20-semantic-performance-colors | Explicit performance colors and sourced per-analysis display targets with neutral unknowns | [[Agentic OS]], [[Design system]], [[Weighted KPIs]] |
 
 All seven [[Analytics OS roadmap]] milestones have their records.

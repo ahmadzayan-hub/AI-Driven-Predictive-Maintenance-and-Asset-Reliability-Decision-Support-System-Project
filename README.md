@@ -83,6 +83,13 @@ environment — not a replacement for Windows, macOS, or Linux.
   every group to the rows behind it. The page and filters live in the
   address, every chart has its numbers as a table, and axe checks every
   page in both languages (ADR 0032)
+- **Consistent performance colors** — red for bad, blue for okay and green
+  for good, with visible English/Arabic status words in dashboards and business
+  reports. Per-analysis targets support higher/lower-is-better and nested
+  ranges with a source reference, optimistic saves and durable history.
+  Unassessed or unavailable measurements stay neutral; target edits do not
+  approve or publish. See the [operating guide](docs/design/EXECUTIVE_DASHBOARD_HANDOFF.md)
+  and [decision](docs/adr/2026-10-20-semantic-performance-colors.md).
 - **Executive business reports** — prepare a scoped evidence brief, download
   standalone HTML or an editable Word `.docx`, or use **Print / Save as PDF**
   in the browser. English and Arabic RTL reports retain KPI definitions,
@@ -388,14 +395,14 @@ hardware expectations, hosted configuration and acceptance limits.
 # mapping, joins, the cleaned-table queries, modelling stages, live sources and the event stream, uneven periods, docs, and the repository's operating system:
 # brain checker, session hooks, the verify script, the motion skill, the
 # agent team's tools, agent evaluation, the house style and the interface
-# budget (1,303 tests reported in the last full CI run, including skips)
+# budget (measured counts and optional skips are in the dated validation below)
 python -m unittest discover tests
 
-# Frontend unit tests (213 tests)
+# Frontend unit tests
 
 cd frontend && npm test
 
-# End-to-end + accessibility (116 checks defined across desktop and mobile,
+# End-to-end + accessibility (across desktop and mobile,
 # in English and Arabic;
 # requires the production build: npm run build)
 cd frontend && npx playwright test
@@ -408,6 +415,56 @@ cd frontend && npm run typecheck
 # Playwright)
 python scripts/verify.py
 ```
+
+### Performance-color validation — 20 October 2026
+
+Implementation `8fa3937`, schema/localization correction `6b52ebe` and final
+numeric-direction/accessibility refinement `c11f3f7` provide red **Bad**, blue
+**Okay** and green **Good**, with English/Arabic status words. Actual KPI
+targets are explicitly configured per analysis with their source and units;
+unassessed and unavailable measurements stay neutral. The
+[dated decision](docs/adr/2026-10-20-semantic-performance-colors.md) and
+[operating guide](docs/design/EXECUTIVE_DASHBOARD_HANDOFF.md) explain the rules.
+
+- [Full Linux baseline CI on `6b52ebe`](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39380783997)
+  **passed**: **1,331 Python tests reported, 23 skipped**, with required
+  PostgreSQL; **232 frontend tests in 33 files**; **5 native contracts**;
+  **116 browser checks passed, 4 skipped**, and **12 Miyaar checks passed**.
+  The actual PostgreSQL API/history/backup test, independent-connection
+  compare-and-save race/lost-acknowledgment test and rollback-only bootstrap
+  snapshot/RLS/revoke smoke all passed. The initial source run exposed missing
+  snapshot DDL/protections; `6b52ebe` fixed them without changing a hosted database.
+- [Final combined-source CI on `c11f3f7`](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39381914052)
+  has passed Python, frontend units, contracts and build; its browser stage
+  is still running. This source also preserves incoming motion verification
+  through `901ea93`. A passing result is not assumed before completion.
+- Local final TypeScript/build/budget and **31 export/direction/documentation
+  tests passed**. The target editor's **5 focused tests passed**, including
+  focus on the validation error. Earlier new real-API color scenarios:
+  **4 passed** across English/Arabic desktop and mobile, each checking both
+  light and dark themes, contrast, labels, target saves, filters, real
+  HTML/Word files, stale-policy rejection and unchanged approvals. Existing
+  executive checks **8 passed**; Miyaar preview checks **12 passed**.
+- Final measured budget: initial JS **98.4 / 100 KB**, total JS **179.7 / 185 KB**,
+  largest chunk **17.9 / 30 KB**, initial CSS **10.0 / 10 KB**, total CSS
+  **21.2 / 22 KB**, fonts **119.4 / 120 KB**. The dated decision explicitly
+  allocates aggregate space for the lazy target editor; initial-load/chunk/font
+  limits remain unchanged. No runtime dependency or font was added.
+- Visual business-report review covered **86 rendered pages** across English/
+  Arabic Word and HTML-to-PDF outputs before the final numeric-only refinement.
+  The final Word negative-number fixture was then rendered and inspected:
+  leading ASCII/Unicode minus, negative percentages, brackets and ranges retain
+  their order. Representative positive Arabic scope and KPI pages retain
+  right-aligned numeric columns. The numeric-specific HTML/PDF fixture was not
+  visually checked because the browser rejected local-file navigation; the
+  normal HTTP export/print workflow is covered by browser tests. QA files and
+  tools stay private. The [light](docs/screenshots/semantic-performance-ar.png)
+  and [dark](docs/screenshots/semantic-performance-ar-dark.png) dashboard captures
+  use fictional data and explicitly fictional display targets.
+- The attempted full Windows backend invocation did not complete; it is not
+  reported as a pass. Full-suite evidence above comes from completed Linux CI.
+  Source schema preparation is separate from a hosted database upgrade;
+  production deployment and domain acceptance remain separate.
 
 ### Executive business export validation — 19 October 2026
 

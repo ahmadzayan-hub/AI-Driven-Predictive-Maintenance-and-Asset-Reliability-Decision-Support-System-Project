@@ -38,6 +38,7 @@ from server import query as table_query
 from server.executive import ExecutiveDashboardAgent, parse_filters as executive_filters
 from server import executive_export
 from server.maintenance import kpis as kpi_register
+from server.maintenance import performance
 from server.assistant import Assistant
 from server.connectors import Busy, ConnectorError, Connectors, TooSoon
 from server.model_gateway import ModelGateway
@@ -1046,6 +1047,55 @@ def create_app(config_path=None, env=None, dist_dir=None):
         return {"fields": await run_in_threadpool(table_query.fields, table),
                 "records": len(table.rows)}
 
+    @app.get("/api/runs/{run_id}/kpi-policy")
+    async def read_kpi_policy(run_id: str,
+                              language: str = Query(default="en", pattern="^(en|ar)$"),
+                              principal=Depends(requires("read"))):
+        await run_table(run_id, principal, language)
+        with lock:
+            if not owns(principal, engine.owner_of(run_id)):
+                raise HTTPException(status_code=404, detail="Run not found.")
+            return performance.load_policy(store, run_id)
+
+    @app.put("/api/runs/{run_id}/kpi-policy")
+    async def write_kpi_policy(run_id: str, request: Request,
+                               language: str = Query(default="en", pattern="^(en|ar)$"),
+                               principal=Depends(requires("write"))):
+        await run_table(run_id, principal, language)
+        try:
+            content = bytearray()
+            async for part in request.stream():
+                if len(content) + len(part) > performance.MAX_POLICY_BYTES:
+                    raise performance.PolicyError("The target policy exceeds the 16 KB limit.",
+                                                  "تتجاوز سياسة الأهداف الحد البالغ 16 كيلوبايت.")
+                content.extend(part)
+            try:
+                body = performance.parse_json(content)
+            except (ValueError, UnicodeError, RecursionError):
+                raise performance.PolicyError("Supply a JSON target-policy object.",
+                                              "حدد كائن سياسة الأهداف بصيغة JSON.") from None
+            expected, selected = performance.parse_update(body)
+        except performance.PolicyError as error:
+            raise HTTPException(status_code=422, detail=error.detail(language))
+        with lock:
+            if not owns(principal, engine.owner_of(run_id)):
+                raise HTTPException(status_code=404, detail="Run not found.")
+            current = performance.load_policy(store, run_id)
+            if current["revision"] != expected:
+                raise HTTPException(status_code=409, detail=(
+                    "تغيرت أهداف العرض. أعد تحميلها قبل الحفظ." if language == "ar" else
+                    "The display targets changed. Reload them before saving."))
+            if current["revision"] == selected["revision"]:
+                return current
+            saved = store.save_kpi_policy(uuid.uuid4().hex, run_id, expected,
+                selected["revision"], performance.canonical(selected["rules"]),
+                principal.subject, now_iso(), performance.policy()["revision"])
+            if not saved:
+                raise HTTPException(status_code=409, detail=(
+                    "تغيرت أهداف العرض. أعد تحميلها قبل الحفظ." if language == "ar" else
+                    "The display targets changed. Reload them before saving."))
+            return selected
+
     @app.get("/api/runs/{run_id}/kpis")
     async def maintenance_kpis(run_id: str,
                                language: str = Query(default="en", pattern="^(en|ar)$"),
@@ -1064,6 +1114,8 @@ def create_app(config_path=None, env=None, dist_dir=None):
         when the figure rests on less than its whole population.
         """
         table, _ = await run_table(run_id, principal, language)
+        with lock:
+            selected_policy = performance.load_policy(store, run_id)
 
         def compute():
             # The register reads rows by column name; the analysis table
@@ -1079,12 +1131,14 @@ def create_app(config_path=None, env=None, dist_dir=None):
             if arabic and measure.get("title_ar"):
                 measure["title"] = measure["title_ar"]
             measure.pop("title_ar", None)
+            measure["assessment"] = performance.assessment(measure, selected_policy["rules"], language)
             measures.append(measure)
         return {
             "run": run_id,
             "language": language,
             "records": len(table.rows),
             "measures": measures,
+            "kpi_policy": selected_policy,
             # Why a register entry produced nothing, named rather than
             # left as an absent card.
             "unavailable": computed["unavailable"],
@@ -1106,8 +1160,9 @@ def create_app(config_path=None, env=None, dist_dir=None):
                 if run is None or not owns(principal, run.get("owner") or "local-owner"):
                     raise HTTPException(status_code=404, detail="Run not found.")
                 tasks = engine.store.get_tasks(run_id)
+                selected_policy = performance.load_policy(store, run_id)
             return await run_in_threadpool(ExecutiveDashboardAgent().brief,
-                                           table, run, tasks, chosen, language)
+                                           table, run, tasks, chosen, language, selected_policy)
         except table_query.QueryError as error:
             raise HTTPException(status_code=422, detail=error.detail(language))
 

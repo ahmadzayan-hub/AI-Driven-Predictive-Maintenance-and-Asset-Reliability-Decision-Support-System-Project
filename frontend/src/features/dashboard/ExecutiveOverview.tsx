@@ -1,10 +1,14 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
 import { usePack } from '../../i18n/pack'
 import { api } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
+import { PerformanceValue, performanceTone } from '../../shared/components/PerformanceValue'
 import type { KpiMeasure, RunExecutive, TableFilter } from '../../shared/types'
 import { executiveMessages } from './executiveMessages'
+import { policyMessages } from './policyMessages'
 import './executive.css'
+
+const KpiPolicyEditor = lazy(() => import('./KpiPolicyEditor'))
 
 interface Props {
   runId: string
@@ -33,6 +37,7 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
   const { t, locale, isRtl, formatNumber } = usePack(executiveMessages)
   const key = JSON.stringify([runId, locale, filters])
   const [revision, setRevision] = useState(0)
+  const [policyOpen, setPolicyOpen] = useState(false)
   const requestKey = `${key}:${revision}`
   const [answer, setAnswer] = useState<{ key: string; data: RunExecutive | null; failed: boolean }>({ key: '', data: null, failed: false })
   const [brief, setBrief] = useState<RunExecutive | null>(null)
@@ -52,6 +57,7 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
     let current = true
     setAnswer({ key: requestKey, data: null, failed: false })
     setBrief(null)
+    setPolicyOpen(false)
     setEvidenceOpen(false)
     setSelectedEvidence([])
     setExportBusy(false)
@@ -214,7 +220,9 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
     </details> : null}
 
     {(data.kpis.measures.length > 0 || Object.keys(data.kpis.unavailable).length > 0) ? <section aria-labelledby="exec-kpis">
-      <div className="exec-section-head"><h3 id="exec-kpis">{t('exec.kpis')}</h3><p>{t('exec.kpiScope')}</p></div>
+      <div className="exec-section-head"><h3 id="exec-kpis">{t('exec.kpis')}</h3><p>{t('exec.kpiScope')}</p>{data.kpis.measures.length ? <PolicyButton onClick={() => setPolicyOpen(true)} open={policyOpen} /> : null}</div>
+      <PerformanceLegend />
+      {policyOpen ? <Suspense fallback={<p role="status">{t('exec.loading')}</p>}><KpiPolicyEditor key={`${runId}:${locale}`} runId={runId} measures={data.kpis.measures} onClose={() => setPolicyOpen(false)} onSaved={() => setRevision((v) => v + 1)} /></Suspense> : null}
       <div className="exec-kpis">{data.kpis.measures.map((measure) => <Kpi key={measure.key} measure={measure} />)}</div>
       {Object.keys(data.kpis.unavailable).length ? <details className="exec-unavailable"><summary>{t('exec.unsupported')}</summary><dl>{Object.entries(data.kpis.unavailable).map(([name, reason]) => <div key={name}><dt><bdi>{name}</bdi></dt><dd dir="auto">{reason}</dd></div>)}</dl></details> : null}
     </section> : null}
@@ -259,8 +267,8 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
       <p className="exec-muted">{t('exec.wholeHelp')}</p>
       {data.models.length ? <div className="evidence__table" role="region" aria-label={t('exec.modelData')} tabIndex={0}><table className="datatable"><thead><tr><th scope="col">{t('exec.model')}</th><th scope="col">{t('exec.verdict')}</th><th scope="col">{t('exec.metric')}</th><th scope="col">{t('exec.holdout')}</th></tr></thead><tbody>{data.models.map((model, index) => <tr key={`${model.role}-${index}`}>
         <th scope="row"><span dir="auto">{model.title || model.target}</span><small className="exec-muted" dir="auto">{model.target}</small></th>
-        <td>{t(model.fitted === false || !model.metric ? 'exec.unfitted' : model.beats_baseline && model.details.verdict !== 'weak' ? 'exec.beats' : 'exec.weak')}{typeof model.details.reason === 'string' ? <small className="exec-muted" dir="auto">{model.details.reason}</small> : null}</td>
-        <td>{model.metric ? <><bdi>{number(model.metric.model)} / {number(model.metric.baseline)}</bdi><small className="exec-muted"><bdi>{model.metric.name}</bdi></small></> : '—'}</td><td>{number(model.test_records)}</td>
+        <td><span className="performance-value" data-performance={modelTone(model)}>{t(modelTone(model) === 'unassessed' ? 'exec.unfitted' : modelTone(model) === 'good' ? 'exec.beats' : 'exec.weak')}</span>{typeof model.details.reason === 'string' ? <small className="exec-muted" dir="auto">{model.details.reason}</small> : null}</td>
+        <td>{model.metric && modelTone(model) !== 'unassessed' ? <><bdi>{number(model.metric.model)} / {number(model.metric.baseline)}</bdi><small className="exec-muted"><bdi>{model.metric.name}</bdi></small></> : '—'}</td><td>{number(model.test_records)}</td>
       </tr>)}</tbody></table></div> : <p className="exec-muted">{t('exec.noModels')}</p>}
       {data.findings.length ? <details className="exec-findings"><summary>{t('exec.findings')} · {t('exec.whole')}</summary><ul>{data.findings.map((finding) => <li key={finding.id}><p dir="auto">{finding.text}</p>{refs(finding.evidence_refs)}</li>)}</ul></details> : null}
     </section>
@@ -273,15 +281,41 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
   </div>
 }
 
+function modelTone(model: RunExecutive['models'][number]) {
+  if (model.fitted === false || !model.metric || model.details.verdict === 'not_supported') return 'unassessed'
+  if (model.details.verdict === 'weak' || model.beats_baseline === false) return 'bad'
+  return model.beats_baseline === true ? 'good' : 'unassessed'
+}
+
 function Kpi({ measure }: { measure: KpiMeasure }) {
   const { t, formatNumber } = usePack(executiveMessages)
   const value = measure.value === null ? t('exec.unavailable') : formatNumber(measure.value, { maximumFractionDigits: 2 })
   const unit = measure.value === null ? '' : measure.scale === 'percent' ? '%' : measure.scale === 'hours' ? t('exec.hours') : measure.scale === 'money' ? t('exec.money') : measure.scale
   return <article className="exec-kpi" data-source={`kpi.${measure.key}`}>
-    <h4 dir="auto">{measure.title}</h4><p className={`exec-kpi-value${measure.value === null ? ' exec-kpi-value--missing' : ''}`}><bdi>{value}</bdi> <small>{unit}</small></p>
+    <h4 dir="auto">{measure.title}</h4><p className={`exec-kpi-value${measure.value === null ? ' exec-kpi-value--missing' : ''}`}><PerformanceValue tone={performanceTone(measure.value, measure.assessment)} reason={measure.assessment?.reason}><bdi>{value} <small>{unit}</small></bdi></PerformanceValue></p>
     <p>{t('exec.covered', { n: formatNumber(measure.records) })}</p>
     {measure.records_unmeasured > 0 ? <p className="exec-kpi-caution">{t('exec.unmeasured', { n: formatNumber(measure.records_unmeasured) })}</p> : null}
     {measure.undefined_reason ? <p className="exec-kpi-caution" dir="auto">{measure.undefined_reason}</p> : null}
-    <details><summary>{t('exec.sources')}</summary><dl><div><dt>{t('exec.formula')}</dt><dd dir="auto">{measure.formula} · <bdi>{formatNumber(measure.numerator)} / {formatNumber(measure.denominator)}</bdi></dd></div><div><dt>{t('exec.population')}</dt><dd dir="auto">{measure.population}</dd></div><div><dt>{t('exec.missing')}</dt><dd dir="auto">{measure.missing_policy}</dd></div></dl>{measure.records_excluded > 0 ? <p>{t('exec.excluded', { n: formatNumber(measure.records_excluded) })}</p> : null}</details>
+    <details><summary>{t('exec.sources')}</summary><dl><div><dt>{t('exec.formula')}</dt><dd dir="auto">{measure.formula} · <bdi>{formatNumber(measure.numerator)} / {formatNumber(measure.denominator)}</bdi></dd></div><div><dt>{t('exec.population')}</dt><dd dir="auto">{measure.population}</dd></div><div><dt>{t('exec.missing')}</dt><dd dir="auto">{measure.missing_policy}</dd></div></dl><TargetEvidence measure={measure} />{measure.records_excluded > 0 ? <p>{t('exec.excluded', { n: formatNumber(measure.records_excluded) })}</p> : null}</details>
   </article>
+}
+
+function PerformanceLegend() {
+  const { t } = usePack(policyMessages)
+  return <p className="exec-muted">{t('policy.legend')}</p>
+}
+
+function PolicyButton({ onClick, open }: { onClick: () => void; open: boolean }) {
+  const { t } = usePack(policyMessages)
+  return <button type="button" className="btn btn--ghost" disabled={open} aria-expanded={open} onClick={onClick}>{t('policy.title')}</button>
+}
+
+function TargetEvidence({ measure }: { measure: KpiMeasure }) {
+  const { t, formatNumber } = usePack(policyMessages)
+  const assessment = measure.assessment
+  const unit = measure.scale === 'percent' ? '%' : measure.scale === 'hours' ? t('policy.hours') : measure.scale === 'money' ? t('policy.money') : measure.scale
+  if (!assessment?.direction) return null
+  return <dl><div><dt>{t('policy.direction')}</dt><dd>{t(`policy.${assessment.direction}`)}</dd></div>
+    {Object.entries(assessment.thresholds || {}).map(([key, number]) => <div key={key}><dt>{t(`policy.${key}` as 'policy.good_at')}</dt><dd><bdi>{formatNumber(number, { maximumSignificantDigits: 12 })} {unit}</bdi></dd></div>)}
+    <div><dt>{t('policy.sourceLabel')}</dt><dd dir="auto">{assessment.source_ref}</dd></div></dl>
 }

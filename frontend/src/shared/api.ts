@@ -1,5 +1,5 @@
 import { translate } from '../i18n'
-import type { AuthConfig, ColumnMapping, DatasetDetail, DatasetSummary, ExportPayload, IdentityInfo, JoinPreview, JoinSpec, MappingProblem, Pipelines, QueryAnswer, QuerySpec, RecordsPage, RecordsSpec, RunDetail, RunExecutive, RunKpis, RunSummary, SessionState, TableField, TableFilter, TranscriptEntry, UploadResult, Usage } from './types'
+import type { AuthConfig, ColumnMapping, DatasetDetail, DatasetSummary, ExportPayload, IdentityInfo, JoinPreview, JoinSpec, KpiPolicy, MappingProblem, Pipelines, QueryAnswer, QuerySpec, RecordsPage, RecordsSpec, RunDetail, RunExecutive, RunKpis, RunSummary, SessionState, TableField, TableFilter, TranscriptEntry, UploadResult, Usage } from './types'
 
 export const API_BASE = import.meta.env.VITE_API_BASE ?? ''
 const REQUEST_TIMEOUT_MS = 10_000
@@ -159,6 +159,12 @@ function attachmentName(header: string | null, fallback: string): string {
 }
 
 export const api = {
+  kpiPolicy: (id: string, language: 'en' | 'ar', signal?: AbortSignal) =>
+    request<KpiPolicy>(`/api/runs/${encodeURIComponent(id)}/kpi-policy?language=${language}`, { signal }),
+  saveKpiPolicy: (id: string, policy: KpiPolicy, language: 'en' | 'ar', signal?: AbortSignal) =>
+    request<KpiPolicy>(`/api/runs/${encodeURIComponent(id)}/kpi-policy?language=${language}`, {
+      method: 'PUT', signal, body: JSON.stringify({ expected_revision: policy.revision, rules: policy.rules }),
+    }),
   voiceStatus: () => request<VoiceStatus>('/api/voice/status'),
   transcribeSession: (id: string, audio: Blob, language: 'en' | 'ar', signal: AbortSignal) =>
     request<VoiceTranscript>(

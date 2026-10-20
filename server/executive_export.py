@@ -9,8 +9,12 @@ from html import escape
 from io import BytesIO
 import math
 import re
+import unicodedata
 from xml.etree import ElementTree as ET
 from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
+
+from server.maintenance import performance
+from server.maintenance.kpis import REGISTER
 
 
 HTML_MIME = "text/html"
@@ -18,6 +22,26 @@ DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.docu
 CONTENT_POLICY = "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 ET.register_namespace("w", W)
+PERFORMANCE_COLORS = {"good": "0F7A55", "okay": "1D4ED8", "bad": "B3323F",
+                      "unassessed": "475467", "unavailable": "667085"}
+
+
+class StatusText(str):
+    """Text plus a semantic tone, shared by the HTML and OOXML writers."""
+    def __new__(cls, text, status):
+        item = super().__new__(cls, text)
+        item.status = status
+        return item
+
+
+def status_label(status, language):
+    en, ar = {
+        "good": ("Good", "جيد"), "okay": ("Okay", "مقبول"),
+        "bad": ("Bad", "غير مرضٍ"),
+        "unassessed": ("Not assessed", "غير مقيّم"),
+        "unavailable": ("Unavailable", "غير متاح"),
+    }[status]
+    return ar if language == "ar" else en
 
 
 def _clean(value):
@@ -50,6 +74,8 @@ def report_sections(brief):
         return arabic if ar else en
 
     def value(item):
+        if isinstance(item, StatusText):
+            return item
         if item is None:
             return tr("Not available", "غير متاح")
         if isinstance(item, bool):
@@ -130,19 +156,38 @@ def report_sections(brief):
         tr("This document supports qualified human review. Exporting does not approve or publish the run.",
            "يدعم هذا المستند المراجعة البشرية المؤهلة. لا يعني التصدير اعتماد التشغيل أو نشره.")])
     summary.paragraphs.extend(brief["readiness"]["limitations"])
+    targets = Section(tr("Configured display targets", "أهداف العرض المحددة"), [tr(
+        "Colours compare measured values with targets configured for this run: green means good, blue okay, red needs attention. Grey means no target or unavailable evidence. Configured targets are not approved standards or engineering authorizations.",
+        "تقارن الألوان القيم المقاسة بأهداف محددة لهذا التشغيل: الأخضر جيد، والأزرق مقبول، والأحمر يحتاج إلى متابعة. يعني الرمادي عدم تحديد هدف أو عدم توفر الأدلة. الأهداف المحددة ليست معايير معتمدة أو تفويضات هندسية.")])
+    for key, rule in brief.get("kpi_policy", {}).get("rules", {}).items():
+        fields = performance.BOUNDARIES[rule["direction"]]
+        targets.tables.append(properties([
+            (tr("Target measure", "مؤشر الهدف"), REGISTER[key].title_ar if ar else REGISTER[key].title),
+            (tr("Metric key", "رمز المؤشر"), key),
+            (tr("Target direction", "اتجاه الهدف"), {"higher": tr("Higher is better", "الأعلى أفضل"),
+             "lower": tr("Lower is better", "الأقل أفضل"), "range": tr("Within range", "ضمن النطاق")}[rule["direction"]]),
+            (tr("Scale", "مقياس القيمة"), labelled(rule["scale"], scales)),
+            *[(tr({"good_at": "Good at", "okay_at": "Okay at", "good_min": "Good minimum", "good_max": "Good maximum",
+                   "okay_min": "Okay minimum", "okay_max": "Okay maximum"}[name],
+                  {"good_at": "حد الجيد", "okay_at": "حد المقبول", "good_min": "الحد الأدنى للجيد",
+                   "good_max": "الحد الأعلى للجيد", "okay_min": "الحد الأدنى للمقبول", "okay_max": "الحد الأعلى للمقبول"}[name]), rule[name]) for name in fields],
+            (tr("Target source", "مصدر الهدف"), rule["source_ref"]),
+        ]))
+    if not targets.tables:
+        targets.paragraphs.append(tr("No display targets are configured for this run.", "لم تُحدد أهداف عرض لهذا التشغيل."))
     kpis = Section(tr("Controlled KPIs", "مؤشرات الأداء المنضبطة"), [tr(
         "KPIs cover the selected records. Excluded records are outside a measure's population; unmeasured records are inside it but lack required measurements. Displayed numbers use up to 12 significant digits.",
         "تغطي المؤشرات السجلات المحددة. تقع السجلات المستبعدة خارج مجموعة القياس؛ أما غير المقاسة فتقع داخلها وتفتقر إلى القياسات المطلوبة. تُعرض الأرقام بما يصل إلى 12 خانة معنوية.")])
     if brief["kpis"]["measures"]:
         kpis.tables.append(Table((tr("Measure", "المؤشر"), tr("Value", "القيمة"),
             tr("Scale", "مقياس القيمة"), tr("Measured records", "السجلات المقاسة")),
-            [(measure["title"], value(measure["value"]), labelled(measure["scale"], scales),
+            [(measure["title"], StatusText(value(measure["value"]), measure.get("assessment", {}).get("status", "unassessed")), labelled(measure["scale"], scales),
               value(measure["records"])) for measure in brief["kpis"]["measures"]], (38, 20, 24, 18)))
     for measure in brief["kpis"]["measures"]:
         kpis.tables.append(properties([
             (tr("Measure", "المؤشر"), measure["title"]),
             (tr("Evidence ID", "معرّف الدليل"), "executive.kpi." + measure["key"]),
-            (tr("Value", "القيمة"), measure["value"]),
+            (tr("Value", "القيمة"), StatusText(value(measure["value"]), measure.get("assessment", {}).get("status", "unassessed"))),
             (tr("Scale", "مقياس القيمة"), labelled(measure["scale"], scales)),
             (tr("Formula", "الصيغة"), measure["formula"]),
             (tr("Numerator", "البسط"), measure["numerator"]),
@@ -154,6 +199,11 @@ def report_sections(brief):
             (tr("Missing-value policy", "سياسة القيم المفقودة"), labelled(measure["missing_policy"], policies)),
             (tr("Undefined value reason", "سبب عدم تحديد القيمة"), measure.get("undefined_reason")),
             (tr("Definition boundaries", "حدود التعريف"), measure.get("edge_cases")),
+            (tr("Performance status", "حالة الأداء"), StatusText(
+                status_label(measure.get("assessment", {}).get("status", "unassessed"), brief["language"]),
+                measure.get("assessment", {}).get("status", "unassessed"))),
+            (tr("Assessment reason", "سبب التقييم"), measure.get("assessment", {}).get("reason")),
+            (tr("Target source", "مصدر الهدف"), measure.get("assessment", {}).get("source_ref")),
         ]))
     if not brief["kpis"]["measures"]:
         kpis.paragraphs.append(tr("No controlled KPI is computable for this scope.", "لا يمكن حساب مؤشر أداء منضبط لهذا النطاق."))
@@ -222,7 +272,7 @@ def report_sections(brief):
         tr("Value", "القيمة"), tr("Method", "الطريقة")), [(
             item["id"], item["label"] + "\n" + (tr("Selected scope", "النطاق المحدد") if item["scope"] == "filtered" else tr("Whole run", "التشغيل الكامل")),
             value(item["value"]), item["method"]) for item in brief["evidence"]], (22, 22, 20, 36)))
-    return tr("Executive evidence brief", "موجز الأدلة التنفيذي"), [metadata, selected, summary, kpis, priorities, questions, findings, models, evidence]
+    return tr("Executive evidence brief", "موجز الأدلة التنفيذي"), [metadata, selected, summary, targets, kpis, priorities, questions, findings, models, evidence]
 
 
 STYLE = """
@@ -244,9 +294,14 @@ bdi { unicode-bidi: isolate; }
 
 def render_html(brief):
     title, sections = report_sections(brief)
+    language = brief["language"]
 
     def text(item):
-        return '<bdi dir="auto">' + escape(_clean(item)).replace("\n", "<br>") + "</bdi>"
+        shown = '<bdi dir="auto">' + escape(_clean(item)).replace("\n", "<br>") + "</bdi>"
+        if isinstance(item, StatusText):
+            label = status_label(item.status, language)
+            return f'<span class="performance--{item.status}" title="{escape(label)}" aria-label="{escape(str(item) + " — " + label)}">{shown}</span>'
+        return shown
 
     body = [f"<h1>{text(title)}</h1>"]
     for section in sections:
@@ -264,36 +319,59 @@ def render_html(brief):
     return (f'<!doctype html><html lang="{language}" dir="{direction}"><head><meta charset="utf-8">'
             f'<meta name="viewport" content="width=device-width, initial-scale=1">'
             f'<meta http-equiv="Content-Security-Policy" content="{escape(CONTENT_POLICY, quote=True)}">'
-            f"<title>{escape(title)}</title><style>{STYLE}</style></head><body>" + "".join(body) + "</body></html>").encode("utf-8")
+            f"<title>{escape(title)}</title><style>{STYLE}" +
+            "".join(f".performance--{status} {{ color: #{color}; font-weight: 600; }}" for status, color in PERFORMANCE_COLORS.items()) +
+            "</style></head><body>" + "".join(body) + "</body></html>").encode("utf-8")
 
 
 def _w(parent, name, **attrs):
     return ET.SubElement(parent, f"{{{W}}}{name}", {f"{{{W}}}{key}": str(v) for key, v in attrs.items()})
 
 
-def _paragraph(parent, text, ar, style=None, bold=False):
+def _paragraph(parent, text, ar, style=None, bold=False, auto_direction=False):
+    tone = getattr(text, "status", None)
+    cleaned = _clean(text)
+    paragraph_ar = ar
+    neutral_cell = False
+    if auto_direction:
+        # Tables retain the document's column order, while each technical
+        # value follows its own first strong character, like HTML's bdi auto.
+        # With no strong character, keep signs, numbers and ranges in one LTR
+        # run; inheriting RTL splits the sign from the number and reverses it.
+        paragraph_ar = False
+        neutral_cell = True
+        for character in cleaned:
+            direction = unicodedata.bidirectional(character)
+            if direction in {"L", "R", "AL"}:
+                paragraph_ar = direction != "L"
+                neutral_cell = False
+                break
     p = _w(parent, "p")
     pr = _w(p, "pPr")
     if style:
         _w(pr, "pStyle", val=style)
     # Explicit false values also matter: an English document must not inherit
     # an RTL office profile. Logical start is right in RTL and left in LTR.
-    _w(pr, "bidi", val="1" if ar else "0")
-    _w(pr, "jc", val="start")
+    _w(pr, "bidi", val="1" if paragraph_ar else "0")
+    # Numeric-only cells retain their Arabic table's right alignment, while
+    # their mathematical content reads from left to right.
+    _w(pr, "jc", val="end" if ar and neutral_cell else "start")
     # Latin identifiers/formulas stay in LTR runs inside Arabic paragraphs.
-    parts = re.split(r"([A-Za-z0-9][A-Za-z0-9_./:+%(),<>= -]*)", _clean(text)) if ar else [_clean(text)]
+    parts = re.split(r"([A-Za-z0-9][A-Za-z0-9_./:+%(),<>= -]*)", cleaned) if paragraph_ar else [cleaned]
     for part in parts:
         if not part:
             continue
         r = _w(p, "r")
         rp = _w(r, "rPr")
         _w(rp, "rFonts", ascii="Arial", hAnsi="Arial", cs="Arial", eastAsia="Arial")
-        rtl = ar and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_./:+%(),<>= -]*", part)
+        rtl = paragraph_ar and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_./:+%(),<>= -]*", part)
         if bold:
             _w(rp, "b")
             _w(rp, "bCs")
+        if tone in PERFORMANCE_COLORS:
+            _w(rp, "color", val=PERFORMANCE_COLORS[tone])
         _w(rp, "rtl", val="1" if rtl else "0")
-        _w(rp, "lang", val="ar-SA" if rtl else "en-US", bidi="ar-SA" if ar else "en-US")
+        _w(rp, "lang", val="ar-SA" if rtl else "en-US", bidi="ar-SA" if paragraph_ar else "en-US")
         for i, line in enumerate(part.split("\n")):
             if i:
                 _w(r, "br")
@@ -344,7 +422,7 @@ def render_docx(brief):
                     if index == 0:
                         _w(tcp, "shd", val="clear", fill="EEEEEE")
                     _w(tcp, "vAlign", val="center")
-                    _paragraph(tc, cell, ar, bold=index == 0)
+                    _paragraph(tc, cell, ar, bold=index == 0, auto_direction=True)
             # A following paragraph keeps adjacent tables distinct in Word.
             _paragraph(body, "", ar)
     section = _w(body, "sectPr")

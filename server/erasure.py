@@ -16,7 +16,7 @@ import json
 from pathlib import Path
 
 # Children before parents, so foreign keys hold at every step.
-DELETE_ORDER = ("tasks", "approvals", "artifacts", "vault_notes", "connectors",
+DELETE_ORDER = ("tasks", "approvals", "artifacts", "vault_notes", "connectors", "kpi_policies",
                 "runs", "datasets", "sessions", "memory_kv")
 
 # Tables that carry an owner directly. Everything else in DELETE_ORDER

@@ -3,6 +3,7 @@ import { usePack } from '../../i18n/pack'
 import { assetMessages } from './messages'
 import { api, ApiError } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
+import { PerformanceValue, performanceTone } from '../../shared/components/PerformanceValue'
 import type { Pipelines } from '../../shared/types'
 import { findAssetEvidence } from './assetEvidence'
 import type { AssetEvidence } from './assetEvidence'
@@ -126,7 +127,7 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
                       const shown = formatValue(measure, locale === 'ar' ? 'ar' : 'en')
                       return (
                         <li key={measure.key}>
-                          <span dir="auto">{shown ?? t('assets.kpiUndefined')}</span>
+                          <PerformanceValue tone={performanceTone(measure.value, measure.assessment)} reason={measure.assessment?.reason}>{shown ?? t('assets.kpiUndefined')}</PerformanceValue>
                           <span dir="auto">
                             {measure.title} · {measure.population} ·{' '}
                             {t('assets.kpiRecords', { records: String(measure.records) })}
