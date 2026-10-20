@@ -30,6 +30,8 @@ TABLES = (
     "datasets",
     "connectors",
     "kpi_policies",
+    "organizations", "organization_members", "operation_sites", "operation_assets",
+    "work_orders", "operation_audit", "operation_requests", "worker_heartbeats", "reliability_trials",
 )
 
 # Restore must insert parents before children.
@@ -44,9 +46,51 @@ RESTORE_ORDER = (
     "memory_kv",
     "vault_notes",
     "connectors",
+    "organizations", "organization_members", "operation_sites", "operation_assets",
+    "work_orders", "operation_audit", "operation_requests", "worker_heartbeats", "reliability_trials",
 )
 
 SCHEMA_STATEMENTS = [
+    """CREATE TABLE IF NOT EXISTS organizations (
+      id TEXT PRIMARY KEY, name TEXT NOT NULL, version INTEGER NOT NULL,
+      created_at TEXT NOT NULL, updated_at TEXT NOT NULL)""",
+    """CREATE TABLE IF NOT EXISTS organization_members (
+      id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
+      subject TEXT NOT NULL, role TEXT NOT NULL, created_at TEXT NOT NULL,
+      UNIQUE(org_id, subject))""",
+    """CREATE TABLE IF NOT EXISTS operation_sites (
+      id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
+      code TEXT NOT NULL, name TEXT NOT NULL, created_at TEXT NOT NULL,
+      UNIQUE(org_id, code))""",
+    """CREATE TABLE IF NOT EXISTS operation_assets (
+      id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
+      site_id TEXT NOT NULL REFERENCES operation_sites(id),
+      external_id TEXT NOT NULL, source_system TEXT NOT NULL, name TEXT NOT NULL,
+      criticality TEXT NOT NULL, version INTEGER NOT NULL, created_at TEXT NOT NULL,
+      UNIQUE(org_id, source_system, external_id))""",
+    """CREATE TABLE IF NOT EXISTS work_orders (
+      id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
+      asset_id TEXT NOT NULL REFERENCES operation_assets(id), title TEXT NOT NULL,
+      rationale TEXT NOT NULL, status TEXT NOT NULL, priority TEXT NOT NULL,
+      assignee TEXT NOT NULL, due_date TEXT NOT NULL, evidence_json TEXT NOT NULL,
+      completion_json TEXT NOT NULL, version INTEGER NOT NULL,
+      created_by TEXT NOT NULL, authorized_by TEXT, created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL)""",
+    """CREATE TABLE IF NOT EXISTS operation_audit (
+      id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
+      entity_id TEXT NOT NULL, actor TEXT NOT NULL, action TEXT NOT NULL,
+      version INTEGER NOT NULL, detail_json TEXT NOT NULL, created_at TEXT NOT NULL)""",
+    """CREATE TABLE IF NOT EXISTS operation_requests (
+      id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
+      actor TEXT NOT NULL, request_key TEXT NOT NULL, payload_hash TEXT NOT NULL,
+      response_json TEXT NOT NULL, created_at TEXT NOT NULL,
+      UNIQUE(org_id, actor, request_key))""",
+    """CREATE TABLE IF NOT EXISTS worker_heartbeats (
+      id TEXT PRIMARY KEY, seen_at TEXT NOT NULL, state TEXT NOT NULL)""",
+    """CREATE TABLE IF NOT EXISTS reliability_trials (
+      id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
+      created_by TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+      revision INTEGER NOT NULL, protocol_json TEXT NOT NULL, predictions_json TEXT NOT NULL)""",
     """CREATE TABLE IF NOT EXISTS runs (
       id TEXT PRIMARY KEY, goal TEXT NOT NULL, dataset_name TEXT NOT NULL,
       dataset_text TEXT NOT NULL, state TEXT NOT NULL,
@@ -262,6 +306,22 @@ class SqlStore:
             except Exception:
                 self._rollback()
         self._migrate_memory_owner()
+        try:
+            self._exec("ALTER TABLE connectors ADD COLUMN credential_id TEXT")
+        except Exception:
+            self._rollback()
+
+    def upsert_worker_heartbeat(self, worker_id, seen_at, state):
+        with self.atomic("worker-heartbeats"):
+            self._exec("INSERT INTO worker_heartbeats (id, seen_at, state) VALUES (?, ?, ?) "
+                       "ON CONFLICT (id) DO UPDATE SET seen_at = excluded.seen_at, "
+                       "state = excluded.state", (worker_id, seen_at, state))
+            stale = self._exec("SELECT id FROM worker_heartbeats ORDER BY seen_at DESC, id LIMIT 1000 OFFSET 100")
+            for row in stale:
+                self._exec("DELETE FROM worker_heartbeats WHERE id = ?", (row["id"],))
+
+    def list_worker_heartbeats(self):
+        return self._exec("SELECT * FROM worker_heartbeats ORDER BY seen_at DESC, id LIMIT 100")
 
     def _migrate_memory_owner(self):
         """Give memory_kv an owner, rebuilding the table if it predates one.

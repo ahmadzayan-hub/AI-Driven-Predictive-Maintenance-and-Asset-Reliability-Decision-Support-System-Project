@@ -1013,13 +1013,21 @@ dataset tests (ADR 0024), one needs openpyxl, which is not a dependency.
 
 ## Background worker (optional)
 
-Runs advance while the Runs view is open. To advance them with no browser
-open, run a worker:
+In the default client mode, runs advance while the Runs view is open.
+For explicit background execution, set `AGENTIC_OS_RUN_EXECUTION=worker`
+on the API and run a supervised worker with the same database, vault and
+model configuration:
 
 ```bash
 python scripts/worker.py          # poll for work until Ctrl-C
 python scripts/worker.py --once   # advance one run and refresh one due source, then exit
 ```
+
+The local profile starts both processes with
+`python scripts/local_runtime.py start --worker`. In worker mode the browser
+polls persisted state, and the advance endpoint returns promptly without
+executing a model in the request. `/api/health` exposes worker heartbeat
+freshness; a missing or stale worker requires operator attention.
 
 The same worker refreshes live sources whose refresh is due (ADR 0034),
 under the same kind of lease, so two workers never fetch one source.
@@ -1027,10 +1035,19 @@ under the same kind of lease, so two workers never fetch one source.
 The worker claims a run with a database lease, advances it one task at a
 time, and releases the lease when the run needs a human or ends. It never
 decides an approval — it stops at the gate like any other caller. A
-worker that crashes stops renewing its lease, and the next worker (or an
-open browser) picks the run up from its durable state — including the
+worker that crashes stops renewing its lease, and the next worker picks
+the run up from its durable state — including the
 stage the crash interrupted, which is re-run rather than skipped. Details
-and trade-offs: `docs/adr/0006-durable-execution.md`.
+and trade-offs: `docs/adr/0006-durable-execution.md` and the
+[explicit execution decision](docs/adr/2026-10-21-durable-worker-and-source-credentials.md).
+Browser-driven recovery remains available only in client mode.
+
+The bilingual `#/operations` workspace adds organization/site/asset records,
+separately authorized maintenance work and prospective model/baseline validation.
+Use the [pilot runbook](docs/PILOT_RUNBOOK.md) for the recommended read-only
+MaintainX integration and its acceptance requirements. The
+[remediation record](docs/assessments/2026-10-21-saas-remediation.md) distinguishes
+implemented controls from still-unverified hosted and customer outcomes.
 
 ## Choosing the narrator (optional)
 

@@ -1,11 +1,11 @@
 import { useCallback, useSyncExternalStore } from 'react'
 
-export type Tab = 'overview' | 'assets' | 'datasets' | 'chat' | 'runs' | 'dashboard' | 'approvals' | 'memory' | 'preferences' | 'activity'
+export type Tab = 'operations' | 'overview' | 'assets' | 'datasets' | 'chat' | 'runs' | 'dashboard' | 'approvals' | 'memory' | 'preferences' | 'activity'
 /** Where the reader is. A dashboard address also carries its page and
  *  every choice made on it (ADR 0032), so a filtered page survives a
  *  reload and can be shared. */
 export interface Route { tab: Tab; runId?: string; page?: string; query?: string; source?: 'upload'; profile?: 'maintenance' | 'models' }
-const TABS = new Set<Tab>(['overview', 'assets', 'datasets', 'chat', 'runs', 'dashboard', 'approvals', 'memory', 'preferences', 'activity'])
+const TABS = new Set<Tab>(['operations', 'overview', 'assets', 'datasets', 'chat', 'runs', 'dashboard', 'approvals', 'memory', 'preferences', 'activity'])
 const ID = /^[a-zA-Z0-9_-]{1,100}$/
 const PAGE = /^[a-z]{1,20}$/
 

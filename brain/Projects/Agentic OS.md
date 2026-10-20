@@ -62,3 +62,7 @@ The [[Analytics OS roadmap]]'s seven milestones were built by 17 October 2026: s
 - [[Agent team]], the subagents and review loop that check this project's work and deliverables.
 - [[Team collaboration]], for how teammates contribute.
 - [[Session lifecycle]], for how work on it is run.
+
+## Maintenance pilot
+
+[[Maintenance pilot]] connects reviewed evidence to explicitly authorized work and recorded outcomes. Prospective protocols and baseline probabilities precede outcome adjudication; hosted and customer acceptance remain separate.

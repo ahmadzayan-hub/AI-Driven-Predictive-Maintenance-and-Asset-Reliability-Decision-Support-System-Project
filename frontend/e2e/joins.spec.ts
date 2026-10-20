@@ -71,6 +71,9 @@ async function startFromOrders(page: Page) {
 }
 
 test('a lookup is joined, previewed and run', async ({ page }) => {
+  // Dataset setup, a full accessibility audit, the real pipeline, and CSV
+  // download exceed the default journey budget on the Windows browser runner.
+  test.setTimeout(90_000)
   await skipOnboarding(page)
   await page.goto('/')
   const orders = await startFromOrders(page)

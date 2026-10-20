@@ -59,7 +59,7 @@ Full list: [brain/Soul.md](brain/Soul.md).
 
 - UI handoff (ADR 0029): `docs/design/AGENTIC_UI_SPEC.md`; editable designs at https://www.figma.com/design/nLdKZ5cVOtRMTWEvhCJSEK. Current delivery targets a PWA on Windows, Android and iOS; native signing/store packages are separate. See `docs/design/VALIDATION.md` before claiming runtime verification.
 
-- A behaviour change gets an ADR in `docs/adr/`, numbered next; ADRs are never edited to fit later facts.
+- A behaviour change gets a dated ADR in `docs/adr/` (`YYYY-MM-DD-slug`); the sequential counter is closed at 0060. ADRs are not rewritten to fit later facts.
 - Every user-facing string exists in English and Arabic (`frontend/src/i18n/`, `assistant.py`).
 - KPIs are ratios of sums, never averages of row rates ([brain/Concepts/Weighted KPIs.md](brain/Concepts/Weighted%20KPIs.md)). Check what a row rate holds before comparing: the capstone's preventive rows store placeholder rates.
 - Commit messages explain why, in a descriptive body.
@@ -114,3 +114,5 @@ Full list: [brain/Soul.md](brain/Soul.md).
 - Has the asset-ID email gone to the capstone instructors, and what was the reply? **The evidence is now established (17 Oct):** all 180 `Asset_ID` values map to exactly one `Record_Date`, all 180 mix more than one `Asset_Class`, and the widest age span inside one value is 18.6 years, so there is no asset panel. Recorded as trap 1 in the capstone workspace's `Memory.md`.
 - **Answered (18 Oct), by the owner:** Moodle submission closes **Thursday 22 October 2026** and the team presents on **Sunday 25 October 2026**, demonstrating the presentation, Agentic OS and the SaaS platform. The course PDFs still read "To be announced"; these dates come from the owner as team contact. The 25 October demonstration makes a working platform a dated deliverable, not only a roadmap.
 - The capstone workspace now has its own operating system (`CLAUDE.md`, `Memory.md`, `project-progress.md`, `session-logs.md` and `tools/`), separate from this repository's. Course files, names and registration numbers stay there; `inputs/` and `team3-capstone/` are ignored here.
+
+- **Assessment remediation (21 Oct):** MaintainX is the suggested first read-only source, with reviewed pumps/motors at one facility. `docs/PILOT_RUNBOOK.md` separates implemented local controls from hosted/source/domain/customer acceptance. API `AGENTIC_OS_RUN_EXECUTION=worker` must share storage with the supervised worker. Two documented confidential course artifacts are now untracked with local copies preserved; history remains private and unresolved.

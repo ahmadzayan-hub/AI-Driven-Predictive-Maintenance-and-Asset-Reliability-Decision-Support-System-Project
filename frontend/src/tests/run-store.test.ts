@@ -27,6 +27,33 @@ describe('shared run scheduler', () => {
     expect(gateway.advanceRun).not.toHaveBeenCalled()
     stop(); store.reset()
   })
+  it('polls server-driven runs without sending advance requests', async () => {
+    vi.useFakeTimers()
+    const detail = runFixture({ execution: { mode: 'worker', poll_after_ms: 2500 } })
+    const gateway = { getRun: vi.fn().mockResolvedValue(detail), advanceRun: vi.fn() }
+    const store = createRunStore(gateway)
+    const first = store.watch('run-test', true)
+    const second = store.watch('run-test', true)
+    await vi.advanceTimersByTimeAsync(5100)
+    expect(gateway.getRun).toHaveBeenCalledTimes(3)
+    expect(gateway.advanceRun).not.toHaveBeenCalled()
+    first(); second()
+    await vi.advanceTimersByTimeAsync(10000)
+    expect(gateway.getRun).toHaveBeenCalledTimes(3)
+    store.reset()
+  })
+  it('switches to reads when a response advertises worker execution', async () => {
+    vi.useFakeTimers()
+    const workerRun = runFixture({ execution: { mode: 'worker', poll_after_ms: 2500 } })
+    const gateway = { getRun: vi.fn().mockResolvedValue(workerRun), advanceRun: vi.fn().mockResolvedValue(workerRun) }
+    const store = createRunStore(gateway)
+    store.receive(runFixture())
+    const stop = store.watch('run-test', true)
+    await vi.advanceTimersByTimeAsync(5100)
+    expect(gateway.advanceRun).not.toHaveBeenCalled()
+    expect(gateway.getRun).toHaveBeenCalledTimes(3)
+    stop(); store.reset()
+  })
   it('keeps a decision pending until its server response and blocks a second submission', async () => {
     let resolve!: (value: ReturnType<typeof runFixture>) => void
     const pending = new Promise<ReturnType<typeof runFixture>>((done) => { resolve = done })

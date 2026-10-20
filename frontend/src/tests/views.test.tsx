@@ -3,6 +3,9 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DatasetsView } from '../features/datasets/DatasetsView'
 import { OverviewView } from '../features/overview/OverviewView'
+import { ConnectorsPanel } from '../features/live/ConnectorsPanel'
+import { connectorsApi } from '../features/live/connectors'
+import type { Connector } from '../features/live/connectors'
 
 const USAGE = {
   runs_today: { used: 3, limit: 200, remaining: 197 },
@@ -40,6 +43,34 @@ function serve(bodies: Record<string, unknown>) {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.restoreAllMocks()
+})
+
+describe('authenticated live source form', () => {
+  it.each(['maintenance-export', ''])('submits only the optional operator alias (%s)', async (alias) => {
+    const user = userEvent.setup()
+    serve({ '/api/connectors': { connectors: [] } })
+    const create = vi.spyOn(connectorsApi, 'create').mockImplementation(async (body) => ({
+      id: 'source-1', ...body, sheet: null, profile: null, enabled: true,
+      last_status: null, last_error: null, last_checked_at: null,
+      last_dataset_id: null, last_run_id: null, next_due_at: null,
+      failures: 0, created_at: '', updated_at: '',
+    }) as Connector)
+    render(<ConnectorsPanel />)
+    await screen.findByText('No live sources yet.')
+    await user.click(screen.getByText('Add a live source'))
+    await user.type(screen.getByLabelText('Name', { exact: true }), 'Maintenance export')
+    await user.type(screen.getByLabelText('Address (https)'), 'https://data.example.com/export.csv')
+    const field = screen.getByLabelText('Credential alias (optional)')
+    expect(field).toHaveAccessibleDescription(/alias supplied by your operator/i)
+    if (alias) await user.type(field, alias)
+    await user.click(screen.getByRole('button', { name: /^Add source$/ }))
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ credential_id: alias || null }))
+    const submitted = create.mock.calls[0][0]
+    expect(submitted).not.toHaveProperty('token')
+    expect(submitted).not.toHaveProperty('token_env')
+    expect(submitted).not.toHaveProperty('headers')
+  })
 })
 
 describe('OverviewView', () => {

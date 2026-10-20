@@ -21,6 +21,7 @@ import {
   HelpDialog,
   MemoryView,
   Onboarding,
+  OperationsView,
   OverviewView,
   PreferencesView,
   prefetchWhenIdle,
@@ -50,6 +51,7 @@ const NAV_GROUPS: Array<{ id: string; label: MessageKey | null; items: NavItem[]
     id: 'analyse',
     label: 'nav.analyse',
     items: [
+      { id: 'operations', label: 'nav.operations', icon: 'activity' },
       { id: 'overview', label: 'nav.overview', icon: 'dashboard' },
       { id: 'assets', label: 'nav.assets', icon: 'activity' },
       { id: 'datasets', label: 'nav.datasets', icon: 'database' },
@@ -78,7 +80,7 @@ const ALL_ITEMS = NAV_GROUPS.flatMap((group) => group.items)
 
 // A phone's bottom bar holds at most five places. Four views and "More",
 // which opens the drawer holding the rest.
-const BAR_TABS: Tab[] = ['overview', 'datasets', 'runs', 'chat']
+const BAR_TABS: Tab[] = ['operations', 'datasets', 'runs', 'chat']
 const BAR_ITEMS = BAR_TABS.map((id) => ALL_ITEMS.find((item) => item.id === id)!)
 
 const ONBOARDING_KEY = 'aos-onboarded'
@@ -495,6 +497,7 @@ export function App() {
         ) : null}
 
         <main className="main" id="workspace-main" inert={drawerOpen} tabIndex={-1} key={`${session.session_id}:${store.identity?.principal.subject ?? 'local'}:${store.identity?.principal.role ?? 'local'}`}>
+          {pane('operations', <OperationsView onOpenRun={openRun} />)}
           {pane('overview', (
             <OverviewView onOpenRun={openRun} onStart={startAnalysis} onApprovals={() => go('approvals')} onOpenDashboard={() => go('dashboard')} />
           ))}
