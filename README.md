@@ -422,6 +422,17 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Commercial SaaS assessment — 21 October 2026
+
+The [competitive assessment](docs/assessments/2026-10-21-saas-competitive-benchmark.md)
+compares source baseline `4b193f0` with official product documentation and named
+customer evidence. This session changes documentation only. Documentation checks
+passed **11 / 11**; strict brain validation passed with **45 notes** and no broken
+links, missing sources or other reported issues. The full application suites,
+hosted acceptance, competitor hands-on tests and customer outcome measurements
+were not run for this study. Prior software results below retain their dates
+and scope; they do not establish commercial or predictive effectiveness.
+
 ### Local run timeout correction — 21 October 2026
 
 The [decision](docs/adr/2026-10-21-run-request-timeout.md) fixes a ten-second

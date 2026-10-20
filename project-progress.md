@@ -1,11 +1,13 @@
 # Project progress
 
-Last updated: 2026-10-21, session `run-timeout-fix`, preserving the animation study, agent-loop, graph expansion, collaboration and earlier corrective work. The session-end skill keeps this file current; the SessionStart hook reads the *Now* section into every new session.
+Last updated: 2026-10-21, session `saas-competitive-review`, preserving the timeout repair, animation study, agent-loop, graph expansion, collaboration and earlier corrective work. The session-end skill keeps this file current; the SessionStart hook reads the *Now* section into every new session.
 
 
 **Vision.** **AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project** uses Agentic OS as its governed analytics engine. It digests several datasets with dynamic inputs, then carries them through preparation, cleaning and modelling to a multi-page interactive dashboard with live data, with insights and key findings that are always traceable to a calculation. The product scope and remaining domain work are in `docs/PROJECT_CHARTER.md`; the reusable engine milestones are in `brain/Projects/Analytics OS roadmap.md`.
 
 ## Now
+
+- **Commercial SaaS benchmark: completed 2026-10-21.** The [assessment](docs/assessments/2026-10-21-saas-competitive-benchmark.md) compares source baseline `4b193f0` with official MaintainX, Fiix, Augury and IBM Maximo documentation and named deployment evidence. It identifies traceability, bilingual reporting and controlled publication as implemented strengths; hosted operation, organization administration, authenticated integrations, maintenance-action closure and prospective predictive value remain gaps or acceptance work. The recommendation is a bilingual decision-support layer connected to an existing CMMS, subject to customer validation. No readiness score, customer ROI or comparative accuracy is invented. This is a study, not a production change or an approved commercial strategy. Next: choose one customer workflow and source system, then satisfy the pilot gates in the assessment. Documentation verification is recorded in README.md#testing.
 
 - **Local run timeout corrected: 2026-10-21.** The browser now allows a bounded local narration step to finish before timing out run detail, advance or controls. The generic short deadline remains. Targeted API/scheduler regressions, production build and budget pass; the local platform was restarted and the interrupted Arabic sample reached its publication approval gate. Exact verification is in README.md#testing and the [decision](docs/adr/2026-10-21-run-request-timeout.md). This does not change hosted function limits or add POST retries.
 

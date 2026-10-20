@@ -1015,3 +1015,13 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Decisions:** `docs/adr/2026-10-21-run-request-timeout.md` preserves the short generic deadline, bounded failures, single scheduler, no automatic POST replay and the human publication gate.
 - **Open / next:** hosted function limits and multiple queued model requests are separate execution constraints. The existing hosted/domain acceptance gates remain open; this was a local repair and no deployment.
 - **Blockers:** none for this repair. The previously observed CI account restriction was not revalidated in this session.
+
+## 2026-10-21 · `saas-competitive-review` · main
+
+**Goal:** research trusted sources, compare the platform with operating commercial SaaS products, and identify its strengths and gaps.
+
+- **Done:** added `docs/assessments/2026-10-21-saas-competitive-benchmark.md`, grounded in source baseline `4b193f0`, official MaintainX, Fiix, Augury and IBM Maximo documentation, named customer deployments, NIST and Google SRE guidance. The assessment separates implemented capability, partial foundations and unverified field operation; ranks pilot gaps; proposes acceptance evidence and measurement definitions. Updated the project board and linked brain note. A private Sources receipt was rendered outside the repository.
+- **Verified:** documentation checks and strict brain validation passed; exact counts and the study's boundaries are in README.md#testing. Source claims were checked against implementation and dated verification records. The full application suites and live competitor products were not tested in this documentation-only session.
+- **Decisions:** recommended a bilingual reliability decision-support layer connected to an existing CMMS, with customer validation before adopting the positioning. Agents, evidence and human approval are not presented as unique: Augury documents similar capabilities. No aggregate readiness score or customer ROI is asserted. No behavior, production dependency or deployment changed, so no behavior ADR was required.
+- **Open / next:** choose one customer workflow and source system; verify hosted completion and tenant isolation; connect recommendation to maintenance action and outcome; evaluate predictions prospectively before claiming operational accuracy or savings.
+- **Blockers:** none for the assessment. Web retrieval could not inspect the hosted platform, which does not establish an outage; hosted and domain acceptance remain open. Historical CI and release-governance observations were not revalidated.

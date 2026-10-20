@@ -3,9 +3,9 @@ type: project
 aliases: [Agentic OS project]
 tags: [project]
 status: active
-updated: 2026-10-20
+updated: 2026-10-21
 review_every_days: 14
-sources: [README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/assessments/2026-10-20-project-review.md, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0024-the-dataset-api.md, docs/adr/0028-views-load-on-demand.md, scripts/verify.py, docs/adr/0058-executive-dashboard-agent-and-scoped-evidence.md]
+sources: [README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/assessments/2026-10-20-project-review.md, docs/assessments/2026-10-21-saas-competitive-benchmark.md, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0024-the-dataset-api.md, docs/adr/0028-views-load-on-demand.md, scripts/verify.py, docs/adr/0058-executive-dashboard-agent-and-scoped-evidence.md]
 ---
 
 # Agentic OS
@@ -51,6 +51,8 @@ The engine in this repository, described in [[Identity]]: a governed business-an
 These counts go stale fast; `README.md` is the one place where they are maintained.
 
 ## Direction
+
+The 21 October commercial comparison, `docs/assessments/2026-10-21-saas-competitive-benchmark.md`, recommends validating a bilingual reliability decision-support layer connected to an existing maintenance system. Official product and named customer evidence from MaintainX, Fiix, Augury and IBM Maximo shows the importance of maintenance-action closure, operational integration and domain validation. This is a recommendation for [[User]], not an approved business strategy. The [[Analytics OS roadmap]] and [[Agent evaluation]] should retain the distinction between implemented controls, software tests and measured customer outcomes; the [[Approval gate]] remains human-controlled.
 
 The [[Analytics OS roadmap]]'s seven milestones were built by 17 October 2026: several datasets, dynamic inputs, a dashboard, models and [[Live data|live data]]. Decisions are in the [[Decision log]].
 
