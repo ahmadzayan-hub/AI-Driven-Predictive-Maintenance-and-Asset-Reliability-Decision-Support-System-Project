@@ -192,6 +192,24 @@ class RecallFixTests(unittest.TestCase):
         for case in suite["probe_v5"]:
             self.assertIn("NOT a blind holdout", case["source"])
 
+    def test_blind_v6_is_independent_of_every_split_the_rules_were_fitted_to(self):
+        """blind_v6 was written by an agent that saw only the label definitions
+        (2026-10-20 decision). A sentence that also sits in dev, a holdout or the
+        probe would make it a copy, and its recall a fitted number."""
+        for name, size in (("intent", 48), ("jargon", 40), ("causal", 40)):
+            with self.subTest(suite=name):
+                data = json.loads((ev.EVALS / f"{name}.json").read_text(encoding="utf-8"))
+                blind = data["blind_v6"]
+                self.assertEqual(len(blind), size)
+                seen = {case["text"] for key, cases in data.items()
+                        if key != "blind_v6" and isinstance(cases, list)
+                        for case in cases if isinstance(case, dict) and "text" in case}
+                self.assertEqual([c["text"] for c in blind if c["text"] in seen], [])
+                for case in blind:
+                    self.assertIn(case["label"], data["labels"])
+                    self.assertIn("independent agent", case["source"])
+                    self.assertIn("definitions only", case["source"])
+
     def test_the_claims_lint_cli_exits_by_result(self):
         with tempfile.TemporaryDirectory() as tmp:
             doc = Path(tmp) / "doc.md"

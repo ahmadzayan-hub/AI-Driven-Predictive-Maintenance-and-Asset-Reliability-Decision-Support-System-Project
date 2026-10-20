@@ -34,6 +34,7 @@ How [[Agentic OS]] knows how often each of its agents is right: labelled synthet
     - A rule that derives figures must keep to prose. The capstone dashboard's data table broke it.
     - It must count one quantity once, which the figures holdout showed.
 - **Measured on a schedule (2026-10-20):** `scripts/agent_loop.py` records every measurement in a ledger, compares it with the floors and the previous line, and stops at `done`, `needs_person`, `stalled` or `budget`. The worker repeats it when `AGENTIC_OS_EVAL_INTERVAL_SECONDS` is set, and the `agent_scorecard` tool lets a runtime or MCP client read it. It never edits a rule or a floor and never shows an improver a held-out sentence. New cases come through a queue that only a named person accepts, into dev only. `done` is not accuracy: intent is 72% on its holdout and still reports `done`.
+- **Fresh blind sets (2026-10-20, `blind_v6`):** independent agents wrote 48 intent, 40 jargon and 40 causal sentences from the definitions alone, scored once against unchanged rules: intent 68.5%, jargon 85% recall, causal wording 45% recall at 69% precision. The causal holdout's 100% was fitted to and is not evidence. Fixing against blind_v6 would turn it into dev, so a fix needs a new blind set to judge it.
 - **Controlled comparison:** an edited subagent loads only in a new session. So prompt versions are compared by giving a general-purpose agent on the same model each version's instructions, and changing nothing else.
 
 ## Related

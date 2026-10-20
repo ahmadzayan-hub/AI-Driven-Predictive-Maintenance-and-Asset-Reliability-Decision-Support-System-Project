@@ -995,3 +995,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** `verify.py --quick` passed after the merge (1462 Python tests, 262 frontend). The draft's claims about storage, erasure and the detector were read from the code. The legal summary comes from secondary commentary only and is marked unverified.
 - **Decisions:** none taken; the owner chooses. Recommendation: synthetic blind cases now, per-item contribution only after a measured mismatch and a pilot customer's written agreement.
 - **Open / next:** owner's choice; counsel on the UAE personal data law and on whether a government customer may allow this at all.
+
+## 2026-10-20 · `d9e3f889` · claude/tender-clarke-m4uwgq (option D)
+
+**Goal:** go with D now, C conditional.
+
+- **Done:** accepted the decision (status updated in `docs/adr/2026-10-20-labelled-cases-from-real-use.md`). Ran option D: three independent agents wrote blind sets from the definitions alone; each was scored once against the unchanged rules, then stored as `blind_v6` (intent 48, jargon 40, causal 40). No rule, floor or holdout was changed.
+- **Verified:** blind_v6 scores: intent 68.5% macro recall, jargon 85% recall at 100% precision, causal 45% recall at 69% precision. A new test found two intent sentences already present in earlier splits; I removed them and rescored instead of weakening the test. `tests/test_evals.py` passes (30 tests).
+- **Decisions:** blind_v6 is stored under its own key, not `holdout`, so existing floors and scores are unaffected. The rules are not fixed against it: that would make it dev data.
+- **Open / next:** fix the causal lint (11 of 20 real causal claims missed, 4 of 20 non-causal flagged) after moving blind_v6 into dev, then judge on a new blind set. Counsel on the UAE law only matters if option C is ever opened.
