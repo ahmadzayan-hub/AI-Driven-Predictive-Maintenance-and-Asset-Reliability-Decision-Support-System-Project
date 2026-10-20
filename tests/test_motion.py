@@ -143,6 +143,20 @@ class RendererCheckTests(unittest.TestCase):
             self.assertIn("42 is not in register.csv", done.stderr)
             self.assertNotIn("96.8 is not in", done.stderr)
 
+    def test_the_file_is_found_anywhere_in_a_viewer_readable_source(self):
+        """The skill asks for a source a viewer can follow, so the file is
+        rarely the first thing in the string and must be found, not assumed."""
+        with tempfile.TemporaryDirectory() as folder:
+            (Path(folder) / "register.csv").write_text(
+                "kpi,value\nMean availability,96.779802\n", encoding="utf-8")
+            spec = {"scenes": [{"type": "kpis", "duration": 4, "heading": "Reliability",
+                                "items": [{"label": "Availability", "value": 96.8,
+                                           "source": "Team 3 workbook, Executive KPIs "
+                                                     "A3:C18 (register.csv)"}]}]}
+            done = self.check(spec, folder=folder)
+            self.assertEqual(done.returncode, 0, done.stderr)
+            self.assertIn("1 of 1 checked", done.stdout)
+
     def test_a_source_naming_a_file_that_is_absent_is_refused(self):
         with tempfile.TemporaryDirectory() as folder:
             spec = {"scenes": [{"type": "kpis", "duration": 4, "heading": "Totals",
