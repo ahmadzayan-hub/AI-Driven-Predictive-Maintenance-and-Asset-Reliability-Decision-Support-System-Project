@@ -1025,3 +1025,29 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Decisions:** recommended a bilingual reliability decision-support layer connected to an existing CMMS, with customer validation before adopting the positioning. Agents, evidence and human approval are not presented as unique: Augury documents similar capabilities. No aggregate readiness score or customer ROI is asserted. No behavior, production dependency or deployment changed, so no behavior ADR was required.
 - **Open / next:** choose one customer workflow and source system; verify hosted completion and tenant isolation; connect recommendation to maintenance action and outcome; evaluate predictions prospectively before claiming operational accuracy or savings.
 - **Blockers:** none for the assessment. Web retrieval could not inspect the hosted platform, which does not establish an outage; hosted and domain acceptance remain open. Historical CI and release-governance observations were not revalidated.
+## 2026-10-20 · `d9e3f889` · claude/tender-clarke-m4uwgq (option D)
+
+**Goal:** go with D now, C conditional.
+
+- **Done:** accepted the decision (status updated in `docs/adr/2026-10-20-labelled-cases-from-real-use.md`). Ran option D: three independent agents wrote blind sets from the definitions alone; each was scored once against the unchanged rules, then stored as `blind_v6` (intent 48, jargon 40, causal 40). No rule, floor or holdout was changed.
+- **Verified:** blind_v6 scores: intent 68.5% macro recall, jargon 85% recall at 100% precision, causal 45% recall at 69% precision. A new test found two intent sentences already present in earlier splits; I removed them and rescored instead of weakening the test. `tests/test_evals.py` passes (30 tests).
+- **Decisions:** blind_v6 is stored under its own key, not `holdout`, so existing floors and scores are unaffected. The rules are not fixed against it: that would make it dev data.
+- **Open / next:** fix the causal lint (11 of 20 real causal claims missed, 4 of 20 non-causal flagged) after moving blind_v6 into dev, then judge on a new blind set. Counsel on the UAE law only matters if option C is ever opened.
+
+## 2026-10-20 · `d9e3f889` · claude/tender-clarke-m4uwgq (fix and judge)
+
+**Goal:** fix the causal lint and the intent misses.
+
+- **Done:** moved `blind_v6` into dev for intent (48) and causal (37) and said so in every case; fixed the rules by family, not by sentence (`scripts/claims_lint.py`, `assistant.py`); had fresh independent agents write `blind_v7` (intent 57 after removing 3 duplicates, causal 50) and scored old against new rules on the same sentences.
+- **Verified:** causal wording on blind_v7: recall 28% to 60%, precision 70% to 88%. Intent: 32 to 35 of 57 correct, within noise. Dev 100% on both; no new false alarm on any stored set; one extra flag on the project's own 23 documents was a false alarm and led to dropping bare "behind". The save_history rule was run end to end (the preference flips, nothing is deleted).
+- **Decisions:** three causal blind_v6 cases were removed as contested labels rather than fixed (they contradict the lint's own contract); recorded so it can be reversed. blind_v7 was not used to change any rule. Floors not raised.
+- **Open / next:** intent needs a model behind the rules or a far larger set; causal lint still misses 10 of 25 on blind_v7. Floor decision is the owner's.
+
+## 2026-10-20 · `d9e3f889` · claude/tender-clarke-m4uwgq (floor, model suite, merge)
+
+**Goal:** "yes all": merge to `main`, raise the intent floor, put a model behind the rules.
+
+- **Done:** raised the intent holdout floor from 0.71 to 0.76 (holdout is 76.7%, floors round down to the whole per cent). Found that the model-first path already exists (ADR 0019: a configured model decides first, the rules decide when it is absent or its answer is invalid), so built the missing part, its measurement: an opt-in `intent_model` suite and `--split` in `scripts/evaluate_agents.py`. It reports "not available" without a provider, and the default run, the floors and the agent loop skip it. Merged to `main`.
+- **Verified:** the suite runs end to end through the real `Assistant.understand` with a scripted provider (valid answer, invalid answer falling back to the rules, a required argument missing). It has not been run against a real model: no provider or key is configured here, and the session's own API endpoint is not the product's to use.
+- **Decisions:** the model suite is opt-in because it sends every case to a provider. No claim is made about how a model would score.
+- **Open / next:** configure a provider (a rotated key or a local Ollama model) and run `python scripts/evaluate_agents.py --suite intent_model --split blind_v7` to get the real number; compare it with the rules' 61% on that set.

@@ -335,6 +335,8 @@ _HELP = re.compile(
     r"how (does|do) (this|it|you) work|how do i use (this|it|you)|what are my options|"
     r"help me (get started|start|begin)|get(ting)? started|guide me|how to use (this|it|you)|"
     r"walk me through how|show me how (to|i)|how (do|can|should) i (upload|use|get)|how to upload)\b"
+    r"|\bwhat (kinds? of )?(things|tasks|requests) (can|could) i (ask|request|get)\b"
+    r"|(أقدر|اقدر|أستطيع|استطيع|يمكنني|ممكن)\s+(أن\s+)?(أطلب|اطلب|أسأل|اسأل)(ها|ه)?\s+(منك|عنك)"
     r"|^\W*(مساعدة|ساعدني|ماذا تستطيع|ماذا يمكنك|إيه اللي تقدر|ايه اللي تقدر|"
     r"تقدر تعمل|ما الذي تستطيع|ما الذي يمكنك|الأوامر|كيف أستخدم|كيف استخدم|كيف يعمل)"
     r"|(الأوامر المتاحة|ما الأوامر|كيف أبدأ|كيف ابدأ|كيف أستخدم|كيف استخدم|أستخدمك|استخدمك|تفهمني|"
@@ -342,6 +344,16 @@ _HELP = re.compile(
 _CLEAR_HISTORY = re.compile(
     r"\b(clear|delete|erase|wipe|reset)\b.*\b(history|conversation|chat|messages)\b"
     r"|(امسح|احذف|امح|صفّر|صفر|فضي|فضّي|حذف|مسح)\b.*(السجل|سجل المحادثة|المحادثة|التاريخ|الشات|الرسائل)", re.I)
+_HISTORY_OFF = re.compile(
+    r"\b(stop|quit|no longer|don'?t|do not|turn off|disable|pause|without)\b.{0,25}"
+    r"\b(record(ing)?|sav(e|ing)|keep(ing)?|stor(e|ing)|log(ging)?|track(ing)?)\b.{0,30}"
+    r"\b(history|conversation|chat|messages)\b"
+    r"|(وقف|أوقف|اوقف|ايقاف|إيقاف|بلاش|لا)\s+(تسجيل|حفظ|تخزين)\s+(السجل|المحادثة|الرسائل|التاريخ)", re.I)
+_HISTORY_ON = re.compile(
+    r"\b(start|resume|turn on|enable|begin)\b.{0,25}"
+    r"\b(record(ing)?|sav(e|ing)|keep(ing)?|stor(e|ing)|log(ging)?)\b.{0,30}"
+    r"\b(history|conversation|chat|messages)\b"
+    r"|(ابدأ|ابدا|شغل|شغّل|فعّل|فعل)\s+(تسجيل|حفظ|تخزين)\s+(السجل|المحادثة|الرسائل|التاريخ)", re.I)
 _FORGET_ALL = re.compile(
     r"\b(forget|delete|clear|erase|wipe|remove)\b.*"
     r"\b(everything|all memory|all memories|all of it|the memory|my memory|"
@@ -354,15 +366,17 @@ _FORGET_KEY = re.compile(
     r"|(انس|انسى|انسَ|احذف|امسح|امح)\b.*(?P<key_ar>memory_\d+)"
     r"|(انس|انسى|انسَ|احذف|امسح|امح)\b.*(?:الذاكرة|الملاحظة)\s*(?:رقم\s*)?(?P<num_ar>\d+)", re.I)
 _FORGET_ABOUT = re.compile(
-    r"\b(forget|delete|remove|erase|drop)\s+(?:the |my |that |this )?(?:note|memory|reminder|entry|thing|bit|info|information)\s+"
+    r"\b(forget|delete|remove|erase|drop)\s+(?:the |my |that |this )?(?:saved |stored )?(?:note|memory|reminder|entry|item|thing|bit|info|information)\s+"
     r"(?:about|on|regarding|concerning|for)\s+(?P<about>[^,.;!?]+)"
     r"|(?:انس|انسَ|انسى|احذف|امسح|امح)\s+(?:ال)?(?:ملاحظة|ذاكرة|معلومة)\s*(?:المتعلقة|الخاصة|التي عن|عن|اللي\s+(?:\S+\s+){0,3}?عن)\s*"
-    r"(?P<about_ar>[^،,.؟!]+)", re.I)
+    r"(?P<about_ar>[^،,.؟!]+)"
+    r"|(?:انس|انسَ|انسى|احذف|امسح|امح)\s+(?:موضوع|مسألة|مسالة|موضوعي)\s+(?P<about_ar2>[^،,.؟!]+)", re.I)
 _REMEMBER = re.compile(
-    r"^\W*(?:please\s+)?(?:remember|note|save|keep in mind|don'?t forget|make a note|take a note|jot down|"
-    r"dont forget)(?:\s+that)?\s*[:,\-–—]?\s*(?P<info>.+?)\s*$"
+    r"^\W*(?:(?:could|can|would|will) you\s+(?:maybe\s+|just\s+|please\s+|kindly\s+)*|please\s+)?"
+    r"(?:remember|note|save|keep in mind|don'?t forget|make a note|take a note|jot down|"
+    r"dont forget)(?:\s+(?:this|that|it))?(?:\s+for later)?(?:\s+that)?\s*[:,\-–—]?\s*(?P<info>.+?)\s*$"
     r"|^\W*(?:من فضلك\s+|لو سمحت\s+|أرجو\s+|ارجو\s+|ممكن\s+|رجاءً?\s+)?(?:تذكر|تذكّر|افتكر|إفتكر|"
-    r"احفظ|إحفظ|سجل|سجّل|تسجل|تسجّل|تحفظ|خزن|خزّن|تخزن|لا تنس|لا تنسى|ما تنساش|متنساش|خلي بالك|"
+    r"احفظ|إحفظ|سجل|سجّل|تسجل|تسجّل|تحفظ|خزن|خزّن|تخزن|لا تنس|لا تنسى|ما تنساش|متنساش|خلي بالك|خلّ في بالك|خل في بالك|خلي في بالك|خلّي في بالك|"
     r"خلك حافظ|خليك حافظ|خلّيك حافظ|خلك فاكر|خليك فاكر)"
     r"(?:\s+(?:لي|عندك|في الذاكرة|بالذاكرة))?"
     r"(?:\s+(?:أن|ان|إن|انه|أنه|إنه|ان\s))?\s*[:،,\-–—]?\s*(?P<info_ar>.+?)\s*$",
@@ -374,7 +388,7 @@ _RECALL = re.compile(
     r"show (me )?(my |the )?(memory|memories|notes)|list (my |the )?(memory|"
     r"memories|notes)|what did i (tell|say|ask)( you)?|what('s| is) in "
     r"(your|my) memory|what do you remember about|^\W*recall\b|"
-    r"^\W*(do|can) you remember|(list|show)( me)? (everything|all( that)?) you (remember|know)|"
+    r"^\W*(do|can) you remember|(list|show)( me)? (everything|all( that)?) you('ve| have)? (remember|know|saved|stored|kept|noted)|did i (tell|say|mention|ask) you (anything|something)|"
     r"what (notes|memories) do you have|remind me (what|of what)|what (have|did) i ask(ed)? you to remember|"
     r"do you (still )?have (the |my |a |any )?(note|notes|memory|memories)|"
     r"what (have you|you have|you've) (got )?(saved|stored|kept)|what('s| is) (saved|stored) about me)"
@@ -382,7 +396,8 @@ _RECALL = re.compile(
     r"ما الذي تتذكره|ماذا حفظت|ما الذي حفظته|اعرض الذاكرة|أعرض الذاكرة|"
     r"اعرض ما حفظت|ماذا تعرف عني|ما هي ذاكرتك|فاكر إيه|فاكر ايه|فاكر حاجة|"
     r"هل تتذكر|تفتكر|بتفتكر|اعرض ملاحظاتي|ملاحظاتي|ذكرني|ذكّرني|خزنته|خزنت لي|حفظته لي|وش حفظت|"
-    r"وش اللي حفظت|اللي حفظتها|اللي حفظته|اللي خزنتها|المعلومات اللي حفظت)", re.I)
+    r"وش اللي حفظت|اللي حفظتها|اللي حفظته|اللي خزنتها|المعلومات اللي حفظت|اللي حافظه|اللي حافظ|"
+    r"(الملاحظات|المعلومات|الأشياء|الاشياء)\s+(اللي|التي|التى)\s+(سجلت|حفظت|خزنت|دونت))", re.I)
 _RECALL_QUERY = re.compile(r"\babout\s+(?P<q>.+?)\s*[?؟.]*\s*$|\bعن\s+(?P<q_ar>.+?)\s*[?؟.]*\s*$", re.I)
 _NAME = re.compile(
     r"\b(?:call me|my name is|my name's|i am called|i'm called|you can call me)"
@@ -405,8 +420,9 @@ _RUN_STATUS = re.compile(
     r"|\bhas (the |my |it |that )?(run |analysis |report )?(finished|completed|ended)"
     r"|\b(is it|is the (run|analysis)) still running|\bstill running\b"
     r"|\bwhere (is|are) (the |my )?(run|analysis|report)\b"
+    r"|\b(any|what('s| is) the|got an?) (update|news|progress)s? (on|about|with|regarding) (the |my |that )?(run|analysis|report)\b"
     r"|\bis (the |my |that )?(run|analysis|report)\b.{0,60}?\b(done|finished|ready|complete)\b"
-    r"|(الحالة|حالة التحليل|حالة التشغيل|اكتمل|اكتملت|وصل فين|وصلنا فين|خلص|خلصت|خلّص|انتهى|انتهت|"
+    r"|(الحالة|حالة التحليل|حالة التشغيل|اكتمل|اكتملت|وصل فين|وصلنا فين|وين وصل|وين وصلت|وين وصلنا|خلص|خلصت|خلّص|انتهى|انتهت|"
     r"جاهز|جاهزة|فين التحليل|أين التحليل|ايه وضع|إيه وضع|ما وضع|وضع التحليل)",
     re.I)
 _EXPLAIN = re.compile(
@@ -447,7 +463,11 @@ _START_RUN = re.compile(
     r"إبدأ تحليل|شغل تحليل|شغّل تحليل|شغل التحليل|ادرس|إدرس|افحص|إفحص)", re.I)
 _REPORT_QUESTION = re.compile(
     r"\bwhat (does|did) the (report|analysis|model|forecast|results?) (say|show|recommend|suggest|"
-    r"conclude|find|predict)\b|(بماذا|ماذا) (يوصي|توصي|يقول|يقترح) (التحليل|التقرير)|"
+    r"conclude|find|predict)\b|"
+    r"\bwhat (does|did) the (\w+ )?(part|section|chapter|summary|page) (say|show|recommend|suggest|conclude|find)\b|"
+    r"\b(quote|read( me| out)?|recite|repeat)\b.{0,40}\b(report|summary|section|findings|headlines?)\b|"
+    r"(ماذا|وش|ايش|إيش|شو)\s+(قال|قالت|يقول|تقول|يقترح|تقترح)\s+(التوصيات|التشخيص|التنبؤ|الوصف|الملخص)|"
+    r"(قسم|جزء)\s+(descriptive|diagnostic|experiment|predictive|prescriptive|الوصف|التشخيص|التنبؤ|التوصيات)|(بماذا|ماذا) (يوصي|توصي|يقول|يقترح) (التحليل|التقرير)|"
     r"(حسب|وفق|في) التقرير|أظهرها التقرير|أظهره التقرير|أظهر التقرير|يظهر التقرير|يُظهر التقرير|"
     r"التقرير بيقول|التقرير يقول|التقرير قال", re.I)
 _SAMPLE_DATASET = re.compile(r"\bsample\b|النموذجي|النموذجية|التجريبي|التجريبية|العينة", re.I)
@@ -501,6 +521,12 @@ def understand(text):
         return intent("remember", {"information": info.strip(), "category": None})
     if _CLEAR_HISTORY.search(text):
         return intent("clear_history")
+    # "Stop recording our conversation history" changes a setting; it deletes
+    # nothing, so it is not clear_history, and it is not a request to forget.
+    if _HISTORY_OFF.search(text):
+        return intent("set_preference", {"key": "save_history", "value": "false"})
+    if _HISTORY_ON.search(text):
+        return intent("set_preference", {"key": "save_history", "value": "true"})
     match = _FORGET_KEY.search(text)
     if match:
         number = match.group("num") or match.group("num_ar")
@@ -508,7 +534,8 @@ def understand(text):
         return intent("forget", {"key": key})
     match = _FORGET_ABOUT.search(text)
     if match:
-        about = (match.group("about") or match.group("about_ar") or "").strip()
+        about = (match.group("about") or match.group("about_ar")
+                 or match.group("about_ar2") or "").strip()
         return intent("forget", {"key": None, "about": about})
     if _FORGET_ALL.search(text):
         return intent("forget", {"key": "all"})

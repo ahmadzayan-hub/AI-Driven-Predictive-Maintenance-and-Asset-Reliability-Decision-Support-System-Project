@@ -113,7 +113,13 @@ placeholder controls — absent capabilities have no UI.
    After fixes informed by that set, its measured recall and precision are
    100%; it is no longer independent evidence. The newer adversarial
    `probe_v5` reports only 6% recall and is not comparable with those sets
-   (ADR 0056). Hand-written rules generalise only so far: intent
+   (ADR 0056). On a fresh independent set (`blind_v6`) causal wording first
+   scored 45% recall and 69% precision, against 100% on its holdout, which was
+   fitted to; intent scored 68.5% and jargon 85%. After the rules were fixed
+   against it, a second independent set (`blind_v7`) measured causal wording
+   at 60% recall and 88% precision (28% and 70% for the old rules on the same
+   sentences) and intent at 61% correct (56% before), a gain within noise (the
+   [decision](adr/2026-10-20-labelled-cases-from-real-use.md)). Hand-written rules generalise only so far: intent
    scored 80% on the previous blind set and 68% on this one before any
    change. A sentence the causal check passes may still claim a
    cause, and a chat sentence outside the vocabulary is answered as chat. The seeded reviewer memos were nearly too easy for the

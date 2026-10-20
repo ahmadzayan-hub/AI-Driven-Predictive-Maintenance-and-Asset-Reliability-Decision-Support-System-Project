@@ -709,5 +709,207 @@
    "label": false,
    "source": "blind v3, written by an independent agent from the label definitions only"
   }
+ ],
+ "blind_v6": [
+  {
+   "text": "The gap between failure counts before and after the overhaul is statistically significant (p < 0.05).",
+   "label": true,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "A Shapiro-Wilk test rejected normality of the repair-time data, so we used a non-parametric comparison.",
+   "label": true,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "The mean time between failures for bogie units is 4,200 hours, with a 95% confidence interval of 3,800 to 4,600.",
+   "label": true,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "Residuals from the downtime model show heteroscedasticity, which weakens the reliability of the cost forecast.",
+   "label": true,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "The standard deviation of work-order closure time was 3.4 days.",
+   "label": true,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "Failure intervals follow a Weibull distribution with a shape parameter of 1.8.",
+   "label": true,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "We applied a Kruskal-Wallis test across the four depots and found a difference in spare-part lead times.",
+   "label": true,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "Multicollinearity between mileage and age inflated the variance inflation factor above 10, so the coefficients are unstable.",
+   "label": true,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "The null hypothesis that brake wear is unrelated to route type could not be rejected.",
+   "label": true,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "The R-squared of 0.71 shows how much of the variation in maintenance cost the model explains.",
+   "label": true,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "Failure counts were overdispersed, so a negative binomial model was fitted instead of Poisson.",
+   "label": true,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "The standard error of the estimated repair cost is 120 dirhams per work order.",
+   "label": true,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "تم رفض الفرضية الصفرية عند مستوى دلالة 0.05 بشأن تأثير الصيانة الوقائية على الأعطال.",
+   "label": true,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "بلغ الانحراف المعياري لمدة التوقف عن التشغيل 6.2 ساعة.",
+   "label": true,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "أظهر اختبار مان-ويتني فرقاً ذا دلالة إحصائية بين زمن الإصلاح في الورديتين.",
+   "label": true,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "فاصل الثقة بنسبة 95% لمتوسط الوقت بين الأعطال يتراوح بين 900 و 1100 ساعة.",
+   "label": true,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "تعاني بواقي النموذج من عدم تجانس التباين، مما يضعف دقة تقدير تكلفة قطع الغيار.",
+   "label": true,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "لا تتبع أزمنة الإصلاح توزيعاً طبيعياً، لذلك استخدمنا اختبار كروسكال-واليس.",
+   "label": true,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "معامل التحديد للنموذج يساوي 0.68 مع وجود ارتباط خطي متعدد بين العمر والمسافة المقطوعة.",
+   "label": true,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "الخطأ المعياري لتقدير متوسط عدد أوامر العمل الشهرية هو 14.",
+   "label": true,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "The maintenance budget variance for the quarter was 8%, mostly from unplanned wheelset replacements.",
+   "label": false,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "A significant share of delays, about 40%, came from late spare-part deliveries.",
+   "label": false,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "Brake pad wear was normal for the season, and no extra inspections were needed.",
+   "label": false,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "Actual downtime deviated from plan by 12 hours in March, mainly due to the signalling fault.",
+   "label": false,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "Average repair time fell from 5.1 days to 3.9 days after the new workshop opened.",
+   "label": false,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "Failures tend to rise as mileage rises, and the two move together closely across the fleet.",
+   "label": false,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "The forecast shows spare-part spend rising 15% next year if current trends continue.",
+   "label": false,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "Work orders closed on time reached 92%, up from 85% last quarter.",
+   "label": false,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "There was a significant increase in door failures after the heatwave, with 63 events against 21 the month before.",
+   "label": false,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "The cost-to-replace ratio for traction motors is 0.6, so repair remains cheaper than replacement.",
+   "label": false,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "Normal operating hours resumed on Line 2 after the track inspection was completed.",
+   "label": false,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "The variance between planned and actual labour cost was AED 45,000, driven by overtime.",
+   "label": false,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "بلغ الفرق عن الميزانية في بند قطع الغيار 8% هذا الربع بسبب استبدال عجلات غير مخطط له.",
+   "label": false,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "شكّلت التأخيرات في توريد القطع نسبة كبيرة، نحو 40% من إجمالي التأخير.",
+   "label": false,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "كان تآكل وسادات الفرامل طبيعياً لهذا الموسم ولم تلزم فحوصات إضافية.",
+   "label": false,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "انحرف زمن التوقف الفعلي عن الخطة بمقدار 12 ساعة في مارس بسبب عطل الإشارات.",
+   "label": false,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "انخفض متوسط زمن الإصلاح من 5.1 أيام إلى 3.9 أيام بعد افتتاح الورشة الجديدة.",
+   "label": false,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "ترتفع الأعطال كلما زادت المسافة المقطوعة، ويتحرك الاثنان معاً بوضوح في الأسطول كله.",
+   "label": false,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "تشير التوقعات إلى ارتفاع الإنفاق على قطع الغيار بنسبة 15% العام القادم إذا استمر الاتجاه الحالي.",
+   "label": false,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  },
+  {
+   "text": "ارتفعت أوامر العمل المغلقة في موعدها إلى 92% مقارنة بـ 85% في الربع السابق.",
+   "label": false,
+   "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; not tuned to"
+  }
  ]
 }

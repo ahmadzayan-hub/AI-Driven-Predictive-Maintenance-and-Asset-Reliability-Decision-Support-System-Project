@@ -98,7 +98,7 @@ class MeasureTestCase(unittest.TestCase):
     def test_every_suite_can_be_measured(self):
         measured = learning.measure()
         import evaluate_agents
-        self.assertEqual(set(measured["suites"]), set(evaluate_agents.SUITES))
+        self.assertEqual(set(measured["suites"]), set(evaluate_agents.default_suites()))
 
 
 class CompareTestCase(unittest.TestCase):

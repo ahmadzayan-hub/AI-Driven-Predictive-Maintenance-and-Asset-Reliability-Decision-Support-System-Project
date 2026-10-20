@@ -54,7 +54,8 @@ class MetricsTests(unittest.TestCase):
 class SuiteTests(unittest.TestCase):
 
     def test_every_suite_has_dev_and_holdout_cases_with_known_labels(self):
-        for name, spec in ev.SUITES.items():
+        for name in ev.default_suites():
+            spec = ev.SUITES[name]
             with self.subTest(suite=name):
                 data = json.loads((ev.EVALS / spec["file"]).read_text(encoding="utf-8"))
                 self.assertTrue(data["dev"] and data["holdout"])
@@ -65,7 +66,7 @@ class SuiteTests(unittest.TestCase):
 
     def test_no_suite_falls_below_its_recall_floor(self):
         floors = json.loads((ev.EVALS / "floors.json").read_text(encoding="utf-8"))
-        for name in ev.SUITES:
+        for name in ev.default_suites():
             result = ev.run_suite(name)
             for split in ("dev", "holdout"):
                 with self.subTest(suite=name, split=split):
@@ -191,6 +192,108 @@ class RecallFixTests(unittest.TestCase):
         self.assertEqual(len(suite["probe_v5"]), 32)
         for case in suite["probe_v5"]:
             self.assertIn("NOT a blind holdout", case["source"])
+
+    def test_a_blind_set_is_independent_until_it_is_used_to_fix_rules(self):
+        """Blind sets were written by an agent that saw only the label definitions
+        (2026-10-20 decision). While a set is still blind, none of its sentences
+        may also sit in another split. Once the rules are fixed against it, it
+        moves into dev, says so in every case's source, and a new blind set is
+        needed to judge the fix."""
+        def every_other_text(data, skip):
+            return {case["text"] for key, cases in data.items()
+                    if key != skip and isinstance(cases, list)
+                    for case in cases if isinstance(case, dict) and "text" in case}
+        for name, key, size in (("jargon", "blind_v6", 40), ("intent", "blind_v7", 57),
+                                ("causal", "blind_v7", 50)):
+            data = json.loads((ev.EVALS / f"{name}.json").read_text(encoding="utf-8"))
+            if key not in data:
+                continue
+            with self.subTest(suite=name, set=key):
+                blind = data[key]
+                self.assertEqual(len(blind), size)
+                self.assertEqual([c["text"] for c in blind
+                                  if c["text"] in every_other_text(data, key)], [])
+                for case in blind:
+                    self.assertIn(case["label"], data["labels"])
+                    self.assertIn("independent agent", case["source"])
+                    self.assertIn("definitions only", case["source"])
+
+    def test_blind_v6_cases_fixed_against_say_so_in_dev(self):
+        """intent and causal blind_v6 were used to fix the rules on 2026-10-20."""
+        for name, count in (("intent", 48), ("causal", 37)):
+            data = json.loads((ev.EVALS / f"{name}.json").read_text(encoding="utf-8"))
+            self.assertNotIn("blind_v6", data)
+            moved = [c for c in data["dev"] if "moved into dev" in c.get("source", "")]
+            self.assertEqual(len(moved), count, name)
+            for case in moved:
+                self.assertIn("no longer independent", case["source"])
+
+    def test_the_causal_lint_catches_the_families_blind_v6_missed(self):
+        """Attribution, phrasal and Arabic origin constructions (2026-10-20)."""
+        for text in ("Skipped lubrication was responsible for the gearbox breakdown.",
+                     "The overrun was what brought about the pantograph failure.",
+                     "Heat buckling gave rise to the speed restrictions.",
+                     "Cost overruns stem from the late discovery of cracked frames.",
+                     "Work orders closed late as a consequence of the planner shortage.",
+                     "The cracked weld set off the chain of events.",
+                     "نتج عطل الإشارة عن تسرب المياه إلى صندوق التوصيل.",
+                     "كان الانحراف ناجماً عن اتساع المسافة بين القضبان.",
+                     "التأخير في إغلاق أوامر العمل ناتج عن قلة المخططين.",
+                     "إن نقص التزييت هو المسؤول عن انهيار علبة التروس."):
+            with self.subTest(text=text):
+                self.assertTrue(claims_lint.causal_phrases(text))
+
+    def test_the_causal_lint_does_not_flag_vehicles_test_results_or_lags(self):
+        """The false alarms found on the same set, and one found on the project's own docs."""
+        for text in ("The driver will drive the train to the maintenance shed after the final run.",
+                     "Drivers drive trams to the depot at night.",
+                     "جاءت نتيجة اختبار عينة القضيب ضمن الحدود المسموحة.",
+                     "The verification record was behind the tree.",
+                     "Nothing was behind the reading."):
+            with self.subTest(text=text):
+                self.assertEqual(claims_lint.causal_phrases(text), [])
+        self.assertTrue(claims_lint.causal_phrases("Rising temperatures drive the failures."))
+        self.assertTrue(claims_lint.causal_phrases("جاءت نتيجة تحديث النظام."))
+
+    def test_the_model_suite_is_opt_in_and_says_so_without_a_provider(self):
+        """intent_model sends every case to a provider, so it is never part of the
+        default run, the floors or the agent loop, and it reports "not available"
+        rather than a score when nothing is configured."""
+        self.assertNotIn("intent_model", ev.default_suites())
+        self.assertIn("intent_model", ev.SUITES)
+
+        class Unconfigured:
+            def status(self):
+                return {"configured": False}
+        self.assertIsNone(ev._intent_model([{"text": "help", "label": "help"}], Unconfigured()))
+        from server import agent_learning
+        self.assertNotIn("intent_model", agent_learning.measure(["column_roles"])["suites"])
+
+    def test_the_model_suite_scores_the_whole_assistant_through_a_scripted_provider(self):
+        """What the number would mean once a real provider is configured: the model
+        decides first, and the rules decide when its answer is not a valid intent."""
+        answers = {"save this for me": "remember", "how is the run": "run_status",
+                   "show the notes": "recall", "hello there friend": "chat"}
+
+        class Scripted:
+            def status(self):
+                return {"configured": True, "provider": "scripted", "model": "fake"}
+
+            def ask_json(self, system, user, **options):
+                text = user.rsplit("Message: ", 1)[1]
+                if text == "show the notes":       # an invalid answer: the rules decide
+                    return "not json"
+                action = answers[text]
+                arguments = {"information": "the user's note"} if action == "remember" else {}
+                return json.dumps({"action": action, "arguments": arguments,
+                                   "reply": "Hi!" if action == "chat" else ""})
+        cases = [{"text": t, "label": a} for t, a in answers.items()]
+        pairs = ev._intent_model(cases, Scripted())
+        self.assertEqual([p[1] for p in pairs], ["remember", "run_status", "recall", "chat"])
+        # "show the notes" got an invalid answer and the rules placed it correctly;
+        # the suite says how many sentences the model did not decide.
+        self.assertIn("1 of 4", ev.NOTES["intent_model"])
+        self.assertEqual(sum(1 for t, p, _ in pairs if t == p), 4)
 
     def test_the_claims_lint_cli_exits_by_result(self):
         with tempfile.TemporaryDirectory() as tmp:
