@@ -3,6 +3,9 @@ import type { AuthConfig, ColumnMapping, DatasetDetail, DatasetSummary, ExportPa
 
 export const API_BASE = import.meta.env.VITE_API_BASE ?? ''
 const REQUEST_TIMEOUT_MS = 10_000
+// Run reads/controls may wait behind a serialized stage. Local narration is
+// bounded to 60 seconds; allow its response and commit to reach the browser.
+const RUN_REQUEST_TIMEOUT_MS = 90_000
 // A 4 MB file on a slow connection, then read on the server.
 const UPLOAD_TIMEOUT_MS = 60_000
 
@@ -301,7 +304,7 @@ export const api = {
   pipelines: () => request<Pipelines>('/api/pipelines'),
   listRuns: () => request<{ runs: RunSummary[] }>('/api/runs'),
   usage: () => request<Usage>('/api/usage'),
-  getRun: (id: string) => request<RunDetail>(`/api/runs/${id}`),
+  getRun: (id: string) => request<RunDetail>(`/api/runs/${id}`, {}, RUN_REQUEST_TIMEOUT_MS),
   /** The maintenance KPI register computed on a run's cleaned table
    *  (ADR 0049). 409 until the run has finished cleaning. */
   runKpis: (id: string, language: 'en' | 'ar' = 'en') =>
@@ -349,10 +352,10 @@ export const api = {
       signal?.removeEventListener('abort', cancel)
     }
   },
-  advanceRun: (id: string) => request<RunDetail>(`/api/runs/${id}/advance`, { method: 'POST' }),
-  pauseRun: (id: string) => request<RunDetail>(`/api/runs/${id}/pause`, { method: 'POST' }),
-  resumeRun: (id: string) => request<RunDetail>(`/api/runs/${id}/resume`, { method: 'POST' }),
-  cancelRun: (id: string) => request<RunDetail>(`/api/runs/${id}/cancel`, { method: 'POST' }),
+  advanceRun: (id: string) => request<RunDetail>(`/api/runs/${id}/advance`, { method: 'POST' }, RUN_REQUEST_TIMEOUT_MS),
+  pauseRun: (id: string) => request<RunDetail>(`/api/runs/${id}/pause`, { method: 'POST' }, RUN_REQUEST_TIMEOUT_MS),
+  resumeRun: (id: string) => request<RunDetail>(`/api/runs/${id}/resume`, { method: 'POST' }, RUN_REQUEST_TIMEOUT_MS),
+  cancelRun: (id: string) => request<RunDetail>(`/api/runs/${id}/cancel`, { method: 'POST' }, RUN_REQUEST_TIMEOUT_MS),
   /** A run's cleaned table (ADR 0031): fields, totals by group, rows. */
   tableFields: (id: string, language: 'en' | 'ar' = 'en') =>
     request<{ fields: TableField[]; records: number }>(
@@ -400,5 +403,5 @@ export const api = {
     request<RunDetail>(`/api/runs/${id}/approvals/${approvalId}`, {
       method: 'POST',
       body: JSON.stringify({ decision }),
-    }),
+    }, RUN_REQUEST_TIMEOUT_MS),
 }

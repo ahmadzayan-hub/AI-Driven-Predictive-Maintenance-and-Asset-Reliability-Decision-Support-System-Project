@@ -1,11 +1,13 @@
 # Project progress
 
-Last updated: 2026-10-21, session `react-animation-study`, preserving the agent-loop, graph expansion, collaboration and earlier corrective work. The session-end skill keeps this file current; the SessionStart hook reads the *Now* section into every new session.
+Last updated: 2026-10-21, session `run-timeout-fix`, preserving the animation study, agent-loop, graph expansion, collaboration and earlier corrective work. The session-end skill keeps this file current; the SessionStart hook reads the *Now* section into every new session.
 
 
 **Vision.** **AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project** uses Agentic OS as its governed analytics engine. It digests several datasets with dynamic inputs, then carries them through preparation, cleaning and modelling to a multi-page interactive dashboard with live data, with insights and key findings that are always traceable to a calculation. The product scope and remaining domain work are in `docs/PROJECT_CHARTER.md`; the reusable engine milestones are in `brain/Projects/Analytics OS roadmap.md`.
 
 ## Now
+
+- **Local run timeout corrected: 2026-10-21.** The browser now allows a bounded local narration step to finish before timing out run detail, advance or controls. The generic short deadline remains. Targeted API/scheduler regressions, production build and budget pass; the local platform was restarted and the interrupted Arabic sample reached its publication approval gate. Exact verification is in README.md#testing and the [decision](docs/adr/2026-10-21-run-request-timeout.md). This does not change hosted function limits or add POST retries.
 
 - **React animation and connection study: completed 2026-10-21.** Compared React/SVG, React Flow and Motion with pinned isolated builds and actual desktop captures. The [study](docs/design/REACT_AGENT_CONNECTIONS_STUDY.md) recommends native SVG/CSS for the compact run view and an optional React Flow explorer for pan/zoom and richer graph navigation. It specifies typed relations, shared evidence inspection, motion policy and phased acceptance. Production frontend dependencies and behavior are unchanged; the explorer and durable message history remain proposals. Verified experiment counts are in README.md#testing. Incoming agent measurement work through `827a584` is preserved.
 

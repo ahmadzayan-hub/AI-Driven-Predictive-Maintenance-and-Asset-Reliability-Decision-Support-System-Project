@@ -12,11 +12,60 @@ function mockFetchOnce(response: Partial<Response> & { json?: () => Promise<unkn
 }
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.unstubAllGlobals()
   localStorage.removeItem('aos-token')
 })
 
 describe('api client', () => {
+  function delayedRunResponse(delay: number) {
+    vi.useFakeTimers()
+    vi.stubGlobal('fetch', vi.fn((_url: string, init?: RequestInit) => new Promise<Response>((resolve, reject) => {
+      const timer = setTimeout(() => resolve({ ok: true, json: async () => ({ id: 'r1' }) } as Response), delay)
+      init?.signal?.addEventListener('abort', () => {
+        clearTimeout(timer)
+        reject(new DOMException('Aborted', 'AbortError'))
+      }, { once: true })
+    })))
+  }
+
+  it.each([
+    ['advance', () => api.advanceRun('r1')],
+    ['read', () => api.getRun('r1')],
+    ['pause', () => api.pauseRun('r1')],
+    ['resume', () => api.resumeRun('r1')],
+    ['cancel', () => api.cancelRun('r1')],
+    ['approval', () => api.decideApproval('r1', 'a1', 'approve')],
+  ] as const)('keeps a run %s request alive through a bounded model step and response overhead', async (_name, operation) => {
+    delayedRunResponse(65_000)
+    const result = operation().then((value) => value, (error: unknown) => error)
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(vi.mocked(fetch).mock.calls[0][1]?.signal?.aborted).toBe(false)
+    await vi.advanceTimersByTimeAsync(55_000)
+    expect(await result).toMatchObject({ id: 'r1' })
+    expect(fetch).toHaveBeenCalledOnce()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('still bounds an unresponsive run step without replaying its POST', async () => {
+    delayedRunResponse(91_000)
+    const result = expect(api.advanceRun('r1')).rejects.toMatchObject({ name: 'ApiError', message: expect.stringMatching(/too long/) })
+    await vi.advanceTimersByTimeAsync(89_999)
+    expect(vi.mocked(fetch).mock.calls[0][1]?.signal?.aborted).toBe(false)
+    await vi.advanceTimersByTimeAsync(1)
+    await result
+    expect(fetch).toHaveBeenCalledOnce()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('retains the short timeout for health requests', async () => {
+    delayedRunResponse(11_000)
+    const result = expect(api.health()).rejects.toMatchObject({ name: 'ApiError', message: expect.stringMatching(/too long/) })
+    await vi.advanceTimersByTimeAsync(10_000)
+    await result
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
   it.each(['mapping', 'csv', 'executive'])('signals an expired credential from the %s transport', async (kind) => {
     localStorage.setItem('aos-token', 'expired-token')
     mockFetchOnce({ ok: false, status: 401, json: async () => ({ detail: 'Expired' }) })
