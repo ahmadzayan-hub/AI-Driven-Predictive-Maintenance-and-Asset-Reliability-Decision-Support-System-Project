@@ -7,10 +7,15 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from fastapi.responses import Response
-from fastapi.testclient import TestClient
-from server.app import (API_CONTENT_POLICY, PREPAINT_SCRIPT_HASH,
-                        application_content_policy, create_app)
+try:
+    from fastapi.responses import Response
+    from fastapi.testclient import TestClient
+except ImportError:  # CLI-only environments can still discover the core suite.
+    FASTAPI_AVAILABLE = False
+else:
+    from server.app import (API_CONTENT_POLICY, PREPAINT_SCRIPT_HASH,
+                            application_content_policy, create_app)
+    FASTAPI_AVAILABLE = True
 from server.executive_export import CONTENT_POLICY
 from tests.support import closing
 
@@ -22,6 +27,7 @@ def directives(policy):
             for part in policy.split(";") if part.strip()}
 
 
+@unittest.skipUnless(FASTAPI_AVAILABLE, "fastapi is not installed")
 class ContentPolicyTests(unittest.TestCase):
     def setUp(self):
         directory = tempfile.TemporaryDirectory()

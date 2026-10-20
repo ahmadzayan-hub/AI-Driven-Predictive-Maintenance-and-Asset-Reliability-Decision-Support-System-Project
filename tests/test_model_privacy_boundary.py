@@ -13,7 +13,7 @@ from server.tools import ToolBox
 from tests.support import closing_store
 from tests.test_agent_runtime import FakeSession, ScriptedRuntime, make_agent, finish
 from tests.test_assistant import FakeGateway
-from tests.test_analytics import linear_dataset
+from tests.test_analytics import explicit_grouping, linear_dataset
 
 EMAIL = "synthetic.person@example.invalid"
 PRIVATE_CSV = linear_dataset().replace("Alpha", EMAIL)
@@ -28,10 +28,10 @@ class RecordingNarrator:
         return {"text": " ".join(facts), "source": "model"}
 
 
-def pipeline(text, gateway, language="en"):
+def pipeline(text, gateway, language="en", mapping=None):
     ctx = {"goal": "Analyze sales", "dataset_text": text,
            "dataset_name": "synthetic.csv", "report_language": language,
-           "run_id": "synthetic-run"}
+           "run_id": "synthetic-run", "mapping": mapping}
     for role, stage in analytics.PIPELINE:
         result = (stage(ctx, gateway=gateway)
                   if role in analytics.NARRATED_STAGES else stage(ctx))
@@ -46,7 +46,7 @@ class NarrationPrivacyTests(unittest.TestCase):
         for language in ("en", "ar"):
             with self.subTest(language=language):
                 gateway = RecordingNarrator()
-                ctx = pipeline(PRIVATE_CSV, gateway, language)
+                ctx = pipeline(PRIVATE_CSV, gateway, language, mapping=explicit_grouping())
                 self.assertTrue(ctx["privacy"]["personal_data"])
                 self.assertEqual(gateway.calls, [])
                 self.assertEqual(ctx["prescriptive"]["exec_summary_source"], "deterministic")
@@ -61,10 +61,18 @@ class NarrationPrivacyTests(unittest.TestCase):
             f"2026-01,North,{i}\n" for i in range(1, 2001))
         data += f"2026-02,{EMAIL},9999999\n"
         gateway = RecordingNarrator()
-        ctx = pipeline(data, gateway)
+        ctx = pipeline(data, gateway, mapping=explicit_grouping())
         self.assertFalse(ctx["privacy"]["personal_data"])
         self.assertEqual(gateway.calls, [])
         self.assertTrue(ctx["prescriptive"]["exec_summary_privacy_reason"])
+
+    def test_automatic_grouping_omits_the_personal_label_and_still_blocks_the_model(self):
+        gateway = RecordingNarrator()
+        ctx = pipeline(PRIVATE_CSV, gateway)
+        self.assertTrue(ctx["privacy"]["personal_data"])
+        self.assertIsNone(ctx["preparer"]["group_col"])
+        self.assertNotIn(EMAIL, ctx["reporter"]["report_markdown"])
+        self.assertEqual(gateway.calls, [])
 
     def test_unflagged_aggregate_facts_still_reach_the_narrator(self):
         gateway = RecordingNarrator()
@@ -85,7 +93,9 @@ class ModelContextPrivacyTests(unittest.TestCase):
         self.session = FakeSession(make_agent())
 
     def private_run(self):
-        run = self.engine.create_run("Analyze sales", dataset_text=PRIVATE_CSV)
+        dataset = self.engine.store_dataset(PRIVATE_CSV, "synthetic.csv", "local-owner")
+        self.engine.save_mapping(dataset["id"], "local-owner", explicit_grouping())
+        run = self.engine.create_run("Analyze sales", dataset_id=dataset["id"])
         return finish(self.engine, run["id"])
 
     def test_joined_personal_data_also_stops_narration(self):

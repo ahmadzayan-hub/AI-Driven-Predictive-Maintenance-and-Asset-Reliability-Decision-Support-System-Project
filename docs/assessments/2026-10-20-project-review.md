@@ -37,6 +37,17 @@ savings. Passing software tests cannot establish those outcomes.
 | Medium | Expired credentials left JSON and download flows in a stale session. | A shared unauthorized event clears the current credential, while delayed refusals for an older token cannot log out a newly authenticated user. API and store tests. |
 | Medium | Missing API dependencies silently skipped large parts of local validation; the full command omitted two CI checks. | Dependency preflight now gates Python execution; native contracts and the Miyaar browser suite are included. `tests/test_verify.py`. |
 | Medium | Git synchronization to `main` could implicitly trigger production despite the repository's approval requirement. | Vercel Git deployment is disabled for `main`; CI continues and release requires a separately approved deployment. `tests/test_release_policy.py`. |
+| High | Presentation roles removed valid maintenance predictors, while chart date grain changed the evaluation split. | Contract types and retained source dates now govern domain evaluation; explicit ignores and privacy exclusions remain effective through joins. Synthetic full model-card comparisons cover mapping and date grain. `tests/test_maintenance_mapping.py`. |
+| Medium | Automatic breakdown selection chose unique record identifiers and produced a recommendation about individual row IDs. | Conservative grouping chooses repeated categories, excludes identifier/date/detected-personal fields, and preserves explicit mappings. Ungrouped experiment planning carries its own assumption. `tests/test_analytics.py`. |
+| Medium | A single-dataset `breakdown` request was accepted and silently ignored. | Return localized validation before writes or quota consumption; callers use the saved mapping. Joined overrides retain their existing contract. `tests/test_breakdown_contract.py`. |
+| Medium | Application responses and the hosted static shell lacked a browser Content Security Policy. | Scoped policies allow required resources and the fixed prepaint hash, deny arbitrary inline scripts, preserve export policy, and cover Vercel's bare `/api` shell fallback. `tests/test_content_policy.py`, `frontend/e2e/csp.spec.ts`. |
+| Medium | Dependency floors let the same commit install different Python versions. | Hash-checked, cross-platform transitive lock preserves reviewed versions; isolated audit tooling does not change the tested environment. Fresh installation, dependency consistency, audit and SBOM checks cover it. |
+
+Incoming work from `79501e9`/`2de5d25` is also preserved: explicitly declared
+metric direction prevents inverted downtime advice, and independent
+per-group recomputation strengthens reconciliation. These complement the
+original precision fix. Integration is recorded at `b402def`; the additional
+mapping, request, browser-policy and dependency corrections are `ede59b1`.
 
 The dated decisions in `docs/adr/2026-10-20-*.md` explain behavior and tradeoffs.
 Current executed commands, counts, skips and budgets are kept in
@@ -61,8 +72,8 @@ acceptance.
 | Security and privacy | Confirmed tenancy and detected-PII paths were repaired. This is a source-level review with regression tests, not a penetration-test certificate. Historical public exposure remains an owner decision below. |
 | Operations and recovery | Local crash/recovery, worker and database checks provide execution evidence. Actual hosted identity, durable storage, scheduled refresh, direct egress, provider access, backup restoration and alert ownership require deployment-specific acceptance. |
 | Dependencies and supply chain | Current dependency audits and the SBOM/license gate are recorded with verification. Versions, advisories and license obligations must be maintained continuously; a passing audit is a point-in-time result. |
-| Maintainability | Small modules, dated ADRs and extensive tests help review. Keep one canonical verification record, synchronize product docs with shipped behavior, and avoid using self-written evaluation cases as independent acceptance. |
-| Commercial readiness | Organizational tenancy, service ownership, support, pricing and billing acceptance are product decisions. The current owner-scoped implementation should not be described as validated organization administration. |
+| Maintainability | Dated ADRs and regression tests help review, but `server/analytics.py` remains large. Extract stages behind their tested contracts in a separate change. Keep one canonical verification record and avoid treating self-written evaluation cases as independent acceptance. |
+| Commercial readiness | Organizational tenancy, service ownership, support, pricing, billing and the project's own license remain owner decisions. The current owner-scoped implementation should not be described as validated organization administration. |
 
 ## Release gates that code alone cannot close
 
@@ -80,6 +91,10 @@ acceptance.
    commit. Record actual URLs, commit identity and outcomes without credentials.
    Hosting metadata currently identifies an older Git production commit
    (`42e53d00`); the fixes in this review are not proven deployed.
+   Read-only GitHub metadata also shows `main` unprotected and no active
+   rulesets. The administration endpoint is unavailable to the integration.
+   Agree and apply branch/release governance compatible with the team's
+   standing main-branch workflow; no repository settings were changed here.
 3. **Accept the maintenance decision — maintenance/domain owner.** Supply an
    approved input-timing and KPI register, an independently chosen historical
    holdout or prospective pilot, false-positive/false-negative consequences,

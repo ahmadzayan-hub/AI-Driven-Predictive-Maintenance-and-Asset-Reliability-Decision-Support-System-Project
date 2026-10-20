@@ -16,11 +16,12 @@ The engine in this repository, described in [[Identity]]: a governed business-an
 
 - **Repository:** `ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project`, public, since [[Decision log]] 0043. The earlier names `ahmadzayan-hub/agentic-os-final-project` and `ahmadzayan-hub/11` both redirect, so older clone URLs and the CI run links cited as evidence keep resolving.
 - **Default and integration branch:** `main`, verified on 20 October. The owner authorized merging all completed work; PR #15 brought the Miyaar workspace and local AI profile into it with both parents preserved. Executive business exports and performance colors are integrated; the latter merged at `98f33c4`, preserving incoming main through `6c5170c` and both parents. The Desktop and active Miyaar checkouts select `main`; the owned local runtime was rebuilt and restarted with its existing database. Older feature refs are retained snapshots of work already landed.
-- **Production:** a Vercel deployment behind Vercel Authentication. It is verified for a signed-in owner only, and auth and the database are unverified there.
+- **Production:** read-only metadata on 20 October identifies the older `42e53d00` Vercel deployment behind Vercel Authentication. Current application identity, durable storage and the corrected source still require hosted acceptance; earlier owner-access observations are historical.
 
 ## What it does today
 
 - The 20 October review repaired published-note tenancy, detected-personal-data model handoffs, worker resource policy, atomic quota/run operations, maintenance cohort comparisons and bilingual evidence presentation (`1dd73ae`). The [[Approval gate]] remains human-controlled. Git synchronization to `main` cannot automatically publish production; the privacy, hosted-operation and domain acceptance gates remain explicit in the assessment. [[Session lifecycle]] verification records are kept in README.
+- Follow-up `ede59b1` separates domain-model types and source chronology from chart mappings, keeps automatic groupings conservative, refuses unsupported single-dataset overrides, enforces browser resource policies and locks server dependencies. The [[Governed pipeline]] retains explicit mapping authority and privacy exclusions; independent [[Agent evaluation]] and domain acceptance are still required.
 
 - Chat in English or Arabic that maps a sentence to a typed action, in the Miyaar workspace (ADR 0054).
 - An opt-in local instruction model and authenticated Whisper voice input with editable drafts (ADR 0055). Setup and bounded actual acceptance are recorded in `docs/LOCAL_AI_SETUP.md` and `README.md`; device checks and production acceptance remain separate.

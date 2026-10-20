@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import type { RunDetail, RunExecutive } from '../src/shared/types'
 import { skipOnboarding } from './helpers'
+import { storeMaintenanceDataset } from './maintenance-dataset'
 
 type Language = 'en' | 'ar'
 type Assessment = 'good' | 'okay' | 'bad' | 'unassessed' | 'unavailable'
@@ -42,9 +43,10 @@ const CSV = [
 test.use({ serviceWorkers: 'block', contextOptions: { reducedMotion: 'reduce' } })
 
 async function createRun(request: APIRequestContext, language: Language) {
+  const datasetId = await storeMaintenanceDataset(request, CSV, 'fictional-metric-colors.csv', language, false)
   const response = await request.post('/api/runs', { data: {
     goal: 'Assess fictional maintenance metrics against explicit QA targets',
-    dataset_text: CSV, dataset_name: 'fictional-metric-colors.csv', profile: 'default', language, breakdown: 'Site',
+    dataset_id: datasetId, profile: 'default', language,
   } })
   await expect(response).toBeOK()
   let run = await response.json() as RunDetail

@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import type { RunDetail, RunExecutive, TableFilter } from '../src/shared/types'
 import { skipOnboarding } from './helpers'
+import { storeMaintenanceDataset } from './maintenance-dataset'
 
 // Fictional records only. The default profile deliberately has no modelling
 // stages: an executive brief must disclose that absence rather than score it.
@@ -24,10 +25,11 @@ const NORTH: TableFilter[] = [{ column: 'Site', op: 'in', values: ['North'] }]
 test.use({ serviceWorkers: 'block', contextOptions: { reducedMotion: 'reduce' } })
 
 async function maintenanceRun(request: APIRequestContext, language: 'en' | 'ar' = 'en') {
+  const datasetId = await storeMaintenanceDataset(request, CSV, 'executive-fictional.csv', language)
   const created = await request.post('/api/runs', {
     data: {
-      goal: 'Review fictional maintenance evidence', dataset_text: CSV,
-      dataset_name: 'executive-fictional.csv', profile: 'default', language, breakdown: 'Site',
+      goal: 'Review fictional maintenance evidence', dataset_id: datasetId,
+      profile: 'default', language,
     },
   })
   await expect(created).toBeOK()

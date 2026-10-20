@@ -24,6 +24,13 @@ snapshotted mapping dimension from ADR 0025, and merged datasets can use
 the run-level override from ADR 0030. It introduces no inferred grouping
 and no new single-run mapping semantics.
 
+Single-dataset API clients that previously sent this option must upload the
+dataset, save its column mapping with the desired `dimension`, and create
+the run with `dataset_id` and no `breakdown`. The executive and metric-color
+browser fixtures follow that flow, explicitly mapping Site as the grouping,
+month as the date, and Downtime_Hours as the main measure. Their metric and
+missing-value assertions stay unchanged.
+
 ## Validation
 
 Synthetic API regressions exercise sample, inline and uploaded-data paths,

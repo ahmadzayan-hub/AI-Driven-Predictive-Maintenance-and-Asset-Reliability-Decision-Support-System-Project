@@ -471,6 +471,43 @@ reproduced defects, corrections, limits and owner acceptance gates.
   automatic deployment is disabled; no production release was performed.
   Historical privacy containment, hosted acceptance, independent maintenance
   evidence and real-device acceptance remain open.
+
+Follow-up source `ede59b1`, after preserving the incoming direction and
+independent-reconciliation changes through `b402def`:
+
+- Mapping and maintenance regressions: **114 passed**. Additional join,
+  mapping, maintenance, governance and modelling checks: **183 reported,
+  162 passed, 21 PostgreSQL skips**, with PostgreSQL deliberately disabled
+  for that local selection. These selections overlap and are not added.
+- Single-dataset request contract: **5 focused tests passed**, including
+  existing joined and Arabic validation cases.
+- Browser-policy/API/export checks: **50 passed**; the final bare `/api`
+  static-policy correction passed its **1 focused regression**.
+- Locked-dependency/SBOM/documentation checks: **39 passed**. A fresh
+  hash-checked environment installed all **27 Windows server packages**,
+  passed dependency consistency, and imported required server integrations.
+  All **28 universal locked versions**, including Linux-only uvloop, reported
+  **zero vulnerabilities**; the exact hashed-requirements CI audit command
+  also passed. Optional voice/agent environments remain outside this lock.
+- Production frontend build passed with the enforced browser policy.
+  The local browser selection reported **14 passed / 10 failed**: all
+  **6 new CSP checks passed** across desktop/mobile, two existing desktop
+  sign-in checks timed out, and eight executive checks exposed old fixtures
+  sending the newly rejected single-dataset option. Logs and traces are retained.
+  Combined-source CI and fixture-correction results are recorded when complete;
+  these focused results do not establish a full Windows pass.
+- The first combined [CI run on `ede59b1`](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39444761573)
+  reported **1,412 Python tests, 23 skips and 3 failures**. All failures were
+  privacy fixtures assuming automatic grouping would retain personal labels.
+  Fixtures now explicitly request that grouping, preserving the original
+  human-report and blocked-model assertions; the **9 privacy tests pass**,
+  including a new check of the safer automatic default.
+- Executive and performance-color fixtures now upload and save their intended
+  mapping. **4 exact-fixture API probes passed**, across both report languages;
+  TypeScript passed. The **12 Miyaar browser checks passed** with the static
+  CSP. The CSP suite also passed **8 tests**, and standard-library-only
+  discovery correctly skipped those **8 optional API tests**.
+
 ### Measure-direction and reconciliation validation — 20 October 2026
 
 Session `1eb4cedb`, commit `79501e9` merged with the parallel session's work at
