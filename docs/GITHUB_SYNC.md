@@ -6,22 +6,34 @@ relates to
 [`ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project`](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project),
 and the routine for pushing local progress to it.
 
-## Current merge status - 19 October 2026
+## Current merge status - 20 October 2026
 
-The executive dashboard and evidence agent merged into `main` at `1b08b59`,
-with parents `13171ce` and `a1c4af8`. The merge tree exactly matches its verified
-feature tree. The source commits are `dccb156` and `f1c894d`; ADR 0058 and the
-[Arabic/English handoff](design/EXECUTIVE_DASHBOARD_HANDOFF.md) record the
-behavior and capability boundaries. Main's incoming Arabic causal lint and
-Markdown knowledge collection work (ADRs 0056/0057) is preserved.
+Semantic performance colors and sourced per-analysis targets merged into
+`main` at `98f33c4`, with parents `6c5170c` and `9077b1c`. The merge tree
+matches the feature tree. The SaaS runtime/frontend source is identical to
+`c11f3f7`; subsequent tracking and incoming motion-template work preserve the
+source verification and no-wrap brand correction, checked separately. Main's
+hover/focus tooltips, reporting standards and dated-ADR convention are preserved.
+The [dated color decision](adr/2026-10-20-semantic-performance-colors.md) and
+[Arabic/English handoff](design/EXECUTIVE_DASHBOARD_HANDOFF.md) explain targets,
+neutral unknowns and the business export/approval boundaries.
 
 Both the active `miyaar` workspace and the Desktop checkout above select
 `main` and were synchronized without discarding changes. The Desktop was
-fast-forwarded from `6a03bba`, its frontend rebuilt under the supported Node
-runtime, and its local server restarted on `http://localhost:8000`. A read-only
-Arabic executive API smoke passed on an existing authorized run. The isolated
-fictional preview remains separate from the Desktop database. Local operation
-is not a production deployment or hosted Claude Artifact activation.
+fast-forwarded from `f15ae88`, its frontend rebuilt under the supported Node
+runtime, and its owned local server restarted on `http://localhost:8000` with
+the existing database and local AI/Whisper profile. Health, actual Arabic
+HTML/Word exports, English/Arabic target-policy snapshot parity and neutral
+unconfigured targets passed read-only checks; run state, approvals and
+publication were unchanged. The isolated fictional preview remains separate
+from the Desktop database. Local operation is not a production deployment,
+hosted database upgrade or hosted Claude Artifact activation.
+
+Earlier executive work merged at `1b08b59` (ADR 0058); business document exports
+merged at `c74cb0e` (ADR 0059). Their behavior remains, with the new shared
+assessment colors and corrected signed numeric direction inside Arabic Word
+tables. Verification results and any later tracking-only commits are recorded
+in [README - Testing](../README.md#testing) and `session-logs.md`.
 
 [PR #15](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/pull/15)
 previously merged the Miyaar/local-AI implementation at `893986d`. Historical

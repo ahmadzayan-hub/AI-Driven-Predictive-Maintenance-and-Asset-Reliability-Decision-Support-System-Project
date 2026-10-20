@@ -435,9 +435,16 @@ unassessed and unavailable measurements stay neutral. The
   snapshot/RLS/revoke smoke all passed. The initial source run exposed missing
   snapshot DDL/protections; `6b52ebe` fixed them without changing a hosted database.
 - [Final combined-source CI on `c11f3f7`](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39381914052)
-  has passed Python, frontend units, contracts and build; its browser stage
-  is still running. This source also preserves incoming motion verification
-  through `901ea93`. A passing result is not assumed before completion.
+  **passed**: **1,334 Python tests reported, 23 skipped**, with required
+  PostgreSQL; **232 frontend tests in 33 files**, **5 native contracts**,
+  **116 browser checks passed, 4 skipped**, and **12 Miyaar checks passed**.
+  All three actual PostgreSQL policy/schema cases listed above passed again;
+  no browser retry/flaky marker was reported. TypeScript/build, brain and
+  BOM/licence checks passed. [Final fast budget](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39381913971)
+  passed. Frontend audit reported zero vulnerabilities; the informational
+  Python audit retains the existing setuptools `PYSEC-2026-3447` advisory
+  (duplicated rows, suggested fix 83.0.0). This source preserves incoming
+  motion verification through `901ea93`.
 - Local final TypeScript/build/budget and **31 export/direction/documentation
   tests passed**. The target editor's **5 focused tests passed**, including
   focus on the validation error. Earlier new real-API color scenarios:
@@ -465,6 +472,14 @@ unassessed and unavailable measurements stay neutral. The
   reported as a pass. Full-suite evidence above comes from completed Linux CI.
   Source schema preparation is separate from a hosted database upgrade;
   production deployment and domain acceptance remain separate.
+- Merged at `98f33c4` with parents `6c5170c` and `9077b1c`; the merge tree
+  matches the feature tree. Incoming motion brand layout passed its separate
+  **13 focused tests**. SaaS runtime/frontend code is identical to `c11f3f7`.
+  Both checkouts select main; the clean Desktop checkout was fast-forwarded,
+  rebuilt and its owned local runtime restarted at `http://localhost:8000`.
+  Actual Arabic HTML/Word exports and EN/AR target-policy parity passed;
+  unconfigured owner data has no invented performance verdicts. Run state,
+  approvals and publication stayed unchanged.
 
 ### Executive business export validation — 19 October 2026
 
