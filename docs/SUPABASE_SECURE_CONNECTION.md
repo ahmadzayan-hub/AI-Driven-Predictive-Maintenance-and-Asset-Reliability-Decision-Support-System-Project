@@ -17,6 +17,15 @@
   `AGENTIC_OS_DEFAULT_ROLE=viewer`.
 
 ## Protected credential transfer — perform in platform dashboards
+
+The 20 October performance-target feature adds the backend-only `kpi_policies`
+table. The checked-in bootstrap SQL now includes its RLS/revoke statements;
+that source change does not mean the already-provisioned hosted database has
+been upgraded. Include the table and its denied direct-client grants in the
+reviewed schema rollout before activating a hosted release. Local SQLite and
+the disposable PostgreSQL CI store initialize their own schema; no hosted
+credential or database was changed by this feature's development.
+
 1. Open [Supabase project](https://supabase.com/dashboard/project/uiommvpyzutkkurjoajw)
    → **Connect** → select the **Session pooler** (IPv4 compatible) and copy the
    URI to a password manager, entering its DB password there if prompted.

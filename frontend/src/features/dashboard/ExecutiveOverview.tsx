@@ -313,8 +313,9 @@ function PolicyButton({ onClick, open }: { onClick: () => void; open: boolean })
 function TargetEvidence({ measure }: { measure: KpiMeasure }) {
   const { t, formatNumber } = usePack(policyMessages)
   const assessment = measure.assessment
+  const unit = measure.scale === 'percent' ? '%' : measure.scale === 'hours' ? t('policy.hours') : measure.scale === 'money' ? t('policy.money') : measure.scale
   if (!assessment?.direction) return null
   return <dl><div><dt>{t('policy.direction')}</dt><dd>{t(`policy.${assessment.direction}`)}</dd></div>
-    {Object.entries(assessment.thresholds || {}).map(([key, number]) => <div key={key}><dt>{t(`policy.${key}` as 'policy.good_at')}</dt><dd><bdi>{formatNumber(number, { maximumSignificantDigits: 12 })} {measure.scale}</bdi></dd></div>)}
+    {Object.entries(assessment.thresholds || {}).map(([key, number]) => <div key={key}><dt>{t(`policy.${key}` as 'policy.good_at')}</dt><dd><bdi>{formatNumber(number, { maximumSignificantDigits: 12 })} {unit}</bdi></dd></div>)}
     <div><dt>{t('policy.sourceLabel')}</dt><dd dir="auto">{assessment.source_ref}</dd></div></dl>
 }

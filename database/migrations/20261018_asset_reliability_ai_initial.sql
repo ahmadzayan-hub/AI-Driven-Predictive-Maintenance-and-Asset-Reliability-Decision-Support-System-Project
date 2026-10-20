@@ -24,6 +24,12 @@ CREATE TABLE IF NOT EXISTS tasks (
       idx INTEGER NOT NULL, role TEXT NOT NULL, title TEXT NOT NULL,
       state TEXT NOT NULL, summary TEXT, result_json TEXT, updated_at TEXT);
 
+CREATE TABLE IF NOT EXISTS kpi_policies (
+      id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(id),
+      version INTEGER NOT NULL, revision TEXT NOT NULL, rules_json TEXT NOT NULL,
+      actor TEXT NOT NULL, created_at TEXT NOT NULL,
+      UNIQUE (run_id, version));
+
 CREATE TABLE IF NOT EXISTS approvals (
       id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(id),
       action TEXT NOT NULL, target TEXT NOT NULL, risk TEXT NOT NULL,
@@ -83,6 +89,8 @@ ALTER TABLE public.runs ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.runs FROM PUBLIC, anon, authenticated;
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.tasks FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.kpi_policies ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.kpi_policies FROM PUBLIC, anon, authenticated;
 ALTER TABLE public.approvals ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.approvals FROM PUBLIC, anon, authenticated;
 ALTER TABLE public.artifacts ENABLE ROW LEVEL SECURITY;

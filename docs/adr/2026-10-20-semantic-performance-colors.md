@@ -54,6 +54,13 @@ cleaned-table readiness and bounded request handling. Atomic optimistic saves
 reject concurrent replacement; history records actor and timestamp. Target
 edits do not advance tasks, approve, publish or change the underlying figures.
 
+The checked-in Supabase bootstrap snapshot must include this table with RLS
+enabled and direct PUBLIC/anon/authenticated grants revoked, matching the
+existing privileged-backend architecture. A disposable PostgreSQL transaction
+tests the SQL and effective role privileges; it rolls back its isolated schema
+and fixture roles. This source update does not provision a hosted database.
+Hosted release preparation must apply the reviewed schema/ACLs before activation.
+
 Include the complete policy in the executive content revision, even for a rule
 whose measurement is absent. A changed policy invalidates a prepared export.
 The UI cancels/discards a prepared brief when it refreshes after saving. HTML,

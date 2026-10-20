@@ -1,13 +1,15 @@
 """Check the committed Supabase schema against the existing store contract.
 
-The migration is applied through Supabase management, not via public REST
-or on every application request. No network calls or credentials needed.
+Static checks need no database. The conditional PostgreSQL smoke executes
+the snapshot only in a disposable test database and rolls back every change.
 """
 import re
 import unittest
+import uuid
 from pathlib import Path
 
 from server.storage import SCHEMA_STATEMENTS, TABLES
+from tests.test_runs import PG_TEST_URL, _postgres_available
 
 ROOT = Path(__file__).resolve().parent.parent
 SQL = ROOT / "database" / "migrations" / "20261018_asset_reliability_ai_initial.sql"
@@ -29,7 +31,7 @@ class SupabaseSchemaSnapshotTest(unittest.TestCase):
     def setUpClass(cls):
         cls.sql = SQL.read_text(encoding="utf-8")
 
-    def test_nine_application_tables_match_store(self):
+    def test_application_tables_match_store(self):
         expected = {re.search(r"CREATE TABLE IF NOT EXISTS (\w+)", ddl).group(1)
                     for ddl in SCHEMA_STATEMENTS}
         found = set(re.findall(r"CREATE TABLE IF NOT EXISTS (\w+)", self.sql))
@@ -55,6 +57,67 @@ class SupabaseSchemaSnapshotTest(unittest.TestCase):
                 self.sql)
         self.assertNotIn("CREATE POLICY", self.sql.upper())
         self.assertNotRegex(self.sql, r"(?im)^\s*GRANT\s+.*\s+TO\s+(?:anon|authenticated)\b")
+
+
+@unittest.skipUnless(_postgres_available(), "test PostgreSQL is not reachable")
+class SupabaseSchemaPostgresTest(unittest.TestCase):
+    """Use PG_TEST_URL's disposable database, never a hosted project."""
+
+    def test_snapshot_enables_rls_and_revokes_existing_default_grants(self):
+        import psycopg2
+        from psycopg2 import sql
+
+        connection = psycopg2.connect(PG_TEST_URL, connect_timeout=3)
+        schema = "schema_snapshot_" + uuid.uuid4().hex
+        roles = ("anon", "authenticated")
+        privileges = ("SELECT", "INSERT", "UPDATE", "DELETE",
+                      "TRUNCATE", "REFERENCES", "TRIGGER")
+        try:
+            # No commits: new roles, schema, defaults and objects all disappear
+            # on rollback, including when a SQL statement or assertion fails.
+            connection.autocommit = False
+            with connection.cursor() as cursor:
+                for role in roles:
+                    cursor.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", (role,))
+                    if cursor.fetchone() is None:
+                        cursor.execute(sql.SQL("CREATE ROLE {} NOLOGIN").format(
+                            sql.Identifier(role)))
+                cursor.execute(sql.SQL("CREATE SCHEMA {}").format(sql.Identifier(schema)))
+                cursor.execute(sql.SQL("SET LOCAL search_path TO {}, pg_catalog").format(
+                    sql.Identifier(schema)))
+                cursor.execute(sql.SQL(
+                    "ALTER DEFAULT PRIVILEGES IN SCHEMA {} "
+                    "GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {}, {}"
+                ).format(sql.Identifier(schema), *(sql.Identifier(role) for role in roles)))
+
+                snapshot = SQL.read_text(encoding="utf-8")
+                snapshot = re.sub(
+                    r"(?im)^[ \t]*(?:BEGIN|COMMIT)[ \t]*;[ \t]*\r?$", "", snapshot)
+                self.assertNotRegex(snapshot, r"(?im)^[ \t]*(?:BEGIN|COMMIT)\b")
+                prefix = sql.Identifier(schema).as_string(connection) + "."
+                cursor.execute(snapshot.replace("public.", prefix))
+
+                cursor.execute(
+                    "SELECT c.relname, c.oid, c.relrowsecurity "
+                    "FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
+                    "WHERE n.nspname = %s AND c.relkind IN ('r', 'p')", (schema,))
+                tables = {name: (oid, rls) for name, oid, rls in cursor.fetchall()}
+                self.assertEqual(set(tables), set(TABLES))
+                for table, (oid, rls) in tables.items():
+                    with self.subTest(table=table):
+                        self.assertTrue(rls)
+                    for role in roles:
+                        for privilege in privileges:
+                            with self.subTest(table=table, role=role, privilege=privilege):
+                                cursor.execute(
+                                    "SELECT has_table_privilege(%s, %s::oid, %s)",
+                                    (role, oid, privilege))
+                                self.assertIs(cursor.fetchone()[0], False)
+        finally:
+            try:
+                connection.rollback()
+            finally:
+                connection.close()
 
 
 if __name__ == "__main__":

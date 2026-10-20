@@ -43,7 +43,7 @@ export default function KpiPolicyEditor({ runId, measures, onSaved, onClose }: {
   }, [metric, policy])
   const measure = measures.find((item) => item.key === metric)
   const fields = bounds(direction)
-  const unit = measure?.scale === 'percent' ? '%' : measure?.scale || ''
+  const unit = measure?.scale === 'percent' ? '%' : measure?.scale === 'hours' ? t('policy.hours') : measure?.scale === 'money' ? t('policy.money') : measure?.scale || ''
   async function save(remove = false) {
     if (!policy || !measure || !writable || busy || error === 'conflict') return
     const numeric = Object.fromEntries(fields.map((key) => [key, values[key]?.trim() ? Number(values[key]) : NaN]))
@@ -78,7 +78,7 @@ export default function KpiPolicyEditor({ runId, measures, onSaved, onClose }: {
           <div className="field"><label className="field__label" htmlFor="policy-direction">{t('policy.direction')}</label><select className="field__select" id="policy-direction" value={direction} onChange={(e) => { setDirection(e.target.value as KpiRule['direction']); setValues({}); setError(null) }}>{(['higher', 'lower', 'range'] as const).map((value) => <option key={value} value={value}>{t(`policy.${value}`)}</option>)}</select></div>
           {fields.map((name) => <div className="field" key={name}><label className="field__label" htmlFor={`policy-${name}`}>{t(`policy.${name}`)}</label><input className="field__input" id={`policy-${name}`} type="number" step="any" required dir="ltr" value={values[name] || ''} onChange={(e) => setValues({ ...values, [name]: e.target.value })} aria-describedby="policy-scale policy-boundaries" /></div>)}
         </div>
-        <p className="exec-muted" id="policy-scale">{t('policy.scale', { unit })}</p>
+        <p className="exec-muted" id="policy-scale">{t('policy.scale', { unit })} {measure?.scale === 'percent' ? t('policy.percentHelp') : null}</p>
         <p className="exec-muted" id="policy-boundaries">{t(`policy.${direction}Help`)}</p>
         <div className="field"><label className="field__label" htmlFor="policy-source">{t('policy.source')}</label><input className="field__input" id="policy-source" required maxLength={240} value={source} onChange={(e) => setSource(e.target.value)} dir="auto" /></div>
         <div className="policy-actions"><button type="submit" className="btn btn--primary">{t('policy.save')}</button>{policy.rules[metric] ? <button type="button" className="btn btn--ghost" onClick={() => void save(true)}>{t('policy.remove')}</button> : null}</div>
