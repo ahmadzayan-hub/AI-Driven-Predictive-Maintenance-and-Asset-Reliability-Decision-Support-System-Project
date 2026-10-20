@@ -22,7 +22,7 @@ Instructions for any coding agent working in this repository: Codex, Copilot, Cu
 
 ## How work is done here
 
-- A change in behaviour comes with a decision record in `docs/adr/` and with tests.
+- A change in behaviour comes with a decision record in `docs/adr/` and with tests. Name a new record for the day it was decided, `YYYY-MM-DD-slug`, not with the next number; the counter is closed at 0060, because two sessions reaching for the next number collided eight times in three days.
 - Every user-facing string ships in English and Arabic (`frontend/src/i18n/`). The interface uses the design tokens in `frontend/src/shared/styles/tokens.css`, never raw colours.
 - Docs that state counts or limits are checked by `tests/test_docs.py`. Test counts are kept in one place, `README.md`.
 - The Python core keeps to the standard library. The server uses FastAPI. Do not add a dependency without a recorded reason.

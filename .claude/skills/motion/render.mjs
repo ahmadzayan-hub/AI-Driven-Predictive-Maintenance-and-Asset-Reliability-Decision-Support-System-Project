@@ -26,6 +26,64 @@ const TYPES = new Set(['title', 'kpis', 'bars', 'statement'])
 const MAX_SECONDS = 90
 const LIMITS = { title: 90, kicker: 60, subtitle: 160, heading: 110, text: 160, note: 200, label: 48, footer: 160 }
 
+
+/** Numbers a source file actually contains, for checking a figure against it.
+ *  A `source` that names a file is a claim this can test; one that names a
+ *  place in prose ("KPI register, cell B4") is a claim only a person can. */
+export function numbersIn(text) {
+  return (text.match(/-?\d[\d,]*(?:\.\d+)?/g) || [])
+    .map((token) => Number(token.replace(/,/g, '')))
+    .filter((value) => Number.isFinite(value))
+}
+
+/** True when `value` is in `found`, at the precision the clip shows it. */
+export function carries(found, value) {
+  const places = (String(value).split('.')[1] || '').length
+  const tolerance = places ? 0.5 * Math.pow(10, -places) : 0.5
+  return found.some((candidate) =>
+    candidate === value || Math.abs(candidate - value) < tolerance ||
+    Math.abs(Number(candidate.toFixed(places)) - value) < 1e-9)
+}
+
+const LOOKS_LIKE_A_PATH = /\.(csv|json|md|txt|tsv)(\s|$|[,;)])/i
+
+
+/** Problems with the figures whose `source` names a file.
+ *
+ *  `validate` requires a source string; this reads the file it names and
+ *  requires the clip's number to be in it. Before this, "each with a source"
+ *  meant only that the field was filled in, so a figure could carry
+ *  `source: "the workbook"` with an invented value and pass. `read(path)`
+ *  returns the file's text, or null when it is not there.
+ *  Returns {problems, checked}: checked counts the figures actually tested,
+ *  so the summary can say what it verified rather than what it required.
+ */
+export function checkSources(spec, read) {
+  const problems = []
+  let checked = 0
+  const figures = []
+  ;(spec.scenes || []).forEach((scene, index) => {
+    const where = `scene ${index + 1}`
+    ;(scene?.items || []).forEach((item, n) => figures.push([`${where} item ${n + 1}`, item]))
+    if (scene?.figure) figures.push([`${where} figure`, scene.figure])
+  })
+  for (const [where, item] of figures) {
+    const source = typeof item?.source === 'string' ? item.source.trim() : ''
+    const named = source.match(LOOKS_LIKE_A_PATH) ? source.split(/[,;]| at | cell /)[0].trim() : null
+    if (!named) continue
+    const text = read(named)
+    if (text == null) {
+      problems.push(`${where}: source names ${named}, which is not there.`)
+      continue
+    }
+    checked += 1
+    if (!carries(numbersIn(text), item.value)) {
+      problems.push(`${where}: ${item.value} is not in ${named}; a clip's number must be in its source.`)
+    }
+  }
+  return { problems, checked }
+}
+
 /** Every problem with a spec at once; an empty list means it can render.
  *  A figure without a source is refused: numbers in a clip must trace to
  *  a calculation, as everywhere else in this project. */
@@ -182,7 +240,19 @@ async function main(argv) {
   const seconds = spec.scenes.reduce((sum, s) => sum + s.duration, 0)
   const figures = spec.scenes.reduce((n, s) => n + (s.items?.length || 0) + (s.figure ? 1 : 0), 0)
   if (target === '--check') {
-    console.log(`OK: ${spec.scenes.length} scenes, ${seconds} s, ${figures} figures, each with a source.`)
+    const read = (name) => {
+      try { return fs.readFileSync(path.resolve(path.dirname(specPath), name), 'utf8') }
+      catch { return null }
+    }
+    const { problems: unsourced, checked } = checkSources(spec, read)
+    if (unsourced.length) {
+      console.error(`${unsourced.length} figure problem(s) in ${specPath}:\n- ${unsourced.join('\n- ')}`)
+      return 1
+    }
+    const verified = checked
+      ? `${checked} of ${figures} checked against the file their source names`
+      : 'no source names a file, so no figure was checked against one'
+    console.log(`OK: ${spec.scenes.length} scenes, ${seconds} s, ${figures} figures; ${verified}.`)
     return 0
   }
   const started = Date.now()

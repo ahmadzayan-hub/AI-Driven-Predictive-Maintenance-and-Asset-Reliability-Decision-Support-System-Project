@@ -98,8 +98,10 @@ matched nothing. A test now asserts no pattern carries a control character.
 
 - A deliverable can be checked before a reviewer reads it, at no cost, for the
   five failures this project has actually made.
-- The roster gains no agent. `motion-designer` has no role in the three graded
-  deliverables and should justify its place or be retired - the owner's call,
-  not recorded as a decision here.
+- The roster gains no agent. **The line this record first carried about
+  `motion-designer` was wrong** and is superseded by
+  `2026-10-20-a-clips-number-must-be-in-its-source.md`: it does have a role in
+  the presentation and the dashboards, named in its own description and in the
+  playbook's runbook. What it lacked was use and a gate worth the name.
 - The lint does not read PDFs or decks itself; it reuses `figures_check.read_text`,
   so it covers whatever that covers.

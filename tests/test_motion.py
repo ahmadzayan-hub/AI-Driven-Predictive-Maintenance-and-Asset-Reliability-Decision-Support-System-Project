@@ -105,7 +105,13 @@ class ExampleFigureTests(unittest.TestCase):
 class RendererCheckTests(unittest.TestCase):
     """`render.mjs --check` validates without Playwright or ffmpeg."""
 
-    def check(self, spec):
+    def check(self, spec, folder=None):
+        """Validate a spec. `folder` puts it beside files its sources name."""
+        if folder is not None:
+            path = Path(folder) / "spec.json"
+            path.write_text(json.dumps(spec), encoding="utf-8")
+            return subprocess.run([NODE, str(SKILL / "render.mjs"), str(path), "--check"],
+                                  capture_output=True, text=True, timeout=60)
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "spec.json"
             path.write_text(json.dumps(spec), encoding="utf-8")
@@ -118,7 +124,43 @@ class RendererCheckTests(unittest.TestCase):
                 spec = json.loads((SKILL / "examples" / name).read_text(encoding="utf-8"))
                 done = self.check(spec)
                 self.assertEqual(done.returncode, 0, done.stderr)
-                self.assertIn("each with a source", done.stdout)
+                self.assertIn("figures;", done.stdout)
+
+    def test_a_figure_is_checked_against_the_file_its_source_names(self):
+        """A source string was all that was required before. A clip could
+        carry source: "the workbook" with an invented number and pass, and
+        --check then printed "each with a source", which overstated it."""
+        with tempfile.TemporaryDirectory() as folder:
+            register = Path(folder) / "register.csv"
+            register.write_text("kpi,value\nMean availability,96.779802\n", encoding="utf-8")
+            spec = {"scenes": [{"type": "kpis", "duration": 4, "heading": "Reliability",
+                                "items": [{"label": "Availability", "value": 96.8,
+                                           "source": "register.csv"},
+                                          {"label": "Invented", "value": 42.0,
+                                           "source": "register.csv"}]}]}
+            done = self.check(spec, folder=folder)
+            self.assertEqual(done.returncode, 1, done.stdout)
+            self.assertIn("42 is not in register.csv", done.stderr)
+            self.assertNotIn("96.8 is not in", done.stderr)
+
+    def test_a_source_naming_a_file_that_is_absent_is_refused(self):
+        with tempfile.TemporaryDirectory() as folder:
+            spec = {"scenes": [{"type": "kpis", "duration": 4, "heading": "Totals",
+                                "items": [{"label": "Revenue", "value": 120,
+                                           "source": "nowhere.csv"}]}]}
+            done = self.check(spec, folder=folder)
+            self.assertEqual(done.returncode, 1, done.stdout)
+            self.assertIn("which is not there", done.stderr)
+
+    def test_the_summary_says_what_it_verified(self):
+        """It must not claim a check it did not make."""
+        with tempfile.TemporaryDirectory() as folder:
+            spec = {"scenes": [{"type": "kpis", "duration": 4, "heading": "Totals",
+                                "items": [{"label": "Revenue", "value": 120,
+                                           "source": "the workbook, Executive KPIs"}]}]}
+            done = self.check(spec, folder=folder)
+            self.assertEqual(done.returncode, 0, done.stderr)
+            self.assertIn("no source names a file", done.stdout)
 
     def test_a_figure_without_a_source_is_refused(self):
         spec = {"scenes": [{"type": "kpis", "duration": 4, "heading": "Totals",

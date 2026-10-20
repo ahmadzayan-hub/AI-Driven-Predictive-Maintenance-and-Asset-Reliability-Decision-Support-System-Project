@@ -103,7 +103,7 @@ Runs support declared joins, computed dashboard pages and optional modelling pro
 
 ### Build a roadmap milestone
 
-1. Write the ADR first (`docs/adr/00NN-….md`): the problem, the options, the decision, and what would prove it wrong.
+1. Write the decision record first, named `docs/adr/YYYY-MM-DD-slug.md`: the problem, the options, the decision, and what would prove it wrong. **Do not take the next sequential number** - the counter is closed at 0060 and two sessions both reaching for "the next one" collided eight times in three days (`docs/adr/2026-10-20-decision-records-are-dated-not-numbered.md`). The 60 numbered records keep their numbers.
 2. Write the tests that define done: the gate column on the board. They cover English and Arabic for anything user-facing.
 3. Implement. Keep the governed pipeline's guarantees: validation, provenance and the approval gate.
 4. Update `README.md` (feature list and test counts), `docs/KNOWN_LIMITATIONS.md`, and the brain note `Projects/Analytics OS roadmap.md`.

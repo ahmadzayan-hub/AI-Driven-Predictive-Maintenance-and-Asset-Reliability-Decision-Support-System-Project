@@ -110,6 +110,70 @@ class PipelineCountsTestCase(unittest.TestCase):
                 self.assertIn(rows, text, path.name)
 
 
+class DecisionRecordNamesTestCase(unittest.TestCase):
+    """A decision record's name cannot collide with another session's.
+
+    Eight collisions happened in three days: two sessions each reached for
+    "the next free number", both were right about what the next number was,
+    and the second to push had to renumber. A sequential counter is shared
+    state that neither session can see, so the fix is to stop using one for
+    new records. The 60 that exist keep their numbers - they are referenced
+    from code, tests, the board and each other, and a dated record states
+    what was true when it was written.
+    """
+
+    LEGACY_HIGHEST = 60
+
+    DATED = re.compile(r"^\d{4}-\d{2}-\d{2}-[a-z0-9-]+\.md$")
+    NUMBERED = re.compile(r"^(\d{4})-(?!\d{2}-\d{2}-)")
+
+    def adrs(self):
+        return sorted((DOCS / "docs" / "adr").glob("*.md"))
+
+    def test_no_two_records_share_a_number(self):
+        numbered = {}
+        for path in self.adrs():
+            match = self.NUMBERED.match(path.name)
+            if match:
+                numbered.setdefault(match.group(1), []).append(path.name)
+        clashes = {n: names for n, names in numbered.items() if len(names) > 1}
+        self.assertEqual(clashes, {}, f"two records share a number: {clashes}")
+
+    def test_a_new_record_is_dated_rather_than_numbered(self):
+        """The counter is closed. A new record is `YYYY-MM-DD-slug.md`.
+
+        Two sessions on one day collide only by choosing the same slug for
+        different decisions, and then Git conflicts on the path - visible,
+        rather than two records silently claiming one number.
+        """
+        for path in self.adrs():
+            match = self.NUMBERED.match(path.name)
+            if not match:
+                self.assertRegex(
+                    path.name, self.DATED,
+                    f"{path.name}: a record is either one of the legacy "
+                    f"0001-00{self.LEGACY_HIGHEST} numbers or dated "
+                    "YYYY-MM-DD-slug.md")
+                continue
+            self.assertLessEqual(
+                int(match.group(1)), self.LEGACY_HIGHEST,
+                f"{path.name}: the sequential counter is closed at "
+                f"00{self.LEGACY_HIGHEST}; name a new record "
+                "YYYY-MM-DD-slug.md so two sessions cannot collide")
+
+    def test_every_record_opens_with_its_own_name(self):
+        """A heading that disagrees with the file name is how a renumbering
+        gets half-done."""
+        for path in self.adrs():
+            heading = path.read_text(encoding="utf-8").splitlines()[0]
+            stem = path.stem
+            if self.DATED.match(path.name):
+                continue   # a dated record names itself in words, not by number
+            number = stem.split("-")[0]
+            self.assertIn(number.lstrip("0"), heading,
+                          f"{path.name}: heading does not carry its number: {heading!r}")
+
+
 class AgentInstructionsTestCase(unittest.TestCase):
     """AGENTS.md tells other coding agents where things are; keep it true."""
 
