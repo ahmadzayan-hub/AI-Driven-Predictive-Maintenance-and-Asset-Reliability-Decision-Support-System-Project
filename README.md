@@ -428,6 +428,22 @@ Implementation `1dd73ae`, integrated with the incoming chart tests at `390f4c6`.
 The [assessment](docs/assessments/2026-10-20-project-review.md) records the
 reproduced defects, corrections, limits and owner acceptance gates.
 
+- **Final combined-source validation at `fadc18d`:**
+  [Linux CI passed](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39446235305),
+  as did the [fast interface budget](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39446235314).
+  Python reported **1,413 tests: 1,390 passed, 23 skipped**, with PostgreSQL
+  required. Frontend unit tests were **255 / 255 across 34 files**; native
+  contracts **5 / 5**; main desktop/mobile browser and accessibility tests
+  **122 passed, 4 skipped**; Miyaar **12 / 12**. No browser failures or retries
+  were reported. The browser skips are viewport/project-specific cases exercised
+  in the other project. Python skips cover optional integrations, the absent
+  private knowledge collection, and two checks run before a frontend build
+  exists; both build-dependent checks subsequently passed locally against the
+  built application. TypeScript, production build, strict brain check,
+  dependency audits, SBOM/license check and the existing interface ceilings
+  passed. Linux SBOM: **305 components (277 npm, 28 Python)**. This supersedes
+  the earlier combined-source failure below; it does not claim live provider,
+  real-device or hosted-production acceptance.
 - [Full Linux CI on the integrated source](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39436782344)
   **passed**, including required PostgreSQL, the complete frontend unit suite,
   native contracts, strict brain check, build, main desktop/mobile browser and
@@ -494,8 +510,7 @@ independent-reconciliation changes through `b402def`:
   **6 new CSP checks passed** across desktop/mobile, two existing desktop
   sign-in checks timed out, and eight executive checks exposed old fixtures
   sending the newly rejected single-dataset option. Logs and traces are retained.
-  Combined-source CI and fixture-correction results are recorded when complete;
-  these focused results do not establish a full Windows pass.
+  These focused results do not establish a full Windows pass.
 - The first combined [CI run on `ede59b1`](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39444761573)
   reported **1,412 Python tests, 23 skips and 3 failures**. All failures were
   privacy fixtures assuming automatic grouping would retain personal labels.
@@ -507,6 +522,9 @@ independent-reconciliation changes through `b402def`:
   TypeScript passed. The **12 Miyaar browser checks passed** with the static
   CSP. The CSP suite also passed **8 tests**, and standard-library-only
   discovery correctly skipped those **8 optional API tests**.
+  The corrected executive/performance-color browser rerun could not start:
+  Playwright's configured web-server startup timed out before any test ran.
+  That attempt supplies no browser pass or assertion result; its log is retained.
 
 ### Measure-direction and reconciliation validation — 20 October 2026
 

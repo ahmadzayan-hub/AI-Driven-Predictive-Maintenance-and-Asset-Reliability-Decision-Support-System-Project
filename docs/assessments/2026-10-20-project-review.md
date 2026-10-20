@@ -48,6 +48,8 @@ metric direction prevents inverted downtime advice, and independent
 per-group recomputation strengthens reconciliation. These complement the
 original precision fix. Integration is recorded at `b402def`; the additional
 mapping, request, browser-policy and dependency corrections are `ede59b1`.
+`fadc18d` aligns privacy and browser fixtures with deliberately saved mappings
+while retaining their original privacy, export and KPI assertions.
 
 The dated decisions in `docs/adr/2026-10-20-*.md` explain behavior and tradeoffs.
 Current executed commands, counts, skips and budgets are kept in
@@ -55,11 +57,29 @@ Current executed commands, counts, skips and budgets are kept in
 Reproduction scripts, before/after observations, complete local logs and the
 dependency inventory are retained outside the public repository.
 
-Complete Linux CI passed on integrated source `390f4c6`, including both browser
-suites. The full Windows frontend run remains resource-sensitive even with
-one worker; its failed attempts are retained, and no complete Windows UI
-validation is claimed. This does not replace real-device and assisted-use
-acceptance.
+The [final complete Linux CI](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39446235305)
+passed on combined source `fadc18d`, including both browser suites. The earlier
+green integration at `390f4c6` is retained as historical evidence. The full
+Windows frontend run remains resource-sensitive even with one worker; its
+failed attempts and the later browser-server startup failure are retained,
+and no complete Windows UI validation is claimed. This does not replace
+real-device and assisted-use acceptance.
+
+## Measured review outcome
+
+The nine equally weighted gates measured **66.7% → 66.7% → 66.7%** across
+three rounds. All six automated gates passed: executed full validation,
+dependency audits, the dependency-license policy, measured agent floors,
+documentation contracts and patch hygiene. The final source check requires
+every change after CI-tested `fadc18d` to be a reporting-file change; it makes
+no exception for later application, configuration or test edits.
+
+The three owner gates below remain open, with **no accepted exceptions**.
+The bounded loop stopped after two rounds without a score increase. This is
+checklist completion, not a product-quality, security or prediction-accuracy
+rating. Code defects were corrected during the rounds even though owner-gate
+completion did not change. The plan, score history and detailed evidence are
+retained outside the public repository.
 
 ## Coverage and remaining limits
 
