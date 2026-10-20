@@ -56,13 +56,13 @@ test('an analytics run can be paused and then cancelled', async ({ page }) => {
 
   // Pause first so the pipeline stops advancing; cancelling is then a
   // deterministic decision rather than a race against the next stage.
-  await page.getByRole('button', { name: 'Pause' }).click()
-  await expect(page.getByRole('button', { name: 'Resume' })).toBeVisible()
+  await page.getByRole('button', { name: 'Pause', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Resume', exact: true })).toBeVisible()
 
   await page.getByRole('button', { name: 'Cancel', exact: true }).click()
   await expect(page.getByText('state: cancelled')).toBeVisible()
   // A cancelled run is terminal: no further stages may run.
-  await expect(page.getByRole('button', { name: 'Resume' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Resume', exact: true })).toHaveCount(0)
 })
 
 test('a CSV file can be uploaded and is analyzed', async ({ page }) => {

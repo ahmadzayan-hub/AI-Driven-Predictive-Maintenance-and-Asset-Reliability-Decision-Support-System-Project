@@ -84,7 +84,8 @@ test('a stored dataset is analysed again by reference', async ({ page }) => {
   await page.getByRole('button', { name: 'Start run' }).click()
   await expect(page.locator('.cockpit__header .panel__desc')).toContainText('sample sales dataset')
   // Stop it here: what matters is which dataset it started from.
-  await page.getByRole('button', { name: 'Pause' }).click()
+  // Pause analysis, independently of the collaboration panel's "Pause live view".
+  await page.getByRole('button', { name: 'Pause', exact: true }).click()
   await page.getByRole('button', { name: 'Cancel', exact: true }).click()
   await expect(page.getByText('state: cancelled')).toBeVisible()
 

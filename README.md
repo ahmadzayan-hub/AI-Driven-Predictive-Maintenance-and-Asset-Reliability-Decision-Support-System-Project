@@ -436,7 +436,8 @@ distinction between observed workflow connections and actual message transcripts
   21 skipped**. Both database adapters were included; the temporary test
   container was removed afterward.
 - Complete local frontend unit suite: **262 / 262 across 34 files**.
-  The focused subset also passed **21 / 21**. TypeScript,
+  The focused subset also passed **21 / 21**; the final language-attribute
+  follow-up passed **6 / 6** component checks. TypeScript,
   production build, strict brain check, **5 native contracts** and **33 Python
   documentation/verifier/release-policy tests** passed.
 - Initial targeted browser run: **9 passed, 1 viewport-specific skip**, covering
@@ -445,6 +446,17 @@ distinction between observed workflow connections and actual message transcripts
   sidebar, expanded mobile inspection and the existing evidence dialog.
   Actual synthetic captures: [desktop](docs/screenshots/agent-collaboration-desktop-ar.png)
   and [320 px phone](docs/screenshots/agent-collaboration-mobile-ar.png).
+- Complete local main browser run: **124 passed, 4 skipped, 2 failed**. Both
+  failures were the same legacy partial `Pause` selector matching the new
+  `Pause live view` control on desktop and phone. Exact run-control selectors
+  repaired the ambiguity; the targeted desktop/phone rerun passed **6 / 6**,
+  covering dataset reuse, pausing/cancelling analysis and independently pausing
+  the live view. The complete suite was not repeated after this test-only fix.
+  Miyaar's complete browser suite passed **12 / 12**.
+  The main suite used local port 8133 because an unrelated service held 8123;
+  auth remained on 8124. No assertion, deadline or application behavior changed.
+  Failure traces and regenerated baseline captures were archived outside Git,
+  and existing baseline images were restored.
 - Final measured budget: initial JS **98.5 / 100 KB**, total JS **184.5 / 185 KB**,
   largest lazy chunk **18.1 / 30 KB**, initial CSS **10.0 / 10 KB**, total CSS
   **22.7 / 23 KB**, fonts **119.4 / 120 KB**. The dated decision increases only
