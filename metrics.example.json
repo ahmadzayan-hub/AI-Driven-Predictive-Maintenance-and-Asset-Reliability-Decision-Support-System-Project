@@ -11,6 +11,14 @@
     "appear as, and optionally a formula. Certified entries must name an",
     "owner — certification with nobody accountable is a rubber stamp.",
     "",
+    "\"better\" is optional and is either \"higher\" or \"lower\". It is the",
+    "only place the product learns which way is good news: 40,000 hours of",
+    "downtime and 40,000 in revenue are the same number and opposite news,",
+    "and no arithmetic can tell them apart. Declared, the prescriptive",
+    "stage recommends protecting and growing, or reducing and curbing.",
+    "Undeclared, it ranks options by the size of the change they would",
+    "make and says in the report that it is doing so.",
+    "",
     "A formula is one operation over column names: sum, multiply (two or",
     "more columns), subtract or divide (exactly two). Where the formula's",
     "columns are present, every row is checked against it and rows that do",
@@ -26,6 +34,7 @@
       "unit": "AED",
       "certified": true,
       "certified_on": "2026-01-31",
+      "better": "higher",
       "columns": ["revenue", "net_revenue", "revenue_net"],
       "formula": { "multiply": ["unit_price", "units"] }
     },
@@ -37,6 +46,7 @@
       "unit": "AED",
       "certified": true,
       "certified_on": "2026-01-31",
+      "better": "higher",
       "columns": ["gross_margin", "margin"],
       "formula": { "subtract": ["revenue", "cogs"] }
     },
@@ -47,6 +57,7 @@
       "owner": "Commercial — Head of Sales",
       "unit": "AED",
       "certified": false,
+      "better": "higher",
       "columns": ["aov", "average_order_value"],
       "formula": { "divide": ["revenue", "orders"] }
     }

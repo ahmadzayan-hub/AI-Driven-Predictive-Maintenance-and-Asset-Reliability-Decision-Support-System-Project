@@ -3068,42 +3068,134 @@ def prescriptive(ctx, gateway=None):
                           rationale_ar=rationale[1])
         options.append(option)
 
+    # Whether a bigger number is better is declared beside the metric's
+    # definition (server/metrics.DIRECTIONS) or not at all. Undeclared,
+    # this stage ranks options by the size of the change they would make
+    # and calls none of them an improvement: "protect the leading site"
+    # on hours of downtime is advice to keep the worst problem, phrased
+    # as a recommendation.
+    better = ((ctx.get("governance") or {}).get("metric") or {}).get("better")
+    calcs.append({"id": "c_direction", "name": "measure_direction_declared",
+                  "value": 1 if better else 0,
+                  "method": f"glossary entry for {measure} declares "
+                            "better: higher or lower"})
     if groups:
         leader = max(groups, key=groups.get)
-        add_option("protect_leader",
-                   (f"Protect the leading {group_col}: “{leader}”",
-                    f"حماية الأكبر ضمن {group_col}: «{leader}»"),
-                   (leader, leader), groups[leader],
-                   (f"It is the largest single source of {measure}, so a given "
-                    "percentage improvement is worth more here than anywhere else — "
-                    "and so is a given percentage loss.",
-                    f"هو أكبر مصدر منفرد لـ {measure}، فأي تحسن بنسبة معينة يساوي هنا "
-                    "أكثر مما يساويه في أي مكان آخر، وكذلك أي خسارة بالنسبة نفسها."),
-                   ["c_topshare"] if desc.get("top_share") is not None else [])
+        evidence = ["c_topshare"] if desc.get("top_share") is not None else []
+        if better == "lower":
+            add_option("reduce_leader",
+                       (f"Reduce the largest source of {measure}: “{leader}”",
+                        f"تقليل أكبر مصدر لـ {measure}: «{leader}»"),
+                       (leader, leader), groups[leader],
+                       (f"It is the largest single source of {measure}, and less of "
+                        "it is better, so a given percentage reduction is worth "
+                        "more here than anywhere else.",
+                        f"هو أكبر مصدر منفرد لـ {measure}، وكلما قلّ كان أفضل، "
+                        "فأي انخفاض بنسبة معينة يساوي هنا أكثر مما يساويه في أي "
+                        "مكان آخر."),
+                       evidence)
+        elif better == "higher":
+            add_option("protect_leader",
+                       (f"Protect the leading {group_col}: “{leader}”",
+                        f"حماية الأكبر ضمن {group_col}: «{leader}»"),
+                       (leader, leader), groups[leader],
+                       (f"It is the largest single source of {measure}, so a given "
+                        "percentage improvement is worth more here than anywhere "
+                        "else — and so is a given percentage loss.",
+                        f"هو أكبر مصدر منفرد لـ {measure}، فأي تحسن بنسبة معينة "
+                        "يساوي هنا أكثر مما يساويه في أي مكان آخر، وكذلك أي خسارة "
+                        "بالنسبة نفسها."),
+                       evidence)
+        else:
+            add_option("largest_source",
+                       (f"Act on the largest source of {measure}: “{leader}”",
+                        f"التعامل مع أكبر مصدر لـ {measure}: «{leader}»"),
+                       (leader, leader), groups[leader],
+                       (f"It is the largest single source of {measure}, so a given "
+                        "percentage change moves the total more here than anywhere "
+                        "else. Whether that change should be up or down is not "
+                        "declared for this measure.",
+                        f"هو أكبر مصدر منفرد لـ {measure}، فأي تغير بنسبة معينة "
+                        "يحرك الإجمالي هنا أكثر من أي مكان آخر. وما إذا كان "
+                        "المطلوب زيادته أم خفضه غير معلن لهذا المقياس."),
+                       evidence)
         laggard = min(groups, key=groups.get)
-        if laggard != leader:
-            add_option("grow_laggard",
-                       (f"Grow the smallest {group_col}: “{laggard}”",
-                        f"تنمية الأصغر ضمن {group_col}: «{laggard}»"),
-                       (laggard, laggard), groups[laggard],
-                       ("Smallest current contribution, so the same percentage "
-                        "improvement moves the total least — but it reduces "
-                        "dependence on the leader.",
-                        "أصغر مساهمة حالية، فالتحسن بالنسبة نفسها يحرك الإجمالي "
-                        "أقل من غيره، لكنه يقلل الاعتماد على الأكبر."),
-                       [])
-    declining = [c for c in diag.get("contributions", []) if c["change"] < 0]
-    if declining:
-        worst = min(declining, key=lambda c: c["change"])
-        add_option("recover_decline",
-                   (f"Reverse the decline in “{worst['group']}”",
-                    f"عكس التراجع في «{worst['group']}»"),
-                   (worst["group"], worst["group"]), abs(worst["change"]),
-                   (f"This segment moved {worst['change']:,.2f} against the overall "
-                    "direction; recovering part of that is a defined, bounded target.",
-                    f"تحركت هذه الشريحة بمقدار {worst['change']:,.2f} عكس الاتجاه "
-                    "العام، واسترداد جزء من ذلك هدف محدد ومحدود."),
-                   ["c_totalchange"])
+        # Growing the smallest source of a measure where less is better
+        # would be advice to cause more of it, so it is not offered.
+        if laggard != leader and better != "lower":
+            if better == "higher":
+                add_option("grow_laggard",
+                           (f"Grow the smallest {group_col}: “{laggard}”",
+                            f"تنمية الأصغر ضمن {group_col}: «{laggard}»"),
+                           (laggard, laggard), groups[laggard],
+                           ("Smallest current contribution, so the same percentage "
+                            "improvement moves the total least — but it reduces "
+                            "dependence on the leader.",
+                            "أصغر مساهمة حالية، فالتحسن بالنسبة نفسها يحرك "
+                            "الإجمالي أقل من غيره، لكنه يقلل الاعتماد على الأكبر."),
+                           [])
+            else:
+                add_option("smallest_source",
+                           (f"Act on the smallest source of {measure}: "
+                            f"“{laggard}”",
+                            f"التعامل مع أصغر مصدر لـ {measure}: «{laggard}»"),
+                           (laggard, laggard), groups[laggard],
+                           ("Smallest current contribution, so the same percentage "
+                            "change moves the total least — and it reduces how "
+                            "much the total depends on one group.",
+                            "أصغر مساهمة حالية، فالتغير بالنسبة نفسها يحرك "
+                            "الإجمالي أقل من غيره، وهو يقلل اعتماد الإجمالي "
+                            "على مجموعة واحدة."),
+                           [])
+    contributions = diag.get("contributions", [])
+    if better == "lower":
+        # The segment moving against the desired direction is the one that
+        # rose, not the one that fell.
+        rising = [c for c in contributions if c["change"] > 0]
+        if rising:
+            worst = max(rising, key=lambda c: c["change"])
+            add_option("curb_increase",
+                       (f"Curb the increase in “{worst['group']}”",
+                        f"كبح الزيادة في «{worst['group']}»"),
+                       (worst["group"], worst["group"]), abs(worst["change"]),
+                       (f"This segment added {worst['change']:,.2f} to {measure}, "
+                        "where less is better; holding part of that back is a "
+                        "defined, bounded target.",
+                        f"أضافت هذه الشريحة {worst['change']:,.2f} إلى {measure}، "
+                        "وهو مقياس كلما قلّ كان أفضل، وكبح جزء من تلك "
+                        "الزيادة هدف محدد ومحدود."),
+                       ["c_totalchange"])
+    else:
+        declining = [c for c in contributions if c["change"] < 0]
+        if declining:
+            worst = min(declining, key=lambda c: c["change"])
+            if better == "higher":
+                add_option("recover_decline",
+                           (f"Reverse the decline in “{worst['group']}”",
+                            f"عكس التراجع في «{worst['group']}»"),
+                           (worst["group"], worst["group"]), abs(worst["change"]),
+                           (f"This segment moved {worst['change']:,.2f} against the "
+                            "overall direction; recovering part of that is a "
+                            "defined, bounded target.",
+                            f"تحركت هذه الشريحة بمقدار {worst['change']:,.2f} عكس "
+                            "الاتجاه العام، واسترداد جزء من ذلك هدف محدد "
+                            "ومحدود."),
+                           ["c_totalchange"])
+            else:
+                add_option("largest_movement",
+                           (f"Act on the largest movement against the overall "
+                            f"direction: “{worst['group']}”",
+                            f"التعامل مع أكبر تحرك عكس الاتجاه العام: "
+                            f"«{worst['group']}»"),
+                           (worst["group"], worst["group"]), abs(worst["change"]),
+                           (f"This segment moved {worst['change']:,.2f} against the "
+                            "overall direction, which makes it the largest single "
+                            "movement to look into. Which direction is better is "
+                            "not declared for this measure.",
+                            f"تحركت هذه الشريحة بمقدار {worst['change']:,.2f} عكس "
+                            "الاتجاه العام، وهو أكبر تحرك منفرد يستحق الفحص. "
+                            "والاتجاه الأفضل غير معلن لهذا المقياس."),
+                           ["c_totalchange"])
 
     forecast = pred.get("forecast") or []
     if forecast:
@@ -3181,6 +3273,21 @@ def prescriptive(ctx, gateway=None):
         "لذلك يبيّن الترتيب أين يكون الأثر الأكبر، لا أي الخيارات أسهل تحقيقاً؛ "
         "فهذا الحكم يحتاج إلى بيانات تكلفة وجدوى لا تتضمنها هذه البيانات.",
         [f"c_option_{best['key']}"]))
+    if better is None:
+        # Said once, where the recommendation is: a ranking by size that
+        # reads like a ranking by benefit is the defect this guards.
+        claims.append(_claim(
+            ctx, "cl_direction", "limitation",
+            f"No glossary entry declares whether a higher or lower {measure} is "
+            "better, so these options are ranked by the size of the change they "
+            "would make, not by the benefit of making it. Declaring that direction "
+            "beside the definition is what turns a ranking by size into a ranking "
+            "by improvement.",
+            f"لا يُعلن أي تعريف في المعجم ما إذا كان ارتفاع {measure} أفضل أم "
+            "انخفاضه، فتُرتَّب هذه الخيارات بحجم التغير الذي تُحدثه لا بالفائدة منه. "
+            "وإعلان ذلك الاتجاه بجانب التعريف هو ما يحوّل الترتيب بالحجم إلى ترتيب "
+            "بالتحسن.",
+            ["c_direction"]))
 
     if arabic:
         facts = [f"إجمالي {measure} هو {prep['total']:,.2f}."]
@@ -3271,10 +3378,33 @@ def validator(ctx):
     prep = ctx["preparer"]
     checks = []
     if prep["groups"]:
-        reconciled = abs(sum(prep["groups"].values()) - prep["total"]) < 0.01
+        # Recomputed here from the rows rather than added up from the
+        # preparer's own figures: an independent sum reaching the same
+        # total is what this check is for. The published group totals are
+        # rounded to two decimals for display, so each may differ from the
+        # recomputation by half a cent and no more, while the sums
+        # themselves are compared unrounded. Comparing the rounded sums
+        # instead failed correct arithmetic as soon as a breakdown had a
+        # few hundred groups, because each group carried its own rounding.
+        measure, group_col = prep["measure"], prep["group_col"]
+        recomputed = {}
+        for row in _rows(ctx):
+            value = row.get(measure)
+            if value is not None:
+                key = row[group_col]
+                recomputed[key] = recomputed.get(key, 0.0) + value
+        banked = sum(recomputed.values())
+        drift = max((abs(round(value, 2) - prep["groups"].get(key, 0.0))
+                     for key, value in recomputed.items()), default=0.0)
+        reconciled = (set(recomputed) == set(prep["groups"])
+                      and drift <= 0.005
+                      and abs(banked - prep["total"]) < 0.01)
         checks.append({"name": "group_totals_reconcile", "passed": reconciled,
-                       "detail": f"Σ(groups)={sum(prep['groups'].values()):,.2f} vs "
-                                 f"total={prep['total']:,.2f}"})
+                       "detail": f"Σ(groups)={banked:,.2f} vs "
+                                 f"total={prep['total']:,.2f}; recomputed "
+                                 f"{len(recomputed)} group total(s), largest "
+                                 f"difference from the published figure "
+                                 f"{drift:.4f}"})
     clean = ctx["cleaner"]
     checks.append({"name": "row_accounting",
                    "passed": clean["rows_after"] + clean["dropped"] == clean["rows_before"],

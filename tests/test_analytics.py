@@ -148,11 +148,13 @@ class FourAnalyticsTypesTestCase(unittest.TestCase):
         options = ctx["prescriptive"]["options"]
         by_key = {o["key"]: o for o in options}
         # Alpha totals 750, Beta 300; 10% of each is the expected gain.
-        self.assertAlmostEqual(by_key["protect_leader"]["expected_gain"], 75.0, places=2)
-        self.assertAlmostEqual(by_key["grow_laggard"]["expected_gain"], 30.0, places=2)
+        # This dataset has no glossary, so the options are the neutral ones
+        # — the named directions are in MeasureDirectionTestCase.
+        self.assertAlmostEqual(by_key["largest_source"]["expected_gain"], 75.0, places=2)
+        self.assertAlmostEqual(by_key["smallest_source"]["expected_gain"], 30.0, places=2)
         # Doing nothing is worth nothing extra — that is what makes it the bar.
         self.assertAlmostEqual(by_key["hold_course"]["expected_gain"], 0.0, places=2)
-        self.assertEqual(ctx["prescriptive"]["recommendation"]["key"], "protect_leader")
+        self.assertEqual(ctx["prescriptive"]["recommendation"]["key"], "largest_source")
         self.assertEqual([o["expected_gain"] for o in options],
                          sorted((o["expected_gain"] for o in options), reverse=True))
 
@@ -891,6 +893,162 @@ class ExperimentAgentTestCase(unittest.TestCase):
                 analytics._jargon_in(results["experiment"]["output"]["headline"]),
                 [])
 
+
+
+def many_groups_dataset(groups=300, value="1.111"):
+    """Two periods of the same amount in every group, chosen so the
+    rounding is arithmetic anyone can redo: each group sums to 2.222,
+    which the preparer rounds to 2.22, and `groups` of them therefore
+    fall short of the unrounded total by `groups` x 0.002."""
+    lines = ["month,segment,amount"]
+    for index in range(groups):
+        lines.append(f"2025-01,S{index:04d},{value}")
+        lines.append(f"2025-02,S{index:04d},{value}")
+    newline = chr(10)
+    return newline.join(lines) + newline
+
+
+def downtime_dataset():
+    """Hours lost, which is a measure where less is better: two sites,
+    six months, one of them the bigger loser and rising."""
+    lines = ["month,site,downtime_hours"]
+    for index in range(6):
+        month = f"2025-{index + 1:02d}"
+        lines.append(f"{month},Depot,{100 + 10 * index}")
+        lines.append(f"{month},Workshop,{50 - 2 * index}")
+    newline = chr(10)
+    return newline.join(lines) + newline
+
+
+class GroupReconciliationTestCase(unittest.TestCase):
+    """The validator reconciles the sum of the group totals against the
+    total. Both are rounded to two decimals, so the check has to allow
+    for that rounding once per group - and must still catch a real
+    mismatch.
+    """
+
+    def test_rounding_across_many_groups_is_not_a_validation_failure(self):
+        ctx, results = run_pipeline(many_groups_dataset())
+        prep = ctx["preparer"]
+        # 300 groups of 2.22 against an unrounded 666.60: a 0.60 shortfall
+        # that is rounding, not an error.
+        self.assertEqual(len(prep["groups"]), 300)
+        drift = abs(sum(prep["groups"].values()) - prep["total"])
+        self.assertGreater(drift, 0.01)
+        self.assertAlmostEqual(drift, 0.60, places=2)
+        check = next(c for c in results["validator"]["quality_checks"]
+                     if c["name"] == "group_totals_reconcile")
+        self.assertTrue(check["passed"], check["detail"])
+        self.assertTrue(results["validator"]["output"]["passed"])
+
+    def test_a_real_mismatch_still_fails_the_check(self):
+        """Guard against a tolerance that accepts anything: the same 300
+        groups with a total nobody can reach from them is rejected."""
+        ctx, _ = run_pipeline(many_groups_dataset())
+        ctx["preparer"]["total"] = ctx["preparer"]["total"] + 50.0
+        again = analytics.validator(ctx)
+        check = next(c for c in again["quality_checks"]
+                     if c["name"] == "group_totals_reconcile")
+        self.assertFalse(check["passed"], check["detail"])
+
+    def test_an_error_smaller_than_the_rounding_still_fails(self):
+        """The reason the check recomputes instead of widening: half a
+        cent per group would have hidden an error of half a unit across
+        300 groups. It does not."""
+        ctx, _ = run_pipeline(many_groups_dataset())
+        ctx["preparer"]["total"] = round(ctx["preparer"]["total"] + 0.50, 2)
+        again = analytics.validator(ctx)
+        check = next(c for c in again["quality_checks"]
+                     if c["name"] == "group_totals_reconcile")
+        self.assertFalse(check["passed"], check["detail"])
+
+    def test_a_group_total_the_rows_do_not_support_fails(self):
+        """The published group figures are checked one by one, not only
+        their sum: moving a unit from one group to another leaves the sum
+        intact and must still be caught."""
+        ctx, _ = run_pipeline(many_groups_dataset())
+        keys = list(ctx["preparer"]["groups"])
+        ctx["preparer"]["groups"][keys[0]] += 1.0
+        ctx["preparer"]["groups"][keys[1]] -= 1.0
+        again = analytics.validator(ctx)
+        check = next(c for c in again["quality_checks"]
+                     if c["name"] == "group_totals_reconcile")
+        self.assertFalse(check["passed"], check["detail"])
+
+
+class MeasureDirectionTestCase(unittest.TestCase):
+    """Whether a bigger number is better is a statement about the
+    business, not something arithmetic can work out. The glossary is
+    where it is declared, and until it is declared the prescriptive stage
+    may rank by size but may not recommend protecting or growing
+    anything.
+    """
+
+    def entry(self, better):
+        return entry(name="downtime_hours", title="Downtime Hours",
+                     definition="Hours an asset was unavailable.",
+                     columns=["downtime_hours"], formula=None, unit="hours",
+                     better=better)
+
+    def titles(self, ctx):
+        return [o["title"] for o in ctx["prescriptive"]["options"]]
+
+    def test_an_undeclared_direction_ranks_by_size_and_says_so(self):
+        ctx, results = run_pipeline(downtime_dataset())
+        self.assertIsNone(ctx["governance"]["metric"])
+        keys = [o["key"] for o in ctx["prescriptive"]["options"]]
+        self.assertIn("largest_source", keys)
+        self.assertNotIn("protect_leader", keys)
+        self.assertNotIn("grow_laggard", keys)
+        for title in self.titles(ctx):
+            self.assertNotIn("Protect", title)
+            self.assertNotIn("Grow", title)
+        limitations = [c["text"] for c in results["prescriptive"]["claims"]
+                       if c["type"] == "limitation"]
+        self.assertTrue(any("whether a higher or lower" in text
+                            for text in limitations), limitations)
+
+    def test_lower_is_better_reduces_the_largest_source(self):
+        ctx, _ = run_pipeline(downtime_dataset(),
+                              glossary=book([self.entry("lower")]))
+        options = {o["key"]: o for o in ctx["prescriptive"]["options"]}
+        self.assertIn("reduce_leader", options)
+        self.assertEqual(options["reduce_leader"]["target"], "Depot")
+        self.assertIn("Reduce the largest source", options["reduce_leader"]["title"])
+        # Growing the smallest source of a measure where less is better
+        # would be advice to cause more of it.
+        self.assertNotIn("grow_laggard", options)
+        for title in self.titles(ctx):
+            self.assertNotIn("Grow", title)
+            self.assertNotIn("Protect", title)
+
+    def test_lower_is_better_curbs_the_biggest_increase(self):
+        """The segment moving against the overall direction is the one
+        that rose, not the one that fell."""
+        ctx, _ = run_pipeline(downtime_dataset(),
+                              glossary=book([self.entry("lower")]))
+        options = {o["key"]: o for o in ctx["prescriptive"]["options"]}
+        self.assertIn("curb_increase", options)
+        self.assertEqual(options["curb_increase"]["target"], "Depot")
+        self.assertNotIn("recover_decline", options)
+
+    def test_higher_is_better_keeps_protecting_and_growing(self):
+        ctx, _ = run_pipeline(linear_dataset(),
+                              glossary=book([entry(name="sales", title="Sales",
+                                                   columns=["sales"], formula=None,
+                                                   better="higher")]))
+        options = {o["key"]: o for o in ctx["prescriptive"]["options"]}
+        self.assertAlmostEqual(options["protect_leader"]["expected_gain"], 75.0,
+                               places=2)
+        self.assertAlmostEqual(options["grow_laggard"]["expected_gain"], 30.0,
+                               places=2)
+        self.assertEqual(ctx["prescriptive"]["recommendation"]["key"],
+                         "protect_leader")
+
+    def test_a_declared_direction_reaches_the_stage_from_the_glossary(self):
+        ctx, _ = run_pipeline(downtime_dataset(),
+                              glossary=book([self.entry("lower")]))
+        self.assertEqual(ctx["governance"]["metric"]["better"], "lower")
 
 if __name__ == "__main__":
     unittest.main()

@@ -44,7 +44,15 @@ placeholder controls — absent capabilities have no UI.
    - **Prescriptive** ranks options the dataset itself supplies, scoring
      each with the same 10% improvement assumption. That ranks where the
      leverage is; it is not an optimizer and knows nothing about cost,
-     capacity, or feasibility.
+     capacity, or feasibility. It also does not know which way is good
+     news unless the glossary says so: a metric entry may declare
+     `better` as `higher` or `lower`, and only then does the stage speak
+     of protecting and growing, or of reducing and curbing. With no
+     declaration it ranks options by the size of the change they would
+     make and says so in the report — the number is the same, the verb
+     is withheld. A measure where less is better and no glossary to say
+     so therefore gets no advice about direction from this product, which
+     is the honest state and not a silent default.
    - Comparison between recorded experiment groups reports a range and
      whether it includes no-change (ADR 0010, 0016). No test is applied
      anywhere else: the descriptive, diagnostic, predictive and
