@@ -422,6 +422,23 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### React animation technology study ? 21 October 2026
+
+The [study](docs/design/REACT_AGENT_CONNECTIONS_STUDY.md) compares the existing
+React/SVG approach with React Flow and Motion. Its isolated, reproducible
+experiment completed **4 / 4 production-mode builds** and **4 / 4 desktop
+Chromium smoke scenarios** at 1440?900, covering rendering, node selection,
+synthetic handoffs, pause controls, reduced-motion CSS and absence of page errors.
+Strict brain validation and **33 / 33** documentation/verifier/release-policy
+checks passed. Local study links and the experiment lock checksum were checked.
+Measured asset sizes, pinned dependencies and actual synthetic captures are in
+[the experiment record](docs/design/experiments/README.md).
+
+This is a study, not a shipped explorer. No production frontend source or
+dependency changed. Full platform suites were not rerun for this documentation
+and isolated-experiment change. Mobile/RTL, assistive-technology, large-graph and
+integrated-load acceptance for a future React Flow view are **not tested**.
+
 ### Agent collaboration and restrained motion — 20 October 2026
 
 The Runs workspace now presents **Agents working together**: Hermes, workflow

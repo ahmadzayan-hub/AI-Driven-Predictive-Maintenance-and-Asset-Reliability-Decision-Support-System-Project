@@ -3,7 +3,7 @@ type: log
 aliases: [Brain maintenance log]
 tags: [meta]
 status: active
-updated: 2026-10-20
+updated: 2026-10-21
 review_every_days: 7
 sources: [scripts/brain_check.py]
 ---
@@ -65,3 +65,10 @@ What each round of brain maintenance changed, newest last. The SessionStart hook
 - Corrected stale single-CSV-only language in [[Governed pipeline]] and unchanged-automatic-selection language in [[Column mapping]], using the current dataset, join and breakdown-provenance sources.
 - Added a graph-reading guide in `docs/design/KNOWLEDGE_GRAPH.md`. A graph edge records a knowledge relationship; [[Agent collaboration]] describes the separately implemented live workflow view.
 - Verified the expanded vault: 45 curated notes; no broken links, missing fields or sources, stale notes, duplicate candidates, unlinked mentions or orphans. Home covers every other curated note, and every addition has an incoming relationship beyond Home.
+
+## 2026-10-21
+
+- Measured the vault before the React study updates: 45 notes and 490 wikilink references, with no structural issues. No new graph points were needed for this comparison.
+- Refreshed [[Agent collaboration]], [[Accessible motion]] and [[Design system]] with the sourced React/SVG, React Flow and Motion study. Distinguished current behavior from the proposed explorer and recorded that production dependencies remain unchanged.
+- Retained incoming agent measurement knowledge through `827a584`. Existing [[Home]] coverage is unchanged; the new research belongs in the existing concepts rather than duplicate notes.
+- Verified the updated source paths and strict brain structure. The isolated experiment's browser scope and remaining acceptance checks are recorded in the study; application verification counts remain in README.

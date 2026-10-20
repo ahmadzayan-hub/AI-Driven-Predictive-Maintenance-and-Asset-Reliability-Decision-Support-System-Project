@@ -996,6 +996,16 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Decisions:** none taken; the owner chooses. Recommendation: synthetic blind cases now, per-item contribution only after a measured mismatch and a pilot customer's written agreement.
 - **Open / next:** owner's choice; counsel on the UAE personal data law and on whether a government customer may allow this at all.
 
+## 2026-10-21 ? `react-animation-study` ? main
+
+**Goal:** compare React-based platform animation and agent-connection approaches, then recommend a concrete design.
+
+- **Done:** researched official React, React Flow, Motion and browser documentation; inspected current source through `827a584`; produced `docs/design/REACT_AGENT_CONNECTIONS_STUDY.md` with the stack comparison, shared adapter design, motion catalogue, relation semantics and staged acceptance. Added a reproducible isolated benchmark, pinned dependency lock, exact results and actual synthetic screenshots.
+- **Verified:** production-mode builds and desktop Chromium smoke scenarios for the experiment, with exact counts in README.md#testing. Native and React Flow captures visually inspected. No production source or dependency changed, so the full platform suites were not rerun; future explorer mobile/RTL, screen-reader, authorization integration and large-graph performance remain unverified.
+- **Decisions:** keep React/SVG/CSS as the compact default; use React Flow for a separately justified optional explorer; add Motion only for demonstrated animation complexity. Lazy loading protects first render but does not erase total bundle cost. Visual workflow edges do not establish actual agent communication. No behavior ADR was added because this is a study and an isolated experiment, not a production behavior or dependency change.
+- **Open / next:** implement a pure typed graph adapter and richer native stage connections first; measure an optional explorer against an explicit device workload and payload budget before integrating it. Real message history requires a durable authorized event contract.
+- **Blockers:** none for the study. Existing hosted/domain acceptance gates and the previously observed GitHub billing restriction were not resolved or revalidated here.
+
 ## 2026-10-20 · `d9e3f889` · claude/tender-clarke-m4uwgq (option D)
 
 **Goal:** go with D now, C conditional.
@@ -1013,3 +1023,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** causal wording on blind_v7: recall 28% to 60%, precision 70% to 88%. Intent: 32 to 35 of 57 correct, within noise. Dev 100% on both; no new false alarm on any stored set; one extra flag on the project's own 23 documents was a false alarm and led to dropping bare "behind". The save_history rule was run end to end (the preference flips, nothing is deleted).
 - **Decisions:** three causal blind_v6 cases were removed as contested labels rather than fixed (they contradict the lint's own contract); recorded so it can be reversed. blind_v7 was not used to change any rule. Floors not raised.
 - **Open / next:** intent needs a model behind the rules or a far larger set; causal lint still misses 10 of 25 on blind_v7. Floor decision is the owner's.
+
+## 2026-10-20 · `d9e3f889` · claude/tender-clarke-m4uwgq (floor, model suite, merge)
+
+**Goal:** "yes all": merge to `main`, raise the intent floor, put a model behind the rules.
+
+- **Done:** raised the intent holdout floor from 0.71 to 0.76 (holdout is 76.7%, floors round down to the whole per cent). Found that the model-first path already exists (ADR 0019: a configured model decides first, the rules decide when it is absent or its answer is invalid), so built the missing part, its measurement: an opt-in `intent_model` suite and `--split` in `scripts/evaluate_agents.py`. It reports "not available" without a provider, and the default run, the floors and the agent loop skip it. Merged to `main`.
+- **Verified:** the suite runs end to end through the real `Assistant.understand` with a scripted provider (valid answer, invalid answer falling back to the rules, a required argument missing). It has not been run against a real model: no provider or key is configured here, and the session's own API endpoint is not the product's to use.
+- **Decisions:** the model suite is opt-in because it sends every case to a provider. No claim is made about how a model would score.
+- **Open / next:** configure a provider (a rotated key or a local Ollama model) and run `python scripts/evaluate_agents.py --suite intent_model --split blind_v7` to get the real number; compare it with the rules' 61% on that set.
