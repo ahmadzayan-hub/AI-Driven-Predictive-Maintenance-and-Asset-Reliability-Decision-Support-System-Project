@@ -5,6 +5,7 @@ import { useTheme } from '../../app/useTheme'
 import { Icon } from '../../shared/components/Icon'
 import type { IconName } from '../../shared/components/Icon'
 import { Dialog } from '../../shared/components/Dialog'
+import { PerformanceValue } from '../../shared/components/PerformanceValue'
 import { maintenanceMessages } from './messages'
 import { SAMPLE_ASSETS, SITES, assetCost, assetDowntime, severity, summarize } from './sample'
 import type { Period, SampleAsset, Site } from './sample'
@@ -14,6 +15,7 @@ const PAGES = ['overview', 'reliability', 'work', 'cost', 'models'] as const
 type Page = typeof PAGES[number]
 const PAGE_ICONS: Record<Page, IconName> = { overview: 'dashboard', reliability: 'activity', work: 'check', cost: 'database', models: 'sparkle' }
 const CONDITIONS = ['healthy', 'watch', 'critical'] as const
+const CONDITION_TONE = { healthy: 'good', watch: 'okay', critical: 'bad' } as const
 
 export function MaintenancePreview() {
   const { t, locale } = usePack(maintenanceMessages)
@@ -68,6 +70,7 @@ export function MaintenancePreview() {
   }
 
   const statusBadge = (asset: SampleAsset) => <span className={`maintenance__badge maintenance__badge--${severity(asset)}`}><span aria-hidden="true" />{t(`maint.${severity(asset)}`)}</span>
+  const healthValue = (asset: SampleAsset) => <PerformanceValue tone={CONDITION_TONE[severity(asset)]} status={t(`maint.${severity(asset)}`)}><bdi dir="ltr">{number(asset.health)}<small>/100</small></bdi></PerformanceValue>
 
   const equipmentTable = (
     <section className="maintenance__panel maintenance__equipment" aria-labelledby="equipment-title">
@@ -79,7 +82,7 @@ export function MaintenancePreview() {
         <table><thead><tr><th>{t('maint.equipment')}</th><th>{t('maint.health')}</th><th>{t('maint.status')}</th><th>{t('maint.action')}</th></tr></thead>
           <tbody>{tableAssets.map((asset) => <tr key={asset.id}>
             <td><bdi className="maintenance__equipment-id">{asset.id}</bdi><span className="maintenance__table-detail">{t(`maint.${asset.kind}`)} · {t(`maint.${asset.site}`)}</span></td>
-            <td><div className="maintenance__health"><span>{number(asset.health)}<small>/100</small></span><div aria-hidden="true"><i className={`maintenance__health--${severity(asset)}`} style={{ width: `${asset.health}%` }} /></div></div></td>
+            <td><div className="maintenance__health">{healthValue(asset)}<div aria-hidden="true"><i className={`maintenance__health--${severity(asset)}`} style={{ width: `${asset.health}%` }} /></div></div></td>
             <td>{statusBadge(asset)}</td>
             <td><button className="maintenance__row-button" aria-label={`${t('maint.review')} ${asset.id}`} onClick={() => setSelected(asset)}><Icon name="search" size={15} />{t('maint.review')}</button>{reviewed.has(asset.id) && <small className="maintenance__reviewed">{t('maint.reviewed')}</small>}</td>
           </tr>)}</tbody>
@@ -143,6 +146,6 @@ export function MaintenancePreview() {
         </main>
       </div>
     </div>
-    {selected && <Dialog title={`${t('maint.record')} · ${selected.id}`} onClose={closeEvidence} wide initialFocus="panel"><div className="maintenance__evidence"><p className="maintenance__evidence-tag">{t('maint.sample')}</p><div className="maintenance__record-heading"><div><h3>{t(`maint.${selected.kind}`)}</h3><p>{t(`maint.${selected.site}`)} · <bdi>{selected.id}</bdi></p></div>{statusBadge(selected)}</div><dl><div><dt>{t('maint.health')}</dt><dd>{number(selected.health)}/100</dd></div><div><dt>{t('maint.downtime')}</dt><dd>{number(assetDowntime(selected, period))} {t('maint.hours')}</dd></div><div><dt>{t('maint.spend')}</dt><dd>{money(assetCost(selected, period))}</dd></div></dl><h3>{t('maint.method')}</h3><p>{t('maint.methodBody')}</p><p>{t('maint.thresholds')}</p><p className="maintenance__review-note">{t('maint.reviewNote')}</p>{reviewed.has(selected.id) && <p role="status">{t('maint.reviewed')}</p>}<div className="dialog__actions"><button className="btn btn--subtle" onClick={closeEvidence}>{t('maint.close')}</button><button className="btn btn--primary" disabled={reviewed.has(selected.id)} onClick={() => setReviewed((previous) => new Set([...previous, selected.id]))}><Icon name="check" size={16} />{t('maint.markReviewed')}</button></div></div></Dialog>}
+    {selected && <Dialog title={`${t('maint.record')} · ${selected.id}`} onClose={closeEvidence} wide initialFocus="panel"><div className="maintenance__evidence"><p className="maintenance__evidence-tag">{t('maint.sample')}</p><div className="maintenance__record-heading"><div><h3>{t(`maint.${selected.kind}`)}</h3><p>{t(`maint.${selected.site}`)} · <bdi>{selected.id}</bdi></p></div>{statusBadge(selected)}</div><dl><div><dt>{t('maint.health')}</dt><dd>{healthValue(selected)}</dd></div><div><dt>{t('maint.downtime')}</dt><dd>{number(assetDowntime(selected, period))} {t('maint.hours')}</dd></div><div><dt>{t('maint.spend')}</dt><dd>{money(assetCost(selected, period))}</dd></div></dl><h3>{t('maint.method')}</h3><p>{t('maint.methodBody')}</p><p>{t('maint.thresholds')}</p><p className="maintenance__review-note">{t('maint.reviewNote')}</p>{reviewed.has(selected.id) && <p role="status">{t('maint.reviewed')}</p>}<div className="dialog__actions"><button className="btn btn--subtle" onClick={closeEvidence}>{t('maint.close')}</button><button className="btn btn--primary" disabled={reviewed.has(selected.id)} onClick={() => setReviewed((previous) => new Set([...previous, selected.id]))}><Icon name="check" size={16} />{t('maint.markReviewed')}</button></div></div></Dialog>}
   </div>
 }

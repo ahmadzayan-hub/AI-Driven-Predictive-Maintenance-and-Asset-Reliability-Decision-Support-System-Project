@@ -10,7 +10,7 @@ import json
 import math
 
 from server import query
-from server.maintenance import contract, kpis
+from server.maintenance import contract, kpis, performance
 from server.runs import model_cards
 
 MAX_FILTER_CHARS = 16_000
@@ -70,7 +70,8 @@ def parse_filters(encoded):
 class ExecutiveDashboardAgent:
     """Deterministic decision support. Existing permissions remain the API's job."""
 
-    def brief(self, table, run, tasks=(), filters=None, language="en"):
+    def brief(self, table, run, tasks=(), filters=None, language="en", policy=None):
+        selected_policy = performance.policy() if policy is None else policy
         filters = copy.deepcopy(filters or [])
         selected, _ = query.filtered(table, filters)
         supported, _ = kpis.computable(table.columns)
@@ -89,6 +90,7 @@ class ExecutiveDashboardAgent:
             item = dict(result)
             item["title"] = result["title_ar"] if language == "ar" else result["title"]
             item.pop("title_ar", None)
+            item["assessment"] = performance.assessment(item, selected_policy["rules"], language)
             measures.append(item)
         evidence, priorities, questions, drilldowns = [], [], [], []
         limitations, findings, models = [], [], []
@@ -311,7 +313,8 @@ class ExecutiveDashboardAgent:
                 "readiness": {"status": status, "limitations": limitations},
                 "kpis": {"measures": measures, "unavailable": unavailable},
                 "priorities": priorities, "questions": questions, "findings": findings,
-                "models": models, "evidence": evidence, "drilldowns": drilldowns}
+                "models": models, "evidence": evidence, "drilldowns": drilldowns,
+                "kpi_policy": copy.deepcopy(selected_policy)}
         # Task results may change without advancing the run row's timestamp.
         # Bind downloads to every fact in the prepared response, including its
         # language, filters, metadata and evidence, without trusting client data.

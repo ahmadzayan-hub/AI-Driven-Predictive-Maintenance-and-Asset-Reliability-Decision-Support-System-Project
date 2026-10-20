@@ -55,7 +55,6 @@
 .maintenance__metric > strong { display: block; font-size: clamp(22px, 2.2vw, 31px); font-weight: 500; letter-spacing: var(--tracking-tight); font-variant-numeric: tabular-nums; }
 .maintenance__metric > p { color: var(--text-muted); font-size: 10px; margin-top: 9px; }
 .maintenance__metric--attention > strong, .maintenance__metric--attention svg { color: var(--highlight); }
-.maintenance__metric--availability svg { color: var(--success); }
 .maintenance__charts { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 20px; margin-bottom: 20px; align-items: start; }
 .maintenance__panel { border: 1px solid var(--border); border-radius: 9px; background: var(--surface); overflow: hidden; min-width: 0; }
 .maintenance__panel-head { padding: 20px 22px 12px; display: flex; gap: 12px; align-items: center; justify-content: space-between; }
@@ -79,14 +78,14 @@
 .maintenance__donut strong { font-size: 31px; font-weight: 500; font-variant-numeric: tabular-nums; }
 .maintenance__donut span { font-size: 10px; color: var(--text-muted); }
 .maintenance__ring--healthy { stroke: var(--success); }
-.maintenance__ring--watch { stroke: var(--highlight); }
+.maintenance__ring--watch { stroke: var(--metric-okay); }
 .maintenance__ring--critical { stroke: var(--danger); }
 .maintenance__legend { padding: 0; list-style: none; display: grid; gap: 14px; flex: 1; }
 .maintenance__legend li { display: flex; gap: 8px; align-items: center; font-size: 11px; }
 .maintenance__legend strong { margin-inline-start: auto; font-size: 13px; font-weight: 500; }
 .maintenance__dot, .maintenance__badge > span { width: 6px; height: 6px; flex-shrink: 0; border-radius: 50%; display: inline-block; }
 .maintenance__dot--healthy { background: var(--success); }
-.maintenance__dot--watch { background: var(--highlight); }
+.maintenance__dot--watch { background: var(--metric-okay); }
 .maintenance__dot--critical { background: var(--danger); }
 .maintenance__snapshot-note { padding: 10px 20px 14px; font-size: 10px; color: var(--text-muted); border-top: 1px solid var(--border); }
 .maintenance__lower { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr); gap: 20px; align-items: start; }
@@ -104,12 +103,12 @@
 .maintenance__health > div { width: 66px; height: 4px; background: var(--border); border-radius: 4px; margin-top: 5px; }
 .maintenance__health i { display: block; height: 100%; border-radius: inherit; }
 .maintenance__health--healthy { background: var(--success); }
-.maintenance__health--watch { background: var(--highlight); }
+.maintenance__health--watch { background: var(--metric-okay); }
 .maintenance__health--critical { background: var(--danger); }
 .maintenance__badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 7px; border-radius: 4px; font-size: 10px; white-space: nowrap; }
 .maintenance__badge > span { background: currentColor; width: 4px; height: 4px; }
 .maintenance__badge--healthy { color: var(--success); background: var(--success-soft); }
-.maintenance__badge--watch { color: var(--highlight); background: var(--highlight-soft); }
+.maintenance__badge--watch { color: var(--metric-okay); background: var(--surface-sunken); }
 .maintenance__badge--critical { color: var(--danger); background: var(--danger-soft); }
 .maintenance__row-button { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; color: var(--accent); min-height: 32px; }
 .maintenance__row-button:hover { text-decoration: underline; }

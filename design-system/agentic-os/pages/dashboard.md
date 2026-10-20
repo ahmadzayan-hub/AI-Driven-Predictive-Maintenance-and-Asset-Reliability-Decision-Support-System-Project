@@ -27,7 +27,9 @@
 
 ### Color Overrides
 
-- **Strategy:** navy and grey with a blue data accent. Amber only for "needs attention" and provisional values
+- **Performance semantics (the 20 October performance-color decision):** bad uses `--danger` red; okay uses `--metric-okay` blue; good uses `--success` green. A visible status label accompanies the number. Missing or unassessed values use `--text-muted`, never a guessed result.
+- Only configured, sourced per-analysis targets establish a maintenance KPI status. Respect the desired direction, exact result scale and inclusive boundaries; comparisons happen before display rounding. Counts and raw changes remain neutral without a named rule.
+- Brand/actions and entity chart colors retain their own meanings. Amber remains workflow attention or provisional evidence, not the okay performance band.
 
 ### Component Overrides
 

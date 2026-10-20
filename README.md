@@ -83,6 +83,13 @@ environment — not a replacement for Windows, macOS, or Linux.
   every group to the rows behind it. The page and filters live in the
   address, every chart has its numbers as a table, and axe checks every
   page in both languages (ADR 0032)
+- **Consistent performance colors** — red for bad, blue for okay and green
+  for good, with visible English/Arabic status words in dashboards and business
+  reports. Per-analysis targets support higher/lower-is-better and nested
+  ranges with a source reference, optimistic saves and durable history.
+  Unassessed or unavailable measurements stay neutral; target edits do not
+  approve or publish. See the [operating guide](docs/design/EXECUTIVE_DASHBOARD_HANDOFF.md)
+  and [decision](docs/adr/2026-10-20-semantic-performance-colors.md).
 - **Executive business reports** — prepare a scoped evidence brief, download
   standalone HTML or an editable Word `.docx`, or use **Print / Save as PDF**
   in the browser. English and Arabic RTL reports retain KPI definitions,

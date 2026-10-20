@@ -183,7 +183,7 @@ From the skill's UX guidelines, applied here:
 | Keyboard | Every action reachable; visible focus ring; no keyboard traps; Escape closes overlays |
 | Layout | No horizontal page scroll from 320 to 1440 px |
 | Lighthouse (mobile) | Performance at least 95; Accessibility 100; Best Practices at least 95 |
-| Budget | JavaScript on first load at most 100 KB gzipped, all scripts at most 175 KB (ADR 0058, scoped executive dashboard), and no view's chunk over 30 KB (ADR 0028: 85.7, 105.6 and 5.0 KB after views moved to chunks loaded on demand; a view's strings ship with its chunk, ADR 0035). CSS on the first load at most 10 KB gzipped and all CSS at most 21 KB (ADR 0058), since a view's styles ship with its chunk (ADR 0032); fonts at most 120 KB (7.7 and 119.4 KB) |
+| Budget | JavaScript on first load at most 100 KB gzipped, all scripts at most 185 KB (the 20 October performance-color decision, persisted bilingual performance targets), and no view's chunk over 30 KB (ADR 0028: 85.7, 105.6 and 5.0 KB after views moved to chunks loaded on demand; a view's strings ship with its chunk, ADR 0035). CSS on the first load at most 10 KB gzipped and all CSS at most 22 KB (the 20 October performance-color decision), since a view's styles ship with its chunk (ADR 0032); fonts at most 120 KB (7.7 and 119.4 KB) |
 | Core Web Vitals | LCP under 2.5 s, CLS under 0.1, INP under 200 ms |
 
 ## 8. Phases

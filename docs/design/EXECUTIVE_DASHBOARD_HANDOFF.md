@@ -1,6 +1,6 @@
 # تسليم اللوحة التنفيذية / Executive dashboard handoff
 
-19 أكتوبر 2026 / 19 October 2026
+20 أكتوبر 2026 / 20 October 2026
 
 ## العربية — الاستخدام والحدود
 
@@ -42,6 +42,20 @@
 مع جداول للأرقام ومسارات لفحص السجلات.
 
 ### معجم مؤشرات الصيانة / Controlled KPI glossary
+
+**ألوان الأداء:** الأحمر = غير مرضٍ، الأزرق = مقبول، والأخضر = جيد. تظهر
+الحالة بالكلمات أيضًا. افتح **أهداف الأداء** لتحديد المؤشر والاتجاه المطلوب
+وحدود الجيد والمقبول ومصدر الهدف. تشمل الخيارات «الأعلى أفضل»، «الأقل أفضل»
+و«ضمن نطاق»؛ الحدود شاملة، ويجب أن يقع نطاق الجيد داخل نطاق المقبول. أدخل
+`80` لتمثيل `80%`، لا `0.8`. يُقارن الرقم قبل التقريب ولا تُقصّ النسب عند 100.
+تحفظ الأهداف لهذا التحليل عبر جميع المرشحات؛ يلزم إذن الكتابة لتعديلها.
+تظهر الحدود والمصدر داخل **فحص الأدلة** وتُنقل إلى التقرير. تبقى القيمة دون
+هدف غير مقيّمة، والمفقودة غير متاحة، بلون محايد. لإعادة المؤشر إلى غير مقيّم،
+اختره واضغط **إزالة الهدف**. عند تعارض تعديلين أعد تحميل الأهداف؛ لا يُستبدل
+التعديل الآخر بصمت. يلزم إعداد الموجز مجددًا بعد تغيير الهدف.
+
+هذه أهداف عرض يحددها المستخدم؛ لا تُعد اعتمادًا هندسيًا أو موافقة على التنفيذ.
+اكتمال الأدلة مستقل عن حالة الأداء، والألوان لا تغيّر قرارات الموافقة أو النشر.
 
 التعريفات التالية من [سجل المؤشرات في المصدر](../../server/maintenance/kpis.py).
 تُطبَّق على النطاق المحدد بالمرشحات، ثم على المجتمع الخاص بكل مؤشر؛ لا يكفي
@@ -98,6 +112,20 @@ profile. The executive endpoint calculates supported controlled KPIs and review
 priorities for the selected records. Each measure exposes its formula,
 numerator, denominator, population, measured/excluded coverage and missing-data
 policy; unavailable evidence remains explicit.
+
+**Performance colors:** red = Bad, blue = Okay, green = Good, with visible
+status words. Open **Performance targets**, choose the measure and desired
+direction, enter inclusive good/okay boundaries and a source/rationale, then
+**Save target**. Higher-is-better, lower-is-better and nested intervals are
+supported; the good interval must fit inside the okay interval. Enter `80`
+for `80%`, not `0.8`. Evaluation uses the unrounded result and does not clamp
+percentages to 100. Targets persist per analysis across filters and require
+write permission to edit. **Inspect evidence** shows the boundaries and source;
+reports retain them. **Remove target** returns the chosen measure to Not assessed.
+No target means neutral Not assessed; missing evidence means neutral Unavailable.
+A concurrent edit requires **Reload targets** before another save. Prepare the
+brief again after targets change. These configured display targets do not
+certify engineering performance or satisfy approval/publication gates.
 
 Use **View evidence** to focus the referenced calculation, or inspect a group
 to open its records. Filters remain in the address and survive reloads; access

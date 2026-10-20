@@ -1,0 +1,5 @@
+.policy-editor { scroll-margin-block-start: var(--space-4); }
+.policy-editor fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.policy-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: var(--space-3); }
+.policy-editor .field { min-width: 0; }
+.policy-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-block-start: var(--space-3); }

@@ -93,6 +93,16 @@ describe('executive decision overview', () => {
     await waitFor(() => expect(revoke).toHaveBeenCalledWith('blob:executive'), { timeout: 2_000 })
   })
 
+  it('keeps a stored unsupported verdict neutral even when a stale metric and positive flag are present', async () => {
+    const data = snapshot()
+    data.models = [{ kind: 'maintenance_risk', target: 'Failure', fitted: true, beats_baseline: true, metric: { name: 'balanced_accuracy', model: .99, baseline: .5, baseline_name: 'majority' }, details: { verdict: 'not_supported' }, scope: 'whole_run' }]
+    vi.mocked(api.runExecutive).mockResolvedValueOnce(data)
+    mount()
+    expect(await screen.findByText('Not evaluated')).toHaveAttribute('data-performance', 'unassessed')
+    expect(screen.queryByText('0.99 / 0.5')).not.toBeInTheDocument()
+    expect(screen.queryByText('Meets evaluation criteria')).not.toBeInTheDocument()
+  })
+
   it('shows a recoverable API failure without invented figures', async () => {
     vi.mocked(api.runExecutive).mockRejectedValueOnce(new Error('unavailable'))
     const user = userEvent.setup()

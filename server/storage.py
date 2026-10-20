@@ -25,12 +25,14 @@ TABLES = (
     "vault_notes",
     "datasets",
     "connectors",
+    "kpi_policies",
 )
 
 # Restore must insert parents before children.
 RESTORE_ORDER = (
     "datasets",
     "runs",
+    "kpi_policies",
     "tasks",
     "approvals",
     "artifacts",
@@ -49,6 +51,13 @@ SCHEMA_STATEMENTS = [
       id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(id),
       idx INTEGER NOT NULL, role TEXT NOT NULL, title TEXT NOT NULL,
       state TEXT NOT NULL, summary TEXT, result_json TEXT, updated_at TEXT)""",
+    # Display policies are append-only audit history, never report artifacts.
+    # The unique version is also the cross-process optimistic-write guard.
+    """CREATE TABLE IF NOT EXISTS kpi_policies (
+      id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(id),
+      version INTEGER NOT NULL, revision TEXT NOT NULL, rules_json TEXT NOT NULL,
+      actor TEXT NOT NULL, created_at TEXT NOT NULL,
+      UNIQUE (run_id, version))""",
     """CREATE TABLE IF NOT EXISTS approvals (
       id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(id),
       action TEXT NOT NULL, target TEXT NOT NULL, risk TEXT NOT NULL,
@@ -266,6 +275,43 @@ class SqlStore:
     def get_tasks(self, run_id):
         return self._exec(
             "SELECT * FROM tasks WHERE run_id = ? ORDER BY idx", (run_id,))
+
+    def latest_kpi_policy(self, run_id):
+        rows = self._exec("SELECT * FROM kpi_policies WHERE run_id = ? "
+                          "ORDER BY version DESC LIMIT 1", (run_id,))
+        return rows[0] if rows else None
+
+    def save_kpi_policy(self, identifier, run_id, expected_revision, revision,
+                        rules_json, actor, created_at, empty_revision):
+        """One conditional insert; unique run/version excludes a second winner.
+
+        Works with SQLite and PostgreSQL autocommit. Reconnection may repeat an
+        acknowledged-lost INSERT; the unique attempt id distinguishes our own
+        successful write from somebody else's conflicting revision.
+        """
+        sql = ("INSERT INTO kpi_policies "
+               "(id, run_id, version, revision, rules_json, actor, created_at) "
+               "SELECT ?, ?, COALESCE(MAX(version), 0) + 1, ?, ?, ?, ? "
+               "FROM kpi_policies WHERE run_id = ? "
+               "HAVING COALESCE((SELECT revision FROM kpi_policies WHERE run_id = ? "
+               "ORDER BY version DESC LIMIT 1), ?) = ?")
+        params = (identifier, run_id, revision, rules_json, actor, created_at,
+                  run_id, run_id, empty_revision, expected_revision)
+        try:
+            changed = self._exec_rowcount(sql, params)
+        except Exception as error:
+            import sqlite3
+            self._rollback()
+            unique = (getattr(error, "pgcode", None) == "23505"
+                      or getattr(error, "sqlite_errorcode", None) in
+                      (sqlite3.SQLITE_CONSTRAINT_UNIQUE, sqlite3.SQLITE_CONSTRAINT_PRIMARYKEY))
+            if not unique:
+                raise
+            changed = 0
+        if changed:
+            return True
+        own_attempt = self._exec("SELECT id FROM kpi_policies WHERE id = ?", (identifier,))
+        return bool(own_attempt)
 
     def latest_artifact(self, run_id):
         rows = self._exec(

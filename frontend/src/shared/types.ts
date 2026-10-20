@@ -485,6 +485,31 @@ export interface KpiMeasure {
   missing_policy: string
   undefined_reason: string | null
   edge_cases: string
+  assessment?: KpiAssessment
+}
+
+/** Operator-configured display targets. These do not approve maintenance. */
+export interface KpiRule {
+  direction: 'higher' | 'lower' | 'range'
+  scale: string
+  source_ref: string
+  good_at?: number
+  okay_at?: number
+  good_min?: number
+  good_max?: number
+  okay_min?: number
+  okay_max?: number
+}
+
+export interface KpiPolicy { revision: string; rules: Record<string, KpiRule> }
+export interface KpiAssessment {
+  status: 'good' | 'okay' | 'bad' | 'unassessed' | 'unavailable'
+  reason: string
+  reason_code: string
+  direction: KpiRule['direction'] | null
+  source_ref: string | null
+  rule_id: string | null
+  thresholds: Record<string, number> | null
 }
 
 export interface RunKpis {
@@ -507,6 +532,7 @@ export interface RunExecutive {
   headline: string
   readiness: { status: 'ready' | 'limited' | 'empty'; limitations: string[] }
   kpis: { measures: KpiMeasure[]; unavailable: Record<string, string> }
+  kpi_policy?: KpiPolicy
   priorities: Array<{ id: string; title: string; detail: string; evidence_refs: string[]; drilldown_id: string | null }>
   questions: Array<{ id: string; text: string; evidence_refs: string[] }>
   findings: Array<{ id: string; text: string; stage: string; kind: string; evidence_refs: string[]; scope: 'whole_run' }>
