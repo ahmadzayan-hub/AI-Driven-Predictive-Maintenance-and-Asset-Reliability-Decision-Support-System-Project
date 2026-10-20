@@ -533,6 +533,41 @@ independent-reconciliation changes through `b402def`:
   Playwright's configured web-server startup timed out before any test ran.
   That attempt supplies no browser pass or assertion result; its log is retained.
 
+### Who chose the breakdown — 20 October 2026
+
+Session `1eb4cedb`, continued after the parallel session's automatic-grouping
+and breakdown-refusal work landed. One dated decision:
+[the report says who chose the breakdown](docs/adr/2026-10-20-who-chose-the-breakdown.md).
+
+Run here in the project venv:
+
+- **The full Python suite: 1,403 tests, 0 failures, 0 errors, 144 skipped**
+  for want of a local PostgreSQL and other absent services
+  (`python -m unittest discover tests`, 186 s). This was the first completed
+  full-suite run on the merged tree, closing the gap the entry below could not
+  claim. It measured this session's own breakdown implementation, which was
+  then **withdrawn** in favour of the landed one, so it is evidence for the
+  tree's health at that commit and not for what shipped.
+- After the integration: `tests.test_analytics` **89 tests**, 5 of them new,
+  with `tests.test_report_language`, `tests.test_model_privacy_boundary` and
+  `tests.test_breakdown_contract` — **128 together, all passing**.
+  `scripts/brain_check.py --strict`: **27 notes, 0 broken links, 0 stale, 0
+  orphans.**
+- Each of the 5 new tests was watched failing against the unchanged tree
+  first: 5 errors, because neither claim nor its calculation existed.
+- The real stages over the capstone file (5,000 rows, 60 columns, unmapped,
+  read from disk; nothing stored, approved or published): the breakdown is
+  **`Asset_Class`, 5 groups**, where detection used to produce 5,000 groups of
+  one row; `group_totals_reconcile` passes on the 5 recomputed group totals at
+  `Σ(groups)=40,161.27 vs total=40,161.27`; and the report carries, in English
+  and Arabic, that this product chose `Asset_Class` as the first of **14**
+  candidate columns in the file's own column order, naming the other thirteen.
+
+**Not run, so not claimed:** the frontend suite, type check and build — no
+frontend file changed in this work; Playwright, the Miyaar suites, PostgreSQL
+and `pip-audit`. The parallel session's combined-source Linux CI at `fadc18d`
+is the authority for those.
+
 ### Measure-direction and reconciliation validation — 20 October 2026
 
 Session `1eb4cedb`, commit `79501e9` merged with the parallel session's work at

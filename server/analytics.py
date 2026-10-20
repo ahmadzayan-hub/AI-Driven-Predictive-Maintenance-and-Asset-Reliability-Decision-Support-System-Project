@@ -1066,8 +1066,12 @@ def governance(ctx):
 AUTO_GROUP_LIMIT = 200
 
 
-def _automatic_group(columns, numeric_columns, date_col, rows):
-    """Choose a repeated category, never an implicit record/person identifier."""
+def _automatic_groups(columns, numeric_columns, date_col, rows):
+    """Every column that could group these rows, in the file's own order.
+
+    The preparer takes the first and names the rest in a claim, so a reader
+    learns that this product chose the breakdown and what it chose among.
+    """
     candidates = []
     for column in columns:
         if (column in numeric_columns or column == date_col
@@ -1081,7 +1085,13 @@ def _automatic_group(columns, numeric_columns, date_col, rows):
     # The detector accepts text, while joined/cleaned rows can contain numbers.
     screened = [{c: str(row.get(c) or "") for c in candidates} for row in rows[:2000]]
     personal = {finding["column"] for finding in personal_data_findings(candidates, screened)}
-    return next((c for c in candidates if c not in personal), None)
+    return [c for c in candidates if c not in personal]
+
+
+def _automatic_group(columns, numeric_columns, date_col, rows):
+    """Choose a repeated category, never an implicit record/person identifier."""
+    return next(iter(_automatic_groups(columns, numeric_columns, date_col, rows)),
+                None)
 
 
 def preparer(ctx):
@@ -1100,7 +1110,8 @@ def preparer(ctx):
     else:
         date_col = next((c for c in columns if c.lower() in
                          ("month", "date", "period", "week", "year")), None)
-        group_col = _automatic_group(columns, numeric_columns, date_col, rows)
+        could_group = _automatic_groups(columns, numeric_columns, date_col, rows)
+        group_col = could_group[0] if could_group else None
     # A breakdown chosen for a joined run wins: it is usually why the
     # lookup was joined at all (ADR 0030).
     breakdown = (ctx.get("merge") or {}).get("breakdown")
@@ -1131,6 +1142,57 @@ def preparer(ctx):
     total = math.fsum(r[measure] for r in rows if r.get(measure) is not None)
     grain = ctx["cleaner"].get("date_grain") if mapping else None
     grain_ar = {"day": "اليوم", "month": "الشهر", "quarter": "الربع", "year": "السنة"}
+    calcs = [{"id": "c_total", "name": f"total_{measure}", "value": total,
+              "method": f"sum({measure}) over cleaned rows"}]
+    claims = [_claim(ctx, "cl_total", "calculation",
+                     f"Total {measure} is {total:,.2f}.",
+                     f"إجمالي {measure} هو {total:,.2f}.",
+                     ["c_total"])]
+    if not mapping and not breakdown:
+        # Nobody chose this breakdown. The decision above is a display
+        # heuristic, and a reader who is not told that reads the leading
+        # group as a finding about the business rather than about the file.
+        calcs.append({"id": "c_breakdown_candidates",
+                      "name": "columns_that_could_group", "value": len(could_group),
+                      "method": "repeated non-numeric columns within the display "
+                                "limit, excluding identifier-like, date-like and "
+                                "personal columns"})
+        others = could_group[1:]
+        if group_col:
+            claims.append(_claim(
+                ctx, "cl_breakdown_detected", "limitation",
+                f"Nothing in this dataset declares what to compare, so “{group_col}” "
+                f"was chosen by this product: of the {len(could_group)} columns that "
+                "could group these rows it is the first in the file's own column "
+                "order."
+                + (f" {', '.join(others)} could have been used instead, and a report "
+                   "on any of them would answer a different question with the same "
+                   "figures." if others else "")
+                + " A saved column mapping names the breakdown rather than leaving "
+                "it to column order.",
+                f"لا شيء في هذه البيانات يُعلن ما يُقارن، لذا اختار هذا "
+                f"المنتج «{group_col}»: فهو الأول في ترتيب أعمدة الملف "
+                f"من بين {_ar_n(len(could_group), 'column')} تصلح لتجميع هذه الصفوف."
+                + (f" وكان يمكن استخدام {'، '.join(others)} بدلاً منه، وأي "
+                   "تقرير عنها يجيب سؤالاً مختلفاً بالأرقام نفسها." if others else "")
+                + " وربط الأعمدة المحفوظ يسمّي عمود التقسيم بدل تركه "
+                "لترتيب الأعمدة.",
+                ["c_breakdown_candidates"]))
+        else:
+            claims.append(_claim(
+                ctx, "cl_breakdown_none", "limitation",
+                "No column in this dataset can group it for comparison: every "
+                "non-numeric column identifies records, holds dates, reads as "
+                "personal data, or has too many distinct values to compare. This "
+                "report has no breakdown, so it describes the whole population "
+                "and no segment of it. A saved column mapping names a breakdown.",
+                "لا يوجد عمود في هذه البيانات يصلح لتجميعها للمقارنة: "
+                "فكل عمود غير رقمي يُعرّف السجلات، أو يحمل تواريخ، "
+                "أو يُقرأ بيانات شخصية، أو تتعدد قيمه أكثر مما تصلح "
+                "معه المقارنة. لذا لا يحمل هذا التقرير تقسيماً، فهو يصف "
+                "المجتمع كله ولا يصف أي شريحة منه. وربط الأعمدة المحفوظ "
+                "يسمّي عمود التقسيم.",
+                ["c_breakdown_candidates"]))
     return _result(
         "succeeded",
         _say(ctx,
@@ -1151,12 +1213,7 @@ def preparer(ctx):
                 "trend": trend,
                 "trend_counts": trend_counts,
                 "total": total},
-        calculations=[{"id": "c_total", "name": f"total_{measure}", "value": total,
-                       "method": f"sum({measure}) over cleaned rows"}],
-        claims=[_claim(ctx, "cl_total", "calculation",
-                       f"Total {measure} is {total:,.2f}.",
-                       f"إجمالي {measure} هو {total:,.2f}.",
-                       ["c_total"])],
+        calculations=calcs, claims=claims,
     )
 
 

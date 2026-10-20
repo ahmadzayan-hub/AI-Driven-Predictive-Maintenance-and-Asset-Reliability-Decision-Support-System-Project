@@ -293,6 +293,22 @@ required local files. Both behaviors are covered by tests
     a changed file is new content, so it starts unmapped. Pasted CSV
     and the sample always use automatic detection. Unmapped data is
     still typed from column names, and its periods still sort as text.
+    Its breakdown is chosen by this product, not by a reader: the first
+    repeated non-numeric column in the file's own column order, with at
+    most 200 distinct values and at least two records per value on
+    average, excluding identifier-like, date-like and detected-personal
+    columns (dated decision
+    `2026-10-20-domain-models-and-automatic-grouping.md`). A file with
+    no such column gets a report with no breakdown at all. Either way a
+    bilingual limitation claim says the product chose it, names the
+    other columns that could have been used, or says why there is none
+    (dated decision `2026-10-20-who-chose-the-breakdown.md`); the
+    candidates are not ranked, because nothing here measures which
+    breakdown a reader wants. A run-level `breakdown` remains a
+    merged-table option only: declared without joins it is refused
+    rather than ignored, and a single dataset chooses its breakdown by
+    saving a column mapping (dated decision
+    `2026-10-20-reject-unsupported-single-dataset-breakdown.md`).
 22. Uneven periods are read per record (ADR 0026) only in the
     descriptive stage: its headline and a limitation claim give the
     per-record change when the quietest period holds under three

@@ -111,6 +111,80 @@ class AutomaticGroupingTests(unittest.TestCase):
         self.assertEqual(results["validator"]["status"], "succeeded")
 
 
+class WhoChoseTheBreakdownTestCase(unittest.TestCase):
+    """A detected breakdown is a display heuristic, and the report says so.
+
+    Automatic selection above stops the product grouping 5,000 records by
+    their record number. It does not tell the reader that the product, not
+    a person, chose what the leading group is a group of - and the leading
+    group is what the prescriptive stage recommends acting on.
+    """
+
+    TWO_CATEGORIES = "site,team,hours\n" + "".join(
+        f"{'North' if i % 2 else 'South'},{'Alpha' if i % 3 else 'Beta'},{i + 1}\n"
+        for i in range(30))
+    NOTHING_GROUPS = "Record_ID,value\n" + "".join(
+        f"R{i},{i + 1}\n" for i in range(30))
+
+    @staticmethod
+    def claims(ctx):
+        return {claim["id"]: claim for claim in ctx["preparer_result"]["claims"]}
+
+    @staticmethod
+    def calculation(ctx, calc_id):
+        return next(c for c in ctx["preparer_result"]["calculations"]
+                    if c["id"] == calc_id)
+
+    def test_a_detected_breakdown_says_the_product_chose_it_and_from_what(self):
+        ctx, results = run_pipeline(self.TWO_CATEGORIES)
+        self.assertEqual(results["validator"]["status"], "succeeded")
+        self.assertEqual(ctx["preparer"]["group_col"], "site")
+        claim = self.claims(ctx)["cl_breakdown_detected"]
+        self.assertEqual(claim["type"], "limitation")
+        self.assertIn("site", claim["text"])
+        self.assertIn("column order", claim["text"])
+        # The column that could have been the breakdown instead is named,
+        # because a report on it answers a different question.
+        self.assertIn("team", claim["text"])
+        self.assertEqual(self.calculation(ctx, "c_breakdown_candidates")["value"], 2)
+        self.assertEqual(claim["evidence"], ["c_breakdown_candidates"])
+
+    def test_the_only_candidate_is_not_described_as_chosen_among_others(self):
+        source = "site,hours\n" + "".join(
+            f"{'North' if i % 2 else 'South'},{i + 1}\n" for i in range(30))
+        ctx, _ = run_pipeline(source)
+        claim = self.claims(ctx)["cl_breakdown_detected"]
+        self.assertNotIn("could have been used instead", claim["text"])
+        self.assertEqual(self.calculation(ctx, "c_breakdown_candidates")["value"], 1)
+
+    def test_an_ungrouped_report_says_why_it_has_no_breakdown(self):
+        ctx, results = run_pipeline(self.NOTHING_GROUPS)
+        self.assertEqual(results["validator"]["status"], "succeeded")
+        self.assertIsNone(ctx["preparer"]["group_col"])
+        claim = self.claims(ctx)["cl_breakdown_none"]
+        self.assertIn("no breakdown", claim["text"])
+        self.assertEqual(self.calculation(ctx, "c_breakdown_candidates")["value"], 0)
+        self.assertNotIn("cl_breakdown_detected", self.claims(ctx))
+
+    def test_a_declared_breakdown_is_never_called_detected(self):
+        """What the owner mapped, and what a joined run declared, were both
+        chosen by somebody; neither gets a claim saying otherwise."""
+        ctx, _ = run_pipeline(linear_dataset(), mapping=explicit_grouping())
+        self.assertEqual(ctx["preparer"]["group_col"], "team")
+        for claim_id in ("cl_breakdown_detected", "cl_breakdown_none"):
+            self.assertNotIn(claim_id, self.claims(ctx))
+
+    def test_both_claims_carry_arabic_that_cites_the_same_figures(self):
+        for source, claim_id in ((self.TWO_CATEGORIES, "cl_breakdown_detected"),
+                                 (self.NOTHING_GROUPS, "cl_breakdown_none")):
+            with self.subTest(claim=claim_id):
+                ctx, _ = run_pipeline(source, language="ar")
+                claim = self.claims(ctx)[claim_id]
+                self.assertIn("text_ar", claim)
+                self.assertEqual(analytics.figures(claim["text"]),
+                                 analytics.figures(claim["text_ar"]))
+
+
 class FourAnalyticsTypesTestCase(unittest.TestCase):
     @staticmethod
     def fractional_groups():
