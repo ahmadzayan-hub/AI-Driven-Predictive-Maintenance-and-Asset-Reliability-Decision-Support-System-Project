@@ -3,7 +3,7 @@ type: project
 aliases: [Capstone, Group 9226 capstone]
 tags: [project, course]
 status: active
-updated: 2026-10-17
+updated: 2026-10-20
 review_every_days: 3
 sources: [project-progress.md, docs/AGENT_TEAM.md, Memory.md]
 ---
@@ -16,7 +16,7 @@ The course capstone of the [[User]]'s team: an executive analytics package on pr
 
 | Deliverable | Format | State on 2026-10-17 |
 | --- | --- | --- |
-| Executive dashboard | Power BI `.pbix` | Build kit ready: Power Query, DAX, theme, 30 expected values. Not yet built: only Power BI Desktop can save a `.pbix` |
+| Executive dashboard | Power BI `.pbix` | Built on 20 October and committed in `4750852`: 8 pages, 204 visuals, `Condition_Score`/`Condition_Band` rather than any health wording. A thin report on a live Power BI Service connection, Purview *Confidential*, so it cannot be opened or its figures checked outside that workspace |
 | Executive presentation | `.pptx`, 12 to 15 slides | Release candidate: 15 slides, 16:9, with speaker notes and alt text, in the [[House style]] |
 | Analytical report | `.pdf`, 20 to 25 pages | Release candidate: 23 A4 pages with a cover and contents, in the [[House style]]; team-owned items highlighted |
 
