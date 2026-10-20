@@ -85,6 +85,50 @@ def _intent(cases):
     return [(c["label"], assistant.understand(c["text"])["action"], c["text"]) for c in cases]
 
 
+NOTES = {}   # per-suite remarks a predictor wants printed (the model suite's fallbacks)
+
+
+def _intent_model(cases, gateway=None):
+    """The chat assistant as deployed: a configured model decides first and the
+    rules decide when it is absent or its answer is not a valid intent
+    (ADR 0019). Returns None, so the suite reads "not available", when no
+    provider is configured: this environment, CI and any install without a
+    key or a local model. Sentences are synthetic; nothing here is data.
+
+    Opt-in: `--suite intent_model`. It sends every case to the provider, so it
+    is never part of the default run, the floors or the agent loop.
+    """
+    import tempfile
+    from contextlib import closing
+    from agent import Agent
+    from server.assistant import Assistant
+    from server.model_gateway import ModelGateway
+    from server.runs import RunEngine
+    from server.storage import open_store
+
+    gateway = gateway or ModelGateway()
+    if not gateway.status().get("configured"):
+        return None
+
+    class Session:
+        id, owner, transcript = "eval", "eval", []
+        agent = Agent({"agent_name": "eval", "version": "1",
+                       "preferences": {"language": "English", "tone": "friendly"}})
+
+    out, fell_back = [], 0
+    with tempfile.TemporaryDirectory() as tmp:
+        store = open_store(None, Path(tmp) / "eval.db")
+        with closing(store):
+            assistant = Assistant(gateway, RunEngine(store, Path(tmp) / "vault", gateway))
+            for case in cases:
+                understood = assistant.understand(case["text"], Session)
+                fell_back += understood["source"] != "model"
+                out.append((case["label"], understood["action"], case["text"]))
+    NOTES["intent_model"] = (f"{fell_back} of {len(cases)} sentences were decided by the rules "
+                             "(model absent, answer invalid, or privacy guard)")
+    return out
+
+
 def _tables(cases):
     from server import mapping
     for case in cases:
@@ -168,6 +212,9 @@ def _figures(cases):
 
 
 SUITES = {
+    "intent_model": {"file": "intent.json", "predict": _intent_model, "opt_in": True,
+                     "agent": "Assistant with a model behind the rules: what a chat sentence asks for",
+                     "module": "server/assistant.Assistant.understand"},
     "intent": {"file": "intent.json", "predict": _intent, "agent": "Assistant: what a chat sentence asks for",
                "module": "assistant.understand"},
     "column_roles": {"file": "datasets.json", "predict": _roles, "agent": "Column mapping: each column's role",
@@ -191,12 +238,17 @@ SUITES = {
 }
 
 
-def run_suite(name):
+def default_suites():
+    """The suites a plain run, the floors and the agent loop cover."""
+    return [name for name, spec in SUITES.items() if not spec.get("opt_in")]
+
+
+def run_suite(name, extra_splits=()):
     spec = SUITES[name]
     data = json.loads((EVALS / spec["file"]).read_text(encoding="utf-8"))
     labels = spec.get("labels") or data["labels"]
     result = {"suite": name, "agent": spec["agent"], "module": spec["module"], "about": data.get("about", "")}
-    for split in ("dev", "holdout"):
+    for split in ("dev", "holdout", *[x for x in extra_splits if x in data]):
         pairs = spec["predict"](data[split])
         if pairs is None:
             result[split] = None
@@ -207,6 +259,8 @@ def run_suite(name):
                          **scores(all_labels, matrix, spec.get("positive")),
                          "misses": [{"item": what, "truth": str(t), "predicted": str(p)}
                                     for t, p, what in pairs if t != p]}
+    if name in NOTES:
+        result["notes"] = NOTES[name]
     return result
 
 
@@ -229,14 +283,17 @@ def pct(value):
 def print_results(results, misses):
     for r in results:
         print(f"\n{r['suite']} · {r['agent']} ({r['module']})")
-        for split in ("dev", "holdout"):
+        for split in [k for k in r if k in ("dev", "holdout") or k.startswith("blind_")]:
             s = r[split]
             if s is None:
-                print(f"  {split:8} not available")
+                print(f"  {split:8} not available (no model provider is configured)"
+                      if r["suite"] == "intent_model" else f"  {split:8} not available")
                 continue
             kind = f"recall {pct(s['recall'])}, precision {pct(s['precision'])}" if "positive" in s \
                 else f"macro recall {pct(s['macro_recall'])}"
             print(f"  {split:8} {s['cases']:3} cases · accuracy {pct(s['accuracy'])} · {kind}")
+        if r.get("notes"):
+            print(f"  note: {r['notes']}")
         if misses and r["dev"]:
             for m in r["dev"]["misses"]:
                 print(f"    MISS  {m['item']}: expected {m['truth']}, got {m['predicted']}")
@@ -354,12 +411,14 @@ def render_html(results, reviewers=None):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--suite", action="append", choices=sorted(SUITES), help="one suite (repeatable)")
+    parser.add_argument("--split", action="append", default=[],
+                        help="also score a named extra split, such as blind_v7 (repeatable)")
     parser.add_argument("--misses", action="store_true", help="list the dev cases each suite got wrong")
     parser.add_argument("--json", help="write the full results here")
     parser.add_argument("--html", help="write the report page here")
     parser.add_argument("--check", action="store_true", help="exit 1 when a suite is below its floor")
     args = parser.parse_args(argv)
-    results = [run_suite(name) for name in (args.suite or SUITES)]
+    results = [run_suite(name, args.split) for name in (args.suite or default_suites())]
     print_results(results, args.misses)
     if args.json:
         Path(args.json).write_text(json.dumps(results, ensure_ascii=False, indent=1, default=str), encoding="utf-8")

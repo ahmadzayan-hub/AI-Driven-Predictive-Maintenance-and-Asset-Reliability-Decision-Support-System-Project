@@ -54,7 +54,8 @@ class MetricsTests(unittest.TestCase):
 class SuiteTests(unittest.TestCase):
 
     def test_every_suite_has_dev_and_holdout_cases_with_known_labels(self):
-        for name, spec in ev.SUITES.items():
+        for name in ev.default_suites():
+            spec = ev.SUITES[name]
             with self.subTest(suite=name):
                 data = json.loads((ev.EVALS / spec["file"]).read_text(encoding="utf-8"))
                 self.assertTrue(data["dev"] and data["holdout"])
@@ -65,7 +66,7 @@ class SuiteTests(unittest.TestCase):
 
     def test_no_suite_falls_below_its_recall_floor(self):
         floors = json.loads((ev.EVALS / "floors.json").read_text(encoding="utf-8"))
-        for name in ev.SUITES:
+        for name in ev.default_suites():
             result = ev.run_suite(name)
             for split in ("dev", "holdout"):
                 with self.subTest(suite=name, split=split):
@@ -253,6 +254,46 @@ class RecallFixTests(unittest.TestCase):
                 self.assertEqual(claims_lint.causal_phrases(text), [])
         self.assertTrue(claims_lint.causal_phrases("Rising temperatures drive the failures."))
         self.assertTrue(claims_lint.causal_phrases("جاءت نتيجة تحديث النظام."))
+
+    def test_the_model_suite_is_opt_in_and_says_so_without_a_provider(self):
+        """intent_model sends every case to a provider, so it is never part of the
+        default run, the floors or the agent loop, and it reports "not available"
+        rather than a score when nothing is configured."""
+        self.assertNotIn("intent_model", ev.default_suites())
+        self.assertIn("intent_model", ev.SUITES)
+
+        class Unconfigured:
+            def status(self):
+                return {"configured": False}
+        self.assertIsNone(ev._intent_model([{"text": "help", "label": "help"}], Unconfigured()))
+        from server import agent_learning
+        self.assertNotIn("intent_model", agent_learning.measure(["column_roles"])["suites"])
+
+    def test_the_model_suite_scores_the_whole_assistant_through_a_scripted_provider(self):
+        """What the number would mean once a real provider is configured: the model
+        decides first, and the rules decide when its answer is not a valid intent."""
+        answers = {"save this for me": "remember", "how is the run": "run_status",
+                   "show the notes": "recall", "hello there friend": "chat"}
+
+        class Scripted:
+            def status(self):
+                return {"configured": True, "provider": "scripted", "model": "fake"}
+
+            def ask_json(self, system, user, **options):
+                text = user.rsplit("Message: ", 1)[1]
+                if text == "show the notes":       # an invalid answer: the rules decide
+                    return "not json"
+                action = answers[text]
+                arguments = {"information": "the user's note"} if action == "remember" else {}
+                return json.dumps({"action": action, "arguments": arguments,
+                                   "reply": "Hi!" if action == "chat" else ""})
+        cases = [{"text": t, "label": a} for t, a in answers.items()]
+        pairs = ev._intent_model(cases, Scripted())
+        self.assertEqual([p[1] for p in pairs], ["remember", "run_status", "recall", "chat"])
+        # "show the notes" got an invalid answer and the rules placed it correctly;
+        # the suite says how many sentences the model did not decide.
+        self.assertIn("1 of 4", ev.NOTES["intent_model"])
+        self.assertEqual(sum(1 for t, p, _ in pairs if t == p), 4)
 
     def test_the_claims_lint_cli_exits_by_result(self):
         with tempfile.TemporaryDirectory() as tmp:

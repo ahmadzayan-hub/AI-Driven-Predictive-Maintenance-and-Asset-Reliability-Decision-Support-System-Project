@@ -129,7 +129,7 @@ def measure(suites=None, harness=None, rev=None):
     being held out.
     """
     harness = harness or _harness()
-    names = list(suites or harness.SUITES)
+    names = list(suites or (harness.default_suites() if hasattr(harness, "default_suites") else harness.SUITES))
     record = {"at": _now(), "rev": rev or _git_rev(), "suites": {}}
     for name in names:
         result = harness.run_suite(name)
