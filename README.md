@@ -422,6 +422,33 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Agent collaboration and restrained motion — 20 October 2026
+
+The Runs workspace now presents **Agents working together**: Hermes, workflow
+groups, observed handoffs, stage inspection, current evidence and recent activity.
+Pause live view holds the panel while analysis continues. English/Arabic,
+system/app reduced motion and keyboard controls are included. The
+[study](docs/design/AGENT_COLLABORATION_MOTION.md) and
+[decision](docs/adr/2026-10-20-observed-agent-collaboration.md) explain the
+distinction between observed workflow connections and actual message transcripts.
+
+- Local focused unit tests: **21 passed across 2 existing files**. TypeScript,
+  production build, strict brain check, **5 native contracts** and **33 Python
+  documentation/verifier/release-policy tests** passed.
+- Initial targeted browser run: **9 passed, 1 viewport-specific skip**, covering
+  the new panel and the real pipeline's approval/evidence flow. Final targeted
+  rerun: **4 / 4 passed**, including RTL count isolation in both the diagram and
+  sidebar, expanded mobile inspection and the existing evidence dialog.
+  Actual synthetic captures: [desktop](docs/screenshots/agent-collaboration-desktop-ar.png)
+  and [320 px phone](docs/screenshots/agent-collaboration-mobile-ar.png).
+- Final measured budget: initial JS **98.5 / 100 KB**, total JS **184.4 / 185 KB**,
+  largest lazy chunk **18.1 / 30 KB**, initial CSS **10.0 / 10 KB**, total CSS
+  **22.7 / 23 KB**, fonts **119.4 / 120 KB**. The dated decision increases only
+  total CSS by 1 KB; no dependency or extra polling was introduced.
+- Main's incoming breakdown-provenance work through `39ad29e` is preserved.
+  Full combined-source CI is pending; older CI results below do not verify this
+  feature. Production was not deployed.
+
 ### Corrective project review — 20 October 2026
 
 Implementation `1dd73ae`, integrated with the incoming chart tests at `390f4c6`.

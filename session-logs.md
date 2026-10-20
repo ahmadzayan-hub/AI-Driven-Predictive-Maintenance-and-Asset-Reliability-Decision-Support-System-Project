@@ -948,3 +948,13 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Open / next:** service-owner approval and hosted acceptance of the corrected release, followed by independent maintenance-domain validation. Branch/release governance remains part of service acceptance. The tested application, test files and deployment configuration remain unchanged from the successful combined CI source `fadc18d`.
 - **Blockers:** none for the approved visibility change. The two remaining acceptance gates still require their owners; containment does not authorize a production deployment or acceptance on their behalf.
 - **Review outcome:** rounds four and five measured 77.8% each, following the original three rounds at 66.7%. Seven gates pass, none are accepted exceptions, and hosted-release/domain acceptance remain open. The loop reached its five-round bound. This is checklist completion, not a product-quality rating.
+
+## 2026-10-20 · `agent-collaboration` · main
+
+**Goal:** study and implement professional, restrained animation and a combined view of agent workflow communication and interaction.
+
+- **Done:** added a lazy collaboration panel to Runs: Hermes/workflow groups, observed handoff highlights, stage order, summaries, current evidence, bounded activity and independent pause/resume of the view. Added English/Arabic, reduced-motion and background/interruption handling. Recorded the design study and dated decision. Preserved incoming team work through `39ad29e`, including breakdown provenance.
+- **Verified:** focused unit, native contract, browser/accessibility, typecheck/build, brain and documentation/verifier/release-policy checks are recorded with their measured counts in README.md#testing. Browser screenshots exposed reversed RTL ratios; their numbers now use explicit LTR isolation. Full combined-source CI is pending.
+- **Decisions:** show observed states and workflow order because the server has no message transcript or complete stage event stream. No extra polling, backend change or dependency. The lazy panel increases only the aggregate CSS budget; initial-load, JavaScript and font ceilings remain unchanged. Owner preference is preserved in Memory and the brain.
+- **Open / next:** complete combined-source CI, then report the evidence on main. A future actual communication transcript needs a tenant-scoped durable event contract. Hosted-release and independent domain acceptance remain owner gates.
+- **Blockers:** none for source implementation. No production deployment or pull request was requested or performed.

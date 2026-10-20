@@ -56,6 +56,11 @@ test('drafts, deep links, evidence and exact-report keyboard approval', async ({
   await expect(page.locator('#workspace-main')).toBeFocused()
   await page.reload()
   await expect(page.locator('.cockpit__finding')).toContainText('45%')
+  const collaboration = page.getByRole('region', { name: 'Agents working together' })
+  await expect(collaboration).toBeVisible()
+  await collaboration.getByRole('button', { name: /^Analytics/ }).click()
+  await expect(collaboration.getByText(/Connections show stage order/)).toBeVisible()
+  await expect(collaboration).toHaveAttribute('data-working', 'false')
 
   await page.getByRole('button', { name: /^Why is this true\?/ }).first().click()
   const evidence = page.getByRole('dialog', { name: 'Why is this true?' })

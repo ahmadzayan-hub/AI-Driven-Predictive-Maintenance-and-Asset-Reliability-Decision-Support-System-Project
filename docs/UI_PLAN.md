@@ -69,7 +69,7 @@ Amber is the highlight, not the primary action. The recommendation put the call 
 
 - Spacing keeps the existing 8-point scale (4 to 32 px). Dashboards use the dense end, 8 to 16 px between related items.
 - Radius: 8, 12 and 16 px. No gradients, no glow, no glass. Shadows only for things that float: menus, dialogs, the bottom bar.
-- Motion is CSS only: 140 ms for state changes and 220 ms for panels. No motion library. Both the system and in-app reduced-motion settings stop it.
+- Motion is CSS only: 140 ms for state changes, 220 ms for panels, and one 900 ms connection highlight for a newly observed agent stage (the 20 October collaboration decision). No motion library. Both the system and in-app reduced-motion settings stop it.
 - Icons are the inline SVG set in `shared/components/Icon`, never emoji. Every icon-only button has a label.
 
 ### Charts
@@ -183,7 +183,7 @@ From the skill's UX guidelines, applied here:
 | Keyboard | Every action reachable; visible focus ring; no keyboard traps; Escape closes overlays |
 | Layout | No horizontal page scroll from 320 to 1440 px |
 | Lighthouse (mobile) | Performance at least 95; Accessibility 100; Best Practices at least 95 |
-| Budget | JavaScript on first load at most 100 KB gzipped, all scripts at most 185 KB (the 20 October performance-color decision, persisted bilingual performance targets), and no view's chunk over 30 KB (ADR 0028: 85.7, 105.6 and 5.0 KB after views moved to chunks loaded on demand; a view's strings ship with its chunk, ADR 0035). CSS on the first load at most 10 KB gzipped and all CSS at most 22 KB (the 20 October performance-color decision), since a view's styles ship with its chunk (ADR 0032); fonts at most 120 KB (7.7 and 119.4 KB) |
+| Budget | JavaScript on first load at most 100 KB gzipped, all scripts at most 185 KB (the 20 October performance-color decision, persisted bilingual performance targets), and no view's chunk over 30 KB (ADR 0028: 85.7, 105.6 and 5.0 KB after views moved to chunks loaded on demand; a view's strings ship with its chunk, ADR 0035). CSS on the first load at most 10 KB gzipped and all CSS at most 23 KB (the [20 October collaboration decision](adr/2026-10-20-observed-agent-collaboration.md)), since a view's styles ship with its chunk (ADR 0032); fonts at most 120 KB (7.7 and 119.4 KB) |
 | Core Web Vitals | LCP under 2.5 s, CLS under 0.1, INP under 200 ms |
 
 ## 8. Phases

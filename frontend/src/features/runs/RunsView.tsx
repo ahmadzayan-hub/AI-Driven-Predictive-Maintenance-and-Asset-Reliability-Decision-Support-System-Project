@@ -1,5 +1,5 @@
 import '../../shared/styles/analytics.css'
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useSessionDraft } from '../../shared/useSessionDraft'
 import { useI18n } from '../../i18n'
 import { api, ApiError, MAX_UPLOAD_BYTES, UPLOAD_ACCEPT } from '../../shared/api'
@@ -28,6 +28,8 @@ import { ModelCards } from './ModelCards'
 import { PlanPreview, RunTimeline } from './RunTimeline'
 import { runStore, useRun } from './runStore'
 import { UploadPreview } from '../datasets/UploadPreview'
+
+const AgentCollaboration = lazy(() => import('./AgentCollaboration'))
 
 const ACTIVE_STATES = ['queued', 'running']
 
@@ -767,6 +769,8 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
             return task ? `${task.title}: ${stateLabel(t, task.state)}` : stateLabel(t, run.state)
           })()}</p>
           <ApprovalCard detail={run} onDecision={(detail) => { setRun(detail); void refreshList() }} />
+          <Suspense fallback={null}><AgentCollaboration key={run.id} run={run} events={snapshot.events}
+            interrupted={snapshot.interrupted} pipelines={pipelines} onEvidence={setEvidenceTask} /></Suspense>
           {run.reports.length ? <section className="finding-grid" aria-label={t('overview.findings')}>
             {run.reports.filter((section) => ['descriptive', 'diagnostic', 'predictive', 'prescriptive'].includes(section.type)).map((section) => {
               const task = run.tasks.find((item) => item.role === section.type)
