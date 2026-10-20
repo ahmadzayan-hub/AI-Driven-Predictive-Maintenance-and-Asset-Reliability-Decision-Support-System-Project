@@ -986,3 +986,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Defect found by the build:** the first scorecard reply was withheld by the project's privacy guard; a 16-digit recall float and an ISO timestamp read as phone numbers. Fixed by rounding and a spelled-out month.
 - **Open / next:** a source of genuinely new labelled cases (consented, redacted, tenant-scoped); the causal floor (68%) is stale against a holdout that was fitted to, which is the owner's call to raise; harder reviewer memos; wiring a model-backed runtime as an improver once a key or local model exists. E2E tests were not run: no frontend or API route changed.
 - **Blockers:** none. Not merged to `main`: this session's instructions name the working branch only, so the standing `main` permission in CLAUDE.md was not exercised without the owner saying so.
+
+## 2026-10-20 · `d9e3f889` · claude/tender-clarke-m4uwgq (continued)
+
+**Goal:** draft the consent and redaction decision for new labelled cases.
+
+- **Done:** merged the measurement loop to `main` (`d56578b`) on the owner's instruction, then drafted `docs/adr/2026-10-20-labelled-cases-from-real-use.md` as **Proposed**: sources of labels, what the code stores and erases today, four options, a recommendation, the consent, redaction and tenancy rules for the conditional option, and questions for counsel. No code changed.
+- **Verified:** `verify.py --quick` passed after the merge (1462 Python tests, 262 frontend). The draft's claims about storage, erasure and the detector were read from the code. The legal summary comes from secondary commentary only and is marked unverified.
+- **Decisions:** none taken; the owner chooses. Recommendation: synthetic blind cases now, per-item contribution only after a measured mismatch and a pilot customer's written agreement.
+- **Open / next:** owner's choice; counsel on the UAE personal data law and on whether a government customer may allow this at all.

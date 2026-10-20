@@ -105,6 +105,7 @@ Last updated: 2026-10-20, session `agent-loop`, after `agent-collaboration`, pre
 
 ## Next
 
+0. **Decide how the agents get genuinely new labelled cases** ([proposed decision](docs/adr/2026-10-20-labelled-cases-from-real-use.md), owner's choice among A, D, C). Recommended: blind synthetic cases now; per-item consented contribution only after a measured mismatch and a pilot customer's written agreement. Needs counsel on the UAE personal data law, which has not been verified against the statute.
 1. Resolve the release blockers and acceptance gates in `private/project-review-2026-10-17/PROJECT_ASSESSMENT.md`, then complete independent maintenance/model acceptance beyond the now-connected controlled KPI register and executive evidence view. Complete the capstone PBIX/model-evidence package alongside stabilization; confirm official dates from the course source.
 2. Observe the manager's timed review task, real Windows/Android/iOS PWA installation and assistive-technology use; measure fresh Web Vitals. Automated interface checks and bundle budgets pass; see the validation record for the remaining observations. CSS is near its existing limit, so trim before adding styles or record a justified budget change in an ADR.
 3. Exercise a live source against a real public host, and a scheduled refresh with the worker, on a deployment with direct egress. For workbooks with non-tabular cover sheets, add metadata discovery before parsing; the current picker requires the first visible sheet to parse.
