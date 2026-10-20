@@ -124,6 +124,9 @@ met_sla.columns = ("SLA_Actual_Hours", "SLA_Target_Hours")
 # which is a fact about that source, so it is declared per KPI and never
 # assumed.
 EXCLUDE, ZERO = "exclude", "zero"
+
+# Dashboard groups for the register's measures.
+FAMILIES = ("reliability", "execution", "cost", "other")
 MISSING_POLICIES = (EXCLUDE, ZERO)
 
 
@@ -143,7 +146,7 @@ class Kpi:
 
     def __init__(self, key, title, title_ar, numerator, denominator, population,
                  population_name, scale, meaning, *, edge_cases=None,
-                 missing=EXCLUDE, complement=False):
+                 missing=EXCLUDE, complement=False, family=None):
         self.key = key
         self.title = title
         self.title_ar = title_ar
@@ -162,6 +165,11 @@ class Kpi:
         # availability: the time NOT lost. The result is still a ratio of
         # sums, taken from the complement, so no per-record rate is averaged.
         self.complement = complement
+        # The group a dashboard shows this measure in. A grouping only, never
+        # a verdict: whether a figure is good is a target's job (performance).
+        if family is not None and family not in FAMILIES:
+            raise ValueError(f"{key}: family {family!r} is not one of {', '.join(FAMILIES)}")
+        self.family = family or "other"
 
     @staticmethod
     def _columns(term):
@@ -292,6 +300,7 @@ class Kpi:
             "records_excluded": len(rows) - len(population),
             "records_unmeasured": unmeasured,
             "missing_policy": self.missing,
+            "family": self.family,
             # An absence, said out loud. A caller that prints 0% here is
             # claiming perfection from no evidence.
             "undefined_reason": undefined,
@@ -331,7 +340,8 @@ _add(Kpi("preventive_share", "Preventive share of work orders",
          edge_cases="Measured against preventive plus corrective work, not "
                     "against every completed order: the completed count may "
                     "cover a wider population and gives a different, higher "
-                    "figure for the same words."))
+                    "figure for the same words.",
+         family="execution"))
 
 _add(Kpi("first_time_fix", "First-time fix rate", "معدل الإصلاح من المرة الأولى",
          "First_Time_Fix_Count", "Corrective_WO_Count", corrective_only,
@@ -339,13 +349,15 @@ _add(Kpi("first_time_fix", "First-time fix rate", "معدل الإصلاح من 
          "Share of corrective work that held without a return visit.",
          edge_cases="Measured on corrective work only. Preventive records "
                     "commonly store a placeholder of 0 and must be excluded, "
-                    "not averaged in."))
+                    "not averaged in.",
+         family="execution"))
 
 _add(Kpi("repeat_repair", "Repeat repair rate", "معدل تكرار الإصلاح",
          "Repeat_Repair_Count", "Corrective_WO_Count", corrective_only,
          "corrective records", contract.PERCENT,
          "Share of corrective work that came back.",
-         edge_cases="Same population as first-time fix, so the two agree."))
+         edge_cases="Same population as first-time fix, so the two agree.",
+         family="execution"))
 
 _add(Kpi("overdue_share", "Overdue as a share of completed work",
          "المتأخر كنسبة من الأعمال المنجزة",
@@ -356,7 +368,8 @@ _add(Kpi("overdue_share", "Overdue as a share of completed work",
                     "a period. Comparing them is a ratio, not a conservation. "
                     "Not the overdue rate: that divides by all work raised "
                     "(preventive plus corrective), so the two differ for the "
-                    "same data."))
+                    "same data.",
+         family="execution"))
 
 _add(Kpi("overdue_rate", "Overdue rate of work orders raised",
          "معدل التأخر في أوامر العمل",
@@ -367,7 +380,8 @@ _add(Kpi("overdue_rate", "Overdue rate of work orders raised",
          edge_cases="A count share, not a standards backlog: a backlog is "
                     "outstanding work hours divided by weekly craft capacity, in "
                     "weeks, which needs fields most exports lack. Matches the "
-                    "stored WO_Backlog_Rate per record, pooled."))
+                    "stored WO_Backlog_Rate per record, pooled.",
+         family="execution"))
 
 _add(Kpi("availability", "Availability", "الجاهزية",
          "Downtime_Hours", "Planned_Operating_Hours", every_record,
@@ -381,7 +395,8 @@ _add(Kpi("availability", "Availability", "الجاهزية",
                     "delay. Operating divided by planned is utilisation, a "
                     "different measure that this register used to publish under "
                     "this name. A stored Availability_Pct column is a per-record "
-                    "0-1 fraction; its mean is not this figure."))
+                    "0-1 fraction; its mean is not this figure.",
+         family="reliability"))
 
 _add(Kpi("utilisation", "Utilisation", "نسبة الاستخدام",
          "Operating_Hours", "Planned_Operating_Hours", every_record,
@@ -389,7 +404,8 @@ _add(Kpi("utilisation", "Utilisation", "نسبة الاستخدام",
          "Share of planned hours the asset actually ran.",
          edge_cases="Idle time that was planned, or demand that was not there, "
                     "lowers utilisation without any failure. It says how much of "
-                    "the plan was used, not how reliable the asset was."))
+                    "the plan was used, not how reliable the asset was.",
+         family="reliability"))
 
 _add(Kpi("availability_inherent", "Inherent availability (operating-time basis)",
          "الجاهزية الذاتية (على أساس زمن التشغيل)",
@@ -398,7 +414,8 @@ _add(Kpi("availability_inherent", "Inherent availability (operating-time basis)"
          "Operating time as a share of operating time plus downtime.",
          edge_cases="Equals MTBF / (MTBF + MTTR) when every downtime hour follows "
                     "a failure. A different time base from availability, so the "
-                    "two differ for the same data: name the variant."))
+                    "two differ for the same data: name the variant.",
+         family="reliability"))
 
 _add(Kpi("mtbf", "Mean time between failures", "متوسط الزمن بين الأعطال",
          "Operating_Hours", "Failure_Count", every_record,
@@ -409,7 +426,8 @@ _add(Kpi("mtbf", "Mean time between failures", "متوسط الزمن بين ا�
                     "it adds no failure. Averaging a stored per-record MTBF, "
                     "which gives such a record one failure at the end of its "
                     "hours, overstates the figure. Undefined, not zero or "
-                    "infinite, when no failure was recorded."))
+                    "infinite, when no failure was recorded.",
+         family="reliability"))
 
 _add(Kpi("mttr", "Mean time to restore (downtime per failure)",
          "متوسط زمن الاستعادة (التوقف لكل عطل)",
@@ -420,7 +438,8 @@ _add(Kpi("mttr", "Mean time to restore (downtime per failure)",
                     "failure, so it includes detection, waiting and logistic "
                     "delay if the source recorded them. It is not active repair "
                     "time. Confirm which a stored MTTR column holds before "
-                    "comparing."))
+                    "comparing.",
+         family="reliability"))
 
 _add(Kpi("sla_attainment", "SLA attainment", "نسبة تحقيق مستوى الخدمة",
          Count(met_sla, met_sla.columns, "SLA_Actual_Hours <= SLA_Target_Hours"),
@@ -430,21 +449,24 @@ _add(Kpi("sla_attainment", "SLA attainment", "نسبة تحقيق مستوى ا�
          edge_cases="A record finished exactly on target counts as met. A record "
                     "missing either hour reading is unmeasured, not a miss. The "
                     "mean of min(1, target / actual) is a performance score, not "
-                    "attainment, and is deliberately not in this register."))
+                    "attainment, and is deliberately not in this register.",
+         family="execution"))
 
 _add(Kpi("downtime_per_record", "Downtime per record", "التوقف لكل سجل",
          "Downtime_Hours", RECORDS, every_record,
          "all records", contract.HOURS,
          "Average hours lost per maintenance record.",
          edge_cases="Per record, not per period: record volume differs between "
-                    "periods, so a falling total need not mean less downtime."))
+                    "periods, so a falling total need not mean less downtime.",
+         family="reliability"))
 
 _add(Kpi("loss_per_downtime_hour", "Loss per downtime hour", "الخسارة لكل ساعة توقف",
          "Production_Loss_USD", "Downtime_Hours", every_record,
          "all records", contract.MONEY,
          "Economic consequence of an hour of downtime.",
          edge_cases="Usually the source's own valuation. Report the basis, or "
-                    "state that it is undocumented."))
+                    "state that it is undocumented.",
+         family="cost"))
 
 _add(Kpi("cost_per_operating_hour", "Maintenance cost per operating hour",
          "تكلفة الصيانة لكل ساعة تشغيل",
@@ -452,7 +474,8 @@ _add(Kpi("cost_per_operating_hour", "Maintenance cost per operating hour",
          "all records", contract.MONEY,
          "What it costs to keep the asset running for an hour.",
          edge_cases="Confirm the financial scope of the cost column before "
-                    "comparing it across sites or contracts."))
+                    "comparing it across sites or contracts.",
+         family="cost"))
 
 
 def computable(columns):

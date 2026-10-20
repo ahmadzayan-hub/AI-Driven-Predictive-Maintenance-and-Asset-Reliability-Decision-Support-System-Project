@@ -484,6 +484,8 @@ export interface KpiMeasure {
   records_excluded: number
   records_unmeasured: number
   missing_policy: string
+  /** Dashboard group: reliability, execution, cost or other. Never a verdict. */
+  family?: string
   undefined_reason: string | null
   edge_cases: string
   assessment?: KpiAssessment

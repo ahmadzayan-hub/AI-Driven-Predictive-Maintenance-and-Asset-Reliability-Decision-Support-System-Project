@@ -413,3 +413,23 @@ class CorrectedMeasuresTest(unittest.TestCase):
         self.assertNotIn("utilisation", keys)
         self.assertIn("Operating_Hours", unavailable["utilisation"])
 
+    def test_every_measure_names_a_dashboard_family_and_it_is_not_a_verdict(self):
+        """The family groups a card on the dashboard. It must be declared, known,
+        and returned with the figure, and it must not depend on the value."""
+        for key, kpi in kpis.REGISTER.items():
+            with self.subTest(kpi=key):
+                self.assertIn(kpi.family, kpis.FAMILIES)
+                self.assertNotEqual(kpi.family, "other", "every shipped measure has a real family")
+        rows = self.rows()
+        self.assertEqual(self.value("availability", rows)["family"], "reliability")
+        self.assertEqual(self.value("sla_attainment", rows)["family"], "execution")
+        worse = [dict(row, Downtime_Hours=90.0) for row in rows]
+        self.assertEqual(self.value("availability", worse)["family"], "reliability")
+        with self.assertRaises(ValueError):
+            kpis.Kpi("x", "X", "س", "Downtime_Hours", kpis.RECORDS, kpis.every_record,
+                     "all records", contract.HOURS, "test", edge_cases="e", family="good")
+
+    def test_the_register_holds_fourteen_measures(self):
+        """The 21 October decision first said fifteen; it is eight kept plus six added."""
+        self.assertEqual(len(kpis.REGISTER), 14)
+

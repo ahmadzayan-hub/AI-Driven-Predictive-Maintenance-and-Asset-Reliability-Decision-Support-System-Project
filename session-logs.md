@@ -1060,3 +1060,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** `verify.py --quick`: 1485 Python tests (153 skipped), 270 frontend tests, brain and type checks passed. 12 of 12 Playwright cases for `executive` and `metric-colors` passed on a fresh build (desktop and phone, English and Arabic). The 14 new tests failed before the implementation (4 failures and 15 errors in the first run). Outside the repo, the register reproduced the corrected workbook and dashboard on the private 5,000-row dataset; that data stayed in the git-ignored `private/` folder.
 - **Decisions:** reversed ADR 0049's availability choice in a new dated record, not by editing the old one. The SLA performance score is deliberately not in the register. Hours-based and replacement-value measures are not offered: no stand-ins.
 - **Open / next:** stored target policies on `availability` are not migrated; a held-out review of the standards wording once the standards texts are available; the full Playwright suite and PostgreSQL were not run.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (colourful dashboards)
+
+**Goal:** colourful dashboards, less text, a simpler interface on desktop and phone.
+
+- **Done:** KPI families in the register (`Kpi(family=...)`); family-coloured groups, bands and meters on the executive overview; shared notes behind one fold; "no target" reasons moved into evidence; filters fold until active; compact hero; phone layout; coloured Overview tiles and findings. ADR, design study, MASTER rule 9, UI plan budget. Corrected "15 measures" to 14 with an erratum.
+- **Verified:** `verify.py` all 8 steps (1,487 Python, 153 skipped; 271 frontend); full Playwright 126 passed, 4 skipped. Before/after measured on the same fictional run against a build of `efb6eb1`.
+- **Decisions:** the contrast check misread `color(srgb …)` as 0–255 channels; fixed the parser (true ratio 5.87:1) rather than dropping the colour. CSS budget raised to 23.5 KB. Native apps out of scope (PWA).
+- **Open / next:** navigation and the Runs, Datasets and Assets views; a budget audit; reader testing with maintenance managers; MTBF unit wrap.

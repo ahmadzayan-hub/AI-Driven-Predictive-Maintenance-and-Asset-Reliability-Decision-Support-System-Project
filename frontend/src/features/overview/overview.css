@@ -41,7 +41,7 @@
 }
 
 .finding__text {
-  font-size: var(--text-m);
+  font-size: var(--text-s);
   color: var(--text);
   overflow-wrap: anywhere;
 }
@@ -142,3 +142,13 @@
   .decision-actions__grid { grid-template-columns: 1fr; }
   .decision-actions__grid button { min-height: 64px; }
 }
+
+/* Colour names a category, never a verdict; amber still marks "needs a person". */
+.kpi[data-hue], .finding { --hue: var(--accent); }
+.kpi[data-hue] { border-top: 3px solid var(--hue); background: color-mix(in srgb, var(--hue) 9%, var(--surface-raised)); }
+.kpi[data-hue=datasets], .finding[data-type=diagnostic] { --hue: light-dark(#6d28d9, #c4b5fd); }
+.kpi[data-hue=today], .finding[data-type=predictive] { --hue: light-dark(#be185d, #f9a8d4); }
+.kpi--attention[data-hue] { --hue: var(--highlight); }
+.kpi[data-hue] .kpi__label, .finding__type { color: var(--hue); }
+.finding { border-inline-start-color: var(--hue); }
+.finding[data-type=experiment], .finding[data-type=prescriptive] { --hue: var(--text-muted); }

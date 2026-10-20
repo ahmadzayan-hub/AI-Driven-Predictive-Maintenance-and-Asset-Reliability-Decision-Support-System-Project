@@ -36,6 +36,33 @@ beforeEach(() => {
 afterEach(() => { cleanup(); act(() => applyLocale('en')); vi.restoreAllMocks(); vi.clearAllMocks(); vi.unstubAllGlobals() })
 
 describe('executive decision overview', () => {
+  it('groups measures by the register family, keeps verdict reasons on the card and moves "no target" into the evidence', async () => {
+    const base = snapshot().kpis.measures[0]
+    const data = snapshot()
+    data.kpis.measures = [
+      { ...base, key: 'first_time_fix', title: 'First-time fix', family: 'execution', value: 57.5, scale: 'percent', records: 2, records_unmeasured: 0,
+        assessment: { status: 'unassessed', reason: 'No display target is configured.', reason_code: 'no_target', direction: null, source_ref: null, rule_id: null, thresholds: null } },
+      { ...base, key: 'availability', title: 'Availability', family: 'reliability', value: 90, scale: 'percent', records: 3, records_unmeasured: 0,
+        assessment: { status: 'bad', reason: 'Below the 95% target.', reason_code: 'below', direction: 'higher', thresholds: { good_at: 95, okay_at: 92 }, source_ref: 'Fictional QA', rule_id: 'r1' } },
+      { ...base, key: 'mtbf', title: 'Mean time between failures', family: 'reliability', value: 48, scale: 'hours', records: 3, records_unmeasured: 0 },
+    ]
+    vi.mocked(api.runExecutive).mockResolvedValue(data)
+    mount()
+    await screen.findByRole('heading', { name: 'Availability' })
+    const families = [...document.querySelectorAll('.exec-family > h4')]
+    expect(families.map((heading) => heading.textContent)).toEqual(['Reliability', 'Work execution'])
+    const availability = screen.getByRole('heading', { name: 'Availability' }).closest('article')!
+    expect(availability.closest('section')).toHaveAttribute('data-family', 'reliability')
+    expect(within(availability).getByText('Below the 95% target.')).toBeVisible()
+    expect(availability.querySelector('.exec-kpi-meter rect + rect')).toHaveAttribute('width', '90')
+    const fix = screen.getByRole('heading', { name: 'First-time fix' }).closest('article')!
+    const reason = within(fix).getByText('No display target is configured.')
+    expect(reason.closest('details')).not.toBeNull()
+    expect(reason).not.toBeVisible()
+    const mtbf = screen.getByRole('heading', { name: 'Mean time between failures' }).closest('article')!
+    expect(mtbf.querySelector('.exec-kpi-meter')).toBeNull()
+  })
+
   it('uses the requested scope, exposes missing evidence and keeps unfitted models unscored', async () => {
     const user = userEvent.setup()
     const filters: TableFilter[] = [{ column: 'site', op: 'in', values: ['North'] }]

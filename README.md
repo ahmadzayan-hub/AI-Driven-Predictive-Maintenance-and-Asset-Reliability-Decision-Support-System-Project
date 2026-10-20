@@ -422,6 +422,16 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Colourful KPI-first dashboard — 21 October 2026
+
+Interface change ([decision](docs/adr/2026-10-21-colourful-kpi-first-dashboard.md),
+[study](docs/design/2026-10-21-colourful-minimal-dashboard-study.md)).
+`python scripts/verify.py`: **1,487 Python tests reported, 153 skipped**, brain
+check (45 notes), type check, **271 frontend unit tests**, production build and
+interface budget passed (CSS total 23.3 of 23.5 KB, JS total 184.8 of 185 KB).
+The full Playwright suite passed **126, with 4 skipped**, desktop and phone,
+English and Arabic, against a fresh build. PostgreSQL was not run.
+
 ### KPI register: availability and pooled reliability measures — 21 October 2026
 
 Source-only change ([decision](docs/adr/2026-10-21-register-availability-and-pooled-reliability-measures.md)).

@@ -7,7 +7,7 @@ import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import type { RunDetail, RunExecutive } from '../src/shared/types'
-import { skipOnboarding } from './helpers'
+import { skipOnboarding, openFilters } from './helpers'
 import { storeMaintenanceDataset } from './maintenance-dataset'
 
 type Language = 'en' | 'ar'
@@ -140,7 +140,9 @@ function contrast(first: string, second: string) {
     const channels = color.match(/[\d.]+/g)!.map(Number)
     expect(channels.length).toBeGreaterThanOrEqual(3)
     if (channels.length > 3) expect(channels[3], 'resolve translucent layers before asserting contrast').toBe(1)
-    const [red, green, blue] = channels.slice(0, 3).map((n) => n / 255)
+    // color-mix() resolves to color(srgb r g b) with channels from 0 to 1, not rgb() from 0 to 255.
+    const scale = color.startsWith('color(srgb') ? 1 : 255
+    const [red, green, blue] = channels.slice(0, 3).map((n) => n / scale)
       .map((n) => n <= .04045 ? n / 12.92 : ((n + .055) / 1.055) ** 2.4)
     return .2126 * red + .7152 * green + .0722 * blue
   }
@@ -192,6 +194,7 @@ async function openOverview(page: Page, id: string, language: Language) {
 }
 
 async function chooseNorth(page: Page) {
+  await openFilters(page)
   const filter = page.locator('details.dash-filter').filter({ has: page.locator('summary').filter({ hasText: /^Site:/ }) })
   await filter.locator('summary').click()
   const checkbox = filter.getByRole('checkbox', { name: 'North', exact: true })

@@ -215,7 +215,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
 
         <dl className="kpis">
           {tiles.map((tile) => (
-            <div key={tile.key} className={`kpi ${tile.attention ? 'kpi--attention' : ''}`}>
+            <div key={tile.key} data-hue={tile.key} className={`kpi ${tile.attention ? 'kpi--attention' : ''}`}>
               <dt className="kpi__label">{tile.label}</dt>
               <dd className="kpi__value">{tile.value}</dd>
               {tile.sub ? <dd className="kpi__sub">{tile.sub}</dd> : null}
@@ -266,7 +266,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
                 {findings.length > 0 ? (
                   <ul className="findings">
                     {findings.map((report) => (
-                      <li key={report.type} className="finding">
+                      <li key={report.type} className="finding" data-type={report.type}>
                         <span className="finding__type">
                           {typeLabel(t, report.type, report.title)}
                         </span>

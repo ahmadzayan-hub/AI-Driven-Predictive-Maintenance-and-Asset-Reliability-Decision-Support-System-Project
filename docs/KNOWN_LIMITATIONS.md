@@ -450,7 +450,7 @@ and was not activated by this implementation.
 ## KPI register: what it cannot measure yet
 
 The register ([decision](adr/2026-10-21-register-availability-and-pooled-reliability-measures.md))
-holds 15 controlled measures, each a ratio of sums over a declared population.
+holds 14 controlled measures, each a ratio of sums over a declared population.
 These common asset-management measures are **not** in it, because the exports
 this product reads do not carry the fields, and a stand-in would be a guess:
 

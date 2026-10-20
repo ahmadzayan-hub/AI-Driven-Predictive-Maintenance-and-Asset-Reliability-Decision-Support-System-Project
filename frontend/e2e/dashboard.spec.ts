@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import type { APIRequestContext, Page } from '@playwright/test'
-import { openTab, skipOnboarding } from './helpers'
+import { openTab, skipOnboarding, openFilters } from './helpers'
 
 // Dashboard pages (ADR 0032) over the bundled sample's cleaned table: 72
 // records, months, two regions and three categories. Every page is
@@ -89,6 +89,7 @@ test('a filter survives a reload and a group drills down to its records', async 
   await expect(page.locator('.dash-coverage')).toHaveText('Showing 72 of 72 records.')
 
   // A period range from the filter bar.
+  await openFilters(page)
   await page.getByLabel('From').selectOption('2025-11')
   await expect(page.locator('.dash-coverage')).toHaveText('Showing 12 of 72 records.')
 })

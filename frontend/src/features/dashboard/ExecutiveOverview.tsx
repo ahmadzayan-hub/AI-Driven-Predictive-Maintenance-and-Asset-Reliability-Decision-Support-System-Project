@@ -199,7 +199,6 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
   return <div className="exec-overview" dir={isRtl ? 'rtl' : 'ltr'}>
     <section className="exec-hero" aria-labelledby="exec-title">
       <div>
-        <p className="eyebrow">{t('exec.eyebrow')}</p>
         <h3 id="exec-title">{t('exec.title')}</h3>
         <div className="exec-meta">
           <span className={`exec-badge exec-badge--${status}`}><Icon name={status === 'ready' ? 'shield' : 'alert'} size={15} />{t(`exec.${status}`)}</span>
@@ -208,7 +207,6 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
         </div>
       </div>
       <div className="exec-scope">
-        <span className="eyebrow">{t('exec.scope')}</span>
         <strong>{formatNumber(data.scope.records)}</strong>
         <span>{t('exec.totalCoverage', { total: formatNumber(data.scope.total_records) })}</span>
         <button type="button" className="btn btn--ghost" onClick={() => setRevision((v) => v + 1)}><Icon name="refresh" size={15} />{t('exec.refresh')}</button>
@@ -220,17 +218,22 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
     </details> : null}
 
     {(data.kpis.measures.length > 0 || Object.keys(data.kpis.unavailable).length > 0) ? <section aria-labelledby="exec-kpis">
-      <div className="exec-section-head"><h3 id="exec-kpis">{t('exec.kpis')}</h3><p>{t('exec.kpiScope')}</p>{data.kpis.measures.length ? <PolicyButton onClick={() => setPolicyOpen(true)} open={policyOpen} /> : null}</div>
-      <PerformanceLegend />
+      <div className="exec-section-head"><h3 id="exec-kpis">{t('exec.kpis')}</h3>{data.kpis.measures.length ? <PolicyButton onClick={() => setPolicyOpen(true)} open={policyOpen} /> : null}</div>
+      <details className="exec-about"><summary>{t('exec.about')}</summary><p>{t('exec.kpiScope')}</p><PerformanceLegend /><p>{t('exec.snapshot')}</p></details>
       {policyOpen ? <Suspense fallback={<p role="status">{t('exec.loading')}</p>}><KpiPolicyEditor key={`${runId}:${locale}`} runId={runId} measures={data.kpis.measures} onClose={() => setPolicyOpen(false)} onSaved={() => setRevision((v) => v + 1)} /></Suspense> : null}
-      <div className="exec-kpis">{data.kpis.measures.map((measure) => <Kpi key={measure.key} measure={measure} />)}</div>
+      {FAMILIES.map((family) => {
+        const items = data.kpis.measures.filter((measure) => (FAMILIES.includes(measure.family as Family) ? measure.family : 'other') === family)
+        return items.length ? <section key={family} className="exec-family" data-family={family} aria-labelledby={`exec-family-${family}`}>
+          <h4 id={`exec-family-${family}`}><Icon name={FAMILY_ICON[family]} size={16} />{t(`exec.family.${family}`)}</h4>
+          <div className="exec-kpis">{items.map((measure) => <Kpi key={measure.key} measure={measure} />)}</div>
+        </section> : null
+      })}
       {Object.keys(data.kpis.unavailable).length ? <details className="exec-unavailable"><summary>{t('exec.unsupported')}</summary><dl>{Object.entries(data.kpis.unavailable).map(([name, reason]) => <div key={name}><dt><bdi>{name}</bdi></dt><dd dir="auto">{reason}</dd></div>)}</dl></details> : null}
     </section> : null}
 
     <div className="exec-decision-grid">
       <section className="exec-card exec-agent" aria-labelledby="exec-agent">
         <div className="exec-section-head"><div className="exec-heading"><Icon name="sparkle" size={22} /><h3 id="exec-agent">{t('exec.agent')}</h3></div><span className="exec-badge">{t('exec.engine')}</span></div>
-        <p className="exec-muted">{t('exec.agentHelp')}</p>
         {brief === data ? <div className="exec-brief" role="region" aria-label={t('exec.prepared')}>
           <p className="exec-headline" dir="auto">{data.headline}</p>
           <h4>{t('exec.questions')}</h4>
@@ -250,7 +253,6 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
 
       <section className="exec-card" aria-labelledby="exec-attention">
         <div className="exec-section-head"><h3 id="exec-attention">{t('exec.attention')}</h3><span className="exec-count">{formatNumber(data.priorities.length)}</span></div>
-        <p className="exec-muted">{t('exec.attentionHelp')}</p>
         {data.priorities.length ? <ol className="exec-priorities">{data.priorities.map((priority, index) => {
           const drilldown = data.drilldowns.find((item) => item.id === priority.drilldown_id)
           return <li key={priority.id}><span className="exec-priority-number" aria-hidden="true">{formatNumber(index + 1)}</span><div><h4 dir="auto">{priority.title}</h4><p dir="auto">{priority.detail}</p>{refs(priority.evidence_refs)}
@@ -277,9 +279,14 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
       <summary>{t('exec.evidence')} <span className="exec-count">{formatNumber(data.evidence.length)}</span></summary>
       <div className="evidence__table" role="region" aria-label={t('exec.evidence')} tabIndex={0}><table className="datatable"><thead><tr><th scope="col">{t('exec.reference')}</th><th scope="col">{t('exec.value')}</th><th scope="col">{t('exec.method')}</th></tr></thead><tbody>{data.evidence.map((entry) => <tr key={entry.id} data-selected={selectedEvidence.includes(entry.id) || undefined} tabIndex={-1}><th scope="row"><bdi>{entry.id}</bdi><small dir="auto">{entry.label}</small></th><td>{number(entry.value)}</td><td><span dir="auto">{entry.method}</span><small className="exec-muted">{t(entry.scope === 'filtered' ? 'exec.filtered' : 'exec.whole')}</small></td></tr>)}</tbody></table></div>
     </details>
-    <p className="exec-footnote">{t('exec.snapshot')}</p>
   </div>
 }
+
+/** The register names each measure's family, shown as a coloured band.
+ * The colour names the family only; good, okay and bad stay with the value. */
+const FAMILIES = ['reliability', 'execution', 'cost', 'other'] as const
+type Family = typeof FAMILIES[number]
+const FAMILY_ICON = { reliability: 'activity', execution: 'check', cost: 'database', other: 'dashboard' } as const
 
 function modelTone(model: RunExecutive['models'][number]) {
   if (model.fitted === false || !model.metric || model.details.verdict === 'not_supported') return 'unassessed'
@@ -291,12 +298,17 @@ function Kpi({ measure }: { measure: KpiMeasure }) {
   const { t, formatNumber } = usePack(executiveMessages)
   const value = measure.value === null ? t('exec.unavailable') : formatNumber(measure.value, { maximumFractionDigits: 2 })
   const unit = measure.value === null ? '' : measure.scale === 'percent' ? '%' : measure.scale === 'hours' ? t('exec.hours') : measure.scale === 'money' ? t('exec.money') : measure.scale
+  const tone = performanceTone(measure.value, measure.assessment)
+  // A verdict's reason stays on the card; "no target is set" moves into the evidence.
+  const verdict = tone === 'good' || tone === 'okay' || tone === 'bad'
+  const share = measure.scale === 'percent' && measure.value !== null ? Math.max(0, Math.min(100, measure.value)) : null
   return <article className="exec-kpi" data-source={`kpi.${measure.key}`}>
-    <h4 dir="auto">{measure.title}</h4><p className={`exec-kpi-value${measure.value === null ? ' exec-kpi-value--missing' : ''}`}><PerformanceValue tone={performanceTone(measure.value, measure.assessment)} reason={measure.assessment?.reason}><bdi>{value} <small>{unit}</small></bdi></PerformanceValue></p>
-    <p>{t('exec.covered', { n: formatNumber(measure.records) })}</p>
+    <h5 dir="auto">{measure.title}</h5><p className={`exec-kpi-value${measure.value === null ? ' exec-kpi-value--missing' : ''}`}><PerformanceValue tone={tone} reason={verdict ? measure.assessment?.reason : undefined}><bdi>{value} <small>{unit}</small></bdi></PerformanceValue></p>
+    {share === null ? null : <svg className="exec-kpi-meter" viewBox="0 0 100 4" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect width="100" height="4" rx="2" /><rect width={share} height="4" rx="2" /></svg>}
+    <p className="exec-kpi-covered">{t('exec.covered', { n: formatNumber(measure.records) })}</p>
     {measure.records_unmeasured > 0 ? <p className="exec-kpi-caution">{t('exec.unmeasured', { n: formatNumber(measure.records_unmeasured) })}</p> : null}
     {measure.undefined_reason ? <p className="exec-kpi-caution" dir="auto">{measure.undefined_reason}</p> : null}
-    <details><summary>{t('exec.sources')}</summary><dl><div><dt>{t('exec.formula')}</dt><dd dir="auto">{measure.formula} · <bdi>{formatNumber(measure.numerator)} / {formatNumber(measure.denominator)}</bdi></dd></div><div><dt>{t('exec.population')}</dt><dd dir="auto">{measure.population}</dd></div><div><dt>{t('exec.missing')}</dt><dd dir="auto">{measure.missing_policy}</dd></div></dl><TargetEvidence measure={measure} />{measure.records_excluded > 0 ? <p>{t('exec.excluded', { n: formatNumber(measure.records_excluded) })}</p> : null}</details>
+    <details><summary>{t('exec.sources')}</summary>{!verdict && measure.assessment?.reason ? <p dir="auto">{measure.assessment.reason}</p> : null}<dl><div><dt>{t('exec.formula')}</dt><dd dir="auto">{measure.formula} · <bdi>{formatNumber(measure.numerator)} / {formatNumber(measure.denominator)}</bdi></dd></div><div><dt>{t('exec.population')}</dt><dd dir="auto">{measure.population}</dd></div><div><dt>{t('exec.missing')}</dt><dd dir="auto">{measure.missing_policy}</dd></div></dl><TargetEvidence measure={measure} />{measure.records_excluded > 0 ? <p>{t('exec.excluded', { n: formatNumber(measure.records_excluded) })}</p> : null}</details>
   </article>
 }
 

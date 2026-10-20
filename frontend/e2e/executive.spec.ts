@@ -7,7 +7,7 @@ import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import type { RunDetail, RunExecutive, TableFilter } from '../src/shared/types'
-import { skipOnboarding } from './helpers'
+import { skipOnboarding, openFilters } from './helpers'
 import { storeMaintenanceDataset } from './maintenance-dataset'
 
 // Fictional records only. The default profile deliberately has no modelling
@@ -62,6 +62,7 @@ async function openOverview(page: Page, runId: string, query = '', language: 'en
 }
 
 async function chooseNorth(page: Page) {
+  await openFilters(page)
   const filter = page.locator('details.dash-filter').filter({
     has: page.locator('summary').filter({ hasText: /^Site:/ }),
   })
@@ -332,6 +333,7 @@ test('filtered executive measures, evidence and downloaded reports share the exa
   expect(after.report?.published_path).toBeNull()
 
   // A prepared snapshot must disappear when the reader changes its scope.
+  await openFilters(page)
   await page.getByLabel('From', { exact: true }).selectOption('2026-03')
   await expect(page.locator('.exec-scope strong')).toHaveText('2')
   await expect(prepared).toHaveCount(0)
@@ -344,6 +346,7 @@ test('an executive priority preserves the period filter when drilling into recor
   await skipOnboarding(page)
   const run = await maintenanceRun(page.request)
   await openOverview(page, run.id)
+  await openFilters(page)
   await page.getByLabel('From', { exact: true }).selectOption('2026-03')
   await expect(page.locator('.dash-coverage')).toHaveText('Showing 3 of 4 records.')
   await expectScope(page, 3, 4)

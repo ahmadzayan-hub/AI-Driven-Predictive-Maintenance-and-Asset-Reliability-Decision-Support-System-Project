@@ -219,7 +219,7 @@ function Dashboard({ runId, page, query, onNavigate, onOpenRun }: {
   return (
     <section className="panel" aria-labelledby="dash-title">
       <div className="panel__inner panel__inner--wide">
-        <div className="panel__header">
+        <div className="panel__header dash-header">
           <div>
             <p className="eyebrow">{t('dash.title')}</p>
             <h2 className="panel__title" id="dash-title" dir="auto">{run.data?.goal ?? runId}</h2>
@@ -294,6 +294,9 @@ function FilterBar({ fields, roles, state, setState }: {
   const listed = roles.texts.filter((field) => field.values && field.values.length > 1)
   const periods = fields.find((field) => field.name === roles.date)?.values?.filter(Boolean) ?? []
   const count = filterCount(state)
+  // Phones open on the figures: the filters fold away unless one is active.
+  // Folded until a filter is active, so the figures lead on every screen.
+  const [open, setOpen] = useState(count > 0)
 
   function toggle(column: string, value: string, on: boolean) {
     const values = new Set(state.filters[column] ?? [])
@@ -306,8 +309,9 @@ function FilterBar({ fields, roles, state, setState }: {
 
   return (
     <section className="card dash-filters" aria-labelledby="dash-filters-title">
+      <details open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary><h3 className="card__title" id="dash-filters-title">{t('dash.filters')}{count ? <span className="dash-filters__count">{formatNumber(count)}</span> : null}</h3></summary>
       <div className="dash-filters__head">
-        <h3 className="card__title" id="dash-filters-title">{t('dash.filters')}</h3>
         {count ? (
           <button type="button" className="btn btn--subtle" onClick={() => setState({ ...EMPTY, by: state.by, per: state.per, vs: state.vs })}>
             {t('dash.clear', { n: formatNumber(count) })}
@@ -365,6 +369,7 @@ function FilterBar({ fields, roles, state, setState }: {
           </p>
         ) : null}
       </div>
+      </details>
     </section>
   )
 }

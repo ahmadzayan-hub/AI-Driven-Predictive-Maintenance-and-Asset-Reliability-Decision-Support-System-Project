@@ -96,7 +96,7 @@ constant failure rate the pooled ratio is the maximum-likelihood estimate.
   figure was utilisation would now read as met. Anyone holding such a policy
   should review it. This record does not rewrite them: the intent behind a
   stored number is not knowable.
-- **The register has 15 entries, up from 8,** and the target-policy limit
+- **The register has 14 entries, up from 8,** and the target-policy limit
   follows `len(REGISTER)`; its error message now states the real number
   instead of "eight".
 - **A record with no downtime reading** is excluded from availability and
@@ -132,3 +132,10 @@ constant failure rate the pooled ratio is the maximum-likelihood estimate.
   record with a failure. A source that records downtime on records without a
   failure would show a difference, which is intended: that downtime is not
   restoration after a failure.
+
+## Erratum, 2026-10-21
+
+This record first said the register has 15 entries. It has 14 (8 before this
+change, counted from Git at `efb6eb1~1` and `efb6eb1`). The count is now
+pinned by `test_the_register_holds_fourteen_measures`. No figure or formula
+was affected.

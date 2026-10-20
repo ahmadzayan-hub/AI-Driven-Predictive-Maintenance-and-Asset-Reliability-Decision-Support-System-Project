@@ -1,8 +1,7 @@
 /* Scoped, lazy-loaded executive workspace. All colors come from Miyaar tokens. */
 .exec-overview { display: grid; gap: var(--space-4); min-width: 0; }
-.exec-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(12rem, .3fr); align-items: center; gap: var(--space-4); padding: var(--space-4); background: var(--hero-fill); border: 1px solid var(--hero-border); border-radius: var(--radius-l); }
-.exec-hero h3 { font-size: var(--text-xl); margin: var(--space-1) 0 var(--space-2); letter-spacing: var(--tracking-tight); }
-.exec-hero .eyebrow { margin-block: 0; }
+.exec-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(12rem, .3fr); align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--hero-fill); border: 1px solid var(--hero-border); border-radius: var(--radius-l); }
+.exec-hero h3 { font-size: var(--text-l); margin: 0 0 var(--space-2); letter-spacing: var(--tracking-tight); }
 .exec-muted, .exec-section-head > p { color: var(--text-muted); font-size: var(--text-s); }
 .exec-headline { font-size: var(--text-l); font-weight: 500; line-height: 1.6; overflow-wrap: anywhere; }
 .exec-meta, .exec-heading, .exec-badge, .exec-ref, .exec-boundary { display: flex; align-items: center; gap: var(--space-2); }
@@ -10,19 +9,30 @@
 .exec-badge { display: inline-flex; width: fit-content; border: 1px solid var(--border-strong); border-radius: 99px; padding: var(--space-1) var(--space-2); font-size: var(--text-xs); font-weight: 500; }
 .exec-badge--limited, .exec-badge--empty { color: var(--warning); background: var(--warning-soft); border-color: var(--warning); }
 .exec-badge--ready { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); }
-.exec-scope { display: grid; align-content: center; gap: var(--space-1); padding-inline-start: var(--space-4); border-inline-start: 1px solid var(--hero-border); font-size: var(--text-xs); }
-.exec-scope strong { font: 500 2rem/1.2 var(--font-mono); }
-.exec-scope .btn { margin-block-start: var(--space-1); }
+.exec-scope { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2); padding-inline-start: var(--space-4); border-inline-start: 1px solid var(--hero-border); font-size: var(--text-xs); }
+.exec-scope strong { font: 500 1.6rem/1.2 var(--font-mono); }
 .exec-limitations { padding: var(--space-2) var(--space-4); background: var(--warning-soft); border-inline-start: 3px solid var(--warning); border-radius: var(--radius-s); color: var(--warning); font-size: var(--text-s); }
 .exec-limitations ul { margin: var(--space-2) 0; padding-inline-start: var(--space-4); }
 .exec-section-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; margin-block-end: var(--space-3); }
 .exec-section-head h3, .exec-section-head p, .exec-heading h3 { margin: 0; }
 .exec-section-head h3 { font-size: var(--text-l); }
-.exec-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: var(--space-3); }
+.exec-kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 10rem), 1fr)); gap: var(--space-3); }
+/* A family colour names the group only; good, okay and bad stay on the value. */
+.exec-family { --fam: var(--text-muted); display: grid; gap: var(--space-2); margin-block-start: var(--space-3); }
+.exec-family[data-family='reliability'] { --fam: light-dark(#6d28d9, #c4b5fd); }
+.exec-family[data-family='execution'] { --fam: var(--accent); }
+.exec-family[data-family='cost'] { --fam: light-dark(#be185d, #f9a8d4); }
+.exec-family > h4 { display: flex; align-items: center; gap: var(--space-2); margin: 0; color: var(--fam); font-size: var(--text-xs); letter-spacing: .08em; text-transform: uppercase; }
+.exec-family .exec-kpi { border-top: 3px solid var(--fam); background: color-mix(in srgb, var(--fam) 9%, var(--surface-raised)); }
+.exec-kpi-meter { display: block; width: 100%; height: 6px; margin-block-end: var(--space-2); }
+.exec-kpi-meter rect { fill: var(--surface-sunken); }
+.exec-kpi-meter rect + rect { fill: var(--fam); }
+.exec-kpi .exec-kpi-covered, .exec-about { color: var(--text-muted); }
+.exec-about { font-size: var(--text-s); }
 .exec-kpi, .exec-card { background: var(--panel-fill); border: 1px solid var(--border); border-radius: var(--radius-m); padding: var(--space-4); min-width: 0; }
-.exec-kpi h4 { font-size: var(--text-s); font-weight: 500; color: var(--text-muted); margin: 0; }
-.exec-kpi > p { margin-block: var(--space-2); font-size: var(--text-xs); }
-.exec-kpi .exec-kpi-value { font: 500 clamp(1.5rem, 3vw, 2rem)/1.5 var(--font-mono); color: var(--text); overflow-wrap: anywhere; }
+.exec-kpi h5 { font-size: var(--text-s); font-weight: 500; color: var(--text-muted); margin: 0; }
+.exec-kpi > p { margin-block: var(--space-1); font-size: var(--text-xs); }
+.exec-kpi .exec-kpi-value { font: 600 clamp(1.4rem, 3vw, 2.1rem)/1.3 var(--font-mono); color: var(--text); overflow-wrap: anywhere; }
 .exec-kpi-value small { font: 400 var(--text-xs) var(--font-sans); color: var(--text-muted); }
 .exec-kpi .exec-kpi-value--missing { font: 500 var(--text-l)/1.5 var(--font-sans); color: var(--text-muted); }
 .exec-kpi-caution { color: var(--warning); }
@@ -53,5 +63,4 @@
 .exec-evidence .datatable { min-width: 35rem; }
 .exec-evidence tr[data-selected] { background: var(--accent-soft); }
 .exec-evidence tr:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
-.exec-footnote { color: var(--text-muted); font-size: var(--text-xs); margin: 0; }
-@media (max-width: 767px) { .exec-hero, .exec-decision-grid { grid-template-columns: minmax(0, 1fr); } .exec-hero { padding: var(--space-4); gap: var(--space-4); } .exec-scope { border-inline-start: 0; border-block-start: 1px solid var(--hero-border); padding-inline-start: 0; padding-block-start: var(--space-4); } }
+@media (max-width: 767px) { .exec-hero, .exec-decision-grid { grid-template-columns: minmax(0, 1fr); } .exec-scope { border-inline-start: 0; border-block-start: 1px solid var(--hero-border); padding-inline-start: 0; padding-block-start: var(--space-3); } .exec-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); } .exec-hero { padding: var(--space-3); gap: var(--space-2); } .exec-meta > span + span { display: none; } .exec-scope { padding-block-start: var(--space-2); } .exec-scope .btn, .exec-section-head .btn { margin-inline-start: auto; min-height: 36px; padding-inline: var(--space-3); font-size: var(--text-s); } .exec-hero h3 { margin: 0; } .exec-meta { gap: var(--space-2); margin-block-start: var(--space-1); } .exec-kpi { padding: var(--space-3); } .exec-kpi .exec-kpi-value { font-size: clamp(1.15rem, 5.5vw, 1.6rem); } }

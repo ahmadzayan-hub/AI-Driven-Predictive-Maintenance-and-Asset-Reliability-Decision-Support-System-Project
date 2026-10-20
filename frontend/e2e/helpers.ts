@@ -51,3 +51,9 @@ export async function sendMessage(page: Page, text: string) {
 export function lastAgentBubble(page: Page) {
   return page.locator('.msg--agent .msg__bubble').last()
 }
+
+/** Phones fold the dashboard filters away until asked; desktop shows them open. */
+export async function openFilters(page: Page) {
+  const fold = page.locator('.dash-filters > details')
+  if (!(await fold.evaluate((element) => (element as HTMLDetailsElement).open))) await fold.locator('summary').first().click()
+}
