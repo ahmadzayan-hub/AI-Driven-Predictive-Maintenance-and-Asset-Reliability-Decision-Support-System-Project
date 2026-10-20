@@ -192,23 +192,67 @@ class RecallFixTests(unittest.TestCase):
         for case in suite["probe_v5"]:
             self.assertIn("NOT a blind holdout", case["source"])
 
-    def test_blind_v6_is_independent_of_every_split_the_rules_were_fitted_to(self):
-        """blind_v6 was written by an agent that saw only the label definitions
-        (2026-10-20 decision). A sentence that also sits in dev, a holdout or the
-        probe would make it a copy, and its recall a fitted number."""
-        for name, size in (("intent", 48), ("jargon", 40), ("causal", 40)):
-            with self.subTest(suite=name):
-                data = json.loads((ev.EVALS / f"{name}.json").read_text(encoding="utf-8"))
-                blind = data["blind_v6"]
+    def test_a_blind_set_is_independent_until_it_is_used_to_fix_rules(self):
+        """Blind sets were written by an agent that saw only the label definitions
+        (2026-10-20 decision). While a set is still blind, none of its sentences
+        may also sit in another split. Once the rules are fixed against it, it
+        moves into dev, says so in every case's source, and a new blind set is
+        needed to judge the fix."""
+        def every_other_text(data, skip):
+            return {case["text"] for key, cases in data.items()
+                    if key != skip and isinstance(cases, list)
+                    for case in cases if isinstance(case, dict) and "text" in case}
+        for name, key, size in (("jargon", "blind_v6", 40), ("intent", "blind_v7", 57),
+                                ("causal", "blind_v7", 50)):
+            data = json.loads((ev.EVALS / f"{name}.json").read_text(encoding="utf-8"))
+            if key not in data:
+                continue
+            with self.subTest(suite=name, set=key):
+                blind = data[key]
                 self.assertEqual(len(blind), size)
-                seen = {case["text"] for key, cases in data.items()
-                        if key != "blind_v6" and isinstance(cases, list)
-                        for case in cases if isinstance(case, dict) and "text" in case}
-                self.assertEqual([c["text"] for c in blind if c["text"] in seen], [])
+                self.assertEqual([c["text"] for c in blind
+                                  if c["text"] in every_other_text(data, key)], [])
                 for case in blind:
                     self.assertIn(case["label"], data["labels"])
                     self.assertIn("independent agent", case["source"])
                     self.assertIn("definitions only", case["source"])
+
+    def test_blind_v6_cases_fixed_against_say_so_in_dev(self):
+        """intent and causal blind_v6 were used to fix the rules on 2026-10-20."""
+        for name, count in (("intent", 48), ("causal", 37)):
+            data = json.loads((ev.EVALS / f"{name}.json").read_text(encoding="utf-8"))
+            self.assertNotIn("blind_v6", data)
+            moved = [c for c in data["dev"] if "moved into dev" in c.get("source", "")]
+            self.assertEqual(len(moved), count, name)
+            for case in moved:
+                self.assertIn("no longer independent", case["source"])
+
+    def test_the_causal_lint_catches_the_families_blind_v6_missed(self):
+        """Attribution, phrasal and Arabic origin constructions (2026-10-20)."""
+        for text in ("Skipped lubrication was responsible for the gearbox breakdown.",
+                     "The overrun was what brought about the pantograph failure.",
+                     "Heat buckling gave rise to the speed restrictions.",
+                     "Cost overruns stem from the late discovery of cracked frames.",
+                     "Work orders closed late as a consequence of the planner shortage.",
+                     "The cracked weld set off the chain of events.",
+                     "نتج عطل الإشارة عن تسرب المياه إلى صندوق التوصيل.",
+                     "كان الانحراف ناجماً عن اتساع المسافة بين القضبان.",
+                     "التأخير في إغلاق أوامر العمل ناتج عن قلة المخططين.",
+                     "إن نقص التزييت هو المسؤول عن انهيار علبة التروس."):
+            with self.subTest(text=text):
+                self.assertTrue(claims_lint.causal_phrases(text))
+
+    def test_the_causal_lint_does_not_flag_vehicles_test_results_or_lags(self):
+        """The false alarms found on the same set, and one found on the project's own docs."""
+        for text in ("The driver will drive the train to the maintenance shed after the final run.",
+                     "Drivers drive trams to the depot at night.",
+                     "جاءت نتيجة اختبار عينة القضيب ضمن الحدود المسموحة.",
+                     "The verification record was behind the tree.",
+                     "Nothing was behind the reading."):
+            with self.subTest(text=text):
+                self.assertEqual(claims_lint.causal_phrases(text), [])
+        self.assertTrue(claims_lint.causal_phrases("Rising temperatures drive the failures."))
+        self.assertTrue(claims_lint.causal_phrases("جاءت نتيجة تحديث النظام."))
 
     def test_the_claims_lint_cli_exits_by_result(self):
         with tempfile.TemporaryDirectory() as tmp:

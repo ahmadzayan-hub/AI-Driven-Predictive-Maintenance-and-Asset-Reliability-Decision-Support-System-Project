@@ -1004,3 +1004,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** blind_v6 scores: intent 68.5% macro recall, jargon 85% recall at 100% precision, causal 45% recall at 69% precision. A new test found two intent sentences already present in earlier splits; I removed them and rescored instead of weakening the test. `tests/test_evals.py` passes (30 tests).
 - **Decisions:** blind_v6 is stored under its own key, not `holdout`, so existing floors and scores are unaffected. The rules are not fixed against it: that would make it dev data.
 - **Open / next:** fix the causal lint (11 of 20 real causal claims missed, 4 of 20 non-causal flagged) after moving blind_v6 into dev, then judge on a new blind set. Counsel on the UAE law only matters if option C is ever opened.
+
+## 2026-10-20 · `d9e3f889` · claude/tender-clarke-m4uwgq (fix and judge)
+
+**Goal:** fix the causal lint and the intent misses.
+
+- **Done:** moved `blind_v6` into dev for intent (48) and causal (37) and said so in every case; fixed the rules by family, not by sentence (`scripts/claims_lint.py`, `assistant.py`); had fresh independent agents write `blind_v7` (intent 57 after removing 3 duplicates, causal 50) and scored old against new rules on the same sentences.
+- **Verified:** causal wording on blind_v7: recall 28% to 60%, precision 70% to 88%. Intent: 32 to 35 of 57 correct, within noise. Dev 100% on both; no new false alarm on any stored set; one extra flag on the project's own 23 documents was a false alarm and led to dropping bare "behind". The save_history rule was run end to end (the preference flips, nothing is deleted).
+- **Decisions:** three causal blind_v6 cases were removed as contested labels rather than fixed (they contradict the lint's own contract); recorded so it can be reversed. blind_v7 was not used to change any rule. Floors not raised.
+- **Open / next:** intent needs a model behind the rules or a far larger set; causal lint still misses 10 of 25 on blind_v7. Floor decision is the owner's.
