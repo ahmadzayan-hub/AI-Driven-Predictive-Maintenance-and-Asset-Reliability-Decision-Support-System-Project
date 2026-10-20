@@ -410,11 +410,60 @@ cd frontend && npx playwright test
 # Type checking
 cd frontend && npm run typecheck
 
-# All of the above in one run, plus the brain check and the interface
-# budget, printing the real counts (--quick skips the build; --e2e adds
-# Playwright)
+# Server-dependency preflight, Python, brain, typecheck, frontend units,
+# native contracts, build and budget. --quick skips build/budget;
+# --e2e adds both the main and Miyaar Playwright suites.
 python scripts/verify.py
 ```
+
+### Corrective project review — 20 October 2026
+
+Implementation `1dd73ae`, integrated with the incoming chart tests at `390f4c6`.
+The [assessment](docs/assessments/2026-10-20-project-review.md) records the
+reproduced defects, corrections, limits and owner acceptance gates.
+
+- [Full Linux CI on the integrated source](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39436782344)
+  **passed**, including required PostgreSQL, the complete frontend unit suite,
+  native contracts, strict brain check, build, main desktop/mobile browser and
+  accessibility checks, Miyaar bilingual/voice checks, audits and license gate.
+  [Fast UI budget](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39436782305)
+  also passed.
+- Full local Python execution: **1,377 reported, 23 skipped, 1,354 passed**,
+  with PostgreSQL 17 required and no failures. The separate atomic-admission,
+  worker, quota and crash-recovery selection ran **78 tests with no skips**.
+  Optional integrations remain conditional; this is not evidence that their
+  live providers or devices were exercised.
+- Windows validation used Python **3.11.16** and Node **24.22.0**. The initial
+  concurrent frontend run reported **228 passed / 15 failed**. With one worker
+  and the incoming chart tests, it reported **248 passed / 7 failed**:
+  five deadline failures and two subsequent assertion failures. TypeScript,
+  native contracts, strict brain checks, the production build and the budget
+  passed. **No full Windows frontend success is claimed.** The main local
+  browser sweep was interrupted after timeout failures in accessibility,
+  Arabic, dashboard and join scenarios; the complete Linux browser suites
+  passed. Original logs and traces were retained outside published source.
+  A later four-file selection reported **34 passed / 5 failed**. Reducing the
+  dashboard notice fixture from 1,000 returned groups to three, while checking
+  the exact EN/AR notice and the true total, then passed **4 / 4** dashboard
+  tests. Backend query tests retain responsibility for the actual row limit.
+  This test-only follow-up leaves the CI-validated application source unchanged.
+- Measured budget: initial JS **98.5 / 100 KB**, total JS **180.3 / 185 KB**,
+  largest chunk **18.1 / 30 KB**, initial CSS **10.0 / 10 KB**, total CSS
+  **21.2 / 22 KB**, fonts **119.4 / 120 KB**. Existing ceilings are unchanged.
+- Fresh dependency audits reported **zero vulnerabilities** across the npm
+  tree and all **27 exact installed Python versions**, including FastAPI
+  **0.152.0**. The separate unpinned-resolution audit also passed but resolved
+  FastAPI **0.153.0**; it is not substituted for the installed-version check.
+  The SBOM
+  recorded **304 components** and the license gate found no shipped dependency
+  with a strong-copyleft license. These are point-in-time checks.
+- Synthetic agent evaluations met their existing floors. Intent holdout macro
+  recall remains **72%**; the current causal cases are development-informed,
+  and the separate adversarial probe remains a documented limitation.
+- Vercel production remains on the older `42e53d00` deployment. Main-branch
+  automatic deployment is disabled; no production release was performed.
+  Historical privacy containment, hosted acceptance, independent maintenance
+  evidence and real-device acceptance remain open.
 
 ### Performance-color validation — 20 October 2026
 

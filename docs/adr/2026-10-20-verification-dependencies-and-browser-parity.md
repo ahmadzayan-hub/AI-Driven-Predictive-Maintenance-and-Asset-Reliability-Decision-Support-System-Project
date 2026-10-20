@@ -26,7 +26,11 @@ timeouts in unrelated interactive tests while concurrent jsdom environments
 consumed the machine's headroom. Earlier repository sessions independently
 recorded the same failure family. Limiting concurrency keeps the assertions
 and their existing deadlines; other platforms retain their default workers.
-The complete frontend suite must pass again under this bounded configuration.
+The bounded Windows run still timed out in some interactive tests on this
+resource-constrained host. This setting bounds worker memory; it is not a
+claim that every Windows run is now green. Complete Linux CI passed the
+integrated source. Keep the local failures and isolated follow-up results in
+README's verification record, without increasing assertion deadlines.
 
 ## Validation
 

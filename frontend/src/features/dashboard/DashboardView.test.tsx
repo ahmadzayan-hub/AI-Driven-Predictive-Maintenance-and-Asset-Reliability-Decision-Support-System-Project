@@ -53,15 +53,17 @@ it.each(['overview', 'trend'])('discloses omitted later periods on the %s page i
     { name: 'cost', type: 'number', role: 'analysed', filled: 1001, records: 1001 },
   ] })
   vi.mocked(api.queryTable).mockImplementation(async (_id, spec) => ({
-    groups: spec.group_by?.length ? Array.from({ length: 1000 }, (_, index) => ({ keys: [`period-${index}`], values: [1, 1, 1], records: 1 })) : [],
+    // Exercise the server's truncation contract with a small returned page.
+    // Backend query tests own the row limit; this check owns the EN/AR notice.
+    groups: spec.group_by?.length ? Array.from({ length: 3 }, (_, index) => ({ keys: [`period-${index}`], values: [1, 1, 1], records: 1 })) : [],
     group_by: [], measures: [], group_count: spec.group_by?.length ? 1001 : 1,
     truncated: Boolean(spec.group_by?.length), records: 1001, matched_records: 1001,
   }))
   for (const locale of ['en', 'ar'] as const) {
     applyLocale(locale)
     const view = render(<DashboardView runId="r1" page={page} query="" onNavigate={vi.fn()} onOpenRun={vi.fn()} />)
-    const expected = dashMessages[locale]['dash.trendTruncated'].split('{shown}')[0]
-    expect(await screen.findByText((content) => content.startsWith(expected) && content.includes('1,001'))).toBeVisible()
+    const expected = dashMessages[locale]['dash.trendTruncated'].replace('{shown}', '3').replace('{total}', '1,001')
+    expect(await screen.findByText(expected)).toBeVisible()
     view.unmount()
   }
 }, 15000)

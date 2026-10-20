@@ -190,10 +190,12 @@ required local files. Both behaviors are covered by tests
     Vercel login (the project has Standard Protection on), a full run and
     approval in a browser there, and whether `DATABASE_URL` is set —
     without it a deployment keeps per-instance storage that a cold start
-    wipes. No identity provider is configured, so the deployment is
-    single-owner with no login, like a laptop. See
-    docs/VERCEL_DEPLOYMENT.md for the exact state and the two things to
-    tidy by hand.
+    wipes. The historical deployment reported single-owner mode; current
+    identity and storage configuration were not established by the 20 October
+    metadata review. That review identifies older production commit `42e53d00`
+    and Vercel Authentication protection. Main-branch Git deployment is now
+    disabled; releasing a corrected commit requires explicit approval and
+    hosted acceptance. See `docs/VERCEL_DEPLOYMENT.md`.
 12. Android support is a verified installable PWA; a native Capacitor
     project is documented but not shipped (no Android SDK available to
     build or test one honestly).

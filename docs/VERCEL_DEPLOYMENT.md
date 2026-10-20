@@ -72,7 +72,7 @@ Serverless hardening already in place:
 3. Check `/api/health`, sign-in and cross-owner isolation using test accounts,
    then a synthetic run through approval and publication. Verify state after
    a restart and execute a restore drill on an isolated database.
-4. Run `server.worker` on an approved persistent worker host with the same
+4. Run `python scripts/worker.py` on an approved persistent worker host with the same
    database, configuration and resource-limit environment. A serverless HTTP
    function does not provide the continuous worker loop. Exercise a scheduled
    synthetic refresh against an allowed public host with direct egress.

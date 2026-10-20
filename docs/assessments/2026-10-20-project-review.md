@@ -44,6 +44,12 @@ Current executed commands, counts, skips and budgets are kept in
 Reproduction scripts, before/after observations, complete local logs and the
 dependency inventory are retained outside the public repository.
 
+Complete Linux CI passed on integrated source `390f4c6`, including both browser
+suites. The full Windows frontend run remains resource-sensitive even with
+one worker; its failed attempts are retained, and no complete Windows UI
+validation is claimed. This does not replace real-device and assisted-use
+acceptance.
+
 ## Coverage and remaining limits
 
 | Area | Evidence and judgment |

@@ -5,7 +5,7 @@ tags: [project]
 status: active
 updated: 2026-10-20
 review_every_days: 14
-sources: [README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0024-the-dataset-api.md, docs/adr/0028-views-load-on-demand.md, scripts/verify.py, docs/adr/0058-executive-dashboard-agent-and-scoped-evidence.md]
+sources: [README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/assessments/2026-10-20-project-review.md, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0024-the-dataset-api.md, docs/adr/0028-views-load-on-demand.md, scripts/verify.py, docs/adr/0058-executive-dashboard-agent-and-scoped-evidence.md]
 ---
 
 # Agentic OS
@@ -19,6 +19,8 @@ The engine in this repository, described in [[Identity]]: a governed business-an
 - **Production:** a Vercel deployment behind Vercel Authentication. It is verified for a signed-in owner only, and auth and the database are unverified there.
 
 ## What it does today
+
+- The 20 October review repaired published-note tenancy, detected-personal-data model handoffs, worker resource policy, atomic quota/run operations, maintenance cohort comparisons and bilingual evidence presentation (`1dd73ae`). The [[Approval gate]] remains human-controlled. Git synchronization to `main` cannot automatically publish production; the privacy, hosted-operation and domain acceptance gates remain explicit in the assessment. [[Session lifecycle]] verification records are kept in README.
 
 - Chat in English or Arabic that maps a sentence to a typed action, in the Miyaar workspace (ADR 0054).
 - An opt-in local instruction model and authenticated Whisper voice input with editable drafts (ADR 0055). Setup and bounded actual acceptance are recorded in `docs/LOCAL_AI_SETUP.md` and `README.md`; device checks and production acceptance remain separate.
