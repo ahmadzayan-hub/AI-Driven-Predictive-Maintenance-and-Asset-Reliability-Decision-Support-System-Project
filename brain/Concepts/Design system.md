@@ -34,3 +34,5 @@ Read the master file, then ask the skill one focused question with `python3 .cla
 - [[Identity]], whose two languages the interface serves equally.
 - [[Decision log]], for ADR 0023 and the ADR 0018 accessibility bar it keeps.
 - [[House style]]: the look of the agents' outputs, kept separate from the interface.
+- [[Accessible motion]]: defines the controls and limits for workflow animation.
+- [[Business report exports]]: preserves scope and evidence in portable reports.

@@ -1,9 +1,9 @@
 ---
 type: operation
 aliases: [Session loop, Operating loop]
-tags: [operating]
+tags: [operating, operations]
 status: active
-updated: 2026-10-19
+updated: 2026-10-20
 review_every_days: 30
 sources: [.claude/settings.json, .claude/hooks/session_start.py, .claude/hooks/stop_gate.py, .claude/hooks/session_end.py, docs/PLAYBOOK.md, AGENTS.md, scripts/verify.py, docs/GITHUB_SYNC.md]
 ---
@@ -35,3 +35,5 @@ Hooks are deterministic and cheap: they record facts and remind. Skills need jud
 - [[Identity]]: the builder agent's operating loop.
 - [[Team collaboration]]: the same files keep teammates in sync.
 - [[Maintenance log]]: what daily brain care changed.
+- [[Release acceptance]]: separates completing a session from authorizing a hosted release.
+- [[Verification and budgets]]: records the checks needed before reporting success.

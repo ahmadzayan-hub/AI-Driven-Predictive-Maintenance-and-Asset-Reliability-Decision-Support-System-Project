@@ -91,5 +91,7 @@ describe('interactive agent observations', () => {
     expect(screen.getAllByText('المراجعة البشرية: رُفضت')[0]).toBeVisible()
     expect(container.querySelector('.agent-flow__signal--updated')).toBeNull()
     expect(container.querySelector('.agent-flow__group bdi')).toHaveAttribute('dir', 'ltr')
+    expect(screen.getByText('بداية سير العمل')).not.toHaveAttribute('lang')
+    expect(screen.getByText('نهاية سير العمل')).not.toHaveAttribute('lang')
   })
 })

@@ -23,7 +23,7 @@ No contact details, student numbers or teammates' personal data belong in this n
 
 ## Goals
 
-1. Grow Agentic OS into an analytics OS that digests several datasets with dynamic inputs, and carries data through preparation, cleaning and modelling to a multi-page interactive dashboard with live data. The plan is the [[Analytics OS roadmap]].
+1. Grow Agentic OS into an analytics OS that digests several datasets with dynamic inputs, and carries data through preparation, cleaning and modelling to a multi-page interactive dashboard with [[Live data|live data]]. The plan is the [[Analytics OS roadmap]].
 2. Submit the capstone by 22 October 2026, then present it on 25 October 2026.
 3. Keep the project explainable to a team and to examiners: every number traceable, every decision written down in the [[Decision log]].
 

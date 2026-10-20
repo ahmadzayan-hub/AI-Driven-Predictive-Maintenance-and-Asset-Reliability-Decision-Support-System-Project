@@ -21,9 +21,10 @@ The principles every session and every feature answers to. When a request confli
 7. **Personal data stays private.** The repository is temporarily private for containment; course files and teammates' details still stay out, as in the [[Team 3 Capstone]]. Any public release requires the owner's approval after remediation.
 8. **Both languages are first-class.** English and Arabic get the same quality and the same accessibility bar.
 9. **Decisions are written down.** A change in behaviour gets a decision record, listed in the [[Decision log]].
-10. **No weak substitutes.** A custom password system is never built just to tick an authentication box; managed identity providers do that job.
+10. **No weak substitutes.** A custom password system is never built just to tick an authentication box; [[Managed identity|managed identity]] providers do that job.
 
 ## Related
 
 - [[Second brain]]: these principles are kept current by brain maintenance.
 - [[Session lifecycle]]: where the principles are re-read at the start of each session.
+- [[Model privacy]]: implements part of the rule that raw rows never go to a model.

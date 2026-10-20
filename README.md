@@ -432,7 +432,11 @@ system/app reduced motion and keyboard controls are included. The
 [decision](docs/adr/2026-10-20-observed-agent-collaboration.md) explain the
 distinction between observed workflow connections and actual message transcripts.
 
-- Local focused unit tests: **21 passed across 2 existing files**. TypeScript,
+- Complete local Python suite with required PostgreSQL: **1,418 run, 1,397 passed,
+  21 skipped**. Both database adapters were included; the temporary test
+  container was removed afterward.
+- Complete local frontend unit suite: **262 / 262 across 34 files**.
+  The focused subset also passed **21 / 21**. TypeScript,
   production build, strict brain check, **5 native contracts** and **33 Python
   documentation/verifier/release-policy tests** passed.
 - Initial targeted browser run: **9 passed, 1 viewport-specific skip**, covering
@@ -441,13 +445,17 @@ distinction between observed workflow connections and actual message transcripts
   sidebar, expanded mobile inspection and the existing evidence dialog.
   Actual synthetic captures: [desktop](docs/screenshots/agent-collaboration-desktop-ar.png)
   and [320 px phone](docs/screenshots/agent-collaboration-mobile-ar.png).
-- Final measured budget: initial JS **98.5 / 100 KB**, total JS **184.4 / 185 KB**,
+- Final measured budget: initial JS **98.5 / 100 KB**, total JS **184.5 / 185 KB**,
   largest lazy chunk **18.1 / 30 KB**, initial CSS **10.0 / 10 KB**, total CSS
   **22.7 / 23 KB**, fonts **119.4 / 120 KB**. The dated decision increases only
   total CSS by 1 KB; no dependency or extra polling was introduced.
-- Main's incoming breakdown-provenance work through `39ad29e` is preserved.
-  Full combined-source CI is pending; older CI results below do not verify this
-  feature. Production was not deployed.
+- Feature source `16d779b`, integrated at `4aaa295`, preserves incoming main
+  through `b1e0c83`. [CI](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39480501990)
+  and [UI Budget Fast](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39480501976)
+  did **not start**: GitHub reported failed account payments or an insufficient
+  spending limit. Both jobs have no test steps. This is an infrastructure block,
+  not a passing CI result. Local checks above are independently measured;
+  older CI results below do not verify this feature. Production was not deployed.
 
 ### Corrective project review — 20 October 2026
 

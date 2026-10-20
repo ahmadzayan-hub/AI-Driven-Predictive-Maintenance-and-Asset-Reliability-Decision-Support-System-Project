@@ -15,7 +15,7 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 | ADR | Decision | Shapes |
 | --- | --- | --- |
 | 0001 | SQLite locally, PostgreSQL hosted, for run-engine persistence | [[Agentic OS]] |
-| 0002 | Managed identity, roles and tenant isolation | [[Agentic OS]] |
+| 0002 | [[Managed identity]], roles and [[Tenant isolation|tenant isolation]] | [[Agentic OS]] |
 | 0003 | Sign-in flow and request rate limiting | [[Agentic OS]] |
 | 0004 | Content-addressed dataset storage and upload | [[Analytics OS roadmap]] |
 | 0005 | Backups, restore drills, measured RPO and RTO | [[Agentic OS]] |
@@ -48,7 +48,7 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 | 0031 | The cleaned table: download, fields, totals and records | [[Analytics OS roadmap]] |
 | 0032 | Dashboard pages with filters in the address and drill-down | [[Design system]] |
 | 0033 | Modelling stages as plugins, each against its baseline | [[Custom stages]] |
-| 0034 | Live data: connectors, scheduled refreshes, pushed updates | [[Analytics OS roadmap]] |
+| 0034 | [[Live data]]: connectors, scheduled refreshes, pushed updates | [[Analytics OS roadmap]] |
 | 0035 | A view's strings ship with the view | [[Design system]] |
 | 0036 | Maintenance SaaS product identity over the existing Agentic OS engine | [[Identity]], [[Agentic OS]] |
 | 0037 | Isolated bilingual maintenance design preview with fictional fixtures | [[Design system]], [[Agentic OS]] |
@@ -79,6 +79,6 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 | 2026-10-20-a-clips-number-must-be-in-its-source | A clip's figure is read against the file its source names, not merely required to cite one | [[Agent team]], [[Governed pipeline]] |
 | 2026-10-20-decision-records-are-dated-not-numbered | The sequential counter is closed at 0060; a new record is named for the day it was decided | [[Session lifecycle]] |
 | 2026-10-20-semantic-performance-colors | Explicit performance colors and sourced per-analysis display targets with neutral unknowns | [[Agentic OS]], [[Design system]], [[Weighted KPIs]] |
-| 2026-10-20-observed-agent-collaboration | Observed workflow handoffs, stage inspection and independent visual pause with restrained accessible motion | [[Agentic OS]], [[Design system]], [[Hermes orchestrator]] |
+| 2026-10-20-observed-agent-collaboration | Observed workflow handoffs, stage inspection and independent visual pause with restrained [[Accessible motion|accessible motion]] | [[Agentic OS]], [[Design system]], [[Hermes orchestrator]] |
 
 All seven [[Analytics OS roadmap]] milestones have their records.

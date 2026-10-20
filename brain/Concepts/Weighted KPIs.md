@@ -1,9 +1,9 @@
 ---
 type: concept
 aliases: [KPI register, Ratio of sums]
-tags: [measurement]
+tags: [measurement, data]
 status: active
-updated: 2026-10-18
+updated: 2026-10-20
 review_every_days: 60
 sources: [server/metrics.py, server/maintenance/kpis.py, project-progress.md, docs/adr/0026-uneven-periods-are-read-per-record.md, docs/adr/0042-an-unmeasured-cell-is-not-a-zero.md, docs/AGENT_TEAM.md]
 ---
@@ -40,3 +40,5 @@ The metric glossary (`metrics.json`) gives each metric a definition, an owner an
 - [[Team 3 Capstone]]: where the register was first written.
 - [[Analytics OS roadmap]]: dashboard measures must follow the same rule.
 - [[Agent team]]: the review that corrected this note.
+- [[Maintenance decision support]]: applies the measurement rules to maintenance decisions.
+- [[Scoped dashboards]]: keeps the selected population attached to each displayed KPI.

@@ -52,7 +52,7 @@ These counts go stale fast; `README.md` is the one place where they are maintain
 
 ## Direction
 
-The [[Analytics OS roadmap]]'s seven milestones were built by 17 October 2026: several datasets, dynamic inputs, a dashboard, models and live data. Decisions are in the [[Decision log]].
+The [[Analytics OS roadmap]]'s seven milestones were built by 17 October 2026: several datasets, dynamic inputs, a dashboard, models and [[Live data|live data]]. Decisions are in the [[Decision log]].
 
 ## Related
 

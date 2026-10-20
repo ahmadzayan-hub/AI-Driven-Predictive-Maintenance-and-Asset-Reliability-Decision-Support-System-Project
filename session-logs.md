@@ -960,8 +960,18 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 
 **Goal:** study and implement professional, restrained animation and a combined view of agent workflow communication and interaction.
 
-- **Done:** added a lazy collaboration panel to Runs: Hermes/workflow groups, observed handoff highlights, stage order, summaries, current evidence, bounded activity and independent pause/resume of the view. Added English/Arabic, reduced-motion and background/interruption handling. Recorded the design study and dated decision. Preserved incoming team work through `39ad29e`, including breakdown provenance.
-- **Verified:** focused unit, native contract, browser/accessibility, typecheck/build, brain and documentation/verifier/release-policy checks are recorded with their measured counts in README.md#testing. Browser screenshots exposed reversed RTL ratios; their numbers now use explicit LTR isolation. Full combined-source CI is pending.
+- **Done:** `16d779b`, integrated at `4aaa295`, adds a lazy collaboration panel to Runs: Hermes/workflow groups, observed handoff highlights, stage order, summaries, current evidence, bounded activity and independent pause/resume of the view. Added English/Arabic, reduced-motion and background/interruption handling. Recorded the design study and dated decision. Preserved incoming team work through `b1e0c83`, including breakdown provenance and the team's documentation.
+- **Verified:** complete frontend unit, native contract, browser/accessibility, typecheck/build, brain and documentation/verifier/release-policy checks are recorded with their measured counts in README.md#testing. Browser screenshots exposed reversed RTL ratios; both diagram and sidebar numbers now use explicit LTR isolation. Combined-source CI and its fast-budget job were refused before any test step because of GitHub account billing/spending limits.
 - **Decisions:** show observed states and workflow order because the server has no message transcript or complete stage event stream. No extra polling, backend change or dependency. The lazy panel increases only the aggregate CSS budget; initial-load, JavaScript and font ceilings remain unchanged. Owner preference is preserved in Memory and the brain.
-- **Open / next:** complete combined-source CI, then report the evidence on main. A future actual communication transcript needs a tenant-scoped durable event contract. Hosted-release and independent domain acceptance remain owner gates.
-- **Blockers:** none for source implementation. No production deployment or pull request was requested or performed.
+- **Open / next:** the account owner must resolve the GitHub Actions billing/spending-limit restriction before hosted CI can run. A future actual communication transcript needs a tenant-scoped durable event contract. Hosted-release and independent domain acceptance remain owner gates.
+- **Blockers:** GitHub Actions jobs do not start under the current account restriction. This does not prevent local source validation. No production deployment or pull request was requested or performed.
+
+## 2026-10-20 ? `brain-expansion` ? main
+
+**Goal:** review the uploaded Obsidian graph, increase its meaningful points and open the project vault.
+
+- **Done:** added 18 source-backed notes, reorganized Home by purpose, connected each addition to related concepts, refreshed stale pipeline/mapping facts and documented graph controls. Launched the registered project brain vault; the running app title and saved layout identify Graph view. Preserved the user's display preferences. Also corrected workflow-boundary language attributes in the collaboration inspector and their regression assertions.
+- **Verified:** strict brain validation, complete Home coverage and non-Home incoming relationships for every addition. Full local Python validation includes required PostgreSQL; frontend and browser results are recorded only in README.md#testing.
+- **Decisions:** knowledge edges are reviewed relationships, not live agent messages. The graph expansion records existing capabilities and explicit boundaries; it does not claim 18 new software features.
+- **Open / next:** actual message inspection needs a durable tenant-scoped event contract. Hosted-release and independent domain acceptance remain open.
+- **Blockers:** GitHub Actions remains blocked before execution by the account billing/spending-limit restriction.

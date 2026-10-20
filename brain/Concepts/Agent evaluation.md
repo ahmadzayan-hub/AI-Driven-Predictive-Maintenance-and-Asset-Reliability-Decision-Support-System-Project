@@ -1,9 +1,9 @@
 ---
 type: concept
 aliases: [Confusion matrix, Recall floors, Blind holdout, Reviewer benchmark]
-tags: [measurement, quality]
+tags: [measurement, quality, agents]
 status: active
-updated: 2026-10-17
+updated: 2026-10-20
 review_every_days: 30
 sources: [docs/adr/0027-agents-are-measured.md, scripts/evaluate_agents.py, scripts/score_review.py, evals/floors.json, evals/reviewers/README.md, evals/reviewers/summary.json]
 ---
@@ -41,3 +41,5 @@ How [[Agentic OS]] knows how often each of its agents is right: labelled synthet
 - [[Soul]]: no fabricated numbers, so the honest number is the blind one.
 - [[Agent team]]: the reviewers this measures.
 - [[Weighted KPIs]]: the denominator category in the reviewer benchmark tests this rule.
+- [[Model validation]]: assesses analytical models separately from agent classification.
+- [[Verification and budgets]]: records the broader delivery checks.

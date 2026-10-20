@@ -1,9 +1,9 @@
 ---
 type: concept
 aliases: [Hermes]
-tags: [architecture]
+tags: [architecture, agents]
 status: active
-updated: 2026-10-16
+updated: 2026-10-20
 review_every_days: 60
 sources: [server/analytics.py, docs/adr/0009-hermes-and-the-specialist-roster.md]
 ---
@@ -19,3 +19,5 @@ That separation is structural, not a convention. Because the orchestrator comput
 - [[Agentic OS]]: the product it runs inside.
 - [[Custom stages]]: Hermes places plugin stages before provenance, validation and reporting, never after them.
 - [[Decision log]]: decision 0009 named Hermes and fixed the roster.
+- [[Agent collaboration]]: makes observed handoffs and stage details visible.
+- [[Run lifecycle]]: persists the progress that Hermes sequences.

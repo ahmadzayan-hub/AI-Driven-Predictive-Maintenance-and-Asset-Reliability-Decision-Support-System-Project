@@ -1,9 +1,9 @@
 ---
 type: concept
 aliases: [Narrator, Provider-neutral gateway]
-tags: [architecture, ai]
+tags: [architecture, ai, agents]
 status: active
-updated: 2026-10-16
+updated: 2026-10-20
 review_every_days: 60
 sources: [server/model_gateway.py, server/routing.py, docs/adr/0017-choosing-the-narrator.md, .env.example]
 ---
@@ -23,3 +23,5 @@ This is where two rules in [[Soul]] are enforced in code: raw data never goes to
 
 - [[Agent runtimes and MCP]]: the chat's optional agent loop uses this gateway as its model.
 - [[Decision log]]: decisions 0017 and 0019.
+- [[Model privacy]]: checks the facts and labels before provider submission.
+- [[Knowledge retrieval]]: supplies cited reference context through a separate collection contract.

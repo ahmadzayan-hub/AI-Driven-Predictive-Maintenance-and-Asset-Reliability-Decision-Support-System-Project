@@ -113,11 +113,11 @@ export default function AgentCollaboration({ run, events, interrupted, pipelines
       </div>
       {selected ? <div className="agent-flow__inspector">
         <div className="agent-flow__handoff">
-          <div><span>{t('flow.previous')}</span><p lang={shown.report_language} dir="auto">{shown.tasks[selectedIndex - 1]?.title ?? t('flow.first')}</p></div>
+          <div><span>{t('flow.previous')}</span><p lang={shown.tasks[selectedIndex - 1] ? shown.report_language : undefined} dir="auto">{shown.tasks[selectedIndex - 1]?.title ?? t('flow.first')}</p></div>
           <Icon name="arrowDown" size={18} />
           <div><span>{t('flow.selected')}</span><p lang={shown.report_language} dir="auto"><strong>{selected.title}</strong></p></div>
           <Icon name="arrowDown" size={18} />
-          <div><span>{t('flow.next')}</span><p lang={shown.report_language} dir="auto">{shown.tasks[selectedIndex + 1]?.title ?? t('flow.last')}</p></div>
+          <div><span>{t('flow.next')}</span><p lang={shown.tasks[selectedIndex + 1] ? shown.report_language : undefined} dir="auto">{shown.tasks[selectedIndex + 1]?.title ?? t('flow.last')}</p></div>
         </div>
         <p lang={selected.summary ? shown.report_language : undefined} dir="auto">{selected.summary ?? t('flow.noSummary')}</p>
         <div className="agent-flow__evidence">

@@ -3,7 +3,7 @@ type: log
 aliases: [Brain maintenance log]
 tags: [meta]
 status: active
-updated: 2026-10-17
+updated: 2026-10-20
 review_every_days: 7
 sources: [scripts/brain_check.py]
 ---
@@ -56,3 +56,12 @@ What each round of brain maintenance changed, newest last. The SessionStart hook
 - Checked, and left alone: [[Session lifecycle]] was refreshed yesterday with "fetch before you write" and already describes the loop the dated-record rule belongs to; the rule itself lives in `docs/PLAYBOOK.md` and `AGENTS.md`, where a session reads it, rather than being copied into a note.
 - Added no notes and merged none. Neither of today's decisions introduces a concept the brain was missing: one is a naming convention, the other tightens a gate a note already describes.
 - `scripts/brain_check.py --strict` exits 0 after the edits.
+
+### Owner-requested graph expansion later the same day
+
+- Reviewed the uploaded graph image: broad concepts dominate, dense edges obscure relationships and the template appears as a node. Measured the working vault before expansion: 27 curated notes and 343 wikilink references.
+- Added 18 source-backed concept and operation notes covering observed agent handoffs, run durability, evidence, retrieval, data contracts, joins, live sources, model validity, maintenance decisions, identity, tenancy, privacy, scoped reports, exports, [[Accessible motion|accessible motion]], recovery, [[Release acceptance|release acceptance]] and verification. Every new note is reachable from [[Home]] and has a related incoming link.
+- Reorganized the home index by purpose and added meaningful backlinks from existing notes. Linked seven newly recognized prose mentions. New tags support optional graph color groups; no Obsidian preference file was overwritten.
+- Corrected stale single-CSV-only language in [[Governed pipeline]] and unchanged-automatic-selection language in [[Column mapping]], using the current dataset, join and breakdown-provenance sources.
+- Added a graph-reading guide in `docs/design/KNOWLEDGE_GRAPH.md`. A graph edge records a knowledge relationship; [[Agent collaboration]] describes the separately implemented live workflow view.
+- Verified the expanded vault: 45 curated notes; no broken links, missing fields or sources, stale notes, duplicate candidates, unlinked mentions or orphans. Home covers every other curated note, and every addition has an incoming relationship beyond Home.
