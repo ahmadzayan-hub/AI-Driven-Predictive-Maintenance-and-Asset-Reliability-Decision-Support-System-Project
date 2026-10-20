@@ -1006,6 +1006,16 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Open / next:** implement a pure typed graph adapter and richer native stage connections first; measure an optional explorer against an explicit device workload and payload budget before integrating it. Real message history requires a durable authorized event contract.
 - **Blockers:** none for the study. Existing hosted/domain acceptance gates and the previously observed GitHub billing restriction were not resolved or revalidated here.
 
+## 2026-10-21 · `run-timeout-fix` · main
+
+**Goal:** fix the Arabic server-timeout error and run the platform with agent animations.
+
+- **Done:** corrected the run transport deadline that aborted a valid local narration step. Run detail, advance and controls allow the bounded model window plus response overhead. Rebuilt and restarted only the owned local platform process; preserved its data. Resumed the interrupted Arabic sample and ran a fresh sample from the first stage. Both reached the publication approval gate without another timeout or manual retry after the repair. Left Edge open on the agent connection panel; local screenshots and runtime logs remain outside Git.
+- **Verified:** regressions failed before the fix and passed afterwards; API/scheduler checks, TypeScript/build, bundle budget, docs/verifier/release-policy checks, strict brain validation and whitespace checks passed. Exact counts and scope are in README.md#testing. The full platform suites were not rerun for this transport-only change.
+- **Decisions:** `docs/adr/2026-10-21-run-request-timeout.md` preserves the short generic deadline, bounded failures, single scheduler, no automatic POST replay and the human publication gate.
+- **Open / next:** hosted function limits and multiple queued model requests are separate execution constraints. The existing hosted/domain acceptance gates remain open; this was a local repair and no deployment.
+- **Blockers:** none for this repair. The previously observed CI account restriction was not revalidated in this session.
+
 ## 2026-10-20 · `d9e3f889` · claude/tender-clarke-m4uwgq (option D)
 
 **Goal:** go with D now, C conditional.

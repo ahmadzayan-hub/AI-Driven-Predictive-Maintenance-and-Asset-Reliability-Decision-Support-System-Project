@@ -422,6 +422,28 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Local run timeout correction — 21 October 2026
+
+The [decision](docs/adr/2026-10-21-run-request-timeout.md) fixes a ten-second
+browser deadline cutting off a bounded sixty-second local model step. Run detail,
+advance and controls now allow ninety seconds, while health retains its short
+deadline. Failed POSTs are not automatically replayed.
+
+- The new regressions reproduced **7 failures** before the fix; the focused API
+  and scheduler suites then passed **26 / 26** tests.
+- TypeScript checking and the production build passed. Bundle limits passed:
+  initial JS **98.5 / 100 KB**, total JS **184.5 / 185 KB**, largest lazy JS
+  **18.1 / 30 KB**, initial CSS **10.0 / 10 KB**, total CSS **22.7 / 23 KB**,
+  fonts **119.4 / 120 KB**.
+- Restarted the local Ollama-backed platform and resumed the interrupted Arabic
+  sample to the approval gate. A fresh Arabic sample also reached that gate:
+  **21 successful stages** each, with no timeout shown and no manual retry after
+  the repair. Publication was left for the owner to approve.
+- Documentation, verifier and release-policy checks passed **33 / 33**; strict
+  brain validation and whitespace checks passed.
+- The full Python, frontend and automated browser suites were not rerun for
+  this transport-only change. No production deployment was performed.
+
 ### React animation technology study ? 21 October 2026
 
 The [study](docs/design/REACT_AGENT_CONNECTIONS_STUDY.md) compares the existing

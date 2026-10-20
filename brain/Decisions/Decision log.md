@@ -3,7 +3,7 @@ type: decision
 aliases: [ADR index, Architecture decisions]
 tags: [decisions]
 status: active
-updated: 2026-10-20
+updated: 2026-10-21
 review_every_days: 30
 sources: [docs/adr]
 ---
@@ -82,5 +82,6 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 | 2026-10-20-observed-agent-collaboration | Observed workflow handoffs, stage inspection and independent visual pause with restrained [[Accessible motion|accessible motion]] | [[Agentic OS]], [[Design system]], [[Hermes orchestrator]] |
 | 2026-10-20-agent-measurement-loop | Agents are measured on a schedule in a bounded loop that hands over to a person; holdout text never leaves the evaluation | [[Agent evaluation]], [[Agent runtimes and MCP]] |
 | 2026-10-20-labelled-cases-from-real-use | **Accepted:** new labelled cases come from independent blind synthetic sets now; per-item consented contribution stays closed until a measured mismatch and a pilot customer's written agreement; blind_v6 then blind_v7: causal wording recall 28% to 60% after the fix, intent gain within noise | [[Agent evaluation]], [[Tenant isolation]], [[Model privacy]] |
+| 2026-10-21-run-request-timeout | Run transport waits through bounded narration and serialized controls without replaying failed POSTs | [[Model gateway]], [[Governed pipeline]] |
 
 All seven [[Analytics OS roadmap]] milestones have their records.
