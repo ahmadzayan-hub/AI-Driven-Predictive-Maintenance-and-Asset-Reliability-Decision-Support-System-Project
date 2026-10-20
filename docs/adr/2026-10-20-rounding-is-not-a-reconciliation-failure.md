@@ -78,10 +78,11 @@ and every one was watched failing before the code that makes it pass:
 - moving one unit from one group to another, which leaves the sum intact, is
   caught by the per-group comparison.
 
-Measured on this workspace after the change: `tests.test_analytics` **76
-tests**, `tests.test_stages` 32, `tests.test_joins` 46 (10 skipped without
-PostgreSQL), `tests.test_maintenance` 30, `tests.test_metrics` 32 — all
-passing. The full suite result for this session is recorded in
+Measured on this workspace after the change and after merging the parallel
+session's work, in the project venv: `tests.test_analytics` **78 tests**,
+`tests.test_metrics` 32, `tests.test_stages`, `tests.test_maintenance` and
+`tests.test_docs` alongside them for **183 together**, and `tests.test_joins`
+46 with 10 skipped for want of PostgreSQL — all passing. The full suite result for this session is recorded in
 [README testing](../../README.md#testing).
 
 Re-run live against the same 5,000-row dataset through the API, the run that

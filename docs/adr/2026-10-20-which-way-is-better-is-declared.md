@@ -92,8 +92,8 @@ Watched failing first, then passing:
   largest source and offers nothing that grows the smallest; `lower` curbs the
   biggest increase rather than reversing the biggest decline; `higher` keeps the
   old behaviour and arithmetic (750 and 300 totals, 75.00 and 30.00 gains); and
-  the declared direction reaches the stage from the glossary. **76 tests, all
-  passing.**
+  the declared direction reaches the stage from the glossary. **78 tests, all
+  passing** on the merged tree, two of them the parallel session's.
 - One existing test changed rather than added: the ranking test ran without a
   glossary, so its keys are now `largest_source` and `smallest_source`. The
   figures it checks are untouched, which is the evidence that this change moves
