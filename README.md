@@ -485,8 +485,15 @@ reproduced defects, corrections, limits and owner acceptance gates.
   and the separate adversarial probe remains a documented limitation.
 - Vercel production remains on the older `42e53d00` deployment. Main-branch
   automatic deployment is disabled; no production release was performed.
-  Historical privacy containment, hosted acceptance, independent maintenance
-  evidence and real-device acceptance remain open.
+  On the owner's subsequent approval, the repository became temporarily
+  private; collaborator permissions and branch tips were preserved, and
+  anonymous web/API requests returned 404. Historical remediation before
+  re-publication, hosted acceptance, independent maintenance evidence and
+  real-device acceptance remain open.
+  The visibility follow-up passed **12 documentation/release-policy tests**,
+  the strict brain check and patch hygiene. Application code, tests and
+  deployment configuration remain unchanged from `fadc18d`; the full suite
+  was not rerun locally for this settings/documentation action.
 
 Follow-up source `ede59b1`, after preserving the incoming direction and
 independent-reconciliation changes through `b402def`:
@@ -1161,7 +1168,7 @@ See `user_guide.md` for the full command reference.
 - Persist preference changes back to `config.json` on request
 - Streamed responses and a pluggable AI-model backend
 - A scheduled off-site backup job (see ADR 0005 for why it is not a
-  workflow in this public repository)
+  workflow in the project repository)
 - Named memory keys (e.g. `/remember birthday = 1 May`)
 
 ## Working on it with Claude Code
@@ -1197,8 +1204,10 @@ described in [docs/PLAYBOOK.md](docs/PLAYBOOK.md):
 
 Team members start with [CONTRIBUTING.md](CONTRIBUTING.md). It covers
 getting access, ways to help without writing code, local setup, the
-branch and pull-request flow, and the rules for a public repository: no
-secrets, no personal data, no force-push.
+branch and pull-request flow, and the repository's continuing rules: no
+secrets, no personal data, no force-push. The repository is temporarily private
+under the [20 October containment decision](docs/adr/2026-10-20-temporary-private-containment.md);
+the owner must approve access for any additional team member or instructor.
 
 ## Project Information
 

@@ -1,7 +1,7 @@
 # Project assessment and corrective work
 
 Reviewed: 2026-10-20. Baseline: `cf45f14fee7d6d045190d01a54eccae8f4f82078`,
-on `main`. Scope: the public software repository, synthetic local execution,
+on `main`. Scope: the then-public software repository, synthetic local execution,
 SQLite and an isolated PostgreSQL service, CI evidence, and read-only hosting
 metadata. Private course datasets and submission files were not retrieved.
 
@@ -55,7 +55,7 @@ The dated decisions in `docs/adr/2026-10-20-*.md` explain behavior and tradeoffs
 Current executed commands, counts, skips and budgets are kept in
 [README testing](../../README.md#testing), the canonical verification record.
 Reproduction scripts, before/after observations, complete local logs and the
-dependency inventory are retained outside the public repository.
+dependency inventory are retained outside the repository.
 
 The [final complete Linux CI](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39446235305)
 passed on combined source `fadc18d`, including both browser suites. The earlier
@@ -67,19 +67,25 @@ real-device and assisted-use acceptance.
 
 ## Measured review outcome
 
-The nine equally weighted gates measured **66.7% → 66.7% → 66.7%** across
-three rounds. All six automated gates passed: executed full validation,
+The nine equally weighted gates measured
+**66.7% → 66.7% → 66.7% → 77.8% → 77.8%** across five rounds.
+All six automated gates passed: executed full validation,
 dependency audits, the dependency-license policy, measured agent floors,
 documentation contracts and patch hygiene. The final source check requires
-every change after CI-tested `fadc18d` to be a reporting-file change; it makes
+every change after CI-tested `fadc18d` to be documentation or operating guidance; it makes
 no exception for later application, configuration or test edits.
 
-The three owner gates below remain open, with **no accepted exceptions**.
-The bounded loop stopped after two rounds without a score increase. This is
-checklist completion, not a product-quality, security or prediction-accuracy
-rating. Code defects were corrected during the rounds even though owner-gate
-completion did not change. The plan, score history and detailed evidence are
-retained outside the public repository.
+The initial loop stopped after two rounds without a score increase, with
+three owner gates open. The owner's subsequent approval and verified private
+conversion closed immediate privacy containment. Two further measured rounds
+confirmed **seven gates passed, no accepted exceptions, two gates open**;
+the loop then reached its five-round bound. Hosted-release acceptance belongs
+to the service owner and independent maintenance validation to the domain owner.
+
+This is checklist completion, not a product-quality, security or
+prediction-accuracy rating. The plan, score history and detailed evidence are
+retained outside the repository. The completed containment and its remaining
+limits are recorded below.
 
 ## Coverage and remaining limits
 
@@ -89,7 +95,7 @@ retained outside the public repository.
 | Architecture and persistence | Modular stages and two storage adapters support testing and recovery. Atomic stages improve correctness but hold transactions while work executes; SQLite serializes writers. Measure contention and service capacity before expanding use. |
 | Data quality and analytics | Mapping, reconciliation, joins, denominator handling and model-input timing are testable. Source semantics, observation grain, stable asset identifiers and operational thresholds still require a domain owner. |
 | AI and evaluation | Synthetic evaluations meet configured floors. They are limited by their labels and development history; intent holdout macro recall is 72%, and the existing adversarial causal-wording probe reports 6% recall. Heuristic screening is not exhaustive anonymization or causal validation. |
-| Security and privacy | Confirmed tenancy and detected-PII paths were repaired. This is a source-level review with regression tests, not a penetration-test certificate. Historical public exposure remains an owner decision below. |
+| Security and privacy | Confirmed tenancy and detected-PII paths were repaired. This is a source-level review with regression tests, not a penetration-test certificate. Owner-approved private visibility now contains repository access; historical remediation before any re-publication remains open. |
 | Operations and recovery | Local crash/recovery, worker and database checks provide execution evidence. Actual hosted identity, durable storage, scheduled refresh, direct egress, provider access, backup restoration and alert ownership require deployment-specific acceptance. |
 | Dependencies and supply chain | Current dependency audits and the SBOM/license gate are recorded with verification. Versions, advisories and license obligations must be maintained continuously; a passing audit is a point-in-time result. |
 | Maintainability | Dated ADRs and regression tests help review, but `server/analytics.py` remains large. Extract stages behind their tested contracts in a separate change. Keep one canonical verification record and avoid treating self-written evaluation cases as independent acceptance. |
@@ -97,14 +103,17 @@ retained outside the public repository.
 
 ## Release gates that code alone cannot close
 
-1. **Contain historical public private/course material — repository owner.**
-   Metadata reinspection confirms protected paths on five historical branch
-   tips. No protected contents were downloaded. Removing current files would
-   leave historical copies. Recommended immediate containment is to make the
-   repository private while retaining team access, then agree a reviewed
-   remediation with affected owners and GitHub. This requires an owner decision:
-   AGENTS.md prohibits branch deletion and history rewriting. No acceptance or
-   destructive remediation is implied by this review.
+1. **Immediate privacy containment — completed with repository-owner approval.**
+   The owner approved temporary private visibility on 20 October. Authenticated
+   metadata confirms the change; all four access entries and all 17 branch tips
+   were preserved, and anonymous web/API requests returned 404. No forks or
+   Pages site existed at conversion. Historical private/course material remains
+   in Git history, accessible to authorized collaborators; no protected contents
+   were downloaded for this action. Existing external copies cannot be recalled
+   by visibility changes. Agree historical remediation with affected owners and
+   GitHub before any re-publication, which requires explicit owner approval.
+   Branch deletion and history rewriting remain prohibited. See the
+   [containment decision](../adr/2026-10-20-temporary-private-containment.md).
 2. **Validate the hosted release — service owner.** Run managed-auth isolation,
    worker/refresh, database restart and restore, error/alert, and sanitized
    provider checks against an explicitly approved deployment of the corrected
@@ -112,14 +121,15 @@ retained outside the public repository.
    Hosting metadata currently identifies an older Git production commit
    (`42e53d00`); the fixes in this review are not proven deployed.
    Read-only GitHub metadata also shows `main` unprotected and no active
-   rulesets. The administration endpoint is unavailable to the integration.
+   rulesets. The GitHub connector lacked administration access; the later
+   containment action verified the existing Git account has administrator access.
    Agree and apply branch/release governance compatible with the team's
-   standing main-branch workflow; no repository settings were changed here.
+   standing main-branch workflow; only visibility was changed for containment.
 3. **Accept the maintenance decision — maintenance/domain owner.** Supply an
    approved input-timing and KPI register, an independently chosen historical
    holdout or prospective pilot, false-positive/false-negative consequences,
    and a manager acceptance task. Report calibration, cohort exclusions,
    uncertainty and operational value before enabling consequential use.
 
-No gate is accepted on somebody else's behalf. Prioritize these gates before
+No remaining gate is accepted on somebody else's behalf. Prioritize these gates before
 adding more agents, forecasts, dashboard screens or commercial claims.
