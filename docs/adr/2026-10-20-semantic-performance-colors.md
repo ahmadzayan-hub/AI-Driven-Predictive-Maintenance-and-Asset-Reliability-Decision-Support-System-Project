@@ -48,8 +48,8 @@ not assessed. Missingness and excluded population stay disclosed.
 
 Persist per-analysis policy history in its own `kpi_policies` table. An
 idempotent schema initialization adds it to existing SQLite/PostgreSQL stores;
-backup/restore and owner erasure include it. Rules never enter report artifacts
-or the publication vault. Reuse existing run ownership, read/write permissions,
+backup/restore and owner erasure include it. Rules never alter stored pipeline
+artifacts or the publication vault. Reuse existing run ownership, read/write permissions,
 cleaned-table readiness and bounded request handling. Atomic optimistic saves
 reject concurrent replacement; history records actor and timestamp. Target
 edits do not advance tasks, approve, publish or change the underlying figures.
