@@ -464,6 +464,40 @@ reproduced defects, corrections, limits and owner acceptance gates.
   automatic deployment is disabled; no production release was performed.
   Historical privacy containment, hosted acceptance, independent maintenance
   evidence and real-device acceptance remain open.
+### Measure-direction and reconciliation validation — 20 October 2026
+
+Session `1eb4cedb`, commit `79501e9` merged with the parallel session's work at
+`088e6f6`. Two dated decisions:
+[which way is better is declared](docs/adr/2026-10-20-which-way-is-better-is-declared.md)
+and
+[rounding is not a reconciliation failure](docs/adr/2026-10-20-rounding-is-not-a-reconciliation-failure.md).
+
+Run here in the project venv on the merged tree:
+
+- **183 Python tests** across `tests.test_analytics` (78 of them),
+  `tests.test_metrics` (32), `tests.test_stages`, `tests.test_maintenance` and
+  `tests.test_docs`, **all passing**, 9 of them new; `tests.test_joins` **46
+  passing with 10 skipped** for want of a local PostgreSQL.
+- `scripts/brain_check.py --strict`: **27 notes, 0 broken links, 0 stale, 0
+  duplicate candidates, 0 unlinked mentions, 0 orphans.**
+- Live through the API against the 5,000-row maintenance dataset: the unmapped
+  run that the validator used to reject now reaches `awaiting_approval` with 41
+  claims, the reconciliation check reading
+  `Σ(groups)=40,161.27 vs total=40,161.27; recomputed 5000 group total(s),
+  largest difference from the published figure 0.0000`. The same dataset with a
+  saved column mapping reaches `awaiting_approval` with 47 claims. Neither was
+  approved or published, and the dataset was removed from the local runtime
+  afterwards.
+
+**Not run on the merged tree, so not claimed:** the full Python suite — one run
+was stopped as redundant and the `scripts/verify.py` run that replaced it was
+stopped by the harness when the machine ran short of memory; the frontend unit
+suite, type check and build, which were measured before the merge and not after
+it (**244 tests in 34 files, 241 passing**, the 3 failures the `findBy`
+load flake recorded in `Memory.md`, all 3 passing when run alone; type check and
+build clean; interface budget inside every ceiling); Playwright, the Miyaar
+suites, PostgreSQL, `pip-audit` and anything hosted. CI on the merged commit is
+the authority for what was not run here.
 
 ### Performance-color validation — 20 October 2026
 

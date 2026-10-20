@@ -45,6 +45,12 @@ ABSOLUTE_TOLERANCE = 0.01
 # can be reported as a decision with a reason.
 MEASURE_NAME_HINTS = ("revenue", "sales", "amount", "value", "total")
 
+# Whether a bigger number is better. Arithmetic cannot work this out -
+# 40,000 hours of downtime and 40,000 in revenue are the same number and
+# opposite news - so it is declared beside the definition, by the same
+# person who owns it, or not at all.
+DIRECTIONS = ("higher", "lower")
+
 OPERATIONS = {
     "sum": (2, None),
     "multiply": (2, None),
@@ -133,6 +139,14 @@ def _validate(entry, index):
         problem = _validate_formula(formula, where)
         if problem:
             return None, problem
+    better = entry.get("better")
+    if better is not None:
+        if not isinstance(better, str) or better.strip().lower() not in DIRECTIONS:
+            # Which way is better is a statement about the business, so
+            # it is either one of two words or it is not said at all.
+            return None, (f"{where} says better is {better!r}; it is either "
+                          '"higher" or "lower", or left out.')
+        better = better.strip().lower()
     return {
         "name": name.strip(),
         "title": (entry.get("title") or name).strip(),
@@ -143,6 +157,7 @@ def _validate(entry, index):
         "certified_on": entry.get("certified_on") or None,
         "columns": [c.strip() for c in columns],
         "formula": formula,
+        "better": better,
     }, None
 
 

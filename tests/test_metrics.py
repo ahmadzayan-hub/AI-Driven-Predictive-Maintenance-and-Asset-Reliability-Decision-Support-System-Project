@@ -117,6 +117,27 @@ class LoadingTestCase(unittest.TestCase):
         self.assertEqual(entries, [])
         self.assertIn("exactly 2", problems[0])
 
+    def test_a_declared_direction_is_carried_and_normalised(self):
+        """Which way is better is a statement about the business, so the
+        glossary is where it is said — and it is said in one of two
+        words."""
+        entries, problems = self.load({"version": 1, "metrics": [
+            {**VALID, "better": "Lower"}]})
+        self.assertEqual(problems, [])
+        self.assertEqual(entries[0]["better"], "lower")
+
+    def test_an_undeclared_direction_is_a_normal_state(self):
+        entries, problems = self.load({"version": 1, "metrics": [VALID]})
+        self.assertEqual(problems, [])
+        self.assertIsNone(entries[0]["better"])
+
+    def test_a_direction_that_is_neither_word_is_refused(self):
+        entries, problems = self.load({"version": 1, "metrics": [
+            {**VALID, "better": "up"}]})
+        self.assertEqual(entries, [])
+        self.assertIn("revenue", problems[0])
+        self.assertIn("higher", problems[0])
+
     def test_the_environment_can_point_at_another_file(self):
         path = write({"version": 1, "metrics": [VALID]}, self.root)
         found = metrics.glossary_path(env={metrics.ENV_VAR: str(path)})
