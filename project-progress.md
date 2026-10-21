@@ -1,11 +1,13 @@
 # Project progress
 
-Last updated: 2026-10-21, session `runtime21`, preserving concurrent demo-interface and memory-selector work. The session-end skill keeps this file current; the SessionStart hook reads the *Now* section into every new session.
+Last updated: 2026-10-21, session `advisory21`, preserving the workspace runtime and concurrent interface work. The session-end skill keeps this file current; the SessionStart hook reads the *Now* section into every new session.
 
 
 **Vision.** **AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project** uses Agentic OS as its governed analytics engine. It digests several datasets with dynamic inputs, then carries them through preparation, cleaning and modelling to a multi-page interactive dashboard with live data, with insights and key findings that are always traceable to a calculation. The product scope and remaining domain work are in `docs/PROJECT_CHARTER.md`; the reusable engine milestones are in `brain/Projects/Analytics OS roadmap.md`.
 
 ## Now
+
+- **Executive Analytics Advisory Group: 2026-10-21.** The briefing and bilingual exports use the predictive-maintenance product title and lead with a decision, domain exposure, proposed review roles and predictive-readiness limits. Source identity, workbook reconciliation and dictionary acceptance are not inferred from an arbitrary run. A separate private review of the owner's assigned source pack independently reproduced its supplied KPI summary, preserved original hashes, and delivered concise English/Arabic papers with an evidence appendix, transformation log and instructor-review issue register. Business-definition and prospective-validity issues remain open; no scenario/source values were changed. See [decision](docs/adr/2026-10-21-executive-analytics-advisory.md); checks are in README.md#testing.
 
 - **Workspace model activation: 2026-10-21.** Explicit Vercel AI Gateway configuration with deployment OIDC, structured LangGraph decisions and instant read-only help/status shortcuts are implemented. Direct Qwen replies remain the local default; the tested LangGraph/model combination was slower and failed one live tool-sequence request, so it is not enabled by default. Exact tests, latency and limits are in README.md#testing. **Blocked:** Vercel rejects live model requests until the team adds a valid payment card. Production activation still requires owner approval. See [activation decision](docs/adr/2026-10-21-workspace-model-activation.md).
 
