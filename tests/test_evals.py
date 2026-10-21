@@ -364,6 +364,23 @@ class RecallFixTests(unittest.TestCase):
         self.assertAlmostEqual(wrong["13.4%"], 11.428571, places=4)
         self.assertAlmostEqual(wrong["15.2"], 12.708333, places=4)
 
+    def test_a_fall_written_as_a_positive_size_is_read_as_the_fall(self):
+        # Benchmark D showed "fell from 468 to 412, a fall of 12.0%" flagged as
+        # 56 / 412: a fall computes negative, prose writes its size. These
+        # sentences are new, so D stays held out for the checker.
+        register = {"Lift faults 2024": "250", "Lift faults 2025": "200", "Lift fault change": "-20.0%",
+                    "Escalator stoppages 2024": "160", "Escalator stoppages 2025": "136",
+                    "Door faults 2024": "80", "Door faults 2025": "60"}
+        text = ("Lift faults fell from 250 in 2024 to 200 in 2025, 50 fewer or a fall of 20.0%. "
+                "Escalator stoppages dropped from 160 to 136, a reduction of 24 or 15.0%. "
+                "Door faults declined from 80 to 60, a reduction of 30.0%.")
+        result = self.sourcing(text, register)
+        self.assertEqual(result["unsourced"], [])
+        wrong = {w["result"]: w["computed"] for w in result["wrong_arithmetic"]}
+        # The real slip is still caught, against the right base: 20 / 80.
+        self.assertEqual(set(wrong), {"30.0%"})
+        self.assertAlmostEqual(abs(wrong["30.0%"]), 25.0, places=4)
+
     def test_a_table_read_as_one_sentence_derives_nothing(self):
         # A dashboard's data table: dozens of figures and the word "per"; any
         # two of them would "derive" a third, so the rule keeps to prose.

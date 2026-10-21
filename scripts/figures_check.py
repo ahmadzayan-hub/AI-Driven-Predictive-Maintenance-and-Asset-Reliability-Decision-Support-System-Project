@@ -318,9 +318,15 @@ def sourced_by(token, pool):
 CUES = {
     "ratio": re.compile(r"\b(each|per|every|average|averages|mean|apiece)\b|لكل|متوسط", re.I),
     "change": re.compile(r"\b(growth|grew|grow|grows|rise|rose|risen|up|down|fell|fall|gain|drop|dropped|change|"
-                         r"increase[sd]?|decrease[sd]?)\b|نمو|ارتفع|انخفض|زيادة", re.I),
+                         r"increase[sd]?|decrease[sd]?|declined?|reduction|reduced|fewer)\b|نمو|ارتفع|انخفض|تراجع|زيادة", re.I),
     "share": re.compile(r"\b(share|of all|proportion|percent of)\b|نسبة|حصة", re.I),
 }
+# Which way a change went decides its base: a fall is measured against the
+# larger, earlier figure and a rise against the smaller. Prose writes the size
+# of a fall ("a fall of 12.0%"), so the direction comes from the words.
+FALL = re.compile(r"\b(fell|falls?|fallen|drop(s|ped)?|down|declin(e|ed|es|ing)|decreas(e|ed|es|ing)|"
+                  r"reduc(tion|ed)|fewer|lower)\b|انخفض|تراجع", re.I)
+RISE = re.compile(r"\b(rose|rises?|risen|gr[eo]w(s|th)?|grown|up|gain(s|ed)?|increas(e|ed|es|ing)|more|higher)\b|ارتفع|زيادة|نمو", re.I)
 # "That is growth of 13.4%": the figures are in the sentence before.
 BACK_REFERENCE = re.compile(r"^(that|this|it|these|those|which)\b|^(هذا|هذه|وهذا|وهذه)", re.I)
 SENTENCES = re.compile(r"(?<=[.!?؟])\s+")
@@ -330,9 +336,16 @@ SLIP_FACTOR = 2.0
 MAX_SENTENCE, MAX_FIGURES = 300, 6
 
 
-def _derivations(a, b):
+def _derivations(a, b, direction=None):
+    low, high = sorted((a, b))
+    if direction == "fall" and high:
+        change = [(high - low) / high, (low - high) / high, high - low, low - high]
+    elif direction == "rise" and low:
+        change = [(high - low) / low, high - low]
+    else:
+        change = [x for x in (a / b - 1 if b else None, b / a - 1 if a else None, a - b, b - a) if x is not None]
     return {"ratio": [x for x in (a / b if b else None, b / a if a else None) if x is not None],
-            "change": [x for x in (a / b - 1 if b else None, b / a - 1 if a else None, a - b, b - a) if x is not None],
+            "change": change,
             "share": [x for x in (a / b if b else None, b / a if a else None) if x is not None],
             "other": [a * b, a + b]}
 
@@ -382,7 +395,9 @@ def implied(token, sentence, previous, pool, register):
              if _words(re.sub(r"\(.*?\)", " ", r["label"])) and _words(re.sub(r"\(.*?\)", " ", r["label"])) <= words]
     inputs = _distinct(explicit + named)
     pairs = [(a, b) for i, a in enumerate(inputs) for b in inputs[i + 1:]]
-    if any(_close(token, c) for a, b in pairs for cs in _derivations(a, b).values() for c in cs):
+    falls, rises = bool(FALL.search(sentence)), bool(RISE.search(sentence))
+    direction = "fall" if falls and not rises else "rise" if rises and not falls else None
+    if any(_close(token, c) for a, b in pairs for cs in _derivations(a, b, direction).values() for c in cs):
         return "derived"
     explicit = _distinct(explicit)
     families = [name for name, cue in CUES.items() if cue.search(sentence)]
@@ -390,7 +405,7 @@ def implied(token, sentence, previous, pool, register):
         return None
     written = value_of(token)
     candidates = [_as_written(token, c) for i, a in enumerate(explicit) for b in explicit[i + 1:]
-                  for f in families for c in _derivations(a, b)[f]]
+                  for f in families for c in _derivations(a, b, direction)[f]]
     candidates = [c for c in candidates if c and (c > 0) == (written > 0)]
     if not candidates or not written:
         return None
