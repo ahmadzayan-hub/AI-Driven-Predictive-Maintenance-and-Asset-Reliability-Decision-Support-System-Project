@@ -475,4 +475,9 @@ Three more limits on what the figures mean:
   `availability` before 21 October 2026 was set against utilisation. It now
   gives no verdict until someone saves it again in the target editor
   ([decision](adr/2026-10-21-targets-held-when-a-measure-is-redefined.md));
-  it is never rewritten.
+  it is never rewritten. The same holds for MTTR, first-time fix and repeat
+  repair, redefined the same day to match the team's Power BI report
+  ([decision](adr/2026-10-21-kpi-register-aligned-with-power-bi.md)).
+- **MTTR counts all downtime.** It follows the Power BI report: all recorded
+  downtime over all failures. Where planned downtime is recorded on records
+  with no failure, it overstates time to restore a failure.

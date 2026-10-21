@@ -45,7 +45,7 @@ export default function KpiPolicyEditor({ runId, measures, onSaved, onClose }: {
   }, [metric, policy])
   const measure = measures.find((item) => item.key === metric)
   const fields = bounds(direction)
-  const unit = measure?.scale === 'percent' ? '%' : measure?.scale === 'hours' ? t('policy.hours') : measure?.scale === 'money' ? t('policy.money') : measure?.scale || ''
+  const unit = measure?.scale === 'percent' ? '%' : measure?.scale === 'hours' ? t('policy.hours') : measure?.scale === 'money' ? t('policy.money') : measure?.scale === 'ratio' ? t('policy.ratio') : measure?.scale === 'count' ? t('policy.count') : measure?.scale || ''
   async function save(remove = false) {
     if (!policy || !measure || !writable || busy || error === 'conflict') return
     const numeric = Object.fromEntries(fields.map((key) => [key, values[key]?.trim() ? Number(values[key]) : NaN]))

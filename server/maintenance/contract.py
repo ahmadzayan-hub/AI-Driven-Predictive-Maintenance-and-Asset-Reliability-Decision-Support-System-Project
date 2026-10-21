@@ -32,6 +32,7 @@ HOURS = "hours"
 MONEY = "money"
 FRACTION = "fraction"       # 0 to 1
 PERCENT = "percent"         # 0 to 100
+RATIO = "ratio"             # one total as a multiple of another ("4.5 times")
 SCORE = "score"             # a bounded index with no natural unit
 CATEGORY = "category"
 DATE = "date"

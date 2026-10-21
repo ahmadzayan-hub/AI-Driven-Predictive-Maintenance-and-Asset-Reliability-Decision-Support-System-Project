@@ -87,12 +87,23 @@ class KpiPopulationTest(unittest.TestCase):
                              Downtime_Hours=0.0) for i in range(6)]
         return corrective + preventive
 
-    def test_first_time_fix_is_measured_on_corrective_work_only(self):
+    def test_first_time_fix_is_unaffected_by_placeholder_zeros(self):
+        # Summed over every record, as the Power BI Method page defines it.
+        # Preventive placeholders add 0 to both sums, so they do not dilute
+        # the rate the way they dilute a row average.
         result = kpis.REGISTER["first_time_fix"].compute(self.rows())
-        self.assertEqual(result["records"], 4)
-        self.assertEqual(result["records_excluded"], 6)
+        self.assertEqual(result["records"], 10)
+        self.assertEqual(result["records_excluded"], 0)
         self.assertAlmostEqual(result["value"], 75.0)
-        self.assertEqual(result["population"], "corrective records")
+        self.assertEqual(result["population"], "all records")
+        self.assertEqual(result["definition"], 2)
+
+    def test_corrective_counts_on_a_record_typed_preventive_are_counted(self):
+        # The case where the old and new definitions part: a record typed
+        # preventive that carries corrective work orders.
+        rows = self.rows() + [record(Record_ID="M1", Work_Order_Type="Preventive",
+                                     First_Time_Fix_Count=0, Corrective_WO_Count=4)]
+        self.assertAlmostEqual(kpis.REGISTER["first_time_fix"].compute(rows)["value"], 60.0)  # 12 / 20
 
     def test_the_row_average_is_a_different_number_and_is_named_as_one(self):
         rows = self.rows()
@@ -101,9 +112,9 @@ class KpiPopulationTest(unittest.TestCase):
                 0.0 if row["Work_Order_Type"] == "Preventive" else 0.75)
         kpi = kpis.REGISTER["first_time_fix"]
         weighted = kpi.compute(rows)["value"]
-        # row_mean stays inside the KPI's population, so the two differ
-        # only where the stored column differs from the ratio of sums.
-        self.assertAlmostEqual(kpi.row_mean(rows, "First_Time_Fix_Rate"), 75.0)
+        # The row mean averages the preventive placeholders in; the ratio
+        # of sums does not. Two numbers, two names.
+        self.assertAlmostEqual(kpi.row_mean(rows, "First_Time_Fix_Rate"), 30.0)
         self.assertAlmostEqual(weighted, 75.0)
 
     def test_a_rate_is_a_ratio_of_sums_not_a_mean_of_row_rates(self):
@@ -127,9 +138,11 @@ class KpiBoundaryTest(unittest.TestCase):
         self.assertIn("undefined rather than zero", result["undefined_reason"])
 
     def test_an_empty_population_is_undefined_not_zero(self):
+        population = kpis.Kpi("x", "X", "س", "First_Time_Fix_Count", "Corrective_WO_Count",
+                              kpis.corrective_only, "corrective records", contract.PERCENT, "test")
         rows = [record(Work_Order_Type="Preventive", Corrective_WO_Count=0,
                        First_Time_Fix_Count=0)]
-        result = kpis.REGISTER["first_time_fix"].compute(rows)
+        result = population.compute(rows)
         self.assertEqual(result["records"], 0)
         self.assertIsNone(result["value"])
 
@@ -340,12 +353,18 @@ class CorrectedMeasuresTest(unittest.TestCase):
         self.assertIsNone(result["value"])
         self.assertIn("undefined", result["undefined_reason"])
 
-    def test_mttr_is_downtime_per_failure_on_records_that_had_a_failure(self):
+    def test_mttr_is_all_downtime_over_all_failures(self):
+        # The Power BI Method page: MTTR = sum(Downtime h) / sum(Failures).
         result = self.value("mttr")
         self.assertAlmostEqual(result["value"], 6.0)              # 30 / 5
-        self.assertEqual(result["records"], 2)
-        self.assertEqual(result["records_excluded"], 1)           # R2 had no failure
-        self.assertEqual(result["population"], "records with a failure")
+        self.assertEqual((result["records"], result["records_excluded"]), (3, 0))
+        self.assertEqual(result["population"], "all records")
+        self.assertEqual(result["definition"], 2)
+        # Downtime on a record with no failure now counts, as stated on the card.
+        rows = self.rows()
+        rows[1]["Downtime_Hours"] = 5.0
+        self.assertAlmostEqual(self.value("mttr", rows)["value"], 7.0)   # 35 / 5
+        self.assertIn("overstates", kpis.REGISTER["mttr"].edge_cases)
 
     def test_overdue_rate_and_overdue_share_are_two_named_measures(self):
         rate, share = self.value("overdue_rate"), self.value("overdue_share")
@@ -384,7 +403,7 @@ class CorrectedMeasuresTest(unittest.TestCase):
         first, repeat = self.value("first_time_fix", rows), self.value("repeat_repair", rows)
         self.assertAlmostEqual(first["value"], 70.0)               # 7 / 10, not (75 + 66.7 + 0) / 3
         self.assertAlmostEqual(first["value"] + repeat["value"], 100.0)
-        self.assertEqual(first["records_excluded"], 1)
+        self.assertEqual(first["records_excluded"], 0)
 
     def test_every_new_or_changed_measure_prints_its_formula_and_has_both_titles(self):
         for key in ("availability", "utilisation", "availability_inherent", "mtbf", "mttr",
@@ -440,7 +459,23 @@ class CorrectedMeasuresTest(unittest.TestCase):
             kpis.Kpi("x", "X", "س", "Downtime_Hours", kpis.RECORDS, kpis.every_record,
                      "all records", contract.HOURS, "test", edge_cases="e", family="good")
 
-    def test_the_register_holds_fourteen_measures(self):
-        """The 21 October decision first said fifteen; it is eight kept plus six added."""
-        self.assertEqual(len(kpis.REGISTER), 14)
+    def test_the_register_holds_eighteen_measures(self):
+        """Fourteen after the first 21 October decision, plus the four the
+        Power BI report shows that the register lacked."""
+        self.assertEqual(len(kpis.REGISTER), 18)
+
+    def test_the_power_bi_measures_the_register_lacked(self):
+        rows = self.rows()
+        for row, loss, cost in zip(rows, (900.0, 0.0, 300.0), (100.0, 100.0, 100.0)):
+            row["Production_Loss_USD"], row["Maintenance_Cost_USD"] = loss, cost
+        per_1000 = self.value("downtime_per_1000_planned", rows)
+        self.assertAlmostEqual(per_1000["value"], 100.0)          # 1,000 x 30 / 300
+        self.assertEqual(per_1000["formula"],
+                         "1,000 × sum(Downtime_Hours) / sum(Planned_Operating_Hours)")
+        availability = self.value("availability", rows)["value"]
+        self.assertAlmostEqual(per_1000["value"], 10 * (100 - availability))
+        self.assertAlmostEqual(self.value("failures_per_record", rows)["value"], 5 / 3)
+        self.assertAlmostEqual(self.value("loss_per_record", rows)["value"], 400.0)        # 1,200 / 3
+        self.assertAlmostEqual(self.value("loss_to_maintenance_ratio", rows)["value"], 4.0)  # 1,200 / 300
+        self.assertEqual(kpis.REGISTER["loss_to_maintenance_ratio"].scale, contract.RATIO)
 

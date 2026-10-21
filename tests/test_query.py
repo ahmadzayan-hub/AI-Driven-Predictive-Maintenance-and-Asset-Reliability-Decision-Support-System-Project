@@ -455,10 +455,10 @@ class MaintenanceKpiEndpointTests(unittest.TestCase):
         run = self.finished_run()
         _, english = self.measures(run["id"])
         _, arabic = self.measures(run["id"], "ar")
-        self.assertEqual(english["first_time_fix"]["population_label"], "corrective records")
-        self.assertEqual(arabic["first_time_fix"]["population_label"], "سجلات الصيانة التصحيحية")
+        self.assertEqual(english["first_time_fix"]["population_label"], "all records")
+        self.assertEqual(arabic["first_time_fix"]["population_label"], "جميع السجلات")
         # The code is what exports and stored policies match on.
-        self.assertEqual(arabic["first_time_fix"]["population"], "corrective records")
+        self.assertEqual(arabic["first_time_fix"]["population"], "all records")
         self.assertNotIn("population_ar", arabic["first_time_fix"])
 
     def test_a_gap_is_disclosed_rather_than_counted_as_a_zero(self):

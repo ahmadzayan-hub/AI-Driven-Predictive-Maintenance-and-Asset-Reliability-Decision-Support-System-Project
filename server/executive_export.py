@@ -113,6 +113,7 @@ def report_sections(brief):
         "percent": ("Percent, 0–100", "نسبة مئوية، من 0 إلى 100"),
         "fraction": ("Fraction, 0–1", "نسبة كسرية، من 0 إلى 1"),
         "hours": ("Hours", "ساعات"), "money": ("Monetary units", "وحدات نقدية"),
+        "ratio": ("Times (one total over another)", "مرات (مجموع على مجموع)"),
         "count": ("Count", "عدد"), "score": ("Score", "درجة"),
         "category": ("Category", "فئة"), "date": ("Date", "تاريخ"), "identifier": ("Identifier", "معرّف"),
     }

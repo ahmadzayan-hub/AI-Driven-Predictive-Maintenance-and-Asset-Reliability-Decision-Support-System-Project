@@ -31,6 +31,7 @@ export function formatValue(measure: KpiMeasure, locale: 'en' | 'ar' = 'en'): st
     maximumFractionDigits: digits,
   })
   if (measure.scale === 'percent') return `${number}%`
+  if (measure.scale === 'ratio') return `${number}×`
   return number
 }
 

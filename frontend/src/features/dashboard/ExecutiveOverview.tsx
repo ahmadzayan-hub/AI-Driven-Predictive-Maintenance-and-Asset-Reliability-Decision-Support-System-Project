@@ -297,7 +297,7 @@ function modelTone(model: RunExecutive['models'][number]) {
 function Kpi({ measure }: { measure: KpiMeasure }) {
   const { t, formatNumber } = usePack(executiveMessages)
   const value = measure.value === null ? t('exec.unavailable') : formatNumber(measure.value, { maximumFractionDigits: 2 })
-  const unit = measure.value === null ? '' : measure.scale === 'percent' ? '%' : measure.scale === 'hours' ? t('exec.hours') : measure.scale === 'money' ? t('exec.money') : measure.scale
+  const unit = measure.value === null ? '' : measure.scale === 'percent' ? '%' : measure.scale === 'hours' ? t('exec.hours') : measure.scale === 'money' ? t('exec.money') : measure.scale === 'ratio' ? t('exec.ratio') : measure.scale === 'count' ? '' : measure.scale
   const tone = performanceTone(measure.value, measure.assessment)
   // A verdict's reason stays on the card, and so does a target held for review;
   // "no target is set" moves into the evidence.
@@ -305,7 +305,7 @@ function Kpi({ measure }: { measure: KpiMeasure }) {
     || measure.assessment?.reason_code === 'target_outdated'
   const share = measure.scale === 'percent' && measure.value !== null ? Math.max(0, Math.min(100, measure.value)) : null
   return <article className="exec-kpi" data-source={`kpi.${measure.key}`}>
-    <h5 dir="auto">{measure.title}</h5><p className={`exec-kpi-value${measure.value === null ? ' exec-kpi-value--missing' : ''}`}><PerformanceValue tone={tone} reason={verdict ? measure.assessment?.reason : undefined}><bdi>{value}{'\u00a0'}<small>{unit}</small></bdi></PerformanceValue></p>
+    <h5 dir="auto">{measure.title}</h5><p className={`exec-kpi-value${measure.value === null ? ' exec-kpi-value--missing' : ''}`}><PerformanceValue tone={tone} reason={verdict ? measure.assessment?.reason : undefined}><bdi><span className="exec-kpi-n">{value}</span>{unit.length > 2 ? ' ' : '\u00a0'}<small>{unit}</small></bdi></PerformanceValue></p>
     {share === null ? null : <svg className="exec-kpi-meter" viewBox="0 0 100 4" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect width="100" height="4" rx="2" /><rect width={share} height="4" rx="2" /></svg>}
     <p className="exec-kpi-covered">{t('exec.covered', { n: formatNumber(measure.records) })}</p>
     {measure.records_unmeasured > 0 ? <p className="exec-kpi-caution">{t('exec.unmeasured', { n: formatNumber(measure.records_unmeasured) })}</p> : null}
@@ -327,7 +327,7 @@ function PolicyButton({ onClick, open }: { onClick: () => void; open: boolean })
 function TargetEvidence({ measure }: { measure: KpiMeasure }) {
   const { t, formatNumber } = usePack(policyMessages)
   const assessment = measure.assessment
-  const unit = measure.scale === 'percent' ? '%' : measure.scale === 'hours' ? t('policy.hours') : measure.scale === 'money' ? t('policy.money') : measure.scale
+  const unit = measure.scale === 'percent' ? '%' : measure.scale === 'hours' ? t('policy.hours') : measure.scale === 'money' ? t('policy.money') : measure.scale === 'ratio' ? t('policy.ratio') : measure.scale === 'count' ? t('policy.count') : measure.scale
   if (!assessment?.direction) return null
   return <dl><div><dt>{t('policy.direction')}</dt><dd>{t(`policy.${assessment.direction}`)}</dd></div>
     {Object.entries(assessment.thresholds || {}).map(([key, number]) => <div key={key}><dt>{t(`policy.${key}` as 'policy.good_at')}</dt><dd><bdi>{formatNumber(number, { maximumSignificantDigits: 12 })} {unit}</bdi></dd></div>)}

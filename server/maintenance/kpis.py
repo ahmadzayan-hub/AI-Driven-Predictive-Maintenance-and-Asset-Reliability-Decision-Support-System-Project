@@ -154,8 +154,12 @@ class Kpi:
 
     def __init__(self, key, title, title_ar, numerator, denominator, population,
                  population_name, scale, meaning, *, edge_cases=None,
-                 missing=EXCLUDE, complement=False, family=None, definition=1):
+                 missing=EXCLUDE, complement=False, family=None, definition=1,
+                 per=1):
         self.key = key
+        # A fixed multiplier for "per 1,000 planned hours" style measures.
+        # Still a ratio of sums: the sums are divided first, then scaled.
+        self.per = per
         # Raised whenever what the measure means changes, so a display target
         # set for the earlier meaning is held for review (ADR, 21 October).
         self.definition = definition
@@ -234,6 +238,8 @@ class Kpi:
     @property
     def formula(self):
         ratio = f"{self._describe(self.numerator)} / {self._describe(self.denominator)}"
+        if self.per != 1:
+            ratio = f"{self.per:,} × {ratio}"
         return f"1 - {ratio}" if self.complement else ratio
 
     @property
@@ -284,6 +290,8 @@ class Kpi:
         value = None if denominator == 0 else numerator / denominator
         if value is not None and self.complement:
             value = 1 - value
+        if value is not None:
+            value *= self.per
         if self.scale == contract.PERCENT and value is not None:
             value *= 100
         if not measured and population:
@@ -359,18 +367,24 @@ _add(Kpi("preventive_share", "Preventive share of work orders",
          family="execution"))
 
 _add(Kpi("first_time_fix", "First-time fix rate", "معدل الإصلاح من المرة الأولى",
-         "First_Time_Fix_Count", "Corrective_WO_Count", corrective_only,
-         "corrective records", contract.PERCENT,
+         "First_Time_Fix_Count", "Corrective_WO_Count", every_record,
+         "all records", contract.PERCENT,
          "Share of corrective work that held without a return visit.",
-         edge_cases="Measured on corrective work only. Preventive records "
-                    "commonly store a placeholder of 0 and must be excluded, "
-                    "not averaged in.",
+         # 2: was summed over records typed "Corrective" only until 21 October.
+         definition=2,
+         edge_cases="Corrective work orders counted wherever a record carries "
+                    "them, as the Power BI Method page defines it: a record "
+                    "typed preventive with corrective counts on it adds them. "
+                    "A record with no corrective work adds 0 to both sums, so "
+                    "placeholders do not dilute the rate.",
          family="execution"))
 
 _add(Kpi("repeat_repair", "Repeat repair rate", "معدل تكرار الإصلاح",
-         "Repeat_Repair_Count", "Corrective_WO_Count", corrective_only,
-         "corrective records", contract.PERCENT,
+         "Repeat_Repair_Count", "Corrective_WO_Count", every_record,
+         "all records", contract.PERCENT,
          "Share of corrective work that came back.",
+         # 2: was summed over records typed "Corrective" only until 21 October.
+         definition=2,
          edge_cases="Same population as first-time fix, so the two agree.",
          family="execution"))
 
@@ -448,14 +462,17 @@ _add(Kpi("mtbf", "Mean time between failures", "متوسط الزمن بين ا�
 
 _add(Kpi("mttr", "Mean time to restore (downtime per failure)",
          "متوسط زمن الاستعادة (التوقف لكل عطل)",
-         "Downtime_Hours", "Failure_Count", with_failure,
-         "records with a failure", contract.HOURS,
+         "Downtime_Hours", "Failure_Count", every_record,
+         "all records", contract.HOURS,
          "Hours of downtime per failure.",
-         edge_cases="The restoration-time variant: all recorded downtime per "
-                    "failure, so it includes detection, waiting and logistic "
-                    "delay if the source recorded them. It is not active repair "
-                    "time. Confirm which a stored MTTR column holds before "
-                    "comparing.",
+         # 2: counted downtime on records with a failure only until 21 October.
+         definition=2,
+         edge_cases="All recorded downtime over all failures, as the Power BI "
+                    "Method page defines it. Downtime on a record with no "
+                    "failure, such as planned work, is counted too, so where "
+                    "planned downtime is recorded this overstates time to "
+                    "restore a failure. It includes detection, waiting and "
+                    "logistic delay; it is not active repair time.",
          family="reliability"))
 
 _add(Kpi("sla_attainment", "SLA attainment", "نسبة تحقيق مستوى الخدمة",
@@ -476,6 +493,43 @@ _add(Kpi("downtime_per_record", "Downtime per record", "التوقف لكل سج
          edge_cases="Per record, not per period: record volume differs between "
                     "periods, so a falling total need not mean less downtime.",
          family="reliability"))
+
+_add(Kpi("downtime_per_1000_planned", "Downtime per 1,000 planned hours",
+         "التوقف لكل 1,000 ساعة مخططة",
+         "Downtime_Hours", "Planned_Operating_Hours", every_record,
+         "all records", contract.HOURS,
+         "Hours lost for every 1,000 hours the asset was meant to run.",
+         per=1000,
+         edge_cases="The same sums as availability, on another scale: it equals "
+                    "1,000 × (1 - availability). Unlike downtime per record, "
+                    "it does not move when record volume changes.",
+         family="reliability"))
+
+_add(Kpi("failures_per_record", "Failures per record", "الأعطال لكل سجل",
+         "Failure_Count", RECORDS, every_record,
+         "all records", contract.COUNT,
+         "Average number of failures on a maintenance record.",
+         edge_cases="Per record, not per operating hour: where records cover "
+                    "different running time, MTBF is the fairer comparison.",
+         family="reliability"))
+
+_add(Kpi("loss_per_record", "Loss per record", "الخسارة لكل سجل",
+         "Production_Loss_USD", RECORDS, every_record,
+         "all records", contract.MONEY,
+         "Average production loss on a maintenance record.",
+         edge_cases="Usually the source's own valuation of lost output. Per "
+                    "record, so a group with more, smaller records reads lower.",
+         family="cost"))
+
+_add(Kpi("loss_to_maintenance_ratio", "Loss to maintenance ratio",
+         "نسبة الخسارة إلى تكلفة الصيانة",
+         "Production_Loss_USD", "Maintenance_Cost_USD", every_record,
+         "all records", contract.RATIO,
+         "Production lost for every unit spent on maintenance.",
+         edge_cases="Above 1, failures cost more in lost output than the "
+                    "maintenance spend. Both totals must cover the same "
+                    "assets and period, and the loss valuation must be stated.",
+         family="cost"))
 
 _add(Kpi("loss_per_downtime_hour", "Loss per downtime hour", "الخسارة لكل ساعة توقف",
          "Production_Loss_USD", "Downtime_Hours", every_record,
