@@ -426,9 +426,11 @@ python scripts/verify.py
 
 `python scripts/score_review.py --summary`: on memo F (blind, 9 new kinds of
 method error, 3 controls, 11 decoys) the analytics reviewer with check 7
-scored **100% lane recall, no false alarm** (controlled run and loaded
-subagent); the v2 instructions **found 11 of 12** planted paragraphs. The
-figures auditor raised **one false alarm**. Checker v6 (clock times and
+scored **100% lane recall, no false alarm in each of 5 runs** (3 as the
+loaded subagent, 2 controlled); the v2 instructions **found 11 of 12 in
+both of their 2 runs**, missing the same paragraph. The
+figures auditor raised **one false alarm in each of its 2 runs** (the same
+correct run-to-failure paragraph); team **100% recall, 92% precision**. Checker v6 (clock times and
 longer numbers no longer count as found) leaves every benchmark score
 unchanged. `REQUIRE_PG=1 python scripts/verify.py` against PostgreSQL 16:
 **1,497 Python tests reported, 19 skipped** (optional extras only), **277

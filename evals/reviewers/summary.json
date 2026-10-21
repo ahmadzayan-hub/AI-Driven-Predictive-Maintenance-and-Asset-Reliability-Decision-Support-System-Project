@@ -4983,6 +4983,270 @@
   "false_alarms": [],
   "secondary": [
    "P04 \u00b7 arithmetic",
+   "P05 \u00b7 arithmetic",
+   "P07 \u00b7 overclaim",
+   "P08 \u00b7 arithmetic",
+   "P10 \u00b7 overclaim",
+   "P12 \u00b7 overclaim",
+   "P14 \u00b7 overclaim",
+   "P17 \u00b7 overclaim"
+  ],
+  "category_confusion": {
+   "labels": [
+    "causal_claim",
+    "denominator",
+    "overclaim",
+    "domain_method",
+    "missed",
+    "arithmetic"
+   ],
+   "matrix": {
+    "causal_claim": {
+     "causal_claim": 1,
+     "denominator": 0,
+     "overclaim": 0,
+     "domain_method": 0,
+     "missed": 0,
+     "arithmetic": 0
+    },
+    "denominator": {
+     "causal_claim": 0,
+     "denominator": 1,
+     "overclaim": 0,
+     "domain_method": 0,
+     "missed": 0,
+     "arithmetic": 0
+    },
+    "overclaim": {
+     "causal_claim": 0,
+     "denominator": 0,
+     "overclaim": 1,
+     "domain_method": 0,
+     "missed": 0,
+     "arithmetic": 0
+    },
+    "domain_method": {
+     "causal_claim": 0,
+     "denominator": 0,
+     "overclaim": 5,
+     "domain_method": 0,
+     "missed": 1,
+     "arithmetic": 3
+    },
+    "missed": {
+     "causal_claim": 0,
+     "denominator": 0,
+     "overclaim": 0,
+     "domain_method": 0,
+     "missed": 0,
+     "arithmetic": 0
+    },
+    "arithmetic": {
+     "causal_claim": 0,
+     "denominator": 0,
+     "overclaim": 0,
+     "domain_method": 0,
+     "missed": 0,
+     "arithmetic": 0
+    }
+   }
+  },
+  "per_category": {
+   "causal_claim": {
+    "matrix": {
+     "True": {
+      "True": 1,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 26
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1,
+      "predicted": 1
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 26,
+      "predicted": 26
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 27,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "denominator": {
+    "matrix": {
+     "True": {
+      "True": 1,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 26
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1,
+      "predicted": 1
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 26,
+      "predicted": 26
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 27,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "overclaim": {
+    "matrix": {
+     "True": {
+      "True": 1,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 21
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1,
+      "predicted": 1
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 21,
+      "predicted": 21
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 22,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "domain_method": {
+    "matrix": {
+     "True": {
+      "True": 0,
+      "False": 9
+     },
+     "False": {
+      "True": 0,
+      "False": 18
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": null,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 9,
+      "predicted": 0
+     },
+     "False": {
+      "precision": 0.6666666666666666,
+      "recall": 1.0,
+      "f1": 0.8,
+      "support": 18,
+      "predicted": 27
+     }
+    },
+    "accuracy": 0.6666666666666666,
+    "macro_recall": 0.5,
+    "cases": 27,
+    "positive": "True",
+    "recall": 0.0,
+    "precision": null,
+    "misses": [
+     "P04 \u00b7 domain_method",
+     "P05 \u00b7 domain_method",
+     "P07 \u00b7 domain_method",
+     "P08 \u00b7 domain_method",
+     "P10 \u00b7 domain_method",
+     "P12 \u00b7 domain_method",
+     "P14 \u00b7 domain_method",
+     "P16 \u00b7 domain_method",
+     "P17 \u00b7 domain_method"
+    ],
+    "false_alarms": []
+   }
+  },
+  "agent": "analytics-expert-reviewer",
+  "tag": "ctl-v2-repeat"
+ },
+ {
+  "bench": "F",
+  "categories": [
+   "causal_claim",
+   "denominator",
+   "overclaim",
+   "domain_method"
+  ],
+  "findings": 11,
+  "recall": 0.25,
+  "detection": {
+   "per_class": {
+    "True": {
+     "precision": 1.0,
+     "recall": 0.9166666666666666,
+     "f1": 0.9565217391304348,
+     "support": 12,
+     "predicted": 11
+    },
+    "False": {
+     "precision": 0.9375,
+     "recall": 1.0,
+     "f1": 0.967741935483871,
+     "support": 15,
+     "predicted": 16
+    }
+   },
+   "accuracy": 0.9629629629629629,
+   "macro_recall": 0.9583333333333333,
+   "cases": 27,
+   "positive": "True",
+   "recall": 0.9166666666666666,
+   "precision": 1.0
+  },
+  "false_alarms": [],
+  "secondary": [
+   "P04 \u00b7 arithmetic",
    "P05 \u00b7 overclaim",
    "P07 \u00b7 overclaim",
    "P08 \u00b7 overclaim",
@@ -5439,7 +5703,700 @@
    }
   },
   "agent": "analytics-expert-reviewer",
+  "tag": "ctl-v3-repeat"
+ },
+ {
+  "bench": "F",
+  "categories": [
+   "causal_claim",
+   "denominator",
+   "overclaim",
+   "domain_method"
+  ],
+  "findings": 12,
+  "recall": 1.0,
+  "detection": {
+   "per_class": {
+    "True": {
+     "precision": 1.0,
+     "recall": 1.0,
+     "f1": 1.0,
+     "support": 12,
+     "predicted": 12
+    },
+    "False": {
+     "precision": 1.0,
+     "recall": 1.0,
+     "f1": 1.0,
+     "support": 15,
+     "predicted": 15
+    }
+   },
+   "accuracy": 1.0,
+   "macro_recall": 1.0,
+   "cases": 27,
+   "positive": "True",
+   "recall": 1.0,
+   "precision": 1.0
+  },
+  "false_alarms": [],
+  "secondary": [],
+  "category_confusion": {
+   "labels": [
+    "causal_claim",
+    "denominator",
+    "overclaim",
+    "domain_method",
+    "missed"
+   ],
+   "matrix": {
+    "causal_claim": {
+     "causal_claim": 1,
+     "denominator": 0,
+     "overclaim": 0,
+     "domain_method": 0,
+     "missed": 0
+    },
+    "denominator": {
+     "causal_claim": 0,
+     "denominator": 1,
+     "overclaim": 0,
+     "domain_method": 0,
+     "missed": 0
+    },
+    "overclaim": {
+     "causal_claim": 0,
+     "denominator": 0,
+     "overclaim": 1,
+     "domain_method": 0,
+     "missed": 0
+    },
+    "domain_method": {
+     "causal_claim": 0,
+     "denominator": 0,
+     "overclaim": 0,
+     "domain_method": 9,
+     "missed": 0
+    },
+    "missed": {
+     "causal_claim": 0,
+     "denominator": 0,
+     "overclaim": 0,
+     "domain_method": 0,
+     "missed": 0
+    }
+   }
+  },
+  "per_category": {
+   "causal_claim": {
+    "matrix": {
+     "True": {
+      "True": 1,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 26
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1,
+      "predicted": 1
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 26,
+      "predicted": 26
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 27,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "denominator": {
+    "matrix": {
+     "True": {
+      "True": 1,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 26
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1,
+      "predicted": 1
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 26,
+      "predicted": 26
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 27,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "overclaim": {
+    "matrix": {
+     "True": {
+      "True": 1,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 26
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1,
+      "predicted": 1
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 26,
+      "predicted": 26
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 27,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "domain_method": {
+    "matrix": {
+     "True": {
+      "True": 9,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 18
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 9,
+      "predicted": 9
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 18,
+      "predicted": 18
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 27,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   }
+  },
+  "agent": "analytics-expert-reviewer",
   "tag": "ctl-v3"
+ },
+ {
+  "bench": "F",
+  "categories": [
+   "causal_claim",
+   "denominator",
+   "overclaim",
+   "domain_method"
+  ],
+  "findings": 12,
+  "recall": 1.0,
+  "detection": {
+   "per_class": {
+    "True": {
+     "precision": 1.0,
+     "recall": 1.0,
+     "f1": 1.0,
+     "support": 12,
+     "predicted": 12
+    },
+    "False": {
+     "precision": 1.0,
+     "recall": 1.0,
+     "f1": 1.0,
+     "support": 15,
+     "predicted": 15
+    }
+   },
+   "accuracy": 1.0,
+   "macro_recall": 1.0,
+   "cases": 27,
+   "positive": "True",
+   "recall": 1.0,
+   "precision": 1.0
+  },
+  "false_alarms": [],
+  "secondary": [],
+  "category_confusion": {
+   "labels": [
+    "causal_claim",
+    "denominator",
+    "overclaim",
+    "domain_method",
+    "missed"
+   ],
+   "matrix": {
+    "causal_claim": {
+     "causal_claim": 1,
+     "denominator": 0,
+     "overclaim": 0,
+     "domain_method": 0,
+     "missed": 0
+    },
+    "denominator": {
+     "causal_claim": 0,
+     "denominator": 1,
+     "overclaim": 0,
+     "domain_method": 0,
+     "missed": 0
+    },
+    "overclaim": {
+     "causal_claim": 0,
+     "denominator": 0,
+     "overclaim": 1,
+     "domain_method": 0,
+     "missed": 0
+    },
+    "domain_method": {
+     "causal_claim": 0,
+     "denominator": 0,
+     "overclaim": 0,
+     "domain_method": 9,
+     "missed": 0
+    },
+    "missed": {
+     "causal_claim": 0,
+     "denominator": 0,
+     "overclaim": 0,
+     "domain_method": 0,
+     "missed": 0
+    }
+   }
+  },
+  "per_category": {
+   "causal_claim": {
+    "matrix": {
+     "True": {
+      "True": 1,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 26
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1,
+      "predicted": 1
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 26,
+      "predicted": 26
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 27,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "denominator": {
+    "matrix": {
+     "True": {
+      "True": 1,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 26
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1,
+      "predicted": 1
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 26,
+      "predicted": 26
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 27,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "overclaim": {
+    "matrix": {
+     "True": {
+      "True": 1,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 26
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1,
+      "predicted": 1
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 26,
+      "predicted": 26
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 27,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "domain_method": {
+    "matrix": {
+     "True": {
+      "True": 9,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 18
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 9,
+      "predicted": 9
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 18,
+      "predicted": 18
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 27,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   }
+  },
+  "agent": "analytics-expert-reviewer",
+  "tag": "named-repeat"
+ },
+ {
+  "bench": "F",
+  "categories": [
+   "causal_claim",
+   "denominator",
+   "overclaim",
+   "domain_method"
+  ],
+  "findings": 12,
+  "recall": 1.0,
+  "detection": {
+   "per_class": {
+    "True": {
+     "precision": 1.0,
+     "recall": 1.0,
+     "f1": 1.0,
+     "support": 12,
+     "predicted": 12
+    },
+    "False": {
+     "precision": 1.0,
+     "recall": 1.0,
+     "f1": 1.0,
+     "support": 15,
+     "predicted": 15
+    }
+   },
+   "accuracy": 1.0,
+   "macro_recall": 1.0,
+   "cases": 27,
+   "positive": "True",
+   "recall": 1.0,
+   "precision": 1.0
+  },
+  "false_alarms": [],
+  "secondary": [],
+  "category_confusion": {
+   "labels": [
+    "causal_claim",
+    "denominator",
+    "overclaim",
+    "domain_method",
+    "missed"
+   ],
+   "matrix": {
+    "causal_claim": {
+     "causal_claim": 1,
+     "denominator": 0,
+     "overclaim": 0,
+     "domain_method": 0,
+     "missed": 0
+    },
+    "denominator": {
+     "causal_claim": 0,
+     "denominator": 1,
+     "overclaim": 0,
+     "domain_method": 0,
+     "missed": 0
+    },
+    "overclaim": {
+     "causal_claim": 0,
+     "denominator": 0,
+     "overclaim": 1,
+     "domain_method": 0,
+     "missed": 0
+    },
+    "domain_method": {
+     "causal_claim": 0,
+     "denominator": 0,
+     "overclaim": 0,
+     "domain_method": 9,
+     "missed": 0
+    },
+    "missed": {
+     "causal_claim": 0,
+     "denominator": 0,
+     "overclaim": 0,
+     "domain_method": 0,
+     "missed": 0
+    }
+   }
+  },
+  "per_category": {
+   "causal_claim": {
+    "matrix": {
+     "True": {
+      "True": 1,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 26
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1,
+      "predicted": 1
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 26,
+      "predicted": 26
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 27,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "denominator": {
+    "matrix": {
+     "True": {
+      "True": 1,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 26
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1,
+      "predicted": 1
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 26,
+      "predicted": 26
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 27,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "overclaim": {
+    "matrix": {
+     "True": {
+      "True": 1,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 26
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1,
+      "predicted": 1
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 26,
+      "predicted": 26
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 27,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "domain_method": {
+    "matrix": {
+     "True": {
+      "True": 9,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 18
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 9,
+      "predicted": 9
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 18,
+      "predicted": 18
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 27,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   }
+  },
+  "agent": "analytics-expert-reviewer",
+  "tag": "named-repeat2"
  },
  {
   "bench": "F",
@@ -7775,6 +8732,157 @@
   },
   "agent": "figures-auditor",
   "tag": "named-v1"
+ },
+ {
+  "bench": "F",
+  "categories": [
+   "unsourced_figure",
+   "arithmetic"
+  ],
+  "findings": 22,
+  "recall": null,
+  "detection": {
+   "per_class": {
+    "True": {
+     "precision": 0.0,
+     "recall": null,
+     "f1": null,
+     "support": 0,
+     "predicted": 1
+    },
+    "False": {
+     "precision": 1.0,
+     "recall": 0.9333333333333333,
+     "f1": 0.9655172413793104,
+     "support": 15,
+     "predicted": 14
+    }
+   },
+   "accuracy": 0.9333333333333333,
+   "macro_recall": 0.9333333333333333,
+   "cases": 15,
+   "positive": "True",
+   "recall": null,
+   "precision": 0.0
+  },
+  "false_alarms": [
+   "P15 \u00b7 overclaim"
+  ],
+  "secondary": [
+   "P04 \u00b7 arithmetic",
+   "P04 \u00b7 overclaim",
+   "P05 \u00b7 arithmetic",
+   "P05 \u00b7 overclaim",
+   "P07 \u00b7 overclaim",
+   "P08 \u00b7 arithmetic",
+   "P08 \u00b7 overclaim",
+   "P10 \u00b7 arithmetic",
+   "P12 \u00b7 overclaim",
+   "P14 \u00b7 overclaim",
+   "P17 \u00b7 overclaim",
+   "P19 \u00b7 arithmetic",
+   "P20 \u00b7 causal_claim"
+  ],
+  "category_confusion": {
+   "labels": [
+    "unsourced_figure",
+    "arithmetic",
+    "missed"
+   ],
+   "matrix": {
+    "unsourced_figure": {
+     "unsourced_figure": 0,
+     "arithmetic": 0,
+     "missed": 0
+    },
+    "arithmetic": {
+     "unsourced_figure": 0,
+     "arithmetic": 0,
+     "missed": 0
+    },
+    "missed": {
+     "unsourced_figure": 0,
+     "arithmetic": 0,
+     "missed": 0
+    }
+   }
+  },
+  "per_category": {
+   "unsourced_figure": {
+    "matrix": {
+     "True": {
+      "True": 0,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 27
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "support": 0,
+      "predicted": 0
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 27,
+      "predicted": 27
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 27,
+    "positive": "True",
+    "recall": null,
+    "precision": null,
+    "misses": [],
+    "false_alarms": []
+   },
+   "arithmetic": {
+    "matrix": {
+     "True": {
+      "True": 0,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 22
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "support": 0,
+      "predicted": 0
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 22,
+      "predicted": 22
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 22,
+    "positive": "True",
+    "recall": null,
+    "precision": null,
+    "misses": [],
+    "false_alarms": []
+   }
+  },
+  "agent": "figures-auditor",
+  "tag": "named-repeat"
  },
  {
   "bench": "F",
@@ -15352,5 +16460,254 @@
   },
   "agent": "team",
   "tag": "named-v1"
+ },
+ {
+  "bench": "F",
+  "categories": [
+   "domain_method",
+   "causal_claim",
+   "denominator",
+   "overclaim"
+  ],
+  "findings": 34,
+  "recall": 1.0,
+  "detection": {
+   "per_class": {
+    "True": {
+     "precision": 0.9230769230769231,
+     "recall": 1.0,
+     "f1": 0.9600000000000001,
+     "support": 12,
+     "predicted": 13
+    },
+    "False": {
+     "precision": 1.0,
+     "recall": 0.9333333333333333,
+     "f1": 0.9655172413793104,
+     "support": 15,
+     "predicted": 14
+    }
+   },
+   "accuracy": 0.9629629629629629,
+   "macro_recall": 0.9666666666666667,
+   "cases": 27,
+   "positive": "True",
+   "recall": 1.0,
+   "precision": 0.9230769230769231
+  },
+  "false_alarms": [
+   "P15 \u00b7 overclaim"
+  ],
+  "secondary": [
+   "P04 \u00b7 arithmetic",
+   "P04 \u00b7 overclaim",
+   "P05 \u00b7 arithmetic",
+   "P05 \u00b7 overclaim",
+   "P07 \u00b7 overclaim",
+   "P08 \u00b7 arithmetic",
+   "P08 \u00b7 overclaim",
+   "P10 \u00b7 arithmetic",
+   "P12 \u00b7 overclaim",
+   "P14 \u00b7 overclaim",
+   "P17 \u00b7 overclaim",
+   "P19 \u00b7 arithmetic",
+   "P20 \u00b7 causal_claim"
+  ],
+  "category_confusion": {
+   "labels": [
+    "domain_method",
+    "causal_claim",
+    "denominator",
+    "overclaim",
+    "missed"
+   ],
+   "matrix": {
+    "domain_method": {
+     "domain_method": 9,
+     "causal_claim": 0,
+     "denominator": 0,
+     "overclaim": 0,
+     "missed": 0
+    },
+    "causal_claim": {
+     "domain_method": 0,
+     "causal_claim": 1,
+     "denominator": 0,
+     "overclaim": 0,
+     "missed": 0
+    },
+    "denominator": {
+     "domain_method": 0,
+     "causal_claim": 0,
+     "denominator": 1,
+     "overclaim": 0,
+     "missed": 0
+    },
+    "overclaim": {
+     "domain_method": 0,
+     "causal_claim": 0,
+     "denominator": 0,
+     "overclaim": 1,
+     "missed": 0
+    },
+    "missed": {
+     "domain_method": 0,
+     "causal_claim": 0,
+     "denominator": 0,
+     "overclaim": 0,
+     "missed": 0
+    }
+   }
+  },
+  "per_category": {
+   "domain_method": {
+    "matrix": {
+     "True": {
+      "True": 9,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 18
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 9,
+      "predicted": 9
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 18,
+      "predicted": 18
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 27,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "causal_claim": {
+    "matrix": {
+     "True": {
+      "True": 1,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 25
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1,
+      "predicted": 1
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 25,
+      "predicted": 25
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 26,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "denominator": {
+    "matrix": {
+     "True": {
+      "True": 1,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 26
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1,
+      "predicted": 1
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 26,
+      "predicted": 26
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 27,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "overclaim": {
+    "matrix": {
+     "True": {
+      "True": 1,
+      "False": 0
+     },
+     "False": {
+      "True": 1,
+      "False": 18
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 0.5,
+      "recall": 1.0,
+      "f1": 0.6666666666666666,
+      "support": 1,
+      "predicted": 2
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 0.9473684210526315,
+      "f1": 0.972972972972973,
+      "support": 19,
+      "predicted": 18
+     }
+    },
+    "accuracy": 0.95,
+    "macro_recall": 0.9736842105263157,
+    "cases": 20,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 0.5,
+    "misses": [],
+    "false_alarms": [
+     "P15 \u00b7 overclaim"
+    ]
+   }
+  },
+  "agent": "team",
+  "tag": "named-repeat"
  }
 ]

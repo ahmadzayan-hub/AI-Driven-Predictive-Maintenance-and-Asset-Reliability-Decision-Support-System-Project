@@ -79,6 +79,20 @@ backlog target, condition monitoring ranked by cost, MTBF read as life),
 | v3, controlled | 12 of 12 | 9 of 9 | 0 |
 | v3, the subagent as loaded (confirmed by its list of checks) | 12 of 12 | 9 of 9 | 0 |
 
+Repeat runs, same day: two more of the loaded subagent, one more controlled
+run of each version.
+
+| Version | Runs | Planted paragraphs found, each run | `domain_method` in category | False alarms |
+| --- | --- | --- | --- | --- |
+| v3 (3 loaded, 2 controlled) | 5 | 12 of 12 in all 5 | 9 of 9 in all 5 | 0 in all 5 |
+| v2 (controlled) | 2 | 11 of 12 in both; P16 missed both times | 0 of 9 (no such category) | 0 |
+
+The result is stable across runs on F: v3 never missed a planted paragraph
+or raised a false alarm, and v2 missed the same paragraph twice. The figures
+auditor's repeat raised the same single false alarm (P15, the correct
+run-to-failure decision); with the analytics reviewer, the team scored 100%
+recall and 92% precision. Five runs on one memo is still one memo.
+
 The honest reading: on F, v2 already saw 8 of the 9 method errors and
 filed them under other labels; v3 adds the category and caught one more.
 Most of the lane-recall gap (25% against 100%) is the label, not the

@@ -1158,3 +1158,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** F: v3 12/12, 9/9 domain_method, 0 false alarms (both runs); v2 11/12; auditor 1 false alarm (P15); checker 0 findings, 0 false alarms. Checker v6 scores identical to v5 on A to F.
 - **Decisions:** labels unchanged; reported that most of v2's lane gap is the missing category label.
 - **Open / next:** repeat runs on F; number words in coverage; reading test and native decision with the owner.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (repeat runs on memo F)
+
+**Goal:** repeat runs on memo F to firm up the score; update docs, verify, merge.
+
+- **Done:** two more runs of the loaded analytics reviewer, one more controlled run of v3 and of v2, one more figures-auditor run (the same one false alarm, P15; team 100% recall, 92% precision). Runs saved, summary regenerated, ADR, AGENT_TEAM, README and the board updated with combined figures.
+- **Verified:** v3, 5 runs: 12/12, 9/9 domain_method, 0 false alarms each. v2, 2 runs: 11/12 each, P16 missed both times, 0 false alarms.
+- **Decisions:** stated that five runs on one memo is still one memo. The first `verify.py` run failed one Python test while the auditor agent was also running; not captured, did not recur in the full suite alone or in a clean `verify.py` (1,497 tests, 19 optional-extra skips, all 8 steps passed).
+- **Open / next:** a second held-out maintenance memo; number words in coverage; the auditor's run-to-failure false alarm.
