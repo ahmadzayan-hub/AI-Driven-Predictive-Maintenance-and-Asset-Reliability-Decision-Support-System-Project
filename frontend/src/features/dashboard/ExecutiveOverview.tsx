@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'rea
 import { usePack } from '../../i18n/pack'
 import { api } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
-import { PerformanceValue, performanceTone } from '../../shared/components/PerformanceValue'
+import { PerformanceLegend, PerformanceValue, performanceTone } from '../../shared/components/PerformanceValue'
 import type { KpiMeasure, RunExecutive, TableFilter } from '../../shared/types'
 import { executiveMessages } from './executiveMessages'
 import { policyMessages } from './policyMessages'
@@ -298,11 +298,6 @@ function Kpi({ measure }: { measure: KpiMeasure }) {
     {measure.undefined_reason ? <p className="exec-kpi-caution" dir="auto">{measure.undefined_reason}</p> : null}
     <details><summary>{t('exec.sources')}</summary><dl><div><dt>{t('exec.formula')}</dt><dd dir="auto">{measure.formula} · <bdi>{formatNumber(measure.numerator)} / {formatNumber(measure.denominator)}</bdi></dd></div><div><dt>{t('exec.population')}</dt><dd dir="auto">{measure.population}</dd></div><div><dt>{t('exec.missing')}</dt><dd dir="auto">{measure.missing_policy}</dd></div></dl><TargetEvidence measure={measure} />{measure.records_excluded > 0 ? <p>{t('exec.excluded', { n: formatNumber(measure.records_excluded) })}</p> : null}</details>
   </article>
-}
-
-function PerformanceLegend() {
-  const { t } = usePack(policyMessages)
-  return <p className="exec-muted">{t('policy.legend')}</p>
 }
 
 function PolicyButton({ onClick, open }: { onClick: () => void; open: boolean }) {

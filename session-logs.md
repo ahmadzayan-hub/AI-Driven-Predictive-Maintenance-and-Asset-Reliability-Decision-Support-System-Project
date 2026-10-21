@@ -1051,3 +1051,9 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** the suite runs end to end through the real `Assistant.understand` with a scripted provider (valid answer, invalid answer falling back to the rules, a required argument missing). It has not been run against a real model: no provider or key is configured here, and the session's own API endpoint is not the product's to use.
 - **Decisions:** the model suite is opt-in because it sends every case to a provider. No claim is made about how a model would score.
 - **Open / next:** configure a provider (a rotated key or a local Ollama model) and run `python scripts/evaluate_agents.py --suite intent_model --split blind_v7` to get the real number; compare it with the rules' 61% on that set.
+
+## 2026-10-21 — Visible performance status — `performance-status-presentation`
+- **Done:** shared outlined badges and a five-state legend across executive, asset, overview, dashboard and operations KPIs; prospective validation retains neutral unassessed/absent distinctions. Existing numeric values and target rules are preserved; phone summaries stack and both languages have explicit labels.
+- **Verified:** the complete local verifier and focused performance/operations browser scenarios passed. Actual counts and conditional skips are recorded in README.md#testing. The live Arabic operations page displayed the new legend and neutral count badges.
+- **Decisions:** the dated performance-status presentation ADR records the component and non-inferred assessment semantics.
+- **Open / next:** concurrent main changes are being integrated and verified in a separate checkout. Existing screenshot edits and the untracked availability-review ADR are preserved. No production deployment.

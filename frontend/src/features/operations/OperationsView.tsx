@@ -3,6 +3,7 @@ import type { FormEvent, ReactElement } from 'react'
 import { usePack } from '../../i18n/pack'
 import { ApiError } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
+import { PerformanceLegend, PerformanceValue } from '../../shared/components/PerformanceValue'
 import { messages } from './messages'
 import { operationsApi, requestKey } from './operationsApi'
 import { RegistryPanel, TeamPanel } from './RegistryPanel'
@@ -88,7 +89,7 @@ export function OperationsView({ onOpenRun }: { onOpenRun: (id: string) => void 
 }
 
 function OperationsWorkspace({ organizationId, onOpenRun }: { organizationId: string; onOpenRun: (id: string) => void }) {
-  const { t } = usePack(messages)
+  const { t, formatNumber } = usePack(messages)
   const [data, setData] = useState<OperationsOverview | null>(null)
   const [readiness, setReadiness] = useState<Readiness | null>(null)
   const [loading, setLoading] = useState(true)
@@ -167,11 +168,13 @@ function OperationsWorkspace({ organizationId, onOpenRun }: { organizationId: st
         <p>{t('readinessLimits')}</p>
       </details>
       {data.work_orders_truncated && <p>{t('truncated', { shown: data.work_orders.length, total: data.work_order_count })}</p>}
-      <div className="operations__summary">
-        <div><strong>{data.work_orders.filter((order) => order.status === 'draft').length}</strong><span>{t('waiting')}</span></div>
-        <div><strong>{data.work_orders.filter((order) => order.status === 'authorized' || order.status === 'in_progress').length}</strong><span>{t('active')}</span></div>
-        <div><strong>{data.work_orders.filter((order) => order.status === 'completed').length}</strong><span>{t('closed')}</span></div>
+      <PerformanceLegend />
+      <div className="operations__summary" role="group" aria-label={t('summaryTitle')}>
+        <div><span>{t('waiting')}</span><PerformanceValue tone="unassessed"><strong><bdi>{formatNumber(data.work_orders.filter((order) => order.status === 'draft').length)}</bdi></strong></PerformanceValue></div>
+        <div><span>{t('active')}</span><PerformanceValue tone="unassessed"><strong><bdi>{formatNumber(data.work_orders.filter((order) => order.status === 'authorized' || order.status === 'in_progress').length)}</bdi></strong></PerformanceValue></div>
+        <div><span>{t('closed')}</span><PerformanceValue tone="unassessed"><strong><bdi>{formatNumber(data.work_orders.filter((order) => order.status === 'completed').length)}</bdi></strong></PerformanceValue></div>
       </div>
+      <p className="operations__summary-help">{t('summaryHelp')}</p>
       <nav className="operations__tabs" aria-label={t('title')}>
         {(['orders', 'registry', 'team', 'validation'] as const).map((item) => <button type="button" key={item} aria-current={tab === item ? 'page' : undefined} onClick={() => { setTab(item); if (item === 'validation') setValidationVisited(true) }}>{t(item)}</button>)}
       </nav>

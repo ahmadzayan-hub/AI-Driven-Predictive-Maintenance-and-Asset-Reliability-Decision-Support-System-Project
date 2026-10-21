@@ -59,6 +59,20 @@ async function openDraft(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe('maintenance operations', () => {
+  it.each(['en', 'ar'] as const)('keeps zero counts and completed work neutral with visible %s assessment labels', async (locale) => {
+    applyLocale(locale, false)
+    const data = overview()
+    data.work_orders = [{ ...workOrder(), status: 'completed' }]
+    data.work_order_count = 1
+    serve(data)
+    render(<OperationsView onOpenRun={vi.fn()} />)
+    const summary = await screen.findByRole('group', { name: locale === 'ar' ? 'ملخص أوامر العمل' : 'Work order summary' })
+    expect(within(summary).getAllByText(locale === 'ar' ? 'غير مقيّم' : 'Not assessed')).toHaveLength(3)
+    expect(summary.querySelectorAll('[data-performance="unassessed"]')).toHaveLength(3)
+    expect(summary.querySelector('[data-performance="good"]')).toBeNull()
+    expect([...summary.querySelectorAll('.performance-value__number')].map((node) => node.textContent)).toEqual(['0', '0', '1'])
+  })
+
   it('records an evidence-linked draft, explicit authorization and observed repair outcome', async () => {
     const { calls, state } = serve()
     const user = userEvent.setup(), openRun = vi.fn()
@@ -237,8 +251,10 @@ describe('prospective validation interface', () => {
     await user.type(screen.getByLabelText('What counts as a failure?'), 'Confirmed bearing failure')
     await user.type(screen.getByLabelText('Eligible asset population'), 'Registered pumps')
     await user.click(screen.getByRole('button', { name: 'Register protocol' }))
-    await screen.findByRole('heading', { name: 'Observed validation results' })
+    const metrics = (await screen.findByRole('heading', { name: 'Observed validation results' })).closest('section')!
     expect(screen.getAllByText('Not yet measurable').length).toBeGreaterThan(0)
+    expect(within(metrics).getAllByText('Unavailable')).toHaveLength(7)
+    expect(within(metrics).getAllByText('Not assessed')).toHaveLength(3)
     await user.click(screen.getByText('Register prediction', { selector: 'summary' }))
     await user.selectOptions(screen.getByLabelText('Registered asset'), asset.id)
     await user.type(screen.getByLabelText('Model failure probability (0–1)'), '0.8')

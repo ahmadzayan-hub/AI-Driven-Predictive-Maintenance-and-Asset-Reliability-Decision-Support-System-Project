@@ -249,7 +249,7 @@ function expectExportRequest(response: Response, snapshot: RunExecutive, format:
 }
 
 for (const language of ['en', 'ar'] as const) {
-  test(`explicit metric assessments retain values, evidence and readable colors (${language})`, async ({ page }) => {
+  test(`explicit metric assessments retain values, evidence and readable colors (${language})`, async ({ page }, info) => {
     test.setTimeout(110_000)
     await skipOnboarding(page)
     await page.addInitScript((locale) => {
@@ -268,6 +268,7 @@ for (const language of ['en', 'ar'] as const) {
     const policy = await saveFirstFixTarget(page, run.id, language, seeded)
     await expectFullScope(page, language)
     await expectAccessibleStatuses(page, language, 'light')
+    await page.screenshot({ path: info.outputPath(`performance-status-${language}-light.png`), fullPage: true })
 
     const address = page.url()
     await page.goto('/#/preferences')
@@ -277,6 +278,7 @@ for (const language of ['en', 'ar'] as const) {
     await expect(page.locator('html')).toHaveAttribute('dir', language === 'ar' ? 'rtl' : 'ltr')
     await expectFullScope(page, language)
     await expectAccessibleStatuses(page, language, 'dark')
+    await page.screenshot({ path: info.outputPath(`performance-status-${language}-dark.png`), fullPage: true })
 
     await chooseNorth(page)
     await expectMetric(page, 'first_time_fix', 'good', /^87\.5\s*%$/, language)

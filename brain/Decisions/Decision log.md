@@ -91,4 +91,6 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 | 2026-10-21-course-artifacts-untracked | Preserve local confidential artifacts while removing them from future source trees; history remains contained | [[Soul]], [[Team 3 Capstone]] |
 | 2026-10-21-browser-journey-isolation | Exact browser-owned fixtures and scoped budgets preserve full sequential accessibility and approval checks | [[Design system]], [[Agentic OS]] |
 
+| 2026-10-21-performance-status-presentation | Shared bilingual status badges and a five-state legend; counts without targets remain neutral | [[Design system]], [[Weighted KPIs]] |
+
 All seven [[Analytics OS roadmap]] milestones have their records.

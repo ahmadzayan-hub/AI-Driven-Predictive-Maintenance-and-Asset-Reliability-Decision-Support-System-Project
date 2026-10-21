@@ -1,6 +1,7 @@
 import { definePack } from '../../i18n/pack'
 
 export const messages = definePack({
+  summaryTitle: 'Work order summary', summaryHelp: 'Counts show workflow status. Performance is not assessed for these totals.',
   title: 'Maintenance operations', intro: 'Turn reviewed evidence into authorized work and a recorded outcome.',
   validation: 'Validation',
   organization: 'Organization', createOrganization: 'Create organization', organizationName: 'Organization name',
@@ -47,6 +48,7 @@ export const messages = definePack({
   created: 'Draft created', updated: 'Order updated', assigned: 'Assignment updated',
   historyEntry: 'Recorded change', cancel: 'Keep editing', none: 'None recorded',
 }, {
+  summaryTitle: 'ملخص أوامر العمل', summaryHelp: 'توضح الأعداد حالة سير العمل. لم يُقيّم الأداء لهذه المجاميع.',
   title: 'عمليات الصيانة', intro: 'حوّل الأدلة التي تمت مراجعتها إلى أعمال مصرح بها ونتائج موثقة.',
   validation: 'التحقق',
   organization: 'المؤسسة', createOrganization: 'إنشاء مؤسسة', organizationName: 'اسم المؤسسة',

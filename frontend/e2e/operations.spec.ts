@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test'
 import { skipOnboarding } from './helpers'
 import { messages } from '../src/features/operations/messages'
 import { validationMessages } from '../src/features/operations/validationMessages'
+import { performanceMessages } from '../src/shared/components/performanceMessages'
 
 test.use({ serviceWorkers: 'block', contextOptions: { reducedMotion: 'reduce' } })
 
@@ -36,6 +37,11 @@ for (const language of ['en', 'ar'] as const) {
     const organizationResponse = page.waitForResponse((response) => response.url().includes('/api/operations/organizations?') && response.request().method() === 'POST')
     await page.getByRole('button', { name: t.createOrganization, exact: true }).click()
     const organization = await (await organizationResponse).json()
+    const summary = page.getByRole('group', { name: t.summaryTitle })
+    await expect(summary.locator('[data-performance="unassessed"]')).toHaveCount(3)
+    await expect(summary.locator('.performance-value__status')).toHaveText(Array(3).fill(performanceMessages[language]['performance.unassessed']))
+    await expect(page.getByRole('complementary', { name: performanceMessages[language]['performance.legend'] })).toBeVisible()
+    await page.screenshot({ path: info.outputPath(`performance-status-operations-${language}.png`), fullPage: true })
     await page.getByRole('button', { name: t.registry, exact: true }).click()
     await page.getByLabel(t.siteName, { exact: true }).fill('Fictional station')
     await page.getByLabel(t.siteCode, { exact: true }).fill('FS')

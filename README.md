@@ -85,7 +85,9 @@ environment — not a replacement for Windows, macOS, or Linux.
   page in both languages (ADR 0032)
 - **Consistent performance colors** — red for bad, blue for okay and green
   for good, with visible English/Arabic status words in dashboards and business
-  reports. Per-analysis targets support higher/lower-is-better and nested
+  reports. Shared outlined status badges and a five-state legend also cover
+  overview, asset and operations metrics; counts without targets remain neutral.
+  Per-analysis targets support higher/lower-is-better and nested
   ranges with a source reference, optimistic saves and durable history.
   Unassessed or unavailable measurements stay neutral; target edits do not
   approve or publish. See the [operating guide](docs/design/EXECUTIVE_DASHBOARD_HANDOFF.md)
@@ -392,6 +394,18 @@ key. Microphone text stays an editable draft. See the bilingual
 hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
+
+**Performance-status presentation, 21 October 2026 (local source before main integration):**
+`scripts/verify.py` passed all eight steps: 1,560 Python tests (159 optional
+skips), 287 frontend tests, strict brain check, type check, native run logic,
+production build and interface budget. Focused performance-color and operations
+browser scenarios passed 8/8 across English/Arabic and desktop/phone, including
+light/dark contrast, axe, filters, target persistence and workflow behavior.
+Measured gzip budgets: initial JS 98.7 KB, aggregate JS 203.5 KB, largest chunk
+18.1 KB, initial CSS 10.0 KB, aggregate CSS 24.6 KB, fonts 119.4 KB. PostgreSQL
+and the complete browser suite were not run. Integration with concurrent main
+changes is verified separately. See the
+[presentation decision](docs/adr/2026-10-21-performance-status-presentation.md).
 
 ```bash
 # Python: agent, utils, API, runs, analytics, sequential ranges,

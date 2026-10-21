@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { usePack } from '../../i18n/pack'
 import { ApiError } from '../../shared/api'
+import { PerformanceValue, performanceTone } from '../../shared/components/PerformanceValue'
 import { Field } from './OperationsView'
 import { operationsRequest, requestKey } from './operationsApi'
 import type { OperationsOverview } from './types'
@@ -146,10 +147,10 @@ function OutcomeForm({ trial, data, busy, record }: { trial: Trial; data: Operat
 function TrialMetrics({ trial }: { trial: Trial }) {
   const { t, formatNumber } = usePack(validationMessages)
   const metric = trial.metrics
-  const number = (value: number | null) => value === null ? t('unmeasured') : formatNumber(value, { maximumFractionDigits: 3 })
-  const fraction = (value: Fraction) => <>{value.value === null ? t('unmeasured') : formatNumber(value.value, { style: 'percent', maximumFractionDigits: 1 })} <bdi>({value.numerator}/{value.denominator})</bdi>{value.wilson_95 && <small> · {t('uncertainty')}: {value.wilson_95.map((bound) => formatNumber(bound, { style: 'percent', maximumFractionDigits: 1 })).join(' – ')}</small>}</>
+  const number = (value: number | null) => <PerformanceValue tone={performanceTone(value)}><bdi>{value === null ? t('unmeasured') : formatNumber(value, { maximumFractionDigits: 3 })}</bdi></PerformanceValue>
+  const fraction = (value: Fraction) => <><PerformanceValue tone={performanceTone(value.value)}><bdi>{value.value === null ? t('unmeasured') : formatNumber(value.value, { style: 'percent', maximumFractionDigits: 1 })}</bdi></PerformanceValue> <bdi>({value.numerator}/{value.denominator})</bdi>{value.wilson_95 && <small> · {t('uncertainty')}: {value.wilson_95.map((bound) => formatNumber(bound, { style: 'percent', maximumFractionDigits: 1 })).join(' – ')}</small>}</>
   return <section className="operations__card"><h3>{t('metrics')}</h3><p>{t('scope')}</p><dl className="operations__evidence">
-    <div><dt>{t('registered')}</dt><dd>{metric.registered}</dd></div><div><dt>{t('evaluated')}</dt><dd>{metric.evaluated}</dd></div><div><dt>{t('pending')}</dt><dd>{metric.pending}</dd></div>
+    <div><dt>{t('registered')}</dt><dd>{number(metric.registered)}</dd></div><div><dt>{t('evaluated')}</dt><dd>{number(metric.evaluated)}</dd></div><div><dt>{t('pending')}</dt><dd>{number(metric.pending)}</dd></div>
     <div><dt>{t('precision')}</dt><dd>{fraction(metric.failure_alert_precision)}</dd></div><div><dt>{t('recall')}</dt><dd>{fraction(metric.failure_window_recall)}</dd></div><div><dt>{t('actionable')}</dt><dd>{fraction(metric.actionable_alert_precision)}</dd></div>
     <div><dt>{t('brier')}</dt><dd>{number(metric.brier_score)}</dd></div><div><dt>{t('baselineBrier')}</dt><dd>{number(metric.baseline.brier_score)}</dd></div><div><dt>{t('lead')}</dt><dd>{number(metric.lead_time_hours.mean)}</dd></div><div><dt>{t('falseAlerts')}</dt><dd>{number(metric.false_alerts_per_asset_month)}</dd></div>
   </dl><details><summary>{t('calibration')}</summary><div className="operations__table"><table><caption>{t('calibration')}</caption><thead><tr>{(['range', 'count', 'predicted', 'observed'] as const).map((key) => <th scope="col" key={key}>{t(key)}</th>)}</tr></thead><tbody>{metric.calibration.map((bin) => <tr key={bin.lower}><th scope="row"><bdi>{bin.lower}–{bin.upper}</bdi></th><td>{bin.count}</td><td>{number(bin.mean_probability)}</td><td>{number(bin.observed_failure_rate)}</td></tr>)}</tbody></table></div></details></section>

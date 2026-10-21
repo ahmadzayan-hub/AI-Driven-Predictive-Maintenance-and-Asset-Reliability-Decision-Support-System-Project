@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useI18n } from '../../i18n'
 import { api, ApiError } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
+import { PerformanceLegend, PerformanceValue, performanceTone } from '../../shared/components/PerformanceValue'
 import { stateLabel, typeLabel } from '../../shared/labels'
 import type { RunDetail, RunSummary, Usage } from '../../shared/types'
 import type { RunPreset } from '../runs/RunsView'
@@ -173,21 +174,21 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
     {
       key: 'finished',
       label: t('overview.finished'),
-      value: formatNumber(counts.finished),
+      value: counts.finished,
       sub: counts.active > 0 ? t('overview.inProgress', { n: formatNumber(counts.active) }) : '',
       attention: false,
     },
     {
       key: 'waiting',
       label: t('overview.waitingTile'),
-      value: formatNumber(counts.waiting),
+      value: counts.waiting,
       sub: '',
       attention: counts.waiting > 0,
     },
     {
       key: 'datasets',
       label: t('usage.datasets'),
-      value: usage ? formatNumber(usage.datasets.used) : '—',
+      value: usage?.datasets.used,
       sub: usage
         ? t('overview.ofLimit', { limit: formatNumber(usage.datasets.limit) })
         : usageFailed
@@ -198,7 +199,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
     {
       key: 'today',
       label: t('usage.runs'),
-      value: usage ? formatNumber(usage.runs_today.used) : '—',
+      value: usage?.runs_today.used,
       sub: usage
         ? t('overview.ofLimit', { limit: formatNumber(usage.runs_today.limit) })
         : usageFailed
@@ -213,11 +214,12 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
       <div className="panel__inner panel__inner--wide">
         {header}
 
+        <PerformanceLegend />
         <dl className="kpis">
           {tiles.map((tile) => (
             <div key={tile.key} className={`kpi ${tile.attention ? 'kpi--attention' : ''}`}>
               <dt className="kpi__label">{tile.label}</dt>
-              <dd className="kpi__value">{tile.value}</dd>
+              <dd className="kpi__value"><PerformanceValue tone={performanceTone(tile.value)}><bdi>{tile.value === undefined ? '—' : formatNumber(tile.value)}</bdi></PerformanceValue></dd>
               {tile.sub ? <dd className="kpi__sub">{tile.sub}</dd> : null}
             </div>
           ))}

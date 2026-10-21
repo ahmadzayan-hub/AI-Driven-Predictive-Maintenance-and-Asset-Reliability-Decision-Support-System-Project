@@ -4,7 +4,7 @@ import { assetMessages } from './messages'
 import { api, ApiError } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
 import { stateLabel } from '../../shared/labels'
-import { PerformanceValue, performanceTone } from '../../shared/components/PerformanceValue'
+import { PerformanceLegend, PerformanceValue, performanceTone } from '../../shared/components/PerformanceValue'
 import type { Pipelines } from '../../shared/types'
 import { loadAssetEvidence } from './assetEvidence'
 import type { AssetEvidence } from './assetEvidence'
@@ -125,6 +125,7 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
               {kpis && kpis.measures.length ? (
                 <div className="asset-intelligence__finding">
                   <strong>{t('assets.kpiHeading')}</strong>
+                  <PerformanceLegend />
                   <ul className="asset-intelligence__checks">
                     {kpis.measures.map((measure) => {
                       const shown = formatValue(measure, locale === 'ar' ? 'ar' : 'en')
