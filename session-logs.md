@@ -1268,3 +1268,13 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Decisions:** keep React/SVG/CSS and semantic tokens, with no new animation dependency; animate observed updates and retain independent pause-view controls. The dated connected-workspace ADR records the lazy-view capacity increase and unchanged first-load limits. The review harness initially needed its evidence label and socket permission corrected; those failures remain recorded in the private review history.
 - **Open / next:** a hosted release requires separate owner approval. Live CMMS acceptance and independent predictive-model validation remain outside this interface change. The recorded connections are workflow observations, not an agent-message transport.
 - **Blockers:** none for the implemented interface and local launch.
+
+## 2026-10-22 · `ad7e9eca` · main (account-limit interruption recovery)
+
+**Goal:** resolve the quoted account-limit and unfinished-delivery warning and make future recovery independent of an active coding-agent session.
+
+- **Done:** current Codex account status permits ordinary work. A fresh GitHub fetch and ancestry checks prove `21dae21` and `77efe87` are included in remote main at `6523160`; the quoted pending-push warning is superseded. Added checkpoint verification, guarded terminal publishing and handoff guidance (`56a96ca`), with matching operating-memory and brain updates.
+- **Verified:** local API health and background-worker readiness, remote ancestry, documentation checks, PowerShell example syntax, strict brain and whitespace checks. Exact check results are in README.md#testing. Application code was unchanged, so application suites were not repeated.
+- **Decisions:** distinguish Codex allowance, model API usage, GitHub permission and application readiness. Terminal Git recovery requires its own valid access but makes no model request. Do not claim a repository change removes an account allowance, and do not bypass approval controls.
+- **Open / next:** future interruptions require a fresh account-status and commit check; account limits remain under the provider's control. No billing, plan, production configuration or approval policy was changed.
+- **Blockers:** none for the referenced delivery; an unlimited Codex allowance cannot be established by repository work.
