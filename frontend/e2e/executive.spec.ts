@@ -172,15 +172,15 @@ function expectReportScope(document: DocumentContents, snapshot: RunExecutive) {
   expect(rows.some((row) => row.includes('Site') && row.some((cell) => cell.includes('North')))).toBe(true)
   const firstFix = snapshot.kpis.measures.find((measure) => measure.key === 'first_time_fix')!
   const scale = ar ? 'نسبة مئوية، من 0 إلى 100 (percent)' : 'Percent, 0–100 (percent)'
-  const population = ar ? `سجلات الصيانة التصحيحية (${firstFix.population})` : firstFix.population
-  expect(rows).toContainEqual([firstFix.title, '57.5', scale, '2'])
+  const population = ar ? `جميع السجلات (${firstFix.population})` : firstFix.population
+  expect(rows).toContainEqual([firstFix.title, '57.5', scale, '3'])
   const properties = document.tables.find((table) => table.some((row) =>
     row[0] === labels.formula && row[1] === firstFix.formula))
   expect(properties, 'the exported first-time-fix definition must retain its controlled population').toBeDefined()
   for (const row of [
     [labels.value, '57.5'], [labels.scale, scale],
     [labels.numerator, '23'], [labels.denominator, '40'], [labels.population, population],
-    [labels.measured, '2'], [labels.unmeasured, '0'], [labels.excluded, '1'],
+    [labels.measured, '3'], [labels.unmeasured, '0'], [labels.excluded, '0'],
   ]) expect(properties).toContainEqual(row)
   for (const question of snapshot.questions) expect(document.text).toContain(question.text)
   for (const evidence of snapshot.evidence) expect(document.text).toContain(evidence.id)
@@ -278,11 +278,12 @@ test('filtered executive measures, evidence and downloaded reports share the exa
   const expected = await executive(page.request, run.id, NORTH)
   expect(expected.scope).toEqual({ records: 3, total_records: 4, filters: NORTH })
   // These constants come from the fixture, independently of the endpoint:
-  // (8 + 15) / (10 + 30), excluding the preventive record, not a mean of rates.
+  // (8 + 15) / (10 + 30), not a mean of rates. Summed over every record, as
+  // the Power BI Method page defines it: the preventive record adds 0 to both.
   const firstTimeFix = expected.kpis.measures.find((m) => m.key === 'first_time_fix')
   expect(firstTimeFix).toMatchObject({
-    numerator: 23, denominator: 40, records: 2,
-    records_excluded: 1, records_unmeasured: 0, undefined_reason: null,
+    numerator: 23, denominator: 40, records: 3,
+    records_excluded: 0, records_unmeasured: 0, undefined_reason: null,
   })
   expect(firstTimeFix!.value).toBeCloseTo(57.5, 12)
   // Availability is 1 - downtime / planned: downtime 4 + 10 + 6 = 20 over planned 300.
@@ -298,10 +299,10 @@ test('filtered executive measures, evidence and downloaded reports share the exa
   })
   const fix = page.locator('[data-source="kpi.first_time_fix"]')
   await expect(fix.locator('.exec-kpi-value .performance-value__number')).toHaveText('57.5 %')
-  await expect(fix.getByText('2 measured records', { exact: true })).toBeVisible()
+  await expect(fix.getByText('3 measured records', { exact: true })).toBeVisible()
   await fix.locator('summary').click()
   await expect(fix.locator('dd').first()).toContainText('23 / 40')
-  await expect(fix).toContainText('1 records outside this measure’s population')
+  await expect(fix).not.toContainText('outside this measure’s population')
 
   const priority = page.locator('.exec-priorities > li').filter({
     has: page.getByRole('heading', { name: 'Review overdue work', exact: true }),

@@ -21,8 +21,9 @@ interface DocumentContents { text: string; tables: string[][][] }
 
 const SOURCE = 'Fictional QA acceptance bands v1; not operational targets.'
 const RULES: Record<string, Rule> = {
-  first_time_fix: { direction: 'higher', scale: 'percent', good_at: 80, okay_at: 60, source_ref: SOURCE },
-  repeat_repair: { direction: 'lower', scale: 'percent', good_at: 5, okay_at: 20, source_ref: SOURCE },
+  // Redefined on 21 October to match the Power BI report (definition 2).
+  first_time_fix: { direction: 'higher', scale: 'percent', good_at: 80, okay_at: 60, source_ref: SOURCE, definition: 2 },
+  repeat_repair: { direction: 'lower', scale: 'percent', good_at: 5, okay_at: 20, source_ref: SOURCE, definition: 2 },
   // Set for availability's current definition (2), so it judges the figure.
   availability: { direction: 'higher', scale: 'percent', good_at: 95, okay_at: 80, source_ref: SOURCE, definition: 2 },
   downtime_per_record: { direction: 'range', scale: 'hours', good_min: 8, good_max: 12, okay_min: 4, okay_max: 16, source_ref: SOURCE },
@@ -342,7 +343,7 @@ for (const language of ['en', 'ar'] as const) {
 
     await writePolicy(page.request, run.id, policy, {
       ...RULES,
-      first_time_fix: { direction: 'higher', scale: 'percent', good_at: 70, okay_at: 60, source_ref: `${SOURCE} Revision two.` },
+      first_time_fix: { direction: 'higher', scale: 'percent', good_at: 70, okay_at: 60, source_ref: `${SOURCE} Revision two.`, definition: 2 },
     })
     const changed = await readExecutive(page.request, run.id, language)
     expect(changed.snapshot_id).not.toBe(snapshot.snapshot_id)
