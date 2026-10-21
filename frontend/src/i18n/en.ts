@@ -95,8 +95,6 @@ export const en = {
   // Agentic workspace, approvals and installable app.
   "shell.skipMain": "Skip to workspace content",
   "nav.approvals": "Approvals",
-  "view.loading": "Loading workspace",
-  "view.failed": "This view could not be displayed. Your session is still available.",
   "cockpit.workspace": "Analysis workspace",
   "cockpit.humanDecision": "Waiting for your decision",
   "cockpit.approvalIntro": "Review this report and its destination before publishing.",
@@ -196,11 +194,10 @@ export const en = {
   'nav.memory': 'Memory',
   'nav.activity': 'Activity',
   'nav.preferences': 'Preferences',
-  "nav.analyse": "Intelligence",
-  "nav.workWith": "Your workspace",
   'nav.overview': 'Overview',
   'nav.datasets': 'Datasets',
   'nav.more': 'More',
+  'nav.assetsShort': 'Assets',
   'session.new': 'New session',
   'session.end': 'End session',
   'session.signOut': 'Sign out',
@@ -226,7 +223,6 @@ export const en = {
 
   // Context rail
   'rail.aria': 'Session overview',
-  'rail.context': 'Session context',
   'rail.agent': 'Agent',
   'rail.messages': 'Messages',
   'rail.memoryEntries': 'Memory entries',
@@ -264,21 +260,8 @@ export const en = {
 
   // Conversation
   'chat.aria': 'Conversation',
-  'greeting.morning': 'Good morning',
-  'greeting.afternoon': 'Good afternoon',
-  'greeting.evening': 'Good evening',
-  'greeting.withName': '{period}, {name}',
-  'chat.question': 'What would you like to accomplish?',
-  'suggestion.analyse': 'Analyse the sample sales data',
-  'suggestion.analyse.insert': 'Analyse the sample sales data and tell me what changed',
-  'suggestion.remember': 'Remember something',
-  'suggestion.remember.insert': 'Remember that ',
-  'suggestion.explain': 'Explain the latest report',
-  'suggestion.explain.insert': 'Explain the latest report',
   'suggestion.help': 'What can you do?',
   'suggestion.help.insert': 'What can you do?',
-  'chat.hint':
-    'Write in plain language, or use commands beginning with {slash} — browse them any time with {shortcut}.',
   "chat.typing": "Miyaar is preparing a response",
   "chat.failed": "A reply could not be confirmed. Your draft is kept. Check the conversation before retrying.",
   'chat.retry': 'Retry',
@@ -395,8 +378,6 @@ export const en = {
   // Analytics runs
   'runs.aria': 'Runs',
   'runs.title': 'Analytics runs',
-  'runs.desc':
-    'A goal becomes a governed pipeline of specialist agents — planning, data profiling, cleaning, analysis, visualization, validation, and reporting — with every claim traced to a calculation and publishing gated by your approval.',
   'runs.goal': 'Goal',
   'runs.goalDefault': 'Analyze the sample sales dataset and produce a business report',
   'runs.dataset': 'Dataset',
@@ -423,8 +404,6 @@ export const en = {
   'runs.profileMaintenance': 'Maintenance (governed)',
   'runs.start': 'Start run',
   'runs.previous': 'Previous runs',
-  'runs.slowing': 'Slowing down to stay within the request limit…',
-  'runs.advanceFailed': 'Advance failed.',
   'runs.startFailed': 'Could not start the run.',
   'runs.riskHigh': 'high',
   'runs.actionFailed': 'The action failed.',
@@ -612,7 +591,6 @@ export const en = {
   'signin.enterEmail': 'Enter your email address first.',
   'signin.checkEmail': 'Check {email} for a sign-in link.',
   'signin.linkFailed': 'Could not send the link.',
-  'view.reload': 'Reload this view',
   'cockpit.lastObserved': 'Last checked {time}',
   'cockpit.exactReport': 'Review the exact report',
   'cockpit.previewIncludesEvidence': 'This is the report returned for this approval. Its calculations, references and limitations are included below.',

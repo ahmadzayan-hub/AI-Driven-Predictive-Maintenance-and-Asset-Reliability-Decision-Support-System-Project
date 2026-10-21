@@ -106,6 +106,8 @@ test('the phone bar holds five places and More opens the rest', async ({ page })
 
   const bar = page.getByRole('navigation', { name: 'Primary' })
   await expect(bar.getByRole('button')).toHaveCount(5)
+  // The four places a manager opens most, with a short label that fits.
+  await expect(bar.getByRole('button')).toHaveText(['Overview', 'Assets', 'Dashboards', 'Workspace', 'More'])
   await bar.getByRole('button', { name: 'Overview' }).click()
   await expect(bar.getByRole('button', { name: 'Overview' })).toHaveAttribute('aria-current', 'page')
 
@@ -169,4 +171,20 @@ test.describe('a view that cannot load', () => {
     await expect(page.getByRole('heading', { name: 'Datasets', level: 2 })).toBeVisible()
     await expect(page.getByRole('alert')).toHaveCount(0)
   })
+})
+
+test('the sidebar groups views by task, with colour instead of headings', async ({ page }) => {
+  test.skip(test.info().project.name !== 'desktop', 'the sidebar is fixed on desktop only')
+  await skipOnboarding(page)
+  await page.goto('/')
+  const nav = page.getByRole('navigation', { name: 'Main' })
+  const groups = nav.locator('.sidebar__group')
+  await expect(groups).toHaveCount(3)
+  await expect(groups.nth(0).getByRole('button')).toHaveText(['Overview', 'Asset Intelligence', 'Dashboards', 'Approvals'])
+  await expect(groups.nth(1).getByRole('button')).toHaveText(['Datasets', 'Analytics'])
+  await expect(groups.nth(2).getByRole('button')).toHaveText([/^Workspace/, /^Memory/, 'Activity', 'Preferences'])
+  await expect(nav.locator('p, h2, h3')).toHaveCount(0)
+  // Each view keeps its own icon.
+  const icons = await nav.locator('.navbtn svg path').evaluateAll((paths) => paths.map((path) => path.getAttribute('d')))
+  expect(new Set(icons).size).toBe(icons.length)
 })

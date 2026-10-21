@@ -61,6 +61,8 @@ describe('executive decision overview', () => {
     expect(reason).not.toBeVisible()
     const mtbf = screen.getByRole('heading', { name: 'Mean time between failures' }).closest('article')!
     expect(mtbf.querySelector('.exec-kpi-meter')).toBeNull()
+    // The unit stays on the number's line: a non-breaking space joins them.
+    expect(mtbf.querySelector('.exec-kpi-value bdi')!.textContent).toMatch(/\d\u00a0h$/)
   })
 
   it('uses the requested scope, exposes missing evidence and keeps unfitted models unscored', async () => {

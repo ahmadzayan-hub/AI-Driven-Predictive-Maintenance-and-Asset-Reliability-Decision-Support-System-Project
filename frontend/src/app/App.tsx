@@ -41,44 +41,47 @@ interface NavItem {
   id: Tab
   label: MessageKey
   icon: IconName
+  /** A shorter name for the phone bar, where a long one wraps. */
+  short?: MessageKey
 }
 
-// The sidebar groups the views by what a person is doing (ADR 0023):
-// analysing data, or working with the assistant. Preferences stand apart.
-const NAV_GROUPS: Array<{ id: string; label: MessageKey | null; items: NavItem[] }> = [
+// The sidebar groups the views by what a person is doing (ADR 0023, and the
+// 21 October navigation decision): deciding, preparing the data, and working
+// with the assistant. Each group has one colour and no heading; every view
+// keeps its own icon.
+const NAV_GROUPS: Array<{ id: string; items: NavItem[] }> = [
   {
-    id: 'analyse',
-    label: 'nav.analyse',
+    id: 'decide',
     items: [
       { id: 'overview', label: 'nav.overview', icon: 'dashboard' },
-      { id: 'assets', label: 'nav.assets', icon: 'activity' },
-      { id: 'datasets', label: 'nav.datasets', icon: 'database' },
-      { id: 'runs', label: 'nav.runs', icon: 'sparkle' },
-      { id: 'dashboard', label: 'nav.dashboard', icon: 'dashboard' },
+      { id: 'assets', label: 'nav.assets', icon: 'activity', short: 'nav.assetsShort' },
+      { id: 'dashboard', label: 'nav.dashboard', icon: 'chart' },
       { id: 'approvals', label: 'nav.approvals', icon: 'shield' },
     ],
   },
   {
-    id: 'work',
-    label: 'nav.workWith',
+    id: 'prepare',
     items: [
-      { id: 'chat', label: 'nav.workspace', icon: 'chat' },
-      { id: 'memory', label: 'nav.memory', icon: 'memory' },
-      { id: 'activity', label: 'nav.activity', icon: 'activity' },
+      { id: 'datasets', label: 'nav.datasets', icon: 'database' },
+      { id: 'runs', label: 'nav.runs', icon: 'sparkle' },
     ],
   },
   {
-    id: 'settings',
-    label: null,
-    items: [{ id: 'preferences', label: 'nav.preferences', icon: 'settings' }],
+    id: 'assist',
+    items: [
+      { id: 'chat', label: 'nav.workspace', icon: 'chat' },
+      { id: 'memory', label: 'nav.memory', icon: 'memory' },
+      { id: 'activity', label: 'nav.activity', icon: 'clock' },
+      { id: 'preferences', label: 'nav.preferences', icon: 'settings' },
+    ],
   },
 ]
 
 const ALL_ITEMS = NAV_GROUPS.flatMap((group) => group.items)
 
-// A phone's bottom bar holds at most five places. Four views and "More",
-// which opens the drawer holding the rest.
-const BAR_TABS: Tab[] = ['overview', 'datasets', 'runs', 'chat']
+// A phone's bottom bar holds at most five places: the four a manager opens
+// most, and "More", which opens the drawer holding the rest.
+const BAR_TABS: Tab[] = ['overview', 'assets', 'dashboard', 'chat']
 const BAR_ITEMS = BAR_TABS.map((id) => ALL_ITEMS.find((item) => item.id === id)!)
 
 const ONBOARDING_KEY = 'aos-onboarded'
@@ -335,8 +338,7 @@ export function App() {
       </button>
       <nav className="sidebar__nav" aria-label={t('nav.main')}>
         {NAV_GROUPS.map((group) => (
-          <div key={group.id} className="sidebar__group">
-            {group.label ? <p className="sidebar__label">{t(group.label)}</p> : null}
+          <div key={group.id} className="sidebar__group" data-group={group.id}>
             {group.items.map((item) => (
               <button
                 key={item.id}
@@ -639,7 +641,7 @@ export function App() {
             onClick={() => go(item.id)}
           >
             <Icon name={item.icon} size={20} />
-            <span>{t(item.label)}</span>
+            <span>{t(item.short ?? item.label)}</span>
           </button>
         ))}
         <button

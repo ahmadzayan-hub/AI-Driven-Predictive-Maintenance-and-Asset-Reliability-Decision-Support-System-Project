@@ -1069,3 +1069,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** `verify.py` all 8 steps (1,487 Python, 153 skipped; 271 frontend); full Playwright 126 passed, 4 skipped. Before/after measured on the same fictional run against a build of `efb6eb1`.
 - **Decisions:** the contrast check misread `color(srgb …)` as 0–255 channels; fixed the parser (true ratio 5.87:1) rather than dropping the colour. CSS budget raised to 23.5 KB. Native apps out of scope (PWA).
 - **Open / next:** navigation and the Runs, Datasets and Assets views; a budget audit; reader testing with maintenance managers; MTBF unit wrap.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (navigation, Runs, Assets)
+
+**Goal:** size audit, then the same treatment for Runs and Assets, then a simpler navigation; the MTBF unit wrap; the reader test; native apps.
+
+- **Done:** audit (source map of the main bundle, unused-string and dead-CSS scans, exact gzip bytes); removed 18 unused keys per language; merged eleven duplicate declarations from `miyaar.css` into `app.css`; `--violet`/`--magenta` tokens. Sidebar in three task groups with colour, no headings; phone bar changed. Runs steps and folded notes; Assets family tiles. Non-breaking space for units. ADR, reading-test protocol with a native-apps note, study update.
+- **Verified:** `verify.py` all 8 steps (1,487 Python, 153 skipped; 273 frontend). Full Playwright 127 passed, 5 skipped; the desktop-only sidebar test run separately. New unit tests each watched failing on the old code. Before/after counts from the same fictional runs against a build of `a7897cc`.
+- **Decisions:** reverted a CSS split that grew the total; did not lean on the budget check's rounding (10,046 bytes printed as 10.0 KB); removed text rather than raise a limit. Native packages not built: no Android SDK here, iOS needs macOS; recommended only after the reading test and a customer ask.
+- **Open / next:** run the reading test; Datasets, Memory and Activity; Assets on a phone still needs scrolling to the first KPI.

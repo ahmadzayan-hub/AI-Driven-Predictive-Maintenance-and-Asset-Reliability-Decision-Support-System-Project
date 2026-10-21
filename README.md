@@ -422,6 +422,16 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Simpler navigation, Runs and Assets — 21 October 2026
+
+Interface change after a size audit ([decision](docs/adr/2026-10-21-simplified-navigation-runs-and-assets.md)).
+`python scripts/verify.py`: **1,487 Python tests reported, 153 skipped**, brain
+check (45 notes), type check, **273 frontend unit tests**, production build and
+interface budget passed (JS total 183.6 of 185 KB; CSS total 23,449 of 23,500
+bytes; CSS first load 9,989 of 10,000 bytes). The full Playwright suite passed
+**127, with 5 skipped**, desktop and phone, English and Arabic; the new sidebar
+test was confirmed on desktop separately. PostgreSQL was not run.
+
 ### Colourful KPI-first dashboard — 21 October 2026
 
 Interface change ([decision](docs/adr/2026-10-21-colourful-kpi-first-dashboard.md),

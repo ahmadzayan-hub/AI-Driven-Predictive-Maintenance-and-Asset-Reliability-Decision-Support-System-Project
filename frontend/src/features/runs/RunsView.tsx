@@ -439,13 +439,14 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
           <div className="panel__header">
             <div>
               <h2 className="panel__title">{t('runs.title')}</h2>
-              <p className="panel__desc">{t('runs.desc')}</p>
             </div>
           </div>
 
           <div className="card">
             <form onSubmit={createRun}>
-              <p className="panel__note">{t('intake.workflow')}</p>
+              <ol className="run-steps">
+                {(['intake.step1', 'intake.step2', 'intake.step3', 'intake.step4'] as const).map((key) => <li key={key}>{t(key)}</li>)}
+              </ol>
               <div className="field">
                 <label className="field__label" htmlFor="run-goal">
                   {t('runs.goal')}
@@ -641,8 +642,11 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                 />
               ) : null}
               <PlanPreview pipelines={pipelines} profile={profile} joined={joins.length > 0} />
-              <p className="panel__note">{t('intake.models')}</p>
-              <p className="panel__note">{t('intake.limits')}</p>
+              <details className="run-more">
+                <summary>{t('intake.more')}</summary>
+                <p className="panel__note">{t('intake.models')}</p>
+                <p className="panel__note">{t('intake.limits')}</p>
+              </details>
               <div className="field">
                 <button type="submit" className="btn btn--primary" disabled={busy || uploading !== null || !goal.trim() || (source === 'stored' && !storedId) || (source === 'upload' && !uploaded && !csvDraft.trim())}>
                   {busy ? <span className="spinner" aria-hidden="true" /> : <Icon name="sparkle" size={16} />}

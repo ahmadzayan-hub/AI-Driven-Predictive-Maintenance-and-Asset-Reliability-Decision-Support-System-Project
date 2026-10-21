@@ -66,7 +66,6 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
       <div className="panel__inner panel__inner--wide asset-intelligence">
         <header className="asset-intelligence__header">
           <div>
-            <p className="asset-intelligence__eyebrow">{t('assets.kicker')}</p>
             <h2>{t('assets.title')}</h2>
             <p>{t('assets.description')}</p>
           </div>
@@ -74,15 +73,6 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
             <Icon name="plus" size={17}/>{t('assets.upload')}
           </button>
         </header>
-        <div className="asset-intelligence__capabilities">
-          {(['criticality', 'reliability', 'obsolescence'] as const).map((capability) => (
-            <div key={capability} className="asset-intelligence__capability">
-              <Icon name={capability === 'criticality' ? 'shield' : capability === 'reliability' ? 'activity' : 'clock'} size={21}/>
-              <h3>{t('assets.' + capability as 'assets.criticality' | 'assets.reliability' | 'assets.obsolescence')}</h3>
-              <p>{t('assets.' + capability + 'Sub' as 'assets.criticalitySub' | 'assets.reliabilitySub' | 'assets.obsolescenceSub')}</p>
-            </div>
-          ))}
-        </div>
         <div className="asset-intelligence__data">
           <div className="asset-intelligence__datahead">
             <h3>{t('assets.evidence')}</h3>
@@ -125,20 +115,23 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
               {kpis && kpis.measures.length ? (
                 <div className="asset-intelligence__finding">
                   <strong>{t('assets.kpiHeading')}</strong>
-                  <ul className="asset-intelligence__checks">
+                  <ul className="asset-intelligence__kpis">
                     {kpis.measures.map((measure) => {
                       const shown = formatValue(measure, locale === 'ar' ? 'ar' : 'en')
+                      const tone = performanceTone(measure.value, measure.assessment)
+                      // A reason explains a verdict; "no target" is said once, below.
+                      const verdict = tone === 'good' || tone === 'okay' || tone === 'bad'
                       return (
-                        <li key={measure.key}>
-                          <PerformanceValue tone={performanceTone(measure.value, measure.assessment)} reason={measure.assessment?.reason}>{shown ?? t('assets.kpiUndefined')}</PerformanceValue>
-                          <span dir="auto">
-                            {measure.title} · {measure.population} ·{' '}
-                            {t('assets.kpiRecords', { records: String(measure.records) })}
+                        <li key={measure.key} data-family={measure.family ?? 'other'}>
+                          <span dir="auto">{measure.title}</span>
+                          <PerformanceValue tone={tone} reason={verdict ? measure.assessment?.reason : undefined}>{shown ?? t('assets.kpiUndefined')}</PerformanceValue>
+                          <small dir="auto">
+                            {measure.population} · {t('assets.kpiRecords', { records: String(measure.records) })}
                             {needsDisclosure(measure) ? ' · ' + (measure.value === null
                               ? t('assets.kpiNoEvidence')
                               : t('assets.kpiUnmeasured',
                                   { unmeasured: String(measure.records_unmeasured) })) : ''}
-                          </span>
+                          </small>
                         </li>
                       )
                     })}
@@ -149,7 +142,11 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
                          { measures: Object.keys(kpis.unavailable).join(', ') })}
                     </p>
                   ) : null}
-                  <p className="asset-intelligence__caution">{t('assets.kpiScope')}</p>
+                  <details className="asset-intelligence__about">
+                    <summary>{t('assets.about')}</summary>
+                    {kpis.measures.some((measure) => performanceTone(measure.value, measure.assessment) === 'unassessed') ? <p dir="auto">{t('assets.noTarget')}</p> : null}
+                    <p>{t('assets.kpiScope')}</p>
+                  </details>
                 </div>
               ) : null}
               <button type="button" className="btn btn--primary" onClick={() => onOpenRun(evidence.run.id)}>

@@ -26,6 +26,17 @@ afterEach(() => {
 })
 
 describe('real data intake', () => {
+  it('shows the run as four steps and folds the file limits and model notes', async () => {
+    render(<RunsView preset={{ kind: 'upload' }} />)
+    const steps = document.querySelector('.run-steps')!
+    expect([...steps.querySelectorAll('li')].map((item) => item.textContent)).toEqual(['Upload', 'Check columns', 'Run the agents', 'Approve and explore'])
+    expect(screen.queryByText(/A goal becomes a governed pipeline/)).not.toBeInTheDocument()
+    const limits = screen.getByText(/Supported tabular files/)
+    expect(limits.closest('details')).not.toHaveAttribute('open')
+    expect(limits).not.toBeVisible()
+    expect(screen.getByText('Files, limits and models')).toBeVisible()
+  })
+
   it('uses Arabic custom stage names in the profile help and execution plan', async () => {
     applyLocale('ar')
     vi.mocked(api.pipelines).mockResolvedValue({

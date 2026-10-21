@@ -252,3 +252,11 @@
   font-variant-numeric: tabular-nums;
   box-shadow: var(--shadow-s);
 }
+
+/* The four steps of a run, numbered by the list, one colour each. */
+.run-steps { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0 0 var(--space-4); padding: 0; list-style: decimal inside; font-weight: 500; }
+.run-steps li { padding: 4px 12px; border-radius: 99px; border-inline-start: 4px solid var(--h, var(--accent)); background: var(--surface-sunken); }
+.run-steps li:nth-child(2) { --h: var(--violet); }
+.run-steps li:nth-child(3) { --h: var(--magenta); }
+.run-steps li:nth-child(4) { --h: var(--highlight); }
+.run-more { margin-block: var(--space-3); }

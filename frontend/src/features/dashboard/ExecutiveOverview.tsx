@@ -303,7 +303,7 @@ function Kpi({ measure }: { measure: KpiMeasure }) {
   const verdict = tone === 'good' || tone === 'okay' || tone === 'bad'
   const share = measure.scale === 'percent' && measure.value !== null ? Math.max(0, Math.min(100, measure.value)) : null
   return <article className="exec-kpi" data-source={`kpi.${measure.key}`}>
-    <h5 dir="auto">{measure.title}</h5><p className={`exec-kpi-value${measure.value === null ? ' exec-kpi-value--missing' : ''}`}><PerformanceValue tone={tone} reason={verdict ? measure.assessment?.reason : undefined}><bdi>{value} <small>{unit}</small></bdi></PerformanceValue></p>
+    <h5 dir="auto">{measure.title}</h5><p className={`exec-kpi-value${measure.value === null ? ' exec-kpi-value--missing' : ''}`}><PerformanceValue tone={tone} reason={verdict ? measure.assessment?.reason : undefined}><bdi>{value}{'\u00a0'}<small>{unit}</small></bdi></PerformanceValue></p>
     {share === null ? null : <svg className="exec-kpi-meter" viewBox="0 0 100 4" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect width="100" height="4" rx="2" /><rect width={share} height="4" rx="2" /></svg>}
     <p className="exec-kpi-covered">{t('exec.covered', { n: formatNumber(measure.records) })}</p>
     {measure.records_unmeasured > 0 ? <p className="exec-kpi-caution">{t('exec.unmeasured', { n: formatNumber(measure.records_unmeasured) })}</p> : null}

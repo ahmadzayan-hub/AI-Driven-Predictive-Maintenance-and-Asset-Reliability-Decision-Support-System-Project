@@ -63,12 +63,18 @@ faster people read.
   room made first.
 - No new dependency and no change to any calculation.
 
-## 5. Next phases (not started)
+## 5. Second phase, delivered 2026-10-21
 
-1. **Navigation:** fewer sidebar entries on first use, and grouped "More" on
-   phones.
-2. **Runs, Datasets and Assets:** the same treatment, view by view, each
-   measured the same way.
-3. **Budget room:** a CSS and JS audit before any further visual work.
-4. **Readers:** a short test with three or four maintenance managers, on their
-   own data, before claiming the change helps decisions.
+Navigation, Runs and Assets, after a size audit
+([decision](../adr/2026-10-21-simplified-navigation-runs-and-assets.md)):
+Runs visible words 182 → 79, Assets 533 → 300, the repeated "no target"
+sentence on Assets 14 → 0, and the sidebar in three coloured groups without
+headings. A protocol for testing whether this helps managers is in
+[the reading test](2026-10-21-manager-reading-test-protocol.md).
+
+## 6. Next phases (not started)
+
+1. **Readers:** run the reading test with three or four maintenance managers on
+   their own data.
+2. **Datasets, Memory and Activity:** the same treatment, measured the same way.
+3. **Phone Assets:** the first KPI is still below the first screen on a phone.

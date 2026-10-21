@@ -74,3 +74,26 @@ it('ignores a delayed KPI response from a previous run', async () => {
   expect(screen.getByText(/Current measurement/)).toBeVisible()
   expect(screen.queryByText(/Late measurement/)).not.toBeInTheDocument()
 })
+
+it('shows measures as family tiles, keeps a verdict reason on its tile and says "no target" once, folded', async () => {
+  const run = railway('tiles')
+  const base = measures(run.id, 'unused').measures[0]
+  vi.spyOn(api, 'listRuns').mockResolvedValue({ runs: [run] })
+  vi.spyOn(api, 'getRun').mockResolvedValue(run)
+  vi.spyOn(api, 'runKpis').mockResolvedValue({ ...measures(run.id, 'unused'), measures: [
+    { ...base, key: 'availability', title: 'Availability', scale: 'percent', value: 97.5, family: 'reliability',
+      assessment: { status: 'unassessed', reason: 'No display target is configured.', reason_code: 'no_target', direction: null, source_ref: null, rule_id: null, thresholds: null } },
+    { ...base, key: 'loss', title: 'Loss per downtime hour', family: 'cost',
+      assessment: { status: 'bad', reason: 'Above the fictional ceiling.', reason_code: 'above', direction: 'lower', source_ref: 'Fictional QA', rule_id: 'r1', thresholds: { good_at: 5, okay_at: 10 } } },
+  ] })
+  render(<AssetIntelligenceView onUpload={vi.fn()} onOpenRun={vi.fn()} />)
+  const availability = (await screen.findByText('Availability')).closest('li')!
+  const loss = screen.getByText('Loss per downtime hour').closest('li')!
+  expect(availability).toHaveAttribute('data-family', 'reliability')
+  expect(loss).toHaveAttribute('data-family', 'cost')
+  expect(loss).toHaveTextContent('Above the fictional ceiling.')
+  expect(availability).not.toHaveTextContent('No display target')
+  const note = screen.getByText(/have no display target yet/)
+  expect(note.closest('details')).not.toHaveAttribute('open')
+  expect(note).not.toBeVisible()
+})
