@@ -1192,3 +1192,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Decisions:** only the aggregate CSS allowance grows for the shared badge/legend treatment, as recorded in the presentation ADR. No default targets or inferred performance verdicts are introduced.
 - **Open / next:** the hosted pilot and deployment remain separate; browser downloads showed one transient cancellation in this Windows run. Local source synchronization and runtime refresh complete the handoff.
 - **Blockers:** none for this presentation change.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (Obsidian view, brain checker rule)
+
+**Goal:** merge and commit; open the brain in Obsidian; then add the checker rule for links that leave the vault.
+
+- **Done:** merged a concurrent `main` (operations, workers, performance status) with a merge commit, conflict only in the board; committed the demo-mode server half with its ADR. Ran the official Obsidian desktop build on a virtual display against a copy of `brain/`: 47 notes, 397 links, one unresolved, a relative link from `Weighted KPIs` to `docs/adr/`. Fixed that note (also "fifteen measures") and added three decisions to the Decision log. `brain_check.py` now reports a Markdown file link that leaves the vault or names no file; the note schema says so.
+- **Verified:** Obsidian after the fix: 398 links, none unresolved. New checker test watched failing first; the new checker flags the pre-fix brain (`e84a35d`) with exactly that link. `verify.py --quick` with PostgreSQL: 1,600 Python, 294 frontend.
+- **Decisions:** web links, mail links, anchors and in-vault files stay allowed; links inside code are ignored, as for wikilinks.
+- **Open / next:** redeploy the hosted site (owner approval); demo-mode interface.
