@@ -49,6 +49,7 @@ function UsageCard() {
   const rows = [
     {
       key: 'runs',
+      hue: 'teal',
       label: t('usage.runs'),
       used: t('usage.of', {
         used: formatNumber(usage.runs_today.used),
@@ -59,23 +60,25 @@ function UsageCard() {
     },
     {
       key: 'datasets',
+      hue: 'violet',
       label: t('usage.datasets'),
       used: t('usage.of', {
         used: formatNumber(usage.datasets.used),
         limit: formatNumber(usage.datasets.limit),
       }),
       share: usage.datasets.limit ? usage.datasets.used / usage.datasets.limit : 0,
-      help: t('usage.rerun'),
+      help: '',
     },
     {
       key: 'bytes',
+      hue: 'magenta',
       label: t('usage.storage'),
       used: t('usage.of', {
         used: formatBytes(usage.dataset_bytes.used, formatNumber),
         limit: formatBytes(usage.dataset_bytes.limit, formatNumber),
       }),
       share: usage.dataset_bytes.limit ? usage.dataset_bytes.used / usage.dataset_bytes.limit : 0,
-      help: t('usage.dedupe'),
+      help: '',
     },
   ]
 
@@ -84,7 +87,7 @@ function UsageCard() {
       <h3 className="card__title">{t('usage.title')}</h3>
       <ul className="usage">
         {rows.map((row) => (
-          <li key={row.key} className="usage__row">
+          <li key={row.key} className="usage__row" data-hue={row.hue}>
             <div className="usage__head">
               <span className="controlrow__label">{row.label}</span>
               <span className="usage__value">{row.used}</span>
@@ -102,7 +105,7 @@ function UsageCard() {
                 style={{ width: `${Math.min(100, Math.round(row.share * 100))}%` }}
               />
             </div>
-            <span className="controlrow__help">{row.help}</span>
+            {row.help ? <span className="controlrow__help">{row.help}</span> : null}
           </li>
         ))}
       </ul>
@@ -246,13 +249,10 @@ export function ActivityView({ events, session, status, lastSyncedAt }: Activity
                   <span className="controlrow__label">
                     {online ? t('activity.online') : t('activity.offline')}
                   </span>
-                  <span className="controlrow__help">
-                    {healthy
-                      ? t('activity.connected')
-                      : online
-                        ? t('activity.lastFailed')
-                        : t('activity.willFail')}
-                  </span>
+                  {/* Only a problem needs explaining. */}
+                  {healthy ? null : <span className="controlrow__help">
+                    {online ? t('activity.lastFailed') : t('activity.willFail')}
+                  </span>}
                 </span>
               </li>
               <li className="health__row">
@@ -266,9 +266,7 @@ export function ActivityView({ events, session, status, lastSyncedAt }: Activity
                       ? t('activity.storageActive')
                       : t('activity.notPersisted')}
                   </span>
-                  <span className="controlrow__help">
-                    {session.memory_persisted ? t('activity.savedTo') : t('activity.noFile')}
-                  </span>
+                  {session.memory_persisted ? null : <span className="controlrow__help">{t('activity.noFile')}</span>}
                 </span>
               </li>
               <li className="health__row">
@@ -291,7 +289,6 @@ export function ActivityView({ events, session, status, lastSyncedAt }: Activity
                       ? t('activity.lastResponse', { time: formatTime(lastSyncedAt, true) })
                       : t('activity.noResponses')}
                   </span>
-                  <span className="controlrow__help">{t('activity.lastHelp')}</span>
                 </span>
               </li>
             </ul>

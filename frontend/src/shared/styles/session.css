@@ -248,20 +248,17 @@
   color: var(--text-faint);
 }
 
-.memory__key {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  color: var(--text-faint);
-}
-
 .memory__category {
-  font-size: var(--text-xs);
   font-weight: 600;
   border-radius: 999px;
   padding: 1px 8px;
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: color-mix(in srgb, var(--h, var(--accent)) 15%, transparent);
+  color: var(--h, var(--accent));
 }
+
+/* A hue names a group (a kind of memory, a usage meter), never a verdict. */
+[data-hue=violet] { --h: var(--violet); }
+[data-hue=magenta] { --h: var(--magenta); }
 
 .memory__categoryselect {
   width: auto;

@@ -333,8 +333,6 @@ export const en = {
   'usage.storage': 'Storage used',
   'usage.of': '{used} of {limit}',
   'usage.resets': 'Resets at midnight UTC. {n} left.',
-  'usage.rerun': 'Re-running a stored dataset costs nothing.',
-  'usage.dedupe': 'Uploading the same file twice stores it once.',
   'usage.notMeasured': 'Not measured: {list}.',
 
   // Activity events (the store records a code; the screen translates it)
@@ -498,12 +496,10 @@ export const en = {
   // Datasets
   'datasets.aria': 'Datasets',
   'datasets.title': 'Datasets',
-  'datasets.desc':
-    'Every dataset you have added or analysed, stored once. Add CSV, Excel or JSON files, then analyse any of them without sending it again.',
   'datasets.add': 'Add a dataset',
   'datasets.loading': 'Loading your datasets',
   'datasets.failed': 'Your datasets could not be loaded.',
-  'datasets.usage': '{used} of {limit} datasets · {bytes} of {bytesLimit} used',
+  'datasets.limits': 'Files and limits',
   'datasets.listTitle': 'Stored datasets',
   'datasets.added': 'added {date}',
   'datasets.fingerprint': 'fingerprint {hash}',

@@ -172,6 +172,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
   const tiles = [
     {
       key: 'finished',
+      hue: 'teal',
       label: t('overview.finished'),
       value: formatNumber(counts.finished),
       sub: counts.active > 0 ? t('overview.inProgress', { n: formatNumber(counts.active) }) : '',
@@ -179,6 +180,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
     },
     {
       key: 'waiting',
+      hue: 'teal',
       label: t('overview.waitingTile'),
       value: formatNumber(counts.waiting),
       sub: '',
@@ -186,6 +188,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
     },
     {
       key: 'datasets',
+      hue: 'violet',
       label: t('usage.datasets'),
       value: usage ? formatNumber(usage.datasets.used) : '—',
       sub: usage
@@ -197,6 +200,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
     },
     {
       key: 'today',
+      hue: 'magenta',
       label: t('usage.runs'),
       value: usage ? formatNumber(usage.runs_today.used) : '—',
       sub: usage
@@ -215,7 +219,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
 
         <dl className="kpis">
           {tiles.map((tile) => (
-            <div key={tile.key} data-hue={tile.key} className={`kpi ${tile.attention ? 'kpi--attention' : ''}`}>
+            <div key={tile.key} data-hue={tile.hue} className={`kpi ${tile.attention ? 'kpi--attention' : ''}`}>
               <dt className="kpi__label">{tile.label}</dt>
               <dd className="kpi__value">{tile.value}</dd>
               {tile.sub ? <dd className="kpi__sub">{tile.sub}</dd> : null}

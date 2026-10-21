@@ -318,8 +318,6 @@ export const ar: Record<MessageKey, string> = {
   'usage.storage': 'المساحة المستخدمة',
   'usage.of': '{used} من {limit}',
   'usage.resets': 'يُعاد الضبط عند منتصف الليل بتوقيت UTC. المتبقي {n}.',
-  'usage.rerun': 'إعادة تحليل مجموعة بيانات مخزنة لا تكلّف شيئًا.',
-  'usage.dedupe': 'رفع الملف نفسه مرتين يخزّنه مرة واحدة.',
   'usage.notMeasured': 'غير مقيس: {list}.',
 
   'event.session.started': 'بدأت الجلسة',
@@ -480,12 +478,10 @@ export const ar: Record<MessageKey, string> = {
   // مجموعات البيانات
   'datasets.aria': 'مجموعات البيانات',
   'datasets.title': 'مجموعات البيانات',
-  'datasets.desc':
-    'كل مجموعة بيانات أضفتها أو حلّلتها، مخزَّنة مرة واحدة. أضف ملفات CSV أو Excel أو JSON، ثم حلّل أيًّا منها دون إرسالها من جديد.',
   'datasets.add': 'أضف مجموعة بيانات',
   'datasets.loading': 'جارٍ تحميل مجموعات بياناتك',
   'datasets.failed': 'تعذّر تحميل مجموعات بياناتك.',
-  'datasets.usage': '{used} من أصل {limit} مجموعة بيانات · {bytes} من أصل {bytesLimit} مستخدمة',
+  'datasets.limits': 'الملفات والحدود',
   'datasets.listTitle': 'مجموعات البيانات المخزنة',
   'datasets.added': 'أُضيفت في {date}',
   'datasets.fingerprint': 'البصمة {hash}',

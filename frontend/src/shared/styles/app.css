@@ -988,6 +988,7 @@ kbd {
 
 .dataset {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) 0;
@@ -1004,7 +1005,7 @@ kbd {
 }
 
 .dataset__body {
-  flex: 1;
+  flex: 1 1 12rem;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -1082,10 +1083,6 @@ kbd {
 }
 
 /* A row's actions sit together and wrap below the name on a phone. */
-.dataset {
-  flex-wrap: wrap;
-}
-
 .dataset__actions {
   display: flex;
   gap: var(--space-2);

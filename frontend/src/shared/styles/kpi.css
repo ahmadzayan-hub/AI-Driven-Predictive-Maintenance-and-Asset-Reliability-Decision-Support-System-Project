@@ -18,12 +18,6 @@
   padding: var(--space-3) var(--space-4);
 }
 
-/* Something waits on the reader: the one place amber marks the grid. */
-.kpi--attention {
-  background: var(--highlight-soft);
-  border-color: var(--highlight);
-}
-
 .kpi__label {
   font-size: var(--text-s);
   font-weight: 500;
@@ -43,3 +37,11 @@
   font-size: var(--text-xs);
   color: var(--text-muted);
 }
+
+/* A hue names the tile's group, never a verdict; the label carries it. */
+.kpi[data-hue] { --hue: var(--accent); border-top: 3px solid var(--hue); background: color-mix(in srgb, var(--hue) 9%, var(--surface-raised)); }
+.kpi[data-hue=violet] { --hue: var(--violet); }
+.kpi[data-hue=magenta] { --hue: var(--magenta); }
+/* Something waits on the reader: the one place amber marks the grid. */
+.kpi--attention[data-hue] { --hue: var(--highlight); border-color: var(--highlight); }
+.kpi[data-hue] .kpi__label { color: var(--hue); }

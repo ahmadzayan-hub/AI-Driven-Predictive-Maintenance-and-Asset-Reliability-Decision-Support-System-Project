@@ -9,6 +9,8 @@ import type { OperationOutcome } from '../../app/store'
 import type { MemoryEntry } from '../../shared/types'
 
 const CATEGORY_OPTIONS = ['general', 'profile', 'work', 'projects', 'preferences']
+// Who the memory is about is violet, the work it serves magenta; the rest stay teal.
+const CATEGORY_HUE: Record<string, string> = { profile: 'violet', preferences: 'violet', work: 'magenta', projects: 'magenta' }
 
 interface MemoryViewProps {
   entries: MemoryEntry[]
@@ -106,7 +108,6 @@ export function MemoryView({
           <div className="panel__header">
             <div>
               <h2 className="panel__title">{t('memory.title')}</h2>
-              <p className="panel__desc">{t('memory.desc')}</p>
             </div>
           </div>
 
@@ -262,11 +263,8 @@ export function MemoryView({
                           {entry.text}
                         </p>
                         <p className="memory__meta">
-                          <span className={`memory__category memory__category--${entry.category}`}>
+                          <span className={`memory__category memory__category--${entry.category}`} data-hue={CATEGORY_HUE[entry.category]}>
                             {categoryLabel(t, entry.category)}
-                          </span>
-                          <span className="memory__key" dir="ltr">
-                            {entry.key}
                           </span>
                           {entry.updated ? (
                             <span>{t('memory.updated', { date: formatDate(entry.updated) })}</span>
@@ -351,7 +349,6 @@ export function MemoryView({
                 </button>
               </li>
             </ul>
-            <p className="privacy-note">{t('memory.destructive')}</p>
           </div>
         </div>
       </div>

@@ -422,6 +422,16 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Datasets, Memory and Activity — 21 October 2026
+
+Interface change ([decision](docs/adr/2026-10-21-datasets-memory-activity-treatment.md)).
+`python scripts/verify.py`: **1,487 Python tests reported, 153 skipped**, brain
+check (45 notes), type check, **275 frontend unit tests**, production build and
+interface budget passed (JS total 183.2 of 185 KB; CSS total 23,493 of 23,500
+bytes; CSS first load 9,984 of 10,000 bytes). The full Playwright suite passed
+**127, with 5 skipped**, desktop and phone, English and Arabic. PostgreSQL was
+not run.
+
 ### Simpler navigation, Runs and Assets — 21 October 2026
 
 Interface change after a size audit ([decision](docs/adr/2026-10-21-simplified-navigation-runs-and-assets.md)).

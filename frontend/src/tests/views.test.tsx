@@ -129,8 +129,16 @@ describe('DatasetsView', () => {
     const onAnalyse = vi.fn()
     render(<DatasetsView onAnalyse={onAnalyse} />)
 
-    expect(await screen.findByText('48.3 kB')).toBeInTheDocument()
-    expect(screen.getByText('fingerprint 1a2b3c4d')).toBeInTheDocument()
+    const row = (await screen.findByText('quarterly-sales.csv')).closest('li')!
+    expect(within(row).getByText('48.3 kB')).toBeInTheDocument()
+    expect(within(row).getByText('fingerprint 1a2b3c4d')).toBeInTheDocument()
+    // The allowance reads as coloured tiles, and the file limits wait in a fold.
+    const storage = (await screen.findByText('Storage used')).closest<HTMLElement>('.kpi')!
+    expect(storage).toHaveAttribute('data-hue', 'violet')
+    expect(within(storage).getByText('48.3 kB')).toBeVisible()
+    expect(within(screen.getByText('Datasets stored').closest<HTMLElement>('.kpi')!).getByText('of 20')).toBeVisible()
+    expect(screen.queryByText(/Every dataset you have added/)).not.toBeInTheDocument()
+    expect(screen.getByText(/Up to 4 MB/).closest('details')).not.toHaveAttribute('open')
     await user.click(screen.getByRole('button', { name: 'Analyse quarterly-sales.csv' }))
     expect(onAnalyse).toHaveBeenCalledWith(dataset)
   })

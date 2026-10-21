@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../../i18n'
+import '../../shared/styles/kpi.css'
 import { api, ApiError, MAX_UPLOAD_BYTES, UPLOAD_ACCEPT } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
 import { formatBytes } from '../../shared/format'
@@ -115,7 +116,6 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
         <div className="panel__header">
           <div>
             <h2 className="panel__title">{t('datasets.title')}</h2>
-            <p className="panel__desc">{t('datasets.desc')}</p>
           </div>
           <button
             type="button"
@@ -141,7 +141,10 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
             }}
           />
         </div>
-        <p className="panel__note">{t('runs.fileHelp')}</p>
+        <details className="run-more">
+          <summary>{t('datasets.limits')}</summary>
+          <p className="panel__note">{t('runs.fileHelp')}</p>
+        </details>
         <div role="status" aria-live="polite">
           {uploading ? (
             <p className="statusline">{t('datasets.uploading', { name: uploading })}</p>
@@ -176,14 +179,18 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
         {outcome && sourceFile.current && <WorkbookSheetPicker result={outcome} onSelect={(sheet) => { if (sourceFile.current) void addFile(sourceFile.current, sheet) }} />}
 
         {usage ? (
-          <p className="panel__note">
-            {t('datasets.usage', {
-              used: formatNumber(usage.datasets.used),
-              limit: formatNumber(usage.datasets.limit),
-              bytes: formatBytes(usage.dataset_bytes.used, formatNumber),
-              bytesLimit: formatBytes(usage.dataset_bytes.limit, formatNumber),
-            })}
-          </p>
+          <dl className="kpis">
+            <div className="kpi" data-hue="teal">
+              <dt className="kpi__label">{t('usage.datasets')}</dt>
+              <dd className="kpi__value">{formatNumber(usage.datasets.used)}</dd>
+              <dd className="kpi__sub">{t('overview.ofLimit', { limit: formatNumber(usage.datasets.limit) })}</dd>
+            </div>
+            <div className="kpi" data-hue="violet">
+              <dt className="kpi__label">{t('usage.storage')}</dt>
+              <dd className="kpi__value">{formatBytes(usage.dataset_bytes.used, formatNumber)}</dd>
+              <dd className="kpi__sub">{t('overview.ofLimit', { limit: formatBytes(usage.dataset_bytes.limit, formatNumber) })}</dd>
+            </div>
+          </dl>
         ) : null}
 
         {mapping ? (

@@ -144,11 +144,8 @@
 }
 
 /* Colour names a category, never a verdict; amber still marks "needs a person". */
-.kpi[data-hue], .finding { --hue: var(--accent); }
-.kpi[data-hue] { border-top: 3px solid var(--hue); background: color-mix(in srgb, var(--hue) 9%, var(--surface-raised)); }
-.kpi[data-hue=datasets], .finding[data-type=diagnostic] { --hue: var(--violet); }
-.kpi[data-hue=today], .finding[data-type=predictive] { --hue: var(--magenta); }
-.kpi--attention[data-hue] { --hue: var(--highlight); }
-.kpi[data-hue] .kpi__label, .finding__type { color: var(--hue); }
-.finding { border-inline-start-color: var(--hue); }
+.finding { --hue: var(--accent); border-inline-start-color: var(--hue); }
+.finding[data-type=diagnostic] { --hue: var(--violet); }
+.finding[data-type=predictive] { --hue: var(--magenta); }
+.finding__type { color: var(--hue); }
 .finding[data-type=experiment], .finding[data-type=prescriptive] { --hue: var(--text-muted); }

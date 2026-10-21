@@ -72,9 +72,14 @@ sentence on Assets 14 → 0, and the sidebar in three coloured groups without
 headings. A protocol for testing whether this helps managers is in
 [the reading test](2026-10-21-manager-reading-test-protocol.md).
 
+Third phase, the same day: Datasets, Memory and Activity
+([decision](../adr/2026-10-21-datasets-memory-activity-treatment.md)): visible
+words 126 → 78, 103 → 88 and 107 → 75. The CSS total now has 7 bytes left.
+
 ## 6. Next phases (not started)
 
 1. **Readers:** run the reading test with three or four maintenance managers on
    their own data.
-2. **Datasets, Memory and Activity:** the same treatment, measured the same way.
+2. **Budget:** any further visual change needs something removed first, or a
+   decision to raise the CSS limit.
 3. **Phone Assets:** the first KPI is still below the first screen on a phone.

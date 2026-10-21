@@ -1078,3 +1078,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** `verify.py` all 8 steps (1,487 Python, 153 skipped; 273 frontend). Full Playwright 127 passed, 5 skipped; the desktop-only sidebar test run separately. New unit tests each watched failing on the old code. Before/after counts from the same fictional runs against a build of `a7897cc`.
 - **Decisions:** reverted a CSS split that grew the total; did not lean on the budget check's rounding (10,046 bytes printed as 10.0 KB); removed text rather than raise a limit. Native packages not built: no Android SDK here, iOS needs macOS; recommended only after the reading test and a customer ask.
 - **Open / next:** run the reading test; Datasets, Memory and Activity; Assets on a phone still needs scrolling to the first KPI.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (Datasets, Memory, Activity)
+
+**Goal:** the same colourful, low-text treatment on Datasets, Memory and Activity.
+
+- **Done:** hued tiles generalised into `kpi.css`; Datasets tiles, folded limits, wrapping rows; Memory category hues, hidden keys, subtitle and footer removed; Activity health help only on a fault, meter hues, two notes removed. Five strings per language removed, two added. ADR and study update.
+- **Verified:** `verify.py` all 8 steps (1,487 Python, 153 skipped; 275 frontend). Full Playwright 127 passed, 5 skipped. New unit tests each watched failing on the old views. Before/after from the same fictional data against a build of `fe27c2c`. Three fictional memory entries used for captures were deleted afterwards; `data/memory.json` is back to empty.
+- **Decisions:** paid for every added rule with a removal; the Activity privacy statement stays. A background Playwright run started outside `frontend/` picked up unit-test files; re-run with an explicit config.
+- **Open / next:** CSS total 7 bytes from its limit; reading test; phone Assets.
