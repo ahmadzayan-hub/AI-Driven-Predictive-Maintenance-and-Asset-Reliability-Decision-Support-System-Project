@@ -457,6 +457,17 @@ responsive behavior, reduced motion and the explicit lazy-view budget allocation
   This verification does not establish hosted acceptance, external CMMS
   synchronization or predictive model validity.
 
+### Interrupted-session delivery recovery — 22 October 2026
+
+A fresh fetch proved that maintenance commit `21dae21` and interface commit
+`77efe87` are already included in remote main. The local API reported healthy
+and its background worker ready. The [recovery runbook](docs/GITHUB_SYNC.md)
+documents checkpoint checks and guarded terminal delivery without a model session.
+Documentation checks passed: **11 tests**; all **3 PowerShell examples** passed
+syntax parsing; strict brain and whitespace checks passed. This update changes
+operating guidance only, so application suites were not repeated. It does not
+remove account allowances or change approval policy.
+
 ### Executive Analytics Advisory Group — 21 October 2026
 
 The maintenance brief now leads with recommendations, five-domain exposure,

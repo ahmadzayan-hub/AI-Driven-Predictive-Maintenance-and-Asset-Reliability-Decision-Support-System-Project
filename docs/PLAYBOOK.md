@@ -170,6 +170,7 @@ Send them `CONTRIBUTING.md`. Once they clone the repository and trust the folder
 | No briefing at session start | Check `/hooks`, that `python3` is on the path, and that the folder is trusted. Run `echo '{}' \| python3 .claude/hooks/session_start.py` to see the output |
 | The Stop hook keeps asking for a log | Run the session-end skill, or tell Claude to stop without logging. The gate fires only once per session |
 | `verify.py` reports FAIL | It prints the end of the failing step's output. Rerun that step alone, with the command `python scripts/verify.py --list` shows, to see all of it |
+| An agent stops at an account limit or says a push is unfinished | Check current account access separately, then fetch and test whether the recorded commit is already on remote main. The terminal recovery procedure in [GITHUB_SYNC.md](GITHUB_SYNC.md#resume-after-an-account-limit-or-interrupted-agent-session) needs no model session; account allowances cannot be removed by project code |
 | `brain_check.py --strict` fails | It names the note and the problem. Fix links to the note that was meant, and sources to paths that exist |
 | `Memory.md` or the board contradicts the code | The code wins. Fix the record and mention it in the session log |
 | A cloud session ended before logging | Its automatic entry, if written, was lost with the container. Reconstruct it from `git log` at the next session start |
