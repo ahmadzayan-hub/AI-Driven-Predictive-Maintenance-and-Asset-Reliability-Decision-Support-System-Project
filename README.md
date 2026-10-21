@@ -424,6 +424,33 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Executive Analytics Advisory Group — 21 October 2026
+
+The maintenance brief now leads with recommendations, five-domain exposure,
+proposed accountable roles, predictive-readiness limits and source governance.
+The full product title replaces “Executive evidence brief”. Source-specific
+course reconciliation and generated papers remain private, outside Git.
+
+- Focused backend and HTML/Word direction contracts: **45 passed**; with
+  documentation contracts, **56 passed**. Strict brain check: **46 notes**,
+  **0 issues**. After integrating the concurrent deterministic demo-ID fix,
+  the executive, document, docs and demo suites passed together: **69 tests**.
+- Executive UI and transport tests: **30 passed**.
+- Desktop/mobile executive journeys: **8 passed**, including English/Arabic
+  exports, accessibility, filters, drill-through, print and stale snapshots.
+- Typecheck and production build passed. Interface budget: initial JS **97.9 / 100 KB**,
+  total JS **203.4 / 205 KB**, largest chunk **18.9 / 30 KB**, initial CSS
+  **10.0 / 10.5 KB**, total CSS **25.4 / 25.5 KB**, fonts **119.4 / 120 KB**.
+- Private supplied-pack verification reproduced **15 / 15** executive KPI
+  figures and matched the workbook's data cells against the **5,000-record** CSV.
+  This verifies numerical reproduction, not business-rule acceptance or a
+  predictive model. Source hashes remained unchanged. The concise English and
+  Arabic PDFs each contain **3 pages**, with separate technical appendices.
+
+The full repository verifier and production deployment were not run for this
+scoped report change. Instructor resolution of the documented business-rule
+issues and independent forward model validation remain open.
+
 ### Workspace model activation — 21 October 2026
 
 Open conversation now has an optional Vercel AI Gateway adapter with an explicit

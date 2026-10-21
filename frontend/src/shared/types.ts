@@ -534,6 +534,13 @@ export interface RunKpis {
 /** An executive brief is calculated server-side for this exact filter scope.
  * Stored findings and model evaluations retain their whole-run population. */
 export interface RunExecutive {
+  advisory?: {
+    title: string; subtitle: string; role: string; recommendation: string; prediction: string
+    domains: Array<{ id: string; title: string; measure: string; value: number | null; scale: string; status: KpiAssessment['status']; reason: string; records: number; unmeasured: number; implication: string; evidence_refs: string[] }>
+    decisions: Array<{ id: string; title: string; action: string; owner: string; gate: string; evidence_refs: string[] }>
+    sources: Array<{ id: string; title: string; status: KpiAssessment['status']; detail: string }>
+    new_findings: string; preservation: string; escalation: string
+  }
   snapshot_id?: string
   run: { id: string; dataset_name: string; state: string; updated_at?: string | null }
   language: 'en' | 'ar'

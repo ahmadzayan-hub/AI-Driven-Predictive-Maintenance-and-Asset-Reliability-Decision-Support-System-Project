@@ -36,6 +36,30 @@ beforeEach(() => {
 afterEach(() => { cleanup(); act(() => applyLocale('en')); vi.restoreAllMocks(); vi.clearAllMocks(); vi.unstubAllGlobals() })
 
 describe('executive decision overview', () => {
+  it('leads the prepared brief with the maintenance mandate, decisions and source boundaries', async () => {
+    const data = snapshot()
+    data.advisory = {
+      title: 'AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System',
+      subtitle: 'Condition, failures, work orders, downtime and economic impact', role: 'Executive Analytics Advisory Group',
+      recommendation: 'Commission a reliability review before approving intervention spend.', prediction: 'Future prediction is not validated.',
+      domains: [{ id: 'condition', title: 'Condition', measure: 'Mean recorded condition score', value: 80, scale: 'score', status: 'unassessed', reason: 'Thresholds require confirmation.', records: 2, unmeasured: 1, implication: 'Confirm when readings were recorded.', evidence_refs: ['scope.records'] }],
+      decisions: [{ id: 'p1', title: 'Review North work orders', action: 'Inspect the selected source records.', owner: 'Reliability engineer', gate: 'Before approving a maintenance intervention', evidence_refs: ['scope.records'] }],
+      sources: [{ id: 'workbook', title: 'Supporting analytics workbook', status: 'unassessed', detail: 'Reconciliation is not recorded.' }],
+      new_findings: 'Selected calculations are separate from reference material.', preservation: 'Preserve the approved master dataset.', escalation: 'Consult instructors before changing business rules.',
+    }
+    vi.mocked(api.runExecutive).mockResolvedValue(data)
+    mount()
+    await screen.findByText(data.advisory.title)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Prepare executive brief' }))
+    expect(screen.getByText(data.advisory.recommendation)).toBeVisible()
+    expect(screen.getByText(/Proposed accountable role: Reliability engineer/)).toBeVisible()
+    expect(screen.getByText('Future prediction is not validated.')).toBeVisible()
+    await user.click(screen.getByText('Analytical basis and source reconciliation'))
+    expect(screen.getByText('Preserve the approved master dataset.')).toBeVisible()
+    expect(screen.getByText('Reconciliation is not recorded.')).toBeVisible()
+    expect(screen.getByText('Consult instructors before changing business rules.')).toBeVisible()
+  })
   it('groups measures by the register family, keeps verdict reasons on the card and moves "no target" into the evidence', async () => {
     const base = snapshot().kpis.measures[0]
     const data = snapshot()
