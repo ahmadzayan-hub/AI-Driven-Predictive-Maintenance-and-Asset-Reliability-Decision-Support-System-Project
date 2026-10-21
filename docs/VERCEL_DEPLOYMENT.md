@@ -66,6 +66,7 @@ Serverless hardening already in place:
    | --- | --- |
    | `DATABASE_URL` | **Durable state.** Supabase → Connect → *Transaction pooler* (port 6543, built for serverless), with your database password |
    | `AGENTIC_OS_ENV=production` | Fail closed unless auth is configured |
+   | `AGENTIC_OS_DEMO=1` | **Instead of sign-in:** a public, view-only demo on generated fictional data; remove the token-verification variables first, or the server will not start ([decision](adr/2026-10-21-view-only-demo-mode.md)) |
    | `SUPABASE_JWT_SECRET` *or* `AGENTIC_OS_JWKS_URL` | Token verification |
    | `SUPABASE_URL`, `SUPABASE_ANON_KEY` | Browser sign-in (publishable) |
    | `ANTHROPIC_API_KEY` or `GROQ_API_KEY` | Optional model-phrased summaries. `OLLAMA_MODEL` is **not** useful here: a model on a laptop is unreachable from a serverless function |

@@ -13,7 +13,8 @@ import type { RunKpis } from '../../shared/types'
 import './assets.css'
 
 interface Props {
-  onUpload: () => void
+  /** Absent in the view-only demo, where nothing can be uploaded. */
+  onUpload?: () => void
   onOpenRun: (id: string) => void
 }
 
@@ -69,9 +70,9 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
             <h2>{t('assets.title')}</h2>
             <p>{t('assets.description')}</p>
           </div>
-          <button type="button" className="btn btn--primary" onClick={onUpload}>
+          {onUpload ? <button type="button" className="btn btn--primary" onClick={onUpload}>
             <Icon name="plus" size={17}/>{t('assets.upload')}
-          </button>
+          </button> : null}
         </header>
         <div className="asset-intelligence__data">
           <div className="asset-intelligence__datahead">
@@ -85,7 +86,7 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
               <Icon name="database" size={31}/>
               <h4>{t('assets.empty')}</h4>
               <p>{t('assets.emptyDetail')}</p>
-              <button type="button" className="btn btn--ghost" onClick={onUpload}>{t('assets.upload')}</button>
+              {onUpload ? <button type="button" className="btn btn--ghost" onClick={onUpload}>{t('assets.upload')}</button> : null}
             </div>
           ) : null}
           {!busy && evidence ? (

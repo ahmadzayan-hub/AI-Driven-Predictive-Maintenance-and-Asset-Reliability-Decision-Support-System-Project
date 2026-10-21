@@ -87,6 +87,14 @@ describe('OverviewView', () => {
     expect(onStart).toHaveBeenLastCalledWith({ kind: 'upload' })
   })
 
+  it('offers no way to start an analysis in the view-only demo', async () => {
+    serve({ '/api/runs': { runs: [] }, '/api/usage': USAGE })
+    render(<OverviewView onOpenRun={vi.fn()} onStart={vi.fn()} canStart={false} onOpenDashboard={vi.fn()} />)
+    expect(await screen.findByText('Nothing analysed yet')).toBeInTheDocument()
+    for (const name of ['Try the sample data', 'Add a dataset', 'Start an analysis'])
+      expect(screen.queryByRole('button', { name })).toBeNull()
+  })
+
   it('shows the figures, the latest headlines in their own language, and the approval queue', async () => {
     const user = userEvent.setup()
     serve({

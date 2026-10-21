@@ -503,3 +503,9 @@ Three more limits on what the figures mean:
 - **MTTR counts all downtime.** It follows the Power BI report: all recorded
   downtime over all failures. Where planned downtime is recorded on records
   with no failure, it overstates time to restore a failure.
+- **The view-only demo keeps some write controls.** With `AGENTIC_OS_DEMO=1`
+  there is no sign-in and the landing views hide their start buttons, but the
+  Analytics run form, adding a dataset, approving, saving a target and the
+  Operations administration still show theirs; using one gets the server's
+  refusal and writes nothing
+  ([decision](adr/2026-10-21-view-only-demo-mode.md)).

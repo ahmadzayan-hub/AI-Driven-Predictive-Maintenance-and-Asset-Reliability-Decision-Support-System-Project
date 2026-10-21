@@ -15,6 +15,8 @@ import { summarizeRunEvidence } from './evidence'
 interface OverviewViewProps {
   onOpenRun: (id: string) => void
   onStart: (preset: RunPreset | null) => void
+  /** False in the view-only demo: no button that would start an analysis. */
+  canStart?: boolean
   onApprovals?: () => void
   onOpenDashboard?: () => void
 }
@@ -23,7 +25,7 @@ interface OverviewViewProps {
  *  findings, what is waiting at the approval gate, and the newest runs.
  *  Everything comes from existing endpoints; nothing is computed here
  *  that the server did not already say. */
-export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard }: OverviewViewProps) {
+export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard, canStart = true }: OverviewViewProps) {
   const { t, tx, formatNumber, formatDate } = useI18n()
   const [runs, setRuns] = useState<RunSummary[] | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
@@ -72,7 +74,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
 
   const actions = onOpenDashboard ? (
     <DecisionActions
-      onUpload={() => onStart({ kind: 'upload' })}
+      onUpload={canStart ? () => onStart({ kind: 'upload' }) : undefined}
       onDashboard={onOpenDashboard}
       onApprovals={onApprovals}
     />
@@ -84,10 +86,10 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
         <h2 className="panel__title">{t('overview.title')}</h2>
         <p className="panel__desc">{t('overview.desc')}</p>
       </div>
-      <button type="button" className="btn btn--primary" onClick={() => onStart({ kind: 'upload' })}>
+      {canStart ? <button type="button" className="btn btn--primary" onClick={() => onStart({ kind: 'upload' })}>
         <Icon name="plus" size={16} />
         {t('overview.start')}
-      </button>
+      </button> : null}
     </div>
   )
 
@@ -143,7 +145,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
             </div>
             <h3 className="empty__title">{t('overview.emptyTitle')}</h3>
             <p className="empty__text">{t('overview.emptyText')}</p>
-            <div className="empty__actions">
+            {canStart ? <div className="empty__actions">
               <button type="button" className="btn btn--primary" onClick={() => onStart(null)}>
                 {t('overview.trySample')}
               </button>
@@ -154,7 +156,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
               >
                 {t('overview.addDataset')}
               </button>
-            </div>
+            </div> : null}
           </div>
         </div>
       </section>

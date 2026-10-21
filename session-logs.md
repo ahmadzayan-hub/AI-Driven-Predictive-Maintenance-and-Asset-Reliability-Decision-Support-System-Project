@@ -1210,3 +1210,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** dashboard KPIs, AUC 0.727 (interval 0.696 to 0.759), baseline 0.612, lift 2.50, watchlist 1,418 and 43.6% of loss all reproduce; report has 33 of 36 register figures; deck numbers all traced; notes cover all 15 slides.
 - **Decisions:** reported the earlier model-story conflict as resolved, since the submitted files no longer carry 0.746. Did not edit the report or deck; gave replacement text.
 - **Open / next:** the team corrects report §6.6 and submits the v2 `.pbix` after a Desktop click-test; hosted redeploy and the demo-mode interface remain.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (sign-in page removed: demo interface)
+
+**Goal:** remove the sign-in page of the SaaS application (owner request), completing demo mode.
+
+- **Done:** demo interface: closed local session, no sign-in, no server session; Workspace, Memory, Preferences and session buttons hidden; Overview and Assets offer no start buttons; header reads "View-only demo" in English and Arabic. ADR, Vercel guide (how to turn it on) and known limitations updated. Found and fixed a collision on `main`: two memory specs from a concurrent session looked for keys the Memory view no longer shows; the key is now a `data-key` attribute.
+- **Verified:** store and Overview tests watched failing first; browser run against a demo server on a fresh database at 1440 and 390 px, English and Arabic: no sign-in, no failed request, no page error, `#/chat` redirected. `verify.py` with PostgreSQL all 8 steps; full Playwright 127 passed, 5 skipped, 4 failed (pre-existing, shown on the previous commit), then those specs 8 of 8 after the fix.
+- **Decisions:** deeper write controls stay and get the server's refusal, recorded as a known limitation. Not deployed: turning demo mode on in the hosted project needs the owner's approval.
+- **Open / next:** owner approval to switch the hosted site to demo mode and redeploy; the report's §6.6 and the v2 `.pbix` click-test are with the team.

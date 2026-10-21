@@ -27,6 +27,8 @@ export interface OperationOutcome {
 
 interface Store {
   authConfig: AuthConfig | null
+  /** The public view-only demo: no sign-in, no chat, nothing writable. */
+  demo: boolean
   needsSignIn: boolean
   identity: IdentityInfo | null
   signIn: (token: string) => Promise<void>
@@ -102,6 +104,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [authConfig, setAuthConfig] = useState<AuthConfig | null>(null)
   const [identity, setIdentity] = useState<IdentityInfo | null>(null)
   const [needsSignIn, setNeedsSignIn] = useState(false)
+  const [demo, setDemo] = useState(false)
+  const demoRef = useRef(false)
   const pendingCount = useRef(0)
   const [pending, setPending] = useState(0)
   const [openRun, setOpenRun] = useState<{ id: string; nonce: number } | null>(null)
@@ -170,6 +174,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [handleUnauthorized])
 
   const start = useCallback(async () => {
+    // A session is a write; the view-only demo never asks for one.
+    if (demoRef.current) return
     const generation = ++sessionGeneration.current
     sendInFlight.current = false
     setSending(false)
@@ -233,6 +239,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try {
       const config = await api.authConfig()
       setAuthConfig(config)
+      if (config.mode === 'demo') {
+        // Everyone is the same read-only visitor, so there is nothing to sign
+        // in to and no session to open: a closed local one stands in for it.
+        demoRef.current = true
+        setDemo(true)
+        try { setIdentity(await api.identity()) } catch { /* the views still read */ }
+        setSession({ session_id: 'demo', agent_name: '', version: '', welcome: '', ended: true,
+          created_at: '', transcript: [], preferences: {}, memory: {}, memory_entries: [],
+          history: [], memory_persisted: false, commands: [] })
+        setOffline(false)
+        return
+      }
       if (config.mode === 'jwt') {
         if (!hasToken()) {
           setNeedsSignIn(true)
@@ -517,7 +535,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const status: ConnectionStatus = offline
     ? 'offline'
-    : session?.ended
+    : session?.ended && !demo
       ? 'ended'
       : pending > 0
         ? 'working'
@@ -528,6 +546,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const value = useMemo<Store>(
     () => ({
       authConfig,
+      demo,
       needsSignIn,
       identity,
       signIn,
@@ -558,6 +577,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }),
     [
       authConfig,
+      demo,
       needsSignIn,
       identity,
       signIn,

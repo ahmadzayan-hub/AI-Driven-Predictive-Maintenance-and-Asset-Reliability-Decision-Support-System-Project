@@ -574,6 +574,9 @@ export const en = {
 
   // Sign-in
   'signin.aria': 'Sign in',
+  'demo.badge': 'View-only demo',
+  'demo.visitor': 'Demo visitor',
+  'demo.note': 'A view-only demo on fictional data. There is no sign-in, and nothing can be uploaded, changed or approved here.',
   'signin.title': 'Sign in to Asset Reliability',
   'signin.desc':
     'This deployment requires an account. Your credentials go directly to the identity provider — this app never sees them.',

@@ -48,7 +48,7 @@ test.describe('main user journey', () => {
     const profileResult = await (await profileResponse).json() as MessageResult
     const profileEntries = profileResult.state.memory_entries.filter((entry) => entry.text === profileText)
     expect(profileEntries).toHaveLength(1)
-    const profileItem = page.locator('.memory__item').filter({ has: page.getByText(profileEntries[0].key, { exact: true }) })
+    const profileItem = page.locator(`.memory__item[data-key="${profileEntries[0].key}"]`)
     await expect(lastAgentBubble(page)).toHaveText('Information saved.')
 
     // 4. Manage memory in the Memory panel: add, edit, export, delete.
@@ -66,7 +66,7 @@ test.describe('main user journey', () => {
     const coffeeEntries = coffeeResult.state.memory_entries.filter((entry) => entry.text === coffeeText)
     expect(coffeeEntries).toHaveLength(1)
     const coffeeKey = coffeeEntries[0].key
-    const coffeeItem = page.locator('.memory__item').filter({ has: page.getByText(coffeeKey, { exact: true }) })
+    const coffeeItem = page.locator(`.memory__item[data-key="${coffeeKey}"]`)
     await expect(coffeeItem.locator('.memory__text')).toHaveText(coffeeText)
     await expect(ownedItems).toHaveCount(2)
 
