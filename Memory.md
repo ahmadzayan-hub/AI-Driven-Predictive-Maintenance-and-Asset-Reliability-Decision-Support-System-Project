@@ -112,6 +112,8 @@ Full list: [brain/Soul.md](brain/Soul.md).
 
 ## Open questions
 
+- **Local model acceptance (21 Oct):** this Windows host has limited spare RAM. Probe installed models sequentially and unload unused probe models; keeping several resident caused paging and timeouts. Keep one selected instruction model. An installed SDK or healthy API does not prove a real model response. Vercel AI Gateway rejected the team's synthetic request until a valid payment card is added; never copy deployment OIDC credentials into chat or files.
+
 - Has the asset-ID email gone to the capstone instructors, and what was the reply? **The evidence is now established (17 Oct):** all 180 `Asset_ID` values map to exactly one `Record_Date`, all 180 mix more than one `Asset_Class`, and the widest age span inside one value is 18.6 years, so there is no asset panel. Recorded as trap 1 in the capstone workspace's `Memory.md`.
 - **Answered (18 Oct), by the owner:** Moodle submission closes **Thursday 22 October 2026** and the team presents on **Sunday 25 October 2026**, demonstrating the presentation, Agentic OS and the SaaS platform. The course PDFs still read "To be announced"; these dates come from the owner as team contact. The 25 October demonstration makes a working platform a dated deliverable, not only a roadmap.
 - The capstone workspace now has its own operating system (`CLAUDE.md`, `Memory.md`, `project-progress.md`, `session-logs.md` and `tools/`), separate from this repository's. Course files, names and registration numbers stay there; `inputs/` and `team3-capstone/` are ignored here.

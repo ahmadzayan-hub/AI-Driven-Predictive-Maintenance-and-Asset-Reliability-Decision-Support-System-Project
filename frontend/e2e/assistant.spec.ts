@@ -16,7 +16,7 @@ test('plain language in the chat saves, analyses, explains, and confirms before 
   await page.goto('/')
 
   // Projects share the local owner's memory. Identify this newly saved note
-  // by its returned key, even when a previous interrupted test left notes.
+  // by its internal data attribute; keys are no longer displayed as text.
   const memoryText = `the Q4 review is on Monday (${testInfo.project.name} ${randomUUID()})`
   const remember = `Remember that ${memoryText}`
   const savedResponse = page.waitForResponse((response) =>

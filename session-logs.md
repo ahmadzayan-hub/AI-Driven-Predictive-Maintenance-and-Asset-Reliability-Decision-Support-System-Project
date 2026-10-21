@@ -1220,6 +1220,16 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Decisions:** deeper write controls stay and get the server's refusal, recorded as a known limitation. Not deployed: turning demo mode on in the hosted project needs the owner's approval.
 - **Open / next:** owner approval to switch the hosted site to demo mode and redeploy; the report's §6.6 and the v2 `.pbix` click-test are with the team.
 
+## 2026-10-21 · `runtime21` · codex/workspace-model-activation-2026-10-21
+
+**Goal:** make workspace conversation use a working model, evaluate the agents and installed models, and test analysis, assets and approvals.
+
+- **Done:** added the explicit Vercel AI Gateway adapter, server-only rotating OIDC credentials, exact model routing and structured LangGraph decisions (`46017cf`). Integrated the concurrent demo interface and memory selector fix (`670759e`). An unavailable runtime model now reports failure without a second inference attempt. Read-only help/status shortcuts avoid model latency. The long Operations test has a realistic individual budget with all assertions retained.
+- **Verified:** backend, installed framework contracts, agent scorecards, synthetic bilingual live replies, component checks and desktop/phone workflow checks. Exact results, timings and failures are in README.md#testing. The complete frontend suite was interrupted under resource pressure and is not claimed as passing. No real maintenance approval was executed.
+- **Decisions:** keep direct Qwen Instruct as the local default. Smaller weights failed bilingual quality; keeping multiple models resident exhausted spare memory. LangGraph answered general questions but a live requested tool sequence produced no tool calls, so automatic planning remains opt-in and unaccepted for this model. Approval gates remain human-controlled.
+- **Open / next:** the owner adds a payment card in Vercel AI Gateway, then repeat hosted synthetic acceptance before any production release. Production still needs explicit release approval. Validate a stronger model's live tool selection before enabling a planner by default.
+- **Blockers:** AI Gateway rejected the synthetic Preview request with a payment-card requirement. Kimi cloud returned a payment-required status. This activation work did not change production model configuration. Preview-only diagnostic build commits are retained on their own branch and are absent from the integration tree. The concurrent production deployment recorded below is preserved; its health still reports the deterministic provider.
+
 ## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (production deploy)
 
 - **Done:** with the owner's approval ("deploy all", "redeploy now") deployed `main` at `dcde343` to Vercel production, project `asset-reliability-team3-saas` (`dpl_85JXfesWXYTtGij8QwYbaLWxpw6H`, Ready). The KPI register corrections and the demo interface are now in the production build.

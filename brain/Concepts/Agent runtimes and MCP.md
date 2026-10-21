@@ -3,9 +3,9 @@ type: concept
 aliases: [Agent runtime, MCP server]
 tags: [architecture, ai, extension]
 status: active
-updated: 2026-10-16
+updated: 2026-10-21
 review_every_days: 60
-sources: [server/agent_runtime.py, server/tools.py, server/mcp.py, docs/adr/0021-frameworks-measured-adapted-not-adopted.md]
+sources: [server/agent_runtime.py, server/tools.py, server/mcp.py, docs/adr/0021-frameworks-measured-adapted-not-adopted.md, docs/adr/2026-10-21-workspace-model-activation.md]
 ---
 
 # Agent runtimes and MCP
@@ -17,6 +17,12 @@ The core of [[Agentic OS]] is framework-free by decision. Three seams let a fram
 3. **A framework inside a stage.** A [[Custom stages|custom stage]] can be built as a LangGraph graph and is audited like any other.
 
 The runtime's model is the [[Model gateway]].
+
+LangGraph uses the gateway's structured JSON decisions when available, with plain
+ask compatibility for older adapters. General questions may answer directly;
+tools are for workspace actions. Only exact read-only help/status shortcuts
+skip model interpretation. A smaller installed model is not a suitable default
+unless its bilingual replies and tool choices pass acceptance.
 
 ## Related
 

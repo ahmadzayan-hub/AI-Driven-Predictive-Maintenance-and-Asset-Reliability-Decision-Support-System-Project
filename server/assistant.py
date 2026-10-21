@@ -193,6 +193,15 @@ class Assistant:
     def understand(self, text, session):
         """Model first when one is configured, rules otherwise — and rules
         whenever the model's answer is not a valid intent."""
+        # Only unambiguous read-only shortcuts skip the model. Broad rules
+        # such as "explain" still need understanding for open conversation.
+        shortcuts = {"help", "what can you do", "what can you do?",
+                     "is the analysis done?", "analysis status",
+                     "مساعدة", "ما الذي يمكنك فعله؟", "ما حالة التحليل؟"}
+        if text.strip().casefold() in shortcuts:
+            known = understand(text)
+            if known["action"] in ("help", "run_status"):
+                return known
         status = self.gateway.status()
         if not status.get("configured"):
             return understand(text)
@@ -343,7 +352,8 @@ class Assistant:
         tools = ToolBox(self, session)
         context = {"language": agent.language(), "notes": self._context(session),
                    "thread_id": getattr(session, "id", None),
-                   "ask": self.gateway.ask}
+                   "ask": self.gateway.ask,
+                   "ask_json": getattr(self.gateway, "ask_json", None)}
         try:
             closing = self.runtime.run(text, tools, context)
         except Exception as error:

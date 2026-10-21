@@ -75,7 +75,18 @@ Serverless hardening already in place:
    | `AGENTIC_OS_DEMO=1` | **Instead of sign-in:** a public, view-only demo on generated fictional data; remove the token-verification variables first, or the server will not start ([decision](adr/2026-10-21-view-only-demo-mode.md)) |
    | `SUPABASE_JWT_SECRET` *or* `AGENTIC_OS_JWKS_URL` | Token verification |
    | `SUPABASE_URL`, `SUPABASE_ANON_KEY` | Browser sign-in (publishable) |
-   | `ANTHROPIC_API_KEY` or `GROQ_API_KEY` | Optional model-phrased summaries. `OLLAMA_MODEL` is **not** useful here: a model on a laptop is unreachable from a serverless function |
+   | `ANTHROPIC_API_KEY` or `GROQ_API_KEY` | Optional model-phrased summaries and open conversation. `OLLAMA_MODEL` is **not** useful here: a model on a laptop is unreachable from a serverless function |
+   | `AI_GATEWAY_MODEL` | Alternatively, an explicit current Vercel AI Gateway model ID. Uses the deployment's `VERCEL_OIDC_TOKEN`, or a server-only `AI_GATEWAY_API_KEY`. Earlier configured providers retain priority. |
+
+   On 21 October, Preview selected `google/gemini-2.5-flash-lite`; a synthetic
+   live request returned HTTP 403 because the team must add a valid payment
+   card before AI Gateway serves requests. Configuration is not a successful
+   model response. This activation work did not change production model
+   configuration. `scripts/model_probe.py --live`
+   performs the bounded synthetic connectivity check in a credentialed server
+   environment; without `--live` it only reports model/credential presence.
+   Never copy an OIDC token into a file or chat. See the
+   [activation decision](adr/2026-10-21-workspace-model-activation.md).
 
 3. Check `/api/health`, sign-in and cross-owner isolation using test accounts,
    then a synthetic run through approval and publication. Verify state after
