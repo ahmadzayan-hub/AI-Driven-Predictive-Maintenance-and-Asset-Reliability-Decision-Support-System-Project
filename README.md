@@ -319,7 +319,8 @@ and returns fresh state snapshots.
 - Node.js 20.19+ or 22+ and npm (web interface only)
 - No API keys, no external services, no credentials required. Optional
   narration by a local Ollama model (`OLLAMA_MODEL=qwen3:4b`, no key), Claude
-  (`ANTHROPIC_API_KEY`), or Groq (`GROQ_API_KEY`) — all server-side, see
+  (`ANTHROPIC_API_KEY`), OpenAI (`OPENAI_API_KEY` + `OPENAI_MODEL`) or Groq
+  (`GROQ_API_KEY`), with one failover between hosted providers — all server-side, see
   `.env.example`
 
 ## Installation

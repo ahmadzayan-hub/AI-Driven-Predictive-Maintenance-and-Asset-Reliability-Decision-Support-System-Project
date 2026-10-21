@@ -55,6 +55,8 @@ PROVIDER_ALIASES = {
     "sonnet": "anthropic",
     "haiku": "anthropic",
     "opus": "anthropic",
+    "openai": "openai",
+    "chatgpt": "openai",
     "groq": "groq",
     "gpt-oss": "groq",
     "mixtral": "groq",
@@ -89,6 +91,11 @@ def provider_for(model_name, available):
     # hosted endpoint this application reaches is Groq's.
     if ":" in lowered and "/" not in lowered and "ollama" in reachable:
         return "ollama"
+    # "gpt-4o", "gpt-5" and the like are OpenAI's own names; "gpt-oss" is
+    # an open-weight model Groq hosts.
+    if (lowered.startswith(("gpt-", "chatgpt")) and "gpt-oss" not in lowered
+            and "openai" in reachable):
+        return "openai"
     if (("/" in lowered and not lowered.startswith(("anthropic/", "claude")))
             or lowered.endswith("-versatile")) and "groq" in reachable:
         return "groq"

@@ -246,3 +246,63 @@ class ProviderCallTestCase(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OpenAiAndFailoverTestCase(unittest.TestCase):
+    """OpenAI next to Claude, and one failover so a provider outage does
+    not silence the model."""
+
+    def reply(self, text):
+        return {"choices": [{"message": {"content": text}}]}
+
+    def test_openai_needs_a_key_and_an_explicit_model(self):
+        self.assertEqual(ModelGateway(env={"OPENAI_API_KEY": "k"}).provider, "deterministic")
+        gateway = ModelGateway(env={"OPENAI_API_KEY": "k", "OPENAI_MODEL": "m"})
+        self.assertEqual((gateway.provider, gateway.model), ("openai", "m"))
+        self.assertNotIn("k\"", repr(gateway.status()))
+
+    def test_claude_keeps_priority_over_openai(self):
+        gateway = ModelGateway(env={"ANTHROPIC_API_KEY": "a", "OPENAI_API_KEY": "o",
+                                    "OPENAI_MODEL": "m"})
+        self.assertEqual(gateway.provider, "anthropic")
+        self.assertEqual([p["provider"] for p in gateway.providers()],
+                         ["anthropic", "openai", "deterministic"])
+
+    def test_openai_request_carries_the_bearer_key_and_reads_its_reply(self):
+        gateway = ModelGateway(env={"OPENAI_API_KEY": "secret", "OPENAI_MODEL": "m"})
+        with patch.object(gateway, "_post", return_value=self.reply("Costs are rising.")) as post:
+            result = gateway.narrate("goal", ["Costs rose 4%."])
+        url, headers, payload = post.call_args.args
+        self.assertEqual(url, "https://api.openai.com/v1/chat/completions")
+        self.assertEqual(headers, {"Authorization": "Bearer secret"})
+        self.assertEqual(payload["model"], "m")
+        self.assertEqual(result, {"text": "Costs are rising.", "source": "model"})
+
+    def test_a_failed_claude_call_fails_over_to_openai(self):
+        gateway = ModelGateway(env={"ANTHROPIC_API_KEY": "a", "OPENAI_API_KEY": "o",
+                                    "OPENAI_MODEL": "m"})
+        replies = [None, self.reply("Costs are rising.")]
+        with patch.object(gateway, "_post", side_effect=replies) as post:
+            result = gateway.narrate("goal", ["Costs rose 4%."])
+        self.assertEqual(post.call_count, 2)
+        self.assertIn("anthropic.com", post.call_args_list[0].args[0])
+        self.assertIn("openai.com", post.call_args_list[1].args[0])
+        self.assertEqual(result["source"], "model")
+        with patch.object(gateway, "_post", side_effect=replies[:1] + [self.reply("ok")]):
+            self.assertEqual(gateway.ask("s", "u"), "ok")
+
+    def test_failover_stops_after_two_attempts_then_says_deterministic(self):
+        gateway = ModelGateway(env={"ANTHROPIC_API_KEY": "a", "OPENAI_API_KEY": "o",
+                                    "OPENAI_MODEL": "m", "GROQ_API_KEY": "g"})
+        with patch.object(gateway, "_post", return_value=None) as post:
+            result = gateway.narrate("goal", ["Costs rose 4%."])
+        self.assertEqual(post.call_count, 2)
+        self.assertEqual(result["source"], "deterministic")
+
+    def test_a_local_model_is_never_swapped_for_a_hosted_one(self):
+        gateway = ModelGateway(env={"OLLAMA_MODEL": "llama3.1", "OPENAI_API_KEY": "o",
+                                    "OPENAI_MODEL": "m"})
+        with patch.object(gateway, "_post", return_value=None) as post:
+            gateway.narrate("goal", ["Costs rose 4%."])
+        self.assertEqual(post.call_count, 1)
+        self.assertIn("11434", post.call_args.args[0])

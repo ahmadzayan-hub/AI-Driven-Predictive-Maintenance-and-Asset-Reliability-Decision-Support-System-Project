@@ -305,3 +305,14 @@ class AlwaysGroq:
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OpenAiNamesTestCase(unittest.TestCase):
+    def test_openai_names_route_to_openai_and_gpt_oss_stays_with_groq(self):
+        from server.routing import provider_for
+        available = [{"provider": "openai", "model": "gpt-4o"},
+                     {"provider": "groq", "model": "openai/gpt-oss-120b"}]
+        self.assertEqual(provider_for("gpt-4o-mini", available), "openai")
+        self.assertEqual(provider_for("openai", available), "openai")
+        self.assertEqual(provider_for("gpt-oss-20b", available), "groq")
+        self.assertEqual(provider_for("gpt-4o", [{"provider": "groq", "model": "x"}]), "groq")

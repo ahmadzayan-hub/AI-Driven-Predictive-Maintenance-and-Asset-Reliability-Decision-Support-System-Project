@@ -6,16 +6,22 @@ already-computed facts — never the dataset. With no provider configured
 (the default, and always in tests/CI) a deterministic template is used, so
 the application is fully functional offline and no test needs credentials.
 
-Four providers, chosen by environment variable, in priority order:
+Five providers, chosen by environment variable, in priority order:
 
 - **ollama** — a model running on the operator's own machine
   (OLLAMA_MODEL, optional OLLAMA_HOST). No key, no account, and the facts
   never leave the host. Preferred when set, because it is the only option
   that sends nothing anywhere.
 - **anthropic** — Claude via ANTHROPIC_API_KEY (+ ANTHROPIC_MODEL).
+- **openai** — OPENAI_API_KEY with an explicit OPENAI_MODEL; no OpenAI
+  model is selected implicitly.
 - **groq** — GROQ_API_KEY (+ GROQ_MODEL).
 - **vercel** — an explicit AI_GATEWAY_MODEL and deployment OIDC token
   or AI_GATEWAY_API_KEY. No hosted model is selected implicitly.
+
+When the chosen hosted provider fails, the next configured hosted one is
+tried once before the deterministic narrator (failover), so one provider's
+outage does not silence the model.
 
 Keys are read server-side only. They are never logged, stored, or sent to
 the browser, and any provider failure degrades to the deterministic
@@ -27,6 +33,7 @@ import re
 import math
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 AI_GATEWAY_URL = "https://ai-gateway.vercel.sh/v1/chat/completions"
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_VERSION = "2023-06-01"
@@ -80,6 +87,8 @@ class ModelGateway:
         self.ollama_host = env.get("OLLAMA_HOST") or DEFAULT_OLLAMA_HOST
         self.anthropic_key = env.get("ANTHROPIC_API_KEY") or None
         self.anthropic_model = env.get("ANTHROPIC_MODEL", DEFAULT_ANTHROPIC_MODEL)
+        self.openai_key = env.get("OPENAI_API_KEY") or None
+        self.openai_model = env.get("OPENAI_MODEL") or None
         self.groq_key = env.get("GROQ_API_KEY") or None
         self.groq_model = env.get("GROQ_MODEL", DEFAULT_GROQ_MODEL)
         # CPU-hosted models need a bounded cold-start window. Hosted defaults
@@ -117,6 +126,8 @@ class ModelGateway:
             self.provider, self.model = "ollama", self.ollama_model
         elif self.anthropic_key:
             self.provider, self.model = "anthropic", self.anthropic_model
+        elif self.openai_key and self.openai_model:
+            self.provider, self.model = "openai", self.openai_model
         elif self.groq_key:
             self.provider, self.model = "groq", self.groq_model
         elif self.ai_gateway_model and self._ai_gateway_token():
@@ -149,6 +160,9 @@ class ModelGateway:
         if self.anthropic_key:
             found.append({"provider": "anthropic", "model": self.anthropic_model,
                           "local_only": False})
+        if self.openai_key and self.openai_model:
+            found.append({"provider": "openai", "model": self.openai_model,
+                          "local_only": False})
         if self.groq_key:
             found.append({"provider": "groq", "model": self.groq_model,
                           "local_only": False})
@@ -173,9 +187,12 @@ class ModelGateway:
         callers = {"ollama": self._call_ollama,
                    "vercel": self._call_vercel,
                    "anthropic": self._call_anthropic,
+                   "openai": self._call_openai,
                    "groq": self._call_groq}
-        caller = callers.get(provider or self.provider)
-        if caller:
+        for name in self._attempts(provider):
+            caller = callers.get(name)
+            if caller is None:
+                continue
             text = (caller(goal, facts, language=language) if language != "en"
                     else caller(goal, facts))
             if text:
@@ -201,9 +218,29 @@ class ModelGateway:
         callers = {"ollama": self._complete_ollama,
                    "vercel": self._complete_vercel,
                    "anthropic": self._complete_anthropic,
+                   "openai": self._complete_openai,
                    "groq": self._complete_groq}
-        caller = callers.get(provider or self.provider)
-        return caller(system, user, max_tokens) if caller else None
+        for name in self._attempts(provider):
+            caller = callers.get(name)
+            text = caller(system, user, max_tokens) if caller else None
+            if text:
+                return text
+        return None
+
+    def _attempts(self, provider=None):
+        """The chosen provider, then at most one other configured hosted
+        provider as failover. Two attempts at most keep a request inside a
+        serverless time limit (two timeouts of TIMEOUT_SECONDS each). A
+        local model is never swapped for a hosted one: choosing Ollama is
+        a choice that nothing leaves the machine."""
+        first = provider or self.provider
+        if first == "deterministic":
+            return []
+        if first == "ollama":
+            return ["ollama"]
+        hosted = [entry["provider"] for entry in self.providers()
+                  if not entry["local_only"] and entry["provider"] != first]
+        return [first] + hosted[:1]
 
     def _prompt(self, goal, facts):
         return "Goal: " + goal + "\nVerified facts:\n- " + "\n- ".join(facts)
@@ -262,6 +299,10 @@ class ModelGateway:
     def _call_anthropic(self, goal, facts, language="en"):
         return self._complete_anthropic(self._system(language),
                                         self._prompt(goal, facts), MAX_OUTPUT_TOKENS)
+
+    def _call_openai(self, goal, facts, language="en"):
+        return self._complete_openai(self._system(language), self._prompt(goal, facts),
+                                     MAX_OUTPUT_TOKENS)
 
     def _call_groq(self, goal, facts, language="en"):
         return self._complete_groq(self._system(language), self._prompt(goal, facts),
@@ -322,6 +363,20 @@ class ModelGateway:
              "messages": [{"role": "user", "content": user}]})
         try:
             return self._clean(body["content"][0]["text"])
+        except (TypeError, KeyError, IndexError):
+            return None
+
+    def _complete_openai(self, system, user, max_tokens=None):
+        if not (self.openai_key and self.openai_model):
+            return None
+        body = self._post(
+            OPENAI_URL, {"Authorization": f"Bearer {self.openai_key}"},
+            {"model": self.openai_model,
+             "max_completion_tokens": max_tokens or MAX_OUTPUT_TOKENS,
+             "messages": [{"role": "system", "content": system},
+                          {"role": "user", "content": user}]})
+        try:
+            return self._clean(body["choices"][0]["message"]["content"])
         except (TypeError, KeyError, IndexError):
             return None
 

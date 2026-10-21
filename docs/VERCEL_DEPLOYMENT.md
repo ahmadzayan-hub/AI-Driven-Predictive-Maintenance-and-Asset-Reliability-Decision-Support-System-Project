@@ -75,7 +75,7 @@ Serverless hardening already in place:
    | `AGENTIC_OS_DEMO=1` | **Instead of sign-in:** a public, view-only demo on generated fictional data; works without `DATABASE_URL` (every instance seeds the same demo under the same ids). With neither `DATABASE_URL` nor a sign-in provider set, Vercel deployments start in this mode by default; `AGENTIC_OS_DEMO=0` opts out. Remove the token-verification variables first, or the server will not start ([decision](adr/2026-10-21-view-only-demo-mode.md)) |
    | `SUPABASE_JWT_SECRET` *or* `AGENTIC_OS_JWKS_URL` | Token verification |
    | `SUPABASE_URL`, `SUPABASE_ANON_KEY` | Browser sign-in (publishable) |
-   | `ANTHROPIC_API_KEY` or `GROQ_API_KEY` | Optional model-phrased summaries and open conversation. `OLLAMA_MODEL` is **not** useful here: a model on a laptop is unreachable from a serverless function |
+   | `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` + `OPENAI_MODEL`, or `GROQ_API_KEY` | Optional model-phrased summaries and open conversation. Set two and a failed call to the first is retried once on the second ([decision](adr/2026-10-21-openai-provider-and-failover.md)). `OLLAMA_MODEL` is **not** useful here: a model on a laptop is unreachable from a serverless function |
    | `AI_GATEWAY_MODEL` | Alternatively, an explicit current Vercel AI Gateway model ID. Uses the deployment's `VERCEL_OIDC_TOKEN`, or a server-only `AI_GATEWAY_API_KEY`. Earlier configured providers retain priority. |
 
    On 21 October, Preview selected `google/gemini-2.5-flash-lite`; a synthetic
