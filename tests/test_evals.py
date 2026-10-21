@@ -427,7 +427,7 @@ class ReviewerBenchmarkTests(unittest.TestCase):
 
     def test_every_benchmark_labels_paragraphs_that_exist(self):
         import re
-        for bench in ("A", "B", "C", "D", "E"):
+        for bench in ("A", "B", "C", "D", "E", "F"):
             with self.subTest(bench=bench):
                 folder = ROOT / "evals" / "reviewers" / bench
                 labels = json.loads((folder / "labels.json").read_text(encoding="utf-8"))
