@@ -484,6 +484,17 @@ A live two-tool request returned a promise of action with **no tool steps** in
 as an automatic workspace planner. Framework tests verify execution and guards
 with scripted models; they do not certify live model tool selection.
 
+The local workspace was rebuilt and restarted on `a92a8ad`, preserving all
+**8 analyses**, including **3 awaiting approval**, and all **29 user-modified
+screenshots** plus the untracked availability-review note. API/frontend health
+and worker readiness passed with no stage/runtime load problems. In the running
+workspace, status replied in **1.02 seconds**, and fresh English/Arabic questions
+returned `source=model`, `action=chat` in **15.66 / 20.69 seconds**. An earlier
+conceptual follow-up after a status request incorrectly selected Help
+(**27.81 seconds**); that failure is retained in the local acceptance record.
+Intent reliability and maintenance-domain quality are not certified by these
+bounded probes. Direct Qwen remains active; LangGraph is not enabled by default.
+
 Vercel production was found using the deterministic provider. Preview selected
 `google/gemini-2.5-flash-lite`, but both synthetic live checks returned **HTTP
 403**: AI Gateway requires a valid payment card before serving requests. The
