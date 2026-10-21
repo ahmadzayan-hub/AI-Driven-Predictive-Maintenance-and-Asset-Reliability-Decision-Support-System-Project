@@ -1131,3 +1131,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** reviewers 100% lane recall, 0 false alarms on D; checker 83%, 1 false alarm (P08). Full Playwright on the targets change: 127 passed, 5 skipped.
 - **Decisions:** did not tune the checker on D, to keep D held out for it. Did not keep hardening D until something failed. The auditor's saved run has condensed evidence lines, marked in the file; ids and categories are exact.
 - **Open / next:** checker fixes from fresh examples; domain-judgement memos; reading test; native decision.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (checker fixes, memo E, merge)
+
+**Goal:** fix the checker's two bugs on fresh examples; write a maintenance-judgement memo; merge.
+
+- **Done:** the two D false alarms had one cause (a fall computes negative while prose writes its size); the checker now takes a change's direction from the sentence and measures a fall against the larger figure, and knows "reduction", "declined", "fewer". Memo E then exposed a third defect, any currency but "$" unreadable; fixed for €, £ and AED in both scripts. Memo E written blind, every figure and label checked by hand, committed (`e6baf85`) before review; new category `domain_method` in the analytics lane with no earlier score changed. Both reviewers and the checker run on E.
+- **Verified:** new tests on fresh sentences watched failing first; A to D checker scores unchanged or better (D false alarm gone); E: analytics 83% lane recall, 78% domain_method, 0 false alarms; auditor 1 false alarm (P08, a decoy); integrity test covers D and E.
+- **Decisions:** labels unchanged after results, including P08 where the auditor's point is arguable. Did not fix percentage-point slips in this round.
+- **Open / next:** repeat E runs; a prompt change on criticality judged on E; reading test; native decision.

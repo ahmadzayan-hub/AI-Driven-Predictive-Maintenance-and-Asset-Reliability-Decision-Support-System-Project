@@ -1,0 +1,59 @@
+Note: evidence lines condensed by the orchestrator; paragraph ids and categories are exactly as the reviewer gave them.
+
+FINDING F01 · major · P03
+Category: arithmetic
+Evidence: Inherent basis claimed but planned maintenance subtracted; corrective-only gives 98.5%.
+
+FINDING F02 · major · P03
+Category: arithmetic
+Evidence: Register value 98.5% absent from the memo.
+
+FINDING F03 · major · P04
+Category: arithmetic
+Evidence: MTBF 38,400 / 12 leaves out the 156 surviving motors; correct (38,400 + 797,160) / 12 = 69,630 h.
+
+FINDING F04 · major · P04
+Category: arithmetic
+Evidence: Register values 156, 797,160 and 69,630 absent from the memo.
+
+FINDING F05 · major · P04
+Category: overclaim
+Evidence: Ranking motors lowest rests on the wrong 3,200 h.
+
+FINDING F06 · major · P07
+Category: causal_claim
+Evidence: Early-life cluster after overhaul read as wear-out; shorter interval does not follow.
+
+FINDING F07 · major · P08
+Category: causal_claim
+Evidence: "rather than ageing" cannot be tested without fitting dates or exposure.
+
+FINDING F08 · major · P12
+Category: arithmetic
+Evidence: 1.6 h is mean minus a median target; no traction median in the register.
+
+FINDING F09 · major · P16
+Category: causal_claim
+Evidence: A lower threshold raises alarm counts by construction; no fault confirmations.
+
+FINDING F10 · major · P21
+Category: arithmetic
+Evidence: Lead-time demand 0.38 absent; cover with one spare not stated.
+
+FINDING F11 · major · P23
+Category: causal_claim
+Evidence: Whole fall attributed to the lubrication routine with no comparison.
+
+FINDING F12 · major · P24
+Category: arithmetic
+Evidence: 8.0% is of corrective work orders, not all maintenance workload (4.2% of 4,450).
+
+FINDING F13 · major · P24
+Category: arithmetic
+Evidence: Register values 4,450 and 4.2% absent from the memo.
+
+FINDING F14 · major · P25
+Category: overclaim
+Evidence: One year's 0.3-point margin presented as assured for the concession.
+
+TOTAL: 14 findings

@@ -422,6 +422,19 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Checker fixes and maintenance-judgement benchmark E — 21 October 2026
+
+`python scripts/score_review.py --summary`: on memo E (9 method errors, 3
+controls, 11 decoys) the analytics reviewer scored **83% lane recall, 78% on
+`domain_method`, no false alarm**; the figures auditor raised **one false
+alarm** on a decoy outside its lane; team **83% recall, 92% precision**. The
+figures checker (v4: a fall measured against the larger figure; any
+currency read as money) keeps A to D unchanged or better, with memo D's
+false alarm gone. `REQUIRE_PG=1 python scripts/verify.py` against PostgreSQL
+16: **1,495 Python tests reported, 19 skipped** (optional extras only),
+**277 frontend unit tests**, build and budget passed. The browser suite was
+not re-run: no interface code changed.
+
 ### Reviewer benchmark D and full browser run — 21 October 2026
 
 The full Playwright suite on the targets change passed **127, with 5
