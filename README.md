@@ -433,7 +433,8 @@ course reconciliation and generated papers remain private, outside Git.
 
 - Focused backend and HTML/Word direction contracts: **45 passed**; with
   documentation contracts, **56 passed**. Strict brain check: **46 notes**,
-  **0 issues**.
+  **0 issues**. After integrating the concurrent deterministic demo-ID fix,
+  the executive, document, docs and demo suites passed together: **69 tests**.
 - Executive UI and transport tests: **30 passed**.
 - Desktop/mobile executive journeys: **8 passed**, including English/Arabic
   exports, accessibility, filters, drill-through, print and stale snapshots.
