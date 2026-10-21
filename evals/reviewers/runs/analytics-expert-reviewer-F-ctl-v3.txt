@@ -1,0 +1,51 @@
+Note: evidence lines condensed by the orchestrator; paragraph ids, severities and categories are exactly as the reviewer gave them.
+
+FINDING F01 · blocker · P04
+Category: domain_method
+Evidence: Series chain must multiply: 93.1%, below target.
+
+FINDING F02 · blocker · P05
+Category: domain_method
+Evidence: Restoration includes response and spares: 4.9 h, 99.84%.
+
+FINDING F03 · major · P07
+Category: domain_method
+Evidence: Alarm log does not show discharge capacity.
+
+FINDING F04 · major · P08
+Category: domain_method
+Evidence: Shared controller is common cause: about 0.54%.
+
+FINDING F05 · blocker · P10
+Category: domain_method
+Evidence: 13-week survey longer than 8-week P-F interval.
+
+FINDING F06 · major · P12
+Category: domain_method
+Evidence: Shape 3.4 is wear-out, not random.
+
+FINDING F07 · major · P14
+Category: domain_method
+Evidence: Backlog met by deferring safety sensor defects.
+
+FINDING F08 · major · P16
+Category: domain_method
+Evidence: Monitoring ranked by cost, not consequence; track circuits excluded.
+
+FINDING F09 · major · P17
+Category: domain_method
+Evidence: MTBF is not a service life.
+
+FINDING F10 · blocker · P18
+Category: causal_claim
+Evidence: Contractor change before/after, no control.
+
+FINDING F11 · blocker · P19
+Category: denominator
+Evidence: Per pump: 22 / 74 = 29.7%.
+
+FINDING F12 · major · P20
+Category: overclaim
+Evidence: Six sections, five months generalised to fleet.
+
+TOTAL: 12 findings
