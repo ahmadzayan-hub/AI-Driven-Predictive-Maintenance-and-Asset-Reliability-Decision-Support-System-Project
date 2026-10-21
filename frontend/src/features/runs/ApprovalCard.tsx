@@ -1,5 +1,6 @@
 import '../../shared/styles/analytics.css'
 import { useState } from 'react'
+import { useReadOnly } from '../../shared/readOnly'
 import { useI18n } from '../../i18n'
 import { api, ApiError } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
@@ -10,6 +11,7 @@ export function ApprovalCard({ detail, onDecision }: {
   detail: RunDetail
   onDecision?: (detail: RunDetail) => void
 }) {
+  const readOnly = useReadOnly()
   const { t, formatNumber } = useI18n()
   const snapshot = useRun(detail.id)
   const run = snapshot.detail ?? detail
@@ -53,12 +55,12 @@ export function ApprovalCard({ detail, onDecision }: {
       </dl>
       <p className="decision__binding"><Icon name="shield" size={14} />{t('cockpit.hashBound')}</p>
       {message ? <p role="alert" className="statusline statusline--error" dir="auto">{message}</p> : null}
-      <div className="dialog__actions">
+      {readOnly ? <p className="panel__note">{t('demo.note')}</p> : <div className="dialog__actions">
         <button type="button" className="btn btn--ghost" disabled={busy} onClick={() => void decide('reject')}>{t('runs.reject')}</button>
         <button type="button" className="btn btn--primary" disabled={busy || !run.report} onClick={() => void decide('approve')}>
           {busy ? <span className="spinner" aria-hidden="true" /> : <Icon name="check" size={16} />}{busy ? t('cockpit.confirming') : t('runs.approve')}
         </button>
-      </div>
+      </div>}
     </section>
   )
 }

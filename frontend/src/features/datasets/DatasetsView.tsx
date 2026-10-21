@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useReadOnly } from '../../shared/readOnly'
 import { useI18n } from '../../i18n'
 import '../../shared/styles/kpi.css'
 import { api, ApiError, MAX_UPLOAD_BYTES, UPLOAD_ACCEPT } from '../../shared/api'
@@ -22,6 +23,7 @@ interface DatasetsViewProps {
  *  the server, so analysing one again sends nothing: the run refers to
  *  the stored copy by its id. */
 export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
+  const readOnly = useReadOnly()
   const { t, plural, locale, formatNumber, formatDate } = useI18n()
   const [datasets, setDatasets] = useState<DatasetSummary[] | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
@@ -117,7 +119,7 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
           <div>
             <h2 className="panel__title">{t('datasets.title')}</h2>
           </div>
-          <button
+          {readOnly ? null : <button
             type="button"
             className="btn btn--primary"
             disabled={uploading !== null}
@@ -125,7 +127,7 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
           >
             {uploading ? <span className="spinner" aria-hidden="true" /> : <Icon name="plus" size={16} />}
             {t('datasets.add')}
-          </button>
+          </button>}
           {/* Opened by the button above, which is what keyboard and
               screen-reader users reach; the input itself stays out of
               the tab order. */}
@@ -288,14 +290,14 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
                     >
                       {t('mapping.open')}
                     </button>
-                    <button
+                    {readOnly ? null : <button
                       type="button"
                       className="btn btn--ghost dataset__action"
                       aria-label={t('datasets.analyseAria', { name: dataset.name })}
                       onClick={() => onAnalyse(dataset)}
                     >
                       {t('datasets.analyse')}
-                    </button>
+                    </button>}
                   </span>
                 </li>
               ))}

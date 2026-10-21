@@ -7,6 +7,7 @@ import '../../shared/styles/analytics.css'
  *  and every choice live in the address, so a filtered page survives a
  *  reload and can be shared with someone who can open the run. */
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useReadOnly } from '../../shared/readOnly'
 import { useI18n } from '../../i18n'
 import { usePack } from '../../i18n/pack'
 import { PerformanceLegend, PerformanceValue, performanceTone } from '../../shared/components/PerformanceValue'
@@ -55,6 +56,7 @@ export function DashboardView({ runId, page, query, onNavigate, onOpenRun }: Das
 }
 
 function RunPicker({ onPick }: { onPick: (id: string) => void }) {
+  const readOnly = useReadOnly()
   const { t } = usePack(dashMessages)
   const [runs, setRuns] = useState<RunSummary[] | null>(null)
   const [failed, setFailed] = useState(false)
@@ -79,7 +81,7 @@ function RunPicker({ onPick }: { onPick: (id: string) => void }) {
             <h2 className="panel__title" id="dash-title">{t('dash.title')}</h2>
             <p className="panel__desc">{t('dash.pick')}</p>
           </div>
-          <a className="btn btn--primary" href="#/runs?source=upload&profile=maintenance"><Icon name="plus" size={16} />{t('dash.uploadMaintenance')}</a>
+          {readOnly ? null : <a className="btn btn--primary" href="#/runs?source=upload&profile=maintenance"><Icon name="plus" size={16} />{t('dash.uploadMaintenance')}</a>}
         </div>
         <div className="card">
           {failed ? (

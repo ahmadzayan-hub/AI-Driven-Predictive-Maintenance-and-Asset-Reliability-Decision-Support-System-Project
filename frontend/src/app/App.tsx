@@ -1,3 +1,4 @@
+import { ReadOnlyContext } from '../shared/readOnly'
 import { Activity, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { MiyaarMark } from '../shared/components/MiyaarMark'
@@ -80,8 +81,9 @@ const NAV_GROUPS: Array<{ id: string; items: NavItem[] }> = [
 ]
 
 const ALL_ITEMS = NAV_GROUPS.flatMap((group) => group.items)
-// Views that live on a chat session, which the view-only demo does not have.
-const NEEDS_SESSION: ReadonlySet<Tab> = new Set<Tab>(['chat', 'memory', 'preferences'])
+// Views the view-only demo leaves out: those that live on a chat session,
+// which the demo does not have, and Operations, which is administration.
+const NEEDS_SESSION: ReadonlySet<Tab> = new Set<Tab>(['chat', 'memory', 'preferences', 'operations'])
 const DEMO_GROUPS = NAV_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => !NEEDS_SESSION.has(item.id)) }))
 
 // A phone's bottom bar holds at most five places: the four a manager opens
@@ -510,6 +512,7 @@ export function App() {
         ) : null}
 
         <main className="main" id="workspace-main" inert={drawerOpen} tabIndex={-1} key={`${session.session_id}:${store.identity?.principal.subject ?? 'local'}:${store.identity?.principal.role ?? 'local'}`}>
+          <ReadOnlyContext.Provider value={demo}>
           {pane('operations', <OperationsView onOpenRun={openRun} />)}
           {pane('overview', (
             <OverviewView onOpenRun={openRun} onStart={startAnalysis} canStart={!demo} onApprovals={() => go('approvals')} onOpenDashboard={() => go('dashboard')} />
@@ -598,6 +601,7 @@ export function App() {
             />
           ))}
         {pane('approvals', <ApprovalsView onOpenRun={openRun} />)}
+          </ReadOnlyContext.Provider>
         </main>
 
         {tab === 'chat' && !demo ? (

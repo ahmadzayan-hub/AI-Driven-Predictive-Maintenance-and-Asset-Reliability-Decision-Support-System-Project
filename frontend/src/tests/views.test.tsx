@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DatasetsView } from '../features/datasets/DatasetsView'
+import { ReadOnlyContext } from '../shared/readOnly'
 import { OverviewView } from '../features/overview/OverviewView'
 import { ConnectorsPanel } from '../features/live/ConnectorsPanel'
 import { connectorsApi } from '../features/live/connectors'
@@ -167,6 +168,18 @@ describe('OverviewView', () => {
 })
 
 describe('DatasetsView', () => {
+  it('hides adding and analysing in the view-only demo, and keeps them otherwise', async () => {
+    const dataset = { id: 'ds1', sha256: '1a2b3c4d5e6f', name: 'fleet.csv', byte_size: 1_000, created_at: '2026-10-16T09:00:00+00:00' }
+    serve({ '/api/datasets': { datasets: [dataset] }, '/api/usage': USAGE })
+    const { unmount } = render(<ReadOnlyContext.Provider value><DatasetsView onAnalyse={vi.fn()} /></ReadOnlyContext.Provider>)
+    expect(await screen.findByText('fleet.csv')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Add a dataset' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Analyse fleet.csv' })).toBeNull()
+    unmount()
+    render(<DatasetsView onAnalyse={vi.fn()} />)
+    expect(await screen.findByRole('button', { name: 'Analyse fleet.csv' })).toBeInTheDocument()
+  })
+
   it('explains where datasets come from when there are none', async () => {
     serve({ '/api/datasets': { datasets: [] }, '/api/usage': USAGE })
     render(<DatasetsView onAnalyse={vi.fn()} />)

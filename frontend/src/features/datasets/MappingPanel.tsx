@@ -1,6 +1,7 @@
 import './mapping.css'
 import '../../shared/styles/analytics.css'
 import { useEffect, useId, useRef, useState } from 'react'
+import { useReadOnly } from '../../shared/readOnly'
 import type { MessageKey } from '../../i18n'
 import { useI18n } from '../../i18n'
 import { api, ApiError } from '../../shared/api'
@@ -60,6 +61,7 @@ export function withRole(draft: ColumnMapping, column: string, role: ColumnRole,
  *  mapping against every row, and explains any refusal by field; this
  *  panel shows that with an error summary and a message by each field. */
 export function MappingPanel({ datasetId, focusOnOpen, onClose, onChanged, onAnalyse }: MappingPanelProps) {
+  const readOnly = useReadOnly()
   const { t, locale, formatNumber, formatDate } = useI18n()
   const base = useId()
   const heading = useRef<HTMLHeadingElement | null>(null)
@@ -433,7 +435,7 @@ export function MappingPanel({ datasetId, focusOnOpen, onClose, onChanged, onAna
             ) : null}
           </div>
 
-          <div className="mapping__actions">
+          {readOnly ? null : <div className="mapping__actions">
             <button type="button" className="btn btn--primary" disabled={busy !== null} onClick={() => void save()}>
               {busy === 'save' ? <span className="spinner" aria-hidden="true" /> : <Icon name="check" size={16} />}
               {busy === 'save' ? t('mapping.saving') : t('mapping.save')}
@@ -453,7 +455,7 @@ export function MappingPanel({ datasetId, focusOnOpen, onClose, onChanged, onAna
             >
               {detail.mapping ? t('mapping.analyseMapped') : t('mapping.analyseAuto')}
             </button>
-          </div>
+          </div>}
           <div role="status" aria-live="polite">
             {notice ? (
               <p className="statusline statusline--success" dir="auto">

@@ -68,6 +68,20 @@ demo. A configured deployment keeps its mode: a sign-in provider gives `jwt`,
 a database gives `local` as before, and `AGENTIC_OS_DEMO=0` opts out. Off
 Vercel nothing changes.
 
+## Write controls hidden (added 22 October)
+
+Deeper views still offered controls the server refuses a demo visitor.
+`ReadOnlyContext`, set by the app in demo mode, now hides them: adding a
+dataset and starting an analysis from it, the new-analysis form, pause,
+resume and cancel, approve and reject (a note says why instead), saving or
+clearing a column mapping, and the dashboard's "Analyse maintenance data"
+link. Operations leaves the demo navigation, as every action there is
+administration. Reading controls stay: the executive brief (assembled in the
+browser from data already read), refresh, export, drill-downs and evidence.
+Outside demo mode the context is false and nothing changes. The server's
+refusal remains the guarantee; hiding the controls only stops offering what
+would be refused.
+
 ## Turning it on
 
 On the hosted project, with the owner's approval: set `AGENTIC_OS_DEMO=1`;

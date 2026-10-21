@@ -1,5 +1,6 @@
 import '../../shared/styles/analytics.css'
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useReadOnly } from '../../shared/readOnly'
 import { useSessionDraft } from '../../shared/useSessionDraft'
 import { useI18n } from '../../i18n'
 import { api, ApiError, MAX_UPLOAD_BYTES, UPLOAD_ACCEPT } from '../../shared/api'
@@ -174,6 +175,7 @@ function stageTitles(pipelines: Pipelines, profile: string, locale: string): str
 }
 
 export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRunSelected, onOpenDashboard, draftScope = 'session' }: RunsViewProps) {
+  const readOnly = useReadOnly()
   const { t, plural, isRtl, locale, formatNumber, formatDate, formatTime } = usePack(intakeMessages)
   const visible = useRef(true)
   useLayoutEffect(() => { visible.current = true; return () => { visible.current = false } }, [])
@@ -442,7 +444,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
             </div>
           </div>
 
-          <div className="card">
+          {readOnly ? null : <div className="card">
             <form onSubmit={createRun}>
               <ol className="run-steps">
                 {(['intake.step1', 'intake.step2', 'intake.step3', 'intake.step4'] as const).map((key) => <li key={key}>{t(key)}</li>)}
@@ -662,7 +664,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
             >
               {errorMessage ?? ''}
             </p>
-          </div>
+          </div>}
 
           {runs.length > 0 ? (
             <div className="card">
@@ -726,7 +728,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
             </div>
             <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
               {run.report?.published_path ? <button type="button" className="btn btn--primary" onClick={() => { fullReportRef.current?.focus(); fullReportRef.current?.scrollIntoView({ block: 'center' }) }}>{t('cockpit.readPublished')}</button> : null}
-              {ACTIVE_STATES.includes(run.state) ? (
+              {ACTIVE_STATES.includes(run.state) && !readOnly ? (
                 <>
                   <button
                     type="button"
