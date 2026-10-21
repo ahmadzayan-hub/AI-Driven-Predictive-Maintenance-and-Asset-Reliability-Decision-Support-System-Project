@@ -59,6 +59,108 @@ async function openDraft(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe('maintenance operations', () => {
+  it('separates complete registry totals from the displayed work queue', async () => {
+    const data = overview()
+    data.assets.push({ ...asset, id: 'asset-2', name: 'Standby pump', external_id: 'P-20' })
+    data.sites.push({ id: 'site-2', code: 'WS', name: 'West station' })
+    data.work_orders = [workOrder(), { ...workOrder(), id: 'wo-2', status: 'authorized' }, { ...workOrder(), id: 'wo-3', status: 'completed' }]
+    data.work_order_count = 88; data.work_orders_truncated = true
+    serve(data)
+    render(<OperationsView onOpenRun={vi.fn()} />)
+    const coverage = await screen.findByLabelText('Registry coverage')
+    expect(within(coverage).getByText('Registered assets').parentElement).toHaveTextContent('2')
+    expect(within(coverage).getByText('Registered sites').parentElement).toHaveTextContent('2')
+    expect(within(coverage).getByText('Recorded work orders').parentElement).toHaveTextContent('88')
+    const summary = screen.getByRole('group', { name: 'Work order summary' })
+    expect([...summary.querySelectorAll('.performance-value__number')].map((node) => node.textContent)).toEqual(['1', '1', '1'])
+    expect(screen.getByText(/Showing 3 of 88 orders/)).toHaveTextContent('Workflow counts and filters cover this displayed queue')
+  })
+
+  it.each(['en', 'ar'] as const)('inspects only the selected asset with keyboard focus and truthful %s history', async (locale) => {
+    applyLocale(locale, false)
+    const data = overview(), openRun = vi.fn()
+    data.assets.push({ ...asset, id: 'asset-2', name: 'Standby pump', external_id: 'P-20' })
+    data.work_orders = [{ ...workOrder(), status: 'completed', completion: { outcome: 'Bearing wear confirmed', notes: 'Bearing replaced', labor_hours: 0, parts: [{ part: 'B-10', quantity: 2 }] },
+      audit: [{ id: 'audit-1', action: 'work_completed', actor: 'maintenance-lead', created_at: '2026-10-21T10:00:00Z', version: 4, detail: {} }] },
+    { ...workOrder(), id: 'wo-other', asset_id: 'asset-2', title: 'Unrelated work', evidence: { ...workOrder().evidence, source_asset_id: 'P-20', run_id: 'other-run' } }]
+    data.work_order_count = 2
+    const { calls } = serve(data)
+    const user = userEvent.setup()
+    render(<OperationsView onOpenRun={openRun} />)
+    await user.click(await screen.findByRole('button', { name: locale === 'ar' ? 'استعراض سجل الأصول' : 'Browse asset registry' }))
+    const trigger = screen.getByRole('button', { name: locale === 'ar' ? 'فحص الأصل: Cooling pump' : 'Inspect asset: Cooling pump' })
+    trigger.focus(); await user.keyboard('{Enter}')
+    const dialog = screen.getByRole('dialog', { name: locale === 'ar' ? 'تفاصيل الأصل' : 'Asset details' })
+    expect(dialog).toHaveFocus()
+    expect(document.documentElement.dir).toBe(locale === 'ar' ? 'rtl' : 'ltr')
+    expect(dialog).toHaveTextContent(locale === 'ar' ? 'لا يحتوي السجل على قياس للحالة' : 'The registry contains no measured condition or health score')
+    expect(within(dialog).queryByText('Unrelated work')).not.toBeInTheDocument()
+    await user.click(within(dialog).getByText('Inspect pump bearing'))
+    expect(within(dialog).getByText('Bearing wear confirmed')).toBeVisible()
+    expect(within(dialog).getByText('maintenance-lead')).toBeVisible()
+    expect(within(dialog).getByText('B-10')).toBeVisible()
+    const laborLabel = within(dialog).getByText(locale === 'ar' ? 'ساعات العمل' : 'Labor hours')
+    expect(laborLabel.nextElementSibling).toHaveTextContent('0')
+    expect(within(dialog).getByText('run-1')).toBeVisible()
+    expect(within(dialog).queryByText('other-run')).not.toBeInTheDocument()
+    await user.keyboard('{Shift>}{Tab}{/Shift}')
+    expect(within(dialog).getByRole('button', { name: locale === 'ar' ? 'إغلاق تفاصيل الأصل' : 'Close asset details' })).toHaveFocus()
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(trigger).toHaveFocus()
+    await user.keyboard('{Enter}')
+    const reopened = screen.getByRole('dialog')
+    await user.click(within(reopened).getByText('Inspect pump bearing'))
+    await user.click(within(reopened).getByRole('button', { name: locale === 'ar' ? 'فتح التحليل المرجعي' : 'Open source run' }))
+    expect(openRun).toHaveBeenCalledExactlyOnceWith('run-1')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(calls.every((call) => call.method === 'GET')).toBe(true)
+  })
+
+  it('discloses a partial asset history even when no linked order is displayed', async () => {
+    const data = overview()
+    data.work_order_count = 203; data.work_orders_truncated = true
+    serve(data)
+    const user = userEvent.setup()
+    render(<OperationsView onOpenRun={vi.fn()} />)
+    await user.click(await screen.findByRole('button', { name: 'Browse asset registry' }))
+    await user.click(screen.getByRole('button', { name: 'Inspect asset: Cooling pump' }))
+    const dialog = screen.getByRole('dialog')
+    expect(dialog).toHaveTextContent('Partial history: the organization queue contains 0 of 203 orders')
+    expect(dialog).toHaveTextContent('No linked orders in this queue')
+    expect(dialog).toHaveTextContent('This does not establish asset health')
+  })
+
+  it('searches registry identity and keeps unsaved forms through inspection and section changes', async () => {
+    serve()
+    const user = userEvent.setup()
+    render(<OperationsView onOpenRun={vi.fn()} />)
+    await user.click(await screen.findByRole('button', { name: 'Browse asset registry' }))
+    expect(document.getElementById('operations-registry-panel')).toHaveFocus()
+    fireEvent.change(screen.getByLabelText('Site name'), { target: { value: 'Unsaved site' } })
+    await user.type(screen.getByLabelText('Search registered assets'), 'P-10')
+    await user.click(screen.getByRole('button', { name: 'Inspect asset: Cooling pump' }))
+    await user.keyboard('{Escape}')
+    await user.click(screen.getByRole('button', { name: 'Work orders' }))
+    await user.click(screen.getByRole('button', { name: 'Sites and assets' }))
+    expect(screen.getByLabelText('Site name')).toHaveValue('Unsaved site')
+    expect(screen.getByLabelText('Search registered assets')).toHaveValue('P-10')
+    fireEvent.change(screen.getByLabelText('Search registered assets'), { target: { value: 'not-registered' } })
+    expect(screen.getByRole('heading', { name: 'No matching assets' })).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'Inspect asset: Cooling pump' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Clear asset search' }))
+    expect(screen.getByRole('button', { name: 'Inspect asset: Cooling pump' })).toBeVisible()
+  })
+
+  it('shows setup guidance without fabricated totals before an organization exists', async () => {
+    serve(overview(), (call) => call.path === '/api/operations/organizations' ? { status: 200, body: { organizations: [] } } : undefined)
+    render(<OperationsView onOpenRun={vi.fn()} />)
+    expect(await screen.findByRole('heading', { name: 'Create a workspace for your maintenance team.' })).toBeVisible()
+    expect(screen.getByLabelText('Organization name')).toBeVisible()
+    expect(screen.getByText('Authorize work explicitly, then record what happened.')).toBeVisible()
+    expect(screen.queryByLabelText('Registry coverage')).not.toBeInTheDocument()
+  })
+
   it.each(['en', 'ar'] as const)('keeps zero counts and completed work neutral with visible %s assessment labels', async (locale) => {
     applyLocale(locale, false)
     const data = overview()

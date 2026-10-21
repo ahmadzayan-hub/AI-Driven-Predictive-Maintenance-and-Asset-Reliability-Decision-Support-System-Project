@@ -66,8 +66,8 @@ export function OperationsView({ onOpenRun }: { onOpenRun: (id: string) => void 
 
   return <section className="operations view" aria-labelledby="operations-title">
     <header className="operations__heading">
-      <div><h2 id="operations-title">{t('title')}</h2><p>{t('intro')}</p></div>
-      <Icon name="activity" size={28} />
+      <div><p className="operations__eyebrow">{t('workspaceLabel')}</p><h2 id="operations-title">{t('title')}</h2><p>{t('intro')}</p></div>
+      <span className="operations__emblem"><Icon name="activity" size={28} /></span>
     </header>
     <div className="operations__workspace">
       {organizations.length > 0 && <Field label={t('organization')}><select value={selected} onChange={(event) => setSelected(event.target.value)} disabled={creating || loading}>
@@ -83,7 +83,10 @@ export function OperationsView({ onOpenRun }: { onOpenRun: (id: string) => void 
     </div>
     {loading && <p role="status">{t('loading')}</p>}
     {error && <div className="operations__error" role="alert"><p>{t(error)}</p><button className="btn btn--ghost" onClick={() => setAttempt((value) => value + 1)} disabled={loading}>{t('refresh')}</button></div>}
-    {!selected && !loading && !error && <p>{t('emptyOrganization')}</p>}
+    {!selected && !loading && !error && <div className="operations__empty operations__empty--workspace">
+      <Icon name="database" size={32} /><h3>{t('emptyOrganization')}</h3><p>{t('workspaceEmptyHelp')}</p>
+      <ol className="operations__steps"><li>{t('setupRegistry')}</li><li>{t('setupEvidence')}</li><li>{t('setupOutcome')}</li></ol>
+    </div>}
     {selected && <OperationsWorkspace key={selected} organizationId={selected} onOpenRun={onOpenRun} />}
   </section>
 }
@@ -103,6 +106,8 @@ function OperationsWorkspace({ organizationId, onOpenRun }: { organizationId: st
   const readGeneration = useRef(0)
   const keys = useRef(new Map<string, ReturnType<typeof requestKey>>())
   const alert = useRef<HTMLDivElement>(null)
+  const registry = useRef<HTMLDivElement>(null)
+  const [registryFocus, setRegistryFocus] = useState(0)
   const refresh = useCallback(async () => {
     const current = ++readGeneration.current
     setLoading(true)
@@ -126,6 +131,7 @@ function OperationsWorkspace({ organizationId, onOpenRun }: { organizationId: st
     return () => { alive.current = false; readGeneration.current++ }
   }, [refresh])
   useEffect(() => { if (error) alert.current?.focus() }, [error])
+  useEffect(() => { if (registryFocus) registry.current?.focus() }, [registryFocus])
 
   const mutate: Mutate = async (kind, body, action) => {
     if (busy) return false
@@ -161,6 +167,16 @@ function OperationsWorkspace({ organizationId, onOpenRun }: { organizationId: st
     {error && <div className="operations__error" role="alert" tabIndex={-1} ref={alert}><p>{t(error)}</p>{serverMessage && <p dir="auto">{serverMessage}</p>}</div>}
     {message && <p role="status">{t(message)}</p>}
     {data && <>
+      <section className="operations__overview" aria-label={t('overviewTitle')}>
+        <div className="operations__overview-heading"><div><p className="operations__eyebrow">{t('overviewTitle')}</p><h3 dir="auto">{data.organization.name}</h3><p className="operations__muted">{t('overviewHelp')}</p></div>
+          <button type="button" className="btn btn--ghost" aria-controls="operations-registry-panel" onClick={() => { setTab('registry'); setRegistryFocus((value) => value + 1) }}><Icon name="database" size={17} />{t('browseRegistry')}</button>
+        </div>
+        <dl className="operations__coverage" aria-label={t('registrySummary')}>
+          <div><dt>{t('registeredAssets')}</dt><dd><bdi>{formatNumber(data.assets.length)}</bdi></dd></div>
+          <div><dt>{t('registeredSites')}</dt><dd><bdi>{formatNumber(data.sites.length)}</bdi></dd></div>
+          <div><dt>{t('recordedOrders')}</dt><dd><bdi>{formatNumber(data.work_order_count)}</bdi></dd></div>
+        </dl>
+      </section>
       {readiness?.execution.mode === 'worker' && !readiness.execution.ready && <p className="operations__error" role="status">{t('workerMissing')}</p>}
       <details className="operations__card"><summary>{t('readiness')}</summary>
         <p>{!readiness ? t('readinessUnknown') : readiness.execution.mode === 'client' ? t('clientMode') : readiness.execution.ready ? t('workerReady') : t('workerMissing')}</p>
@@ -181,7 +197,7 @@ function OperationsWorkspace({ organizationId, onOpenRun }: { organizationId: st
       {!data.permissions.write && <p>{t('readOnly')}</p>}
       {/* Keep unsaved forms in this open workspace when switching sections. */}
       <div hidden={tab !== 'orders'}><WorkOrdersPanel data={data} busy={busy || loading} mutate={mutate} onOpenRun={onOpenRun} /></div>
-      <div hidden={tab !== 'registry'}><RegistryPanel data={data} busy={busy || loading} mutate={mutate} /></div>
+      <div id="operations-registry-panel" ref={registry} tabIndex={-1} hidden={tab !== 'registry'}><RegistryPanel data={data} busy={busy || loading} mutate={mutate} onOpenRun={onOpenRun} /></div>
       <div hidden={tab !== 'team'}><TeamPanel data={data} busy={busy || loading} mutate={mutate} /></div>
       {validationVisited && <div hidden={tab !== 'validation'}><Suspense fallback={<p role="status">{t('loading')}</p>}><ValidationPanel data={data} /></Suspense></div>}
       <footer className="operations__footer"><p>{t('draftHelp')}</p><button className="btn btn--ghost" disabled={loading || busy} onClick={() => void exportRecords()}>{t('export')}</button><p>{t('exportHelp')}</p></footer>

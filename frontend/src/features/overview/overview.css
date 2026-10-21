@@ -102,11 +102,14 @@
 
 /* Action-first Executive Command Centre: content before decoration. */
 .decision-actions {
+  position: relative;
+  isolation: isolate;
   margin: var(--space-4) 0 var(--space-5);
   padding: var(--space-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-l);
-  background: var(--panel-fill);
+  background: var(--hero-fill);
+  overflow: hidden;
 }
 .decision-actions__eyebrow {
   color: var(--accent);
@@ -117,10 +120,26 @@
   font-size: var(--text-xl);
   margin-top: var(--space-1);
 }
+.decision-actions__intro { position: relative; z-index: 1; max-width: 80%; }
+.decision-actions__motif {
+  position: absolute;
+  inset-inline-end: var(--space-4);
+  inset-block-start: var(--space-2);
+  width: 220px;
+  height: 100px;
+  opacity: .24;
+  pointer-events: none;
+  color: var(--accent);
+}
+.decision-actions__motif path { fill: none; stroke: currentColor; stroke-width: 1; }
+.decision-actions__motif circle { fill: var(--surface); stroke: currentColor; stroke-width: 2; }
+[dir='rtl'] .decision-actions__motif { transform: scaleX(-1); }
 .decision-actions__intro p { margin-top: var(--space-2); color: var(--text-muted); font-size: var(--text-s); }
 .decision-actions__grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  position: relative;
+  z-index: 1;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--space-3);
   margin-top: var(--space-4);
 }
@@ -133,15 +152,24 @@
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-m);
   background: var(--bg);
+  transition: transform var(--motion-fast), border-color var(--motion-fast), background var(--motion-fast);
 }
-.decision-actions__grid button:hover { border-color: var(--accent); background: var(--accent-soft); }
+.decision-actions__grid button:hover,
+.decision-actions__grid button:focus-visible { border-color: var(--accent); background: var(--accent-soft); transform: translateY(-2px); }
 .decision-actions__grid svg { flex-shrink: 0; color: var(--accent); }
 .decision-actions__grid strong { display: block; font-size: var(--text-s); }
 .decision-actions__grid small { display: block; margin-top: 5px; color: var(--text-muted); line-height: 1.5; }
 @media (max-width: 780px) {
+  .decision-actions { padding: var(--space-4); }
+  .decision-actions__intro { max-width: none; }
+  .decision-actions__motif { display: none; }
   .decision-actions__grid { grid-template-columns: 1fr; }
   .decision-actions__grid button { min-height: 64px; }
 }
+@media (prefers-reduced-motion: reduce) {
+  .decision-actions__grid button { transition: none; transform: none; }
+}
+[data-motion='reduce'] .decision-actions__grid button { transition: none; transform: none; }
 
 /* Colour names a category, never a verdict; amber still marks "needs a person". */
 .finding { --hue: var(--accent); border-inline-start-color: var(--hue); }

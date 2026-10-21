@@ -1259,6 +1259,26 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified live:** `/api/auth/config` reads `demo`; `/api/runs` lists `5fe5d44a8391`; the run (all 24 stages succeeded, publish awaiting approval) and its executive briefing return 200 across requests, so "Run not found" is gone. Quick verify before each deploy: 1,617 then 1,624 Python tests (21 skipped), 297 frontend tests, typecheck, brain check. One Python failure in one run did not reproduce on rerun (logged as unexplained).
 - **Open:** no model key in production (`deterministic`); the owner adds `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` + `OPENAI_MODEL` in Vercel (Production). A writable hosted site needs `DATABASE_URL`. Animated-interface prompt drafted for Stitch; implementing it needs a CSS budget decision (25.4 of 25.5 KB used).
 
+## 2026-10-22 · `ad7e9eca` · main (connected workspace implementation)
+
+**Goal:** implement the animated SaaS design with agent connections and run it locally.
+
+- **Done:** connected Hermes map, one-shot observed handoffs, bounded zoom and fit, stage navigation and evidence inspection; overview actions; asset registry coverage, search and recorded-history dialog (`77efe87`). English/Arabic and responsive motion behavior are implemented. Concurrent main changes through `3e27482` are preserved. The existing local API and background worker are healthy and serve the rebuilt interface at `http://localhost:8000`.
+- **Verified:** the required verifier passed all checks except one new animation-end unit assertion; the corrected test dispatches the event React registers in jsdom and freezes the fallback timer. The subsequent complete frontend rerun, final type check, affected workflow browser checks, focused concurrent-backend checks, documentation and strict brain checks passed. Counts, conditional skips, bundle allocation and review score history are recorded in README.md#testing. A read-only source review found an old-event replay defect, fixed with consumption tracking and suppression/cleanup regression coverage; the reviewer confirmed the fix. No review finding was waived.
+- **Decisions:** keep React/SVG/CSS and semantic tokens, with no new animation dependency; animate observed updates and retain independent pause-view controls. The dated connected-workspace ADR records the lazy-view capacity increase and unchanged first-load limits. The review harness initially needed its evidence label and socket permission corrected; those failures remain recorded in the private review history.
+- **Open / next:** a hosted release requires separate owner approval. Live CMMS acceptance and independent predictive-model validation remain outside this interface change. The recorded connections are workflow observations, not an agent-message transport.
+- **Blockers:** none for the implemented interface and local launch.
+
+## 2026-10-22 · `ad7e9eca` · main (account-limit interruption recovery)
+
+**Goal:** resolve the quoted account-limit and unfinished-delivery warning and make future recovery independent of an active coding-agent session.
+
+- **Done:** current Codex account status permits ordinary work. A fresh GitHub fetch and ancestry checks prove `21dae21` and `77efe87` are included in remote main at `6523160`; the quoted pending-push warning is superseded. Added checkpoint verification, guarded terminal publishing and handoff guidance (`56a96ca`), with matching operating-memory and brain updates.
+- **Verified:** local API health and background-worker readiness, remote ancestry, documentation checks, PowerShell example syntax, strict brain and whitespace checks. Exact check results are in README.md#testing. Application code was unchanged, so application suites were not repeated.
+- **Decisions:** distinguish Codex allowance, model API usage, GitHub permission and application readiness. Terminal Git recovery requires its own valid access but makes no model request. Do not claim a repository change removes an account allowance, and do not bypass approval controls.
+- **Open / next:** future interruptions require a fresh account-status and commit check; account limits remain under the provider's control. No billing, plan, production configuration or approval policy was changed.
+- **Blockers:** none for the referenced delivery; an unlimited Codex allowance cannot be established by repository work.
+
 ## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (model roles live in code; production redeploy)
 
 - **Done:** model roles (Hermes on a language model, agents on Ollama, Claude and OpenAI consultants; `3e27482`, [decision](docs/adr/2026-10-21-model-roles-hermes-agents-consultants.md)); Supabase MCP project config and agent skills; capstone appendix in the git-ignored `private/capstone/deliverables/`. Production deployed at `3e27482` (`dpl_2Zqj9eseoXoUUJfv7wo94LnQ6DAV`).

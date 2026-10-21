@@ -67,7 +67,7 @@ export const en = {
   "nav.assets": "Asset Intelligence",
   'decision.eyebrow': 'Your next decision',
   'decision.heading': 'Decision Intelligence Command Centre',
-  'decision.subtitle': 'Go directly to the evidence, analysis or pending approval. No invented operational indicators.',
+  'decision.subtitle': 'Follow the evidence from analysis to a decision. Open a workflow, explore findings or review a report.',
   'decision.upload': 'Analyze a dataset',
   'decision.uploadHelp': 'Import, validate and run governed analytics',
   'decision.dashboard': 'Explore a dashboard',

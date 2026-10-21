@@ -72,11 +72,14 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attempt])
 
+  const orderedRuns = recentRuns(runs ?? [], RUN_PAGE)
+  const agentRun = orderedRuns.find((run) => run.state === 'running' || run.state === 'queued') ?? orderedRuns[0]
   const actions = onOpenDashboard ? (
     <DecisionActions
       onUpload={canStart ? () => onStart({ kind: 'upload' }) : undefined}
       onDashboard={onOpenDashboard}
       onApprovals={onApprovals}
+      onAgents={agentRun ? () => onOpenRun(agentRun.id) : undefined}
     />
   ) : null
 
@@ -260,6 +263,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard,
           ) : null}
         </section>
 
+        {actions}
         <div className="overview__grid">
           <div className="card">
             <h3 className="card__title">{t('overview.findings')}</h3>

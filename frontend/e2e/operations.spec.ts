@@ -52,7 +52,7 @@ for (const language of ['en', 'ar'] as const) {
     await page.getByLabel(t.assetId, { exact: true }).fill('P-10')
     await page.getByLabel(t.sourceSystem, { exact: true }).fill('Fictional CMMS')
     await page.getByRole('button', { name: t.addAsset, exact: true }).click()
-    await expect(page.getByRole('region', { name: t.registry, exact: true }).locator('.operations__assets')).toContainText('Fictional cooling pump')
+    await expect(page.getByRole('region', { name: t.registry, exact: true }).locator('.operations__asset-list')).toContainText('Fictional cooling pump')
     await page.getByRole('button', { name: t.orders, exact: true }).click()
     await page.locator('.operations__draft > summary').click()
     await page.getByLabel(t.asset, { exact: true }).selectOption({ label: 'Fictional cooling pump · P-10' })
@@ -81,6 +81,21 @@ for (const language of ['en', 'ar'] as const) {
     expect(after.work_orders[0].audit).toHaveLength(4)
     // Maintenance authorization never publishes the source analytics report.
     expect((await (await page.request.get(`/api/runs/${run.id}`)).json()).state).toBe('awaiting_approval')
+    await page.getByRole('button', { name: t.registry, exact: true }).click()
+    const assetButton = page.getByRole('button', { name: t.inspectAsset.replace('{name}', 'Fictional cooling pump'), exact: true })
+    await assetButton.focus()
+    await page.keyboard.press('Enter')
+    const inspector = page.getByRole('dialog', { name: t.assetDetails, exact: true })
+    await expect(inspector).toContainText(t.criticalityHelp)
+    await inspector.getByRole('button', { name: /Inspect pump bearing/ }).click()
+    await expect(inspector).toContainText('Wear observed')
+    await expect(inspector).toContainText(run.id)
+    await expect(inspector.getByRole('button', { name: t.openRun, exact: true })).toBeVisible()
+    expect((await new AxeBuilder({ page }).include('.dialog').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([])
+    await page.screenshot({ path: info.outputPath(`asset-inspector-${language}.png`), fullPage: true })
+    await page.keyboard.press('Escape')
+    await expect(assetButton).toBeFocused()
+    expect((await (await page.request.get(`/api/operations/organizations/${organization.id}/overview`)).json()).work_orders[0].audit).toHaveLength(4)
     // Prospective validation starts empty; this test records a future window,
     // never a fabricated outcome merely to produce an accuracy percentage.
     const v = validationMessages[language]

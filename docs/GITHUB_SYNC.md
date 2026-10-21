@@ -6,7 +6,78 @@ relates to
 [`ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project`](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project),
 and the routine for pushing local progress to it.
 
-## Current merge status - 20 October 2026
+## Verified interruption recovery - 22 October 2026
+
+The earlier message that maintenance work at `21dae21` remained local is
+superseded. A fresh fetch in the `aidriven-review` checkout confirmed that
+`origin/main` at `6523160` contains both `21dae21` and the later interface
+implementation `77efe87`. That checkout was clean and synchronized. These are
+dated observations; fetch again before deciding whether anything needs pushing.
+
+### Resume after an account limit or interrupted agent session
+
+A Codex account allowance, a model API allowance, GitHub access and the
+platform's own runtime are separate services. Repository changes cannot remove
+an account allowance. A quota message does not establish that commits were
+lost, a push is still pending or the application stopped. Check each state.
+
+The following PowerShell commands run in a normal terminal from the actual
+repository checkout. They use Git and the existing GitHub credentials; they
+make no model request and require no active Codex session. They still require
+network access and repository permission.
+
+First inspect and fetch. If fetching fails, remote status is unknown:
+
+```powershell
+git status --short --branch
+git log -3 --oneline
+git fetch origin refs/heads/main:refs/remotes/origin/main
+if ($LASTEXITCODE -ne 0) { throw 'Fetch failed; remote status is unknown.' }
+```
+
+Check the commit from the interruption message. Replace this historical
+example with the recorded commit for a later interruption:
+
+```powershell
+$checkpoint = '21dae21'
+git merge-base --is-ancestor $checkpoint origin/main
+switch ($LASTEXITCODE) {
+    0 { 'The checkpoint is already on remote main; do not replay it.' }
+    1 { 'The checkpoint is not yet on remote main; inspect the difference.' }
+    default { throw 'The checkpoint or remote reference could not be checked.' }
+}
+git log --oneline origin/main..HEAD
+git diff --stat origin/main HEAD
+```
+
+If delivery is genuinely unfinished, review the local changes, preserve
+uncommitted work, integrate concurrent main changes and run the relevant
+verification before publishing. Follow the existing session-end procedure for
+another branch or a divergent history. For an already verified, clean `main`
+checkout containing the fetched remote history, this guarded push is sufficient:
+
+```powershell
+if ((git branch --show-current) -ne 'main') { throw 'Use the branch integration procedure.' }
+if (git status --porcelain) { throw 'Review and preserve uncommitted changes first.' }
+git merge-base --is-ancestor origin/main HEAD
+if ($LASTEXITCODE -ne 0) { throw 'Integrate concurrent main changes and verify first.' }
+git push origin HEAD:refs/heads/main
+if ($LASTEXITCODE -ne 0) { throw 'Push failed; fetch and inspect before retrying.' }
+git fetch origin refs/heads/main:refs/remotes/origin/main
+if ($LASTEXITCODE -ne 0) { throw 'Could not verify the remote after pushing.' }
+git merge-base --is-ancestor HEAD origin/main
+if ($LASTEXITCODE -ne 0) { throw 'The remote does not contain the local commit.' }
+'Delivery verified on remote main.'
+```
+
+After a rejected push, fetch and inspect again; never force-push, reset away
+work or weaken an approval control. Before pausing a session, record the
+checkout, commit, unfinished step and verification results in the session log
+or a private local handoff. Recheck those facts when resuming. Keep credentials
+out of the handoff. This procedure recovers delivery; it does not promise
+unlimited account usage or authorize a production deployment.
+
+## Historical synchronization - 20 October 2026
 
 Semantic performance colors and sourced per-analysis targets merged into
 `main` at `98f33c4`, with parents `6c5170c` and `9077b1c`. The merge tree
