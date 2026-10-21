@@ -82,6 +82,20 @@ def scripted(*answers):
 
 @unittest.skipUnless(LANGGRAPH, "langgraph is not installed (optional)")
 class LangGraphRuntimeTestCase(unittest.TestCase):
+    def test_unavailable_model_fails_once_without_requesting_a_second_answer(self):
+        from examples.runtimes.langgraph_runtime import LangGraphRuntime
+        from unittest.mock import Mock
+        ask = Mock(side_effect=AssertionError("plain retry must not run"))
+        structured = Mock(return_value=None)
+        tools = ToolBox(self.assistant, self.session)
+        context = self.context(ask)
+        context["ask_json"] = structured
+        with self.assertRaisesRegex(RuntimeError, "model did not return a decision"):
+            LangGraphRuntime().run("Suggest a checklist", tools, context)
+        structured.assert_called_once()
+        ask.assert_not_called()
+        self.assertEqual(tools.steps, [])
+
     def test_structured_decision_uses_gateway_schema_without_plain_retry(self):
         from examples.runtimes.langgraph_runtime import LangGraphRuntime, DECISION_SCHEMA
         from unittest.mock import Mock

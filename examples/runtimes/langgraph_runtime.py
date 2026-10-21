@@ -104,6 +104,11 @@ class LangGraphRuntime:
                                schema=DECISION_SCHEMA)
             else:
                 raw = ask(SYSTEM, user, max_tokens=self.max_tokens)
+            if raw is None:
+                # An unavailable model is a failure, not a declined task.
+                # Declining here would trigger another slow call to the same
+                # model through the ordinary assistant path.
+                raise RuntimeError("the configured model did not return a decision")
             decision = _decision(raw)
             if not decision or "tool" not in decision:
                 reply = (decision or {}).get("reply")

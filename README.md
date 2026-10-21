@@ -424,6 +424,73 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Workspace model activation — 21 October 2026
+
+Open conversation now has an optional Vercel AI Gateway adapter with an explicit
+model and deployment OIDC/server key. LangGraph uses structured decisions and
+does not retry an unavailable model through the ordinary assistant path. Exact
+read-only help/status shortcuts avoid inference. See the
+[activation decision](docs/adr/2026-10-21-workspace-model-activation.md).
+
+The backend verifier reported **1,608 tests, 161 skipped**; PostgreSQL and
+optional extras were not installed in that interpreter. The final focused
+suite using the full local agent environment passed **156 tests**, including
+LangGraph and Pydantic AI framework contracts. All **9 agent evaluators** met
+their configured floors; that is not perfect accuracy: intent holdout accuracy
+was **77%**, router **83%**, and jargon **96%**. The first focused browser run
+passed **10 cases** and exposed **2 outdated memory-key selectors**; the fixed
+chat journeys then passed on both desktop and mobile (**2 cases**).
+
+The complete verifier was stopped during frontend testing under memory
+pressure; it did **not** pass all steps in this session. Final integrated
+checks are recorded below. An Operations component journey twice exceeded its
+five-second test budget while typing several forms and verifying authorization,
+start and completion; its budget is now ten seconds with the same assertions.
+
+After integrating concurrent main through `dcde343`, all **29 focused frontend
+tests** passed (Operations, Overview and chat store, one thread worker), as did
+type checking, the production build, **5 native-run checks**, and the strict
+brain check (**46 notes, 0 issues**). The interface budget passed: **97.9 KB**
+initial JavaScript, **203.0 KB** total JavaScript, **18.5 KB** largest chunk,
+**10.0 KB** initial CSS, **25.4 KB** total CSS, **119.4 KB** fonts. Broad frontend
+runs were stopped under resource pressure; the entire frontend suite is not
+claimed as passing in this session.
+The final integrated browser run passed **12 of 12** cases for chat, runtime
+handoff, model cards and asset-to-authorized-work journeys on desktop and phone,
+including Arabic; **11 documentation checks** also passed.
+
+Live synthetic checks found the smaller `qwen2.5:1.5b` repeated Arabic guidance
+and chose irrelevant tools; it was not selected. A 32-token connectivity probe
+got exact READY replies from Gemma, Qwen 1.5B and Qwen 4B Instruct; base/custom
+thinking Qwen and GPT-OSS cloud did not produce the requested final answer
+within that tiny budget. Kimi cloud returned **HTTP 402**. These are connectivity
+observations, not model-quality certification. The active instruction model
+remains `qwen3:4b-instruct-2507-q4_K_M`.
+
+An earlier real English LangGraph reply took **31.45 seconds**. Loading multiple
+local models during broader checks caused memory pressure: English/Arabic chat
+took **94.57 / 79.38 seconds**, including runtime failure followed by model
+fallback. Unused models were unloaded, and the duplicate-call failure was fixed.
+Read-only status/help replies measured **0.03 / 0.04 seconds**. This machine has
+not demonstrated a reliable fast-response service level for open conversation.
+
+With the extra models unloaded and the instruction model prewarmed, new English
+and Arabic conceptual questions returned real model replies in **23.27 / 12.64
+seconds**. The same questions through LangGraph returned real runtime replies
+in **49.35 / 48.29 seconds**. The direct model therefore remains the local default;
+the slower framework is available through explicit configuration.
+A live two-tool request returned a promise of action with **no tool steps** in
+**39.08 seconds**. That local model/runtime combination is therefore not accepted
+as an automatic workspace planner. Framework tests verify execution and guards
+with scripted models; they do not certify live model tool selection.
+
+Vercel production was found using the deterministic provider. Preview selected
+`google/gemini-2.5-flash-lite`, but both synthetic live checks returned **HTTP
+403**: AI Gateway requires a valid payment card before serving requests. The
+diagnostic build is isolated on `codex/workspace-model-probe-2026-10-21`; its
+live build hook is absent from the integration tree. Production was not
+changed. Billing activation and explicit release approval remain owner steps.
+
 ### Visible performance status — 21 October 2026
 
 Shared outlined badges and a wrapping legend show bad in red, okay in blue,

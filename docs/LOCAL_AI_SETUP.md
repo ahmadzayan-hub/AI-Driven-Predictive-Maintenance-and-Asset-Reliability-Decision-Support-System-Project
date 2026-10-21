@@ -108,6 +108,43 @@ Actual Chrome recording from a public test-audio fixture reached local Whisper a
 
 ![Actual local Whisper transcript in the Miyaar composer](screenshots/miyaar-local-whisper-preview.png)
 
+## Workspace agent activation / تفعيل وكيل مساحة العمل
+
+The model and an agent framework are separate settings. A configured local
+model can answer open conversation on its own. To test the optional LangGraph
+loop, add this to a private local configuration selected by `AGENTIC_OS_CONFIG`:
+
+```json
+"agent_runtime": {
+  "path": "examples.runtimes.langgraph_runtime.LangGraphRuntime",
+  "options": {"max_steps": 3, "max_tokens": 220}
+}
+```
+
+Keep the existing data paths and other configuration fields. Use one planner
+for a message. Pydantic AI remains an alternative, not a second planner running
+alongside LangGraph. The same tools, privacy checks and human approval gates
+apply. Exact help/status shortcuts answer without model latency. Check the
+reply's actual source, not just the configured provider in health.
+
+Keep only the selected inference model loaded on a memory-constrained machine.
+The installation checks found that smaller weights were faster to load but
+failed bilingual reply/tool-selection quality. Loading several models together
+caused memory pressure and timeouts. README records measured results, including
+failed probes; there is no guaranteed fast-response service level.
+
+<div dir="rtl">
+
+إعداد النموذج منفصل عن إطار الوكيل؛ يستطيع النموذج المحلي الرد على المحادثة
+المفتوحة مباشرة. يمكن اختبار LangGraph بإضافة الإعداد أعلاه إلى ملف محلي خاص،
+مع الحفاظ على مسارات البيانات الحالية. استخدم مخططًا واحدًا لكل رسالة؛ يبقى
+Pydantic AI بديلًا. تبقى الأدوات وضوابط الخصوصية والموافقات البشرية كما هي.
+تجيب اختصارات المساعدة وحالة التحليل مباشرة. تحقّق من مصدر الرد الفعلي، لا من
+وجود اسم النموذج في فحص الصحة فقط. أبقِ النموذج المختار وحده محمّلًا عند محدودية
+الذاكرة؛ لا يضمن تثبيت نموذج أصغر جودة ردوده أو سرعة جميع الطلبات.
+
+</div>
+
 ## Cloud setup and acceptance / إعداد السحابة والتحقق
 
 `doctor` reports installed packages and model presence; it is not a successful conversation or speech test. Check a real English and Arabic conversation, microphone recording, editable transcript, denied permission, retry, upload-to-report flow, approval, and restart before accepting the installation. Keep the model's actual failure/fallback status visible.

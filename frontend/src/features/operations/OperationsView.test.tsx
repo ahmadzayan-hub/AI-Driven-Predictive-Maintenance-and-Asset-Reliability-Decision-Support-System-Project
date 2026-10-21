@@ -101,7 +101,9 @@ describe('maintenance operations', () => {
     expect(state.work_orders[0].completion).toEqual({ outcome: 'Bearing wear confirmed', notes: 'Replaced bearing and checked vibration', labor_hours: 2.5, parts: [{ part: 'Bearing B-10', quantity: 1 }] })
     expect(calls.filter((call) => call.method === 'PATCH').map((call) => call.body.expected_version)).toEqual([1, 2, 3])
     expect(localStorage.getItem('operations-draft')).toBeNull()
-  })
+    // This journey types several fields and verifies three governed state
+    // transitions; allow its work to finish on the Windows test host.
+  }, 10_000)
 
   it('keeps input and reuses the same operation key after an uncertain network response', async () => {
     let offline = true

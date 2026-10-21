@@ -27,6 +27,8 @@ ask compatibility for older gateways. General questions can close with a reply
 without unnecessary tool calls. Existing ToolBox validation, privacy checks,
 tool limits and independent human approvals remain authoritative. Pydantic AI
 remains an alternative adapter, not a second concurrent planner for a message.
+An unavailable gateway response is a runtime failure, not a declined task;
+report it without making a second slow request to the same model.
 
 Only a small explicit set of read-only help/status shortcuts may bypass model
 interpretation. Broad matches such as "explain" must still reach the model:
