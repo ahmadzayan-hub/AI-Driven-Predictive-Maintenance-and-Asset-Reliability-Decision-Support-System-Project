@@ -76,6 +76,7 @@ Serverless hardening already in place:
    | `SUPABASE_JWT_SECRET` *or* `AGENTIC_OS_JWKS_URL` | Token verification |
    | `SUPABASE_URL`, `SUPABASE_ANON_KEY` | Browser sign-in (publishable) |
    | `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` + `OPENAI_MODEL`, or `GROQ_API_KEY` | Optional model-phrased summaries and open conversation. Set two and a failed call to the first is retried once on the second ([decision](adr/2026-10-21-openai-provider-and-failover.md)). `OLLAMA_MODEL` is **not** useful here: a model on a laptop is unreachable from a serverless function |
+   | `AGENTIC_OS_HERMES_MODEL`, `AGENTIC_OS_AGENT_MODEL`, `AGENTIC_OS_CONSULTANTS` | Optional model roles: Hermes' plan and approver's brief, each agent's note, independent consultants (e.g. `anthropic,openai`). Each names a configured provider. `ollama` is unreachable from serverless functions unless hosted ([decision](adr/2026-10-21-model-roles-hermes-agents-consultants.md)) |
    | `AI_GATEWAY_MODEL` | Alternatively, an explicit current Vercel AI Gateway model ID. Uses the deployment's `VERCEL_OIDC_TOKEN`, or a server-only `AI_GATEWAY_API_KEY`. Earlier configured providers retain priority. |
 
    On 21 October, Preview selected `google/gemini-2.5-flash-lite`; a synthetic

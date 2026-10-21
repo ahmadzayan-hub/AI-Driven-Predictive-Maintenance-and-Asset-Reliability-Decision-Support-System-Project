@@ -134,7 +134,7 @@ def model_cards(result):
 
 class RunEngine:
     def __init__(self, store, vault_dir, gateway, limits=None, glossary=None,
-                 stages=None, profiles=None, execution_mode="client"):
+                 stages=None, profiles=None, execution_mode="client", roles=None):
         if execution_mode not in ("client", "worker"):
             raise ValueError("AGENTIC_OS_RUN_EXECUTION must be client or worker.")
         self.execution_mode = execution_mode
@@ -143,6 +143,9 @@ class RunEngine:
         # swaps in a seeded generator while it seeds, so each serverless
         # instance builds its demo under the same ids (server/demo.py).
         self.new_id = random_id
+        # Model roles (server/orchestration.py): None, the default, means
+        # every run is exactly the deterministic pipeline.
+        self.roles = roles
         # Custom stages (ADR 0020): role -> descriptor, in registration
         # order, and the named profiles that choose among them.
         self.stages = dict(stages or {})
@@ -563,6 +566,8 @@ class RunEngine:
             ctx.update(self._merge_inputs(run))
         if custom is not None:
             return self._advance_custom(run_id, task, custom, ctx)
+        if task["role"] == "reporter":
+            ctx["orchestration"] = self._consult(run, ctx)
         try:
             result = (stage(ctx, gateway=self.gateway)
                       if task["role"] in analytics.NARRATED_STAGES else stage(ctx))
@@ -576,6 +581,9 @@ class RunEngine:
             self._set_run_state(run_id, "failed", error=result["summary"])
             return self.get_run(run_id)
 
+        self._annotate(run, task, tasks, result)
+        if ctx.get("orchestration"):
+            result["orchestration"] = ctx["orchestration"]
         self._set_task(task["id"], "succeeded", summary=result["summary"], result=result)
 
         if task["role"] == "validator" and not result["output"]["passed"]:
@@ -595,6 +603,37 @@ class RunEngine:
                 "content": result["output"]["report_markdown"],
                 "published_path": None, "created_at": _now()})
         return self.get_run(run_id)
+
+    def _annotate(self, run, task, tasks, result):
+        """Model notes on a finished stage: Hermes' plan on the planner, the
+        agent's note on every stage with findings. Words only, grounded in
+        the stage's own verified claims; a model failure never fails a run."""
+        if self.roles is None:
+            return
+        language = run.get("report_language") or "en"
+        try:
+            if task["role"] == "planner":
+                plan = self.roles.plan(run["goal"], [t["title"] for t in tasks], language)
+                if plan:
+                    result["hermes_plan"] = plan
+            note = self.roles.agent_note(run["goal"], task["role"], result, language)
+            if note:
+                result["agent_note"] = note
+        except Exception:
+            pass
+
+    def _consult(self, run, ctx):
+        """The consultants and Hermes' brief, read by the reporter."""
+        if self.roles is None:
+            return None
+        facts = [claim["text"] for stage in analytics.evidence_stages(ctx)
+                 for claim in ctx.get(stage + "_result", {}).get("claims", [])
+                 if claim.get("text")]
+        try:
+            return self.roles.consult(run["goal"], facts,
+                                      run.get("report_language") or "en")
+        except Exception:
+            return None
 
     def _advance_custom(self, run_id, task, descriptor, ctx):
         """Run a registered stage under the contract (ADR 0020).

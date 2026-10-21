@@ -1,0 +1,145 @@
+"""Model roles: Hermes plans and briefs, agents phrase their findings,
+consultants review. Words only, grounded in verified facts; nothing
+configured changes nothing. No test touches the network."""
+
+import tempfile
+import unittest
+from pathlib import Path
+
+from server.model_gateway import ModelGateway
+from server.orchestration import ModelRoles, grounded, report_section
+from server.runs import RunEngine
+from server.storage import open_store
+
+ROLES = {"AGENTIC_OS_HERMES_MODEL": "anthropic", "AGENTIC_OS_AGENT_MODEL": "ollama",
+         "AGENTIC_OS_CONSULTANTS": "anthropic,openai"}
+
+
+class FakeGateway:
+    """Answers like a model would, and records who was asked what."""
+
+    def __init__(self, invent=None):
+        self.calls = []
+        self.invent = invent  # provider that slips in a figure of its own
+
+    def providers(self):
+        return [{"provider": p, "model": "m", "local_only": p == "ollama"}
+                for p in ("ollama", "anthropic", "openai")] + [
+            {"provider": "deterministic", "model": None, "local_only": True}]
+
+    def narrate(self, goal, facts, provider=None, language="en"):
+        self.calls.append(("narrate", provider, facts))
+        return {"text": "In short: " + facts[0], "source": "model"}
+
+    def ask(self, system, user, provider=None, max_tokens=None):
+        self.calls.append(("ask", provider, system + user))
+        if provider == self.invent:
+            return "Savings of 98765 dollars are certain."
+        if "Consultant (" in user:
+            return "Check data coverage first; the consultants agree."
+        if system.startswith("You are Hermes"):
+            return "Quality and diagnostic stages matter most for this goal."
+        return f"{provider}: confirm the data coverage before acting."
+
+
+class RoleSelectionTestCase(unittest.TestCase):
+    def test_nothing_configured_means_no_role(self):
+        roles = ModelRoles(FakeGateway(), {})
+        self.assertFalse(roles.active)
+        self.assertEqual(roles.status(), {"hermes": "rules", "agents": None,
+                                          "consultants": [], "problems": []})
+
+    def test_each_role_takes_a_reachable_provider(self):
+        roles = ModelRoles(FakeGateway(), ROLES)
+        self.assertEqual((roles.hermes, roles.agents, roles.consultants),
+                         ("anthropic", "ollama", ["anthropic", "openai"]))
+
+    def test_an_unreachable_provider_is_reported_not_used(self):
+        gateway = ModelGateway(env={"OLLAMA_MODEL": "qwen3:4b"})
+        roles = ModelRoles(gateway, ROLES)
+        self.assertEqual((roles.hermes, roles.agents, roles.consultants),
+                         (None, "ollama", []))
+        self.assertEqual(len(roles.status()["problems"]), 3)
+
+
+class GroundingTestCase(unittest.TestCase):
+    def test_a_note_may_repeat_a_figure_but_never_add_one(self):
+        facts = ["Availability is 95.8% across 1,200 records."]
+        self.assertTrue(grounded("Availability stands at 95.8% on 1,200 records.", facts))
+        self.assertIsNone(grounded("Availability is 97% on 1,200 records.", facts))
+        self.assertIsNone(grounded("", facts))
+
+    def test_an_invented_figure_drops_that_consultant_only(self):
+        roles = ModelRoles(FakeGateway(invent="openai"), ROLES)
+        notes = roles.consult("goal", ["Overdue work is 21.6% of completed work."])
+        self.assertEqual([n["provider"] for n in notes["consultants"]], ["anthropic"])
+        self.assertIsNotNone(notes["hermes"])
+
+    def test_the_report_section_labels_every_author_in_both_languages(self):
+        notes = {"hermes": {"provider": "anthropic", "text": "Check X."},
+                 "consultants": [{"provider": "openai", "text": "Ask Y."}]}
+        english = "\n".join(report_section(notes))
+        self.assertIn("Hermes (orchestrator, anthropic)", english)
+        self.assertIn("Consultant (openai)", english)
+        self.assertIn("every number in this report is calculated", english)
+        self.assertIn("هيرميس", "\n".join(report_section(notes, "ar")))
+        self.assertEqual(report_section(None), [])
+
+
+class PipelineWithRolesTestCase(unittest.TestCase):
+    def setUp(self):
+        root = Path(tempfile.mkdtemp())
+        self.store = open_store(None, root / "runs.db")
+        self.addCleanup(self.store.close)
+        self.gateway = FakeGateway()
+        self.engine = RunEngine(self.store, root / "vault", ModelGateway(env={}),
+                                roles=ModelRoles(self.gateway, ROLES))
+
+    def drive(self, goal="Review maintenance cost"):
+        run = self.engine.create_run(goal)
+        for _ in range(100):
+            if run["state"] not in ("queued", "running"):
+                break
+            run = self.engine.advance(run["id"])
+        return run
+
+    def test_every_role_contributes_and_the_figures_stay_calculated(self):
+        run = self.drive()
+        self.assertEqual(run["state"], "awaiting_approval")
+        import json
+        tasks = {t["role"]: json.loads(t["result_json"] or "{}")
+                 for t in self.store.get_tasks(run["id"])}
+        self.assertEqual(tasks["planner"]["hermes_plan"]["provider"], "anthropic")
+        noted = [role for role, result in tasks.items() if result.get("agent_note")]
+        self.assertIn("descriptive", noted)
+        self.assertTrue(all(tasks[r]["agent_note"]["provider"] == "ollama" for r in noted))
+        orchestration = tasks["reporter"]["orchestration"]
+        self.assertEqual([n["provider"] for n in orchestration["consultants"]],
+                         ["anthropic", "openai"])
+        report = self.store.latest_artifact(run["id"])["content"]
+        self.assertIn("## Orchestrator and consultant notes", report)
+        self.assertIn("Check data coverage first", report)
+        # Only verified sentences reached a model: never a dataset row.
+        dataset = self.engine._dataset_text(self.store.get_run(run["id"]))
+        first_row = dataset.splitlines()[1]
+        self.assertFalse(any(first_row in str(call) for call in self.gateway.calls))
+
+    def test_a_failing_model_never_fails_the_run(self):
+        def broken(*args, **kwargs):
+            raise RuntimeError("provider down")
+        self.gateway.ask = broken
+        self.gateway.narrate = broken
+        run = self.drive()
+        self.assertEqual(run["state"], "awaiting_approval")
+        report = self.store.latest_artifact(run["id"])["content"]
+        self.assertNotIn("Orchestrator and consultant notes", report)
+
+    def test_without_roles_the_report_is_unchanged(self):
+        self.engine.roles = None
+        run = self.drive()
+        report = self.store.latest_artifact(run["id"])["content"]
+        self.assertNotIn("Orchestrator and consultant notes", report)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -25,6 +25,7 @@ import statistics
 from server import joins as joining
 from server import mapping as colmap
 from server import metrics as glossary
+from server import orchestration
 from server import sequential
 
 MAX_ROWS = 50_000
@@ -3935,6 +3936,7 @@ def reporter(ctx):
                                   source, language)),
         *([ctx["prescriptive"]["exec_summary_privacy_reason"]]
           if ctx["prescriptive"].get("exec_summary_privacy_reason") else []),
+        *orchestration.report_section(ctx.get("orchestration"), language),
         "",
         text["questions"],
         text["questions_head"],

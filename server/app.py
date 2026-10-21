@@ -43,6 +43,7 @@ from server.maintenance import performance
 from server.assistant import Assistant
 from server.connectors import Busy, ConnectorError, Connectors, TooSoon
 from server.model_gateway import ModelGateway
+from server.orchestration import ModelRoles
 from server.routing import RoutedGateway, build_router
 from server.stages import describe, load_stages
 from server.runs import (RunEngine, TableNotReady, dataset_summary,
@@ -375,6 +376,10 @@ def create_app(config_path=None, env=None, dist_dir=None):
     lock = threading.Lock()
 
     gateway = ModelGateway()
+    # Which model plays Hermes, the agents and the consultants (ADR
+    # 2026-10-21 model roles). Built on the plain gateway, which can be
+    # asked for a named provider; nothing configured means no model role.
+    model_roles = ModelRoles(gateway, os.environ if env is None else env)
     # Optional: something that chooses which model narrates each report
     # (ADR 0017). Absent — the default, and always in tests and CI — this
     # wraps nothing and changes nothing.
@@ -401,6 +406,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         stages=stage_registry,
         profiles=config.get("profiles") or {},
         execution_mode=(os.environ if env is None else env).get("AGENTIC_OS_RUN_EXECUTION", "client"),
+        roles=model_roles if model_roles.active else None,
     )
     app.state.engine = engine
     app.state.store = store
@@ -624,6 +630,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
             "agent_name": config.get("agent_name", "Agentic OS"),
             "version": str(config.get("version", "1.0.0")),
             "model_provider": gateway.status(),
+            "model_roles": model_roles.status(),
             # A misconfigured router is the operator's to fix, and they
             # will not find it unless something says so.
             "router_problem": app.state.router_problem,
