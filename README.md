@@ -422,6 +422,16 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### KPI register aligned with the Power BI report — 21 October 2026
+
+MTTR, first-time fix and repeat repair now follow the report's Method page,
+and four of its measures were added (18 in the register;
+[decision](docs/adr/2026-10-21-kpi-register-aligned-with-power-bi.md)).
+`REQUIRE_PG=1 python scripts/verify.py` against PostgreSQL 16: **1,499 Python
+tests reported, 19 skipped** (optional extras only), **277 frontend tests
+passed**, all 8 steps passed. Full Playwright, desktop and phone:
+**127 passed, 5 skipped**.
+
 ### Held-out memo F — 21 October 2026
 
 `python scripts/score_review.py --summary`: on memo F (blind, 9 new kinds of

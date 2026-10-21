@@ -1167,3 +1167,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** v3, 5 runs: 12/12, 9/9 domain_method, 0 false alarms each. v2, 2 runs: 11/12 each, P16 missed both times, 0 false alarms.
 - **Decisions:** stated that five runs on one memo is still one memo. The first `verify.py` run failed one Python test while the auditor agent was also running; not captured, did not recur in the full suite alone or in a clean `verify.py` (1,497 tests, 19 optional-extra skips, all 8 steps passed).
 - **Open / next:** a second held-out maintenance memo; number words in coverage; the auditor's run-to-failure false alarm.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (platform run, KPI alignment with Power BI, demo mode started)
+
+**Goal:** run the platform on the latest update; remove sign-in for now; correct availability and align KPIs with the Power BI file.
+
+- **Done:** ran `main` locally on a fictional 240-record fleet and shared screenshots. Sign-in: offered three routes; the owner chose a view-only demo mode; the server side (demo identity, refusal next to a real provider, seeded fictional run, 11 tests) is written and stashed, the interface is not. KPIs: the operating / planned "availability" the owner saw is the pre-correction register still live on the 2 October hosted build. Read the report's Method page from its PDF (the .pbix is a thin live-connection report with no DAX); 9 of 12 definitions matched; MTTR (owner's choice), first-time fix and repeat repair aligned as definition 2; four measures added; KPI numbers no longer break across lines. ADR.
+- **Verified:** `verify.py` with PostgreSQL all 8 steps (1,499 Python, 19 skips; 277 frontend); full Playwright 127 passed, 5 skipped; screenshots at 1440 and 390 px in English and Arabic show no broken number.
+- **Decisions:** MTTR follows the report though the earlier population was closer to EN 13306, stated on the card. Did not deploy: production needs the owner's explicit approval.
+- **Open / next:** redeploy the hosted site; finish demo mode (interface); the report file is course material in the repository (history rewrite needs the owner).
