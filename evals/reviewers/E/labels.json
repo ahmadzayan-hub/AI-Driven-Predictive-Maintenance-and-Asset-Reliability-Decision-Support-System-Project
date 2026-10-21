@@ -1,0 +1,103 @@
+{
+  "about": "Planted defects in memo E, by paragraph. Paragraphs not listed are correct.",
+  "categories": [
+    "domain_method",
+    "causal_claim",
+    "denominator",
+    "overclaim"
+  ],
+  "paragraphs": [
+    "P01",
+    "P02",
+    "P03",
+    "P04",
+    "P05",
+    "P06",
+    "P07",
+    "P08",
+    "P09",
+    "P10",
+    "P11",
+    "P12",
+    "P13",
+    "P14",
+    "P15",
+    "P16",
+    "P17",
+    "P18",
+    "P19",
+    "P20",
+    "P21",
+    "P22",
+    "P23",
+    "P24",
+    "P25",
+    "P26"
+  ],
+  "defects": {
+    "P03": [
+      "domain_method"
+    ],
+    "P04": [
+      "domain_method"
+    ],
+    "P06": [
+      "domain_method"
+    ],
+    "P07": [
+      "domain_method"
+    ],
+    "P09": [
+      "domain_method"
+    ],
+    "P12": [
+      "domain_method"
+    ],
+    "P16": [
+      "domain_method"
+    ],
+    "P18": [
+      "domain_method"
+    ],
+    "P21": [
+      "domain_method"
+    ],
+    "P23": [
+      "causal_claim"
+    ],
+    "P24": [
+      "denominator"
+    ],
+    "P25": [
+      "overclaim"
+    ]
+  },
+  "decoys": [
+    "P02",
+    "P05",
+    "P08",
+    "P10",
+    "P11",
+    "P13",
+    "P14",
+    "P15",
+    "P17",
+    "P19",
+    "P22"
+  ],
+  "why": {
+    "P03": "Inherent availability by definition excludes planned maintenance, yet the 2,480 planned hours are subtracted as downtime, understating it (97.4%). On the stated basis only the 3,120 corrective hours count, giving 98.5%; report the planned-maintenance effect separately or switch explicitly to an achieved/operational basis.",
+    "P04": "MTBF is divided over the running hours of the 12 failed motors only, ignoring the censored running time of the 156 motors that ran all year without failure. Total fleet running time over failures, (38,400 + 156 x 5,110) / 12 = 69,630 h, is the correct estimate, so motors are not the least reliable component on this evidence.",
+    "P06": "Failures rise sharply with belt age (4, 9, 21 by age band), a wear-out pattern, so a single MTBF and a constant-rate 'half the MTBF' inspection interval are the wrong model. Fit an age-dependent (e.g. Weibull, shape > 1) distribution and set an age-based replacement or condition-based limit before the 800,000-cycle band.",
+    "P07": "A cluster of failures in the first weeks after overhaul (9 in 6 weeks vs 3 in 40) is infant mortality from overhaul quality, not wear-out; shortening the overhaul interval would add more early-life failures. Investigate the overhaul workmanship, parts and commissioning tests, and add post-overhaul run-in checks instead.",
+    "P09": "PM compliance is counted as closed at any time in the year rather than within the scheduled window and tolerance, so late PMs count as compliant and the 97.0% is inflated. Measure compliance as completion within the interval tolerance (as done for depot equipment) and report late completions separately.",
+    "P12": "The 5.6 h is a mean from a long-tailed repair-time distribution, but the contract target is defined on the median, so the comparison is invalid and 'missed by 1.6 hours' is unsupported. Compute the median traction repair time and test that against the 4.0 h target, reporting the tail separately.",
+    "P16": "Counting alarms says nothing about effectiveness; a lower threshold raises nuisance alarms as well as true detections. Judge the threshold by the share of bogie functional failures detected before failure and the warning time (P-F interval), plus the false-alarm rate, before extending it to gearbox sensors.",
+    "P18": "The track brake is a safety-critical emergency-braking function, so run-to-failure is not acceptable on cost grounds; a hidden failure may only show on demand. RCM requires scheduled failure-finding or condition tasks for safety-critical hidden functions regardless of the repair cost.",
+    "P21": "Spares were cut on low average demand alone, ignoring a 40-week lead time and the fact that a failed inverter grounds a tram. Size holdings on lead-time demand, criticality and target availability (as done for HVAC compressors), not on the annual mean.",
+    "P23": "The 10.5% fall is attributed to the lubrication routine from a simple before/after count, with no control, no adjustment for exposure (kilometres or door cycles) and other door changes (the controller retrofit) in the same year. Present it as an association and compare normalised rates or lubricated versus unlubricated doors before claiming the effect.",
+    "P24": "188 / 2,350 is HVAC's share of corrective work orders, not of the depots' whole maintenance workload, which also includes 2,100 preventive work orders (and is better measured in hours). Against all 4,450 work orders HVAC is 4.2%; state the denominator correctly.",
+    "P25": "One year at 96.3%, only 0.3 points above the 96.0% floor, cannot show availability is 'assured' for the rest of the concession. State the current margin and the risks to it rather than a guarantee."
+  },
+  "source": "blind: written by an independent agent from the category definitions and a list of maintenance method errors only, without seeing benchmarks A to D or any reviewer prompt"
+}
