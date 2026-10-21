@@ -95,23 +95,7 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
                 <div><dt>{t('assets.runState')}</dt><dd>{stateLabel(t, evidence.run.state)}</dd></div>
                 <div><dt>{t('assets.stage')}</dt><dd>{stateLabel(t, evidence.screen.state)}</dd></div>
               </dl>
-              <div className="asset-intelligence__finding">
-                <strong>{t('assets.screening')}</strong>
-                <p dir="auto">{evidence.screen.summary || t('assets.notAvailable')}</p>
-                <p className="asset-intelligence__caution">{t('assets.disclaimer')}</p>
-              </div>
-              {evidence.risk ? <div className="asset-intelligence__finding">
-                <strong>{t('assets.modelEvidence')}</strong>
-                <p dir="auto">{evidence.risk.summary || t('assets.notAvailable')}</p>
-              </div> : null}
-              <ul className="asset-intelligence__checks">
-                {evidence.screen.quality_checks.map((check) => (
-                  <li key={check.name}>
-                    <span>{check.passed ? t('assets.passed') : t('assets.needsReview')}</span>
-                    <span dir="auto">{check.name}: {check.detail}</span>
-                  </li>
-                ))}
-              </ul>
+              {/* Figures first; the screening and model notes that qualify the run follow. */}
               {kpis && kpis.measures.length ? (
                 <div className="asset-intelligence__finding">
                   <strong>{t('assets.kpiHeading')}</strong>
@@ -149,6 +133,23 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
                   </details>
                 </div>
               ) : null}
+              <div className="asset-intelligence__finding">
+                <strong>{t('assets.screening')}</strong>
+                <p dir="auto">{evidence.screen.summary || t('assets.notAvailable')}</p>
+                <p className="asset-intelligence__caution">{t('assets.disclaimer')}</p>
+              </div>
+              {evidence.risk ? <div className="asset-intelligence__finding">
+                <strong>{t('assets.modelEvidence')}</strong>
+                <p dir="auto">{evidence.risk.summary || t('assets.notAvailable')}</p>
+              </div> : null}
+              <ul className="asset-intelligence__checks">
+                {evidence.screen.quality_checks.map((check) => (
+                  <li key={check.name}>
+                    <span>{check.passed ? t('assets.passed') : t('assets.needsReview')}</span>
+                    <span dir="auto">{check.name}: {check.detail}</span>
+                  </li>
+                ))}
+              </ul>
               <button type="button" className="btn btn--primary" onClick={() => onOpenRun(evidence.run.id)}>
                 {t('assets.openRun')}
               </button>

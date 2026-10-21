@@ -422,6 +422,15 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Assets on a phone — 21 October 2026
+
+Layout change ([addendum](docs/adr/2026-10-21-simplified-navigation-runs-and-assets.md#addendum-2026-10-21-assets-on-a-phone)).
+`python scripts/verify.py`: **1,487 Python tests reported, 153 skipped**,
+**275 frontend unit tests**, build and budget passed (CSS total 23,499 of
+23,500 bytes). Playwright `overview`, `responsive`, `a11y` and `arabic`:
+**22 passed, 4 skipped**. The full suite and PostgreSQL were not run for this
+change.
+
 ### Datasets, Memory and Activity — 21 October 2026
 
 Interface change ([decision](docs/adr/2026-10-21-datasets-memory-activity-treatment.md)).

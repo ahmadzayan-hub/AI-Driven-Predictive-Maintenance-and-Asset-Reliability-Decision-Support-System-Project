@@ -96,4 +96,7 @@ it('shows measures as family tiles, keeps a verdict reason on its tile and says 
   const note = screen.getByText(/have no display target yet/)
   expect(note.closest('details')).not.toHaveAttribute('open')
   expect(note).not.toBeVisible()
+  // Figures come before the screening note that qualifies the run.
+  const screening = screen.getByText('Engineering review screening')
+  expect(availability.compareDocumentPosition(screening) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 })

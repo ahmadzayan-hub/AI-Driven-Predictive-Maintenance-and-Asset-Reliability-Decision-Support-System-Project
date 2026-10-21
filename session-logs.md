@@ -1087,3 +1087,11 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** `verify.py` all 8 steps (1,487 Python, 153 skipped; 275 frontend). Full Playwright 127 passed, 5 skipped. New unit tests each watched failing on the old views. Before/after from the same fictional data against a build of `fe27c2c`. Three fictional memory entries used for captures were deleted afterwards; `data/memory.json` is back to empty.
 - **Decisions:** paid for every added rule with a removal; the Activity privacy statement stays. A background Playwright run started outside `frontend/` picked up unit-test files; re-run with an explicit config.
 - **Open / next:** CSS total 7 bytes from its limit; reading test; phone Assets.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (Assets on a phone)
+
+**Goal:** "Next perform": the open item that needed no decision from the owner, the first Assets KPI below the fold on a phone.
+
+- **Done:** measures moved before the screening notes; phone context boxes in two rows; a dead selector guard and an orphaned margin removed to pay for it. Test for the order, watched failing on the old view.
+- **Verified:** `verify.py` all 8 steps (275 frontend); Playwright overview, responsive, a11y, arabic 22 passed, 4 skipped; a direct 320/375 px overflow check in English and Arabic against a maintenance run, which the e2e server does not have.
+- **Open / next:** server-side Arabic population labels; Arabic-Indic digits in Assets; CSS budget decision (1 byte left); reading test.

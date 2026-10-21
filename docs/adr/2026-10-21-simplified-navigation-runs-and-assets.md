@@ -88,3 +88,20 @@ Testing.
 Native iOS or Android packages (see the
 [reading-test protocol and native note](../design/2026-10-21-manager-reading-test-protocol.md));
 Datasets, Memory and Activity views; a reading test with managers.
+
+## Addendum, 2026-10-21: Assets on a phone
+
+The first KPI was still below the first screen on a phone. The measures now
+come straight after the dataset and state boxes, before the screening and
+model notes that qualify the run, and on screens up to 800 px the dataset
+name spans the row with the two state boxes side by side beneath it. On the
+same fictional run the first KPI moved from 1,216 to 633 px on a 390 × 844
+phone (fully visible) and from 750 to 454 px on desktop. At 320 px it is
+still below the first screen. No horizontal overflow at 320 or 375 px in
+English or Arabic. Paid for by removing a dead selector guard and a margin
+left from the removed eyebrow: CSS total 23,499 of 23,500 bytes.
+
+Seen while checking, not changed here: the population label ("all records")
+arrives from the server in English on the Arabic page, and Assets formats
+values with Arabic-Indic digits while the rest of the interface uses Latin
+digits.
