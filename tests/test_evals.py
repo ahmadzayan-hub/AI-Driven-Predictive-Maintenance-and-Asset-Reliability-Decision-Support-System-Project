@@ -391,6 +391,22 @@ class RecallFixTests(unittest.TestCase):
         result = self.sourcing(text, register)
         self.assertEqual([u["number"] for u in result["unsourced"]], ["$9,900"])
 
+    def test_a_change_in_percentage_points_is_the_difference_of_the_percentages(self):
+        # Benchmark D: "fell from 40.9% to 37.5%, a decline of 8.3 percentage
+        # points" was reported as an unsourced 8.3, when 8.3 is the relative
+        # change written as points. Fresh sentences, so D stays held out.
+        register = {"On-time 2024": "88.0%", "On-time 2025": "92.4%", "Rework 2024": "12.5%", "Rework 2025": "10.0%",
+                    "Uptime 2024": "97.20%", "Uptime 2025": "97.65%"}
+        text = ("On-time completion rose from 88.0% to 92.4%, a gain of 4.4 percentage points. "
+                "Rework fell from 12.5% to 10.0%, a drop of 20.0 percentage points. "
+                "Uptime improved from 97.20% to 97.65%, up 0.45 points.")
+        result = self.sourcing(text, register)
+        self.assertEqual(result["unsourced"], [])
+        wrong = {w["result"]: w["computed"] for w in result["wrong_arithmetic"]}
+        # 20.0 is the relative fall (2.5 / 12.5); in points it is 2.5.
+        self.assertEqual(set(wrong), {"20.0"})
+        self.assertAlmostEqual(wrong["20.0"], 2.5, places=4)
+
     def test_a_table_read_as_one_sentence_derives_nothing(self):
         # A dashboard's data table: dozens of figures and the word "per"; any
         # two of them would "derive" a third, so the rule keeps to prose.

@@ -1,0 +1,43 @@
+Note: evidence lines condensed by the orchestrator; paragraph ids, severities and categories are exactly as the reviewer gave them.
+
+FINDING F01 · blocker · P03
+Category: arithmetic
+Evidence: Inherent label but planned hours subtracted; 98.5%.
+
+FINDING F02 · blocker · P04
+Category: denominator
+Evidence: MTBF ignores surviving motors; 69,630 h.
+
+FINDING F03 · major · P06
+Category: overclaim
+Evidence: Wear-out pattern; constant-rate half-MTBF interval.
+
+FINDING F04 · major · P07
+Category: overclaim
+Evidence: Front-loaded cluster is early-life, not wear-out.
+
+FINDING F05 · major · P12
+Category: overclaim
+Evidence: Mean tested against median target.
+
+FINDING F06 · major · P16
+Category: overclaim
+Evidence: Lower threshold raises alarms mechanically.
+
+FINDING F07 · major · P21
+Category: overclaim
+Evidence: Spares cut on annual demand, not lead-time demand.
+
+FINDING F08 · blocker · P23
+Category: causal_claim
+Evidence: Routine 'cut' faults, no control.
+
+FINDING F09 · major · P24
+Category: denominator
+Evidence: Share of corrective orders called workload; 4.2%.
+
+FINDING F10 · major · P25
+Category: overclaim
+Evidence: One year's margin does not assure later years.
+
+TOTAL: 10 findings

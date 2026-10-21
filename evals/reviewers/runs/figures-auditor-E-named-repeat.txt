@@ -1,0 +1,63 @@
+Note: evidence lines condensed by the orchestrator; paragraph ids, severities and categories are exactly as the reviewer gave them.
+
+FINDING F01 · blocker · P03
+Category: arithmetic
+Evidence: Inherent label but planned hours subtracted; 98.5%.
+
+FINDING F02 · blocker · P04
+Category: arithmetic
+Evidence: Censored MTBF 69,630 h, not 3,200.
+
+FINDING F03 · major · P04
+Category: denominator
+Evidence: 'Lowest of any component' rests on wrong figure.
+
+FINDING F04 · minor · P06
+Category: overclaim
+Evidence: Constant-rate assumption untested against age bands.
+
+FINDING F05 · major · P07
+Category: causal_claim
+Evidence: Early-life pattern read as wear-out.
+
+FINDING F06 · major · P08
+Category: causal_claim
+Evidence: 73.3% within 30 days cannot separate early life without fitting dates.
+
+FINDING F07 · major · P12
+Category: arithmetic
+Evidence: Mean against median target; miss not computable.
+
+FINDING F08 · major · P16
+Category: causal_claim
+Evidence: Alarm rise does not show more faults caught.
+
+FINDING F09 · major · P16
+Category: unsourced_figure
+Evidence: 'April 2025' not in register.
+
+FINDING F10 · minor · P18
+Category: overclaim
+Evidence: Run-to-failure cost case unquantified; 'rare' unsourced.
+
+FINDING F11 · blocker · P21
+Category: arithmetic
+Evidence: Lead-time demand 0.38 absent; annual demand used.
+
+FINDING F12 · major · P23
+Category: causal_claim
+Evidence: Before-and-after, routine 'cut' faults.
+
+FINDING F13 · major · P23
+Category: unsourced_figure
+Evidence: 'March' not in register.
+
+FINDING F14 · blocker · P24
+Category: arithmetic
+Evidence: Share of corrective orders called workload; 4.2%.
+
+FINDING F15 · major · P25
+Category: overclaim
+Evidence: One year's margin, 'assured' for later years.
+
+TOTAL: 15 findings

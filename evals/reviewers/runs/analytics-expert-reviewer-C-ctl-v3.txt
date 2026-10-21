@@ -1,0 +1,39 @@
+Note: evidence lines condensed by the orchestrator; paragraph ids, severities and categories are exactly as the reviewer gave them.
+
+FINDING F01 · major · P02
+Category: unsourced_figure
+Evidence: 'One patient in five' late not in register.
+
+FINDING F02 · blocker · P03
+Category: arithmetic
+Evidence: $44.72, not $52.10.
+
+FINDING F03 · blocker · P05
+Category: causal_claim
+Evidence: SMS scheme 'pulled' no-show rate down.
+
+FINDING F04 · blocker · P07
+Category: denominator
+Evidence: 9.8% mean of clinic rates; pooled 8.4%.
+
+FINDING F05 · blocker · P08
+Category: overclaim
+Evidence: One clinic's rate taken as certain forecast.
+
+FINDING F06 · major · P10
+Category: unsourced_figure
+Evidence: 14% nurse vacancies not in register.
+
+FINDING F07 · blocker · P11
+Category: arithmetic
+Evidence: 12.0%, not 18.0%.
+
+FINDING F08 · blocker · P13
+Category: causal_claim
+Evidence: Evening sessions 'accounted for' the rise.
+
+FINDING F09 · blocker · P14
+Category: overclaim
+Evidence: One year's 12.0% extrapolated as constant.
+
+TOTAL: 9 findings

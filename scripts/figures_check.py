@@ -344,6 +344,9 @@ SENTENCES = re.compile(r"(?<=[.!?؟])\s+")
 # A figure this close to a derivation of its sentence's own inputs is a slip
 # in that derivation, not an unrelated number (chosen on benchmark A, ADR 0027).
 SLIP_FACTOR = 2.0
+# "A decline of 3.4 percentage points": the gap between two percentages,
+# never their relative change.
+POINTS = r"\s*(?:percentage[ -]points?|points?|pp\b|نقطة مئوية|نقاط مئوية)"
 MAX_SENTENCE, MAX_FIGURES = 300, 6
 
 
@@ -408,6 +411,18 @@ def implied(token, sentence, previous, pool, register):
     pairs = [(a, b) for i, a in enumerate(inputs) for b in inputs[i + 1:]]
     falls, rises = bool(FALL.search(sentence)), bool(RISE.search(sentence))
     direction = "fall" if falls and not rises else "rise" if rises and not falls else None
+    percents = _distinct([value_of(t) for t in numbers_in(sentence)
+                          if t != token and unit_of(t) == "%" and sourced_by(t, pool)])
+    if len(percents) >= 2 and re.search(re.escape(token) + POINTS, sentence, re.I):
+        gaps = [abs(a - b) for i, a in enumerate(percents) for b in percents[i + 1:]]
+        if any(_close(token, g) for g in gaps):
+            return "derived"
+        # The relative change written as points is the classic slip.
+        relative = [abs(a - b) / base * 100 for i, a in enumerate(percents) for b in percents[i + 1:]
+                    for base in (a, b) if base]
+        if any(_close(token, r) for r in relative):
+            return ("wrong", min(gaps, key=lambda g: abs(g - value_of(token))))
+        return None
     if any(_close(token, c) for a, b in pairs for cs in _derivations(a, b, direction).values() for c in cs):
         return "derived"
     explicit = _distinct(explicit)

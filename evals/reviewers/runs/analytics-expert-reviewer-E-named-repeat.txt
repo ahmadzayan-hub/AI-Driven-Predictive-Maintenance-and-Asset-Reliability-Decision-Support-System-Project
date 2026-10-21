@@ -1,0 +1,51 @@
+Note: evidence lines condensed by the orchestrator; paragraph ids and categories are exactly as the reviewer gave them.
+
+FINDING F01 · major · P03
+Category: domain_method
+Evidence: Inherent basis but planned maintenance subtracted; corrective-only gives 98.5%.
+
+FINDING F02 · major · P04
+Category: domain_method
+Evidence: MTBF leaves out the 156 surviving motors; 69,630 h, not the lowest component.
+
+FINDING F03 · major · P06
+Category: domain_method
+Evidence: Wear-out pattern; constant-rate MTBF and half-MTBF interval unjustified.
+
+FINDING F04 · major · P07
+Category: domain_method
+Evidence: Early cluster after overhaul is infant mortality, not wear-out.
+
+FINDING F05 · major · P09
+Category: domain_method
+Evidence: Compliance counts closure at any time, not within the due window.
+
+FINDING F06 · major · P12
+Category: domain_method
+Evidence: Mean compared with a median target.
+
+FINDING F07 · major · P16
+Category: overclaim
+Evidence: A lower threshold raises alarm counts by construction; no confirmed faults.
+
+FINDING F08 · major · P18
+Category: domain_method
+Evidence: Run-to-failure on a safety-relevant track-brake contactor chosen on cost alone; no criticality assessment.
+
+FINDING F09 · major · P21
+Category: domain_method
+Evidence: Spares cut on average demand, ignoring lead time and a grounded tram.
+
+FINDING F10 · major · P23
+Category: causal_claim
+Evidence: Fall attributed to the lubrication routine from before/after alone.
+
+FINDING F11 · major · P24
+Category: denominator
+Evidence: 8.0% is of corrective work orders, not all workload (4.2% of 4,450).
+
+FINDING F12 · major · P25
+Category: overclaim
+Evidence: One year's 0.3-point margin called assured.
+
+TOTAL: 12 findings

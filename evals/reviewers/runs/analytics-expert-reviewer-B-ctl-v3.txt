@@ -1,0 +1,39 @@
+Note: evidence lines condensed by the orchestrator; paragraph ids, severities and categories are exactly as the reviewer gave them.
+
+FINDING F01 · blocker · P02
+Category: arithmetic
+Evidence: 4,000 km per failure, not 4,800.
+
+FINDING F02 · blocker · P04
+Category: causal_claim
+Evidence: Hot weather 'causes' door faults, no data.
+
+FINDING F03 · major · P05
+Category: unsourced_figure
+Evidence: 31% door-fault share not in register.
+
+FINDING F04 · blocker · P06
+Category: causal_claim
+Evidence: One month 'proves' shift pattern works.
+
+FINDING F05 · major · P07
+Category: denominator
+Evidence: 98.0% mean of vehicle rates; pooled 96.4%.
+
+FINDING F06 · blocker · P09
+Category: arithmetic
+Evidence: 52,300 / 1,240 = 42.2, not 48.2.
+
+FINDING F07 · blocker · P11
+Category: causal_claim
+Evidence: Brake pads 'reduced' failures, no comparison.
+
+FINDING F08 · major · P12
+Category: unsourced_figure
+Evidence: $1.9 million stockout cost not in register.
+
+FINDING F09 · major · P13
+Category: overclaim
+Evidence: AUC 0.81 taken as preventing most failures.
+
+TOTAL: 9 findings

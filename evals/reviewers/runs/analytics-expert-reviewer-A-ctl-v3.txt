@@ -1,0 +1,43 @@
+Note: evidence lines condensed by the orchestrator; paragraph ids, severities and categories are exactly as the reviewer gave them.
+
+FINDING F01 · blocker · P02
+Category: arithmetic
+Evidence: Growth is 11.4%, not 13.4%.
+
+FINDING F02 · blocker · P03
+Category: unsourced_figure
+Evidence: 27% online growth not in register.
+
+FINDING F03 · blocker · P05
+Category: causal_claim
+Evidence: Loyalty app 'drove' growth, observational.
+
+FINDING F04 · major · P06
+Category: denominator
+Evidence: 9.1% is a mean of store rates; pooled 6.2%.
+
+FINDING F05 · blocker · P07
+Category: overclaim
+Evidence: One refit generalised to every refit.
+
+FINDING F06 · major · P09
+Category: arithmetic
+Evidence: 610 / 48 = 12.7, not 15.2.
+
+FINDING F07 · blocker · P10
+Category: causal_claim
+Evidence: Longer hours 'caused' weekend revenue.
+
+FINDING F08 · major · P12
+Category: overclaim
+Evidence: 92% accuracy used to set targets, no baseline.
+
+FINDING F09 · major · P13
+Category: unsourced_figure
+Evidence: $640,000 shrinkage not in register.
+
+FINDING F10 · major · P15
+Category: denominator
+Evidence: $52 mean of store averages; pooled $39.95.
+
+TOTAL: 10 findings

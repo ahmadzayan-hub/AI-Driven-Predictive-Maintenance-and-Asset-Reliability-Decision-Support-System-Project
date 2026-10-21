@@ -1140,3 +1140,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** new tests on fresh sentences watched failing first; A to D checker scores unchanged or better (D false alarm gone); E: analytics 83% lane recall, 78% domain_method, 0 false alarms; auditor 1 false alarm (P08, a decoy); integrity test covers D and E.
 - **Decisions:** labels unchanged after results, including P08 where the auditor's point is arguable. Did not fix percentage-point slips in this round.
 - **Open / next:** repeat E runs; a prompt change on criticality judged on E; reading test; native decision.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (repeat runs, reviewer check 7, percentage points)
+
+**Goal:** a second run of both reviewers on memo E; a change to the analytics reviewer on safety-critical items and maintenance strategy, judged on E; the checker's percentage-points gap.
+
+- **Done:** repeat runs saved (reviewer 92%, auditor 1 false alarm again). v3 instructions (check 7 and `domain_method`) compared with v2 in controlled runs on E and on A to D for regressions; adopted in `.claude/agents/analytics-expert-reviewer.md`. Checker reads percentage points (v5, re-scored on A to E). ADR, AGENT_TEAM §6, evals README, board, summary.
+- **Verified:** E ctl-v3 12/12 detected, 8/9 domain_method, 0 false alarms; ctl-v2 10/12 (missed P09, P18). A to D unchanged (B 80% as on every run). Checker D 83% → 100%, A, B, C, E unchanged. Points test watched failing first.
+- **Decisions:** labels unchanged (P16 stays `domain_method` though every run calls it overclaim). E declared dev for check 7. One controlled run per version, stated as such.
+- **Open / next:** memo F, blind, to measure check 7; reading test and native decision remain with the owner.

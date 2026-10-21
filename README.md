@@ -422,6 +422,18 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Reviewer check 7 and percentage points — 21 October 2026
+
+`python scripts/score_review.py --summary`: repeat runs on memo E, analytics
+reviewer **92% lane recall**, figures auditor the same **one false alarm**.
+Controlled runs on E with the new maintenance-method check: **12 of 12**
+planted paragraphs found (v2: 10 of 12), **8 of 9** `domain_method` in
+category, **no false alarm**; A to D unchanged. Checker v5 reads percentage
+points: memo D **83% → 100%**, A, B, C and E unchanged. E is now dev data
+for the new check. `REQUIRE_PG=1 python scripts/verify.py` against
+PostgreSQL 16: **1,496 Python tests reported, 19 skipped** (optional extras
+only), **277 frontend tests passed**, all 8 steps passed.
+
 ### Checker fixes and maintenance-judgement benchmark E — 21 October 2026
 
 `python scripts/score_review.py --summary`: on memo E (9 method errors, 3
