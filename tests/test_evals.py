@@ -391,6 +391,19 @@ class RecallFixTests(unittest.TestCase):
         result = self.sourcing(text, register)
         self.assertEqual([u["number"] for u in result["unsourced"]], ["$9,900"])
 
+    def test_a_figure_is_not_found_inside_a_longer_number_or_a_clock_time(self):
+        # Memo F: coverage reported a missing 4.9 as "05" from "05:00", and a
+        # count of 5 as found in "5.2". A missing figure must read as missing.
+        text = "Shift handover runs from 06:00 to 07:30. Mean delay was 3.8 minutes over 1,240.5 km."
+        numbers = fc.numbers_in(text, keep_small=True)
+        self.assertNotIn("06", numbers)
+        self.assertNotIn("00", numbers)
+        for value in ("6", "7", "3", "1,240", "7.4"):
+            self.assertIsNone(fc.found_in(text, value, numbers), value)
+        for value in ("3.8", "1,240.5"):
+            self.assertIsNotNone(fc.found_in(text, value, numbers), value)
+        self.assertIsNotNone(fc.found_in("a wait of 4.0 hours", "4"))  # the same figure
+
     def test_a_change_in_percentage_points_is_the_difference_of_the_percentages(self):
         # Benchmark D: "fell from 40.9% to 37.5%, a decline of 8.3 percentage
         # points" was reported as an unsourced 8.3, when 8.3 is the relative

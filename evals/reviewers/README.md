@@ -24,9 +24,9 @@ Each folder holds the memo (`memo.md`, paragraphs `[P01]`…), the register a fi
 
 A run is a reviewer's reply, saved as `runs/<reviewer>-<memo>-<tag>.txt`. The reviewer is `figures-auditor`, `analytics-expert-reviewer` or `figures-tool` (the Tier 0 checker). Tags:
 
-- `named-v1`, `named-repeat`, `named-newtool`: the project subagent as the session loaded it, in its first run, a repeat run, and a run after the checker changed.
+- `named-v1`, `named-repeat`, `named-newtool`, `named-v3`: the project subagent as the session loaded it, in its first run, a repeat run, a run after the checker changed, and a run with its v3 instructions loaded.
 - `ctl-v1`, `ctl-v2`, `ctl-v3`: a general-purpose agent on the reviewer's model, given the v1, v2 or v3 instructions, with everything else the same. This is the controlled comparison, because a subagent's edited instructions only load in a new session.
-- `v1` to `v5`: the checker after each round of fixes (v5 reads percentage points).
+- `v1` to `v6`: the checker after each round of fixes (v5 reads percentage points; v6 ignores clock times and longer numbers in coverage).
 
 Each run is told to put the paragraph id on the FINDING line and add a `Category:` line, and to open only the memo and its register.
 

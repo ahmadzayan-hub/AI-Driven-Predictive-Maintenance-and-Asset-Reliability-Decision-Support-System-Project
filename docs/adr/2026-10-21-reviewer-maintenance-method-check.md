@@ -62,6 +62,39 @@ stays a held-out test of the checker.
   instructions text, not the loaded subagent.
 - The points rule only fires when the sentence holds both percentages.
 
+## Held-out result, memo F (21 October)
+
+Memo F was written afterwards by an independent agent that saw neither
+these instructions nor memo E: a metro's station and line-side assets, 9
+`domain_method` defects (series reliability averaged, repair time used as
+restoration time, a hidden failure losing its failure-finding task,
+common cause in a standby pair, a survey interval longer than the P-F
+interval, a Weibull shape misread, safety defects deferred to meet a
+backlog target, condition monitoring ranked by cost, MTBF read as life),
+3 controls and 11 decoys. Committed before any review.
+
+| Run | Planted paragraphs found | `domain_method` in category | False alarms |
+| --- | --- | --- | --- |
+| v2, controlled | 11 of 12 (missed P16, monitoring ranked by cost) | 0 of 9 (no such category) | 0 |
+| v3, controlled | 12 of 12 | 9 of 9 | 0 |
+| v3, the subagent as loaded (confirmed by its list of checks) | 12 of 12 | 9 of 9 | 0 |
+
+The honest reading: on F, v2 already saw 8 of the 9 method errors and
+filed them under other labels; v3 adds the category and caught one more.
+Most of the lane-recall gap (25% against 100%) is the label, not the
+judgement. The figures auditor raised one false alarm, on the correct
+run-to-failure decoy (P15).
+
+## Addendum: clock times and longer numbers in the checker
+
+The auditor's run on F showed the checker's coverage pass reporting figures
+as present when they were not: "05:00" was read as a rounded 4.9, and a
+count of 5 was found inside "5.2". A time of day is now not a figure, and a
+register value is not matched inside a longer number. Benchmark scores do
+not change (they use the sourcing and arithmetic passes); on F, coverage now
+correctly reports 4.9 as missing, and three counts the memo writes in words
+("five", "two") as missing too, since the checker does not read number words.
+
 ## Verification
 
 `tests/test_evals.py`: the points test (a correct gain in points, a correct

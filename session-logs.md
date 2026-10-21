@@ -1149,3 +1149,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** E ctl-v3 12/12 detected, 8/9 domain_method, 0 false alarms; ctl-v2 10/12 (missed P09, P18). A to D unchanged (B 80% as on every run). Checker D 83% → 100%, A, B, C, E unchanged. Points test watched failing first.
 - **Decisions:** labels unchanged (P16 stays `domain_method` though every run calls it overclaim). E declared dev for check 7. One controlled run per version, stated as such.
 - **Open / next:** memo F, blind, to measure check 7; reading test and native decision remain with the owner.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (held-out memo F, checker coverage)
+
+**Goal:** "Perform next": measure check 7 on a fresh blind memo.
+
+- **Done:** memo F written by an independent agent blind to the reviewer's instructions and memo E; every figure rechecked (Poisson by script); two format fixes before commit (a bracketed cross-reference, "33 kV" in the register); committed `576b249` before review. Runs: analytics ctl-v2, ctl-v3, named (v3 confirmed loaded by its list of checks), figures auditor, checker. Checker coverage fixed for clock times and values inside longer numbers (found by the auditor on F), test on fresh sentences watched failing first.
+- **Verified:** F: v3 12/12, 9/9 domain_method, 0 false alarms (both runs); v2 11/12; auditor 1 false alarm (P15); checker 0 findings, 0 false alarms. Checker v6 scores identical to v5 on A to F.
+- **Decisions:** labels unchanged; reported that most of v2's lane gap is the missing category label.
+- **Open / next:** repeat runs on F; number words in coverage; reading test and native decision with the owner.

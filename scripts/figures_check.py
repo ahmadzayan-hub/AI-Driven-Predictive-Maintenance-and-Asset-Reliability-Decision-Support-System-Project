@@ -39,6 +39,8 @@ import zipfile
 from html import unescape
 from pathlib import Path
 
+# "06:00" is a time of day, not two figures.
+CLOCK = re.compile(r"(?<![\d.,:])\d{1,2}:\d{2}(?![\d:])")
 NUMBER = re.compile(r"(?<![\w.])[-+−]?\$?\d[\d,]*(?:\.\d+)?%?(?:\s?(?:thousand|million|billion|bn|[MBk]))?(?![\w])")
 # A figure run into the word before it, as text extraction does to table
 # cells ("Reactive7988.1 y"). Only forms that cannot be part of a name count:
@@ -203,8 +205,10 @@ def variants(value):
 def found_in(text, value, numbers=None):
     """How a register value appears in a text: an exact form, or a written
     figure that is the same number rounded or abbreviated."""
+    text = CLOCK.sub(" ", text)
     for form in variants(value):
-        if re.search(r"(?<![\d.,])" + re.escape(form) + r"(?![\d])", text):
+        # Not "5" inside "5.2", nor "1,656" inside "1,656.2".
+        if re.search(r"(?<![\d.,])" + re.escape(form) + r"(?![\d]|[.,]\d)", text):
             return form
     target = value_of(value)
     if target is None:
@@ -295,6 +299,7 @@ def calculations_in(text):
 def numbers_in(text, keep_small=False):
     """Figures in a text, leaving out small counts and years."""
     seen = set()
+    text = CLOCK.sub(" ", text)
     matches = list(NUMBER.finditer(text))
     glued = list(GLUED.finditer(text))
     # A glued figure replaces any shorter number found inside it.

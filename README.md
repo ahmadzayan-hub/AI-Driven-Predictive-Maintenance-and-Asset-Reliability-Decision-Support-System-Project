@@ -422,6 +422,18 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Held-out memo F — 21 October 2026
+
+`python scripts/score_review.py --summary`: on memo F (blind, 9 new kinds of
+method error, 3 controls, 11 decoys) the analytics reviewer with check 7
+scored **100% lane recall, no false alarm** (controlled run and loaded
+subagent); the v2 instructions **found 11 of 12** planted paragraphs. The
+figures auditor raised **one false alarm**. Checker v6 (clock times and
+longer numbers no longer count as found) leaves every benchmark score
+unchanged. `REQUIRE_PG=1 python scripts/verify.py` against PostgreSQL 16:
+**1,497 Python tests reported, 19 skipped** (optional extras only), **277
+frontend tests passed**, all 8 steps passed.
+
 ### Reviewer check 7 and percentage points — 21 October 2026
 
 `python scripts/score_review.py --summary`: repeat runs on memo E, analytics
