@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
+import { randomUUID } from 'node:crypto'
 import { composerInput, openTab, skipOnboarding } from './helpers'
 
 // Route-controlled latency must reach Playwright rather than a service worker.
@@ -33,6 +34,12 @@ test('a late start response preserves the destination and the durable run', asyn
 })
 
 test('drafts, deep links, evidence and exact-report keyboard approval', async ({ page }, testInfo) => {
+  // This journey includes a real pipeline, reloads, two complete axe audits
+  // and keyboard publication. Its 40-second pipeline assertion alone can
+  // outlive the default 30-second test budget; retain every assertion's
+  // existing bound while allowing the complete sequential journey to finish.
+  test.setTimeout(90_000)
+  const goal = `Find what changed in sample sales (${testInfo.project.name} ${randomUUID()})`
   await skipOnboarding(page)
   await page.goto('/')
   await composerInput(page).fill('Keep my unsent question')
@@ -43,9 +50,9 @@ test('drafts, deep links, evidence and exact-report keyboard approval', async ({
   await expect(composerInput(page)).toHaveValue('Keep my unsent question')
 
   await openTab(page, /^Analytics/)
-  await page.getByLabel('Goal').fill('Find what changed in sample sales')
+  await page.getByLabel('Goal').fill(goal)
   await page.reload()
-  await expect(page.getByLabel('Goal')).toHaveValue('Find what changed in sample sales')
+  await expect(page.getByLabel('Goal')).toHaveValue(goal)
   await page.getByRole('button', { name: 'Start run', exact: true }).click()
   await expect(page).toHaveURL(/#\/runs\/[a-z0-9]+$/)
   await expect(page.getByRole('region', { name: 'Approval required' })).toBeVisible({ timeout: 40_000 })
@@ -74,7 +81,8 @@ test('drafts, deep links, evidence and exact-report keyboard approval', async ({
   await expect(page.getByRole('button', { name: /^Why is this true\?/ }).first()).toBeFocused()
 
   await openTab(page, /^Approvals/)
-  const card = page.locator('.approval-inbox > .card').filter({ hasText: 'Find what changed in sample sales' })
+  const card = page.locator('.approval-inbox > .card').filter({ has: page.getByRole('heading', { name: goal, exact: true }) })
+  await expect(card).toHaveCount(1)
   await card.getByRole('button', { name: 'Review', exact: true }).focus()
   await page.keyboard.press('Enter')
   await card.locator('.decision__preview > summary').focus()
@@ -98,6 +106,9 @@ test('drafts, deep links, evidence and exact-report keyboard approval', async ({
 
 test('Arabic phone cockpit and evidence fit the viewport', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', 'explicit phone sizes run once')
+  // A real analysis precedes every target-size check, two viewport checks
+  // and a complete evidence-dialog audit. Keep all checks within one journey.
+  test.setTimeout(90_000)
   await skipOnboarding(page)
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/')

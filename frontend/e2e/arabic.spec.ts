@@ -86,7 +86,11 @@ test.describe('Arabic interface', () => {
     expect(consoleErrors).toEqual([])
   })
 
-  test('every view is translated and passes WCAG 2.2 AA', async ({ page }) => {
+  test('every view is translated and passes WCAG 2.2 AA', async ({ page }, testInfo) => {
+    // This full-language journey audits each view, completes a pipeline and
+    // cleans up memory. Preserve those checks beyond the default test budget.
+    test.setTimeout(120_000)
+    const memoryText = `قهوة في الثامنة — ${testInfo.project.name}`
     await page.goto('/')
     await sendArabic(page, 'مرحبا')
     await lastAgentBubble(page).waitFor()
@@ -94,9 +98,9 @@ test.describe('Arabic interface', () => {
 
     await openArabicTab(page, /^الذاكرة/)
     await expect(page.getByRole('heading', { name: 'الذاكرة المحفوظة' })).toBeVisible()
-    await page.getByLabel('معلومة لحفظها').fill('قهوة في الثامنة')
+    await page.getByLabel('معلومة لحفظها').fill(memoryText)
     await page.getByRole('button', { name: 'إضافة إلى الذاكرة' }).click()
-    await expect(page.getByText('قهوة في الثامنة')).toBeVisible()
+    await expect(page.getByText(memoryText, { exact: true })).toBeVisible()
     await expectNoViolations(page, 'memory view (ar)')
 
     await openArabicTab(page, /^التفضيلات/)

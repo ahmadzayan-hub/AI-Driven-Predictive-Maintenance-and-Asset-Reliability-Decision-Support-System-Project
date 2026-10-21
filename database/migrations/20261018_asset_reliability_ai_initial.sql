@@ -4,7 +4,58 @@
 -- Backend uses managed PostgreSQL (psycopg2) with server-side owner checks.
 -- No secrets, user records, customer data, or privileged credentials in this file.
 -- Migration generated 2026-10-18; apply only to dedicated Team 3 Supabase project.
+-- Snapshot refreshed 2026-10-21 for organization operations, validation and workers.
+-- This is the initial-schema mirror; editing it does not apply a hosted migration.
 BEGIN;
+CREATE TABLE IF NOT EXISTS organizations (
+      id TEXT PRIMARY KEY, name TEXT NOT NULL, version INTEGER NOT NULL,
+      created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+
+CREATE TABLE IF NOT EXISTS organization_members (
+      id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
+      subject TEXT NOT NULL, role TEXT NOT NULL, created_at TEXT NOT NULL,
+      UNIQUE(org_id, subject));
+
+CREATE TABLE IF NOT EXISTS operation_sites (
+      id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
+      code TEXT NOT NULL, name TEXT NOT NULL, created_at TEXT NOT NULL,
+      UNIQUE(org_id, code));
+
+CREATE TABLE IF NOT EXISTS operation_assets (
+      id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
+      site_id TEXT NOT NULL REFERENCES operation_sites(id),
+      external_id TEXT NOT NULL, source_system TEXT NOT NULL, name TEXT NOT NULL,
+      criticality TEXT NOT NULL, version INTEGER NOT NULL, created_at TEXT NOT NULL,
+      UNIQUE(org_id, source_system, external_id));
+
+CREATE TABLE IF NOT EXISTS work_orders (
+      id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
+      asset_id TEXT NOT NULL REFERENCES operation_assets(id), title TEXT NOT NULL,
+      rationale TEXT NOT NULL, status TEXT NOT NULL, priority TEXT NOT NULL,
+      assignee TEXT NOT NULL, due_date TEXT NOT NULL, evidence_json TEXT NOT NULL,
+      completion_json TEXT NOT NULL, version INTEGER NOT NULL,
+      created_by TEXT NOT NULL, authorized_by TEXT, created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL);
+
+CREATE TABLE IF NOT EXISTS operation_audit (
+      id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
+      entity_id TEXT NOT NULL, actor TEXT NOT NULL, action TEXT NOT NULL,
+      version INTEGER NOT NULL, detail_json TEXT NOT NULL, created_at TEXT NOT NULL);
+
+CREATE TABLE IF NOT EXISTS operation_requests (
+      id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
+      actor TEXT NOT NULL, request_key TEXT NOT NULL, payload_hash TEXT NOT NULL,
+      response_json TEXT NOT NULL, created_at TEXT NOT NULL,
+      UNIQUE(org_id, actor, request_key));
+
+CREATE TABLE IF NOT EXISTS worker_heartbeats (
+      id TEXT PRIMARY KEY, seen_at TEXT NOT NULL, state TEXT NOT NULL);
+
+CREATE TABLE IF NOT EXISTS reliability_trials (
+      id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
+      created_by TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+      revision INTEGER NOT NULL, protocol_json TEXT NOT NULL, predictions_json TEXT NOT NULL);
+
 CREATE TABLE IF NOT EXISTS runs (
       id TEXT PRIMARY KEY, goal TEXT NOT NULL, dataset_name TEXT NOT NULL,
       dataset_text TEXT NOT NULL, state TEXT NOT NULL,
@@ -76,7 +127,8 @@ CREATE TABLE IF NOT EXISTS connectors (
       last_status TEXT, last_error TEXT, last_checked_at TEXT,
       last_dataset_id TEXT, last_sha256 TEXT, last_run_id TEXT,
       next_due_at TEXT, lease_owner TEXT, lease_expires_at TEXT,
-      created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+      created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+      credential_id TEXT);
 
 CREATE INDEX IF NOT EXISTS ar_ai_runs_owner_created_idx ON runs (owner, created_at);
 CREATE INDEX IF NOT EXISTS ar_ai_runs_owner_updated_idx ON runs (owner, updated_at);
@@ -85,6 +137,24 @@ CREATE INDEX IF NOT EXISTS ar_ai_connectors_owner_created_idx ON connectors (own
 CREATE INDEX IF NOT EXISTS ar_ai_tasks_run_idx ON tasks (run_id);
 CREATE INDEX IF NOT EXISTS ar_ai_approvals_run_idx ON approvals (run_id);
 CREATE INDEX IF NOT EXISTS ar_ai_artifacts_run_idx ON artifacts (run_id);
+ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.organizations FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.organization_members ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.organization_members FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.operation_sites ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.operation_sites FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.operation_assets ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.operation_assets FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.work_orders ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.work_orders FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.operation_audit ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.operation_audit FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.operation_requests ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.operation_requests FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.worker_heartbeats ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.worker_heartbeats FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.reliability_trials ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.reliability_trials FROM PUBLIC, anon, authenticated;
 ALTER TABLE public.runs ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.runs FROM PUBLIC, anon, authenticated;
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;

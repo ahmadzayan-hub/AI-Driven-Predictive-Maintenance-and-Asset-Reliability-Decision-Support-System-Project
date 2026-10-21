@@ -3,10 +3,10 @@
 State is persisted through a storage adapter (SQLite locally, hosted
 PostgreSQL via DATABASE_URL — see server/storage.py) after every
 transition, so runs survive an application restart and can be resumed,
-cancelled, or approved later. Execution is client-stepped: each
-`advance()` call executes exactly one bounded task under a lock, which
-gives honest pause (stop advancing), cancel, and recovery semantics
-without a background worker.
+cancelled, or approved later. Client execution advances one bounded task
+per call. Configured worker execution keeps model work out of HTTP and
+uses a separate worker process; browser advances become snapshot reads.
+Both modes preserve the same pause, cancel and recovery semantics.
 
 The publish step writes the approved report into an Obsidian-compatible
 vault folder (markdown + provenance frontmatter + [[wikilinks]]) and is
@@ -130,7 +130,10 @@ def model_cards(result):
 
 class RunEngine:
     def __init__(self, store, vault_dir, gateway, limits=None, glossary=None,
-                 stages=None, profiles=None):
+                 stages=None, profiles=None, execution_mode="client"):
+        if execution_mode not in ("client", "worker"):
+            raise ValueError("AGENTIC_OS_RUN_EXECUTION must be client or worker.")
+        self.execution_mode = execution_mode
         self.store = store
         # Custom stages (ADR 0020): role -> descriptor, in registration
         # order, and the named profiles that choose among them.
@@ -489,6 +492,13 @@ class RunEngine:
         return self.store.get_tasks(run_id) if orphans else tasks
 
     def advance(self, run_id, lease_owner=None):
+        if self.execution_mode == "worker" and lease_owner is None:
+            # An HTTP request never does model work in worker mode. In
+            # particular, do not acquire the stage's write transaction: a
+            # separate worker may be holding it for a slow bounded stage.
+            # The queued run itself is the durable request, so repeated
+            # advance calls do not enqueue additional work.
+            return self.get_run(run_id)
         with self.store.atomic("run:" + run_id):
             return self._advance_atomic(run_id, lease_owner)
 
@@ -497,8 +507,9 @@ class RunEngine:
 
         If a background worker holds a live lease on this run, a client's
         advance is a no-op that simply returns the current state: the two
-        never execute the same task. When the worker dies its lease
-        expires and clients resume stepping the run themselves.
+        never execute the same task. In client mode, an expired lease
+        permits clients to resume. Worker mode leaves recovery to another
+        worker and never falls back to request-thread computation.
         """
         run = self._row(run_id)
         if run.get("paused"):
@@ -870,6 +881,7 @@ class RunEngine:
         joins = [{key: item.get(key) for key in ("dataset_id", "alias", "how", "keys")}
                  for item in declared.get("joins") or []]
         return {"id": run["id"], "goal": run["goal"],
+                "execution": {"mode": self.execution_mode, "poll_after_ms": 2500},
                 "dataset_name": run["dataset_name"], "state": run["state"],
                 "joins": joins, "breakdown": declared.get("breakdown"),
                 "report_language": run.get("report_language") or "en",

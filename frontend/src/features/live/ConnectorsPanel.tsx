@@ -86,6 +86,7 @@ export function ConnectorsPanel() {
       const created = await connectorsApi.create({
         name: String(form.get('name')),
         url: String(form.get('url')),
+        credential_id: String(form.get('credential_id') ?? '').trim() || null,
         goal: String(form.get('goal')),
         format: format === 'auto' ? null : format,
         every_minutes: every === 'manual' ? null : Number(every),
@@ -242,6 +243,24 @@ export function ConnectorsPanel() {
             />
             <span className="field__help" id="live-url-help">
               {t('live.urlHelp')}
+            </span>
+          </div>
+          <div className="field">
+            <label className="field__label" htmlFor="live-credential">
+              {t('live.credential')}
+            </label>
+            <input
+              id="live-credential"
+              name="credential_id"
+              className="field__input"
+              maxLength={64}
+              dir="ltr"
+              autoComplete="off"
+              spellCheck={false}
+              aria-describedby="live-credential-help"
+            />
+            <span className="field__help" id="live-credential-help">
+              {t('live.credentialHelp')}
             </span>
           </div>
           <div className="field">

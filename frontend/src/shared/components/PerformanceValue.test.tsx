@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { applyLocale } from '../../i18n'
-import { PerformanceValue, performanceTone, type PerformanceTone } from './PerformanceValue'
+import { PerformanceLegend, PerformanceValue, performanceTone, type PerformanceTone } from './PerformanceValue'
 import { performanceMessages } from './performanceMessages'
 
 const tokensCss = readFileSync(resolve('src/shared/styles/tokens.css'), 'utf8')
@@ -12,6 +12,16 @@ const performanceCss = readFileSync(resolve('src/shared/components/performance.c
 afterEach(() => { cleanup(); act(() => applyLocale('en')) })
 
 describe('explicit performance assessments', () => {
+  it.each(['en', 'ar'] as const)('explains every color and both neutral meanings in %s without a tooltip', (locale) => {
+    applyLocale(locale)
+    render(<PerformanceLegend />)
+    expect(screen.getByRole('complementary', { name: performanceMessages[locale]['performance.legend'] })).toBeVisible()
+    for (const tone of ['bad', 'okay', 'good', 'unassessed', 'unavailable'] as const) {
+      expect(screen.getByText(performanceMessages[locale][`performance.${tone}`])).toBeVisible()
+    }
+    expect(screen.getByText(performanceMessages[locale]['performance.explanation'])).toBeVisible()
+  })
+
   it('never treats a number, percentage or sign as a target assessment', () => {
     for (const value of [-100, -1, 0, 50, 100, 10_000]) {
       expect(performanceTone(value)).toBe('unassessed')

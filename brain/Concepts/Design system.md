@@ -26,6 +26,11 @@ How the interface of [[Agentic OS]] looks and behaves, and where those choices c
 
 ## How to use it
 
+Performance values use compact outlined text badges and a wrapping five-state
+legend across executive, asset, overview, general dashboard and operations
+views. Counts without targets stay neutral; absent measurements say unavailable.
+The presentation decision is `docs/adr/2026-10-21-performance-status-presentation.md`.
+
 Read the master file, then ask the skill one focused question with `python3 .claude/skills/ui-ux-pro-max/scripts/search.py "<concern>" --domain ux`. Its advice never overrides [[Soul]]: no third-party requests, no fabricated screenshots, and every string in English and Arabic.
 
 ## React graph exploration

@@ -21,6 +21,7 @@ import {
   HelpDialog,
   MemoryView,
   Onboarding,
+  OperationsView,
   OverviewView,
   PreferencesView,
   prefetchWhenIdle,
@@ -53,6 +54,7 @@ const NAV_GROUPS: Array<{ id: string; items: NavItem[] }> = [
   {
     id: 'decide',
     items: [
+      { id: 'operations', label: 'nav.operations', icon: 'check' },
       { id: 'overview', label: 'nav.overview', icon: 'dashboard' },
       { id: 'assets', label: 'nav.assets', icon: 'activity', short: 'nav.assetsShort' },
       { id: 'dashboard', label: 'nav.dashboard', icon: 'chart' },
@@ -497,6 +499,7 @@ export function App() {
         ) : null}
 
         <main className="main" id="workspace-main" inert={drawerOpen} tabIndex={-1} key={`${session.session_id}:${store.identity?.principal.subject ?? 'local'}:${store.identity?.principal.role ?? 'local'}`}>
+          {pane('operations', <OperationsView onOpenRun={openRun} />)}
           {pane('overview', (
             <OverviewView onOpenRun={openRun} onStart={startAnalysis} onApprovals={() => go('approvals')} onOpenDashboard={() => go('dashboard')} />
           ))}

@@ -12,6 +12,7 @@ import { useI18n } from '../i18n'
 import { Icon } from '../shared/components/Icon'
 
 const loaders = {
+  operations: () => import('../features/operations/OperationsView'),
   approvals: () => import('../features/approvals/ApprovalsView'),
   overview: () => import('../features/overview/OverviewView'),
   assets: () => import('../features/assets/AssetIntelligenceView'),
@@ -28,6 +29,7 @@ const loaders = {
 }
 
 export const ApprovalsView = lazy(() => loaders.approvals().then((m) => ({ default: m.ApprovalsView })))
+export const OperationsView = lazy(() => loaders.operations().then((m) => ({ default: m.OperationsView })))
 export const OverviewView = lazy(() => loaders.overview().then((m) => ({ default: m.OverviewView })))
 export const AssetIntelligenceView = lazy(() => loaders.assets().then((m) => ({ default: m.AssetIntelligenceView })))
 export const DatasetsView = lazy(() => loaders.datasets().then((m) => ({ default: m.DatasetsView })))

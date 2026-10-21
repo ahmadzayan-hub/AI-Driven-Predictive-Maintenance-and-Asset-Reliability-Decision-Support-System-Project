@@ -21,6 +21,9 @@ async function expectNoViolations(page: import('@playwright/test').Page, context
 }
 
 test('all views and dialogs pass automated WCAG 2.2 AA checks', async ({ page }) => {
+  // Eight sequential full-page audits plus a real pipeline and mobile
+  // navigation need a journey budget; individual waits and audit rules stay.
+  test.setTimeout(120_000)
   await skipOnboarding(page)
   await page.goto('/')
 

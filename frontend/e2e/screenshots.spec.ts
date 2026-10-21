@@ -9,6 +9,9 @@ import { lastAgentBubble, openTab, sendMessage, skipOnboarding } from './helpers
 test.use({ contextOptions: { reducedMotion: 'reduce' } })
 
 test('capture interface screenshots', async ({ page }, testInfo) => {
+  // Desktop captures both languages and completes two real analyses. Give
+  // the whole capture sequence time without extending its individual waits.
+  test.setTimeout(testInfo.project.name === 'desktop' ? 90_000 : 30_000)
   await skipOnboarding(page)
   await page.goto('/')
   const shot = (name: string) =>

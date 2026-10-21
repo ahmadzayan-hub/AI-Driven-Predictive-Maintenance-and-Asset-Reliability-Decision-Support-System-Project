@@ -47,8 +47,10 @@ also be validated before treating observations as a physical asset's history.
 | P5 | SaaS pilot | Managed sign-in, agreed organization/owner permissions, tested isolation, worker operation, restore drill and measured service behavior |
 
 Each behavioral milestone needs its own decision record and tests. This naming
-change implements none of P1–P5 by implication. Commercial billing, organization
-administration and deployment choices require product decisions before implementation.
+change implements none of P1–P5 by implication. Organization administration and
+maintenance operations now follow the dated 21 October decisions and
+[pilot runbook](PILOT_RUNBOOK.md). Commercial billing and hosted deployment
+still require product decisions and their own acceptance evidence.
 
 The table above describes current capabilities, including work after the naming
 decision. The delivery sequence remains an acceptance framework rather than a

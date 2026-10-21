@@ -84,5 +84,12 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 | 2026-10-20-labelled-cases-from-real-use | **Accepted:** new labelled cases come from independent blind synthetic sets now; per-item consented contribution stays closed until a measured mismatch and a pilot customer's written agreement; blind_v6 then blind_v7: causal wording recall 28% to 60% after the fix, intent gain within noise | [[Agent evaluation]], [[Tenant isolation]], [[Model privacy]] |
 | 2026-10-21-run-request-timeout | Run transport waits through bounded narration and serialized controls without replaying failed POSTs | [[Model gateway]], [[Governed pipeline]] |
 | 2026-10-21-register-availability-and-pooled-reliability-measures | Register availability is uptime on planned time (96.96%), utilisation is its own measure, MTBF pooled with censoring, MTTR, overdue rate and SLA attainment added | [[Weighted KPIs]], [[Team 3 maintenance dataset]] |
+| 2026-10-21-durable-worker-and-source-credentials | Persisted background run progress and owner/host-scoped operator credential aliases | [[Maintenance pilot]], [[Live data]] |
+| 2026-10-21-maintenance-operations | Organization membership, evidence-linked drafts, independent repair authorization and completion audit | [[Maintenance pilot]], [[Tenant isolation]] |
+| 2026-10-21-prospective-maintenance-validation | Immutable prospective protocols and bounded read-only MaintainX integration | [[Maintenance pilot]], [[Agent evaluation]] |
+| 2026-10-21-operations-workspace | Lazy bilingual operations and validation workflows with actual API state | [[Maintenance pilot]], [[Design system]] |
+| 2026-10-21-course-artifacts-untracked | Preserve local confidential artifacts while removing them from future source trees; history remains contained | [[Soul]], [[Team 3 Capstone]] |
+| 2026-10-21-browser-journey-isolation | Exact browser-owned fixtures and scoped budgets preserve full sequential accessibility and approval checks | [[Design system]], [[Agentic OS]] |
+| 2026-10-21-performance-status-presentation | Shared bilingual status badges and a five-state legend; counts without targets remain neutral | [[Design system]], [[Weighted KPIs]] |
 
 All seven [[Analytics OS roadmap]] milestones have their records.

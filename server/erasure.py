@@ -46,8 +46,14 @@ def survey(store, owner):
                 f"SELECT COUNT(*) AS n FROM {table} WHERE run_id IN ({marks})",
                 tuple(run_ids))
         counts[table] = int(rows[0]["n"]) if rows else 0
+    from server.operations import operations_erasure_plan, operations_erasure_counts, OperationsError
+    try:
+        operations = operations_erasure_plan(store, owner)
+        counts.update(operations_erasure_counts(store, owner, operations))
+    except OperationsError as error:
+        operations = {"blocked": error.code, "message": error.message}
     return {"owner": owner, "runs": len(run_ids), "rows": counts,
-            "total_rows": sum(counts.values())}
+            "total_rows": sum(counts.values()), "operations": operations}
 
 
 def published_paths(store, run_ids):
@@ -67,21 +73,26 @@ def erase(store, owner, vault_dir=None, memory_file=None):
     report exists in two places and deleting one of them is the mistake
     this function is written to avoid.
     """
-    run_ids = owned_run_ids(store, owner)
-    notes = published_paths(store, run_ids)
-
-    deleted = {}
-    for table in DELETE_ORDER:
-        if table in OWNED_DIRECTLY:
-            deleted[table] = store._exec_rowcount(
-                f"DELETE FROM {table} WHERE owner = ?", (owner,))
-        elif not run_ids:
-            deleted[table] = 0
-        else:
-            marks = ", ".join("?" * len(run_ids))
-            deleted[table] = store._exec_rowcount(
-                f"DELETE FROM {table} WHERE run_id IN ({marks})",
-                tuple(run_ids))
+    from server.operations import operations_erasure_plan, erase_operations
+    with store.atomic("operations:create:" + owner):
+        memberships = store._exec("SELECT org_id FROM organization_members WHERE subject = ? ORDER BY org_id", (owner,))
+        for membership in memberships:
+            store._lock_transaction("operations:" + membership["org_id"])
+        operations_plan = operations_erasure_plan(store, owner)
+        run_ids = owned_run_ids(store, owner)
+        notes = published_paths(store, run_ids)
+        deleted = erase_operations(store, owner, operations_plan)
+        for table in DELETE_ORDER:
+            if table in OWNED_DIRECTLY:
+                deleted[table] = store._exec_rowcount(
+                    f"DELETE FROM {table} WHERE owner = ?", (owner,))
+            elif not run_ids:
+                deleted[table] = 0
+            else:
+                marks = ", ".join("?" * len(run_ids))
+                deleted[table] = store._exec_rowcount(
+                    f"DELETE FROM {table} WHERE run_id IN ({marks})",
+                    tuple(run_ids))
 
     files_deleted, files_missing = [], []
     if vault_dir:
@@ -120,6 +131,7 @@ def erase(store, owner, vault_dir=None, memory_file=None):
         "vault_files_deleted": files_deleted,
         "vault_files_not_found": files_missing,
         "memory_file_cleared": memory_file_cleared,
+        "organization_data_retained": operations_plan["retained_organizations"],
         "not_reached": not_reached(),
     }
 
@@ -134,6 +146,12 @@ def not_reached():
         "Database backups: every backup taken before this erasure still "
         "contains the owner's rows. Restoring one restores them. Delete or "
         "rotate the backups as well (scripts/backup.py writes to backups/).",
+        "Shared organization business records, maintenance outcomes, evidence "
+        "snapshots and original actor audit identifiers belong to the organization "
+        "and are retained. Personal erasure removes membership and replay receipts. "
+        "The final owner must transfer ownership first. Sole-member organizations "
+        "are deleted with their operational records. Worker heartbeats contain "
+        "service identifiers and are retained as operational metadata.",
         "Obsidian vaults synced elsewhere: a published report copied into "
         "someone's own vault, a cloud sync, or a git repository is beyond "
         "this database and this machine.",

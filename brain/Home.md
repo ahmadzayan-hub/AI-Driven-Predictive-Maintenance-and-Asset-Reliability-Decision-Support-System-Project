@@ -3,7 +3,7 @@ type: index
 aliases: [Brain home, Map of content]
 tags: [core]
 status: active
-updated: 2026-10-20
+updated: 2026-10-21
 review_every_days: 30
 sources: [CLAUDE.md, docs/PLAYBOOK.md]
 ---
@@ -73,3 +73,5 @@ The second brain of [[Agentic OS]]: what the project knows, who it serves and ho
 - [[Second brain]]: how this vault is curated and explored.
 - [[Decision log]]: architecture decisions and their reasons.
 - [[Note schema]] and [[Maintenance log]]: note rules and the record of upkeep.
+
+- [[Maintenance pilot]]: authorized work, source integration and prospective validation gates.

@@ -3,6 +3,25 @@
 Honest boundaries of the current release. None of these are hidden behind
 placeholder controls — absent capabilities have no UI.
 
+## Maintenance pilot boundaries (21 October 2026)
+
+The Operations workspace, organization permissions, maintenance audit, worker
+execution and prospective validation ledger are implemented. Their local
+verification is recorded in [README](../README.md#testing). The
+[pilot runbook](PILOT_RUNBOOK.md) describes the proposed MaintainX integration
+for selected pumps/motors at one site. Its adapter reads assets/work orders
+into private snapshots and prepares reviewed initial asset imports; it does
+not yet reconcile bidirectional CMMS work orders or prove a live vendor contract.
+
+No account credential, hosted deployment acceptance, independent maintenance
+outcomes, customer purchase or service agreement has been supplied. Ledger
+scores describe adjudicated registered windows only. Pending outcomes,
+correlated asset windows, declared training cutoff and external evidence
+require explicit interpretation. Worker heartbeat is not an availability SLA.
+Offline technician execution and enterprise provisioning remain conditional.
+The two documented confidential course artifacts are untracked from future
+source trees; historical copies still require remediation before public release.
+
 ## Intelligence
 
 1. The chat understands and acts on plain language — save, recall,
@@ -388,9 +407,12 @@ required local files. Both behaviors are covered by tests
     now taken from the training rows alone (ADR 0041). Fewer than 30
     records, or fewer than three seasons for the seasonal forecast, is
     reported as a limitation and shows no card.
-29. Live sources (ADR 0034) fetch public files over https only: no
-    credentials, databases or APIs that need a key, and no proxy, so a
-    server that reaches the internet only through one cannot refresh.
+29. Live sources fetch HTTPS snapshots, with optional operator-held credential
+    aliases scoped to an owner and exact host/port (the 21 October durable-worker
+    decision). They do not offer a browser secret store, arbitrary database
+    connections or a proxy; a server that reaches the internet only through a
+    proxy cannot refresh. The dedicated read-only MaintainX adapter is described
+    in the pilot runbook and has not been exercised against a customer account.
     Each refresh is a whole snapshot of at most 4 MB; ten sources per
     account, and "Refresh now" once a minute per source. Addresses that
     carry a credential in their query are refused. The cap of five event

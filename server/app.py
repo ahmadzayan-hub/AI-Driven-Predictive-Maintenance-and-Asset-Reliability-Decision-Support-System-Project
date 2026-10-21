@@ -52,6 +52,10 @@ from server.quota import QuotaExceeded, load_limits
 from server.quota import usage as quota_usage
 from server.rate_limit import WRITE_METHODS, RateLimiter
 from server.storage import DbMemoryBackend, PostgresStore, open_store
+from server.worker import worker_status
+from server.operations_api import install_operations_api
+from server.reliability_api import install_reliability_api
+from server.pilot import install_pilot_api
 from server.speech import LocalSpeech, SpeechError, MAX_BYTES as MAX_AUDIO_BYTES, content_format
 from utils import load_config
 
@@ -315,6 +319,7 @@ class ConnectorIn(BaseModel):
     every_minutes: int | None = None
     language: str = Field(default="en", pattern="^(en|ar)$")
     profile: str | None = Field(default=None, max_length=64)
+    credential_id: str | None = Field(default=None, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
 
 
 class ConnectorUpdateIn(BaseModel):
@@ -394,6 +399,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         limits=limits,
         stages=stage_registry,
         profiles=config.get("profiles") or {},
+        execution_mode=(os.environ if env is None else env).get("AGENTIC_OS_RUN_EXECUTION", "client"),
     )
     app.state.engine = engine
     app.state.store = store
@@ -564,6 +570,10 @@ def create_app(config_path=None, env=None, dist_dir=None):
         """Objects belong to their creator; admins may act across owners."""
         return owner == principal.subject or principal.can("admin")
 
+    install_operations_api(app, store, current_principal)
+    install_reliability_api(app, store, current_principal)
+    install_pilot_api(app, store, engine, current_principal, identity.mode)
+
     @app.get("/api/auth/config")
     def auth_config():
         """Public: the browser needs this before it can sign in. Contains
@@ -615,6 +625,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
             "stage_problems": app.state.stage_problems,
             "agent_runtime": app.state.runtime_name,
             "runtime_problem": app.state.runtime_problem,
+            "execution": worker_status(store, engine.execution_mode),
         }
 
     @app.post("/api/sessions", status_code=201)
@@ -1045,6 +1056,9 @@ def create_app(config_path=None, env=None, dist_dir=None):
 
     @app.post("/api/runs/{run_id}/advance")
     def advance_run(run_id: str, principal=Depends(requires("write"))):
+        if engine.execution_mode == "worker":
+            detail = _run_or_404(lambda: engine.advance(run_id), principal, run_id)
+            return JSONResponse(detail, status_code=202)
         with lock:
             return _run_or_404(lambda: engine.advance(run_id), principal, run_id)
 
@@ -1304,7 +1318,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
                 return connectors.create(
                     principal.subject, body.name, body.url, body.goal, language=body.language,
                     format=body.format, sheet=body.sheet, every_minutes=body.every_minutes,
-                    profile=body.profile)
+                    profile=body.profile, credential_id=body.credential_id)
             except ConnectorError as error:
                 raise HTTPException(status_code=error.status, detail=error.message(language))
             except ValueError as error:  # an unknown pipeline profile

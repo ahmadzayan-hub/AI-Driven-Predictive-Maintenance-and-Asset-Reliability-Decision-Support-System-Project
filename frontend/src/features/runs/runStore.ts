@@ -63,7 +63,9 @@ export function createRunStore(gateway: Gateway = api) {
     const detail = item.state.detail
     const active = detail && ['queued', 'running'].includes(detail.state) && !detail.paused
     if (detail && !active && detail.state !== 'awaiting_approval' && !detail.paused) return
-    item.timer = setTimeout(() => void refresh(id, Boolean(active && item.drivers)), delay ?? (active && item.drivers ? 350 : 2500))
+    const advance = Boolean(active && item.drivers && detail?.execution?.mode !== 'worker')
+    const poll = Math.max(1000, Math.min(30000, detail?.execution?.poll_after_ms ?? 2500))
+    item.timer = setTimeout(() => void refresh(id, advance), delay ?? (advance ? 350 : poll))
   }
   async function refresh(id: string, advance = false): Promise<void> {
     const item = entry(id)

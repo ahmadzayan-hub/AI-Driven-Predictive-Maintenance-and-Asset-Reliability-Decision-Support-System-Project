@@ -41,6 +41,9 @@ async function openDashboard(page: Page, runId: string, rest = '') {
 }
 
 test('every page of the dashboard, accessible and without sideways scrolling', async ({ page }) => {
+  // Six page transitions and six complete axe audits are cumulative. Keep
+  // every page/overflow assertion rather than timing out at the last page.
+  test.setTimeout(60_000)
   await skipOnboarding(page)
   const runId = await finishedRun(page.request, 'Dashboard pages')
   await openDashboard(page, runId)

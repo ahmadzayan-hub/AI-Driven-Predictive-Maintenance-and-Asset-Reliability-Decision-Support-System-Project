@@ -478,4 +478,3 @@ class CorrectedMeasuresTest(unittest.TestCase):
         self.assertAlmostEqual(self.value("loss_per_record", rows)["value"], 400.0)        # 1,200 / 3
         self.assertAlmostEqual(self.value("loss_to_maintenance_ratio", rows)["value"], 4.0)  # 1,200 / 300
         self.assertEqual(kpis.REGISTER["loss_to_maintenance_ratio"].scale, contract.RATIO)
-
