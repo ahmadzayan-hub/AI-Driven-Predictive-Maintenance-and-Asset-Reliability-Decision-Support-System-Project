@@ -47,6 +47,15 @@ class DemoIdentityTests(unittest.TestCase):
     def test_demo_is_allowed_in_production_because_it_cannot_write(self):
         self.assertEqual(build_identity({**DEMO, "AGENTIC_OS_ENV": "production"}).mode, "demo")
 
+    def test_vercel_without_a_database_or_sign_in_serves_the_demo(self):
+        self.assertEqual(build_identity({"VERCEL": "1"}).mode, "demo")
+
+    def test_vercel_keeps_its_configured_mode(self):
+        self.assertEqual(build_identity({"VERCEL": "1", "DATABASE_URL": "postgresql://x"}).mode, "local")
+        self.assertEqual(build_identity({"VERCEL": "1", "SUPABASE_JWT_SECRET": "x"}).mode, "jwt")
+        self.assertEqual(build_identity({"VERCEL": "1", "AGENTIC_OS_DEMO": "0"}).mode, "local")
+        self.assertEqual(build_identity({}).mode, "local")
+
     def test_only_the_value_one_switches_it_on(self):
         self.assertEqual(build_identity({"AGENTIC_OS_DEMO": "true"}).mode, "local")
 

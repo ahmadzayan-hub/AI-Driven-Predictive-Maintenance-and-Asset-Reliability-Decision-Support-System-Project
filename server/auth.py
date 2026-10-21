@@ -319,6 +319,13 @@ def build_identity(env=None):
                 c.strip() for c in env["AGENTIC_OS_ROLE_CLAIM"].split(",") if c.strip())
             if env.get("AGENTIC_OS_ROLE_CLAIM") else ROLE_CLAIMS,
         )
+    # On Vercel with no shared database each instance keeps its own SQLite
+    # file, so a writable single-owner site loses runs between requests
+    # ("Run not found"). The view-only demo is the one mode that works
+    # there unconfigured. AGENTIC_OS_DEMO=0 opts out.
+    if (env.get("VERCEL") == "1" and not env.get("DATABASE_URL")
+            and env.get("AGENTIC_OS_DEMO") != "0"):
+        return DemoIdentity()
     production = env.get("AGENTIC_OS_ENV", "").lower() == "production"
     if production or env.get("AGENTIC_OS_REQUIRE_AUTH") == "1":
         raise AuthNotConfigured(

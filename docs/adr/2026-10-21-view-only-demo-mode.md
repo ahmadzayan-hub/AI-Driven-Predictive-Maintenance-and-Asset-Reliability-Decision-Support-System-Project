@@ -57,6 +57,17 @@ therefore works on Vercel without a database. Outside seeding the engine's ids
 stay random. A writable deployment still needs `DATABASE_URL`: nothing in code
 can share state between instances that keep separate files.
 
+## The default on an unconfigured Vercel deployment (added the same day)
+
+Production carried neither `DATABASE_URL` nor a sign-in provider, and the
+connected Vercel account could not add `AGENTIC_OS_DEMO=1`; three redeploys
+stayed in single-owner `local` mode, writable by any visitor and losing runs
+between instances. On Vercel (`VERCEL=1`, set by the platform) with no
+`DATABASE_URL` and no sign-in provider, the server now starts the view-only
+demo. A configured deployment keeps its mode: a sign-in provider gives `jwt`,
+a database gives `local` as before, and `AGENTIC_OS_DEMO=0` opts out. Off
+Vercel nothing changes.
+
 ## Turning it on
 
 On the hosted project, with the owner's approval: set `AGENTIC_OS_DEMO=1`;
