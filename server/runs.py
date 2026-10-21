@@ -97,6 +97,10 @@ def dataset_summary(dataset):
     return summary
 
 
+def random_id():
+    return uuid.uuid4().hex[:12]
+
+
 def _now():
     return datetime.now(timezone.utc).isoformat()
 
@@ -135,6 +139,10 @@ class RunEngine:
             raise ValueError("AGENTIC_OS_RUN_EXECUTION must be client or worker.")
         self.execution_mode = execution_mode
         self.store = store
+        # Every row id the engine makes comes from here. The public demo
+        # swaps in a seeded generator while it seeds, so each serverless
+        # instance builds its demo under the same ids (server/demo.py).
+        self.new_id = random_id
         # Custom stages (ADR 0020): role -> descriptor, in registration
         # order, and the named profiles that choose among them.
         self.stages = dict(stages or {})
@@ -206,7 +214,7 @@ class RunEngine:
         if self.limits:
             quota.check_dataset(self.store, owner, self.limits,
                                 len(text.encode()))
-        dataset_id = uuid.uuid4().hex[:12]
+        dataset_id = self.new_id()
         self.store.insert("datasets", {
             "id": dataset_id, "sha256": digest, "name": name,
             "content": text, "byte_size": len(text.encode()),
@@ -385,7 +393,7 @@ class RunEngine:
         # half-created rows behind.
         if self.limits:
             quota.check_run(self.store, owner, self.limits)
-        run_id = uuid.uuid4().hex[:12]
+        run_id = self.new_id()
         mapping_json = None
         if dataset_id:
             dataset = self._owned_dataset(dataset_id, owner)
@@ -418,7 +426,7 @@ class RunEngine:
                      or (language == "ar" and getattr(self.stages[role], "title_ar", None))
                      or self.stages[role].title)
             self.store.insert("tasks", {
-                "id": uuid.uuid4().hex[:12], "run_id": run_id, "idx": idx,
+                "id": self.new_id(), "run_id": run_id, "idx": idx,
                 "role": role, "title": title,
                 "state": "pending", "summary": None, "result_json": None,
                 "updated_at": now})
@@ -582,7 +590,7 @@ class RunEngine:
 
         if task["role"] == "reporter":
             self.store.insert("artifacts", {
-                "id": uuid.uuid4().hex[:12], "run_id": run_id,
+                "id": self.new_id(), "run_id": run_id,
                 "name": "analytics-report", "kind": "markdown", "version": 1,
                 "content": result["output"]["report_markdown"],
                 "published_path": None, "created_at": _now()})
@@ -635,7 +643,7 @@ class RunEngine:
         if self.store.pending_approval(run_id) is None:
             content_hash = hashlib.sha256(artifact["content"].encode()).hexdigest()
             self.store.insert("approvals", {
-                "id": uuid.uuid4().hex[:12], "run_id": run_id,
+                "id": self.new_id(), "run_id": run_id,
                 "action": ("نشر تقرير التحليل في مخزن Obsidian" if arabic else
                            "Publish the analytics report to the Obsidian vault"),
                 "target": str(self.vault_dir / "Reports"), "risk": "high",

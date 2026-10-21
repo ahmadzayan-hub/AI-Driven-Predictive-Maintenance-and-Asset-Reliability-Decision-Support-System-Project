@@ -42,6 +42,21 @@ The app opened a chat session on load, which is a write. In demo mode
 4. Replaces the header status with "View-only demo" in English or Arabic,
    explained on hover, and names the visitor "Demo visitor".
 
+## Serverless instances (added the same day)
+
+The hosted site showed "Run not found." Production had no `DATABASE_URL`, so
+each Vercel instance kept its own temporary SQLite file: a run created on one
+instance was missing on the next. Reproduced locally with two app instances:
+404 with separate SQLite files, 200 with one shared PostgreSQL. A demo seeded
+per instance had the same flaw, because each copy got random ids.
+
+The demo now seeds under ids from a generator seeded by the demo principal, so
+every instance builds the same dataset, run, tasks, artifact and approval under
+the same ids. Visitors cannot write, so the copies stay identical; the demo
+therefore works on Vercel without a database. Outside seeding the engine's ids
+stay random. A writable deployment still needs `DATABASE_URL`: nothing in code
+can share state between instances that keep separate files.
+
 ## Turning it on
 
 On the hosted project, with the owner's approval: set `AGENTIC_OS_DEMO=1`;
