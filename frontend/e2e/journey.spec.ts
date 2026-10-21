@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test'
+import { randomUUID } from 'node:crypto'
+import type { MessageResult, OperationResult } from '../src/shared/api'
 import { clickQuickAction, composerInput, lastAgentBubble, openTab, sendMessage, skipOnboarding } from './helpers'
 
 test.describe('main user journey', () => {
@@ -13,7 +15,19 @@ test.describe('main user journey', () => {
     await skipOnboarding(page)
   })
 
-  test('conversation, memory, preferences, history, and session lifecycle', async ({ page }) => {
+  test('conversation, memory, preferences, history, and session lifecycle', async ({ page }, testInfo) => {
+    // The full ten-step lifecycle completed its assertions in 36.5 seconds
+    // on the Windows runner; preserve them under a scoped journey budget.
+    test.setTimeout(60_000)
+    // Projects share the owner's store. Count this journey's records and use
+    // returned keys rather than assuming earlier tests emptied the account.
+    const fixture = `${testInfo.project.name} ${randomUUID()}`
+    const profileText = `My preferred language is English (${fixture})`
+    const coffeeText = `Coffee at 8am (${fixture})`
+    const editedCoffeeText = `Coffee at 7am sharp (${fixture})`
+    const ownedItems = page.locator('.memory__item').filter({
+      has: page.locator('.memory__text').filter({ hasText: fixture }),
+    })
     // 1. Start the application and open a session.
     await page.goto('/')
     await expect(page.getByRole('status').filter({ hasText: 'Ready' })).toBeVisible()
@@ -25,30 +39,49 @@ test.describe('main user journey', () => {
     await expect(lastAgentBubble(page)).toContainText('Happy to help')
 
     // 3. Save a memory with a slash command.
-    await sendMessage(page, '/remember My preferred language is English')
+    const remember = `/remember ${profileText}`
+    const profileResponse = page.waitForResponse((response) =>
+      /\/api\/sessions\/[^/]+\/messages$/.test(response.url()) &&
+      response.request().method() === 'POST' && response.request().postDataJSON()?.text === remember,
+    )
+    await sendMessage(page, remember)
+    const profileResult = await (await profileResponse).json() as MessageResult
+    const profileEntries = profileResult.state.memory_entries.filter((entry) => entry.text === profileText)
+    expect(profileEntries).toHaveLength(1)
+    const profileItem = page.locator('.memory__item').filter({ has: page.getByText(profileEntries[0].key, { exact: true }) })
     await expect(lastAgentBubble(page)).toHaveText('Information saved.')
 
     // 4. Manage memory in the Memory panel: add, edit, export, delete.
     await openTab(page, /^Memory/)
-    await expect(page.locator('.memory__item').filter({ hasText: 'My preferred language is English' })).toBeVisible()
+    await expect(profileItem.locator('.memory__text')).toHaveText(profileText)
 
-    await page.getByLabel('Information to remember').fill('Coffee at 8am')
+    await page.getByLabel('Information to remember').fill(coffeeText)
     await page.getByLabel('Category', { exact: true }).selectOption('work')
+    const coffeeResponse = page.waitForResponse((response) =>
+      /\/api\/sessions\/[^/]+\/memory$/.test(response.url()) &&
+      response.request().method() === 'POST' && response.request().postDataJSON()?.information === coffeeText,
+    )
     await page.getByRole('button', { name: 'Add memory' }).click()
-    await expect(page.getByText('Coffee at 8am')).toBeVisible()
-    await expect(page.locator('.memory__item')).toHaveCount(2)
+    const coffeeResult = await (await coffeeResponse).json() as OperationResult
+    const coffeeEntries = coffeeResult.state.memory_entries.filter((entry) => entry.text === coffeeText)
+    expect(coffeeEntries).toHaveLength(1)
+    const coffeeKey = coffeeEntries[0].key
+    const coffeeItem = page.locator('.memory__item').filter({ has: page.getByText(coffeeKey, { exact: true }) })
+    await expect(coffeeItem.locator('.memory__text')).toHaveText(coffeeText)
+    await expect(ownedItems).toHaveCount(2)
 
     // Category filters narrow the list; All restores it.
     await page.getByRole('button', { name: 'Work', exact: true }).click()
-    await expect(page.locator('.memory__item')).toHaveCount(1)
-    await expect(page.getByText('Coffee at 8am')).toBeVisible()
+    await expect(ownedItems).toHaveCount(1)
+    await expect(profileItem).toHaveCount(0)
+    await expect(coffeeItem.locator('.memory__text')).toHaveText(coffeeText)
     await page.getByRole('button', { name: 'All', exact: true }).click()
-    await expect(page.locator('.memory__item')).toHaveCount(2)
+    await expect(ownedItems).toHaveCount(2)
 
-    await page.getByRole('button', { name: 'Edit memory_2' }).click()
-    await page.getByLabel('Edit memory_2').fill('Coffee at 7am sharp')
+    await coffeeItem.getByRole('button', { name: `Edit ${coffeeKey}`, exact: true }).click()
+    await page.getByLabel(`Edit ${coffeeKey}`, { exact: true }).fill(editedCoffeeText)
     await page.getByRole('button', { name: 'Save', exact: true }).click()
-    await expect(page.getByText('Coffee at 7am sharp')).toBeVisible()
+    await expect(coffeeItem.locator('.memory__text')).toHaveText(editedCoffeeText)
 
     const downloadPromise = page.waitForEvent('download')
     await page.getByRole('button', { name: /Export my data/ }).click()
@@ -56,11 +89,13 @@ test.describe('main user journey', () => {
     expect(download.suggestedFilename()).toBe('agentic-os-export.json')
 
     // Individual deletion is destructive and must be confirmed.
-    await page.getByRole('button', { name: /Forget memory_2/ }).click()
-    const confirmForget = page.getByRole('dialog', { name: 'Forget memory_2?' })
+    await coffeeItem.getByRole('button', { name: `Forget ${coffeeKey}`, exact: true }).click()
+    const confirmForget = page.getByRole('dialog', { name: `Forget ${coffeeKey}?` })
     await expect(confirmForget).toBeVisible()
     await confirmForget.getByRole('button', { name: 'Forget it' }).click()
-    await expect(page.locator('.memory__item')).toHaveCount(1)
+    await expect(ownedItems).toHaveCount(1)
+    await expect(coffeeItem).toHaveCount(0)
+    await expect(profileItem.locator('.memory__text')).toHaveText(profileText)
 
     // 5. Change preferences and see them applied to replies.
     await openTab(page, /^Preferences/)

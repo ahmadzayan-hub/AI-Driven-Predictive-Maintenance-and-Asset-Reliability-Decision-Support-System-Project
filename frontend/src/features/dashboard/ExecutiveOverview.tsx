@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'rea
 import { usePack } from '../../i18n/pack'
 import { api } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
-import { PerformanceValue, performanceTone } from '../../shared/components/PerformanceValue'
+import { PerformanceLegend, PerformanceValue, performanceTone } from '../../shared/components/PerformanceValue'
 import type { KpiMeasure, RunExecutive, TableFilter } from '../../shared/types'
 import { executiveMessages } from './executiveMessages'
 import { policyMessages } from './policyMessages'
@@ -219,7 +219,8 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
 
     {(data.kpis.measures.length > 0 || Object.keys(data.kpis.unavailable).length > 0) ? <section aria-labelledby="exec-kpis">
       <div className="exec-section-head"><h3 id="exec-kpis">{t('exec.kpis')}</h3>{data.kpis.measures.length ? <PolicyButton onClick={() => setPolicyOpen(true)} open={policyOpen} /> : null}</div>
-      <details className="exec-about"><summary>{t('exec.about')}</summary><p>{t('exec.kpiScope')}</p><PerformanceLegend /><p>{t('exec.snapshot')}</p></details>
+      <PerformanceLegend />
+      <details className="exec-about"><summary>{t('exec.about')}</summary><p>{t('exec.kpiScope')}</p><p>{t('exec.snapshot')}</p></details>
       {policyOpen ? <Suspense fallback={<p role="status">{t('exec.loading')}</p>}><KpiPolicyEditor key={`${runId}:${locale}`} runId={runId} measures={data.kpis.measures} onClose={() => setPolicyOpen(false)} onSaved={() => setRevision((v) => v + 1)} /></Suspense> : null}
       {FAMILIES.map((family) => {
         const items = data.kpis.measures.filter((measure) => (FAMILIES.includes(measure.family as Family) ? measure.family : 'other') === family)
@@ -312,11 +313,6 @@ function Kpi({ measure }: { measure: KpiMeasure }) {
     {measure.undefined_reason ? <p className="exec-kpi-caution" dir="auto">{measure.undefined_reason}</p> : null}
     <details><summary>{t('exec.sources')}</summary>{!verdict && measure.assessment?.reason ? <p dir="auto">{measure.assessment.reason}</p> : null}<dl><div><dt>{t('exec.formula')}</dt><dd dir="auto">{measure.formula} · <bdi>{formatNumber(measure.numerator)} / {formatNumber(measure.denominator)}</bdi></dd></div><div><dt>{t('exec.population')}</dt><dd dir="auto">{measure.population_label ?? measure.population}</dd></div><div><dt>{t('exec.missing')}</dt><dd dir="auto">{measure.missing_policy}</dd></div></dl><TargetEvidence measure={measure} />{measure.records_excluded > 0 ? <p>{t('exec.excluded', { n: formatNumber(measure.records_excluded) })}</p> : null}</details>
   </article>
-}
-
-function PerformanceLegend() {
-  const { t } = usePack(policyMessages)
-  return <p className="exec-muted">{t('policy.legend')}</p>
 }
 
 function PolicyButton({ onClick, open }: { onClick: () => void; open: boolean }) {

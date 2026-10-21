@@ -85,7 +85,9 @@ environment — not a replacement for Windows, macOS, or Linux.
   page in both languages (ADR 0032)
 - **Consistent performance colors** — red for bad, blue for okay and green
   for good, with visible English/Arabic status words in dashboards and business
-  reports. Per-analysis targets support higher/lower-is-better and nested
+  reports. Shared outlined status badges and a five-state legend also cover
+  overview, asset and operations metrics; counts without targets remain neutral.
+  Per-analysis targets support higher/lower-is-better and nested
   ranges with a source reference, optimistic saves and durable history.
   Unassessed or unavailable measurements stay neutral; target edits do not
   approve or publish. See the [operating guide](docs/design/EXECUTIVE_DASHBOARD_HANDOFF.md)
@@ -421,6 +423,39 @@ cd frontend && npm run typecheck
 # --e2e adds both the main and Miyaar Playwright suites.
 python scripts/verify.py
 ```
+
+### Visible performance status — 21 October 2026
+
+Shared outlined badges and a wrapping legend show bad in red, okay in blue,
+good in green, and both not assessed and unavailable in neutral colors, with
+English and Arabic text beside each performance value. Counts without targets
+remain unassessed. [Presentation decision](docs/adr/2026-10-21-performance-status-presentation.md).
+
+Against main at `e91f0db`, the complete integrated verifier passed all **8 steps**: **1,586 Python tests
+reported, 159 skipped**, **294 frontend tests passed**, brain check (**46 notes,
+0 issues**), type checking, native run logic, production build and interface
+budget. PostgreSQL and optional Python extras were not exercised here.
+Measured gzip sizes: initial JavaScript **97.4 KB**, aggregate JavaScript
+**202.3 KB**, largest deferred chunk **18.4 KB**, initial CSS **10.0 KB**,
+aggregate CSS **25.4 KB**; bundled fonts **119.4 KB**.
+
+Focused browser coverage across performance colors, operations, overview and
+dashboard: **24 passed, 3 viewport-specific skips, 1 navigation assertion
+failed** on the first integration run. The sidebar expectation and duplicate
+operations icon were corrected; the targeted sidebar/phone-bar rerun passed
+**2, with 2 viewport-specific skips**. All **25 applicable distinct cases**
+therefore pass, including English/Arabic, desktop/mobile, contrast and
+accessibility checks. The full browser suite was not rerun. Before integration,
+the local version also passed the full verifier (**1,560 Python tests reported,
+159 skipped; 287 frontend tests**) and **8 focused browser scenarios**.
+
+After integrating the later KPI-definition updates through `c696f91`, the
+**126 affected Python tests reported 7 skips**, with no failures. The rebuilt
+interface and budget pass (largest deferred chunk now **18.5 KB**). The
+executive/performance browser run passed **11 of 12**; the Arabic mobile
+report download was canceled once, then its isolated rerun **passed** without
+a code change. All **12 distinct scenarios** pass. This transient download
+failure remains recorded rather than being counted as a clean first run.
 
 ### KPI register aligned with the Power BI report — 21 October 2026
 
@@ -1152,13 +1187,21 @@ dataset tests (ADR 0024), one needs openpyxl, which is not a dependency.
 
 ## Background worker (optional)
 
-Runs advance while the Runs view is open. To advance them with no browser
-open, run a worker:
+In the default client mode, runs advance while the Runs view is open.
+For explicit background execution, set `AGENTIC_OS_RUN_EXECUTION=worker`
+on the API and run a supervised worker with the same database, vault and
+model configuration:
 
 ```bash
 python scripts/worker.py          # poll for work until Ctrl-C
 python scripts/worker.py --once   # advance one run and refresh one due source, then exit
 ```
+
+The local profile starts both processes with
+`python scripts/local_runtime.py start --worker`. In worker mode the browser
+polls persisted state, and the advance endpoint returns promptly without
+executing a model in the request. `/api/health` exposes worker heartbeat
+freshness; a missing or stale worker requires operator attention.
 
 The same worker refreshes live sources whose refresh is due (ADR 0034),
 under the same kind of lease, so two workers never fetch one source.
@@ -1166,10 +1209,19 @@ under the same kind of lease, so two workers never fetch one source.
 The worker claims a run with a database lease, advances it one task at a
 time, and releases the lease when the run needs a human or ends. It never
 decides an approval — it stops at the gate like any other caller. A
-worker that crashes stops renewing its lease, and the next worker (or an
-open browser) picks the run up from its durable state — including the
+worker that crashes stops renewing its lease, and the next worker picks
+the run up from its durable state — including the
 stage the crash interrupted, which is re-run rather than skipped. Details
-and trade-offs: `docs/adr/0006-durable-execution.md`.
+and trade-offs: `docs/adr/0006-durable-execution.md` and the
+[explicit execution decision](docs/adr/2026-10-21-durable-worker-and-source-credentials.md).
+Browser-driven recovery remains available only in client mode.
+
+The bilingual `#/operations` workspace adds organization/site/asset records,
+separately authorized maintenance work and prospective model/baseline validation.
+Use the [pilot runbook](docs/PILOT_RUNBOOK.md) for the recommended read-only
+MaintainX integration and its acceptance requirements. The
+[remediation record](docs/assessments/2026-10-21-saas-remediation.md) distinguishes
+implemented controls from still-unverified hosted and customer outcomes.
 
 ## Choosing the narrator (optional)
 

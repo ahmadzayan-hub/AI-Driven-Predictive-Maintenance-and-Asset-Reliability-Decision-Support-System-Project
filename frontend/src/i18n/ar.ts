@@ -65,6 +65,7 @@ export const ar: Record<MessageKey, string> = {
   "voice.playing": "جارٍ قراءة الرد",
   "voice.playbackLimit": "تُقرأ أول ١٬٨٠٠ محرف.",
   "composer.offline": "الاتصال غير متاح · مسودتك محفوظة",
+  'nav.operations': 'العمليات',
   'nav.assets': 'ذكاء الأصول',
   'decision.eyebrow': 'قرارك القادم',
   'decision.heading': 'مركز قيادة ذكاء القرار',

@@ -251,6 +251,7 @@ def start(model_dir, port, worker, model=LLM):
     child = None
     try:
         if worker:
+            os.environ["AGENTIC_OS_RUN_EXECUTION"] = "worker"
             worker_args = [sys.executable, str(ROOT / "scripts" / "worker.py")]
             config_path = os.environ.get("AGENTIC_OS_CONFIG")
             if config_path:

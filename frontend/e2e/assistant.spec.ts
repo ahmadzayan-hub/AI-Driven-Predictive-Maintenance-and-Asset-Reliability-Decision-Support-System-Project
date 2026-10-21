@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test'
+import { randomUUID } from 'node:crypto'
+import type { MessageResult } from '../src/shared/api'
 import { lastAgentBubble, openTab, sendMessage, skipOnboarding } from './helpers'
 
 // The chat understands plain language and acts on it: a sentence saves a
@@ -6,14 +8,28 @@ import { lastAgentBubble, openTab, sendMessage, skipOnboarding } from './helpers
 // sentence that would delete something is confirmed first.
 test('plain language in the chat saves, analyses, explains, and confirms before deleting', async ({
   page,
-}) => {
+}, testInfo) => {
+  // A real pipeline sits between multiple conversation and memory actions;
+  // its 40-second assertion must fit within the complete journey's budget.
+  test.setTimeout(90_000)
   await skipOnboarding(page)
   await page.goto('/')
 
-  await sendMessage(page, 'Remember that the Q4 review is on Monday')
+  // Projects share the local owner's memory. Identify this newly saved note
+  // by its returned key, even when a previous interrupted test left notes.
+  const memoryText = `the Q4 review is on Monday (${testInfo.project.name} ${randomUUID()})`
+  const remember = `Remember that ${memoryText}`
+  const savedResponse = page.waitForResponse((response) =>
+    /\/api\/sessions\/[^/]+\/messages$/.test(response.url()) &&
+    response.request().method() === 'POST' && response.request().postDataJSON()?.text === remember,
+  )
+  await sendMessage(page, remember)
+  const saved = await (await savedResponse).json() as MessageResult
+  const created = saved.state.memory_entries.filter((entry) => entry.text === memoryText)
+  expect(created).toHaveLength(1)
   await expect(lastAgentBubble(page)).toHaveText('Information saved.')
   await sendMessage(page, 'What do you remember?')
-  await expect(lastAgentBubble(page)).toContainText('the Q4 review is on Monday')
+  await expect(lastAgentBubble(page)).toContainText(memoryText)
 
   // Starting a run from the chat opens it: the person sees the pipeline
   // rather than being told where to find it.
@@ -34,7 +50,9 @@ test('plain language in the chat saves, analyses, explains, and confirms before 
   await sendMessage(page, 'no')
   await expect(lastAgentBubble(page)).toHaveText('Nothing was changed.')
   await openTab(page, /^Memory/)
-  await expect(page.locator('.memory__item').filter({ hasText: 'the Q4 review is on Monday' })).toBeVisible()
+  const savedItem = page.locator('.memory__item').filter({ has: page.getByText(created[0].key, { exact: true }) })
+  await expect(savedItem).toBeVisible()
+  await expect(savedItem.locator('.memory__text')).toHaveText(memoryText)
 
   await openTab(page, /^Workspace/)
   await sendMessage(page, 'Forget everything')

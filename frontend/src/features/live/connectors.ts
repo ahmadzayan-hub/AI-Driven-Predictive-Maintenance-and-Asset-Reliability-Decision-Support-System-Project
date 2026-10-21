@@ -6,6 +6,7 @@ export interface Connector {
   id: string
   name: string
   url: string
+  credential_id?: string | null
   format: string | null
   sheet: string | null
   every_minutes: number | null
@@ -27,6 +28,7 @@ export interface Connector {
 export interface ConnectorIn {
   name: string
   url: string
+  credential_id?: string | null
   goal: string
   format?: string | null
   every_minutes?: number | null

@@ -147,6 +147,7 @@ export interface ChartSpec {
 }
 
 export interface RunDetail {
+  execution?: { mode: 'client' | 'worker'; poll_after_ms: number }
   id: string
   goal: string
   dataset_name: string

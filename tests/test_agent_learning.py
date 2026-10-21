@@ -365,10 +365,17 @@ class StewardTestCase(unittest.TestCase):
         steward = self.steward(measure_fn)
 
         class IdleStore:
+            def __init__(self):
+                self.heartbeats = []
+
             def claim_run(self, *args):
                 return None
 
-        worker = RunWorker(engine=None, store=IdleStore(), steward=steward)
+            def upsert_worker_heartbeat(self, worker_id, seen_at, state):
+                self.heartbeats.append({"id": worker_id, "seen_at": seen_at, "state": state})
+
+        store = IdleStore()
+        worker = RunWorker(engine=None, store=store, steward=steward)
         stop = type("Stop", (), {"naps": 0, "is_set": lambda s: s.naps >= 3})()
 
         def nap(seconds):
@@ -378,6 +385,12 @@ class StewardTestCase(unittest.TestCase):
         worker.run_forever(poll_seconds=0.01, stop=stop, sleep=nap)
         self.assertGreaterEqual(len(calls), 2)
         self.assertEqual(len(self.ledger.records()), len(calls) - 1)
+        states = [row["state"] for row in store.heartbeats]
+        self.assertEqual(states[0], "idle")
+        self.assertEqual(states.count("evaluating"), stop.naps)
+        self.assertEqual(states[-1], "stopped")
+        self.assertEqual({row["id"] for row in store.heartbeats}, {worker.worker_id})
+        self.assertTrue(all(row["seen_at"] for row in store.heartbeats))
 
 
 class ScorecardToolTestCase(unittest.TestCase):

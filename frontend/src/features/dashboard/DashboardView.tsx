@@ -9,6 +9,7 @@ import '../../shared/styles/analytics.css'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useI18n } from '../../i18n'
 import { usePack } from '../../i18n/pack'
+import { PerformanceLegend, PerformanceValue, performanceTone } from '../../shared/components/PerformanceValue'
 import { dashMessages, type DashKey } from './messages'
 import { LiveFollow } from '../live/LiveFollow'
 import { api, ApiError } from '../../shared/api'
@@ -449,10 +450,11 @@ function OverviewPage({ runId, roles, state, filters, setState }: PageProps) {
   return (
     <>
       <Problem message={totals.error ?? top.error ?? trend.error} />
+      <PerformanceLegend />
       <div className="kpis dash-kpis">
-        <div className="kpi"><span className="kpi__label">{t('dash.kpi.records')}</span><span className="kpi__value">{number(values[0])}</span></div>
-        <div className="kpi"><span className="kpi__label" dir="auto">{t('dash.kpi.total', { measure: m })}</span><span className="kpi__value">{number(total)}</span></div>
-        <div className="kpi"><span className="kpi__label" dir="auto">{t('dash.kpi.perRecord', { measure: m })}</span><span className="kpi__value">{number(values[2])}</span></div>
+        <div className="kpi"><span className="kpi__label">{t('dash.kpi.records')}</span><span className="kpi__value"><PerformanceValue tone={performanceTone(values[0])}><bdi>{number(values[0])}</bdi></PerformanceValue></span></div>
+        <div className="kpi"><span className="kpi__label" dir="auto">{t('dash.kpi.total', { measure: m })}</span><span className="kpi__value"><PerformanceValue tone={performanceTone(total)}><bdi>{number(total)}</bdi></PerformanceValue></span></div>
+        <div className="kpi"><span className="kpi__label" dir="auto">{t('dash.kpi.perRecord', { measure: m })}</span><span className="kpi__value"><PerformanceValue tone={performanceTone(values[2])}><bdi>{number(values[2])}</bdi></PerformanceValue></span></div>
         {leader && roles.breakdown ? (
           <div className="kpi">
             <span className="kpi__label" dir="auto">{t('dash.kpi.largest', { breakdown: roles.breakdown })}</span>

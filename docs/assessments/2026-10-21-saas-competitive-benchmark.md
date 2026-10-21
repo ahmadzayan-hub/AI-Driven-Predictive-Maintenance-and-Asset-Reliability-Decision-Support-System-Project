@@ -109,3 +109,20 @@ No competitor SLA, prediction score or case-study savings rate is adopted as thi
 This is a documentation and source assessment, not a new security audit, load test or full software test run. Prior software validation remains dated in README. Hosted acceptance, independent maintenance-domain validation and customer/commercial evidence remain open.
 
 The next useful decision is the **first customer workflow and source system**. The recommended scope is a bilingual reliability-review layer with a demonstrable work-order feedback loop. That exploits the current evidence and governance strengths while addressing the most consequential gaps shown by operating products.
+
+### Implementation follow-up, 21 October 2026
+
+After the owner requested remediation and delegated the source recommendation,
+MaintainX with selected pumps/motors at one facility became the proposed pilot.
+Worker-backed execution, heartbeat readiness, organization roles/assets, explicit
+maintenance authorization and outcomes, a read-only authenticated source adapter,
+and a prospective model/baseline ledger now have implementations and regression
+coverage. The bilingual Operations workspace uses real stored records. These
+changes address local product gaps; they do not retroactively change the dated
+benchmark's observations or establish competitor-level service outcomes.
+
+The [pilot runbook](../PILOT_RUNBOOK.md) records supported behavior, source setup,
+and the still-open hosted, live-source, domain and customer acceptance gates.
+Exact verification results belong in [README Testing](../../README.md#testing).
+The [remediation record](2026-10-21-saas-remediation.md) maps each implemented
+change to the remaining acceptance evidence and its owner.

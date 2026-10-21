@@ -1168,6 +1168,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Decisions:** stated that five runs on one memo is still one memo. The first `verify.py` run failed one Python test while the auditor agent was also running; not captured, did not recur in the full suite alone or in a clean `verify.py` (1,497 tests, 19 optional-extra skips, all 8 steps passed).
 - **Open / next:** a second held-out maintenance memo; number words in coverage; the auditor's run-to-failure false alarm.
 
+## 2026-10-21 — Visible performance status — `performance-status-presentation`
+- **Done:** shared outlined badges and a five-state legend across executive, asset, overview, dashboard and operations KPIs; prospective validation retains neutral unassessed/absent distinctions. Existing numeric values and target rules are preserved; phone summaries stack and both languages have explicit labels.
+- **Verified:** the complete local verifier and focused performance/operations browser scenarios passed. Actual counts and conditional skips are recorded in README.md#testing. The live Arabic operations page displayed the new legend and neutral count badges.
+- **Decisions:** the dated performance-status presentation ADR records the component and non-inferred assessment semantics.
+- **Open / next:** concurrent main changes are being integrated and verified in a separate checkout. Existing screenshot edits and the untracked availability-review ADR are preserved. No production deployment.
+
 ## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (platform run, KPI alignment with Power BI, demo mode started)
 
 **Goal:** run the platform on the latest update; remove sign-in for now; correct availability and align KPIs with the Power BI file.
@@ -1176,3 +1182,13 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** `verify.py` with PostgreSQL all 8 steps (1,499 Python, 19 skips; 277 frontend); full Playwright 127 passed, 5 skipped; screenshots at 1440 and 390 px in English and Arabic show no broken number.
 - **Decisions:** MTTR follows the report though the earlier population was closer to EN 13306, stated on the card. Did not deploy: production needs the owner's explicit approval.
 - **Open / next:** redeploy the hosted site; finish demo mode (interface); the report file is course material in the repository (history rewrite needs the owner).
+
+## 2026-10-21 ? Integrated performance design ? `performance-status-presentation`
+
+**Goal:** apply the owner's performance color meanings with a text status on each value.
+
+- **Done:** integrated design commit `d586a41` and the existing operations work with main through `c696f91`, preserving the newer KPI definitions, family layout, target-review protection and manager navigation. Operations has a distinct sidebar icon and remains in the phone drawer. Original screenshot edits and the untracked availability-review document have verified local backups.
+- **Verified:** complete integrated verifier, affected backend checks after the final KPI updates, build/budget and focused bilingual desktop/phone browser scenarios; actual counts and the one canceled report download that passed on isolated rerun are in README.md#testing. Preview evidence is saved outside the repository using fictional browser fixtures.
+- **Decisions:** only the aggregate CSS allowance grows for the shared badge/legend treatment, as recorded in the presentation ADR. No default targets or inferred performance verdicts are introduced.
+- **Open / next:** the hosted pilot and deployment remain separate; browser downloads showed one transient cancellation in this Windows run. Local source synchronization and runtime refresh complete the handoff.
+- **Blockers:** none for this presentation change.
