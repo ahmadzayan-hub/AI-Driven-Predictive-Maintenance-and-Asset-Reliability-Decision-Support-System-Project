@@ -8,6 +8,7 @@ Synthetic memos with planted defects, for measuring the review loop's reviewers 
 | `B/` | A light-rail fleet's year | 14 | 9 | Held out. The same author wrote A and B |
 | `C/` | An outpatient department's year | 15 | 9 | Blind: an independent agent wrote it from the category definitions only |
 | `D/` | A metro line's signalling and telecom maintenance | 30 | 14 | Blind and harder: subtler defects (soft causal verbs, a percentage-point slip, a wrong base) and 10 correct decoy paragraphs; `labels.json` also lists the decoys and why each defect is wrong |
+| `E/` | A light-rail fleet's rolling stock and depot equipment | 26 | 12 | Blind, maintenance judgement: 9 `domain_method` defects where every figure is sourced and every sum holds, 3 ordinary controls, 11 decoys |
 
 Each folder holds the memo (`memo.md`, paragraphs `[P01]`…), the register a figure must come from (`register.csv`, columns `Check` and `Expected`), and the labels (`labels.json`). The labels give one category per defective paragraph:
 
@@ -16,6 +17,7 @@ Each folder holds the memo (`memo.md`, paragraphs `[P01]`…), the register a fi
 - `causal_claim`
 - `denominator`
 - `overclaim`
+- `domain_method` (memo E on): a reliability or maintenance method misapplied, such as the wrong availability basis, an MTBF that leaves out surviving units, early failures read as wear-out, or run-to-failure on a safety item. It is in the analytics reviewer's lane.
 
 ## Runs
 

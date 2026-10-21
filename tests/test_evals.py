@@ -381,6 +381,16 @@ class RecallFixTests(unittest.TestCase):
         self.assertEqual(set(wrong), {"30.0%"})
         self.assertAlmostEqual(abs(wrong["30.0%"]), 25.0, places=4)
 
+    def test_euro_pound_and_dirham_amounts_are_read_like_dollars(self):
+        # Benchmark E showed "€310" and "€1,150" reported as unsourced although
+        # the register held them: only "$" was read as money. Fresh figures.
+        register = {"Pump seal": "€420", "Hoist service": "£2,750", "Lift contract": "AED 96,000",
+                    "Escalator contract": "48,500 AED", "Fan belt": "د.إ 380"}
+        text = ("A pump seal costs €420 and a hoist service £2,750. The lift contract is AED 96,000, "
+                "the escalator contract 48,500 AED and a fan belt د.إ 380. A spare motor costs €9,900.")
+        result = self.sourcing(text, register)
+        self.assertEqual([u["number"] for u in result["unsourced"]], ["$9,900"])
+
     def test_a_table_read_as_one_sentence_derives_nothing(self):
         # A dashboard's data table: dozens of figures and the word "per"; any
         # two of them would "derive" a third, so the rule keeps to prose.
@@ -401,7 +411,7 @@ class ReviewerBenchmarkTests(unittest.TestCase):
 
     def test_every_benchmark_labels_paragraphs_that_exist(self):
         import re
-        for bench in ("A", "B", "C"):
+        for bench in ("A", "B", "C", "D", "E"):
             with self.subTest(bench=bench):
                 folder = ROOT / "evals" / "reviewers" / bench
                 labels = json.loads((folder / "labels.json").read_text(encoding="utf-8"))

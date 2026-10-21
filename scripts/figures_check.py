@@ -106,6 +106,17 @@ def read_text(path):
 ARABIC_FIGURES = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹٬٫٪", "01234567890123456789,.%")
 # An amount in brackets is a negative, as accounts write it: "(1,200)" is -1,200.
 ACCOUNTING_NEGATIVE = re.compile(r"\((\$?\d{1,3}(?:,\d{3})+(?:\.\d+)?|\$\d+(?:\.\d+)?)\)")
+# Money in any currency is read the way "$" is: "€1,150", "£2,750", "AED 96,000",
+# "48,500 AED" and "د.إ 380" all become "$…". Only "$" was read before benchmark E.
+CURRENCY_BEFORE = re.compile(r"(?:€|£|\bAED\s?|د\.إ\s?)(?=\d)")
+CURRENCY_AFTER = re.compile(r"(?<![\w.$])(\d[\d,]*(?:\.\d+)?)\s?(?:AED\b|د\.إ)")
+
+
+def money(text):
+    """Every currency written as "$", so amounts compare by value and unit."""
+    return CURRENCY_BEFORE.sub("$", CURRENCY_AFTER.sub(r"$\1", text))
+
+
 # A figure the text calls approximate may be rounded further than its digits show.
 APPROXIMATE = re.compile(r"(?:\b(?:about|around|roughly|approximately|nearly|almost|some|close to)|~|≈|"
                          r"حوالي|حوالى|نحو|قرابة)\s*(\$?\d[\d,]*(?:\.\d+)?%?(?:\s?(?:thousand|million|billion|bn|[MBk]))?)(?![\w])",
@@ -116,7 +127,7 @@ def normalise(text):
     """One line of text with plain spaces, minus signs and Western digits, as the checks read it."""
     # Time stamps such as "[10.0–15.5 s]" in a clip transcript are not figures.
     text = re.sub(r"\[\d+(?:\.\d+)?\s?[–-]\s?\d+(?:\.\d+)?\s?s\]", " ", text)
-    text = text.translate(ARABIC_FIGURES)
+    text = money(text.translate(ARABIC_FIGURES))
     text = ACCOUNTING_NEGATIVE.sub(r"-\1", text)
     return " ".join(text.replace("\u00a0", " ").replace("−", "-").split())
 
@@ -423,6 +434,7 @@ def load_register(path, value_column, label_columns):
 
 
 def check(register, docs, references=(), sourcing_only=False):
+    register = [{**r, "value": money(str(r["value"]).strip())} for r in register]
     texts = {str(d): read_text(d) for d in docs}
     combined = " ".join(texts.values())
     written = numbers_in(combined, keep_small=True)
