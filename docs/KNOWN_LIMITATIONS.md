@@ -234,7 +234,9 @@ required local files. Both behaviors are covered by tests
     metadata review. That review identifies older production commit `42e53d00`
     and Vercel Authentication protection. Main-branch Git deployment is now
     disabled; releasing a corrected commit requires explicit approval and
-    hosted acceptance. See `docs/VERCEL_DEPLOYMENT.md`.
+    hosted acceptance. On 21 October `dcde343` was deployed to production
+    with approval; it runs in `local` mode until the owner adds
+    `AGENTIC_OS_DEMO=1` in Vercel. See `docs/VERCEL_DEPLOYMENT.md`.
 12. Android support is a verified installable PWA; a native Capacitor
     project is documented but not shipped (no Android SDK available to
     build or test one honestly).

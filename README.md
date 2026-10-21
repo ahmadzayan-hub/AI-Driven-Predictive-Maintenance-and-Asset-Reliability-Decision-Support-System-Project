@@ -769,6 +769,8 @@ reproduced defects, corrections, limits and owner acceptance gates.
   and the separate adversarial probe remains a documented limitation.
 - Vercel production remains on the older `42e53d00` deployment. Main-branch
   automatic deployment is disabled; no production release was performed.
+  (Superseded 21 October: `dcde343` deployed to production with the owner's
+  approval; see `docs/VERCEL_DEPLOYMENT.md`.)
   On the owner's subsequent approval, the repository became temporarily
   private; collaborator permissions and branch tips were preserved, and
   anonymous web/API requests returned 404. Historical remediation before

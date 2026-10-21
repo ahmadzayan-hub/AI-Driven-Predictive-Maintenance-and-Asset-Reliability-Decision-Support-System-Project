@@ -9,8 +9,14 @@ function. Configuration is not hosted acceptance.
 GitHub Actions still runs. Production requires explicit owner approval and a
 separate deployment of the reviewed commit
 ([decision](adr/2026-10-20-production-release-approval.md)).
-Read-only hosting metadata identifies production commit `42e53d00` and Vercel
-Authentication protection. It does not establish current application identity,
+Read-only hosting metadata identified production commit `42e53d00` and Vercel
+Authentication protection. On 21 October 2026, with the owner's approval
+("deploy all", "redeploy now"), `main` at `dcde343` was deployed to production in
+project `asset-reliability-team3-saas` (`dpl_85JXfesWXYTtGij8QwYbaLWxpw6H`, Ready).
+Its `/api/auth/config` reports `local` mode: production has no sign-in
+variables and no `AGENTIC_OS_DEMO`. The connected Vercel account was refused
+(403) when adding `AGENTIC_OS_DEMO=1`, so the project owner must add it and
+redeploy. It does not establish current application identity,
 database durability or worker readiness. The historical observations below
 apply only to the deployment and date they name.
 

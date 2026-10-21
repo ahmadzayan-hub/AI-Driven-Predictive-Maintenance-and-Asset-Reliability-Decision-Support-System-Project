@@ -1219,3 +1219,10 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** store and Overview tests watched failing first; browser run against a demo server on a fresh database at 1440 and 390 px, English and Arabic: no sign-in, no failed request, no page error, `#/chat` redirected. `verify.py` with PostgreSQL all 8 steps; full Playwright 127 passed, 5 skipped, 4 failed (pre-existing, shown on the previous commit), then those specs 8 of 8 after the fix.
 - **Decisions:** deeper write controls stay and get the server's refusal, recorded as a known limitation. Not deployed: turning demo mode on in the hosted project needs the owner's approval.
 - **Open / next:** owner approval to switch the hosted site to demo mode and redeploy; the report's §6.6 and the v2 `.pbix` click-test are with the team.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (production deploy)
+
+- **Done:** with the owner's approval ("deploy all", "redeploy now") deployed `main` at `dcde343` to Vercel production, project `asset-reliability-team3-saas` (`dpl_85JXfesWXYTtGij8QwYbaLWxpw6H`, Ready). The KPI register corrections and the demo interface are now in the production build.
+- **Verified:** the deployment lists as Ready on target production; the production domain's `/api/auth/config` returns `{"mode":"local","flows":[]}`. The preview of the same commit runs Supabase sign-in, so the sign-in variables are preview-only.
+- **Blocked:** adding `AGENTIC_OS_DEMO=1` was refused by Vercel (403, the connected account cannot create production environment variables; listing them is refused too). No Vercel CLI in the container. Production therefore runs `local` mode (single owner, writable) rather than the view-only demo.
+- **Next:** the project owner adds `AGENTIC_OS_DEMO=1` (Production) in Vercel and redeploys; then check `/api/auth/config` reads `demo`. Whether the production domain is public under Standard Protection is still unconfirmed from here.
