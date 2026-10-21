@@ -1,0 +1,47 @@
+Note: evidence lines condensed by the orchestrator; paragraph ids, severities and categories are exactly as the reviewer gave them.
+
+FINDING F01 · blocker · P04
+Category: arithmetic
+Evidence: Series product 93.1%, not 97.7%.
+
+FINDING F02 · blocker · P05
+Category: arithmetic
+Evidence: Restoration 4.9 h; 1,656.2 h; 99.84%.
+
+FINDING F03 · major · P07
+Category: overclaim
+Evidence: Clean alarm log does not show capacity.
+
+FINDING F04 · major · P08
+Category: arithmetic
+Evidence: Shared controller: about 0.54%.
+
+FINDING F05 · major · P10
+Category: overclaim
+Evidence: 13-week survey longer than 8-week P-F interval.
+
+FINDING F06 · blocker · P12
+Category: overclaim
+Evidence: Shape 3.4 is wear-out, conclusion reversed.
+
+FINDING F07 · major · P14
+Category: overclaim
+Evidence: Backlog deferred, not reduced.
+
+FINDING F08 · major · P17
+Category: overclaim
+Evidence: MTBF is not service life.
+
+FINDING F09 · blocker · P18
+Category: causal_claim
+Evidence: Before/after, no control.
+
+FINDING F10 · blocker · P19
+Category: denominator
+Evidence: Per pump: 22 / 74 = 29.7%.
+
+FINDING F11 · blocker · P20
+Category: overclaim
+Evidence: Small, short sample generalised.
+
+TOTAL: 11 findings
