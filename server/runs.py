@@ -97,8 +97,22 @@ def dataset_summary(dataset):
     return summary
 
 
+# A run of digits this long is read by the personal-data detector as a phone
+# number (10+) or an account number (12+). Hex ids carry such runs about 1.5%
+# of the time, and an id in a model's notes then made the assistant refuse the
+# model as if a person's number were in it. Ids are drawn again instead.
+DIGIT_RUN = re.compile(r"\d{8,}")
+
+
+def personal_looking(value):
+    return bool(DIGIT_RUN.search(value))
+
+
 def random_id():
-    return uuid.uuid4().hex[:12]
+    while True:
+        value = uuid.uuid4().hex[:12]
+        if not personal_looking(value):
+            return value
 
 
 def _now():

@@ -363,5 +363,25 @@ class VaultDirResolutionTests(unittest.TestCase):
         self.assertEqual(engine.vault_dir, self.root / "elsewhere")
 
 
+
+class GeneratedIdsTestCase(unittest.TestCase):
+    """An id the platform makes must never read as a person's number: the
+    assistant puts the latest run's id in its notes, and the privacy guard
+    then refused the model about once in seventy conversations."""
+
+    def test_no_generated_id_trips_the_personal_data_detector(self):
+        from server.runs import random_id
+        ids = [random_id() for _ in range(5000)]
+        tripped = [i for i in ids if analytics.personal_data_findings(
+            ["note"], [{"note": f"Latest analysis {i} (completed)"}])]
+        self.assertEqual(tripped, [])
+        self.assertTrue(all(len(i) == 12 for i in ids))
+
+    def test_the_rule_rejects_the_ids_that_used_to_trip_it(self):
+        from server.runs import personal_looking
+        for value in ("28560517940e", "284737311597", "2608480559ef"):
+            self.assertTrue(personal_looking(value), value)
+        self.assertFalse(personal_looking("5fe5d44a8391"))
+
 if __name__ == "__main__":
     unittest.main()

@@ -10,6 +10,7 @@ real organisation's data can reach the demo.
 import random
 
 from server import datasets as dataset_reader
+from server.runs import personal_looking
 
 GOAL = "Review fleet maintenance performance for 2025 (fictional demo data)"
 DATASET_NAME = "demo-fleet-fictional.csv"
@@ -68,7 +69,14 @@ def seed(engine, owner, profile=PROFILE, max_steps=200):
     # browser got from one instance is found on the next; nothing can be
     # written in a demo, so the copies cannot drift apart.
     ids = random.Random(f"demo-ids-{owner}")
-    random_ids, engine.new_id = engine.new_id, lambda: f"{ids.getrandbits(48):012x}"
+
+    def fixed_id():
+        while True:
+            value = f"{ids.getrandbits(48):012x}"
+            if not personal_looking(value):
+                return value
+
+    random_ids, engine.new_id = engine.new_id, fixed_id
     try:
         return _seed(engine, owner, profile, max_steps)
     finally:
