@@ -127,6 +127,14 @@ EXCLUDE, ZERO = "exclude", "zero"
 
 # Dashboard groups for the register's measures.
 FAMILIES = ("reliability", "execution", "cost", "other")
+
+# Each population's Arabic name. The English name stays the code that
+# exports and stored policies match on; this is what an Arabic reader sees.
+POPULATION_AR = {
+    "all records": "جميع السجلات",
+    "corrective records": "سجلات الصيانة التصحيحية",
+    "records with a failure": "السجلات التي سُجّل فيها عطل",
+}
 MISSING_POLICIES = (EXCLUDE, ZERO)
 
 
@@ -169,6 +177,8 @@ class Kpi:
         # a verdict: whether a figure is good is a target's job (performance).
         if family is not None and family not in FAMILIES:
             raise ValueError(f"{key}: family {family!r} is not one of {', '.join(FAMILIES)}")
+        if population_name not in POPULATION_AR:
+            raise ValueError(f"{key}: population {population_name!r} has no Arabic name in POPULATION_AR")
         self.family = family or "other"
 
     @staticmethod
@@ -293,6 +303,7 @@ class Kpi:
             "denominator": denominator,
             "formula": self.formula,
             "population": self.population_name,
+            "population_ar": POPULATION_AR[self.population_name],
             # `records` is what the figure is actually computed on, so a
             # reader dividing numerator by it gets the printed value.
             # The two counts beside it say who was left out and why.

@@ -480,6 +480,8 @@ export interface KpiMeasure {
   denominator: number
   formula: string
   population: string
+  /** The population in the reader's language; `population` stays the code. */
+  population_label?: string
   records: number
   records_excluded: number
   records_unmeasured: number

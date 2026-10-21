@@ -81,7 +81,7 @@ it('shows measures as family tiles, keeps a verdict reason on its tile and says 
   vi.spyOn(api, 'listRuns').mockResolvedValue({ runs: [run] })
   vi.spyOn(api, 'getRun').mockResolvedValue(run)
   vi.spyOn(api, 'runKpis').mockResolvedValue({ ...measures(run.id, 'unused'), measures: [
-    { ...base, key: 'availability', title: 'Availability', scale: 'percent', value: 97.5, family: 'reliability',
+    { ...base, key: 'availability', title: 'Availability', scale: 'percent', value: 97.5, family: 'reliability', population_label: 'Every observation',
       assessment: { status: 'unassessed', reason: 'No display target is configured.', reason_code: 'no_target', direction: null, source_ref: null, rule_id: null, thresholds: null } },
     { ...base, key: 'loss', title: 'Loss per downtime hour', family: 'cost',
       assessment: { status: 'bad', reason: 'Above the fictional ceiling.', reason_code: 'above', direction: 'lower', source_ref: 'Fictional QA', rule_id: 'r1', thresholds: { good_at: 5, okay_at: 10 } } },
@@ -90,6 +90,9 @@ it('shows measures as family tiles, keeps a verdict reason on its tile and says 
   const availability = (await screen.findByText('Availability')).closest('li')!
   const loss = screen.getByText('Loss per downtime hour').closest('li')!
   expect(availability).toHaveAttribute('data-family', 'reliability')
+  // The reader-language label is shown; the code is the fallback.
+  expect(availability).toHaveTextContent('Every observation')
+  expect(loss).toHaveTextContent('Synthetic observations')
   expect(loss).toHaveAttribute('data-family', 'cost')
   expect(loss).toHaveTextContent('Above the fictional ceiling.')
   expect(availability).not.toHaveTextContent('No display target')

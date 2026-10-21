@@ -90,6 +90,9 @@ class ExecutiveDashboardAgent:
             item = dict(result)
             item["title"] = result["title_ar"] if language == "ar" else result["title"]
             item.pop("title_ar", None)
+            # `population` stays the code the export matches on; the label is shown.
+            item["population_label"] = result["population_ar"] if language == "ar" else result["population"]
+            item.pop("population_ar", None)
             item["assessment"] = performance.assessment(item, selected_policy["rules"], language)
             measures.append(item)
         evidence, priorities, questions, drilldowns = [], [], [], []

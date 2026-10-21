@@ -451,6 +451,16 @@ class MaintenanceKpiEndpointTests(unittest.TestCase):
                           "missing_policy", "undefined_reason", "scale"):
                 self.assertIn(field, measure, f"{key} is missing {field}")
 
+    def test_the_population_reads_in_the_readers_language_and_keeps_its_code(self):
+        run = self.finished_run()
+        _, english = self.measures(run["id"])
+        _, arabic = self.measures(run["id"], "ar")
+        self.assertEqual(english["first_time_fix"]["population_label"], "corrective records")
+        self.assertEqual(arabic["first_time_fix"]["population_label"], "سجلات الصيانة التصحيحية")
+        # The code is what exports and stored policies match on.
+        self.assertEqual(arabic["first_time_fix"]["population"], "corrective records")
+        self.assertNotIn("population_ar", arabic["first_time_fix"])
+
     def test_a_gap_is_disclosed_rather_than_counted_as_a_zero(self):
         # The defect ADR 0042 fixed, now guarded at the API boundary.
         run = self.finished_run()

@@ -1191,6 +1191,8 @@ def create_app(config_path=None, env=None, dist_dir=None):
             if arabic and measure.get("title_ar"):
                 measure["title"] = measure["title_ar"]
             measure.pop("title_ar", None)
+            # `population` stays the code; the label is what a reader sees.
+            measure["population_label"] = measure.pop("population_ar") if arabic else measure["population"]
             measure["assessment"] = performance.assessment(measure, selected_policy["rules"], language)
             measures.append(measure)
         return {

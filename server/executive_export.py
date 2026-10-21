@@ -14,7 +14,7 @@ from xml.etree import ElementTree as ET
 from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
 
 from server.maintenance import performance
-from server.maintenance.kpis import REGISTER
+from server.maintenance.kpis import POPULATION_AR, REGISTER
 
 
 HTML_MIME = "text/html"
@@ -116,8 +116,8 @@ def report_sections(brief):
         "count": ("Count", "عدد"), "score": ("Score", "درجة"),
         "category": ("Category", "فئة"), "date": ("Date", "تاريخ"), "identifier": ("Identifier", "معرّف"),
     }
-    populations = {"all records": ("all records", "جميع السجلات"),
-                   "corrective records": ("corrective records", "سجلات الصيانة التصحيحية")}
+    # One list of population names, kept by the register itself.
+    populations = {code: (code, arabic) for code, arabic in POPULATION_AR.items()}
     policies = {"exclude": ("Exclude unmeasured records", "استبعاد السجلات غير المقاسة"),
                 "zero": ("Treat missing values as measured zero", "اعتبار القيم المفقودة أصفاراً مقاسة")}
     run, scope = brief["run"], brief["scope"]

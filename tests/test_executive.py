@@ -138,6 +138,10 @@ class ExecutiveTests(unittest.TestCase):
             self.assertEqual(item["value"], en[item["key"]]["value"])
             self.assertNotEqual(item["title"], en[item["key"]]["title"])
             self.assertNotIn("title_ar", item)
+            # The population is shown in Arabic; its code stays for exports.
+            self.assertEqual(item["population"], en[item["key"]]["population"])
+            self.assertRegex(item["population_label"], "[\u0600-\u06FF]")
+            self.assertNotIn("population_ar", item)
 
     def test_response_is_bounded_and_every_reference_resolves(self):
         claims = [{"id": f"g.cl_{i}", "type": "fact", "status": "verified", "text": "Measured.",

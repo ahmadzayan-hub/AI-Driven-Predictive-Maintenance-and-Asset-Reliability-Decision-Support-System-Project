@@ -23,7 +23,8 @@ export function needsDisclosure(measure: KpiMeasure): boolean {
 /** The figure, on its own scale, or null when there is nothing to print. */
 export function formatValue(measure: KpiMeasure, locale: 'en' | 'ar' = 'en'): string | null {
   if (measure.value === null || !Number.isFinite(measure.value)) return null
-  const tag = locale === 'ar' ? 'ar-EG' : 'en-GB'
+  // Western digits in Arabic too, as everywhere else (ADR 0018).
+  const tag = locale === 'ar' ? 'ar-u-nu-latn' : 'en-GB'
   const digits = measure.scale === 'money' ? 2 : 1
   const number = measure.value.toLocaleString(tag, {
     minimumFractionDigits: digits,

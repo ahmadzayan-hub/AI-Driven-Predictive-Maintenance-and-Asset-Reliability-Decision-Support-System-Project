@@ -110,7 +110,7 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
                           <span dir="auto">{measure.title}</span>
                           <PerformanceValue tone={tone} reason={verdict ? measure.assessment?.reason : undefined}>{shown ?? t('assets.kpiUndefined')}</PerformanceValue>
                           <small dir="auto">
-                            {measure.population} · {t('assets.kpiRecords', { records: String(measure.records) })}
+                            {measure.population_label ?? measure.population} · {t('assets.kpiRecords', { records: String(measure.records) })}
                             {needsDisclosure(measure) ? ' · ' + (measure.value === null
                               ? t('assets.kpiNoEvidence')
                               : t('assets.kpiUnmeasured',

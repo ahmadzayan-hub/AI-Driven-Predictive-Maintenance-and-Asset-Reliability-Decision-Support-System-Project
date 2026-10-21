@@ -413,6 +413,17 @@ class CorrectedMeasuresTest(unittest.TestCase):
         self.assertNotIn("utilisation", keys)
         self.assertIn("Operating_Hours", unavailable["utilisation"])
 
+    def test_every_population_has_an_arabic_name_and_keeps_its_english_code(self):
+        # An Arabic page showed "all records": the register named populations
+        # in English only. The code stays English, because exports and
+        # policies match on it; the Arabic name travels beside it.
+        for kpi in kpis.REGISTER.values() if isinstance(kpis.REGISTER, dict) else kpis.REGISTER:
+            self.assertIn(kpi.population_name, kpis.POPULATION_AR, kpi.key)
+            self.assertRegex(kpis.POPULATION_AR[kpi.population_name], "[\u0600-\u06FF]")
+        with self.assertRaises(ValueError):
+            kpis.Kpi("x", "X", "س", "Downtime_Hours", kpis.RECORDS, lambda row: True,
+                     "untranslated records", contract.HOURS, "test")
+
     def test_every_measure_names_a_dashboard_family_and_it_is_not_a_verdict(self):
         """The family groups a card on the dashboard. It must be declared, known,
         and returned with the figure, and it must not depend on the value."""

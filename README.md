@@ -422,6 +422,15 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Arabic population labels and digits — 21 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-21-arabic-population-labels-and-digits.md)).
+`python scripts/verify.py`: **1,489 Python tests reported, 153 skipped**,
+brain check (45 notes), type check, **276 frontend unit tests**, build and
+budget passed. Playwright `executive`, `metric-colors`, `dashboard`,
+`arabic` and `a11y`: **32 passed**. The full suite and PostgreSQL were not run
+for this change.
+
 ### Assets on a phone — 21 October 2026
 
 Layout change ([addendum](docs/adr/2026-10-21-simplified-navigation-runs-and-assets.md#addendum-2026-10-21-assets-on-a-phone)).

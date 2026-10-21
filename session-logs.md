@@ -1095,3 +1095,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Done:** measures moved before the screening notes; phone context boxes in two rows; a dead selector guard and an orphaned margin removed to pay for it. Test for the order, watched failing on the old view.
 - **Verified:** `verify.py` all 8 steps (275 frontend); Playwright overview, responsive, a11y, arabic 22 passed, 4 skipped; a direct 320/375 px overflow check in English and Arabic against a maintenance run, which the e2e server does not have.
 - **Open / next:** server-side Arabic population labels; Arabic-Indic digits in Assets; CSS budget decision (1 byte left); reading test.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (Arabic labels and digits)
+
+**Goal:** fix the two Arabic faults on Assets: English population names and Arabic-Indic digits.
+
+- **Done:** `POPULATION_AR` in the register, enforced at `Kpi` definition; `population_label` from the `/kpis` and executive endpoints, `population` kept as the code; the export map now reads the register (it lacked "records with a failure"); Assets and the dashboard evidence show the label; Assets formats with `ar-u-nu-latn`. ADR.
+- **Verified:** `verify.py` all 8 steps (1,489 Python, 153 skipped; 276 frontend); Playwright executive, metric-colors, dashboard, arabic, a11y 32 passed. Five new tests each watched failing first. Live check on the fictional run: zero Arabic-Indic digits and zero English population names in the Arabic tiles.
+- **Decisions:** kept `population` as the English code because exports and policies match on it. A `pgrep -f` on a pattern in my own command killed the shell (exit 144), as Memory warns; the server was restarted cleanly.
+- **Open / next:** CSS budget decision (1 byte left); reading test.

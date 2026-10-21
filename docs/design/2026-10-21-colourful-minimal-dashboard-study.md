@@ -82,6 +82,5 @@ words 126 → 78, 103 → 88 and 107 → 75. The CSS total now has 7 bytes left.
    their own data.
 2. **Budget:** any further visual change needs something removed first, or a
    decision to raise the CSS limit.
-3. **Arabic Assets:** the KPI population label arrives in English from the
-   server, and Assets uses Arabic-Indic digits where the rest of the app uses
-   Latin. (The first Assets KPI is now on a phone's first screen at 390 px.)
+3. ~~Arabic Assets~~ fixed the same day
+   ([decision](../adr/2026-10-21-arabic-population-labels-and-digits.md)).
