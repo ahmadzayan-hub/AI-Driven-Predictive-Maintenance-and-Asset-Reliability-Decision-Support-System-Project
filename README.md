@@ -422,6 +422,16 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Targets held when a measure is redefined — 21 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-21-targets-held-when-a-measure-is-redefined.md)).
+`REQUIRE_PG=1 python scripts/verify.py` against PostgreSQL 16: **1,493 Python
+tests reported, 19 skipped** (optional extras only), brain check (45 notes),
+type check, **277 frontend unit tests**, build and budget passed. Playwright
+`executive`, `metric-colors` and `dashboard`: **20 passed** after the
+`metric-colors` seed was stamped with availability's current definition. The
+full browser suite was not re-run for this change.
+
 ### Full validation with PostgreSQL; CSS budget raised — 21 October 2026
 
 [Budget decision](docs/adr/2026-10-21-css-budget-raised-and-exact.md).

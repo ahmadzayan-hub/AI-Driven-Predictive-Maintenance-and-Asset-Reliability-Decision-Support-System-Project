@@ -57,6 +57,16 @@ def validate_rules(rules):
                               "يجب أن يكون اتجاه الهدف أعلى أو أقل أو نطاقاً (higher أو lower أو range).")
         fields = BOUNDARIES[direction]
         expected = {"direction", "scale", "source_ref", *fields}
+        # A stamp says which definition of the measure the target was set for.
+        # Absent means a target saved before stamps existed: definition 1.
+        stamped = "definition" in raw
+        if stamped:
+            expected.add("definition")
+            stamp = raw["definition"]
+            if (isinstance(stamp, bool) or not isinstance(stamp, int)
+                    or not 1 <= stamp <= REGISTER[key].definition):
+                raise PolicyError("The definition stamp must name a current or earlier definition of the measure.",
+                                  "يجب أن يشير ختم التعريف إلى تعريف حالي أو سابق للمؤشر.")
         if set(raw) != expected:
             raise PolicyError("Provide exactly the boundaries for the selected target direction.",
                               "حدد حدود اتجاه الهدف المختار فقط، مع المقياس ومرجع المصدر.")
@@ -91,6 +101,8 @@ def validate_rules(rules):
                               "يجب ترتيب حدود الجيد والمقبول؛ ويجب أن يقع النطاق الجيد داخل النطاق المقبول.")
         normalized[key] = {"direction": direction, "scale": raw["scale"],
                            **limits, "source_ref": source.strip()}
+        if stamped:
+            normalized[key]["definition"] = raw["definition"]
     return normalized
 
 
@@ -168,6 +180,11 @@ def assessment(measure, rules=None, language="en"):
                               "لا تتوفر قيمة مقاسة منتهية؛ ولا يعني غياب القياس أداءً ضعيفاً أو صفرياً."))
         return out
     if not rule:
+        return out
+    if rule.get("definition", 1) < REGISTER[measure["key"]].definition:
+        out.update(reason_code="target_outdated",
+                   reason=say("This target was set for an earlier definition of the measure; review it before it judges the figure again.",
+                              "حُدِّد هذا الهدف لتعريف سابق للمؤشر؛ راجعه قبل أن يُستخدم في الحكم على الرقم مجدداً."))
         return out
     if rule["direction"] == "higher":
         good, okay = number >= rule["good_at"], number >= rule["okay_at"]

@@ -139,3 +139,8 @@ This record first said the register has 15 entries. It has 14 (8 before this
 change, counted from Git at `efb6eb1~1` and `efb6eb1`). The count is now
 pinned by `test_the_register_holds_fourteen_measures`. No figure or formula
 was affected.
+
+## Follow-up, 2026-10-21
+
+Stored availability targets are now held for review rather than left to
+judge the new figure: [decision](2026-10-21-targets-held-when-a-measure-is-redefined.md).

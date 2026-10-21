@@ -105,6 +105,7 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
                       const tone = performanceTone(measure.value, measure.assessment)
                       // A reason explains a verdict; "no target" is said once, below.
                       const verdict = tone === 'good' || tone === 'okay' || tone === 'bad'
+                        || measure.assessment?.reason_code === 'target_outdated'
                       return (
                         <li key={measure.key} data-family={measure.family ?? 'other'}>
                           <span dir="auto">{measure.title}</span>
@@ -128,7 +129,7 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
                   ) : null}
                   <details className="asset-intelligence__about">
                     <summary>{t('assets.about')}</summary>
-                    {kpis.measures.some((measure) => performanceTone(measure.value, measure.assessment) === 'unassessed') ? <p dir="auto">{t('assets.noTarget')}</p> : null}
+                    {kpis.measures.some((measure) => performanceTone(measure.value, measure.assessment) === 'unassessed' && measure.assessment?.reason_code !== 'target_outdated') ? <p dir="auto">{t('assets.noTarget')}</p> : null}
                     <p>{t('assets.kpiScope')}</p>
                   </details>
                 </div>

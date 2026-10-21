@@ -1113,3 +1113,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** `REQUIRE_PG=1 verify.py` all 8 steps (1,490 Python, 19 skipped, all optional extras; 276 frontend). Full Playwright 127 passed, 5 skipped.
 - **Decisions:** raised only the CSS limits, the binding ones; JavaScript unchanged. The reading test was not run and no result is claimed: it needs real maintenance managers.
 - **Open / next:** schedule the reading test; the room in the CSS budget is finite.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (targets held on redefinition)
+
+**Goal:** "Perform next": the open correctness item, availability targets saved before the measure was redefined.
+
+- **Done:** `Kpi(definition=)` with availability at 2; optional, validated `definition` stamp on rules (absent = 1, stored form and revision unchanged); `target_outdated` assessment in English and Arabic; the editor stamps only the rule it saves and only above 1; the reason shows on the dashboard card and Assets tile. ADR; known limitation and register ADR updated.
+- **Verified:** `REQUIRE_PG=1 verify.py` all 8 steps (1,493 Python, 19 optional-extra skips; 277 frontend). Playwright executive, metric-colors, dashboard 20 passed. New Python, API and frontend tests each watched failing.
+- **Decisions:** hold, never rewrite. The metric-colors spec first failed because it seeded an unstamped availability target and the editor sent a redundant `definition: 1`; fixed the editor to stamp only redefined measures and the seed to carry definition 2.
+- **Open / next:** reading test; native apps decision.

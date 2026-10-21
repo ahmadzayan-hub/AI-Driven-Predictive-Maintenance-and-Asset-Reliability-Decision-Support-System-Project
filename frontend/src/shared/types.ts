@@ -482,6 +482,8 @@ export interface KpiMeasure {
   population: string
   /** The population in the reader's language; `population` stays the code. */
   population_label?: string
+  /** Raised when the measure's meaning changes; targets carry the one they were set for. */
+  definition?: number
   records: number
   records_excluded: number
   records_unmeasured: number
@@ -504,6 +506,8 @@ export interface KpiRule {
   good_max?: number
   okay_min?: number
   okay_max?: number
+  /** The definition of the measure this target was set for; absent means 1. */
+  definition?: number
 }
 
 export interface KpiPolicy { revision: string; rules: Record<string, KpiRule> }

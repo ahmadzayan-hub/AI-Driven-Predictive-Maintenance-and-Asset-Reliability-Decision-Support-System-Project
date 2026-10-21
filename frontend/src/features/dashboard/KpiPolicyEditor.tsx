@@ -54,7 +54,11 @@ export default function KpiPolicyEditor({ runId, measures, onSaved, onClose }: {
     if (!remove && (!ordered || !Object.values(numeric).every(Number.isFinite) || !source.trim())) { setError('invalid'); return }
     const rules = { ...policy.rules }
     if (remove) delete rules[metric]
-    else rules[metric] = { direction, scale: measure.scale, source_ref: source.trim(), ...numeric }
+    // Saving stamps the target with the measure's current definition, which
+    // is how a target set for an earlier meaning is reviewed.
+    else rules[metric] = { direction, scale: measure.scale, source_ref: source.trim(), ...numeric,
+      // Absent means definition 1, so only a redefined measure carries a stamp.
+      ...(measure.definition && measure.definition > 1 ? { definition: measure.definition } : {}) }
     const controller = new AbortController()
     active.current = controller
     setBusy(true); setError(null)

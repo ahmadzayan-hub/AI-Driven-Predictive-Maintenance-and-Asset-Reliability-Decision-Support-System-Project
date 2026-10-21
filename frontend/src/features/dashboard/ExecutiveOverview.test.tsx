@@ -44,7 +44,8 @@ describe('executive decision overview', () => {
         assessment: { status: 'unassessed', reason: 'No display target is configured.', reason_code: 'no_target', direction: null, source_ref: null, rule_id: null, thresholds: null } },
       { ...base, key: 'availability', title: 'Availability', family: 'reliability', value: 90, scale: 'percent', records: 3, records_unmeasured: 0,
         assessment: { status: 'bad', reason: 'Below the 95% target.', reason_code: 'below', direction: 'higher', thresholds: { good_at: 95, okay_at: 92 }, source_ref: 'Fictional QA', rule_id: 'r1' } },
-      { ...base, key: 'mtbf', title: 'Mean time between failures', family: 'reliability', value: 48, scale: 'hours', records: 3, records_unmeasured: 0 },
+      { ...base, key: 'mtbf', title: 'Mean time between failures', family: 'reliability', value: 48, scale: 'hours', records: 3, records_unmeasured: 0,
+        assessment: { status: 'unassessed', reason: 'Set for an earlier definition; review it.', reason_code: 'target_outdated', direction: 'higher', thresholds: { good_at: 40, okay_at: 30 }, source_ref: 'Fictional QA', rule_id: 'r2' } },
     ]
     vi.mocked(api.runExecutive).mockResolvedValue(data)
     mount()
@@ -61,6 +62,10 @@ describe('executive decision overview', () => {
     expect(reason).not.toBeVisible()
     const mtbf = screen.getByRole('heading', { name: 'Mean time between failures' }).closest('article')!
     expect(mtbf.querySelector('.exec-kpi-meter')).toBeNull()
+    // A target held for review is said on the card, not hidden in the evidence.
+    const review = within(mtbf).getByText('Set for an earlier definition; review it.')
+    expect(review).toBeVisible()
+    expect(review.closest('details')).toBeNull()
     // The unit stays on the number's line: a non-breaking space joins them.
     expect(mtbf.querySelector('.exec-kpi-value bdi')!.textContent).toMatch(/\d\u00a0h$/)
   })

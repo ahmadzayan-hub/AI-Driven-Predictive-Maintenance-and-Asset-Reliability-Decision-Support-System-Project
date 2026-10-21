@@ -33,6 +33,33 @@ def measure(value, records=2, missing=0):
 
 
 class AssessmentTests(unittest.TestCase):
+    def test_a_target_set_for_an_earlier_definition_gives_no_verdict_until_reviewed(self):
+        # Before 21 October "availability" meant operating over planned hours.
+        # A stored 95% target for it now judges a different quantity, so it
+        # must not colour the new figure; it asks for review instead.
+        availability = {"key": "availability", "value": 99.0, "records": 2, "records_unmeasured": 0}
+        legacy = {"availability": rule(good_at=95, okay_at=90)}
+        out = p.assessment(availability, p.policy(legacy)["rules"])
+        self.assertEqual((out["status"], out["reason_code"]), ("unassessed", "target_outdated"))
+        self.assertIn("earlier definition", out["reason"])
+        self.assertEqual(out["thresholds"], {"good_at": 95, "okay_at": 90})
+        arabic = p.assessment(availability, p.policy(legacy)["rules"], "ar")
+        self.assertRegex(arabic["reason"], "[\u0600-\u06FF]")
+        # Reviewed against the current definition, it judges again.
+        current = {"availability": {**rule(good_at=95, okay_at=90), "definition": 2}}
+        self.assertEqual(p.assessment(availability, p.policy(current)["rules"])["status"], "good")
+        # A measure whose meaning never changed is unaffected by a missing stamp.
+        self.assertEqual(p.assessment(measure(80), {"first_time_fix": rule(good_at=75, okay_at=60)})["status"], "good")
+
+    def test_a_definition_stamp_is_validated_and_a_legacy_policy_keeps_its_revision(self):
+        for bad in (0, 3, "2", True, 2.5):
+            with self.assertRaises(p.PolicyError, msg=repr(bad)):
+                p.policy({"availability": {**rule(good_at=95, okay_at=90), "definition": bad}})
+        legacy = {"availability": rule(good_at=95, okay_at=90)}
+        # A stored policy without stamps must load with the revision it was saved under.
+        self.assertNotIn("definition", p.policy(legacy)["rules"]["availability"])
+        self.assertEqual(p.policy(legacy)["revision"], p.digest(p.validate_rules(legacy)))
+
     def test_json_depth_is_bounded_before_decoding_but_quoted_brackets_are_data(self):
         with patch.object(p.json, "loads") as decoder:
             with self.assertRaises(p.PolicyError):
@@ -169,6 +196,25 @@ class KpiPolicyApiTests(unittest.TestCase):
         removed = self.put_policy(run, saved.json(), {})
         self.assertEqual(removed.status_code, 200)
         self.assertEqual(store.latest_kpi_policy(run["id"])["version"], 2)
+
+    def test_an_unstamped_availability_target_is_held_until_saved_for_the_current_definition(self):
+        run = self.make_run()
+        def availability():
+            body = self.client.get(f"/api/runs/{run['id']}/kpis", headers=self.auth()).json()
+            return next(m for m in body["measures"] if m["key"] == "availability")
+        self.assertEqual(availability()["definition"], 2)
+        initial = self.get_policy(run).json()
+        # What a policy saved before stamps existed looks like.
+        legacy = self.put_policy(run, initial, {"availability": rule(good_at=95, okay_at=90)})
+        self.assertEqual(legacy.status_code, 200, legacy.text)
+        self.assertEqual(availability()["assessment"]["reason_code"], "target_outdated")
+        self.assertEqual(self.put_policy(run, legacy.json(),
+            {"availability": {**rule(good_at=95, okay_at=90), "definition": 3}}).status_code, 422)
+        reviewed = self.put_policy(run, legacy.json(),
+            {"availability": {**rule(good_at=95, okay_at=90), "definition": 2}})
+        self.assertEqual(reviewed.status_code, 200, reviewed.text)
+        self.assertEqual(reviewed.json()["rules"]["availability"]["definition"], 2)
+        self.assertIn(availability()["assessment"]["status"], {"good", "okay", "bad"})
 
     def test_ownership_permissions_readiness_validation_and_lost_update(self):
         queued = self.make_run(finish=False)

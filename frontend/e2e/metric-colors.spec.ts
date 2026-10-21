@@ -12,7 +12,7 @@ import { storeMaintenanceDataset } from './maintenance-dataset'
 
 type Language = 'en' | 'ar'
 type Assessment = 'good' | 'okay' | 'bad' | 'unassessed' | 'unavailable'
-type Rule = { scale: string; source_ref: string } & (
+type Rule = { scale: string; source_ref: string; definition?: number } & (
   | { direction: 'higher' | 'lower'; good_at: number; okay_at: number }
   | { direction: 'range'; good_min: number; good_max: number; okay_min: number; okay_max: number }
 )
@@ -23,7 +23,8 @@ const SOURCE = 'Fictional QA acceptance bands v1; not operational targets.'
 const RULES: Record<string, Rule> = {
   first_time_fix: { direction: 'higher', scale: 'percent', good_at: 80, okay_at: 60, source_ref: SOURCE },
   repeat_repair: { direction: 'lower', scale: 'percent', good_at: 5, okay_at: 20, source_ref: SOURCE },
-  availability: { direction: 'higher', scale: 'percent', good_at: 95, okay_at: 80, source_ref: SOURCE },
+  // Set for availability's current definition (2), so it judges the figure.
+  availability: { direction: 'higher', scale: 'percent', good_at: 95, okay_at: 80, source_ref: SOURCE, definition: 2 },
   downtime_per_record: { direction: 'range', scale: 'hours', good_min: 8, good_max: 12, okay_min: 4, okay_max: 16, source_ref: SOURCE },
 }
 const LABELS: Record<Language, Record<Assessment, string>> = {

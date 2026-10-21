@@ -299,8 +299,10 @@ function Kpi({ measure }: { measure: KpiMeasure }) {
   const value = measure.value === null ? t('exec.unavailable') : formatNumber(measure.value, { maximumFractionDigits: 2 })
   const unit = measure.value === null ? '' : measure.scale === 'percent' ? '%' : measure.scale === 'hours' ? t('exec.hours') : measure.scale === 'money' ? t('exec.money') : measure.scale
   const tone = performanceTone(measure.value, measure.assessment)
-  // A verdict's reason stays on the card; "no target is set" moves into the evidence.
+  // A verdict's reason stays on the card, and so does a target held for review;
+  // "no target is set" moves into the evidence.
   const verdict = tone === 'good' || tone === 'okay' || tone === 'bad'
+    || measure.assessment?.reason_code === 'target_outdated'
   const share = measure.scale === 'percent' && measure.value !== null ? Math.max(0, Math.min(100, measure.value)) : null
   return <article className="exec-kpi" data-source={`kpi.${measure.key}`}>
     <h5 dir="auto">{measure.title}</h5><p className={`exec-kpi-value${measure.value === null ? ' exec-kpi-value--missing' : ''}`}><PerformanceValue tone={tone} reason={verdict ? measure.assessment?.reason : undefined}><bdi>{value}{'\u00a0'}<small>{unit}</small></bdi></PerformanceValue></p>

@@ -154,8 +154,11 @@ class Kpi:
 
     def __init__(self, key, title, title_ar, numerator, denominator, population,
                  population_name, scale, meaning, *, edge_cases=None,
-                 missing=EXCLUDE, complement=False, family=None):
+                 missing=EXCLUDE, complement=False, family=None, definition=1):
         self.key = key
+        # Raised whenever what the measure means changes, so a display target
+        # set for the earlier meaning is held for review (ADR, 21 October).
+        self.definition = definition
         self.title = title
         self.title_ar = title_ar
         self.numerator = numerator
@@ -304,6 +307,7 @@ class Kpi:
             "formula": self.formula,
             "population": self.population_name,
             "population_ar": POPULATION_AR[self.population_name],
+            "definition": self.definition,
             # `records` is what the figure is actually computed on, so a
             # reader dividing numerator by it gets the printed value.
             # The two counts beside it say who was left out and why.
@@ -399,6 +403,8 @@ _add(Kpi("availability", "Availability", "الجاهزية",
          "all records", contract.PERCENT,
          "Share of planned time the asset was not down.",
          complement=True,
+         # 2: was operating / planned (now utilisation) until 21 October.
+         definition=2,
          edge_cases="Operational availability on planned time: 1 - downtime / "
                     "planned, pooled. It is only as complete as the downtime "
                     "recorded: where no preventive downtime is recorded it is "

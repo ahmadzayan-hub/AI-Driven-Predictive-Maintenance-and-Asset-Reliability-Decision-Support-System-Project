@@ -471,6 +471,8 @@ Three more limits on what the figures mean:
   a constant failure rate and independent records. Records that are not unique
   assets (the course data repeats every `Asset_ID` across all asset classes)
   make per-asset reliability impossible.
-- **Stored target policies are not migrated.** A target saved against
-  `availability` before 21 October 2026 was set against utilisation and should
-  be reviewed.
+- **Stored targets are held, not migrated.** A target saved against
+  `availability` before 21 October 2026 was set against utilisation. It now
+  gives no verdict until someone saves it again in the target editor
+  ([decision](adr/2026-10-21-targets-held-when-a-measure-is-redefined.md));
+  it is never rewritten.

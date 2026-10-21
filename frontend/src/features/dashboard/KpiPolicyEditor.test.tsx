@@ -36,6 +36,19 @@ it('saves explicit percentage-point boundaries and preserves other rules with th
   expect(onSaved).toHaveBeenCalledOnce()
 })
 
+it('stamps a saved target with the measure definition and leaves other rules as they were', async () => {
+  const user = userEvent.setup()
+  render(<KpiPolicyEditor runId="r1" measures={[{ ...measures[0], definition: 2 }, measures[1]]} onSaved={vi.fn()} onClose={vi.fn()} />)
+  await user.type(await screen.findByRole('spinbutton', { name: 'Good boundary (inclusive)' }), '95')
+  await user.type(screen.getByRole('spinbutton', { name: 'Okay boundary (inclusive)' }), '90')
+  await user.type(screen.getByRole('textbox', { name: 'Target source / rationale' }), 'Reviewed after the redefinition')
+  await user.click(screen.getByRole('button', { name: 'Save target' }))
+  const sent = vi.mocked(api.saveKpiPolicy).mock.calls[0][1] as KpiPolicy
+  expect(sent.rules.first_fix.definition).toBe(2)
+  // An unrelated legacy rule is not silently re-stamped by this save.
+  expect(sent.rules.repeat).toEqual(policy.rules.repeat)
+})
+
 it('rejects a reversed nested range before saving and recovers when the bounds are corrected', async () => {
   const user = userEvent.setup()
   mount()
