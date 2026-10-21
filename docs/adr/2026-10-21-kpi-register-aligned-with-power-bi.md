@@ -86,6 +86,7 @@ Arabic, or at 390 px. Counts are in README.md under Testing.
 
 - Economic exposure, maintenance cost, production loss and the watchlist
   measures: totals or model outputs, with no definition on the Method page.
-- The report file's own placement: it is course material in the repository,
-  which `CLAUDE.md` says belongs in `private/`. Moving it out of history
-  needs a history rewrite, which only the owner can authorise.
+- The report file's own placement: it was course material in the repository.
+  The same day it was untracked without rewriting history
+  ([decision](2026-10-21-course-artifacts-untracked.md)); removing it from
+  history needs the owner's authorisation.

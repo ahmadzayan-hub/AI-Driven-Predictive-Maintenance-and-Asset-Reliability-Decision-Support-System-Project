@@ -91,5 +91,8 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 | 2026-10-21-course-artifacts-untracked | Preserve local confidential artifacts while removing them from future source trees; history remains contained | [[Soul]], [[Team 3 Capstone]] |
 | 2026-10-21-browser-journey-isolation | Exact browser-owned fixtures and scoped budgets preserve full sequential accessibility and approval checks | [[Design system]], [[Agentic OS]] |
 | 2026-10-21-performance-status-presentation | Shared bilingual status badges and a five-state legend; counts without targets remain neutral | [[Design system]], [[Weighted KPIs]] |
+| 2026-10-21-reviewer-maintenance-method-check | The analytics reviewer checks maintenance and reliability method (check 7, `domain_method`); the figures checker reads percentage points | [[Agent evaluation]], [[Agent team]] |
+| 2026-10-21-kpi-register-aligned-with-power-bi | MTTR, first-time fix and repeat repair follow the team's Power BI Method page (definition 2); four report measures added, 18 in all; a KPI number never breaks across lines | [[Weighted KPIs]], [[Team 3 maintenance dataset]] |
+| 2026-10-21-view-only-demo-mode | A no-sign-in demo is one read-only principal on generated data, refused next to a real provider; server half only, not to be switched on yet | [[Tenant isolation]], [[Managed identity]] |
 
 All seven [[Analytics OS roadmap]] milestones have their records.
