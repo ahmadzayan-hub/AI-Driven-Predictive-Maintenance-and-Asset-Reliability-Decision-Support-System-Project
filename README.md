@@ -488,8 +488,11 @@ Vercel production was found using the deterministic provider. Preview selected
 `google/gemini-2.5-flash-lite`, but both synthetic live checks returned **HTTP
 403**: AI Gateway requires a valid payment card before serving requests. The
 diagnostic build is isolated on `codex/workspace-model-probe-2026-10-21`; its
-live build hook is absent from the integration tree. Production was not
-changed. Billing activation and explicit release approval remain owner steps.
+live build hook is absent from the integration tree. This activation work did
+not change production model configuration. Concurrent production release
+`dcde343` is recorded in the deployment guide; a fresh health check still found
+the deterministic provider. Billing activation and release of the model
+support remain owner steps.
 
 ### Visible performance status — 21 October 2026
 
@@ -836,6 +839,8 @@ reproduced defects, corrections, limits and owner acceptance gates.
   and the separate adversarial probe remains a documented limitation.
 - Vercel production remains on the older `42e53d00` deployment. Main-branch
   automatic deployment is disabled; no production release was performed.
+  (Superseded 21 October: `dcde343` deployed to production with the owner's
+  approval; see `docs/VERCEL_DEPLOYMENT.md`.)
   On the owner's subsequent approval, the repository became temporarily
   private; collaborator permissions and branch tips were preserved, and
   anonymous web/API requests returned 404. Historical remediation before

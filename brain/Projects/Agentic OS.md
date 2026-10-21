@@ -24,8 +24,9 @@ The engine in this repository, described in [[Identity]]: a governed business-an
   structured [[Agent runtimes and MCP|LangGraph decisions]]. Model failure is
   disclosed without a second slow request; exact help/status shortcuts answer
   directly. Local and hosted activation are separate. The hosted synthetic
-  acceptance probe is blocked by the team's payment-card requirement; no
-  production release was made. README holds actual tests and latency limits.
+  acceptance probe is blocked by the team's payment-card requirement; this
+  activation did not release hosted model support. README holds actual tests
+  and latency limits.
 
 - A restrained collaboration view in Runs connects the [[Hermes orchestrator]] to observed workflow groups, stage results, current evidence and recent activity. The [[User]] chose brief handoffs and expandable details. Pause live view holds only the panel; the [[Approval gate]] remains separate. English/Arabic and reduced motion follow the [[Design system]]. The dated collaboration decision and `docs/design/AGENT_COLLABORATION_MOTION.md` explain why this is not a message transcript; README records actual verification.
 

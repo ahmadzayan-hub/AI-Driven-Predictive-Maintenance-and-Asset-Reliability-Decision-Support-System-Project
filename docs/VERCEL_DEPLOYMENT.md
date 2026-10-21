@@ -9,8 +9,14 @@ function. Configuration is not hosted acceptance.
 GitHub Actions still runs. Production requires explicit owner approval and a
 separate deployment of the reviewed commit
 ([decision](adr/2026-10-20-production-release-approval.md)).
-Read-only hosting metadata identifies production commit `42e53d00` and Vercel
-Authentication protection. It does not establish current application identity,
+Read-only hosting metadata identified production commit `42e53d00` and Vercel
+Authentication protection. On 21 October 2026, with the owner's approval
+("deploy all", "redeploy now"), `main` at `dcde343` was deployed to production in
+project `asset-reliability-team3-saas` (`dpl_85JXfesWXYTtGij8QwYbaLWxpw6H`, Ready).
+Its `/api/auth/config` reports `local` mode: production has no sign-in
+variables and no `AGENTIC_OS_DEMO`. The connected Vercel account was refused
+(403) when adding `AGENTIC_OS_DEMO=1`, so the project owner must add it and
+redeploy. It does not establish current application identity,
 database durability or worker readiness. The historical observations below
 apply only to the deployment and date they name.
 
@@ -75,7 +81,8 @@ Serverless hardening already in place:
    On 21 October, Preview selected `google/gemini-2.5-flash-lite`; a synthetic
    live request returned HTTP 403 because the team must add a valid payment
    card before AI Gateway serves requests. Configuration is not a successful
-   model response. Production was not changed. `scripts/model_probe.py --live`
+   model response. This activation work did not change production model
+   configuration. `scripts/model_probe.py --live`
    performs the bounded synthetic connectivity check in a credentialed server
    environment; without `--live` it only reports model/credential presence.
    Never copy an OIDC token into a file or chat. See the
