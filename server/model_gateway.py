@@ -6,7 +6,7 @@ already-computed facts — never the dataset. With no provider configured
 (the default, and always in tests/CI) a deterministic template is used, so
 the application is fully functional offline and no test needs credentials.
 
-Three providers, chosen by environment variable, in priority order:
+Four providers, chosen by environment variable, in priority order:
 
 - **ollama** — a model running on the operator's own machine
   (OLLAMA_MODEL, optional OLLAMA_HOST). No key, no account, and the facts
@@ -14,6 +14,8 @@ Three providers, chosen by environment variable, in priority order:
   that sends nothing anywhere.
 - **anthropic** — Claude via ANTHROPIC_API_KEY (+ ANTHROPIC_MODEL).
 - **groq** — GROQ_API_KEY (+ GROQ_MODEL).
+- **vercel** — an explicit AI_GATEWAY_MODEL and deployment OIDC token
+  or AI_GATEWAY_API_KEY. No hosted model is selected implicitly.
 
 Keys are read server-side only. They are never logged, stored, or sent to
 the browser, and any provider failure degrades to the deterministic
@@ -25,6 +27,7 @@ import re
 import math
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+AI_GATEWAY_URL = "https://ai-gateway.vercel.sh/v1/chat/completions"
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_VERSION = "2023-06-01"
 DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
@@ -70,6 +73,9 @@ ARABIC_INSTRUCTION = (
 class ModelGateway:
     def __init__(self, env=None):
         env = os.environ if env is None else env
+        # Keep the mapping live: deployment OIDC credentials can rotate.
+        self._env = env
+        self.ai_gateway_model = env.get("AI_GATEWAY_MODEL") or None
         self.ollama_model = env.get("OLLAMA_MODEL") or None
         self.ollama_host = env.get("OLLAMA_HOST") or DEFAULT_OLLAMA_HOST
         self.anthropic_key = env.get("ANTHROPIC_API_KEY") or None
@@ -113,6 +119,8 @@ class ModelGateway:
             self.provider, self.model = "anthropic", self.anthropic_model
         elif self.groq_key:
             self.provider, self.model = "groq", self.groq_model
+        elif self.ai_gateway_model and self._ai_gateway_token():
+            self.provider, self.model = "vercel", self.ai_gateway_model
         else:
             self.provider, self.model = "deterministic", None
 
@@ -144,6 +152,9 @@ class ModelGateway:
         if self.groq_key:
             found.append({"provider": "groq", "model": self.groq_model,
                           "local_only": False})
+        if self.ai_gateway_model and self._ai_gateway_token():
+            found.append({"provider": "vercel", "model": self.ai_gateway_model,
+                          "local_only": False})
         # Always reachable, always last: it needs nothing and never fails.
         found.append({"provider": "deterministic", "model": None,
                       "local_only": True})
@@ -160,6 +171,7 @@ class ModelGateway:
         `language` is the report's language; the facts are already in it.
         """
         callers = {"ollama": self._call_ollama,
+                   "vercel": self._call_vercel,
                    "anthropic": self._call_anthropic,
                    "groq": self._call_groq}
         caller = callers.get(provider or self.provider)
@@ -187,6 +199,7 @@ class ModelGateway:
         and settings, never rows.
         """
         callers = {"ollama": self._complete_ollama,
+                   "vercel": self._complete_vercel,
                    "anthropic": self._complete_anthropic,
                    "groq": self._complete_groq}
         caller = callers.get(provider or self.provider)
@@ -204,6 +217,8 @@ class ModelGateway:
         if (provider or self.provider) == "ollama":
             return self._complete_ollama(system, user, max_tokens, json_output=True,
                                          schema=schema)
+        if (provider or self.provider) == "vercel":
+            return self._complete_vercel(system, user, max_tokens, json_output=True)
         return self.ask(system, user, provider=provider, max_tokens=max_tokens)
 
     def _post(self, url, headers, payload):
@@ -251,6 +266,30 @@ class ModelGateway:
     def _call_groq(self, goal, facts, language="en"):
         return self._complete_groq(self._system(language), self._prompt(goal, facts),
                                    MAX_OUTPUT_TOKENS)
+
+    def _ai_gateway_token(self):
+        return self._env.get("AI_GATEWAY_API_KEY") or self._env.get("VERCEL_OIDC_TOKEN")
+
+    def _call_vercel(self, goal, facts, language="en"):
+        return self._complete_vercel(self._system(language), self._prompt(goal, facts),
+                                     MAX_OUTPUT_TOKENS)
+
+    def _complete_vercel(self, system, user, max_tokens=None, json_output=False):
+        token = self._ai_gateway_token()
+        if not token or not self.ai_gateway_model:
+            return None
+        payload = {"model": self.ai_gateway_model,
+                   "max_tokens": max_tokens or MAX_OUTPUT_TOKENS,
+                   "messages": [{"role": "system", "content": system},
+                                {"role": "user", "content": user}]}
+        if json_output:
+            payload["response_format"] = {"type": "json_object"}
+        body = self._post(AI_GATEWAY_URL,
+                          {"Authorization": f"Bearer {token}"}, payload)
+        try:
+            return self._clean(body["choices"][0]["message"]["content"])
+        except (TypeError, KeyError, IndexError):
+            return None
 
     # The wire calls, one per provider, over an arbitrary system + user pair.
     def _complete_ollama(self, system, user, max_tokens=None, json_output=False, schema=None):

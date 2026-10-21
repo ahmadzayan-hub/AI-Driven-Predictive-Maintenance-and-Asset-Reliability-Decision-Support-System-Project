@@ -79,6 +79,10 @@ def provider_for(model_name, available):
         return None
     lowered = str(model_name).strip().lower()
     reachable = {entry["provider"] for entry in available}
+    # An explicitly configured gateway model wins before broad family aliases.
+    for entry in available:
+        if str(entry.get("model") or "").lower() == lowered:
+            return entry["provider"]
     # Naming conventions say more than a family name (ADR 0027). A tag after
     # a colon ("qwen3:8b", "gpt-oss:20b") is how Ollama names a local model;
     # a "provider/" prefix or a "-versatile" tier is a hosted name, and the

@@ -57,6 +57,11 @@ def gateway_with(**env):
 
 
 class ProviderMappingTestCase(unittest.TestCase):
+    def test_exact_gateway_model_precedes_a_broad_provider_family(self):
+        available = [{"provider": "groq", "model": "other"},
+                     {"provider": "vercel", "model": "google/gemini-2.5-flash-lite"}]
+        self.assertEqual(provider_for("google/gemini-2.5-flash-lite", available), "vercel")
+
     """A router names a model; this application knows providers."""
 
     def setUp(self):

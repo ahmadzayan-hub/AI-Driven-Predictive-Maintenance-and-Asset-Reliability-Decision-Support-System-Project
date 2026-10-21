@@ -5,7 +5,7 @@ decides whether to go round again, and a checkpoint so the next message
 on the same thread remembers what the tools said last time. Nothing
 here decides what a tool does: the ToolBox does, and refuses what it
 refuses. The model is the deployment's own gateway (`context["ask"]`),
-so the keys stay where they are and the same three providers work.
+so the keys stay where they are and the configured providers work.
 
 Register it:
 
@@ -30,9 +30,21 @@ SYSTEM = (
     "sentences>\"}. Tool results are shown to the person verbatim, so the "
     "reply must not repeat them and must never state a number or a finding "
     "of your own. Deleting is not offered; do not try. Write the reply in "
-    "the person's language."
+    "the person's language. For general conversation or a conceptual question, "
+    "answer directly with reply; call tools only for requested workspace work. "
+    "General maintenance guidance follows approved procedures and safe isolation "
+    "by qualified personnel; never invent an asset diagnosis or operating limit."
 )
 MAX_OBSERVATIONS = 12
+DECISION_SCHEMA = {
+    "oneOf": [
+        {"type": "object", "properties": {"reply": {"type": "string"}},
+         "required": ["reply"], "additionalProperties": False},
+        {"type": "object", "properties": {
+            "tool": {"type": "string"}, "arguments": {"type": "object"}},
+         "required": ["tool", "arguments"], "additionalProperties": False},
+    ]
+}
 
 
 class State(TypedDict, total=False):
@@ -69,7 +81,7 @@ class LangGraphRuntime:
         self.saver = InMemorySaver()
 
     def run(self, message, tools, context):
-        graph = self._graph(tools, context["ask"])
+        graph = self._graph(tools, context["ask"], context.get("ask_json"))
         thread = {"configurable": {"thread_id": str(context.get("thread_id") or "default")}}
         state = graph.invoke({"message": message, "notes": context.get("notes", ""),
                               "tools": json.dumps(tools.describe()), "steps": 0,
@@ -80,14 +92,19 @@ class LangGraphRuntime:
             return None  # nothing called, nothing said: let the ordinary path answer
         return reply
 
-    def _graph(self, tools, ask):
+    def _graph(self, tools, ask, ask_json=None):
         def plan(state):
             user = "\n".join([
                 state.get("notes", ""), "Tools (name, description, inputSchema):",
                 state["tools"], "What the tools said so far on this thread:",
                 *(state.get("observations") or ["(nothing yet)"]),
                 "Message: " + state["message"]])
-            decision = _decision(ask(SYSTEM, user, max_tokens=self.max_tokens))
+            if callable(ask_json):
+                raw = ask_json(SYSTEM, user, max_tokens=self.max_tokens,
+                               schema=DECISION_SCHEMA)
+            else:
+                raw = ask(SYSTEM, user, max_tokens=self.max_tokens)
+            decision = _decision(raw)
             if not decision or "tool" not in decision:
                 reply = (decision or {}).get("reply")
                 return {"call": None, "done": True,

@@ -14,6 +14,23 @@ from server.assistant import INTENT_SCHEMA
 
 
 class ProviderSelectionTestCase(unittest.TestCase):
+    def test_gateway_requires_explicit_model_and_credential(self):
+        for env in ({}, {"VERCEL_OIDC_TOKEN": "private-token"},
+                    {"AI_GATEWAY_MODEL": "provider/model"}):
+            self.assertFalse(ModelGateway(env=env).status()["configured"])
+        gateway = ModelGateway(env={"AI_GATEWAY_MODEL": "provider/model",
+                                    "VERCEL_OIDC_TOKEN": "private-token"})
+        self.assertEqual(gateway.provider, "vercel")
+        self.assertFalse(gateway.status()["local_only"])
+        self.assertNotIn("private-token", repr(gateway.status()))
+        self.assertEqual(gateway.providers()[0]["provider"], "vercel")
+
+    def test_gateway_does_not_replace_existing_provider(self):
+        gateway = ModelGateway(env={"OLLAMA_MODEL": "local-model",
+                                    "AI_GATEWAY_MODEL": "provider/model",
+                                    "VERCEL_OIDC_TOKEN": "private-token"})
+        self.assertEqual(gateway.provider, "ollama")
+
     def test_no_configuration_means_deterministic_and_offline(self):
         gateway = ModelGateway(env={})
         self.assertEqual(gateway.status(),
@@ -57,6 +74,33 @@ class ProviderCallTestCase(unittest.TestCase):
 
         gateway._post = fake_post
         return gateway
+
+    def test_gateway_rotated_oidc_is_read_for_each_request(self):
+        env = {"AI_GATEWAY_MODEL": "provider/model", "VERCEL_OIDC_TOKEN": "old"}
+        gateway = self.gateway_with(env, {"choices": [{"message": {"content": "Ready."}}]})
+        env["VERCEL_OIDC_TOKEN"] = "new"
+        self.assertEqual(gateway.ask("system", "hello"), "Ready.")
+        self.assertEqual(self.sent["url"], "https://ai-gateway.vercel.sh/v1/chat/completions")
+        self.assertEqual(self.sent["headers"]["Authorization"], "Bearer new")
+        self.assertNotIn("response_format", self.sent["payload"])
+        gateway.ask_json("Return JSON.", "hello", max_tokens=80)
+        self.assertEqual(self.sent["payload"]["response_format"], {"type": "json_object"})
+        self.assertEqual(self.sent["payload"]["max_tokens"], 80)
+
+    def test_gateway_api_key_precedes_oidc_and_narration_stays_plain(self):
+        gateway = self.gateway_with(
+            {"AI_GATEWAY_MODEL": "provider/model", "VERCEL_OIDC_TOKEN": "oidc",
+             "AI_GATEWAY_API_KEY": "explicit-key"},
+            {"choices": [{"message": {"content": "Costs rose."}}]})
+        self.assertEqual(gateway.narrate("goal", ["Costs rose."])["source"], "model")
+        self.assertEqual(self.sent["headers"]["Authorization"], "Bearer explicit-key")
+        self.assertNotIn("response_format", self.sent["payload"])
+
+    def test_gateway_failure_keeps_truthful_fallback(self):
+        gateway = self.gateway_with(
+            {"AI_GATEWAY_MODEL": "provider/model", "VERCEL_OIDC_TOKEN": "oidc"}, None)
+        self.assertIsNone(gateway.ask("system", "hello"))
+        self.assertEqual(gateway.narrate("goal", ["Verified fact."])["source"], "deterministic")
 
     def test_ollama_posts_to_the_local_host_and_reads_its_reply(self):
         gateway = self.gateway_with(

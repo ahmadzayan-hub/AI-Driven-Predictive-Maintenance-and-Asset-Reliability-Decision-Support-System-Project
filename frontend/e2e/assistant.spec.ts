@@ -16,7 +16,7 @@ test('plain language in the chat saves, analyses, explains, and confirms before 
   await page.goto('/')
 
   // Projects share the local owner's memory. Identify this newly saved note
-  // by its returned key, even when a previous interrupted test left notes.
+  // by its unique visible text; internal keys are no longer displayed.
   const memoryText = `the Q4 review is on Monday (${testInfo.project.name} ${randomUUID()})`
   const remember = `Remember that ${memoryText}`
   const savedResponse = page.waitForResponse((response) =>
@@ -50,7 +50,7 @@ test('plain language in the chat saves, analyses, explains, and confirms before 
   await sendMessage(page, 'no')
   await expect(lastAgentBubble(page)).toHaveText('Nothing was changed.')
   await openTab(page, /^Memory/)
-  const savedItem = page.locator('.memory__item').filter({ has: page.getByText(created[0].key, { exact: true }) })
+  const savedItem = page.locator('.memory__item').filter({ has: page.getByText(memoryText, { exact: true }) })
   await expect(savedItem).toBeVisible()
   await expect(savedItem.locator('.memory__text')).toHaveText(memoryText)
 

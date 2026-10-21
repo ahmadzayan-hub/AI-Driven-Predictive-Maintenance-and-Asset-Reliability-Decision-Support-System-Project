@@ -410,6 +410,14 @@ class ServerAssistantTestCase(unittest.TestCase):
 
 
 class ModelPathTestCase(unittest.TestCase):
+    def test_exact_workspace_commands_do_not_wait_for_a_model(self):
+        gateway = FakeGateway(None)
+        gateway.ask = Mock(side_effect=AssertionError("exact command called a model"))
+        result = Assistant(gateway, self.engine).handle("is the analysis done?", self.session)
+        self.assertEqual(result["source"], "rules")
+        self.assertNotEqual(result["action"], "chat")
+        gateway.ask.assert_not_called()
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
