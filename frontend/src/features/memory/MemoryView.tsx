@@ -257,7 +257,9 @@ export function MemoryView({
                       </form>
                     </li>
                   ) : (
-                    <li key={entry.key} className="memory__item">
+                    // The key is internal, so it is not shown; it stays on the
+                    // element so a test or tool can find one saved note.
+                    <li key={entry.key} className="memory__item" data-key={entry.key}>
                       <div className="memory__body">
                         <p className="memory__text" dir="auto">
                           {entry.text}

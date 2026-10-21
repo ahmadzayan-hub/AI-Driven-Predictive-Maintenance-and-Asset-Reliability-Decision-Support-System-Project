@@ -50,7 +50,7 @@ test('plain language in the chat saves, analyses, explains, and confirms before 
   await sendMessage(page, 'no')
   await expect(lastAgentBubble(page)).toHaveText('Nothing was changed.')
   await openTab(page, /^Memory/)
-  const savedItem = page.locator('.memory__item').filter({ has: page.getByText(created[0].key, { exact: true }) })
+  const savedItem = page.locator(`.memory__item[data-key="${created[0].key}"]`)
   await expect(savedItem).toBeVisible()
   await expect(savedItem.locator('.memory__text')).toHaveText(memoryText)
 

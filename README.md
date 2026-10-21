@@ -457,6 +457,19 @@ report download was canceled once, then its isolated rerun **passed** without
 a code change. All **12 distinct scenarios** pass. This transient download
 failure remains recorded rather than being counted as a clean first run.
 
+### Sign-in page removed: view-only demo interface — 21 October 2026
+
+With `AGENTIC_OS_DEMO=1` the app shows no sign-in and opens on Overview
+([decision](docs/adr/2026-10-21-view-only-demo-mode.md)).
+`REQUIRE_PG=1 python scripts/verify.py` against PostgreSQL 16: **1,600 Python
+tests reported, 19 skipped** (optional extras only), **296 frontend tests
+passed**, all 8 steps passed. Full Playwright, desktop and phone: **127 passed,
+5 skipped, 4 failed**; the 4 failures (assistant and journey memory steps)
+also failed on the commit before this change: two concurrent changes collided
+(the specs found a memory note by its key on screen; the Memory view had
+stopped showing keys). Fixed by keeping the key as a `data-key` attribute;
+those two specs then **8 of 8 passed** on desktop and phone.
+
 ### KPI register aligned with the Power BI report — 21 October 2026
 
 MTTR, first-time fix and repeat repair now follow the report's Method page,
