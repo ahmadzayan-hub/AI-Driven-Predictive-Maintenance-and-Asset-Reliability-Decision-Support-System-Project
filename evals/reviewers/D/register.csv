@@ -1,0 +1,91 @@
+Check,Expected
+Route length (km),28
+Stations (count),22
+Interlockings (count),6
+Axle-counter sections (count),"1,140"
+Point machines (count),186
+Point machines on main line (count),124
+Point machines in depot sidings (count),62
+Radio base stations (count),42
+CCTV cameras (count),"1,350"
+Maintenance depots (count),2
+"Work orders raised, 2024 (count)","7,385"
+"Work orders raised, 2025 (count)","8,240"
+"Work orders raised, increase (difference: 8,240 - 7,385)",855
+"Work orders raised, growth (ratio: (8,240 - 7,385) / 7,385)",11.6%
+"Preventive work orders raised, 2024 (count)","4,365"
+"Preventive work orders raised, 2025 (count)","5,150"
+"Corrective work orders raised, 2024 (count)","3,020"
+"Corrective work orders raised, 2025 (count)","3,090"
+"Corrective share of raised, 2024 (ratio: 3,020 / 7,385)",40.9%
+"Corrective share of raised, 2025 (ratio: 3,090 / 8,240)",37.5%
+"Corrective share change (difference: 37.5% - 40.9%, percentage points)",-3.4
+"Corrective work orders completed, 2025 (count)","2,980"
+"Corrective share of completed, 2025 (ratio: 2,980 / 7,910)",37.7%
+"Work orders completed, 2025 (count)","7,910"
+"Completion rate, 2025 (ratio: 7,910 / 8,240)",96.0%
+"Work orders carried into 2026 (difference: 8,240 - 7,910)",330
+"Service-affecting signalling failures, 2024 (count)",468
+"Service-affecting signalling failures, 2025 (count)",412
+"Service-affecting failures, change (difference: 412 - 468)",-56
+"Service-affecting failures, change (ratio: (412 - 468) / 468)",-12.0%
+"Signalling delay minutes, 2024","21,960"
+"Signalling delay minutes, 2025","18,540"
+"Signalling delay minutes, change (difference: 18,540 - 21,960)","-3,420"
+"Signalling delay minutes, change (ratio: (18,540 - 21,960) / 21,960)",-15.6%
+"Terminal approaches with added recovery time, May timetable (count)",3
+"Delay minutes per failure, 2025 (ratio: 18,540 / 412)",45.0
+"Delay minutes per failure, 2024 (ratio: 21,960 / 468)",46.9
+"Axle-counter MTBF, 2024 (hours)",540
+"Axle-counter MTBF, 2025 (hours)",612
+"Axle-counter MTBF, change (difference: 612 - 540, hours)",72
+"Axle-counter MTBF growth (ratio: (612 - 540) / 540)",13.3%
+"Point machine failures, 2024 (count)",118
+"Point machine failures, 2025 (count)",97
+"Point machine failures, change (difference: 97 - 118)",-21
+"Point machine failures, change (ratio: (97 - 118) / 118)",-17.8%
+"Mainline point machine failures, 2025 (count)",71
+"Depot point machine failures, 2025 (count)",26
+"Point machine failures per machine, fleet, 2025 (ratio: 97 / 186)",0.52
+"Point machine failures per mainline machine, 2025 (ratio: 71 / 124)",0.57
+"Harbour interlocking point machine failures, 2024 (count)",11
+"Harbour interlocking point machine failures, 2025 (count)",4
+"Radio base station availability, 2024",99.48%
+"Radio base station availability, 2025",99.71%
+"Radio availability change (difference: 99.71% - 99.48%, percentage points)",0.23
+Radio base station availability target,99.80%
+"Radio base stations surveyed for interference, Q3 (count)",2
+"CCTV faults, 2024 (count)",310
+"CCTV faults, 2025 (count)",540
+"CCTV faults, growth (ratio: (540 - 310) / 310)",74.2%
+"CCTV faults per camera, 2025 (ratio: 540 / 1,350)",0.40
+"CCTV faults per camera, 2024 (ratio: 310 / 1,350)",0.23
+CCTV contract repair time limit (hours),8
+"Median response time, 2024 (minutes)",44
+"Median response time, 2025 (minutes)",38
+Response time target (minutes),45
+"North depot callouts, 2025 (count)","1,500"
+"North depot callouts attended within target, 2025 (count)","1,410"
+"North depot attendance within target (ratio: 1,410 / 1,500)",94.0%
+"South depot callouts, 2025 (count)","1,100"
+"South depot callouts attended within target, 2025 (count)",858
+"South depot attendance within target (ratio: 858 / 1,100)",78.0%
+"Network attendance within target, pooled (ratio: (1,410 + 858) / (1,500 + 1,100))",87.2%
+"North depot work orders completed, 2025 (count)","4,800"
+"North depot first-time fixes, 2025 (count)","4,320"
+"North depot first-time fix rate (ratio: 4,320 / 4,800)",90.0%
+"South depot work orders completed, 2025 (count)","3,110"
+"South depot first-time fixes, 2025 (count)","2,550"
+"South depot first-time fix rate (ratio: 2,550 / 3,110)",82.0%
+"First-time fixes, total (sum: 4,320 + 2,550)","6,870"
+"First-time fix rate, pooled (ratio: 6,870 / 7,910)",86.9%
+"Maintenance spend, 2024","$13,200,000"
+"Maintenance spend, 2025","$14,600,000"
+"Maintenance spend growth (ratio: (14,600,000 - 13,200,000) / 13,200,000)",10.6%
+"Spend per completed work order, 2025 (ratio: 14,600,000 / 7,910)","$1,846"
+"Contractor spend, 2024","$3,960,000"
+"Contractor spend, 2025","$5,110,000"
+"Contractor spend growth (ratio: (5,110,000 - 3,960,000) / 3,960,000)",29.0%
+"Contractor share of spend, 2024 (ratio: 3,960,000 / 13,200,000)",30.0%
+"Contractor share of spend, 2025 (ratio: 5,110,000 / 14,600,000)",35.0%
+"Contractor share change (difference: 35.0% - 30.0%, percentage points)",5.0
