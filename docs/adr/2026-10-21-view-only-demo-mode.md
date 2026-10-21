@@ -1,7 +1,7 @@
-# View-only demo mode without sign-in (server half)
+# View-only demo mode without sign-in
 
-Date: 2026-10-21 · Status: Accepted for the server; the interface is not built,
-so **do not set `AGENTIC_OS_DEMO` on any deployment yet**.
+Date: 2026-10-21 · Status: Accepted. Server and interface complete; switching a
+deployment to it needs the owner's approval (see "Turning it on").
 
 ## Context
 
@@ -27,16 +27,45 @@ no sign-in, fictional data, nothing writable.
    reach the demo and every cold start shows the same figures. It uses the
    maintenance profile where configured and the default profile otherwise.
 
+## The interface (added the same day)
+
+The app opened a chat session on load, which is a write. In demo mode
+(`/api/auth/config` reports `mode: "demo"`) it now:
+
+1. Shows no sign-in page and never asks the server for a session; a closed
+   local session stands in, so no session-dependent write is attempted.
+2. Opens on Overview. Workspace, Memory and Preferences, which live on a
+   session, leave the sidebar and the phone bar (Analytics takes Workspace's
+   place there), and a link to one of them lands on Overview.
+3. Hides New session, End session, sign-out, the onboarding dialog and the
+   buttons that start an analysis on Overview and Asset Intelligence.
+4. Replaces the header status with "View-only demo" in English or Arabic,
+   explained on hover, and names the visitor "Demo visitor".
+
+## Turning it on
+
+On the hosted project, with the owner's approval: set `AGENTIC_OS_DEMO=1`;
+remove `AGENTIC_OS_JWT_SECRET`, `SUPABASE_JWT_SECRET` and
+`AGENTIC_OS_JWKS_URL` (the server refuses to start with both); redeploy. Without
+`DATABASE_URL` the demo runs on SQLite in the function's temporary folder and
+re-seeds its fictional run on each cold start, which is what a demo wants.
+
 ## Not done
 
-- **The interface.** The app opens a chat session on load, which is a write,
-  so with demo mode on today the browser shows a start-up error. The plan:
-  in demo mode, open on Overview with a client-side session, hide Workspace,
-  Memory, Preferences and the session buttons, and show a bilingual
-  "view only, fictional data" note.
+- Deeper pages keep their write controls: the Analytics run form, adding a
+  dataset, approving, saving a target, and the Operations administration.
+  Using one shows the server's refusal ("Your role (viewer) cannot write
+  here."); nothing is written.
 - Two cold starts at once against one PostgreSQL database could both seed.
 
 ## Verification
+
+Interface: a store test (demo mode opens with no sign-in, never calls
+`createSession`, even when asked to start) and an Overview test (no start
+buttons when it cannot start), each failing before the change. In a browser
+against a demo server on a fresh database: no sign-in at 1440 px and 390 px,
+English and Arabic; landing on Overview; `#/chat` redirected; no failed request
+and no page error on load.
 
 `tests/test_demo.py` (11 tests): one read-only principal; a token does not
 upgrade a visitor; refusal next to any provider variable; production allowed;

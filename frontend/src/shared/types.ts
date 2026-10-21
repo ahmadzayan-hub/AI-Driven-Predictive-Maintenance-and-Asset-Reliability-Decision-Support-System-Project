@@ -85,7 +85,7 @@ export interface ActivityEvent {
 export type ConnectionStatus = 'ready' | 'working' | 'offline' | 'error' | 'ended'
 
 export interface AuthConfig {
-  mode: 'local' | 'jwt'
+  mode: 'local' | 'jwt' | 'demo'
   provider?: string
   provider_url: string
   publishable_key: string

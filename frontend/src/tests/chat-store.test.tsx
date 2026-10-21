@@ -35,6 +35,23 @@ async function setup() {
   await waitFor(() => expect(hook.result.current.session?.session_id).toBe('test-session'))
   return hook
 }
+describe('view-only demo', () => {
+  it('opens with no sign-in and no server session, read-only', async () => {
+    vi.mocked(api.authConfig).mockResolvedValue({ mode: 'demo', provider_url: '', publishable_key: '', flows: [] })
+    vi.spyOn(api, 'identity').mockResolvedValue({ mode: 'demo', principal: { subject: 'demo-showcase', role: 'viewer',
+      provider: 'demo', email: '', permissions: ['read'] } })
+    const { result } = renderHook(() => useStore(), { wrapper: StoreProvider })
+    await waitFor(() => expect(result.current.session).not.toBeNull())
+    expect(result.current.demo).toBe(true)
+    expect(result.current.needsSignIn).toBe(false)
+    expect(result.current.session?.ended).toBe(true)
+    expect(api.createSession).not.toHaveBeenCalled()
+    // Starting a session is a write; the demo never asks for one.
+    await act(async () => { await result.current.start() })
+    expect(api.createSession).not.toHaveBeenCalled()
+  })
+})
+
 describe('Miyaar chat request continuity', () => {
   it('returns to sign-in when a non-chat API request receives an expired-token response', async () => {
     const { result } = await setup()

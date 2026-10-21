@@ -80,11 +80,15 @@ const NAV_GROUPS: Array<{ id: string; items: NavItem[] }> = [
 ]
 
 const ALL_ITEMS = NAV_GROUPS.flatMap((group) => group.items)
+// Views that live on a chat session, which the view-only demo does not have.
+const NEEDS_SESSION: ReadonlySet<Tab> = new Set<Tab>(['chat', 'memory', 'preferences'])
+const DEMO_GROUPS = NAV_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => !NEEDS_SESSION.has(item.id)) }))
 
 // A phone's bottom bar holds at most five places: the four a manager opens
 // most, and "More", which opens the drawer holding the rest.
 const BAR_TABS: Tab[] = ['overview', 'assets', 'dashboard', 'chat']
 const BAR_ITEMS = BAR_TABS.map((id) => ALL_ITEMS.find((item) => item.id === id)!)
+const DEMO_BAR_ITEMS = BAR_ITEMS.map((item) => item.id === 'chat' ? ALL_ITEMS.find((other) => other.id === 'runs')! : item)
 
 const ONBOARDING_KEY = 'aos-onboarded'
 
@@ -127,6 +131,10 @@ export function App() {
   useLayoutEffect(() => {
     runStore.reset()
   }, [store.session?.session_id, store.identity?.principal.subject, store.identity?.principal.role])
+
+  const demo = store.demo
+  // The demo opens on the Overview and never shows a view that needs a session.
+  useEffect(() => { if (demo && NEEDS_SESSION.has(tab)) navigate({ tab: 'overview' }) }, [demo, tab, navigate])
 
   useEffect(() => {
     if (tab === 'chat' && pendingCommand) { composerRef.current?.insert(pendingCommand); setPendingCommand(null) }
@@ -329,17 +337,18 @@ export function App() {
   const userName = typeof rawName === 'string' && rawName.trim() ? rawName.trim() : null
 
   function pane(id: Tab, content: ReactNode) {
+    if (demo && NEEDS_SESSION.has(id)) return null
     if (tab !== id && !visited.includes(id)) return null
     return <Activity key={id} mode={tab === id ? 'visible' : 'hidden'}><ViewBoundary><Suspense fallback={<ViewLoading />}>{content}</Suspense></ViewBoundary></Activity>
   }
 
   const sidebar = (
     <div className="sidebar">
-      <button type="button" className="miyaar-sidebar" onClick={() => go('chat')}>
+      {demo ? null : <button type="button" className="miyaar-sidebar" onClick={() => go('chat')}>
         <MiyaarMark /><span><strong>{t('assistant.name')}</strong><small>{t('miyaar.workspace')}</small></span>
-      </button>
+      </button>}
       <nav className="sidebar__nav" aria-label={t('nav.main')}>
-        {NAV_GROUPS.map((group) => (
+        {(demo ? DEMO_GROUPS : NAV_GROUPS).map((group) => (
           <div key={group.id} className="sidebar__group" data-group={group.id}>
             {group.items.map((item) => (
               <button
@@ -364,6 +373,7 @@ export function App() {
           onClick={() => { setDrawerOpen(false); setHelpOpen(true) }}>
           <Icon name="help" size={16} />{t('help.aria')}
         </button>
+        {demo ? null : <>
         <button
           type="button"
           className="btn btn--ghost"
@@ -387,17 +397,18 @@ export function App() {
           <Icon name="power" size={16} />
           {t('session.end')}
         </button>
+        </>}
         <div className="sidebar__identity">
           <span className="sidebar__avatar" aria-hidden="true">
             {(store.identity?.principal.email || userName || 'A').charAt(0).toUpperCase()}
           </span>
           <span className="sidebar__who">
-            <span dir="auto">{store.identity?.principal.email || userName || t('session.roleLocal')}</span>
+            <span dir="auto">{demo ? t('demo.visitor') : store.identity?.principal.email || userName || t('session.roleLocal')}</span>
             <span className="sidebar__meta">
-              v{session.version} · {store.identity?.principal.role ?? t('session.roleLocal')}
+              {session.version ? `v${session.version} · ` : ''}{store.identity?.principal.role ?? t('session.roleLocal')}
             </span>
           </span>
-          {store.identity ? (
+          {store.identity && !demo ? (
             <button
               type="button"
               className="iconbtn"
@@ -452,7 +463,7 @@ export function App() {
           </button>
         </div>
         <div className="header__spacer" />
-        <StatusBadge status={status} />
+        {demo ? <span className="badge badge--ready" title={t('demo.note')}><span className="badge__dot" aria-hidden="true" />{t('demo.badge')}</span> : <StatusBadge status={status} />}
         <div className="header__actions">
           {languageButton}
           <button
@@ -501,11 +512,11 @@ export function App() {
         <main className="main" id="workspace-main" inert={drawerOpen} tabIndex={-1} key={`${session.session_id}:${store.identity?.principal.subject ?? 'local'}:${store.identity?.principal.role ?? 'local'}`}>
           {pane('operations', <OperationsView onOpenRun={openRun} />)}
           {pane('overview', (
-            <OverviewView onOpenRun={openRun} onStart={startAnalysis} onApprovals={() => go('approvals')} onOpenDashboard={() => go('dashboard')} />
+            <OverviewView onOpenRun={openRun} onStart={startAnalysis} canStart={!demo} onApprovals={() => go('approvals')} onOpenDashboard={() => go('dashboard')} />
           ))}
           {pane('assets', (
             <AssetIntelligenceView onOpenRun={openRun}
-              onUpload={() => startAnalysis({ kind: 'upload', profile: 'maintenance' })} />
+              onUpload={demo ? undefined : () => startAnalysis({ kind: 'upload', profile: 'maintenance' })} />
           ))}
           {pane('datasets', (
             <DatasetsView
@@ -589,7 +600,7 @@ export function App() {
         {pane('approvals', <ApprovalsView onOpenRun={openRun} />)}
         </main>
 
-        {tab === 'chat' ? (
+        {tab === 'chat' && !demo ? (
           <aside className="rail" aria-label={t('rail.aria')}>
             <div className="rail__section">
               <MiyaarMark large />
@@ -635,7 +646,7 @@ export function App() {
       </div>
 
       <nav className="tabbar" aria-label={t('nav.primary')}>
-        {BAR_ITEMS.map((item) => (
+        {(demo ? DEMO_BAR_ITEMS : BAR_ITEMS).map((item) => (
           <button
             key={item.id}
             type="button"
@@ -649,7 +660,7 @@ export function App() {
         ))}
         <button
           type="button"
-          className={`tabbar__btn ${BAR_TABS.includes(tab) ? '' : 'tabbar__btn--holding'}`}
+          className={`tabbar__btn ${(demo ? DEMO_BAR_ITEMS : BAR_ITEMS).some((item) => item.id === tab) ? '' : 'tabbar__btn--holding'}`}
           aria-haspopup="dialog"
           aria-expanded={drawerOpen}
           onClick={(event) => openDrawer(event.currentTarget)}
@@ -679,7 +690,7 @@ export function App() {
           </Suspense>
         </ViewBoundary>
       ) : null}
-      {showOnboarding ? (
+      {showOnboarding && !demo ? (
         <ViewBoundary fallback={null}>
           <Suspense fallback={null}>
             <Onboarding onDismiss={dismissOnboarding} />
