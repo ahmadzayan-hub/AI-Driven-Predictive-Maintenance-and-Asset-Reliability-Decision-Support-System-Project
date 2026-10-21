@@ -63,6 +63,19 @@ def seed(engine, owner, profile=PROFILE, max_steps=200):
     database), so a demo never accumulates copies."""
     if engine.list_runs(owner=owner):
         return None
+    # Hosted without a shared database, each serverless instance seeds its
+    # own copy. Fixed ids make the copies identical, so a run id the
+    # browser got from one instance is found on the next; nothing can be
+    # written in a demo, so the copies cannot drift apart.
+    ids = random.Random(f"demo-ids-{owner}")
+    random_ids, engine.new_id = engine.new_id, lambda: f"{ids.getrandbits(48):012x}"
+    try:
+        return _seed(engine, owner, profile, max_steps)
+    finally:
+        engine.new_id = random_ids
+
+
+def _seed(engine, owner, profile, max_steps):
     parsed = dataset_reader.read(fleet_csv().encode("utf-8"), DATASET_NAME, "csv", None)
     # The maintenance profile feeds Asset Intelligence as well as the
     # dashboard; a deployment configured without it still gets a demo.

@@ -130,6 +130,27 @@ class DemoApiTests(unittest.TestCase):
         runs = self.build().get("/api/runs").json()["runs"]
         self.assertEqual(len(runs), 1)
 
+    def test_separate_instances_serve_the_same_run(self):
+        # Vercel without a shared database: each instance has its own
+        # SQLite file. A run id from one must be readable on the other.
+        config = json.loads(self.config_path.read_text())
+        config["database_file"] = str(Path(self.temp_dir.name) / "second.db")
+        config["vault_dir"] = str(Path(self.temp_dir.name) / "second-vault")
+        second_path = Path(self.temp_dir.name) / "second.json"
+        second_path.write_text(json.dumps(config))
+        second = TestClient(closing(self, create_app(second_path, env=DEMO)),
+                            raise_server_exceptions=False)
+        run_id = self.client.get("/api/runs").json()["runs"][0]["id"]
+        self.assertEqual(second.get("/api/runs").json()["runs"][0]["id"], run_id)
+        first, other = self.client.get(f"/api/runs/{run_id}").json(), second.get(f"/api/runs/{run_id}").json()
+        self.assertEqual([t["id"] for t in other["tasks"]], [t["id"] for t in first["tasks"]])
+        self.assertEqual(second.get(f"/api/runs/{run_id}/executive").status_code, 200)
+
+    def test_seeding_leaves_ordinary_ids_random(self):
+        engine = self.client.app.state.engine
+        self.assertNotEqual(engine.new_id(), engine.new_id())
+        self.assertEqual(len(engine.new_id()), 12)
+
     def test_the_seed_is_the_same_file_every_time(self):
         self.assertEqual(demo.fleet_csv(), demo.fleet_csv())
         self.assertEqual(len(demo.fleet_csv().strip().splitlines()), 241)
