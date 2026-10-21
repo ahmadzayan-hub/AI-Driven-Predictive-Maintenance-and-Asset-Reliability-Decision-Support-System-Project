@@ -47,7 +47,8 @@ from server.routing import RoutedGateway, build_router
 from server.stages import describe, load_stages
 from server.runs import (RunEngine, TableNotReady, dataset_summary,
                          resolve_vault_dir)
-from server.auth import AuthError, build_identity, public_auth_config
+from server import demo
+from server.auth import DEMO_PRINCIPAL, AuthError, build_identity, public_auth_config
 from server.quota import QuotaExceeded, load_limits
 from server.quota import usage as quota_usage
 from server.rate_limit import WRITE_METHODS, RateLimiter
@@ -397,6 +398,10 @@ def create_app(config_path=None, env=None, dist_dir=None):
     )
     app.state.engine = engine
     app.state.store = store
+    # The public demo reads one fictional analysis that no visitor could
+    # have made, so the server makes it (server/demo.py). Once per store.
+    if identity.mode == "demo":
+        demo.seed(engine, DEMO_PRINCIPAL.subject)
     # Free text in the chat goes here; slash commands go to the Agent.
     # An agent runtime (ADR 0021) is optional and, like the router and
     # the stages, a load failure is reported rather than raised.

@@ -10,6 +10,10 @@ Two providers behind one interface:
   shared secret (HS256) or a JWKS endpoint (RS256/ES256). No password
   handling, no credential storage, no homemade auth.
 
+- DemoIdentity — the public demo (AGENTIC_OS_DEMO=1). No sign-in; every
+  visitor is one shared principal that can only read, and what it reads is
+  fictional data the server generated (server/demo.py).
+
 Fail-closed rule: when the deployment declares production
 (AGENTIC_OS_ENV=production) or demands auth (AGENTIC_OS_REQUIRE_AUTH=1)
 and no provider is configured, app startup raises instead of silently
@@ -108,6 +112,21 @@ class LocalIdentity:
 
     def authenticate(self, authorization_header):
         return LOCAL_PRINCIPAL
+
+
+# The demo's one principal. "viewer" carries read only, so every write
+# endpoint answers 403 through the same permission check as any viewer.
+DEMO_PRINCIPAL = Principal(subject="demo-showcase", role="viewer", provider="demo")
+
+
+class DemoIdentity:
+    mode = "demo"
+    requires_token = False
+
+    def authenticate(self, authorization_header):
+        # A token sent to the demo grants nothing: there is no one to
+        # sign in as, so it is ignored rather than verified.
+        return DEMO_PRINCIPAL
 
 
 class JwtIdentity:
@@ -234,8 +253,8 @@ def public_auth_config(identity, env=None):
     The publishable ("anon") key is designed to be public; the JWT
     secret, service-role key and database URL are never included."""
     env = os.environ if env is None else env
-    if identity.mode == "local":
-        return {"mode": "local", "flows": []}
+    if identity.mode in ("local", "demo"):
+        return {"mode": identity.mode, "flows": []}
     provider_url = (env.get("SUPABASE_URL") or "").rstrip("/")
     publishable_key = (
         env.get("SUPABASE_PUBLISHABLE_KEY") or env.get("SUPABASE_ANON_KEY") or ""
@@ -278,6 +297,15 @@ def build_identity(env=None):
     env = os.environ if env is None else env
     secret = env.get("AGENTIC_OS_JWT_SECRET") or env.get("SUPABASE_JWT_SECRET")
     jwks_url = env.get("AGENTIC_OS_JWKS_URL")
+    if env.get("AGENTIC_OS_DEMO") == "1":
+        # Both at once is a mistake either way round: a demo would hide the
+        # sign-in a real deployment needs, or real accounts would sit
+        # behind a public demo. Refuse rather than guess.
+        if secret or jwks_url:
+            raise AuthNotConfigured(
+                "AGENTIC_OS_DEMO=1 and a sign-in provider are both set. A demo "
+                "has no accounts; remove one of them.")
+        return DemoIdentity()
     if secret or jwks_url:
         return JwtIdentity(
             secret=secret,
