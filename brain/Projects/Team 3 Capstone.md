@@ -3,7 +3,7 @@ type: project
 aliases: [Capstone, Group 9226 capstone]
 tags: [project, course]
 status: active
-updated: 2026-10-20
+updated: 2026-10-21
 review_every_days: 3
 sources: [project-progress.md, docs/AGENT_TEAM.md, Memory.md]
 ---
@@ -14,11 +14,11 @@ The course capstone of the [[User]]'s team: an executive analytics package on pr
 
 ## Deliverables and dates
 
-| Deliverable | Format | State on 2026-10-17 |
+| Deliverable | Format | State on 2026-10-21 |
 | --- | --- | --- |
-| Executive dashboard | Power BI `.pbix` | Built on 20 October and committed in `4750852`: 8 pages, 204 visuals, `Condition_Score`/`Condition_Band` rather than any health wording. A thin report on a live Power BI Service connection, Purview *Confidential*, so it cannot be opened or its figures checked outside that workspace |
-| Executive presentation | `.pptx`, 12 to 15 slides | Release candidate: 15 slides, 16:9, with speaker notes and alt text, in the [[House style]] |
-| Analytical report | `.pdf`, 20 to 25 pages | Release candidate: 23 A4 pages with a cover and contents, in the [[House style]]; team-owned items highlighted |
+| Executive dashboard | Power BI `.pbix` | Import model with the 5,000 records embedded (no local path), star schema of four dimensions, 89 measures, 8 pages, synced slicers, drill-through to a Detail page. Every printed KPI and model metric recomputed from the embedded data on 21 October. A v2 copy fixes drill-through from the Risk exception queue; it needs a click-test in Power BI Desktop |
+| Executive presentation | `.pptx`, 12 to 15 slides | 15 slides with five presenters and an English speaker-notes document covering every slide |
+| Analytical report | `.pdf`, 20 to 25 pages | 26 pages including appendices; section 6.6 on data refresh must be corrected to match the embedded source |
 
 - Moodle submission closes on 22 October 2026, and the team uploads on 21 October 2026 to keep a buffer.
 - The team presents to the instructors on 25 October 2026.
@@ -26,6 +26,7 @@ The course capstone of the [[User]]'s team: an executive analytics package on pr
 - **Reviewed on 16 October** by the [[Agent team]]'s review loop. The gates went 50.0% → 62.5%; all ten the session could act on pass.
     - The build fixes are in the files: a tagged PDF with bookmarks, titled slides with readable alt text, and clip sources a reader can follow.
     - The rest is the team's: the `.pbix`, their highlighted items, and corrections to two headline claims. The corrections went to the user as a memo, with recomputed figures and replacement wording.
+- **Three-way reconciliation on 21 October** of the submitted dashboard, report, deck and speaker notes: one business story, the same totals, definitions, model metrics and four decisions. The model story is the dashboard's: AUC 0.73 against a 0.61 class × criticality rule, and equal to the supplied priority score, so a ranking aid to trial, not a deployment. Before submission: correct the report's refresh section and submit the drill-through fix. The files, a 36-figure register for the figures checker and a team briefing with examiner questions live in the git-ignored `private/capstone/`, never in this repository.
 - **Restyled on 17 October**, at the user's request: blue and white, IBM Plex Sans, no logos. The style is applied when the files are built, so the team's text is untouched. The gates were unchanged, with the same ten passing in round 6, and the Power BI theme in the kit matches.
 
 The plan, the report draft and the deck draft are private documents shared with the team. Roles, names and registration numbers stay there, never in this public repository.

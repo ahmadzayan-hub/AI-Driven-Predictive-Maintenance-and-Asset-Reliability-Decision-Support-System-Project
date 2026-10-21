@@ -1201,3 +1201,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** Obsidian after the fix: 398 links, none unresolved. New checker test watched failing first; the new checker flags the pre-fix brain (`e84a35d`) with exactly that link. `verify.py --quick` with PostgreSQL: 1,600 Python, 294 frontend.
 - **Decisions:** web links, mail links, anchors and in-vault files stay allowed; links inside code are ignored, as for wikilinks.
 - **Open / next:** redeploy the hosted site (owner approval); demo-mode interface.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (capstone Power BI check and three-way reconciliation)
+
+**Goal:** check the team's `.pbix` against the dashboard brief; then reconcile dashboard, report and deck so they tell one story.
+
+- **Done:** read the `.pbix` model directly (pbixray plus its metadata database): 4 active many-to-one relationships, 89 measures, embedded data, 4 synced slicer groups, a drill-through page. Fixed drill-through from the Risk exception queue in a byte-checked v2 copy (only one report JSON changed; data model identical). Recomputed every printed KPI and model metric from the 5,000 embedded records. With the report, deck and notes supplied, ran the figures checker three ways and recomputed each specific deck figure. All course files, the register and the briefing are in git-ignored `private/capstone/`.
+- **Verified:** dashboard KPIs, AUC 0.727 (interval 0.696 to 0.759), baseline 0.612, lift 2.50, watchlist 1,418 and 43.6% of loss all reproduce; report has 33 of 36 register figures; deck numbers all traced; notes cover all 15 slides.
+- **Decisions:** reported the earlier model-story conflict as resolved, since the submitted files no longer carry 0.746. Did not edit the report or deck; gave replacement text.
+- **Open / next:** the team corrects report §6.6 and submits the v2 `.pbix` after a Desktop click-test; hosted redeploy and the demo-mode interface remain.
