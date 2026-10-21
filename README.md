@@ -422,6 +422,18 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Full validation with PostgreSQL; CSS budget raised — 21 October 2026
+
+[Budget decision](docs/adr/2026-10-21-css-budget-raised-and-exact.md).
+`REQUIRE_PG=1 PG_TEST_URL=postgresql://dev@127.0.0.1:5432/agentic_test python scripts/verify.py`
+against PostgreSQL 16.15: **1,490 Python tests reported, 19 skipped** (all
+optional extras not installed here: langgraph 7, llmrouter 5, pydantic-ai 3,
+voice decoder 2, private knowledge collection 2; no database test skipped),
+brain check (45 notes), type check, **276 frontend unit tests**, build and
+budget passed (CSS first load 10.0 of 10.5 KB, CSS total 23.5 of 25 KB, now
+compared in exact bytes). The full Playwright suite passed **127, with 5
+skipped**, desktop and phone, English and Arabic.
+
 ### Arabic population labels and digits — 21 October 2026
 
 Behaviour change ([decision](docs/adr/2026-10-21-arabic-population-labels-and-digits.md)).

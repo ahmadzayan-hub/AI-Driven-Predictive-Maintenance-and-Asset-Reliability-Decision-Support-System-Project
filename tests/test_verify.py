@@ -84,6 +84,14 @@ class BudgetTests(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("over: js first load", summary)
 
+    def test_a_few_bytes_over_fails_even_when_it_rounds_to_the_limit(self):
+        # 10,046 bytes of first-load CSS once printed as "10.0 of 10 KB" and
+        # passed. The check compares exact bytes; only the summary rounds.
+        ok, summary = verify.check_budget(self.build(20_000, 120_040))
+        self.assertFalse(ok, summary)
+        self.assertIn("over: fonts", summary)
+        self.assertTrue(verify.check_budget(self.build(20_000, 120_000))[0])
+
     def test_a_chunk_loaded_on_demand_is_not_first_load(self):
         light = verify.measure_budget(self.build(20_000, 50_000))
         sizes = verify.measure_budget(self.build(20_000, 50_000, chunk_bytes=40_000))

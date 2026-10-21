@@ -38,7 +38,7 @@ DIST = FRONTEND / "dist"
 # CSS is counted the way scripts are (ADR 0028): the stylesheet the first
 # load fetches, and every stylesheet, since a view's styles ship with its
 # chunk (ADR 0032).
-BUDGET_KB = {"js": 100, "js_total": 185, "js_chunk": 30, "css": 10, "css_total": 23.5,
+BUDGET_KB = {"js": 100, "js_total": 185, "js_chunk": 30, "css": 10.5, "css_total": 25,
              "fonts": 120}
 LABELS = {"js": "js first load", "js_total": "js total", "js_chunk": "largest js chunk",
           "css": "css first load", "css_total": "css total", "fonts": "fonts"}
@@ -101,8 +101,8 @@ def first_load_styles(dist):
     return set(FIRST_STYLES.findall((dist / "index.html").read_text(encoding="utf-8")))
 
 
-def measure_budget(dist):
-    """Return {kind: kilobytes} for the built interface."""
+def measure_budget(dist, exact=False):
+    """Return {kind: kilobytes} for the built interface, or bytes if `exact`."""
     first = first_load_scripts(dist)
     styles = first_load_styles(dist)
     sizes = {kind: 0 for kind in BUDGET_KB}
@@ -121,6 +121,8 @@ def measure_budget(dist):
                 sizes["js_total"] += size
         elif path.suffix == ".woff2":
             sizes["fonts"] += path.stat().st_size
+    if exact:
+        return sizes
     return {kind: round(total / 1000, 1) for kind, total in sizes.items()}
 
 
@@ -130,8 +132,11 @@ def check_budget(dist=DIST, budget=BUDGET_KB):
         return False, f"no build at {dist}; run the build step first"
     if not first_load_scripts(dist):
         return False, "index.html loads no script from assets/; the build is not one this reads"
-    sizes = measure_budget(dist)
-    over = [LABELS[kind] for kind, size in sizes.items() if size > budget[kind]]
+    # Compare exact bytes: rounding to 0.1 KB once let 10,046 bytes pass a
+    # 10 KB limit. Only the summary is rounded.
+    exact = measure_budget(dist, exact=True)
+    sizes = {kind: round(total / 1000, 1) for kind, total in exact.items()}
+    over = [LABELS[kind] for kind, size in exact.items() if size > budget[kind] * 1000]
     summary = ", ".join(f"{LABELS[kind]} {size} of {budget[kind]} KB" for kind, size in sizes.items())
     return not over, summary + (f"; over: {', '.join(over)}" if over else "")
 

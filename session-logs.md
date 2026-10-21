@@ -1104,3 +1104,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** `verify.py` all 8 steps (1,489 Python, 153 skipped; 276 frontend); Playwright executive, metric-colors, dashboard, arabic, a11y 32 passed. Five new tests each watched failing first. Live check on the fictional run: zero Arabic-Indic digits and zero English population names in the Arabic tiles.
 - **Decisions:** kept `population` as the English code because exports and policies match on it. A `pgrep -f` on a pattern in my own command killed the shell (exit 144), as Memory warns; the server was restarted cleanly.
 - **Open / next:** CSS budget decision (1 byte left); reading test.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (validation, budget, reading-test kit, merge)
+
+**Goal:** the owner's list: merge to main, raise the style budget, run the reading test, re-run the full browser suite, test against PostgreSQL.
+
+- **Done:** PostgreSQL 16 started and provisioned per Memory; CSS limits raised (10 → 10.5 KB first load, 23.5 → 25 KB total) with an ADR; the budget check now compares exact bytes (test watched failing first); facilitator kit for the reading test; merged to `main`.
+- **Verified:** `REQUIRE_PG=1 verify.py` all 8 steps (1,490 Python, 19 skipped, all optional extras; 276 frontend). Full Playwright 127 passed, 5 skipped.
+- **Decisions:** raised only the CSS limits, the binding ones; JavaScript unchanged. The reading test was not run and no result is claimed: it needs real maintenance managers.
+- **Open / next:** schedule the reading test; the room in the CSS budget is finite.
