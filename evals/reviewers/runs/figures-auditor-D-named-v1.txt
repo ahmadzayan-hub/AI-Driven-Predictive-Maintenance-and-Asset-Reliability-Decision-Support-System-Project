@@ -1,0 +1,59 @@
+Note: evidence lines condensed by the orchestrator; paragraph ids and categories are exactly as the reviewer gave them.
+
+FINDING F01 · major · P03
+Category: arithmetic
+Evidence: 855 / 7,385 = 11.58%, rounds to 11.6% (register 11.6%); the memo says 12.6%.
+
+FINDING F02 · major · P05
+Category: arithmetic
+Evidence: 37.5% - 40.9% = -3.4 percentage points (register -3.4); the memo says 8.3.
+
+FINDING F03 · major · P07
+Category: unsourced_figure
+Evidence: $2,310 and $1,180 are not in the register and not derivable.
+
+FINDING F04 · major · P09
+Category: overclaim
+Evidence: One year-on-year change presented as a sustained trend through 2027; P30 says two years cannot establish a trend.
+
+FINDING F05 · major · P10
+Category: arithmetic
+Evidence: 21,960 - 18,540 = 3,420 (register -3,420); the memo says 3,720.
+
+FINDING F06 · major · P14
+Category: causal_claim
+Evidence: "was delivered by" the cleaning cycle: nothing measures the cleaning cycle; P11 says causes cannot be separated.
+
+FINDING F07 · major · P15
+Category: causal_claim
+Evidence: "thanks to" the lubrication schedule: unsupported attribution.
+
+FINDING F08 · major · P16
+Category: arithmetic
+Evidence: Whole-fleet rate is 97 / 186 = 0.52; 97 / 124 = 0.78 divides fleet failures by the mainline count.
+
+FINDING F09 · major · P19
+Category: denominator
+Evidence: 2 of 42 stations surveyed (4.8%) cannot confirm the network is free of interference.
+
+FINDING F10 · major · P20
+Category: arithmetic
+Evidence: Raised corrective (3,090) over completed (7,910) mixes two bases; completed basis is 2,980 / 7,910 = 37.7%.
+
+FINDING F11 · major · P22
+Category: unsourced_figure
+Evidence: 6.4 hours is not in the register.
+
+FINDING F12 · major · P24
+Category: arithmetic
+Evidence: 86.0% is the unweighted mean of 94.0% and 78.0%; pooled is 2,268 / 2,600 = 87.2%.
+
+FINDING F13 · major · P28
+Category: causal_claim
+Evidence: "is what drove" with a mechanism; no contractor-callout data.
+
+FINDING F14 · major · P29
+Category: unsourced_figure
+Evidence: 214 is not in the register.
+
+TOTAL: 14 findings

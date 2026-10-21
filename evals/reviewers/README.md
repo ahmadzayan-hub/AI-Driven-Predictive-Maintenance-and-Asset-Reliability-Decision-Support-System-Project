@@ -7,6 +7,7 @@ Synthetic memos with planted defects, for measuring the review loop's reviewers 
 | `A/` | A retail chain's year | 16 | 10 | Dev: its misses chose the fixes |
 | `B/` | A light-rail fleet's year | 14 | 9 | Held out. The same author wrote A and B |
 | `C/` | An outpatient department's year | 15 | 9 | Blind: an independent agent wrote it from the category definitions only |
+| `D/` | A metro line's signalling and telecom maintenance | 30 | 14 | Blind and harder: subtler defects (soft causal verbs, a percentage-point slip, a wrong base) and 10 correct decoy paragraphs; `labels.json` also lists the decoys and why each defect is wrong |
 
 Each folder holds the memo (`memo.md`, paragraphs `[P01]`…), the register a figure must come from (`register.csv`, columns `Check` and `Expected`), and the labels (`labels.json`). The labels give one category per defective paragraph:
 

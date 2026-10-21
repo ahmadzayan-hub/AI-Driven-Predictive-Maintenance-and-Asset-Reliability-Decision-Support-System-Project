@@ -422,6 +422,14 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Reviewer benchmark D and full browser run — 21 October 2026
+
+The full Playwright suite on the targets change passed **127, with 5
+skipped**. Reviewer benchmark D (30 paragraphs, 14 planted defects, 10
+decoys, written blind): figures auditor and analytics reviewer **100% lane
+recall, 0 false alarms**; the Tier 0 checker **83% lane recall, 1 false
+alarm** (`python scripts/score_review.py --summary`).
+
 ### Targets held when a measure is redefined — 21 October 2026
 
 Behaviour change ([decision](docs/adr/2026-10-21-targets-held-when-a-measure-is-redefined.md)).

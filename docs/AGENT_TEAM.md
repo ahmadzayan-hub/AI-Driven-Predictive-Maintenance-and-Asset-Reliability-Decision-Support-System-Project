@@ -119,7 +119,8 @@ Every classifying agent is measured (ADR 0027), with a confusion matrix, precisi
 - **What the numbers say today:**
     - On the newest blind set (v4), recall is 72% for intent, 92% for jargon and 69% for causal wording.
     - Each round of rule fixes helps less on unseen sentences than on the cases it came from: intent went 68% → 72% on v4, and causal wording did not move. Wider understanding needs a model behind the rules (ADR 0019), which this environment cannot measure.
-    - The figures auditor and the analytics reviewer were near their ceiling on the seeded memos. Harder memos are the next step (`project-progress.md`).
+    - The figures auditor and the analytics reviewer were near their ceiling on the seeded memos A to C. Memo D (21 October) was written blind to be harder: twice as long, subtler defects and 10 correct decoys. Both reviewers still scored 100% in their lanes with no false alarm, so D does not separate them either; the auditor did miscategorise three denominator defects as arithmetic outside its lane.
+    - The Tier 0 checker is the weak link on D: 83% lane recall and one false alarm. It takes "fell from 468 to 412, a fall of 12.0%" as 56 / 412 (the new value as base) and misreads a "reduction of 21 or 17.8%". Both reviewers caught these as checker artefacts by recomputing. Fixing the checker on D would make D its dev set; a fix should be found and tested on other examples first.
 
 ## 7. Adding an agent
 

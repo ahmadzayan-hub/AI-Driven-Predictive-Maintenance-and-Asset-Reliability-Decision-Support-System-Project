@@ -2231,6 +2231,188 @@
   "tag": "named-v1"
  },
  {
+  "bench": "D",
+  "categories": [
+   "causal_claim",
+   "denominator",
+   "overclaim"
+  ],
+  "findings": 13,
+  "recall": 1.0,
+  "detection": {
+   "per_class": {
+    "True": {
+     "precision": 1.0,
+     "recall": 1.0,
+     "f1": 1.0,
+     "support": 8,
+     "predicted": 8
+    },
+    "False": {
+     "precision": 1.0,
+     "recall": 1.0,
+     "f1": 1.0,
+     "support": 16,
+     "predicted": 16
+    }
+   },
+   "accuracy": 1.0,
+   "macro_recall": 1.0,
+   "cases": 24,
+   "positive": "True",
+   "recall": 1.0,
+   "precision": 1.0
+  },
+  "false_alarms": [],
+  "secondary": [],
+  "category_confusion": {
+   "labels": [
+    "causal_claim",
+    "denominator",
+    "overclaim",
+    "missed"
+   ],
+   "matrix": {
+    "causal_claim": {
+     "causal_claim": 3,
+     "denominator": 0,
+     "overclaim": 0,
+     "missed": 0
+    },
+    "denominator": {
+     "causal_claim": 0,
+     "denominator": 3,
+     "overclaim": 0,
+     "missed": 0
+    },
+    "overclaim": {
+     "causal_claim": 0,
+     "denominator": 0,
+     "overclaim": 2,
+     "missed": 0
+    },
+    "missed": {
+     "causal_claim": 0,
+     "denominator": 0,
+     "overclaim": 0,
+     "missed": 0
+    }
+   }
+  },
+  "per_category": {
+   "causal_claim": {
+    "matrix": {
+     "True": {
+      "True": 3,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 27
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 3,
+      "predicted": 3
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 27,
+      "predicted": 27
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 30,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "denominator": {
+    "matrix": {
+     "True": {
+      "True": 3,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 27
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 3,
+      "predicted": 3
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 27,
+      "predicted": 27
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 30,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "overclaim": {
+    "matrix": {
+     "True": {
+      "True": 2,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 28
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 2,
+      "predicted": 2
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 28,
+      "predicted": 28
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 30,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   }
+  },
+  "agent": "analytics-expert-reviewer",
+  "tag": "named-v1"
+ },
+ {
   "bench": "A",
   "categories": [
    "unsourced_figure",
@@ -3899,6 +4081,146 @@
   "tag": "named-v1"
  },
  {
+  "bench": "D",
+  "categories": [
+   "unsourced_figure",
+   "arithmetic"
+  ],
+  "findings": 14,
+  "recall": 1.0,
+  "detection": {
+   "per_class": {
+    "True": {
+     "precision": 1.0,
+     "recall": 1.0,
+     "f1": 1.0,
+     "support": 6,
+     "predicted": 6
+    },
+    "False": {
+     "precision": 1.0,
+     "recall": 1.0,
+     "f1": 1.0,
+     "support": 16,
+     "predicted": 16
+    }
+   },
+   "accuracy": 1.0,
+   "macro_recall": 1.0,
+   "cases": 22,
+   "positive": "True",
+   "recall": 1.0,
+   "precision": 1.0
+  },
+  "false_alarms": [],
+  "secondary": [
+   "P16 \u00b7 arithmetic",
+   "P19 \u00b7 denominator",
+   "P20 \u00b7 arithmetic",
+   "P24 \u00b7 arithmetic"
+  ],
+  "category_confusion": {
+   "labels": [
+    "unsourced_figure",
+    "arithmetic",
+    "missed"
+   ],
+   "matrix": {
+    "unsourced_figure": {
+     "unsourced_figure": 3,
+     "arithmetic": 0,
+     "missed": 0
+    },
+    "arithmetic": {
+     "unsourced_figure": 0,
+     "arithmetic": 3,
+     "missed": 0
+    },
+    "missed": {
+     "unsourced_figure": 0,
+     "arithmetic": 0,
+     "missed": 0
+    }
+   }
+  },
+  "per_category": {
+   "unsourced_figure": {
+    "matrix": {
+     "True": {
+      "True": 3,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 27
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 3,
+      "predicted": 3
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 27,
+      "predicted": 27
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 30,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "arithmetic": {
+    "matrix": {
+     "True": {
+      "True": 3,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 24
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 3,
+      "predicted": 3
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 24,
+      "predicted": 24
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 27,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   }
+  },
+  "agent": "figures-auditor",
+  "tag": "named-v1"
+ },
+ {
   "bench": "A",
   "categories": [
    "unsourced_figure",
@@ -4756,6 +5078,152 @@
     "precision": 1.0,
     "misses": [],
     "false_alarms": []
+   }
+  },
+  "agent": "figures-tool",
+  "tag": "v2"
+ },
+ {
+  "bench": "D",
+  "categories": [
+   "unsourced_figure",
+   "arithmetic"
+  ],
+  "findings": 12,
+  "recall": 0.8333333333333334,
+  "detection": {
+   "per_class": {
+    "True": {
+     "precision": 0.8571428571428571,
+     "recall": 1.0,
+     "f1": 0.923076923076923,
+     "support": 6,
+     "predicted": 7
+    },
+    "False": {
+     "precision": 1.0,
+     "recall": 0.9375,
+     "f1": 0.967741935483871,
+     "support": 16,
+     "predicted": 15
+    }
+   },
+   "accuracy": 0.9545454545454546,
+   "macro_recall": 0.96875,
+   "cases": 22,
+   "positive": "True",
+   "recall": 1.0,
+   "precision": 0.8571428571428571
+  },
+  "false_alarms": [
+   "P08 \u00b7 arithmetic"
+  ],
+  "secondary": [
+   "P05 \u00b7 unsourced_figure",
+   "P09 \u00b7 arithmetic",
+   "P15 \u00b7 arithmetic",
+   "P24 \u00b7 unsourced_figure"
+  ],
+  "category_confusion": {
+   "labels": [
+    "unsourced_figure",
+    "arithmetic",
+    "missed"
+   ],
+   "matrix": {
+    "unsourced_figure": {
+     "unsourced_figure": 3,
+     "arithmetic": 0,
+     "missed": 0
+    },
+    "arithmetic": {
+     "unsourced_figure": 1,
+     "arithmetic": 2,
+     "missed": 0
+    },
+    "missed": {
+     "unsourced_figure": 0,
+     "arithmetic": 0,
+     "missed": 0
+    }
+   }
+  },
+  "per_category": {
+   "unsourced_figure": {
+    "matrix": {
+     "True": {
+      "True": 3,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 25
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 3,
+      "predicted": 3
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 25,
+      "predicted": 25
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 28,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "arithmetic": {
+    "matrix": {
+     "True": {
+      "True": 2,
+      "False": 1
+     },
+     "False": {
+      "True": 1,
+      "False": 24
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 0.6666666666666666,
+      "recall": 0.6666666666666666,
+      "f1": 0.6666666666666666,
+      "support": 3,
+      "predicted": 3
+     },
+     "False": {
+      "precision": 0.96,
+      "recall": 0.96,
+      "f1": 0.96,
+      "support": 25,
+      "predicted": 25
+     }
+    },
+    "accuracy": 0.9285714285714286,
+    "macro_recall": 0.8133333333333332,
+    "cases": 28,
+    "positive": "True",
+    "recall": 0.6666666666666666,
+    "precision": 0.6666666666666666,
+    "misses": [
+     "P05 \u00b7 arithmetic"
+    ],
+    "false_alarms": [
+     "P08 \u00b7 arithmetic"
+    ]
    }
   },
   "agent": "figures-tool",
@@ -7342,6 +7810,293 @@
     "accuracy": 1.0,
     "macro_recall": 1.0,
     "cases": 15,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   }
+  },
+  "agent": "team",
+  "tag": "named-v1"
+ },
+ {
+  "bench": "D",
+  "categories": [
+   "unsourced_figure",
+   "arithmetic",
+   "causal_claim",
+   "denominator",
+   "overclaim"
+  ],
+  "findings": 27,
+  "recall": 1.0,
+  "detection": {
+   "per_class": {
+    "True": {
+     "precision": 1.0,
+     "recall": 1.0,
+     "f1": 1.0,
+     "support": 14,
+     "predicted": 14
+    },
+    "False": {
+     "precision": 1.0,
+     "recall": 1.0,
+     "f1": 1.0,
+     "support": 16,
+     "predicted": 16
+    }
+   },
+   "accuracy": 1.0,
+   "macro_recall": 1.0,
+   "cases": 30,
+   "positive": "True",
+   "recall": 1.0,
+   "precision": 1.0
+  },
+  "false_alarms": [],
+  "secondary": [
+   "P16 \u00b7 arithmetic",
+   "P19 \u00b7 denominator",
+   "P20 \u00b7 arithmetic",
+   "P24 \u00b7 arithmetic"
+  ],
+  "category_confusion": {
+   "labels": [
+    "unsourced_figure",
+    "arithmetic",
+    "causal_claim",
+    "denominator",
+    "overclaim",
+    "missed"
+   ],
+   "matrix": {
+    "unsourced_figure": {
+     "unsourced_figure": 3,
+     "arithmetic": 0,
+     "causal_claim": 0,
+     "denominator": 0,
+     "overclaim": 0,
+     "missed": 0
+    },
+    "arithmetic": {
+     "unsourced_figure": 0,
+     "arithmetic": 3,
+     "causal_claim": 0,
+     "denominator": 0,
+     "overclaim": 0,
+     "missed": 0
+    },
+    "causal_claim": {
+     "unsourced_figure": 0,
+     "arithmetic": 0,
+     "causal_claim": 3,
+     "denominator": 0,
+     "overclaim": 0,
+     "missed": 0
+    },
+    "denominator": {
+     "unsourced_figure": 0,
+     "arithmetic": 0,
+     "causal_claim": 0,
+     "denominator": 3,
+     "overclaim": 0,
+     "missed": 0
+    },
+    "overclaim": {
+     "unsourced_figure": 0,
+     "arithmetic": 0,
+     "causal_claim": 0,
+     "denominator": 0,
+     "overclaim": 2,
+     "missed": 0
+    },
+    "missed": {
+     "unsourced_figure": 0,
+     "arithmetic": 0,
+     "causal_claim": 0,
+     "denominator": 0,
+     "overclaim": 0,
+     "missed": 0
+    }
+   }
+  },
+  "per_category": {
+   "unsourced_figure": {
+    "matrix": {
+     "True": {
+      "True": 3,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 27
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 3,
+      "predicted": 3
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 27,
+      "predicted": 27
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 30,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "arithmetic": {
+    "matrix": {
+     "True": {
+      "True": 3,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 24
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 3,
+      "predicted": 3
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 24,
+      "predicted": 24
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 27,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "causal_claim": {
+    "matrix": {
+     "True": {
+      "True": 3,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 27
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 3,
+      "predicted": 3
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 27,
+      "predicted": 27
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 30,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "denominator": {
+    "matrix": {
+     "True": {
+      "True": 3,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 26
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 3,
+      "predicted": 3
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 26,
+      "predicted": 26
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 29,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "overclaim": {
+    "matrix": {
+     "True": {
+      "True": 2,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 28
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 2,
+      "predicted": 2
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 28,
+      "predicted": 28
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 30,
     "positive": "True",
     "recall": 1.0,
     "precision": 1.0,

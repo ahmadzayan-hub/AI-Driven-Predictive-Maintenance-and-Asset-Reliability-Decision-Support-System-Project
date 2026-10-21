@@ -1122,3 +1122,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** `REQUIRE_PG=1 verify.py` all 8 steps (1,493 Python, 19 optional-extra skips; 277 frontend). Playwright executive, metric-colors, dashboard 20 passed. New Python, API and frontend tests each watched failing.
 - **Decisions:** hold, never rewrite. The metric-colors spec first failed because it seeded an unstamped availability target and the editor sent a redundant `definition: 1`; fixed the editor to stamp only redefined measures and the seed to carry definition 2.
 - **Open / next:** reading test; native apps decision.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (reviewer memo D, full browser run)
+
+**Goal:** "Perform next": the next board item that needs no decision, harder reviewer memos (Next 4).
+
+- **Done:** memo D written blind by an independent agent (30 paragraphs, 14 defects, 10 decoys); figures checked by hand and by script, committed (`fb29838`) before any review. Ran the figures auditor and analytics reviewer (named subagents) and the Tier 0 checker; saved runs; summary regenerated; README, AGENT_TEAM §6 and the board updated.
+- **Verified:** reviewers 100% lane recall, 0 false alarms on D; checker 83%, 1 false alarm (P08). Full Playwright on the targets change: 127 passed, 5 skipped.
+- **Decisions:** did not tune the checker on D, to keep D held out for it. Did not keep hardening D until something failed. The auditor's saved run has condensed evidence lines, marked in the file; ids and categories are exact.
+- **Open / next:** checker fixes from fresh examples; domain-judgement memos; reading test; native decision.

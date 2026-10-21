@@ -1,0 +1,66 @@
+FINDING F01 · blocker · P03
+Category: arithmetic
+Evidence: (8,240 - 7,385) / 7,385 = 11.6%, which matches the register. The memo says 12.6%.
+Fix: Change 12.6% to 11.6%.
+
+FINDING F02 · blocker · P05
+Category: arithmetic
+Evidence: 40.9% - 37.5% = 3.4 percentage points, which matches the register. The memo says 8.3.
+Fix: Change the decline to 3.4 percentage points.
+
+FINDING F03 · blocker · P09
+Category: overclaim
+Evidence: One year-on-year change (468 to 412) is stated to "confirm" a sustained trend and to forecast falls through 2027. P30 itself says two years of data cannot establish a trend.
+Fix: Say that failures fell 12.0% in one year. Drop "confirms", "sustained" and the 2027 forecast.
+
+FINDING F04 · blocker · P10
+Category: arithmetic
+Evidence: 21,960 - 18,540 = 3,420 minutes, which matches the register. The memo says 3,720. The 15.6% is correct.
+Fix: Change 3,720 to 3,420.
+
+FINDING F05 · blocker · P14
+Category: causal_claim
+Evidence: The 13.3% rise in axle-counter MTBF (540 to 612 hours) is attributed to the January rail-head cleaning cycle. The data are a before/after comparison with no control. The May timetable change (P11) and other changes are not ruled out.
+Fix: Say the MTBF improvement coincided with the revised cleaning cycle. Say that the data cannot show it was the cause.
+
+FINDING F06 · blocker · P15
+Category: causal_claim
+Evidence: The fall from 118 to 97 point machine failures (-17.8%, which is correct) is credited "thanks to" the March quarterly lubrication. This is a before/after comparison with no control. P17 notes that Harbour, a pilot site, also changed.
+Fix: Say the fall followed the lubrication change. Say that the data cannot show it was the cause.
+
+FINDING F07 · major · P16
+Category: denominator
+Evidence: 97 is the failure count for the whole fleet, but it is divided by the 124 mainline machines. 97 / 124 = 0.78 is labelled "whole fleet". The register gives 97 / 186 = 0.52 for the fleet. It gives 71 mainline failures / 124 = 0.57 for mainline.
+Fix: Report 0.52 per machine for the fleet. Or report 0.57 for mainline, using 71 failures over 124 machines.
+
+FINDING F08 · major · P19
+Category: overclaim
+Evidence: Only 2 of 42 stations (about 5%) were surveyed. The memo concludes that the whole radio network is "free of interference problems".
+Fix: Say no interference was found at the 2 stations surveyed. Say the other 40 are unsurveyed.
+
+FINDING F09 · major · P20
+Category: denominator
+Evidence: The numerator is 3,090 corrective work orders raised. The denominator is 7,910 work orders completed. The two are on different bases, so 39.1% is not a valid share. The register gives corrective completed as 2,980, so 2,980 / 7,910 = 37.7%. The claim that the load is "heavier than the raised figures suggest" is therefore unsupported.
+Fix: Use 2,980 / 7,910 = 37.7% for the share of completed work. Delete the claim that the load is heavier.
+
+FINDING F10 · minor · P22
+Category: unsourced_figure
+Evidence: The CCTV mean time to repair of 6.4 hours is not in the register and cannot be computed from it. The register holds only the 8-hour contract limit.
+Fix: Give a source for the 6.4 hours and add it to the register, or remove the sentence.
+
+FINDING F11 · blocker · P24
+Category: denominator
+Evidence: 86.0% is the simple mean of 94.0% and 78.0%. The pooled rate is (1,410 + 858) / (1,500 + 1,100) = 2,268 / 2,600 = 87.2%, which matches the register.
+Fix: Report the pooled rate of 87.2%.
+
+FINDING F12 · blocker · P28
+Category: causal_claim
+Evidence: The fall in median response time (44 to 38 minutes) is attributed to contractor capacity, with a mechanism stated as fact. The only evidence is that contractor share of spend rose from 30.0% to 35.0%. The register has no data on overnight callouts or on who attended them.
+Fix: Say the fall coincided with higher contractor spend. Say the data cannot show the cause. Add callout data by attendee to test the mechanism.
+
+FINDING F13 · minor · P29
+Category: unsourced_figure
+Evidence: The figure of 214 work orders held up by spare-parts shortages, and the claim that they were mostly for radio power supplies, are not in the register and cannot be computed from it.
+Fix: Give a source and add it to the register, or remove the sentence.
+
+TOTAL: 13 findings
