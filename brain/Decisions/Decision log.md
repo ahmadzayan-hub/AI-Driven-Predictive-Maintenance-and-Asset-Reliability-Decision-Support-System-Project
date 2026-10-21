@@ -95,4 +95,6 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 | 2026-10-21-kpi-register-aligned-with-power-bi | MTTR, first-time fix and repeat repair follow the team's Power BI Method page (definition 2); four report measures added, 18 in all; a KPI number never breaks across lines | [[Weighted KPIs]], [[Team 3 maintenance dataset]] |
 | 2026-10-21-view-only-demo-mode | A no-sign-in demo is one read-only principal on generated data, refused next to a real provider; server half only, not to be switched on yet | [[Tenant isolation]], [[Managed identity]] |
 
+| 2026-10-21-executive-analytics-advisory | Decision-led bilingual maintenance briefs, five-domain exposure, explicit source roles and instructor escalation without master-data mutation | [[Business report exports]], [[Evidence and claims]] |
+
 All seven [[Analytics OS roadmap]] milestones have their records.

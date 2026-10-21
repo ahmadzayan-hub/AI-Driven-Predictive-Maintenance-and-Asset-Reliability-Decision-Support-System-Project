@@ -169,6 +169,9 @@ function expectReportScope(document: DocumentContents, snapshot: RunExecutive) {
     [labels.updated, snapshot.run.updated_at], [labels.selected, '3'], [labels.total, '4'],
   ]) expect(rows).toContainEqual(row)
   expect(document.text).toContain(snapshot.headline)
+  expect(document.text).toContain(snapshot.advisory!.title)
+  expect(document.text).toContain(snapshot.advisory!.recommendation)
+  expect(document.text).toContain(snapshot.advisory!.preservation)
   expect(rows.some((row) => row.includes('Site') && row.some((cell) => cell.includes('North')))).toBe(true)
   const firstFix = snapshot.kpis.measures.find((measure) => measure.key === 'first_time_fix')!
   const scale = ar ? 'نسبة مئوية، من 0 إلى 100 (percent)' : 'Percent, 0–100 (percent)'
@@ -402,7 +405,7 @@ test('Arabic RTL business reports and PDF print preview retain evidence in both 
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl')
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
   await expect(page.locator('.exec-overview')).toHaveAttribute('dir', 'rtl')
-  await expect(page.getByRole('heading', { name: 'وكيل معيار التنفيذي', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'المجموعة الاستشارية للتحليلات التنفيذية', exact: true })).toBeVisible()
   await expectScope(page, 3, 4, 'ar')
   const fix = page.locator('[data-source="kpi.first_time_fix"]')
   await expect(fix.getByRole('heading', { name: 'معدل الإصلاح من المرة الأولى' })).toBeVisible()

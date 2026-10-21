@@ -10,6 +10,7 @@ import json
 import math
 
 from server import query
+from server.executive_advisory import advisory
 from server.maintenance import contract, kpis, performance
 from server.runs import model_cards
 
@@ -241,7 +242,9 @@ class ExecutiveDashboardAgent:
                 if (claim.get("status") != "verified" or claim.get("type") == "forecast"
                         or not refs or len(refs) > 12 or any(ref not in calculations for ref in refs)):
                     continue
-                if len(findings) >= MAX_FINDINGS or len(evidence) + len(set(refs) - evidence_ids) > MAX_EVIDENCE:
+                # Reserve the five advisory-domain calculations and a possible
+                # failed-check count before stored findings fill the register.
+                if len(findings) >= MAX_FINDINGS or len(evidence) + len(set(refs) - evidence_ids) > MAX_EVIDENCE - 6:
                     omitted = True
                     continue
                 for ref in refs:
@@ -304,6 +307,7 @@ class ExecutiveDashboardAgent:
                                     "لم يكتمل التشغيل بنجاح؛ وهذا ملخص للأدلة الجزئية."))
         limitations.append(_say(language, "Observed maintenance records do not establish future asset failure, remaining useful life, physical asset identity, or causal savings. Actions require qualified human review.",
                                 "لا تثبت سجلات الصيانة المرصودة الأعطال المستقبلية أو العمر المتبقي أو هوية الأصل الفعلية أو الوفورات السببية. تتطلب الإجراءات مراجعة بشرية مؤهلة."))
+        decision_advisory = advisory(table, selected, measures, priorities, models, language, add_evidence)
         status = "empty" if not selected else "limited" if len(limitations) > 1 else "ready"
         headline = (_say(language, "No cleaned records match the selected scope.", "لا توجد سجلات منظفة تطابق النطاق المحدد.")
                     if not selected else _say(language,
@@ -317,7 +321,7 @@ class ExecutiveDashboardAgent:
                 "kpis": {"measures": measures, "unavailable": unavailable},
                 "priorities": priorities, "questions": questions, "findings": findings,
                 "models": models, "evidence": evidence, "drilldowns": drilldowns,
-                "kpi_policy": copy.deepcopy(selected_policy)}
+                "kpi_policy": copy.deepcopy(selected_policy), "advisory": decision_advisory}
         # Task results may change without advancing the run row's timestamp.
         # Bind downloads to every fact in the prepared response, including its
         # language, filters, metadata and evidence, without trusting client data.

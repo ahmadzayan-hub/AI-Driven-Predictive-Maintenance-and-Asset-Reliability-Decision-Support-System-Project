@@ -200,6 +200,7 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
     <section className="exec-hero" aria-labelledby="exec-title">
       <div>
         <h3 id="exec-title">{t('exec.title')}</h3>
+        {data.advisory ? <><p className="exec-headline">{data.advisory.title}</p><p className="exec-muted">{data.advisory.subtitle}</p></> : null}
         <div className="exec-meta">
           <span className={`exec-badge exec-badge--${status}`}><Icon name={status === 'ready' ? 'shield' : 'alert'} size={15} />{t(`exec.${status}`)}</span>
           <span>{t('exec.engine')}</span>
@@ -217,26 +218,18 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
       <summary>{t('exec.limits', { n: formatNumber(data.readiness.limitations.length) })}</summary><ul>{data.readiness.limitations.map((text, i) => <li key={i} dir="auto">{text}</li>)}</ul>
     </details> : null}
 
-    {(data.kpis.measures.length > 0 || Object.keys(data.kpis.unavailable).length > 0) ? <section aria-labelledby="exec-kpis">
-      <div className="exec-section-head"><h3 id="exec-kpis">{t('exec.kpis')}</h3>{data.kpis.measures.length ? <PolicyButton onClick={() => setPolicyOpen(true)} open={policyOpen} /> : null}</div>
-      <PerformanceLegend />
-      <details className="exec-about"><summary>{t('exec.about')}</summary><p>{t('exec.kpiScope')}</p><p>{t('exec.snapshot')}</p></details>
-      {policyOpen ? <Suspense fallback={<p role="status">{t('exec.loading')}</p>}><KpiPolicyEditor key={`${runId}:${locale}`} runId={runId} measures={data.kpis.measures} onClose={() => setPolicyOpen(false)} onSaved={() => setRevision((v) => v + 1)} /></Suspense> : null}
-      {FAMILIES.map((family) => {
-        const items = data.kpis.measures.filter((measure) => (FAMILIES.includes(measure.family as Family) ? measure.family : 'other') === family)
-        return items.length ? <section key={family} className="exec-family" data-family={family} aria-labelledby={`exec-family-${family}`}>
-          <h4 id={`exec-family-${family}`}><Icon name={FAMILY_ICON[family]} size={16} />{t(`exec.family.${family}`)}</h4>
-          <div className="exec-kpis">{items.map((measure) => <Kpi key={measure.key} measure={measure} />)}</div>
-        </section> : null
-      })}
-      {Object.keys(data.kpis.unavailable).length ? <details className="exec-unavailable"><summary>{t('exec.unsupported')}</summary><dl>{Object.entries(data.kpis.unavailable).map(([name, reason]) => <div key={name}><dt><bdi>{name}</bdi></dt><dd dir="auto">{reason}</dd></div>)}</dl></details> : null}
-    </section> : null}
-
     <div className="exec-decision-grid">
       <section className="exec-card exec-agent" aria-labelledby="exec-agent">
         <div className="exec-section-head"><div className="exec-heading"><Icon name="sparkle" size={22} /><h3 id="exec-agent">{t('exec.agent')}</h3></div><span className="exec-badge">{t('exec.engine')}</span></div>
         {brief === data ? <div className="exec-brief" role="region" aria-label={t('exec.prepared')}>
-          <p className="exec-headline" dir="auto">{data.headline}</p>
+          <p className="exec-headline" dir="auto">{data.advisory?.recommendation ?? data.headline}</p>
+          {data.advisory ? <>
+            <p className="exec-muted">{data.headline}</p>
+            <h4>{t('exec.scorecard')}</h4>
+            <dl>{data.advisory.domains.map((item) => <div key={item.id}><dt>{item.title} · {item.measure}</dt><dd><PerformanceValue tone={item.status} reason={item.reason}>{item.value === null ? t('exec.unavailable') : formatNumber(item.value, { maximumFractionDigits: 2 })}{item.value === null ? '' : item.scale === 'percent' ? '%' : item.scale === 'hours' ? ` ${t('exec.hours')}` : item.scale === 'money' ? ` ${t('exec.money')}` : ''}</PerformanceValue><p>{t('exec.covered', { n: formatNumber(item.records) })} · {t('exec.unmeasured', { n: formatNumber(item.unmeasured) })}</p><p>{item.implication}</p>{refs(item.evidence_refs)}</dd></div>)}</dl>
+            <h4>{t('exec.predictive')}</h4><p>{data.advisory.prediction}</p>
+            <details><summary>{t('exec.basis')}</summary><p>{data.advisory.new_findings}</p><dl>{data.advisory.sources.map((source) => <div key={source.id}><dt>{source.title}</dt><dd><PerformanceValue tone={source.status}>{source.detail}</PerformanceValue></dd></div>)}</dl><p>{data.advisory.preservation}</p><p>{data.advisory.escalation}</p></details>
+          </> : null}
           <h4>{t('exec.questions')}</h4>
           {data.questions.length ? <ol>{data.questions.map((question) => <li key={question.id}><p dir="auto">{question.text}</p>{refs(question.evidence_refs)}</li>)}</ol> : <p>{t('exec.noQuestions')}</p>}
           <div className="exec-export" aria-busy={exportBusy}>
@@ -256,12 +249,28 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
         <div className="exec-section-head"><h3 id="exec-attention">{t('exec.attention')}</h3><span className="exec-count">{formatNumber(data.priorities.length)}</span></div>
         {data.priorities.length ? <ol className="exec-priorities">{data.priorities.map((priority, index) => {
           const drilldown = data.drilldowns.find((item) => item.id === priority.drilldown_id)
-          return <li key={priority.id}><span className="exec-priority-number" aria-hidden="true">{formatNumber(index + 1)}</span><div><h4 dir="auto">{priority.title}</h4><p dir="auto">{priority.detail}</p>{refs(priority.evidence_refs)}
+          const decision = data.advisory?.decisions.find((item) => item.id === priority.id)
+          return <li key={priority.id}><span className="exec-priority-number" aria-hidden="true">{formatNumber(index + 1)}</span><div><h4 dir="auto">{priority.title}</h4><p dir="auto">{priority.detail}</p>{decision ? <p>{t('exec.proposedRole')}: {decision.owner} · {decision.gate}</p> : null}{refs(priority.evidence_refs)}
             {drilldown && canDrill(drilldown.filters) ? <button type="button" className="btn btn--subtle exec-drill" onClick={() => onDrill(drilldown.filters)}>{drilldown.label || t('exec.drill')}<Icon name="search" size={14} /></button> : null}
           </div></li>
         })}</ol> : <p className="exec-muted">{t('exec.noPriorities')}</p>}
       </section>
     </div>
+
+    {(data.kpis.measures.length > 0 || Object.keys(data.kpis.unavailable).length > 0) ? <section aria-labelledby="exec-kpis">
+      <div className="exec-section-head"><h3 id="exec-kpis">{t('exec.kpis')}</h3>{data.kpis.measures.length ? <PolicyButton onClick={() => setPolicyOpen(true)} open={policyOpen} /> : null}</div>
+      <PerformanceLegend />
+      <details className="exec-about"><summary>{t('exec.about')}</summary><p>{t('exec.kpiScope')}</p><p>{t('exec.snapshot')}</p></details>
+      {policyOpen ? <Suspense fallback={<p role="status">{t('exec.loading')}</p>}><KpiPolicyEditor key={`${runId}:${locale}`} runId={runId} measures={data.kpis.measures} onClose={() => setPolicyOpen(false)} onSaved={() => setRevision((v) => v + 1)} /></Suspense> : null}
+      {FAMILIES.map((family) => {
+        const items = data.kpis.measures.filter((measure) => (FAMILIES.includes(measure.family as Family) ? measure.family : 'other') === family)
+        return items.length ? <section key={family} className="exec-family" data-family={family} aria-labelledby={`exec-family-${family}`}>
+          <h4 id={`exec-family-${family}`}><Icon name={FAMILY_ICON[family]} size={16} />{t(`exec.family.${family}`)}</h4>
+          <div className="exec-kpis">{items.map((measure) => <Kpi key={measure.key} measure={measure} />)}</div>
+        </section> : null
+      })}
+      {Object.keys(data.kpis.unavailable).length ? <details className="exec-unavailable"><summary>{t('exec.unsupported')}</summary><dl>{Object.entries(data.kpis.unavailable).map(([name, reason]) => <div key={name}><dt><bdi>{name}</bdi></dt><dd dir="auto">{reason}</dd></div>)}</dl></details> : null}
+    </section> : null}
 
     <section aria-labelledby="exec-explore"><div className="exec-section-head"><h3 id="exec-explore">{t('exec.explore')}</h3><button type="button" className="btn btn--subtle" onClick={onOpenRun}>{t('exec.openRun')}</button></div>{children}</section>
 
