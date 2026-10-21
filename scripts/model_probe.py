@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import re
 import time
 import urllib.error
 import urllib.request
@@ -41,8 +42,19 @@ def main():
                           "usage": body.get("usage")}))
         return 0 if ok else 1
     except urllib.error.HTTPError as error:
-        # Do not print response bodies, headers, token or exception repr.
+        # The synthetic request has no workspace content. Return only the
+        # provider's error code/message, with credentials redacted.
+        detail = {}
+        try:
+            problem = json.loads(error.read(8192)).get("error", {})
+            if isinstance(problem, dict):
+                for key in ("code", "message"):
+                    value = str(problem.get(key, "")).replace(token, "[redacted]")
+                    detail[key] = re.sub(r"eyJ[\w-]+\.[\w-]+\.[\w-]+", "[redacted]", value)[:600]
+        except (ValueError, AttributeError):
+            pass
         print(json.dumps({"ok": False, "http_status": error.code,
+                          "provider_error": detail,
                           "seconds": round(time.perf_counter() - started, 2)}))
     except (OSError, ValueError, KeyError, IndexError, TypeError):
         print(json.dumps({"ok": False, "reason": "connection_or_response_error",
