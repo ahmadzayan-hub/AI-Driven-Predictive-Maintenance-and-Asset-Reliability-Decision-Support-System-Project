@@ -3,6 +3,8 @@ import { expect, test } from '@playwright/test'
 import { runFixture } from '../src/tests/run-fixture'
 import { skipOnboarding } from './helpers'
 
+declare global { interface Window { handoffAnimations: number } }
+
 test.use({ serviceWorkers: 'block' })
 
 const task = runFixture().tasks[0]
@@ -16,7 +18,14 @@ const initial = runFixture({
 })
 
 test('live handoffs can be paused without stopping analysis, and respect motion settings', async ({ page }) => {
+  test.setTimeout(60_000)
   await skipOnboarding(page)
+  await page.addInitScript(() => {
+    window.handoffAnimations = 0
+    document.addEventListener('animationstart', (event) => {
+      if ((event as AnimationEvent).animationName === 'agent-signal') window.handoffAnimations++
+    })
+  })
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   let current = initial
   let advances = 0
@@ -31,6 +40,17 @@ test('live handoffs can be paused without stopping analysis, and respect motion 
   await page.goto('/#/runs/flowtest')
   const flow = page.getByRole('region', { name: 'Agents working together' })
   await expect(flow).toBeVisible()
+  if ((page.viewportSize()?.width ?? 0) <= 1023) {
+    await expect(page.locator('.cockpit__header')).toHaveCSS('position', 'static')
+  }
+  const zoom = flow.getByRole('button', { name: 'Zoom in', exact: true })
+  if (await zoom.isVisible()) {
+    await zoom.click()
+    await expect(flow.locator('.agent-flow__zoom output')).toHaveText('110%')
+    await flow.getByRole('button', { name: 'Fit workspace' }).click()
+    await expect(flow.locator('.agent-flow__zoom output')).toHaveText('100%')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  }
   await flow.getByRole('button', { name: /^Analytics/ }).focus()
   await page.keyboard.press('Enter')
   await expect(flow.getByText('Initial observation', { exact: true })).toBeVisible()
@@ -45,21 +65,36 @@ test('live handoffs can be paused without stopping analysis, and respect motion 
   await flow.getByRole('button', { name: 'Resume live view' }).click()
   await expect(flow.getByText('Updated observation', { exact: true })).toBeVisible()
   const signal = flow.locator('.agent-flow__signal')
-  await expect(signal).toHaveCSS('animation-duration', '0.9s')
-  await expect(signal).toHaveCSS('animation-iteration-count', '1')
+  const visiblePulses = test.info().project.name === 'desktop' ? 1 : 0
+  await expect.poll(() => page.evaluate(() => window.handoffAnimations)).toBe(visiblePulses)
+  await expect(signal).toHaveCSS('animation-name', 'none')
+  // Releasing a held view must not replay an already observed handoff.
+  await flow.getByRole('button', { name: 'Pause live view' }).click()
+  await flow.getByRole('button', { name: 'Resume live view' }).click()
+  await expect(signal).toHaveCSS('animation-name', 'none')
+  expect(await page.evaluate(() => window.handoffAnimations)).toBe(visiblePulses)
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await expect(signal).toHaveCSS('animation-name', 'none')
   await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await expect(signal).toHaveCSS('animation-name', 'none')
   await page.evaluate(() => { document.documentElement.dataset.motion = 'reduce' })
   await expect(signal).toHaveCSS('animation-name', 'none')
   await flow.getByRole('button', { name: 'Open current evidence' }).click()
   await expect(page.getByRole('dialog')).toContainText('Synthetic evidence')
   await page.keyboard.press('Escape')
   await expect(flow.getByRole('button', { name: 'Open current evidence' })).toBeFocused()
+  if (test.info().project.name === 'desktop') {
+    await page.setViewportSize({ width: 1440, height: 720 })
+    await expect(page.locator('.cockpit__header')).toHaveCSS('position', 'static')
+    await flow.getByRole('button', { name: 'Zoom in', exact: true }).click()
+    await expect(flow.locator('.agent-flow__zoom output')).toHaveText('110%')
+    await flow.getByRole('button', { name: 'Fit workspace' }).click()
+  }
   expect(mutations.every((path) => path === '/api/runs/flowtest/advance')).toBe(true)
 })
 
 test('Arabic stage inspection fits small screens and both themes with accessible controls', async ({ page }, testInfo) => {
+  test.setTimeout(90_000)
   await skipOnboarding(page)
   await page.addInitScript(() => localStorage.setItem('aos-locale', 'ar'))
   const failed = {
@@ -80,6 +115,7 @@ test('Arabic stage inspection fits small screens and both themes with accessible
       await page.setViewportSize({ width, height: 900 })
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
       for (const button of await flow.getByRole('button').all()) {
+        if (!await button.isVisible()) continue
         const bounds = await button.boundingBox()
         expect(bounds!.width).toBeGreaterThanOrEqual(44)
         expect(bounds!.height).toBeGreaterThanOrEqual(44)

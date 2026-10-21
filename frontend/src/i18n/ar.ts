@@ -69,7 +69,7 @@ export const ar: Record<MessageKey, string> = {
   'nav.assets': 'ذكاء الأصول',
   'decision.eyebrow': 'قرارك القادم',
   'decision.heading': 'مركز قيادة ذكاء القرار',
-  'decision.subtitle': 'انتقل مباشرة إلى الأدلة والتحليلات والموافقات المعلقة، دون عرض مؤشرات تشغيلية مفترضة.',
+  'decision.subtitle': 'تتبّع الأدلة من التحليل إلى القرار. استعرض سير العمل أو النتائج أو راجع تقريراً.',
   'decision.upload': 'تحليل مجموعة بيانات',
   'decision.uploadHelp': 'استيراد البيانات والتحقق منها وتشغيل التحليلات الموثقة',
   'decision.dashboard': 'استعراض لوحة المعلومات',

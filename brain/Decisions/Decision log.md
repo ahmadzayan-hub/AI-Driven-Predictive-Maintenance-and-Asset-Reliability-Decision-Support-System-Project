@@ -3,7 +3,7 @@ type: decision
 aliases: [ADR index, Architecture decisions]
 tags: [decisions]
 status: active
-updated: 2026-10-21
+updated: 2026-10-22
 review_every_days: 30
 sources: [docs/adr]
 ---
@@ -98,3 +98,4 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 | 2026-10-21-executive-analytics-advisory | Decision-led bilingual maintenance briefs, five-domain exposure, explicit source roles and instructor escalation without master-data mutation | [[Business report exports]], [[Evidence and claims]] |
 
 All seven [[Analytics OS roadmap]] milestones have their records.
+| 2026-10-21-connected-agent-workspace | Responsive connected workflow, bounded zoom and recorded asset inspection; lazy-view allocation | [[Agent collaboration]], [[Design system]] |

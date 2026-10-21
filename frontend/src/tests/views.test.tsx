@@ -146,6 +146,24 @@ describe('OverviewView', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Not found.')
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
   })
+
+  it.each(['running', 'completed'])('opens the observed %s workflow from the populated overview', async (state) => {
+    const user = userEvent.setup()
+    const onOpenRun = vi.fn()
+    const runs = [
+      { id: 'new', state: 'cancelled', updated_at: '2026-10-21T12:00:00Z', goal: 'Cancelled request' },
+      { id: 'observed', state, updated_at: '2026-10-21T11:00:00Z', goal: 'Observed analysis' },
+    ]
+    serve({
+      '/api/runs': { runs },
+      '/api/usage': USAGE,
+      '/api/runs/observed': DETAIL,
+    })
+    render(<OverviewView onOpenRun={onOpenRun} onStart={vi.fn()} onOpenDashboard={vi.fn()} />)
+    await user.click(await screen.findByRole('button', { name: /Inspect agent workflow/ }))
+    // Prefer a queued/running workflow; otherwise the most recent recorded run.
+    expect(onOpenRun).toHaveBeenCalledWith(state === 'running' ? 'observed' : 'new')
+  })
 })
 
 describe('DatasetsView', () => {

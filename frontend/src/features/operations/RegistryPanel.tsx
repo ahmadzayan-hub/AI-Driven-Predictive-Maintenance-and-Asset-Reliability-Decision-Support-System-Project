@@ -1,7 +1,9 @@
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { usePack } from '../../i18n/pack'
 import { Dialog } from '../../shared/components/Dialog'
+import { Icon } from '../../shared/components/Icon'
+import { AssetInspector } from './AssetInspector'
 import { messages } from './messages'
 import { Field } from './OperationsView'
 import type { Mutate } from './OperationsView'
@@ -11,8 +13,13 @@ import type { Asset, OperationsOverview, OperationsRole, Priority } from './type
 export const priorities: Priority[] = ['critical', 'high', 'medium', 'low']
 interface Props { data: OperationsOverview; busy: boolean; mutate: Mutate }
 
-export function RegistryPanel({ data, busy, mutate }: Props) {
+export function RegistryPanel({ data, busy, mutate, onOpenRun }: Props & { onOpenRun: (id: string) => void }) {
   const { t } = usePack(messages)
+  const [query, setQuery] = useState(''), [inspected, setInspected] = useState<string | null>(null)
+  const closeInspector = useCallback(() => setInspected(null), [])
+  const selectedAsset = data.assets.find((asset) => asset.id === inspected)
+  const search = query.trim().toLocaleLowerCase()
+  const matchingAssets = data.assets.filter((asset) => [asset.name, asset.external_id, asset.source_system, data.sites.find((site) => site.id === asset.site_id)?.name ?? ''].some((value) => value.toLocaleLowerCase().includes(search)))
   const [siteName, setSiteName] = useState(''), [siteCode, setSiteCode] = useState('')
   const [siteId, setSiteId] = useState(''), [name, setName] = useState(''), [externalId, setExternalId] = useState('')
   const [source, setSource] = useState(''), [criticality, setCriticality] = useState<Priority>('medium')
@@ -28,16 +35,22 @@ export function RegistryPanel({ data, busy, mutate }: Props) {
     if (await mutate('asset', body, (key) => operationsApi.createAsset(organization, body, key))) { setName(''); setExternalId('') }
   }
   return <section aria-label={t('registry')}>
+    <div className="operations__section-heading"><div><h3>{t('assetRegister')}</h3><p className="operations__muted">{t('registryHelp')}</p></div><span className="operations__count">{t('assetCount', { n: data.assets.length })}</span></div>
+    {data.assets.length > 0 && <Field label={t('searchAssets')}><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} /></Field>}
     <div className="operations__registry-list">
-      {data.sites.map((site) => <section className="operations__card" key={site.id}>
+      {data.sites.filter((site) => !search || matchingAssets.some((asset) => asset.site_id === site.id)).map((site) => <section className="operations__card" key={site.id}>
         <h3 dir="auto">{site.name} <small className="operations__code">{site.code}</small></h3>
         <p>{t('siteIdentifier')}: <bdi className="operations__code">{site.id}</bdi></p>
-        <ul className="operations__assets">{data.assets.filter((asset) => asset.site_id === site.id).map((asset) => <li key={asset.id}>
-          <div><strong dir="auto">{asset.name}</strong><p dir="auto">{asset.source_system} · {asset.external_id}</p></div>
-          <span>{t('criticality')}: {t(asset.criticality)}</span>
+        <ul className="operations__asset-list">{matchingAssets.filter((asset) => asset.site_id === site.id).map((asset) => <li key={asset.id}>
+          <button type="button" className="operations__asset-button" aria-label={t('inspectAsset', { name: asset.name })} aria-haspopup="dialog" onClick={() => setInspected(asset.id)}>
+            <span className="operations__asset-identity"><Icon name="settings" size={20} /><span><strong dir="auto">{asset.name}</strong><span className="operations__muted" dir="auto">{asset.source_system} · {asset.external_id}</span></span></span>
+            <span className="operations__asset-labels"><span>{t('criticality')}: {t(asset.criticality)}</span><span className="operations__muted">{t('assetQueueCount', { n: data.work_orders.filter((order) => order.asset_id === asset.id).length })}</span></span>
+          </button>
         </li>)}</ul>
+        {!data.assets.some((asset) => asset.site_id === site.id) && <p className="operations__muted">{t('siteEmpty')}</p>}
       </section>)}
-      {!data.assets.length && <p>{t('noAssets')}</p>}
+      {!data.assets.length && <div className="operations__empty"><Icon name="database" size={28} /><h3>{t('noAssets')}</h3><p>{t(data.permissions.manage ? 'registryEmptyHelp' : 'manageOnly')}</p></div>}
+      {data.assets.length > 0 && !matchingAssets.length && <div className="operations__empty operations__empty--compact"><Icon name="search" size={24} /><h3>{t('noAssetMatches')}</h3><p>{t('assetSearchHelp')}</p><button type="button" className="btn btn--ghost" onClick={() => setQuery('')}>{t('clearSearch')}</button></div>}
     </div>
     {data.permissions.manage ? <div className="operations__forms">
       <form className="operations__card" onSubmit={(event) => void createSite(event)}>
@@ -59,6 +72,7 @@ export function RegistryPanel({ data, busy, mutate }: Props) {
       </form>
     </div> : <p>{t('manageOnly')}</p>}
     {data.permissions.manage && <AssetImport data={data} busy={busy} mutate={mutate} />}
+    {selectedAsset && <AssetInspector asset={selectedAsset} data={data} onClose={closeInspector} onOpenRun={onOpenRun} />}
   </section>
 }
 

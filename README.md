@@ -425,6 +425,38 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Connected agent workspace and asset inspection — 22 October 2026
+
+The requested design is implemented in the real workspace: a connected Hermes
+map with zoom, fit, one-shot observed handoffs and stage inspection; overview
+actions; registry coverage, asset search and an evidence-linked history dialog.
+The [decision record](docs/adr/2026-10-21-connected-agent-workspace.md) records
+responsive behavior, reduced motion and the explicit lazy-view budget allocation.
+
+- Backend verification reported **1,624 tests, 161 environment-dependent skips**.
+  TypeScript and the production build passed.
+  After integrating concurrent model-role changes from main, focused orchestration,
+  run-engine, demo and documentation checks reported **73 tests, 16 skips**.
+- Changed-workflow browser checks passed: **17 passed, 3 device-specific skips**
+  across collaboration, operations and overview. They cover English/Arabic,
+  phone/desktop, both themes, reduced motion, unchanged-event replay prevention,
+  keyboard/focus restoration, asset evidence and accessibility checks.
+- Strict brain checks passed. The production bundle passed its recorded allocation:
+  JavaScript **97.9 KB initial / 208.3 KB total**, CSS **10.0 KB initial / 28.2 KB total**,
+  largest lazy JavaScript chunk **18.9 KB**, fonts **119.4 KB**.
+  The integrated verifier initially failed one animation-end unit assertion caused
+  by React/jsdom's event-name detection. Its seven other steps passed. The test-only
+  correction passed the targeted file and the complete frontend rerun:
+  **318 of 318 tests in 36 files passed**. The final type check also passed.
+- The three scoped review gates finished at **100%**, with recorded rounds
+  **33.3% → 66.7% → 100%**. The first round exposed an evidence-reader label
+  mismatch and sandbox-denied health request; the second awaited the full unit
+  rerun. Those gate issues were corrected without weakening product assertions.
+  No findings were waived. This is a score for these checks, not overall SaaS readiness.
+- Local API and worker readiness were confirmed at `http://localhost:8000`.
+  This verification does not establish hosted acceptance, external CMMS
+  synchronization or predictive model validity.
+
 ### Executive Analytics Advisory Group — 21 October 2026
 
 The maintenance brief now leads with recommendations, five-domain exposure,

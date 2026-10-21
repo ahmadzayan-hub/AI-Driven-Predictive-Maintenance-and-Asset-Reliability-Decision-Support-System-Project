@@ -3,9 +3,9 @@ type: concept
 aliases: []
 tags: [agents]
 status: active
-updated: 2026-10-21
+updated: 2026-10-22
 review_every_days: 30
-sources: [frontend/src/features/runs/AgentCollaboration.tsx, docs/design/AGENT_COLLABORATION_MOTION.md, docs/design/REACT_AGENT_CONNECTIONS_STUDY.md]
+sources: [frontend/src/features/runs/AgentCollaboration.tsx, docs/design/AGENT_COLLABORATION_MOTION.md, docs/design/REACT_AGENT_CONNECTIONS_STUDY.md, docs/adr/2026-10-21-connected-agent-workspace.md]
 ---
 
 # Agent collaboration
@@ -15,6 +15,7 @@ Agent collaboration is the interface for inspecting observed specialist handoffs
 ## What is implemented
 
 - Workflow groups expose stage order, states, summaries, checks and claims from the current run.
+- The connected workspace places Hermes among the workflow groups, with bounded zoom, fit, previous/next-stage selection and a responsive inspector. Phones use a vertical sequence. Directional highlights follow observed state transitions; they do not replay a snapshot as new activity.
 - Recent browser observations can omit intermediate transitions; they are not a durable transcript of messages or model thoughts.
 - Pause live view holds only this panel. Analysis can continue, and opening current evidence uses the newest task.
 - Actual message inspection would require a tenant-scoped event contract and redacted payloads that the current stage API does not provide.

@@ -3,7 +3,7 @@ import { appendEvents, snapshotEvents } from '../features/runs/runEvents'
 import { planRoles, roleBand } from '../features/runs/pipeline'
 import { reportCalculations } from '../features/runs/evidence'
 import { runFixture } from './run-fixture'
-import { collaborationEvents, finishedTasks, focusTask, groupState, isWorking } from '../features/runs/collaboration'
+import { collaborationEvents, finishedTasks, focusTask, groupState, handoffDirection, isWorking } from '../features/runs/collaboration'
 
 describe('observations of durable run snapshots', () => {
   it('does not invent stage-start events between observed snapshots', () => {
@@ -69,6 +69,18 @@ describe('collaboration state is observed, not simulated', () => {
     const valid = snapshotEvents(null, run)
     const stage = valid.find((event) => event.kind === 'stage.changed')!
     expect(collaborationEvents(run, [...valid, { ...stage, runId: 'another' }, { ...stage, subject: 'missing' }])).toEqual(valid)
+  })
+  it('only gives observed starts and returned outcomes a directional signal', () => {
+    const base = snapshotEvents(null, runFixture())[0]
+    expect(handoffDirection()).toBeNull()
+    expect(handoffDirection(base)).toBeNull()
+    for (const state of ['pending', 'unknown']) {
+      expect(handoffDirection({ ...base, kind: 'stage.changed', state })).toBeNull()
+    }
+    expect(handoffDirection({ ...base, kind: 'stage.changed', state: 'running' })).toBe('outbound')
+    for (const state of ['succeeded', 'failed', 'skipped', 'cancelled', 'awaiting_approval']) {
+      expect(handoffDirection({ ...base, kind: 'stage.changed', state })).toBe('inbound')
+    }
   })
 })
 

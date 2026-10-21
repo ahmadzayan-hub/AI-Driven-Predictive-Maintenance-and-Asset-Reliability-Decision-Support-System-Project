@@ -27,7 +27,11 @@ describe('typed assistant results', () => {
 })
 
 describe('interactive agent observations', () => {
-  afterEach(() => { act(() => applyLocale('en', false)); vi.restoreAllMocks() })
+  afterEach(() => {
+    act(() => applyLocale('en', false))
+    vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers()
+    delete document.documentElement.dataset.motion
+  })
   const task = runFixture().tasks[0]
   const before = runFixture({ state: 'running', tasks: [{ ...task, state: 'running', summary: 'First result', quality_checks: [{ name: 'test', passed: true, detail: 'Recorded check' }] }] })
   const after = runFixture({ state: 'completed', updated_at: '2026-10-16T10:01:00Z', tasks: [{ ...before.tasks[0], state: 'succeeded', summary: 'New result' }] })
@@ -48,6 +52,8 @@ describe('interactive agent observations', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Resume live view' }))
     expect(screen.getByText('New result')).toBeVisible()
     expect(container.querySelector('.agent-flow')).toHaveAttribute('data-working', 'false')
+    // This update arrived while held and has not previously been observed.
+    expect(container.querySelector('.agent-flow__signal--updated')).toHaveAttribute('data-direction', 'inbound')
     // A new run unmounts the held snapshot; an old run's results cannot leak.
     fireEvent.click(screen.getByRole('button', { name: 'Pause live view' }))
     rerender(<AgentCollaboration key="other-run" {...props} run={runFixture({ id: 'other-run' })} events={later} />)
@@ -93,5 +99,152 @@ describe('interactive agent observations', () => {
     expect(container.querySelector('.agent-flow__group bdi')).toHaveAttribute('dir', 'ltr')
     expect(screen.getByText('بداية سير العمل')).not.toHaveAttribute('lang')
     expect(screen.getByText('نهاية سير العمل')).not.toHaveAttribute('lang')
+  })
+  it('bounds workspace zoom and fits the graph without changing the selected stage or run', () => {
+    const evidence = vi.fn()
+    const { container } = render(<AgentCollaboration run={before} events={events} interrupted={false} pipelines={null} onEvidence={evidence} />)
+    const canvas = container.querySelector('.agent-flow__canvas')!
+    const viewport = container.querySelector('.agent-flow__viewport')!
+    const zoomIn = screen.getByRole('button', { name: 'Zoom in' })
+    const zoomOut = screen.getByRole('button', { name: 'Zoom out' })
+    for (let i = 0; i < 10; i += 1) fireEvent.click(zoomIn)
+    expect(canvas).toHaveAttribute('data-zoom', '1.4')
+    expect(zoomIn).toBeDisabled()
+    for (let i = 0; i < 10; i += 1) fireEvent.click(zoomOut)
+    expect(canvas).toHaveAttribute('data-zoom', '0.8')
+    expect(zoomOut).toBeDisabled()
+    viewport.scrollLeft = 100; viewport.scrollTop = 40
+    fireEvent.click(screen.getByRole('button', { name: 'Fit workspace' }))
+    expect(canvas).toHaveAttribute('data-zoom', '1')
+    expect(viewport.scrollLeft).toBe(0)
+    expect(viewport.scrollTop).toBe(0)
+    expect(screen.getByText('First result')).toBeVisible()
+    expect(evidence).not.toHaveBeenCalled()
+    expect(before.tasks[0].state).toBe('running')
+  })
+  it('navigates actual neighbours and distinguishes human review from failure and pending work', () => {
+    const tasks = [
+      { ...task, id: 'collect', role: 'collector', title: 'Collect data', state: 'succeeded' },
+      { ...task, id: 'review', role: 'descriptive', title: 'Review analysis', state: 'awaiting_approval' },
+      { ...task, id: 'validate', role: 'validator', title: 'Validate output', state: 'failed' },
+      { ...task, id: 'publish', role: 'publish', title: 'Publish report', state: 'pending' },
+    ]
+    const { container } = render(<AgentCollaboration run={runFixture({ state: 'failed', tasks })} events={[]} interrupted={false} pipelines={null} onEvidence={vi.fn()} />)
+    expect(container.querySelector('.agent-flow__group--failed')).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(screen.getByRole('button', { name: 'Previous stage' }))
+    expect(screen.getByText('Human review required')).toBeVisible()
+    expect(container.querySelector('.agent-flow__group--awaiting_approval')).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(screen.getByRole('button', { name: 'Previous stage' }))
+    expect(screen.getByRole('button', { name: 'Previous stage' })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Follow current stage' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Next stage' }))
+    expect(screen.getByRole('button', { name: 'Next stage' })).toBeDisabled()
+    expect(container.querySelector('.agent-flow__group--pending')).toHaveAttribute('aria-pressed', 'true')
+    expect(container.querySelector('.agent-flow__signal')).toBeNull()
+  })
+  it('pulses once for a new observed result and keeps its direction through view-only actions', () => {
+    vi.useFakeTimers()
+    const props = { interrupted: false, pipelines: null, onEvidence: vi.fn() }
+    const { container, rerender } = render(<AgentCollaboration {...props} run={before} events={events} />)
+    expect(container.querySelector('.agent-flow__signal')).toHaveAttribute('data-direction', 'outbound')
+    expect(container.querySelector('.agent-flow__signal--updated')).toBeNull()
+    rerender(<AgentCollaboration {...props} run={after} events={later} />)
+    const returned = container.querySelector('.agent-flow__signal--updated')!
+    expect(returned).toHaveAttribute('data-direction', 'inbound')
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Follow current stage' }))
+    expect(container.querySelector('.agent-flow__signal--updated')).toBe(returned)
+    // jsdom exposes WebkitAnimation styles but no AnimationEvent constructor,
+    // so React registers the prefixed event. Keep the fallback timer frozen:
+    // only the matching path's animation-end handler can clear this pulse.
+    const animationEnd = 'AnimationEvent' in window ? 'animationend' : 'webkitAnimationEnd'
+    fireEvent(returned, new Event(animationEnd, { bubbles: true }))
+    expect(container.querySelector('.agent-flow__signal--updated')).toBeNull()
+    expect(container.querySelector('.agent-flow__signal')).toBe(returned)
+    rerender(<AgentCollaboration {...props} run={{ ...after, paused: true }} events={later} />)
+    expect(container.querySelector('.agent-flow')).toHaveAttribute('data-still', 'true')
+    rerender(<AgentCollaboration {...props} run={after} events={later} />)
+    expect(container.querySelector('.agent-flow__signal--updated')).toBeNull()
+  })
+  it('consumes an unfinished pulse when hidden and only animates a new observed stage after returning', () => {
+    const props = { interrupted: false, pipelines: null, onEvidence: vi.fn() }
+    const { container, rerender } = render(<AgentCollaboration {...props} run={before} events={events} />)
+    rerender(<AgentCollaboration {...props} run={after} events={later} />)
+    expect(container.querySelector('.agent-flow__signal--updated')).not.toBeNull()
+    const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true)
+    fireEvent(document, new Event('visibilitychange'))
+    expect(container.querySelector('.agent-flow__signal--updated')).toBeNull()
+    hidden.mockReturnValue(false)
+    fireEvent(document, new Event('visibilitychange'))
+    rerender(<AgentCollaboration {...props} run={after} events={later} />)
+    expect(container.querySelector('.agent-flow__signal--updated')).toBeNull()
+    expect(container.querySelector('.agent-flow__signal')).toHaveAttribute('data-direction', 'inbound')
+    const next = { ...after, updated_at: '2026-10-16T10:02:00Z', tasks: [{ ...after.tasks[0], state: 'failed' }] }
+    rerender(<AgentCollaboration {...props} run={next} events={appendEvents(later, snapshotEvents(after, next))} />)
+    expect(container.querySelector('.agent-flow__signal--updated')).not.toBeNull()
+  })
+  it.each(['held', 'interrupted', 'run paused'])('does not replay a pulse after %s suppression is removed', (reason) => {
+    const props = { interrupted: false, pipelines: null, onEvidence: vi.fn() }
+    const { container, rerender } = render(<AgentCollaboration {...props} run={before} events={events} />)
+    rerender(<AgentCollaboration {...props} run={after} events={later} />)
+    expect(container.querySelector('.agent-flow__signal--updated')).not.toBeNull()
+    if (reason === 'held') fireEvent.click(screen.getByRole('button', { name: 'Pause live view' }))
+    else rerender(<AgentCollaboration {...props} interrupted={reason === 'interrupted'} run={{ ...after, paused: reason === 'run paused' }} events={later} />)
+    expect(container.querySelector('.agent-flow__signal--updated')).toBeNull()
+    if (reason === 'held') fireEvent.click(screen.getByRole('button', { name: 'Resume live view' }))
+    else rerender(<AgentCollaboration {...props} run={after} events={later} />)
+    expect(container.querySelector('.agent-flow__signal--updated')).toBeNull()
+    expect(container.querySelector('.agent-flow__signal')).toHaveAttribute('data-direction', 'inbound')
+  })
+  it.each(['app', 'system'])('consumes pending and newly observed motion under the %s reduced-motion preference', async (source) => {
+    let systemReduced = false
+    const media = new EventTarget()
+    vi.stubGlobal('matchMedia', () => ({
+      get matches() { return systemReduced },
+      addEventListener: media.addEventListener.bind(media),
+      removeEventListener: media.removeEventListener.bind(media),
+    }))
+    async function reduce(value: boolean) {
+      await act(async () => {
+        if (source === 'app') {
+          if (value) document.documentElement.dataset.motion = 'reduce'
+          else delete document.documentElement.dataset.motion
+        } else { systemReduced = value; media.dispatchEvent(new Event('change')) }
+      })
+    }
+    const props = { interrupted: false, pipelines: null, onEvidence: vi.fn() }
+    const { container, rerender } = render(<AgentCollaboration {...props} run={before} events={events} />)
+    rerender(<AgentCollaboration {...props} run={after} events={later} />)
+    expect(container.querySelector('.agent-flow__signal--updated')).not.toBeNull()
+    await reduce(true)
+    expect(container.querySelector('.agent-flow__signal--updated')).toBeNull()
+    await reduce(false)
+    expect(container.querySelector('.agent-flow__signal--updated')).toBeNull()
+    await reduce(true)
+    const next = { ...after, updated_at: '2026-10-16T10:02:00Z', tasks: [{ ...after.tasks[0], state: 'failed' }] }
+    rerender(<AgentCollaboration {...props} run={next} events={appendEvents(later, snapshotEvents(after, next))} />)
+    await reduce(false)
+    expect(container.querySelector('.agent-flow__signal--updated')).toBeNull()
+    expect(container.querySelector('.agent-flow__signal')).toHaveAttribute('data-direction', 'inbound')
+  })
+  it('expires a pending pulse even when a hidden phone-layout SVG emits no animationend', () => {
+    vi.useFakeTimers()
+    const props = { interrupted: false, pipelines: null, onEvidence: vi.fn() }
+    const { container, rerender } = render(<AgentCollaboration {...props} run={before} events={events} />)
+    rerender(<AgentCollaboration {...props} run={after} events={later} />)
+    expect(container.querySelector('.agent-flow__signal--updated')).not.toBeNull()
+    act(() => { vi.advanceTimersByTime(900) })
+    expect(container.querySelector('.agent-flow__signal--updated')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Pause live view' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Resume live view' }))
+    expect(container.querySelector('.agent-flow__signal--updated')).toBeNull()
+    expect(container.querySelector('.agent-flow__signal')).toHaveAttribute('data-direction', 'inbound')
+  })
+  it('leaves queued work quiet when no observation has arrived', () => {
+    const { container } = render(<AgentCollaboration run={runFixture()} events={[]} interrupted={false} pipelines={null} onEvidence={vi.fn()} />)
+    expect(container.querySelector('.agent-flow__signal')).toBeNull()
+    expect(container.querySelector('.agent-flow__latest')).toBeNull()
+    expect(container.querySelector('.agent-flow')).toHaveAttribute('data-working', 'false')
+    expect(screen.getByText('Waiting for an observed update')).toBeVisible()
   })
 })

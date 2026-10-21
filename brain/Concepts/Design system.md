@@ -3,7 +3,7 @@ type: concept
 aliases: [Design system v2, UI design system, ui-ux-pro-max]
 tags: [interface, design]
 status: active
-updated: 2026-10-21
+updated: 2026-10-22
 review_every_days: 30
 sources: [frontend/src/tests/charts.test.tsx, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0028-views-load-on-demand.md, docs/UI_PLAN.md, design-system/agentic-os/MASTER.md, frontend/src/shared/styles/tokens.css, .claude/skills/ui-ux-pro-max/PROVENANCE.md, .claude/skills/design/PROVENANCE.md, docs/design/REACT_AGENT_CONNECTIONS_STUDY.md]
 ---
@@ -36,6 +36,12 @@ Read the master file, then ask the skill one focused question with `python3 .cla
 ## React graph exploration
 
 The 21 October study in `docs/design/REACT_AGENT_CONNECTIONS_STUDY.md` keeps the existing React/SVG approach for [[Agent collaboration]] and proposes an optional React Flow explorer only when canvas navigation earns its measured cost. Motion is an optional animation tool, not a graph or communication service. The study includes reproducible synthetic build comparisons; production dependencies and the current CSS-motion decision are unchanged.
+
+The connected workspace implementation adds bounded SVG zoom and a stage
+inspector without another library. The operations asset inspector reads actual
+work history, evidence and completion records; criticality stays separate from
+condition. `docs/adr/2026-10-21-connected-agent-workspace.md` records the
+responsive behavior and the explicit allocation for lazy-view assets.
 
 ## Related
 

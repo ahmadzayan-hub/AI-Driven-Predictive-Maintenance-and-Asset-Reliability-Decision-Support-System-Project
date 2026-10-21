@@ -1,11 +1,13 @@
 # Project progress
 
-Last updated: 2026-10-21, session `advisory21`, preserving the workspace runtime and concurrent interface work. The session-end skill keeps this file current; the SessionStart hook reads the *Now* section into every new session.
+Last updated: 2026-10-22, session `ad7e9eca`, preserving the workspace runtime and concurrent main changes. The session-end skill keeps this file current; the SessionStart hook reads the *Now* section into every new session.
 
 
 **Vision.** **AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project** uses Agentic OS as its governed analytics engine. It digests several datasets with dynamic inputs, then carries them through preparation, cleaning and modelling to a multi-page interactive dashboard with live data, with insights and key findings that are always traceable to a calculation. The product scope and remaining domain work are in `docs/PROJECT_CHARTER.md`; the reusable engine milestones are in `brain/Projects/Analytics OS roadmap.md`.
 
 ## Now
+
+- **Connected agent workspace and asset inspection: complete, 2026-10-22.** The requested design now shows observed agent handoffs, bounded zoom, fit, stage navigation and expandable evidence. The overview links to an actual run; Operations has registry coverage, asset search and a dialog for recorded work, evidence and outcomes. English/Arabic, keyboard, phone/desktop and reduced-motion browser checks passed. The platform runs locally with a ready background worker. The complete frontend regression rerun passed after a test-only animation-event correction; final results and conditional skips belong in README.md#testing. Concurrent main model-role changes are preserved and their focused backend checks passed. See [decision](docs/adr/2026-10-21-connected-agent-workspace.md). Hosted release and live maintenance integration remain separate.
 
 - **Executive Analytics Advisory Group: 2026-10-21.** The briefing and bilingual exports use the predictive-maintenance product title and lead with a decision, domain exposure, proposed review roles and predictive-readiness limits. Source identity, workbook reconciliation and dictionary acceptance are not inferred from an arbitrary run. A separate private review of the owner's assigned source pack independently reproduced its supplied KPI summary, preserved original hashes, and delivered concise English/Arabic papers with an evidence appendix, transformation log and instructor-review issue register. Business-definition and prospective-validity issues remain open; no scenario/source values were changed. See [decision](docs/adr/2026-10-21-executive-analytics-advisory.md); checks are in README.md#testing.
 
@@ -173,6 +175,7 @@ Reusable foundations: the metric glossary (`metrics.json`), custom stages (ADR 0
 
 | Date | What | Evidence |
 | --- | --- | --- |
+| 2026-10-22 | Animated agent workspace, overview actions and asset evidence inspector | Dated connected-workspace ADR; full frontend rerun, changed-workflow browsers, local readiness and scoped review results in `README.md#testing` |
 | 2026-10-19 | Bilingual Miyaar workspace and governed chat recovery (ADR 0054), merged in PR #15 | `docs/design/MIYAAR_UI_HANDOFF.md`; actual screenshots; full CI and browser evidence in `README.md#testing` |
 | 2026-10-19 | Opt-in local Qwen/Whisper runtime, authenticated editable voice drafts and reproducible setup (ADR 0055), merged in PR #15 | `docs/LOCAL_AI_SETUP.md`; actual English/Arabic model and audio probes plus regressions in `README.md#testing`; Arabic quality, physical devices and hosted production remain separate |
 | 2026-10-17 | Private maintenance delivery and development playbook | Source-linked Markdown, command-option inspection, local-link checks, documentation tests and strict brain check; results in `session-logs.md` |

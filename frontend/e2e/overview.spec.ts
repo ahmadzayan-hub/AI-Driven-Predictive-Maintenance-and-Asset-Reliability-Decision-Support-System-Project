@@ -38,6 +38,9 @@ async function runSampleToApproval(page: Page) {
 test('the overview shows the figures, the latest findings and what waits for approval', async ({
   page,
 }) => {
+  // This combines a real run, navigation and axe. The retained Windows trace
+  // shows axe alone crossing the default deadline after the UI assertions pass.
+  test.setTimeout(90_000)
   await skipOnboarding(page)
   await page.goto('/')
   await runSampleToApproval(page)
