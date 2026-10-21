@@ -1,0 +1,47 @@
+Note: evidence lines condensed by the orchestrator; paragraph ids, severities and categories are exactly as the reviewer gave them.
+
+FINDING F01 · blocker · P04
+Category: arithmetic
+Evidence: Series chain averaged; product is 93.1%, below target.
+
+FINDING F02 · major · P05
+Category: overclaim
+Evidence: Repair time used as restoration; 4.9 h, 99.84%.
+
+FINDING F03 · major · P07
+Category: overclaim
+Evidence: Alarm log cannot show battery capacity; discharge test needed.
+
+FINDING F04 · major · P08
+Category: overclaim
+Evidence: Shared controller is common cause; about 0.54%.
+
+FINDING F05 · major · P10
+Category: overclaim
+Evidence: 13-week survey longer than 8-week P-F interval.
+
+FINDING F06 · major · P12
+Category: overclaim
+Evidence: Weibull shape 3.4 is wear-out, not random.
+
+FINDING F07 · major · P14
+Category: overclaim
+Evidence: Backlog deferred, not reduced; sensor defects open.
+
+FINDING F08 · blocker · P17
+Category: overclaim
+Evidence: MTBF is not asset life.
+
+FINDING F09 · blocker · P18
+Category: causal_claim
+Evidence: Contractor change before/after, no control.
+
+FINDING F10 · blocker · P19
+Category: denominator
+Evidence: Per pump: 22 / 74 = 29.7%.
+
+FINDING F11 · blocker · P20
+Category: overclaim
+Evidence: Six sections, five months generalised to fleet.
+
+TOTAL: 11 findings
