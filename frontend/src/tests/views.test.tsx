@@ -340,7 +340,7 @@ describe('Command Centre', () => {
   it('hides the live-source controls in the view-only demo', async () => {
     serve({ '/api/datasets': { datasets: [] }, '/api/usage': USAGE, '/api/connectors': { connectors: [] } })
     render(<ReadOnlyContext.Provider value={true}><DatasetsView onAnalyse={vi.fn()} /></ReadOnlyContext.Provider>)
-    await screen.findByText(/No datasets|Nothing stored|dataset/i)
+    await screen.findByText('No datasets yet')
     expect(screen.queryByText('Add a live source')).toBeNull()
   })
 })

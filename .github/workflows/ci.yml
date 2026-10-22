@@ -13,6 +13,10 @@ on:
 # readable diff. Re-resolve with:
 #   git ls-remote --tags https://github.com/actions/checkout
 
+# The token gets read access only; no job writes to the repository.
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest

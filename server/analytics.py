@@ -3429,14 +3429,14 @@ def prescriptive(ctx, gateway=None):
 
     claims.append(_claim(
         ctx, "cl_recommendation", "recommendation",
-        f"Recommended action: {best['title']}. On the same {PLANNING_UPLIFT:.0%} "
-        f"improvement applied to every option, it is worth {best['expected_gain']:,.2f} "
-        f"in {measure}" +
+        f"Recommended action: {best['title']}. On the same assumed {PLANNING_UPLIFT:.0%} "
+        f"improvement applied to every option, it is worth an illustrative "
+        f"{best['expected_gain']:,.2f} in {measure}" +
         (f", ahead of the next option by {margin:,.2f}." if margin else ".") +
         " This is a recommendation under a stated assumption, not an observed "
         "outcome.",
-        f"الإجراء الموصى به: {shown(best, 'title')}. عند تطبيق التحسن نفسه بنسبة "
-        f"{PLANNING_UPLIFT:.0%} على كل خيار، تبلغ قيمته {best['expected_gain']:,.2f} "
+        f"الإجراء الموصى به: {shown(best, 'title')}. عند تطبيق التحسن المفترض نفسه بنسبة "
+        f"{PLANNING_UPLIFT:.0%} على كل خيار، تبلغ قيمته التوضيحية {best['expected_gain']:,.2f} "
         f"في {measure}" +
         (f"، متقدماً على الخيار التالي بمقدار {margin:,.2f}." if margin else ".") +
         " وهذه توصية قائمة على افتراض معلن، لا نتيجة مشاهدة.",
@@ -3547,11 +3547,11 @@ def prescriptive(ctx, gateway=None):
                               "الترتيب.*" if closeness < 0.20 else "*"))]
     headline = _say(ctx,
                     f"We recommend: {best['title']}. It is worth about "
-                    f"{best['expected_gain']:,.0f} in {measure} — more than any other "
+                    f"{best['expected_gain']:,.0f} in {measure}, illustrative at an assumed {PLANNING_UPLIFT:.0%} change — more than any other "
                     f"option we compared.",
                     f"نوصي بـ: {shown(best, 'title')}. وقيمته نحو "
-                    f"{best['expected_gain']:,.0f} في {measure}، وهي أكبر من أي خيار "
-                    "آخر قارنّاه.")
+                    f"{best['expected_gain']:,.0f} في {measure}، قيمةً توضيحية عند تغيّر "
+                    f"مفترض بنسبة {PLANNING_UPLIFT:.0%}، وهي أكبر من أي خيار آخر قارنّاه.")
     return _result(
         "succeeded", headline,
         output={"headline": headline, "options": options, "recommendation": best,

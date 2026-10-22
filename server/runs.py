@@ -904,8 +904,8 @@ class RunEngine:
             raise KeyError(run_id)
         return run
 
-    def list_runs(self, owner=None):
-        return self.store.list_runs(owner=owner)
+    def list_runs(self, owner=None, state=None):
+        return self.store.list_runs(owner=owner, state=state)
 
     def owner_of(self, run_id):
         return self._row(run_id).get("owner") or "local-owner"

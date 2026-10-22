@@ -429,7 +429,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
 
   if (selectedId && !run) {
     return <section className="panel" aria-label={t('runs.detailAria')}><div className="panel__inner">
-      {errorMessage ? <p role="alert" className="statusline statusline--error" dir="auto">{errorMessage}</p> : <div role="status" aria-label={t('cockpit.loading')} className="card"><div className="skeleton skeleton--title" /><div className="skeleton skeleton--line" /></div>}
+      {errorMessage ? <p role="alert" className="statusline statusline--error" dir="auto">{errorMessage}</p> : <div role="status" aria-label={t('cockpit.loading')} className="card"><span className="visually-hidden">{t('cockpit.loading')}</span><div className="skeleton skeleton--title" /><div className="skeleton skeleton--line" /></div>}
       <div className="dialog__actions"><button type="button" className="btn btn--ghost" onClick={() => void runStore.retry(selectedId)}>{t('common.tryAgain')}</button><button type="button" className="btn btn--ghost" onClick={() => setRun(null)}>{t('runs.all')}</button></div>
     </div></section>
   }

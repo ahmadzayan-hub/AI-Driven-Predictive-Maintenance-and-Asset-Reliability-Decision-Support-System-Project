@@ -77,7 +77,7 @@ export function prefetchWhenIdle(): () => void {
 export function ViewLoading() {
   const { t } = useI18n()
   return (
-    <div className="viewload" role="status" aria-label={t('app.loadingView')}>
+    <div className="viewload" role="status" aria-label={t('app.loadingView')}><span className="visually-hidden">{t('app.loadingView')}</span>
       <div className="skeleton skeleton--title" />
       <div className="skeleton skeleton--line" />
       <div className="skeleton skeleton--line skeleton--short" />

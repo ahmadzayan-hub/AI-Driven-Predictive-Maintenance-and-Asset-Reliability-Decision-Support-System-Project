@@ -156,7 +156,7 @@ def _personal(cases):
 
 def _router(cases):
     from server import routing
-    every = [{"provider": p} for p in ("ollama", "anthropic", "groq", "deterministic")]
+    every = [{"provider": p} for p in ("ollama", "anthropic", "openai", "groq", "deterministic")]
     return [(c["label"], routing.provider_for(c["text"], every) or "none", c["text"] or "(empty)")
             for c in cases]
 

@@ -441,6 +441,10 @@ what was not verified, are in [docs/qa/END_TO_END_VALIDATION.md](docs/qa/END_TO_
   (WCAG 2.2 AA scan with the Command Centre), desktop and mobile.
 - Not verified: live model providers; the remaining 25 Playwright specs
   (last full run 21 October); hosted load behaviour.
+- Slice one of the release gate ([decision](docs/adr/2026-10-22-release-gate-slice-one.md)):
+  full verifier **8 of 8** (**1,663 Python tests, 21 skipped**); `evaluate_agents --check` 9 of 9 with the router floor
+  recorded at 0.88 after relabelling; **323 frontend tests**; Overview and
+  accessibility specs **13 passed, 3 skipped**.
 
 ### Connected agent workspace and asset inspection — 22 October 2026
 

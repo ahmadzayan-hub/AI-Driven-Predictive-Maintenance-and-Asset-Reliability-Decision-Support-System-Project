@@ -49,7 +49,7 @@ These values are **not** estimated live customer accuracy:
 | Conversation intent routing | 60 | **72%** macro recall |
 | Column role selection | 33 | **100%** macro recall |
 | Personal-data field detector | 33 | **100%** recall |
-| Model provider router | 12 | **90%** macro recall |
+| Model provider router | 12 | **89%** macro recall (floor 0.88 since 22 October: two GPT cases relabelled OpenAI, no substitution) |
 | Raw-row disclosure guard | 7 | **100%** recall |
 | Statistical-jargon detection | 24 | **92%** recall |
 | Unsupported causal wording detector | 32 | **69%** recall |

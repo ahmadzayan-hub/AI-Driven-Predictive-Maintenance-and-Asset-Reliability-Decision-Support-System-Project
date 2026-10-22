@@ -322,7 +322,7 @@ export function App() {
             </p>
           </div>
         ) : (
-          <div className="boot" role="status" aria-label={t('boot.startingAria')}>
+          <div className="boot" role="status" aria-label={t('boot.startingAria')}><span className="visually-hidden">{t('boot.startingAria')}</span>
             <div className="skeleton skeleton--orb" />
             <div className="skeleton skeleton--title" />
             <div className="skeleton skeleton--line" />

@@ -219,7 +219,7 @@ export function MappingPanel({ datasetId, focusOnOpen, onClose, onChanged, onAna
           </button>
         </div>
       ) : !detail || !draft ? (
-        <div role="status" aria-label={t('mapping.loading')}>
+        <div role="status" aria-label={t('mapping.loading')}><span className="visually-hidden">{t('mapping.loading')}</span>
           <div className="skeleton skeleton--line" />
           <div className="skeleton skeleton--line" />
           <div className="skeleton skeleton--line skeleton--short" />

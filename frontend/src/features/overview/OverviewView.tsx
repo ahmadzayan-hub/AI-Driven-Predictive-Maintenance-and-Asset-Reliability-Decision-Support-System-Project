@@ -135,7 +135,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard,
         <div className="panel__inner panel__inner--wide">
           {header}
           {actions}
-          <div className="kpis" role="status" aria-label={t('overview.loading')}>
+          <div className="kpis" role="status" aria-label={t('overview.loading')}><span className="visually-hidden">{t('overview.loading')}</span>
             {[0, 1, 2, 3].map((n) => (
               <div key={n} className="kpi">
                 <div className="skeleton skeleton--line" />

@@ -195,7 +195,7 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
 
   if (!data) return <section className="card exec-pending" aria-label={t('exec.title')}>
     {failed ? <><p role="alert">{t('exec.failed')}</p><button type="button" className="btn btn--ghost" onClick={() => setRevision((v) => v + 1)}>{t('exec.retry')}</button></>
-      : <div role="status" aria-label={t('exec.loading')}><div className="skeleton skeleton--title" /><div className="skeleton skeleton--line" /></div>}
+      : <div role="status" aria-label={t('exec.loading')}><span className="visually-hidden">{t('exec.loading')}</span><div className="skeleton skeleton--title" /><div className="skeleton skeleton--line" /></div>}
   </section>
 
   const status = data.readiness.status

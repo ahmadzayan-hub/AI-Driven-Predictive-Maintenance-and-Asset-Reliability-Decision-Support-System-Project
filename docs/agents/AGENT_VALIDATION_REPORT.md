@@ -12,7 +12,7 @@ today; everything else is from the code it cites.
 | intent | rules intent classifier, 10 labels | 274 cases, 100% | 60 cases, 77% macro recall (0.76) | blind_v7 57 cases, 61% |
 | column_roles | column mapping suggestions | 64, 100% | 33, 100% (1.0) | — |
 | personal_data | privacy agent | 64, 100% | 33, 100% (1.0) | — |
-| router | provider from a model name | 23, 100% | 12, 83% accuracy, 90% macro recall (0.9) | — |
+| router | provider from a model name | 23, 100% | 12, 83% accuracy, 89% macro recall (0.88, after the GPT cases were relabelled OpenAI) | — |
 | raw_guard | rows that must not reach a model | 13, 100% | 7, 100% (1.0) | — |
 | jargon | validator's jargon check | 68, 100% | 24, 96% accuracy, 92% recall (0.91) | blind_v6 40, 85% |
 | causal | causal wording lint | 106, 100% | 32, 100% (0.68) | blind_v7 50, 60%; probe_v5 32, 44% |
@@ -50,7 +50,7 @@ should move to the blind sets (assessment G1).
 2. No cost, token or latency record for any model call (G4).
 3. Structured output on one provider only; consultants free text (G5);
    agreement between consultants left to a model (G6).
-4. Router substitutes Groq for GPT names (G7).
+4. Router no longer substitutes Groq for GPT names (G7, fixed 22 October); its two holdout misses are Groq-hosted names with `-instant` and `-it` suffixes, left for a dev-set fix.
 5. Two newer actions unmeasured; model intent unmeasured (G8).
 6. No timeout on runtimes or custom stages (G10); optional runtimes untested
    in CI (G11).

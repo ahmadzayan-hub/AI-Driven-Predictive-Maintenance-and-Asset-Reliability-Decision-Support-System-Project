@@ -302,7 +302,7 @@ export const api = {
       UPLOAD_TIMEOUT_MS,
     ),
   pipelines: () => request<Pipelines>('/api/pipelines'),
-  listRuns: () => request<{ runs: RunSummary[] }>('/api/runs'),
+  listRuns: (state?: string) => request<{ runs: RunSummary[] }>(state ? `/api/runs?state=${encodeURIComponent(state)}` : '/api/runs'),
   usage: () => request<Usage>('/api/usage'),
   getRun: (id: string) => request<RunDetail>(`/api/runs/${id}`, {}, RUN_REQUEST_TIMEOUT_MS),
   /** The maintenance KPI register computed on a run's cleaned table

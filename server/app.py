@@ -1057,10 +1057,11 @@ def create_app(config_path=None, env=None, dist_dir=None):
                 raise HTTPException(status_code=404, detail="Dataset not found.")
 
     @app.get("/api/runs")
-    def list_runs(principal=Depends(requires("read"))):
+    def list_runs(state: str | None = Query(default=None, pattern="^[a-z_]{1,40}$"),
+                  principal=Depends(requires("read"))):
         with lock:
             owner = None if principal.can("admin") else principal.subject
-            return {"runs": engine.list_runs(owner=owner)}
+            return {"runs": engine.list_runs(owner=owner, state=state)}
 
     @app.get("/api/runs/{run_id}")
     def get_run(run_id: str, principal=Depends(requires("read"))):

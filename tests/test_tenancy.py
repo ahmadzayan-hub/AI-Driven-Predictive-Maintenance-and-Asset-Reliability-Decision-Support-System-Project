@@ -298,3 +298,24 @@ class SessionRetentionPerOwnerTestCase(unittest.TestCase):
         # Without an owner, every owner is trimmed to the same count.
         store.trim_sessions(1)
         self.assertEqual(len(store._exec("SELECT id FROM sessions")), 2)
+
+
+class ApprovalQueueNotCappedTestCase(unittest.TestCase):
+    """Listing runs by state returns every run in that state, past the
+    page size the plain listing uses (assessment finding U1)."""
+
+    def test_every_queued_run_is_listed_by_state(self):
+        from server.runs import RunEngine
+        from server.model_gateway import ModelGateway
+        root = Path(tempfile.mkdtemp())
+        store = open_store(None, root / "runs.db")
+        self.addCleanup(store.close)
+        engine = RunEngine(store, root / "vault", ModelGateway(env={}))
+        for n in range(3):
+            engine.create_run(f"Goal {n}", owner="tenant-a")
+        engine.create_run("Other", owner="tenant-b")
+        self.assertEqual(len(store.list_runs(owner="tenant-a", limit=1)), 1)
+        queued = store.list_runs(owner="tenant-a", limit=1, state="queued")
+        self.assertEqual(len(queued), 3)
+        self.assertEqual(store.list_runs(owner="tenant-a", state="completed"), [])
+        self.assertEqual(len(store.list_runs(state="queued")), 4)

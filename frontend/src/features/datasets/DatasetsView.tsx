@@ -217,7 +217,7 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
             </button>
           </div>
         ) : !datasets ? (
-          <div className="card" role="status" aria-label={t('datasets.loading')}>
+          <div className="card" role="status" aria-label={t('datasets.loading')}><span className="visually-hidden">{t('datasets.loading')}</span>
             <div className="skeleton skeleton--line" />
             <div className="skeleton skeleton--line" />
             <div className="skeleton skeleton--line skeleton--short" />

@@ -152,6 +152,10 @@ SCHEMA_STATEMENTS = [
 ]
 
 
+# Runs listed by state (the approval queue) are capped far above the page.
+STATE_LIST_LIMIT = 1000
+
+
 class SqlStore:
     """Shared SQL behaviour. Subclasses supply the connection and dialect."""
 
@@ -382,15 +386,20 @@ class SqlStore:
         rows = self._exec("SELECT * FROM runs WHERE id = ?", (run_id,))
         return rows[0] if rows else None
 
-    def list_runs(self, owner=None, limit=50):
-        if owner is None:
-            return self._exec(
-                "SELECT id, goal, dataset_name, state, created_at, updated_at "
-                "FROM runs ORDER BY created_at DESC LIMIT ?", (limit,))
+    def list_runs(self, owner=None, limit=50, state=None):
+        """The newest `limit` runs, or every run in one `state` up to a
+        larger ceiling: the approval queue must never lose its oldest
+        request to the page size (assessment finding U1)."""
+        where, params = [], []
+        if owner is not None:
+            where.append("owner = ?"); params.append(owner)
+        if state is not None:
+            where.append("state = ?"); params.append(state)
+            limit = max(limit, STATE_LIST_LIMIT)
+        clause = (" WHERE " + " AND ".join(where)) if where else ""
         return self._exec(
             "SELECT id, goal, dataset_name, state, created_at, updated_at "
-            "FROM runs WHERE owner = ? ORDER BY created_at DESC LIMIT ?",
-            (owner, limit))
+            f"FROM runs{clause} ORDER BY created_at DESC LIMIT ?", (*params, limit))
 
     def get_tasks(self, run_id):
         return self._exec(
