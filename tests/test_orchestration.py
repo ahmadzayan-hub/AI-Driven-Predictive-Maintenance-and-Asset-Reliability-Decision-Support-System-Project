@@ -7,12 +7,14 @@ import unittest
 from pathlib import Path
 
 from server.model_gateway import ModelGateway
-from server.orchestration import ModelRoles, grounded, report_section
+from server.orchestration import (ModelRoles, built_in_consult, built_in_plan,
+                                  grounded, report_section)
 from server.runs import RunEngine
 from server.storage import open_store
 
 ROLES = {"AGENTIC_OS_HERMES_MODEL": "anthropic", "AGENTIC_OS_AGENT_MODEL": "ollama",
          "AGENTIC_OS_CONSULTANTS": "anthropic,openai"}
+NO_BUILT_IN = {"AGENTIC_OS_BUILT_IN_ROLES": "0"}
 
 
 class FakeGateway:
@@ -43,8 +45,15 @@ class FakeGateway:
 
 
 class RoleSelectionTestCase(unittest.TestCase):
-    def test_nothing_configured_means_no_role(self):
+    def test_nothing_configured_means_the_built_in_writer_plays_every_role(self):
         roles = ModelRoles(FakeGateway(), {})
+        self.assertTrue(roles.active)
+        self.assertTrue(roles.all_built_in)
+        self.assertEqual(roles.status(), {"hermes": "built-in", "agents": "built-in",
+                                          "consultants": ["built-in"], "problems": []})
+
+    def test_the_built_in_writer_can_be_switched_off(self):
+        roles = ModelRoles(FakeGateway(), NO_BUILT_IN)
         self.assertFalse(roles.active)
         self.assertEqual(roles.status(), {"hermes": "rules", "agents": None,
                                           "consultants": [], "problems": []})
@@ -56,10 +65,15 @@ class RoleSelectionTestCase(unittest.TestCase):
 
     def test_an_unreachable_provider_is_reported_not_used(self):
         gateway = ModelGateway(env={"OLLAMA_MODEL": "qwen3:4b"})
-        roles = ModelRoles(gateway, ROLES)
+        roles = ModelRoles(gateway, {**ROLES, **NO_BUILT_IN})
         self.assertEqual((roles.hermes, roles.agents, roles.consultants),
                          (None, "ollama", []))
         self.assertEqual(len(roles.status()["problems"]), 3)
+        # With the built-in writer on, the unreachable roles fall to it.
+        roles = ModelRoles(gateway, ROLES)
+        self.assertEqual((roles.hermes, roles.agents, roles.consultants),
+                         ("built-in", "ollama", ["built-in"]))
+        self.assertFalse(roles.all_built_in)
 
 
 class GroundingTestCase(unittest.TestCase):
@@ -139,6 +153,76 @@ class PipelineWithRolesTestCase(unittest.TestCase):
         run = self.drive()
         report = self.store.latest_artifact(run["id"])["content"]
         self.assertNotIn("Orchestrator and consultant notes", report)
+
+
+class BuiltInRolesTestCase(unittest.TestCase):
+    """No model anywhere: the built-in writer plans, notes and consults
+    from the verified findings, in both languages, without a figure of
+    its own."""
+
+    FACTS = ["Overdue work is 21.6% of completed work.",
+             "Downtime per 1,000 planned hours is 12.4.",
+             "Three columns are missing values in 8% of records."]
+
+    def test_the_plan_names_the_order_and_the_guarding_stages(self):
+        roster = ["Data contract", "Data quality", "Privacy", "Descriptive", "Validator", "Publish"]
+        plan = built_in_plan("Review cost", roster)
+        self.assertIn("from Data contract to Publish", plan)
+        self.assertIn("Data quality, Privacy, Validator", plan)
+        self.assertIn("a person approves", plan)
+        self.assertIn("من Data contract إلى Publish", built_in_plan("x", roster, "ar"))
+        self.assertIsNone(built_in_plan("x", []))
+
+    def test_the_consultant_raises_the_standard_question_then_the_triggered_rules(self):
+        note = built_in_consult(self.FACTS)
+        self.assertTrue(note.startswith("Before approving"))
+        self.assertIn("Coverage:", note)
+        self.assertIn("Operations:", note)
+        self.assertNotIn("Finance:", note)
+        self.assertIn("Finding to check: Overdue work is 21.6%", note)
+        self.assertEqual(note.count("Finding to check"), 2)
+        # Only quoted findings carry digits, so the note is always grounded.
+        self.assertEqual(grounded(note, self.FACTS), note)
+        arabic = built_in_consult(self.FACTS, "ar")
+        self.assertIn("التغطية", arabic)
+        self.assertEqual(grounded(arabic, self.FACTS), arabic)
+
+    def test_a_run_with_no_model_still_carries_the_section_in_both_languages(self):
+        import json
+        for language in ("en", "ar"):
+            root = Path(tempfile.mkdtemp())
+            store = open_store(None, root / "runs.db")
+            self.addCleanup(store.close)
+            engine = RunEngine(store, root / "vault", ModelGateway(env={}),
+                               roles=ModelRoles(ModelGateway(env={}), {}))
+            run = engine.create_run("Review maintenance cost", language=language)
+            for _ in range(100):
+                if run["state"] not in ("queued", "running"):
+                    break
+                run = engine.advance(run["id"])
+            self.assertEqual(run["state"], "awaiting_approval", language)
+            tasks = {t["role"]: json.loads(t["result_json"] or "{}")
+                     for t in store.get_tasks(run["id"])}
+            self.assertEqual(tasks["planner"]["hermes_plan"]["provider"], "built-in")
+            notes = [r["agent_note"] for r in tasks.values() if r.get("agent_note")]
+            self.assertTrue(notes)
+            self.assertTrue(all(n["provider"] == "built-in" for n in notes))
+            orchestration = tasks["reporter"]["orchestration"]
+            self.assertEqual([n["provider"] for n in orchestration["consultants"]], ["built-in"])
+            self.assertEqual(orchestration["hermes"]["provider"], "built-in")
+            report = store.latest_artifact(run["id"])["content"]
+            if language == "en":
+                self.assertIn("Hermes (orchestrator, built-in)", report)
+                self.assertIn("Consultant (built-in)", report)
+                self.assertIn("built-in rules", report)
+                self.assertNotIn("Written by language models", report)
+            else:
+                self.assertIn("قواعد المنصة المدمجة", report)
+
+    def test_a_model_beside_the_built_in_writer_keeps_the_model_caution(self):
+        notes = {"hermes": {"provider": "built-in", "text": "Check X."},
+                 "consultants": [{"provider": "openai", "text": "Ask Y."}]}
+        self.assertIn("Written by language models", "\n".join(report_section(notes)))
 
 
 class LocalHermesAndAgentsTestCase(unittest.TestCase):

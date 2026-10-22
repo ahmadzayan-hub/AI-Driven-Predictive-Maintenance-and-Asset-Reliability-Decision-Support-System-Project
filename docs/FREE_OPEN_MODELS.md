@@ -35,6 +35,12 @@ AGENTIC_OS_TASK_MODELS=narration=groq,chat=groq,hermes=openrouter,agents=ollama,
 | `agents` | Each stage's note on its own findings | Ollama Cloud | The most calls per run (up to 17) |
 | `consultants` | Independent risks and questions before the report | OpenRouter + NVIDIA | Two different model families give two views |
 
+A task with no model is served by the platform's built-in rules: the summary
+template, rules-based intent, and for Hermes, the agents and the consultant a
+built-in writer that phrases the verified findings and raises the standard
+questions ([decision](adr/2026-10-22-built-in-roles.md)). `model_map` shows such a
+task as `built-in`.
+
 A role's own variable (`AGENTIC_OS_HERMES_MODEL`, `AGENTIC_OS_AGENT_MODEL`,
 `AGENTIC_OS_CONSULTANTS`) still wins over the map. A task that is not mapped uses
 the default provider. A provider named in the map but not configured is reported

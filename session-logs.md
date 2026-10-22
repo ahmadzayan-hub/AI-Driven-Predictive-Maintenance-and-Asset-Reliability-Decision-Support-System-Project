@@ -1318,3 +1318,9 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Done:** every task map entry and role variable accepts `provider:model`, so one local Ollama serves Hermes (`ollama:hermes3`) and the agents (`ollama:qwen3`) while Claude and OpenAI consult ([decision](docs/adr/2026-10-22-a-model-per-role.md)). The gateway answers from a copy with that model; the shared gateway never changes. Laptop setup for both models kept loaded is in `docs/FREE_OPEN_MODELS.md`.
 - **Verified:** quick verify 6/6 (1,649 Python with 5 new, 21 skipped; 319 frontend; typecheck; brain check). No live model: none installed or reachable in this container.
 - **Open:** the owner runs it on the laptop and reads `model_map` in `/api/health`; production cannot reach a laptop's Ollama.
+
+## 2026-10-22 · `d9e3f889` · claude/tender-clarke-m4uwgq (built-in Hermes, agents and consultants)
+
+- **Done:** a role with no model is played by the built-in writer: Hermes' plan (fixed order, guarding stages), each agent's note (its own verified claims), one consultant (standard approval question, then risk rules triggered by the findings, quoting them) and Hermes' brief, in English and Arabic, with no digit of their own and the same grounding guard ([decision](docs/adr/2026-10-22-built-in-roles.md)). The report's caution says "built-in rules, no language model". `AGENTIC_OS_BUILT_IN_ROLES=0` restores the old behaviour; `/api/health` shows `built_in_fallback`.
+- **Verified:** quick verify 6/6 (1,654 Python with 5 new, 21 skipped; 319 frontend; typecheck; brain check).
+- **Next:** deploy to production (owner asked for the roles there) and confirm the demo report carries the section.

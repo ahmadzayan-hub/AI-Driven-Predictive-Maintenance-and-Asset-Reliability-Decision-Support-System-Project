@@ -401,7 +401,11 @@ class FreeOpenModelsAndTaskMapTestCase(unittest.TestCase):
         self.assertEqual(mapping["consultants"], ["groq", "openrouter"])
         empty = ModelRoles(ModelGateway(env={}), {}).model_map()
         self.assertEqual((empty["narration"], empty["hermes"], empty["consultants"]),
-                         ("built-in", "built-in", ["none"]))
+                         ("built-in", "built-in", ["built-in"]))
+        self.assertTrue(empty["built_in_fallback"])
+        off = {"AGENTIC_OS_BUILT_IN_ROLES": "0"}
+        self.assertEqual(ModelRoles(ModelGateway(env=off), off).model_map()["consultants"],
+                         ["none"])
 
 
 class PerRoleModelTestCase(unittest.TestCase):
