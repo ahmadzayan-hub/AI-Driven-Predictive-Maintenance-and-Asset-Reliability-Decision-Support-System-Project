@@ -19,6 +19,7 @@ outside this repository), **Proposed** (designed, not built).
 | Executive Command Centre (U5), counts as counts (U7), list link (U6), demo write gaps (U2) | Implemented, Tested | `frontend/src/tests/views.test.tsx` (Command Centre); `frontend/e2e/overview.spec.ts` |
 | Built-in Hermes, agents and consultants; a model per role; free open-model providers | Implemented, Tested (earlier today) | ADRs dated 2026-10-22 |
 | Slice one of the release gate: illustrative gain label (A3), no GPT-to-Groq substitution (G7), uncapped approval queue (U1), announced loading states (U9), read-only CI token (B15) | Implemented, Tested | `docs/adr/2026-10-22-release-gate-slice-one.md` |
+| Slice two of the release gate: rates never summed, trended or ranked (A4), a naive baseline and weak rule for every forecast (A5), figures checked against cited evidence (A6), approve only after reading (U3), JWT audience and issuer required (B7) | Implemented, Tested | `docs/adr/2026-10-22-release-gate-slice-two.md`; `tests/test_analytics.py::RatesAreNeverSummedTestCase`, `::ForecastBaselineTestCase`, `::ClaimFiguresMatchEvidenceTestCase`; `frontend/src/tests/approval-card.test.tsx` |
 
 ## 2. Next release gate (P1)
 
@@ -27,20 +28,21 @@ assessment.
 
 1. **Prescriptive honesty (A2, A13; A3 labelled in slice one).** Take uplift and cost as inputs; make sensitivity vary per-option
    ranges; add the decision record (`docs/analytics/PRESCRIPTIVE_DECISION_FRAMEWORK.md`).
-2. **Rates never summed (A4).** Route FRACTION and PERCENT measures through the
-   KPI register in the preparer, or refuse trend and top-share for them.
-3. **Forecast baseline (A5) and figure-match validation (A6).**
-4. **Signalling safety rule (A8).** Owner decision on the escalation rule and the
+2. **Signalling safety rule (A8).** Owner decision on the escalation rule and the
    source of the condition threshold.
-5. **Approve-after-reading (U3)** (U1 done in slice one).
-6. **Currency (U4).** Owner decision: a currency field in the mapping, or a
+3. **Currency (U4).** Owner decision: a currency field in the mapping, or a
    stated "currency not stated" flag.
-7. **Hosted robustness: global lock (B4), transactional restore (B5), JWT
-   audience and issuer required (B7), request logging (B10).** (B15 done.)
-8. **Evaluation honesty (G1):** floor the blind sets (G7 done). **Model call ledger (G4).**
-9. **E2e coverage of demo, Assets and Approvals (U13)** (U9 done).
-10. **Landing on the Command Centre (U12).** Owner decision: returning users land
-    on the Command Centre; Approvals in the phone bar.
+4. **Hosted robustness: global lock (B4), transactional restore (B5), request
+   logging (B10).** (B7 and B15 done.)
+5. **Evaluation honesty (G1):** floor the blind sets (G7 done). **Model call ledger (G4).**
+6. **E2e coverage of demo, Assets and Approvals (U13)** (U3 and U9 done).
+7. **Landing on the Command Centre (U12).** Owner decision: returning users land
+   on the Command Centre; Approvals in the phone bar.
+
+Done in slice two (22 October): rates never summed (A4), forecast baseline
+(A5), figure-match validation (A6), approve after reading (U3), audience and
+issuer required (B7). Seasonal-naive baselines and residual intervals for the
+forecast stay P2 with A9 and A12.
 
 ## 3. Following release (P2) and backlog (P3)
 

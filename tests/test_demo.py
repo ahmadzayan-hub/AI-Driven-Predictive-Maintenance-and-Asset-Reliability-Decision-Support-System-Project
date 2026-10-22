@@ -60,7 +60,7 @@ class DemoIdentityTests(unittest.TestCase):
                                          "AGENTIC_OS_DEMO": "1"}).mode, "demo")
 
     def test_vercel_keeps_its_configured_mode(self):
-        self.assertEqual(build_identity({"VERCEL": "1", "SUPABASE_JWT_SECRET": "x"}).mode, "jwt")
+        self.assertEqual(build_identity({"VERCEL": "1", "SUPABASE_JWT_SECRET": "x", "SUPABASE_URL": "https://test.supabase.invalid"}).mode, "jwt")
         self.assertEqual(build_identity({"VERCEL": "1", "AGENTIC_OS_DEMO": "0"}).mode, "local")
         self.assertEqual(build_identity({}).mode, "local")
 

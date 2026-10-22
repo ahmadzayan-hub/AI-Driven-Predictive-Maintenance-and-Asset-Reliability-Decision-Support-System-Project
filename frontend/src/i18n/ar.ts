@@ -573,6 +573,7 @@ export const ar: Record<MessageKey, string> = {
   'signin.linkFailed': 'تعذّر إرسال الرابط.',
   'cockpit.lastObserved': 'آخر تحقق {time}',
   'cockpit.exactReport': 'مراجعة التقرير المحدد',
+  'cockpit.readReport': 'قرأت هذا التقرير المحدد',
   'cockpit.previewIncludesEvidence': 'هذا هو التقرير المرتبط بهذه الموافقة كما أعاده الخادم. ترد حساباته ومراجعه وحدوده أدناه.',
   'cockpit.reportUnavailable': 'التقرير غير متاح. يظل النشر معطلاً؛ أعد فتح التحليل لاستعادته.',
   'install.failed': 'تعذر فتح نافذة التثبيت. استخدم قائمة التثبيت في المتصفح.',

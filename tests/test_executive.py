@@ -227,7 +227,7 @@ class ExecutiveTests(unittest.TestCase):
 try:
     from fastapi.testclient import TestClient
     from server.app import create_app
-    from server.auth import issue_local_test_token
+    from tests.support import scoped_token as issue_local_test_token
     FASTAPI_AVAILABLE = True
 except ImportError:
     FASTAPI_AVAILABLE = False
@@ -246,7 +246,7 @@ class ExecutiveApiTests(unittest.TestCase):
             "memory_file": str(root / "m.json"), "vault_dir": str(root / "vault"),
             "stages": ["server.maintenance.targets.MaintenanceRisk"],
             "profiles": {"default": [], "maintenance": ["maintenance_risk"]}}), encoding="utf-8")
-        self.app = create_app(config, env={"AGENTIC_OS_ENV": "production", "AGENTIC_OS_JWT_SECRET": SECRET})
+        self.app = create_app(config, env={"AGENTIC_OS_ENV": "production", "AGENTIC_OS_JWT_SECRET": SECRET, "SUPABASE_URL": "https://test.supabase.invalid"})
         self.client = TestClient(closing(self, self.app), raise_server_exceptions=False)
 
     def auth(self, owner="alice", role="analyst"):

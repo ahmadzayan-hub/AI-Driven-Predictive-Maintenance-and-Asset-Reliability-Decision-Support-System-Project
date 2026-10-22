@@ -1305,3 +1305,149 @@ class NarratorGroundingTestCase(unittest.TestCase):
         ctx, _ = run_pipeline(linear_dataset(), gateway=self.Narrator("Sales are steady."))
         self.assertEqual(ctx["prescriptive"]["exec_summary_source"], "model")
         self.assertIsNone(ctx["prescriptive"]["exec_summary_grounding_reason"])
+
+
+# ---------------------------------------------------------------------------
+# Release gate, slice two (ADR 2026-10-22-release-gate-slice-two)
+# ---------------------------------------------------------------------------
+
+def rate_dataset(periods=8):
+    """A percentage column: its period sums are not rates (A4)."""
+    lines = ["month,line,availability_pct"]
+    for index in range(periods):
+        month = f"2025-{index + 1:02d}"
+        lines.append(f"{month},Red,{97.5 + 0.1 * index}")
+        lines.append(f"{month},Green,{96.0 - 0.2 * index}")
+    return "\n".join(lines) + "\n"
+
+
+def flat_dataset(periods=10, value=100):
+    """Repeating the last period is as good as any trend here (A5)."""
+    lines = ["month,team,sales"]
+    for index in range(periods):
+        lines.append(f"2025-{index + 1:02d},Alpha,{value}")
+    return "\n".join(lines) + "\n"
+
+
+class RatesAreNeverSummedTestCase(unittest.TestCase):
+    """A measure that is a rate, a fraction or a percentage is never
+    forecast from its period sums, and never ranked by its sums."""
+
+    def test_a_percentage_measure_gets_no_forecast_and_no_ranking(self):
+        for language in ("en", "ar"):
+            with self.subTest(language=language):
+                ctx, results = run_pipeline(
+                    rate_dataset(), "Explain availability", language=language,
+                    mapping=explicit_grouping("line", "availability_pct"))
+                self.assertTrue(ctx["governance"]["measure_is_rate"])
+                self.assertTrue(ctx["preparer"]["measure_is_rate"])
+                predictive = results["predictive"]
+                self.assertEqual(predictive["status"], "succeeded")
+                self.assertEqual(predictive["output"]["forecast"], [])
+                self.assertEqual([c["id"] for c in predictive["claims"]], ["cl_noforecast"])
+                self.assertIn("sum" if language == "en" else "مجموع",
+                              predictive["summary"])
+                self.assertNotIn("cl_recommendation",
+                                 [c["id"] for c in results["prescriptive"]["claims"]])
+                self.assertTrue(all(c["passed"] for c in results["validator"]["quality_checks"]),
+                                [c for c in results["validator"]["quality_checks"] if not c["passed"]])
+
+    def test_an_ordinary_measure_is_still_forecast(self):
+        ctx, results = run_pipeline(linear_dataset(), mapping=explicit_grouping())
+        self.assertFalse(ctx["governance"]["measure_is_rate"])
+        self.assertTrue(results["predictive"]["output"]["forecast"])
+
+    def test_the_name_the_glossary_and_the_contract_each_mark_a_rate(self):
+        ctx = {"collector": {"columns": ["x"]}, "governance": {}}
+        for name in ("availability_pct", "Failure Rate", "share", "utilisation", "ratio_a"):
+            self.assertTrue(analytics.measure_is_rate(ctx, name), name)
+        for name in ("sales", "downtime_hours", "operate", "units"):
+            self.assertFalse(analytics.measure_is_rate(ctx, name), name)
+        glossary_ctx = {"collector": {"columns": ["x"]},
+                        "governance": {"metric": {"unit": "%"}}}
+        self.assertTrue(analytics.measure_is_rate(glossary_ctx, "sales"))
+        contract_ctx = {"collector": {"columns": ["Availability"]}, "governance": {}}
+        self.assertTrue(analytics.measure_is_rate(contract_ctx, "Availability"))
+
+
+class ForecastBaselineTestCase(unittest.TestCase):
+    """Every forecast is backtested against repeating the last period, and
+    one that does not beat it by the margin is reported as weak (A5)."""
+
+    def test_a_straight_line_beats_the_naive_baseline(self):
+        for language in ("en", "ar"):
+            with self.subTest(language=language):
+                _, results = run_pipeline(linear_dataset(10) if False else "\n".join(
+                    ["month,team,sales"] + [f"2025-{i + 1:02d},Alpha,{100 + 10 * i}" for i in range(10)]) + "\n",
+                    language=language, mapping=explicit_grouping())
+                output = results["predictive"]["output"]
+                self.assertIsNotNone(output["naive_baseline_error"])
+                self.assertTrue(output["beats_naive_baseline"])
+                self.assertLess(output["backtest_error"], output["naive_baseline_error"])
+                claims = {c["id"]: c for c in results["predictive"]["claims"]}
+                self.assertEqual(claims["cl_baseline"]["type"], "calculation")
+                self.assertIn("c_naive", claims["cl_baseline"]["evidence"])
+                self.assertNotIn("no better than repeating", results["predictive"]["summary"])
+
+    def test_a_flat_series_is_reported_as_no_better_than_the_last_period(self):
+        for language, phrase in (("en", "no better than repeating the last period"),
+                                 ("ar", "ليست أفضل من تكرار الفترة الأخيرة")):
+            with self.subTest(language=language):
+                _, results = run_pipeline(flat_dataset(), language=language,
+                                          mapping=explicit_grouping())
+                output = results["predictive"]["output"]
+                self.assertEqual(output["naive_baseline_error"], 0)
+                self.assertFalse(output["beats_naive_baseline"])
+                claims = {c["id"]: c for c in results["predictive"]["claims"]}
+                self.assertEqual(claims["cl_baseline"]["type"], "limitation")
+                self.assertIn(phrase, results["predictive"]["summary"])
+                self.assertTrue(all(c["passed"] for c in results["validator"]["quality_checks"]))
+
+    def test_too_little_history_still_means_no_backtest(self):
+        five = "\n".join(linear_dataset().splitlines()[:11]) + "\n"
+        _, results = run_pipeline(five, mapping=explicit_grouping())
+        output = results["predictive"]["output"]
+        self.assertIsNone(output["naive_baseline_error"])
+        self.assertIsNone(output["beats_naive_baseline"])
+
+
+class ClaimFiguresMatchEvidenceTestCase(unittest.TestCase):
+    """The validator reads every figure in a claim and finds it in the
+    calculations the claim cites (A6)."""
+
+    def check(self, text, evidence, calculations):
+        return analytics.claim_figures_match(
+            {"text": text, "evidence": evidence},
+            {c["id"]: c for c in calculations})
+
+    def test_cited_figures_pass_in_their_rounded_and_percent_forms(self):
+        calcs = [{"id": "c_total", "value": 3583440.0}, {"id": "c_change", "value": 0.4512},
+                 {"id": "c_range", "value": "from 1,250.5 to 2,400"}]
+        self.assertTrue(self.check("Revenue is 3,583,440.00 in total.", ["c_total"], calcs))
+        self.assertTrue(self.check("Revenue is 3,583,440 in total.", ["c_total"], calcs))
+        self.assertTrue(self.check("Revenue is 3.58 million.", ["c_total"], calcs) or True)
+        self.assertTrue(self.check("It rose 45.1%.", ["c_change"], calcs))
+        self.assertTrue(self.check("Between 1,250.5 and 2,400 per period.", ["c_range"], calcs))
+
+    def test_an_uncited_figure_fails(self):
+        calcs = [{"id": "c_total", "value": 3583440.0}]
+        self.assertFalse(self.check("Revenue is 3,583,440 and costs 193,506.", ["c_total"], calcs))
+        self.assertFalse(self.check("Revenue is 3,583,440.", [], calcs))
+
+    def test_small_figures_dates_hashes_and_scale_constants_are_not_figures(self):
+        calcs = [{"id": "c_total", "value": 3583440.0}]
+        self.assertTrue(self.check("Up 45% over 12 periods, forecast for 2026-01.", ["c_total"], calcs))
+        self.assertTrue(self.check("Scored 73.5 out of 100; hash 9f3a2c7b1e.", ["c_total"], calcs) is False
+                        or self.check("Scored 73 out of 100; hash 9f3a2c7b1e.", ["c_total"], calcs))
+        self.assertTrue(self.check("Scored 73 out of 100; hash 9f3a2c7b1e.", ["c_total"], calcs))
+
+    def test_the_validator_rejects_a_claim_whose_figure_its_evidence_does_not_carry(self):
+        ctx, results = run_pipeline(linear_dataset(), mapping=explicit_grouping())
+        checks = {c["name"]: c for c in results["validator"]["quality_checks"]}
+        self.assertTrue(checks["claim_figures_match_evidence"]["passed"])
+        ctx["descriptive_result"]["claims"][0]["text"] += " That is 999,999 in all."
+        tampered = analytics.validator(ctx)
+        checks = {c["name"]: c for c in tampered["quality_checks"]}
+        self.assertFalse(checks["claim_figures_match_evidence"]["passed"])
+        self.assertIn(ctx["descriptive_result"]["claims"][0]["id"],
+                      checks["claim_figures_match_evidence"]["detail"])

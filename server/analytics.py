@@ -147,6 +147,74 @@ def figures(text):
     return sorted(token for token in found if token not in ("1", "2"))
 
 
+# A figure to check: not a date ("2026-01"), not a hash ("6607b5e5"), not
+# part of an identifier; those are labels, never figures from a calculation.
+_CLAIM_FIGURE = re.compile(r"(?<![\w.])[-+−]?\d[\d,]*(?:\.\d+)?%?(?![\w-])")
+
+
+# Scale constants a claim may state without citing them ("out of 100").
+SCALE_CONSTANTS = (100.0, 1000.0)
+
+
+def _cited_values(calc_value):
+    """Every number a reader could legitimately read off one calculation,
+    including the figures inside a text value such as a range."""
+    if isinstance(calc_value, bool):
+        return []
+    if isinstance(calc_value, str):
+        numbers = []
+        for token in _CLAIM_FIGURE.findall(calc_value):
+            try:
+                numbers.append(float(token.lstrip("+-−").rstrip("%").replace(",", "")))
+            except ValueError:
+                continue
+        return [v for n in numbers for v in _cited_values(n)]
+    if not isinstance(calc_value, (int, float)) or not math.isfinite(calc_value):
+        return []
+    return [calc_value * scale for scale in (1, 100, 1000, 0.01, 0.001)]
+
+
+def _figure_matches(figure, candidates):
+    """Signs are read by the wording ("down", "minus"), so magnitudes are
+    compared."""
+    figure = abs(figure)
+    for value in (abs(v) for v in candidates):
+        for digits in range(0, 5):
+            if round(value, digits) == round(figure, digits) and abs(value - figure) <= 0.5 * 10 ** -digits + 1e-9:
+                return True
+        if value and abs(value - figure) / abs(value) <= 0.005:
+            return True
+    return False
+
+
+def claim_figures_match(claim, calculations):
+    """True when every figure of three or more significant digits in the
+    claim's text matches a value it cites, under a rounding or a percent
+    or per-thousand scaling. Small figures (counts under 100) are not
+    checked: they are too often periods, ranks and thresholds."""
+    cited = []
+    for ref in claim.get("evidence", []):
+        calc = calculations.get(ref)
+        if calc is not None:
+            cited += _cited_values(calc.get("value"))
+    for token in _CLAIM_FIGURE.findall(claim.get("text") or ""):
+        raw = token.lstrip("+-−").rstrip("%").replace(",", "")
+        if not raw or raw.count(".") > 1:
+            continue
+        digits = raw.replace(".", "").lstrip("0")
+        if len(digits) < 3:
+            continue
+        try:
+            figure = float(raw)
+        except ValueError:
+            continue
+        if figure in SCALE_CONSTANTS:
+            continue
+        if not _figure_matches(figure, cited):
+            return False
+    return True
+
+
 def _result(status, summary, output=None, claims=None, calculations=None, checks=None):
     return {
         "status": status,
@@ -864,6 +932,30 @@ MEASURE_SOURCES_AR = {
 }
 
 
+RATE_NAME = re.compile(r"(pct|percent|%|\brate\b|ratio|share|availability|utili[sz]ation)", re.I)
+
+
+def measure_is_rate(ctx, measure):
+    """True when the chosen measure is a rate, a fraction or a percentage:
+    the maintenance contract says so for its columns, the glossary says so
+    with a % unit, and otherwise the column's own name does. A sum of rates
+    is not a rate (assessment finding A4)."""
+    if not measure:
+        return False
+    try:
+        from server.maintenance import contract
+        fields, _ = contract.resolve(ctx["collector"]["columns"])
+        field = fields.get(measure)
+        if field is not None and getattr(field, "scale", None) in (contract.FRACTION, contract.PERCENT):
+            return True
+    except Exception:
+        pass
+    metric = (ctx.get("governance") or {}).get("metric") or {}
+    if str(metric.get("unit") or "").strip() == "%":
+        return True
+    return bool(RATE_NAME.search(str(measure)))
+
+
 def governance(ctx):
     """Metric Governance Agent — is this measure defined, and who owns it?
 
@@ -1115,6 +1207,7 @@ def governance(ctx):
     return _result(
         "succeeded", summary,
         output={"measure": measure, "source": source,
+                "measure_is_rate": measure_is_rate({**ctx, "governance": {"metric": metric}}, measure),
                 "metric": metric, "certified": bool(metric and metric["certified"]),
                 "owner": metric["owner"] if metric else None,
                 "glossary_configured": bool(metrics),
@@ -1272,6 +1365,7 @@ def preparer(ctx):
              + (" (ربط الأعمدة)" if mapping else "") + "."),
         output={"measure": measure, "group_col": group_col, "date_col": date_col,
                 "date_grain": grain,
+                "measure_is_rate": bool(ctx["governance"].get("measure_is_rate")),
                 "groups": groups,
                 "group_counts": group_counts,
                 "trend": trend,
@@ -1308,6 +1402,8 @@ def descriptive(ctx):
          "method": "sample standard deviation"},
         {"id": "c_unusual", "name": "unusual_rows", "value": unusual,
          "method": "count(|x - mean| > 2 × spread)"},
+        {"id": "c_records", "name": "records_with_a_value", "value": len(values),
+         "method": f"count of rows with a value in {measure}"},
     ]
     claims = [
         _claim(ctx, "cl_typical", "calculation",
@@ -1322,7 +1418,7 @@ def descriptive(ctx):
             "typical value and are worth checking individually.",
             f"{unusual} من أصل {_ar_n(len(values), 'record')} بعيدة عن القيمة "
             "النموذجية، وتستحق الفحص كلٌّ على حدة.",
-            ["c_unusual"]))
+            ["c_unusual", "c_records"]))
 
     change = None
     series = list(prep["trend"].values())
@@ -1480,6 +1576,11 @@ def diagnostic(ctx):
                           "method": f"{measure} for “{item['group']}” in {last} minus {first}"})
         if contributions and total_change:
             driver = contributions[0]
+            # The share the claim states is a calculation of its own (A6).
+            calcs.append({"id": "c_share_0", "name": f"share_of_change_{driver['group']}",
+                          "value": driver["share_of_change"],
+                          "method": "change from the group / total change; may exceed 1 "
+                                    "when other groups moved the other way"})
             claims.append(_claim(
                 ctx, "cl_driver", "finding",
                 f"Most of the movement comes from “{driver['group']}”: it accounts "
@@ -1490,7 +1591,7 @@ def diagnostic(ctx):
                 f"{abs(driver['share_of_change']):.0%} من التغير الكلي البالغ "
                 f"{total_change:,.2f}. وهذا يحدد أين وقع التغير، لا ما الذي "
                 "سبّبه.",
-                ["c_totalchange", "c_contrib_0"]))
+                ["c_totalchange", "c_contrib_0", "c_share_0"]))
         # Against the overall direction means the opposite sign to the total
         # change: a group that fell while the total fell moved with it.
         against = [c for c in contributions if c["change"] * total_change < 0]
@@ -2534,6 +2635,14 @@ def privacy(ctx):
     calcs = [{"id": "c_pii_columns", "name": "columns_with_personal_data",
               "value": len(findings),
               "method": "columns matching a personal-data name or value pattern"}]
+    # Each row count the warning states is a calculation of its own (A6).
+    pii_counts = [
+        {"id": f"c_pii_rows_{index}_{position}", "name": f"{hit['kind']}_rows",
+         "value": hit["rows"],
+         "method": f"rows of {finding['column']} whose value looks like a {hit['kind']}"}
+        for index, finding in enumerate(findings[:3])
+        for position, hit in enumerate(finding["by_value"])]
+    calcs += pii_counts
     claims = []
     if findings:
         # The Arabic list mirrors the English one term for term, including
@@ -2560,7 +2669,7 @@ def privacy(ctx):
             f"يبدو أن هذه البيانات تحتوي على بيانات شخصية في "
             f"{len(findings)} من الأعمدة: {summary_ar}. النشر يكتب التقرير في "
             "المخزن، فتحقق من أنه مسموح بخروجه من هنا.",
-            ["c_pii_columns"]))
+            ["c_pii_columns"] + [c["id"] for c in pii_counts]))
     else:
         claims.append(_claim(
             ctx, "cl_pii_clear", "fact",
@@ -2669,7 +2778,7 @@ def segments(ctx):
              if len(shares) > 3 else
              f"الأكبر بين شرائح {group_col} وعددها {len(shares)} يستحوذ على "
              f"{shares[0]['share']:.0%} من {measure}، فالنشاط {spread_ar}."),
-            ["c_seg_pareto", "c_seg_hhi"])],
+            ["c_seg_count", "c_seg_pareto", "c_seg_hhi"])],
     )
 
 
@@ -3018,6 +3127,9 @@ def visuals(ctx):
 MIN_PERIODS_TO_FORECAST = 4
 MIN_PERIODS_TO_BACKTEST = 6
 FORECAST_HORIZON = 3
+# The trend must beat "repeat the last period" by this much, relative, or
+# it is weak: the same margin the model stages use (server/modelling.py).
+WEAK_MARGIN = 0.05
 
 
 def predictive(ctx):
@@ -3034,6 +3146,28 @@ def predictive(ctx):
     labels = list(prep["trend"].keys())
     series = list(prep["trend"].values())
     calcs, claims = [], []
+
+    if prep.get("measure_is_rate"):
+        reason_en = (f"{measure} is a rate. Its period totals are sums of per-record "
+                     "rates, which are not rates, so no trend is extended from them; "
+                     "a governed KPI from the register is the figure to forecast.")
+        reason_ar = (f"{measure} معدل. ومجاميعه حسب الفترة هي مجاميع لمعدلات كل سجل، "
+                     "وليست معدلات، فلا يُمدّ منها اتجاه؛ والمؤشر المنضبط من السجل هو "
+                     "ما يُتوقَّع.")
+        reason = _say(ctx, reason_en, reason_ar)
+        calcs.append({"id": "c_rate", "name": "measure_is_rate", "value": 1,
+                      "method": "rate, fraction or percentage by contract, glossary unit or name"})
+        claims.append(_claim(ctx, "cl_noforecast", "limitation",
+                             f"No forecast was produced. {reason_en}",
+                             f"لم يُنتَج أي توقع. {reason_ar}", ["c_rate"]))
+        headline = _say(ctx, "No forecast: a sum of rates is not a rate.",
+                        "لا توقع: مجموع المعدلات ليس معدلاً.")
+        return _result("succeeded", headline,
+                       output={"headline": headline, "forecast": [], "reason": reason,
+                               "report_markdown": _section_report(
+                                   "Predictive", "What will happen?", ctx, [reason], calcs,
+                                   headline=headline)},
+                       calculations=calcs, claims=claims)
 
     if len(series) < MIN_PERIODS_TO_FORECAST:
         reason_en = (f"Only {len(series)} period(s) of history are available; at least "
@@ -3071,15 +3205,26 @@ def predictive(ctx):
     forecast_labels = _next_labels(labels, horizon)
     predictions = [round(intercept + slope * (len(series) + i), 2) for i in range(horizon)]
 
-    # Backtest: refit on all but the last few periods and score the gap.
+    # Backtest, rolling origin: each of the last `holdout` periods is
+    # predicted from the periods before it only, by the trend and by the
+    # naive baseline "repeat the last period". A trend that does not beat
+    # the baseline by WEAK_MARGIN is reported as weak (assessment A5).
     holdout = min(3, max(1, len(series) // 4))
-    error = None
+    error = naive_error = None
+    beats_naive = None
     if len(series) >= MIN_PERIODS_TO_BACKTEST:
-        train, test = series[:-holdout], series[-holdout:]
-        t_slope, t_intercept, _ = _linear_fit(train)
-        errors = [abs((t_intercept + t_slope * (len(train) + i)) - actual) / abs(actual)
-                  for i, actual in enumerate(test) if actual]
-        error = round(statistics.fmean(errors), 4) if errors else None
+        trend_errors, naive_errors = [], []
+        for origin in range(len(series) - holdout, len(series)):
+            train, actual = series[:origin], series[origin]
+            if not actual:
+                continue
+            t_slope, t_intercept, _ = _linear_fit(train)
+            trend_errors.append(abs((t_intercept + t_slope * len(train)) - actual) / abs(actual))
+            naive_errors.append(abs(train[-1] - actual) / abs(actual))
+        if trend_errors:
+            error = round(statistics.fmean(trend_errors), 4)
+            naive_error = round(statistics.fmean(naive_errors), 4)
+            beats_naive = error < naive_error * (1 - WEAK_MARGIN)
 
     calcs += [
         {"id": "c_slope", "name": "per_period_change", "value": round(slope, 2),
@@ -3095,11 +3240,17 @@ def predictive(ctx):
     if error is not None:
         calcs.append({"id": "c_backtest", "name": "backtest_error", "value": error,
                       "method": f"average absolute percentage error over the last "
-                                f"{holdout} period(s), predicted from earlier ones only"})
+                                f"{holdout} period(s), each predicted from earlier ones only"})
+        calcs.append({"id": "c_naive", "name": "naive_baseline_error", "value": naive_error,
+                      "method": f"the same backtest for repeating the previous period's value"})
 
     band_en = band_ar = ""
     if error is not None:
         low, high = predictions[0] * (1 - error), predictions[0] * (1 + error)
+        calcs += [{"id": "c_band_low", "name": "band_low", "value": round(low, 2),
+                   "method": "first forecast × (1 − backtest error)"},
+                  {"id": "c_band_high", "name": "band_high", "value": round(high, 2),
+                   "method": "first forecast × (1 + backtest error)"}]
         band_en = f" In backtesting this method was off by about {error:.1%}, so treat it as " \
                   f"roughly {low:,.0f}–{high:,.0f}."
         band_ar = (f" وعند اختبارها على بيانات سابقة أخطأت هذه الطريقة بنحو {error:.1%}، "
@@ -3113,7 +3264,7 @@ def predictive(ctx):
         f"{_period_label(ctx, forecast_labels[0])} سيكون نحو "
         f"{predictions[0]:,.2f}.{band_ar} "
         "ويفترض هذا ألا يتغير شيء في طريقة عمل النشاط.",
-        ["c_forecast_0"] + (["c_backtest"] if error is not None else [])))
+        ["c_forecast_0"] + (["c_backtest", "c_band_low", "c_band_high"] if error is not None else [])))
     claims.append(_claim(
         ctx, "cl_fit", "calculation",
         f"The trend line explains {explained:.0%} of the period-to-period "
@@ -3121,6 +3272,19 @@ def predictive(ctx):
         f"يفسّر خط الاتجاه {explained:.0%} من تحرك {measure} من فترة إلى أخرى، "
         "والباقي تباين لا يلتقطه.",
         ["c_explained"]))
+    if error is not None:
+        claims.append(_claim(
+            ctx, "cl_baseline", "calculation" if beats_naive else "limitation",
+            (f"Repeating the previous period would have been off by {naive_error:.1%} on "
+             f"the same test; the trend line, off by {error:.1%}, "
+             + ("beats that baseline." if beats_naive else
+                "does not beat it, so the forecast is weak: treat it as no better than "
+                "the last period.")),
+            (f"تكرار قيمة الفترة السابقة كان سيخطئ بنسبة {naive_error:.1%} في الاختبار "
+             f"نفسه؛ وخط الاتجاه، بخطأ {error:.1%}، "
+             + ("يتفوق على هذا الأساس." if beats_naive else
+                "لا يتفوق عليه، فالتوقع ضعيف: اعتبره ليس أفضل من الفترة الأخيرة.")),
+            ["c_backtest", "c_naive"]))
     if error is None:
         claims.append(_claim(
             ctx, "cl_nobacktest", "limitation",
@@ -3181,7 +3345,7 @@ def predictive(ctx):
                f"{abs(expected_move):.0%} عن آخر فترة"
                if expected_move is not None else "")
             + (f". وقد أخطأت هذه الطريقة بنحو {error:.0%} عند اختبارها على بيانات "
-               "سابقة."
+               "سابقة" + ("" if beats_naive else "، وليست أفضل من تكرار الفترة الأخيرة") + "."
                if error is not None else
                ". ولم تُختبر الدقة بعد على بيانات سابقة."))
     else:
@@ -3190,7 +3354,7 @@ def predictive(ctx):
             + (f", {'up' if expected_move >= 0 else 'down'} {abs(expected_move):.0%} "
                "on the latest period" if expected_move is not None else "")
             + (f" — this method has been off by about {error:.0%} when tested on past "
-               "data."
+               "data" + ("" if beats_naive else ", no better than repeating the last period") + "."
                if error is not None else " — accuracy not yet tested against past data."))
     return _result(
         "succeeded", headline,
@@ -3199,6 +3363,7 @@ def predictive(ctx):
                              for label, value in zip(forecast_labels, predictions)],
                 "per_period_change": round(slope, 2), "explained": round(explained, 4),
                 "backtest_error": error,
+                "naive_baseline_error": naive_error, "beats_naive_baseline": beats_naive,
                 "report_markdown": _section_report("Predictive", "What will happen?",
                                                    ctx, lines, calcs,
                                                    headline=headline)},
@@ -3222,7 +3387,9 @@ def prescriptive(ctx, gateway=None):
     prep, desc, diag, pred = (ctx["preparer"], ctx["descriptive"],
                               ctx["diagnostic"], ctx["predictive"])
     measure, group_col = prep["measure"], prep["group_col"]
-    groups = prep["groups"]
+    # A group's "total" of a rate is a sum of per-record rates: not a lever
+    # to act on (A4). The options then come from the trend alone, if any.
+    groups = {} if prep.get("measure_is_rate") else prep["groups"]
     calcs, claims, options = [], [], []
 
     arabic = report_language(ctx) == "ar"
@@ -3325,7 +3492,9 @@ def prescriptive(ctx, gateway=None):
                             "الإجمالي أقل من غيره، وهو يقلل اعتماد الإجمالي "
                             "على مجموعة واحدة."),
                            [])
-    contributions = diag.get("contributions", [])
+    # A group's change in a rate is a change in a sum of rates (A4): no
+    # option is built on it either.
+    contributions = [] if prep.get("measure_is_rate") else diag.get("contributions", [])
     if better == "lower":
         # The segment moving against the desired direction is the one that
         # rose, not the one that fell.
@@ -3426,6 +3595,9 @@ def prescriptive(ctx, gateway=None):
     best = options[0]
     runner_up = options[1] if len(options) > 1 else None
     margin = (best["expected_gain"] - runner_up["expected_gain"]) if runner_up else None
+    if margin is not None:
+        calcs.append({"id": "c_margin", "name": "margin_over_next_option", "value": round(margin, 2),
+                      "method": "best option's expected gain minus the next option's"})
 
     claims.append(_claim(
         ctx, "cl_recommendation", "recommendation",
@@ -3440,7 +3612,7 @@ def prescriptive(ctx, gateway=None):
         f"في {measure}" +
         (f"، متقدماً على الخيار التالي بمقدار {margin:,.2f}." if margin else ".") +
         " وهذه توصية قائمة على افتراض معلن، لا نتيجة مشاهدة.",
-        best["evidence"]))
+        best["evidence"] + (["c_margin"] if margin is not None else [])))
     claims.append(_claim(
         ctx, "cl_assumption", "assumption",
         f"Every option is scored with the same {PLANNING_UPLIFT:.0%} improvement "
@@ -3643,6 +3815,21 @@ def validator(ctx):
                   for cl in ctx.get(stage + "_result", {}).get("claims", [])]
     unsupported = [cl["id"] for cl in all_claims
                    if not set(cl.get("evidence", [])) <= all_calc_ids]
+    # A claim may cite a calculation and still state a different number
+    # (assessment A6). Every figure of three or more significant digits in a
+    # claim must match a cited calculation's value, allowing the roundings
+    # and the percent and per-thousand scalings the stages write.
+    by_id = {c["id"]: c for stage in evidence_stages(ctx)
+             for c in ctx.get(stage + "_result", {}).get("calculations", [])}
+    mismatched = [cl["id"] for cl in all_claims
+                  if set(cl.get("evidence", [])) <= all_calc_ids
+                  and not claim_figures_match(cl, by_id)]
+    checks.append({"name": "claim_figures_match_evidence", "passed": not mismatched,
+                   "detail": (_say(ctx, "Every figure in a claim is a figure it cites.",
+                                   "كل رقم في استنتاج هو رقم يستشهد به.")
+                              if not mismatched else
+                              _say(ctx, "Claims whose figures are not in their evidence: ",
+                                   "استنتاجات أرقامها ليست في أدلتها: ") + ", ".join(mismatched))})
     checks.append({"name": "every_claim_has_evidence", "passed": not unsupported,
                    "detail": (_say(ctx, "All claims trace to calculations.",
                                    "كل الاستنتاجات تعود إلى عمليات حسابية.")

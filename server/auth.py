@@ -307,11 +307,22 @@ def build_identity(env=None):
                 "has no accounts; remove one of them.")
         return DemoIdentity()
     if secret or jwks_url:
+        # A token minted for another application in the same project would
+        # otherwise verify here (assessment finding B7). Supabase deployments
+        # derive both from SUPABASE_URL; anything else states them.
+        supabase_url = (env.get("SUPABASE_URL") or "").rstrip("/")
+        audience = env.get("AGENTIC_OS_JWT_AUDIENCE") or ("authenticated" if supabase_url else None)
+        issuer = env.get("AGENTIC_OS_JWT_ISSUER") or (supabase_url + "/auth/v1" if supabase_url else None)
+        if not audience or not issuer:
+            raise AuthNotConfigured(
+                "A sign-in provider needs AGENTIC_OS_JWT_AUDIENCE and "
+                "AGENTIC_OS_JWT_ISSUER (or SUPABASE_URL, from which both are "
+                "derived); a token for another application must not verify here.")
         return JwtIdentity(
             secret=secret,
             jwks_url=jwks_url,
-            audience=env.get("AGENTIC_OS_JWT_AUDIENCE"),
-            issuer=env.get("AGENTIC_OS_JWT_ISSUER"),
+            audience=audience,
+            issuer=issuer,
             default_role=env.get("AGENTIC_OS_DEFAULT_ROLE", DEFAULT_ROLE),
             role_assignments=parse_role_assignments(
                 env.get("AGENTIC_OS_ROLE_ASSIGNMENTS")),

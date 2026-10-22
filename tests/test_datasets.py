@@ -30,7 +30,7 @@ if FASTAPI_AVAILABLE:
 
     from server.app import create_app
 
-from server.auth import issue_local_test_token
+from tests.support import scoped_token as issue_local_test_token
 
 ROOT = Path(__file__).resolve().parent.parent
 SECRET = "dataset-test-secret-not-used-anywhere-else"
@@ -536,7 +536,7 @@ class DatasetQuotaAndTenancyTests(unittest.TestCase):
                                     "memory_file": str(root / "m.json"),
                                     "vault_dir": str(root / "v")}), encoding="utf-8")
         self.client = TestClient(closing(self, create_app(path, env={
-            "AGENTIC_OS_JWT_SECRET": SECRET, "AGENTIC_OS_ENV": "production",
+            "AGENTIC_OS_JWT_SECRET": SECRET, "SUPABASE_URL": "https://test.supabase.invalid", "AGENTIC_OS_ENV": "production",
             "AGENTIC_OS_QUOTA_DATASETS": "1"})), raise_server_exceptions=False)
         self.addCleanup(self.client.app.state.store._conn.close)
 

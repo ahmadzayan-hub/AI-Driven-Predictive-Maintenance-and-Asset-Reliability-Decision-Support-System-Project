@@ -24,7 +24,7 @@ if FASTAPI_AVAILABLE:
     from server.app import create_app
 
 from tests.support import closing, closing_store
-from server.auth import issue_local_test_token
+from tests.support import scoped_token as issue_local_test_token
 from server.storage import RESTORE_ORDER, open_store
 
 SECRET = "tenancy-test-secret-not-used-anywhere-else"
@@ -149,6 +149,7 @@ class HostedPostgresTenancyTestCase(TenantIsolationMixin, unittest.TestCase):
         }), encoding="utf-8")
         return TestClient(
             closing(self, create_app(config, env={"AGENTIC_OS_JWT_SECRET": SECRET,
+                                    "SUPABASE_URL": "https://test.supabase.invalid",
                                     "AGENTIC_OS_ENV": "production"})),
             raise_server_exceptions=False)
 
@@ -166,7 +167,7 @@ class HostedSqliteTenancyTestCase(TenantIsolationMixin, unittest.TestCase):
             "vault_dir": str(root / "vault"),
         }), encoding="utf-8")
         return TestClient(
-            closing(self, create_app(config, env={"AGENTIC_OS_JWT_SECRET": SECRET,
+            closing(self, create_app(config, env={"AGENTIC_OS_JWT_SECRET": SECRET, "SUPABASE_URL": "https://test.supabase.invalid",
                                     "AGENTIC_OS_ENV": "production"})),
             raise_server_exceptions=False)
 

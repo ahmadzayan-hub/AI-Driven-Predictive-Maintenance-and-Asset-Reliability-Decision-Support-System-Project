@@ -593,6 +593,7 @@ export const en = {
   'signin.linkFailed': 'Could not send the link.',
   'cockpit.lastObserved': 'Last checked {time}',
   'cockpit.exactReport': 'Review the exact report',
+  'cockpit.readReport': 'I have read this exact report',
   'cockpit.previewIncludesEvidence': 'This is the report returned for this approval. Its calculations, references and limitations are included below.',
   'cockpit.reportUnavailable': 'The report is unavailable. Publishing stays disabled; reopen the analysis to recover it.',
   'install.failed': 'The installation prompt could not open. Use your browser’s installation menu instead.',

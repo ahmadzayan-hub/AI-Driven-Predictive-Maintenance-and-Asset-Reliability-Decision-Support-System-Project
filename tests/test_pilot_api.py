@@ -14,7 +14,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from server.app import create_app
-from server.auth import issue_local_test_token
+from tests.support import scoped_token as issue_local_test_token
 from tests.support import closing
 
 
@@ -32,7 +32,7 @@ class PilotApiTest(unittest.TestCase):
                           "memory_file": str(root / "memory.json"),
                           "vault_dir": str(root / "vault")}), encoding="utf-8")
         self.app = closing(self, create_app(config, env={
-            "AGENTIC_OS_ENV": "production", "AGENTIC_OS_JWT_SECRET": SECRET,
+            "AGENTIC_OS_ENV": "production", "AGENTIC_OS_JWT_SECRET": SECRET, "SUPABASE_URL": "https://test.supabase.invalid",
             "AGENTIC_OS_RUN_EXECUTION": "worker"}))
         self.client = TestClient(self.app, raise_server_exceptions=False)
         self.addCleanup(self.client.close)

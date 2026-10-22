@@ -90,8 +90,11 @@ test('drafts, deep links, evidence and exact-report keyboard approval', async ({
   await expect(card.locator('pre')).toContainText('Every claim in this report')
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag22aa']).analyze()).violations).toEqual([])
   await page.screenshot({ path: `../docs/screenshots/${testInfo.project.name}-approvals.png` })
+  // The gate needs the reader's word: tick the confirmation from the keyboard.
+  await card.getByLabel('I have read this exact report').focus()
+  await page.keyboard.press('Space')
   const approve = card.getByRole('button', { name: 'Approve and publish', exact: true })
-  // Continue from the preview using only Tab, then activate the decision.
+  // Continue from the confirmation using only Tab, then activate the decision.
   for (let moves = 0; moves < 12 && !(await approve.evaluate((element) => element === document.activeElement)); moves += 1) {
     await page.keyboard.press('Tab')
   }

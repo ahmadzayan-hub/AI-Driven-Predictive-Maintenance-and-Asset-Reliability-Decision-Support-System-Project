@@ -59,7 +59,11 @@ source trees; historical copies still require remediation before public release.
      regression, a classifier and a clustering are available as optional
      stages on the `models` profile (ADR 0033; see item 28). Fewer than 4 periods produces no
      forecast; fewer than 6 produces a forecast explicitly marked as
-     having unmeasured accuracy.
+     having unmeasured accuracy. With 6 or more, the trend is also
+     backtested against repeating the last period, and a trend that does
+     not beat that by 5% is reported as no better than it. A measure that
+     is a rate (by contract, glossary unit or name) gets no forecast at
+     all, because its period sums are not rates.
    - **Prescriptive** ranks options the dataset itself supplies, scoring
      each with the same 10% improvement assumption. That ranks where the
      leverage is; it is not an optimizer and knows nothing about cost,

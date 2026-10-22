@@ -445,6 +445,12 @@ what was not verified, are in [docs/qa/END_TO_END_VALIDATION.md](docs/qa/END_TO_
   full verifier **8 of 8** (**1,663 Python tests, 21 skipped**); `evaluate_agents --check` 9 of 9 with the router floor
   recorded at 0.88 after relabelling; **323 frontend tests**; Overview and
   accessibility specs **13 passed, 3 skipped**.
+- Slice two of the release gate ([decision](docs/adr/2026-10-22-release-gate-slice-two.md)):
+  full verifier **8 of 8** (**1,674 Python tests, 21 skipped** with PostgreSQL;
+  **326 frontend tests**; budget JS 98.1 / 100 KB first load, 211.9 / 214 KB
+  total, CSS 28.7 / 29.5 KB total); Runs, Workspace, Overview and accessibility
+  specs **24 passed, 4 skipped** (approve through the read gate by mouse and
+  keyboard); the dataset sweep in both languages under the new figure check.
 
 ### Connected agent workspace and asset inspection — 22 October 2026
 
