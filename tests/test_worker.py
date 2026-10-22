@@ -105,9 +105,9 @@ class WorkerModelRolesTestCase(unittest.TestCase):
         results = {t["role"]: json.loads(t["result_json"] or "{}")
                    for t in worker.store.get_tasks(run["id"])}
         self.assertTrue(results["privacy"]["output"]["personal_data"])
-        for role in ("privacy", "descriptive", "prescriptive", "reporter"):
-            self.assertNotIn("agent_note", results[role])
-        self.assertNotIn("orchestration", results["reporter"])
+        for role in ("privacy", "descriptive", "prescriptive"):
+            self.assertEqual(results[role]["agent_note"]["provider"], "built-in")
+        self.assertEqual(results["reporter"]["orchestration"]["hermes"]["provider"], "built-in")
         self.assertIn(private_label, worker.engine.get_run(run["id"])["report"]["content"])
 
     def test_sensitive_goal_is_not_sent_to_a_role_before_privacy_stage(self):

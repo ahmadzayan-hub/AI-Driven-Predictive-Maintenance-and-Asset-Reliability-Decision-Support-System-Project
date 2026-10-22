@@ -154,6 +154,74 @@ def figures(text):
     return sorted(token for token in found if token not in ("1", "2"))
 
 
+# A figure to check: not a date ("2026-01"), not a hash ("6607b5e5"), not
+# part of an identifier; those are labels, never figures from a calculation.
+_CLAIM_FIGURE = re.compile(r"(?<![\w.])[-+−]?\d[\d,]*(?:\.\d+)?%?(?![\w-])")
+
+
+# Scale constants a claim may state without citing them ("out of 100").
+SCALE_CONSTANTS = (100.0, 1000.0)
+
+
+def _cited_values(calc_value):
+    """Every number a reader could legitimately read off one calculation,
+    including the figures inside a text value such as a range."""
+    if isinstance(calc_value, bool):
+        return []
+    if isinstance(calc_value, str):
+        numbers = []
+        for token in _CLAIM_FIGURE.findall(calc_value):
+            try:
+                numbers.append(float(token.lstrip("+-−").rstrip("%").replace(",", "")))
+            except ValueError:
+                continue
+        return [v for n in numbers for v in _cited_values(n)]
+    if not isinstance(calc_value, (int, float)) or not math.isfinite(calc_value):
+        return []
+    return [calc_value * scale for scale in (1, 100, 1000, 0.01, 0.001)]
+
+
+def _figure_matches(figure, candidates):
+    """Signs are read by the wording ("down", "minus"), so magnitudes are
+    compared."""
+    figure = abs(figure)
+    for value in (abs(v) for v in candidates):
+        for digits in range(0, 5):
+            if round(value, digits) == round(figure, digits) and abs(value - figure) <= 0.5 * 10 ** -digits + 1e-9:
+                return True
+        if value and abs(value - figure) / abs(value) <= 0.005:
+            return True
+    return False
+
+
+def claim_figures_match(claim, calculations):
+    """True when every figure of three or more significant digits in the
+    claim's text matches a value it cites, under a rounding or a percent
+    or per-thousand scaling. Small figures (counts under 100) are not
+    checked: they are too often periods, ranks and thresholds."""
+    cited = []
+    for ref in claim.get("evidence", []):
+        calc = calculations.get(ref)
+        if calc is not None:
+            cited += _cited_values(calc.get("value"))
+    for token in _CLAIM_FIGURE.findall(claim.get("text") or ""):
+        raw = token.lstrip("+-−").rstrip("%").replace(",", "")
+        if not raw or raw.count(".") > 1:
+            continue
+        digits = raw.replace(".", "").lstrip("0")
+        if len(digits) < 3:
+            continue
+        try:
+            figure = float(raw)
+        except ValueError:
+            continue
+        if figure in SCALE_CONSTANTS:
+            continue
+        if not _figure_matches(figure, cited):
+            return False
+    return True
+
+
 def _result(status, summary, output=None, claims=None, calculations=None, checks=None):
     return {
         "status": status,
@@ -490,6 +558,34 @@ def profiler(ctx):
     )
 
 
+DATE_LIKE_NAMES = ("month", "date", "period", "week", "year",
+                   "الشهر", "التاريخ", "الفترة", "الأسبوع", "السنة")
+
+
+def _date_like_column(columns):
+    return next((c for c in columns if c.lower() in DATE_LIKE_NAMES), None)
+
+
+def _period_labels_unmapped(values):
+    """(labels, grain, order) for an unmapped period column, or (None, None,
+    None) when it does not read. Dates go through the mapping parser; bare
+    month names ("Jan", "March") are ordered by calendar under a numbered
+    label that keeps the name."""
+    filled = [v for v in values if v not in (None, "")]
+    if not filled:
+        return None, None, None
+    labels, grain, order = colmap.period_labels(values)
+    readable = sum(1 for v, l in zip(values, labels) if v not in (None, "") and l)
+    if readable >= colmap.SUGGEST_SHARE * len(filled):
+        return [l if v not in (None, "") else None for v, l in zip(values, labels)], grain, order
+    months = {str(v).strip().lower() for v in filled}
+    if months and months <= set(colmap.MONTHS):
+        out = [None if v in (None, "") else
+               f"{colmap.MONTHS[str(v).strip().lower()]:02d} {str(v).strip()}" for v in values]
+        return out, "month", None
+    return None, None, None
+
+
 def cleaner(ctx):
     rows = ctx["collector"]["rows"]
     numeric_columns = ctx["profiler"]["numeric_columns"]
@@ -536,6 +632,39 @@ def cleaner(ctx):
     dates = {"date_col": None, "date_grain": None, "date_order": None,
              "dates_unreadable": 0, "dates_missing": 0}
     date_col = colmap.date_of(mapping, ctx["collector"]["columns"]) if mapping else None
+    if not mapping:
+        # An unmapped run finds its period column by name, as the preparer
+        # always did; it is now labelled here too, so that "January 2024",
+        # "1/2/2024" or "Jan" order by calendar rather than alphabet. A
+        # column that does not read as periods gives no trend at all,
+        # rather than one in a wrong order (audit finding, 22 October).
+        named = _date_like_column(ctx["collector"]["columns"])
+        if named:
+            labels, grain, order = _period_labels_unmapped(
+                [row.get(named) for row in cleaned])
+            if labels is None:
+                # Labels such as "w1" or "P3" are kept in the order the
+                # data lists them, which is the order a reader can check;
+                # alphabetical order ("w1, w10, w2") is never used.
+                calcs.append({"id": "c_dates_unread", "name": "dates_not_read",
+                              "value": sum(1 for row in cleaned if row.get(named)),
+                              "method": f"{named} values that do not read as dates "
+                                        "or month names; periods kept in the order "
+                                        "recorded"})
+                claims.append(_claim(
+                    ctx, "cl_dates_unread", "limitation",
+                    f"The {named} column does not read as dates, so its periods are "
+                    "kept in the order they appear in the data. Check that order "
+                    "before reading any trend or forecast as a sequence in time.",
+                    f"لا يُقرأ عمود {named} تواريخ، فتُحفظ فتراته بالترتيب الذي "
+                    "تظهر به في البيانات. تحقق من هذا الترتيب قبل قراءة أي اتجاه "
+                    "أو توقع على أنه تسلسل زمني.",
+                    ["c_dates_unread"]))
+                dates.update(date_col=named, date_grain=None, date_order="as-recorded")
+            else:
+                for row, label in zip(cleaned, labels):
+                    row[named] = label
+                dates.update(date_col=named, date_grain=grain, date_order=order)
     if date_col:
         # Each date becomes a sortable period label at the mapping's grain,
         # so every later stage orders time by time, not alphabetically. A
@@ -812,6 +941,30 @@ MEASURE_SOURCES_AR = {
 }
 
 
+RATE_NAME = re.compile(r"(pct|percent|%|\brate\b|ratio|share|availability|utili[sz]ation)", re.I)
+
+
+def measure_is_rate(ctx, measure):
+    """True when the chosen measure is a rate, a fraction or a percentage:
+    the maintenance contract says so for its columns, the glossary says so
+    with a % unit, and otherwise the column's own name does. A sum of rates
+    is not a rate (assessment finding A4)."""
+    if not measure:
+        return False
+    try:
+        from server.maintenance import contract
+        fields, _ = contract.resolve(ctx["collector"]["columns"])
+        field = fields.get(measure)
+        if field is not None and getattr(field, "scale", None) in (contract.FRACTION, contract.PERCENT):
+            return True
+    except Exception:
+        pass
+    metric = (ctx.get("governance") or {}).get("metric") or {}
+    if str(metric.get("unit") or "").strip() == "%":
+        return True
+    return bool(RATE_NAME.search(str(measure)))
+
+
 def governance(ctx):
     """Metric Governance Agent — is this measure defined, and who owns it?
 
@@ -1063,6 +1216,7 @@ def governance(ctx):
     return _result(
         "succeeded", summary,
         output={"measure": measure, "source": source,
+                "measure_is_rate": measure_is_rate({**ctx, "governance": {"metric": metric}}, measure),
                 "metric": metric, "certified": bool(metric and metric["certified"]),
                 "owner": metric["owner"] if metric else None,
                 "glossary_configured": bool(metrics),
@@ -1117,10 +1271,10 @@ def preparer(ctx):
         date_col = ctx["cleaner"].get("date_col")
         group_col = mapping.get("dimension")
     else:
-        date_col = next((c for c in columns if c.lower() in
-                         ("month", "date", "period", "week", "year",
-                          "الشهر", "التاريخ", "الفترة", "الأسبوع", "السنة")), None)
-        could_group = _automatic_groups(columns, numeric_columns, date_col, rows)
+        # The cleaner labelled the period column, or found none it could read.
+        date_col = ctx["cleaner"].get("date_col")
+        could_group = _automatic_groups(columns, numeric_columns,
+                                        date_col or _date_like_column(columns), rows)
         group_col = could_group[0] if could_group else None
     # A breakdown chosen for a joined run wins: it is usually why the
     # lookup was joined at all (ADR 0030).
@@ -1141,10 +1295,12 @@ def preparer(ctx):
     if date_col:
         for row in rows:
             value = row.get(measure)
-            if value is not None and not (mapping and row[date_col] is None):
+            if value is not None and row.get(date_col) is not None:
                 trend.setdefault(row[date_col], []).append(value)
                 trend_counts[row[date_col]] = trend_counts.get(row[date_col], 0) + 1
-        trend = {key: math.fsum(values) for key, values in sorted(trend.items())}
+        ordered = (trend.items() if ctx["cleaner"].get("date_order") == "as-recorded"
+                   else sorted(trend.items()))
+        trend = {key: math.fsum(values) for key, values in ordered}
         trend_counts = {k: trend_counts[k] for k in trend}
     # Evidence retains source precision. Independently rounding each group
     # accumulates into a false reconciliation failure (and changes ratios).
@@ -1218,6 +1374,7 @@ def preparer(ctx):
              + (" (ربط الأعمدة)" if mapping else "") + "."),
         output={"measure": measure, "group_col": group_col, "date_col": date_col,
                 "date_grain": grain,
+                "measure_is_rate": bool(ctx["governance"].get("measure_is_rate")),
                 "groups": groups,
                 "group_counts": group_counts,
                 "trend": trend,
@@ -1254,6 +1411,8 @@ def descriptive(ctx):
          "method": "sample standard deviation"},
         {"id": "c_unusual", "name": "unusual_rows", "value": unusual,
          "method": "count(|x - mean| > 2 × spread)"},
+        {"id": "c_records", "name": "records_with_a_value", "value": len(values),
+         "method": f"count of rows with a value in {measure}"},
     ]
     claims = [
         _claim(ctx, "cl_typical", "calculation",
@@ -1268,7 +1427,7 @@ def descriptive(ctx):
             "typical value and are worth checking individually.",
             f"{unusual} من أصل {_ar_n(len(values), 'record')} بعيدة عن القيمة "
             "النموذجية، وتستحق الفحص كلٌّ على حدة.",
-            ["c_unusual"]))
+            ["c_unusual", "c_records"]))
 
     change = None
     series = list(prep["trend"].values())
@@ -1426,6 +1585,11 @@ def diagnostic(ctx):
                           "method": f"{measure} for “{item['group']}” in {last} minus {first}"})
         if contributions and total_change:
             driver = contributions[0]
+            # The share the claim states is a calculation of its own (A6).
+            calcs.append({"id": "c_share_0", "name": f"share_of_change_{driver['group']}",
+                          "value": driver["share_of_change"],
+                          "method": "change from the group / total change; may exceed 1 "
+                                    "when other groups moved the other way"})
             claims.append(_claim(
                 ctx, "cl_driver", "finding",
                 f"Most of the movement comes from “{driver['group']}”: it accounts "
@@ -1436,7 +1600,7 @@ def diagnostic(ctx):
                 f"{abs(driver['share_of_change']):.0%} من التغير الكلي البالغ "
                 f"{total_change:,.2f}. وهذا يحدد أين وقع التغير، لا ما الذي "
                 "سبّبه.",
-                ["c_totalchange", "c_contrib_0"]))
+                ["c_totalchange", "c_contrib_0", "c_share_0"]))
         # Against the overall direction means the opposite sign to the total
         # change: a group that fell while the total fell moved with it.
         against = [c for c in contributions if c["change"] * total_change < 0]
@@ -2480,6 +2644,14 @@ def privacy(ctx):
     calcs = [{"id": "c_pii_columns", "name": "columns_with_personal_data",
               "value": len(findings),
               "method": "columns matching a personal-data name or value pattern"}]
+    # Each row count the warning states is a calculation of its own (A6).
+    pii_counts = [
+        {"id": f"c_pii_rows_{index}_{position}", "name": f"{hit['kind']}_rows",
+         "value": hit["rows"],
+         "method": f"rows of {finding['column']} whose value looks like a {hit['kind']}"}
+        for index, finding in enumerate(findings[:3])
+        for position, hit in enumerate(finding["by_value"])]
+    calcs += pii_counts
     claims = []
     if findings:
         # The Arabic list mirrors the English one term for term, including
@@ -2506,7 +2678,7 @@ def privacy(ctx):
             f"يبدو أن هذه البيانات تحتوي على بيانات شخصية في "
             f"{len(findings)} من الأعمدة: {summary_ar}. النشر يكتب التقرير في "
             "المخزن، فتحقق من أنه مسموح بخروجه من هنا.",
-            ["c_pii_columns"]))
+            ["c_pii_columns"] + [c["id"] for c in pii_counts]))
     else:
         claims.append(_claim(
             ctx, "cl_pii_clear", "fact",
@@ -2615,7 +2787,7 @@ def segments(ctx):
              if len(shares) > 3 else
              f"الأكبر بين شرائح {group_col} وعددها {len(shares)} يستحوذ على "
              f"{shares[0]['share']:.0%} من {measure}، فالنشاط {spread_ar}."),
-            ["c_seg_pareto", "c_seg_hhi"])],
+            ["c_seg_count", "c_seg_pareto", "c_seg_hhi"])],
     )
 
 
@@ -2725,67 +2897,127 @@ def sensitivity(ctx):
                            "مع أقل من خيارين لا يوجد ترتيب يمكن اختبار حساسيته.",
                            ["c_sens_none"])])
 
-    # Every option is scored as base_value × uplift, so the ranking is
-    # scale-invariant in the uplift — the honest way to say that is to
-    # show it rather than assert it.
+    # Each option's improvement may sit anywhere in the uplift range,
+    # independently of the others (A2). The ranking is stable only when the
+    # winner at the low end of the range still beats every other option at
+    # the high end; otherwise the flip point says how much better the other
+    # option would have to do. The three uniform scenarios are kept because
+    # they show the other truth: with one uplift for everyone the order is
+    # scale-invariant.
+    inputs = ctx["prescriptive"].get("assumptions") or decision_inputs(ctx)
+    low, high = inputs["uplift_range"]
     winner = options[0]
     runner_up = options[1]
     scenarios = []
-    for uplift in (0.05, PLANNING_UPLIFT, 0.20):
+    for uplift in (low, PLANNING_UPLIFT, high):
         scored = sorted(
             ({"key": o["key"], "title": o["title"],
-              "gain": round(o["base_value"] * uplift, 2)} for o in options),
+              "gain": round(o["base_value"] * uplift - (o.get("cost") or 0.0), 2)}
+             for o in options),
             key=lambda o: -o["gain"])
         scenarios.append({"uplift": uplift, "winner": scored[0]["key"],
                           "gain": scored[0]["gain"]})
-    stable = len({s["winner"] for s in scenarios}) == 1
+    uniform_stable = len({s["winner"] for s in scenarios}) == 1
+
+    def net(option, uplift):
+        if option["key"] == "hold_course":
+            return 0.0
+        return option["base_value"] * uplift - (option.get("cost") or 0.0)
+
+    winner_low_uplift = winner["uplift"] if winner.get("uplift_source") == "stated" else low
+    winner_low = net(winner, winner_low_uplift)
+    flips = []
+    for other in options[1:]:
+        other_high = net(other, other["uplift"] if other.get("uplift_source") == "stated" else high)
+        flip_at = None
+        if other["base_value"] and other["key"] != "hold_course":
+            # The uplift at which this option ties the winner when the
+            # winner only reaches the low end of its range (or its stated
+            # uplift): the same comparison the stability rule makes.
+            flip_at = round(max(0.0, winner_low + (other.get("cost") or 0.0))
+                            / other["base_value"], 4)
+        flips.append({"key": other["key"], "title": other["title"],
+                      "title_ar": other.get("title_ar"), "target": other["target"],
+                      "target_ar": other.get("target_ar"),
+                      "flip_at_uplift": flip_at,
+                      "inside_range": flip_at is not None and low <= flip_at <= high,
+                      "can_overtake": other_high >= winner_low})
+    stable = not any(f["can_overtake"] for f in flips)
+    first_flip = next((f for f in flips if f["can_overtake"]), None)
 
     break_even = None
     if runner_up["base_value"]:
-        # How much better the runner-up's uplift would have to be for it
-        # to win, holding the leader's assumption fixed.
         break_even = round(winner["base_value"] / runner_up["base_value"], 3)
 
-    calcs = [{"id": "c_sens_stable", "name": "winner_unchanged_across_scenarios",
+    calcs = [{"id": "c_sens_stable", "name": "winner_unchanged_within_ranges",
               "value": 1 if stable else 0,
-              "method": "recommended option compared at 5%, 10% and 20% uplift"}]
+              "method": f"winner at the low end of the uplift range ({low:.0%}) against every "
+                        f"other option at the high end ({high:.0%}), costs as stated"},
+             {"id": "c_sens_uniform", "name": "winner_unchanged_uniform_uplift",
+              "value": 1 if uniform_stable else 0,
+              "method": f"recommended option compared at {low:.0%}, {PLANNING_UPLIFT:.0%} and "
+                        f"{high:.0%} uplift applied to every option alike"}]
+    for flip in flips:
+        if flip["flip_at_uplift"] is not None:
+            calcs.append({"id": f"c_flip_{flip['key']}", "name": f"flip_uplift_{flip['key']}",
+                          "value": flip["flip_at_uplift"],
+                          "method": f"(winner's gain at the low end of its range + cost of "
+                                    f"“{flip['target']}”) ÷ current value of “{flip['target']}”"})
     if break_even is not None:
         calcs.append({"id": "c_sens_breakeven", "name": "break_even_ratio",
                       "value": break_even,
                       "method": f"“{winner['target']}” current value ÷ "
                                 f"“{runner_up['target']}” current value"})
+    flip_evidence = [f"c_flip_{first_flip['key']}"] if first_flip and first_flip["flip_at_uplift"] is not None else []
     claims = [_claim(
         ctx, "cl_sens", "finding",
-        (f"The recommendation does not depend on the size of the improvement "
-         f"assumed: “{winner['title']}” wins at 5%, 10% and 20% alike."
+        (f"The recommendation holds inside the stated range: “{winner['title']}” at a "
+         f"{low:.0%} improvement still beats every other option at {high:.0%}."
          if stable else
-         "The recommendation changes with the size of the improvement assumed, "
-         "so it should be treated as a close call rather than a conclusion.")
+         f"The recommendation can change inside the stated range: “{first_flip['title']}” "
+         f"overtakes it"
+         + (f" at an improvement of {first_flip['flip_at_uplift']:.0%} if “{winner['target']}” "
+            f"reaches only {winner_low_uplift:.0%}"
+            if first_flip["flip_at_uplift"] is not None else "")
+         + ", so treat the ranking as a close call rather than a conclusion.")
         + (f" It would take a {break_even:.1f}× better result in "
            f"“{runner_up['target']}” than in “{winner['target']}” to change the answer."
            if break_even else ""),
-        (f"لا تعتمد التوصية على حجم التحسن المفترض: "
-         f"«{winner.get('title_ar', winner['title'])}» يتصدر عند "
-         "5% و10% و20% على حد سواء."
+        (f"تصمد التوصية داخل النطاق المعلن: «{winner.get('title_ar', winner['title'])}» عند "
+         f"تحسن {low:.0%} ما زال يتفوق على كل خيار آخر عند {high:.0%}."
          if stable else
-         "تتغير التوصية بتغير حجم التحسن المفترض، فينبغي التعامل معها بوصفها قراراً "
-         "متقارباً لا نتيجة محسومة.")
+         f"قد تتغير التوصية داخل النطاق المعلن: «{first_flip.get('title_ar') or first_flip['title']}» "
+         "يتجاوزها"
+         + (f" عند تحسن بنسبة {first_flip['flip_at_uplift']:.0%} إذا لم يحقق "
+            f"«{winner.get('target_ar', winner['target'])}» سوى {winner_low_uplift:.0%}"
+            if first_flip["flip_at_uplift"] is not None else "")
+         + "، فتعامل مع الترتيب بوصفه قراراً متقارباً لا نتيجة محسومة.")
         + (f" ولتغيير الجواب يلزم أن تكون النتيجة في "
            f"«{runner_up.get('target_ar', runner_up['target'])}» أفضل بمقدار "
            f"{break_even:.1f}× مما هي في «{winner.get('target_ar', winner['target'])}»."
            if break_even else ""),
-        ["c_sens_stable"] + (["c_sens_breakeven"] if break_even else []))]
+        ["c_sens_stable"] + flip_evidence + (["c_sens_breakeven"] if break_even else []))]
+    decision = dict(ctx["prescriptive"].get("decision") or {})
+    if decision:
+        decision["uncertainty"] = {
+            "stable_within_ranges": stable, "uplift_range": [low, high],
+            "flip_points": [{k: f[k] for k in ("key", "target", "flip_at_uplift",
+                                                "inside_range", "can_overtake")}
+                            for f in flips],
+            "break_even_ratio": break_even}
     return _result(
         "succeeded",
         _say(ctx,
-             ("The recommendation holds across every improvement assumption tested."
+             ("The recommendation holds across the stated range of improvement."
               if stable else
               "The recommendation depends on the improvement assumed — treat it as a "
               "close call."),
-             ("تصمد التوصية أمام كل افتراضات التحسن التي اختُبرت."
+             ("تصمد التوصية عبر نطاق التحسن المعلن."
               if stable else
               "تعتمد التوصية على التحسن المفترض، فتعامل معها بوصفها قراراً متقارباً.")),
-        output={"stable": stable, "scenarios": scenarios, "break_even": break_even},
+        output={"stable": stable, "uniform_stable": uniform_stable, "scenarios": scenarios,
+                "break_even": break_even, "flip_points": flips,
+                "uplift_range": [low, high], "decision": decision or None},
         calculations=calcs, claims=claims,
     )
 
@@ -2964,6 +3196,9 @@ def visuals(ctx):
 MIN_PERIODS_TO_FORECAST = 4
 MIN_PERIODS_TO_BACKTEST = 6
 FORECAST_HORIZON = 3
+# The trend must beat "repeat the last period" by this much, relative, or
+# it is weak: the same margin the model stages use (server/modelling.py).
+WEAK_MARGIN = 0.05
 
 
 def predictive(ctx):
@@ -2980,6 +3215,28 @@ def predictive(ctx):
     labels = list(prep["trend"].keys())
     series = list(prep["trend"].values())
     calcs, claims = [], []
+
+    if prep.get("measure_is_rate"):
+        reason_en = (f"{measure} is a rate. Its period totals are sums of per-record "
+                     "rates, which are not rates, so no trend is extended from them; "
+                     "a governed KPI from the register is the figure to forecast.")
+        reason_ar = (f"{measure} معدل. ومجاميعه حسب الفترة هي مجاميع لمعدلات كل سجل، "
+                     "وليست معدلات، فلا يُمدّ منها اتجاه؛ والمؤشر المنضبط من السجل هو "
+                     "ما يُتوقَّع.")
+        reason = _say(ctx, reason_en, reason_ar)
+        calcs.append({"id": "c_rate", "name": "measure_is_rate", "value": 1,
+                      "method": "rate, fraction or percentage by contract, glossary unit or name"})
+        claims.append(_claim(ctx, "cl_noforecast", "limitation",
+                             f"No forecast was produced. {reason_en}",
+                             f"لم يُنتَج أي توقع. {reason_ar}", ["c_rate"]))
+        headline = _say(ctx, "No forecast: a sum of rates is not a rate.",
+                        "لا توقع: مجموع المعدلات ليس معدلاً.")
+        return _result("succeeded", headline,
+                       output={"headline": headline, "forecast": [], "reason": reason,
+                               "report_markdown": _section_report(
+                                   "Predictive", "What will happen?", ctx, [reason], calcs,
+                                   headline=headline)},
+                       calculations=calcs, claims=claims)
 
     if len(series) < MIN_PERIODS_TO_FORECAST:
         reason_en = (f"Only {len(series)} period(s) of history are available; at least "
@@ -3017,15 +3274,26 @@ def predictive(ctx):
     forecast_labels = _next_labels(labels, horizon)
     predictions = [round(intercept + slope * (len(series) + i), 2) for i in range(horizon)]
 
-    # Backtest: refit on all but the last few periods and score the gap.
+    # Backtest, rolling origin: each of the last `holdout` periods is
+    # predicted from the periods before it only, by the trend and by the
+    # naive baseline "repeat the last period". A trend that does not beat
+    # the baseline by WEAK_MARGIN is reported as weak (assessment A5).
     holdout = min(3, max(1, len(series) // 4))
-    error = None
+    error = naive_error = None
+    beats_naive = None
     if len(series) >= MIN_PERIODS_TO_BACKTEST:
-        train, test = series[:-holdout], series[-holdout:]
-        t_slope, t_intercept, _ = _linear_fit(train)
-        errors = [abs((t_intercept + t_slope * (len(train) + i)) - actual) / abs(actual)
-                  for i, actual in enumerate(test) if actual]
-        error = round(statistics.fmean(errors), 4) if errors else None
+        trend_errors, naive_errors = [], []
+        for origin in range(len(series) - holdout, len(series)):
+            train, actual = series[:origin], series[origin]
+            if not actual:
+                continue
+            t_slope, t_intercept, _ = _linear_fit(train)
+            trend_errors.append(abs((t_intercept + t_slope * len(train)) - actual) / abs(actual))
+            naive_errors.append(abs(train[-1] - actual) / abs(actual))
+        if trend_errors:
+            error = round(statistics.fmean(trend_errors), 4)
+            naive_error = round(statistics.fmean(naive_errors), 4)
+            beats_naive = error < naive_error * (1 - WEAK_MARGIN)
 
     calcs += [
         {"id": "c_slope", "name": "per_period_change", "value": round(slope, 2),
@@ -3041,11 +3309,17 @@ def predictive(ctx):
     if error is not None:
         calcs.append({"id": "c_backtest", "name": "backtest_error", "value": error,
                       "method": f"average absolute percentage error over the last "
-                                f"{holdout} period(s), predicted from earlier ones only"})
+                                f"{holdout} period(s), each predicted from earlier ones only"})
+        calcs.append({"id": "c_naive", "name": "naive_baseline_error", "value": naive_error,
+                      "method": f"the same backtest for repeating the previous period's value"})
 
     band_en = band_ar = ""
     if error is not None:
         low, high = predictions[0] * (1 - error), predictions[0] * (1 + error)
+        calcs += [{"id": "c_band_low", "name": "band_low", "value": round(low, 2),
+                   "method": "first forecast × (1 − backtest error)"},
+                  {"id": "c_band_high", "name": "band_high", "value": round(high, 2),
+                   "method": "first forecast × (1 + backtest error)"}]
         band_en = f" In backtesting this method was off by about {error:.1%}, so treat it as " \
                   f"roughly {low:,.0f}–{high:,.0f}."
         band_ar = (f" وعند اختبارها على بيانات سابقة أخطأت هذه الطريقة بنحو {error:.1%}، "
@@ -3059,7 +3333,7 @@ def predictive(ctx):
         f"{_period_label(ctx, forecast_labels[0])} سيكون نحو "
         f"{predictions[0]:,.2f}.{band_ar} "
         "ويفترض هذا ألا يتغير شيء في طريقة عمل النشاط.",
-        ["c_forecast_0"] + (["c_backtest"] if error is not None else [])))
+        ["c_forecast_0"] + (["c_backtest", "c_band_low", "c_band_high"] if error is not None else [])))
     claims.append(_claim(
         ctx, "cl_fit", "calculation",
         f"The trend line explains {explained:.0%} of the period-to-period "
@@ -3067,6 +3341,19 @@ def predictive(ctx):
         f"يفسّر خط الاتجاه {explained:.0%} من تحرك {measure} من فترة إلى أخرى، "
         "والباقي تباين لا يلتقطه.",
         ["c_explained"]))
+    if error is not None:
+        claims.append(_claim(
+            ctx, "cl_baseline", "calculation" if beats_naive else "limitation",
+            (f"Repeating the previous period would have been off by {naive_error:.1%} on "
+             f"the same test; the trend line, off by {error:.1%}, "
+             + ("beats that baseline." if beats_naive else
+                "does not beat it, so the forecast is weak: treat it as no better than "
+                "the last period.")),
+            (f"تكرار قيمة الفترة السابقة كان سيخطئ بنسبة {naive_error:.1%} في الاختبار "
+             f"نفسه؛ وخط الاتجاه، بخطأ {error:.1%}، "
+             + ("يتفوق على هذا الأساس." if beats_naive else
+                "لا يتفوق عليه، فالتوقع ضعيف: اعتبره ليس أفضل من الفترة الأخيرة.")),
+            ["c_backtest", "c_naive"]))
     if error is None:
         claims.append(_claim(
             ctx, "cl_nobacktest", "limitation",
@@ -3127,7 +3414,7 @@ def predictive(ctx):
                f"{abs(expected_move):.0%} عن آخر فترة"
                if expected_move is not None else "")
             + (f". وقد أخطأت هذه الطريقة بنحو {error:.0%} عند اختبارها على بيانات "
-               "سابقة."
+               "سابقة" + ("" if beats_naive else "، وليست أفضل من تكرار الفترة الأخيرة") + "."
                if error is not None else
                ". ولم تُختبر الدقة بعد على بيانات سابقة."))
     else:
@@ -3136,7 +3423,7 @@ def predictive(ctx):
             + (f", {'up' if expected_move >= 0 else 'down'} {abs(expected_move):.0%} "
                "on the latest period" if expected_move is not None else "")
             + (f" — this method has been off by about {error:.0%} when tested on past "
-               "data."
+               "data" + ("" if beats_naive else ", no better than repeating the last period") + "."
                if error is not None else " — accuracy not yet tested against past data."))
     return _result(
         "succeeded", headline,
@@ -3145,6 +3432,7 @@ def predictive(ctx):
                              for label, value in zip(forecast_labels, predictions)],
                 "per_period_change": round(slope, 2), "explained": round(explained, 4),
                 "backtest_error": error,
+                "naive_baseline_error": naive_error, "beats_naive_baseline": beats_naive,
                 "report_markdown": _section_report("Predictive", "What will happen?",
                                                    ctx, lines, calcs,
                                                    headline=headline)},
@@ -3156,6 +3444,64 @@ def predictive(ctx):
 # ranking reflects where the leverage is — not a claim about how easy any
 # option is. That assumption is printed next to the recommendation.
 PLANNING_UPLIFT = 0.10
+# The range an improvement is allowed to take, per option and independently,
+# when the sensitivity stage asks whether the ranking can flip (A2).
+UPLIFT_RANGE = (0.05, 0.20)
+MAX_ASSUMPTION_KEYS = 50
+
+
+def validate_assumptions(assumptions, language="en"):
+    """The decision inputs a run may carry (assessment A2, A13): an
+    uplift per target, a cost per target, and the uplift range the
+    sensitivity stage explores. Returns the clean dict, or raises
+    ValueError with the reason in the report's language. Keys are target
+    names as the data spells them; nothing here is a model input."""
+    if assumptions in (None, {}):
+        return None
+    if not isinstance(assumptions, dict):
+        raise ValueError("assumptions must be an object" if language != "ar"
+                         else "يجب أن تكون الافتراضات كائناً")
+    unknown = sorted(set(assumptions) - {"uplift", "costs", "uplift_range"})
+    if unknown:
+        raise ValueError((f"unknown assumption fields: {', '.join(unknown)}")
+                         if language != "ar" else
+                         f"حقول افتراضات غير معروفة: {', '.join(unknown)}")
+    clean = {}
+    for field, low, high in (("uplift", 0.0, 10.0), ("costs", 0.0, 1e15)):
+        table = assumptions.get(field)
+        table = {} if table is None else table
+        if not isinstance(table, dict) or len(table) > MAX_ASSUMPTION_KEYS:
+            raise ValueError(f"{field} must map at most {MAX_ASSUMPTION_KEYS} targets to numbers")
+        out = {}
+        for key, value in table.items():
+            if not isinstance(key, str) or not key.strip() or len(key) > 200:
+                raise ValueError(f"{field}: target names must be short text")
+            if isinstance(value, bool) or not isinstance(value, (int, float)) \
+                    or not math.isfinite(value) or not low <= value <= high:
+                raise ValueError(f"{field}: “{key}” must be a number between {low:g} and {high:g}")
+            out[key.strip()] = float(value)
+        if out:
+            clean[field] = out
+    rng = assumptions.get("uplift_range")
+    if rng is not None:
+        ok = (isinstance(rng, (list, tuple)) and len(rng) == 2
+              and all(isinstance(v, (int, float)) and not isinstance(v, bool)
+                      and math.isfinite(v) for v in rng)
+              and 0 <= rng[0] < rng[1] <= 10)
+        if not ok:
+            raise ValueError("uplift_range must be two numbers, low then high, between 0 and 10")
+        clean["uplift_range"] = [float(rng[0]), float(rng[1])]
+    return clean or None
+
+
+def decision_inputs(ctx):
+    """What the run stated: per-target uplifts, per-target costs and the
+    uplift range; defaults where it stated nothing."""
+    stated = ctx.get("assumptions") or {}
+    rng = stated.get("uplift_range") or list(UPLIFT_RANGE)
+    return {"uplift": dict(stated.get("uplift") or {}),
+            "costs": dict(stated.get("costs") or {}),
+            "uplift_range": [float(rng[0]), float(rng[1])]}
 
 
 def prescriptive(ctx, gateway=None):
@@ -3168,25 +3514,46 @@ def prescriptive(ctx, gateway=None):
     prep, desc, diag, pred = (ctx["preparer"], ctx["descriptive"],
                               ctx["diagnostic"], ctx["predictive"])
     measure, group_col = prep["measure"], prep["group_col"]
-    groups = prep["groups"]
+    # A group's "total" of a rate is a sum of per-record rates: not a lever
+    # to act on (A4). The options then come from the trend alone, if any.
+    groups = {} if prep.get("measure_is_rate") else prep["groups"]
     calcs, claims, options = [], [], []
 
     arabic = report_language(ctx) == "ar"
+    # Uplift and cost are inputs where the run stated them (A2, A13); the
+    # assumed uniform uplift is the fallback, and every option says which.
+    inputs = decision_inputs(ctx)
 
     def add_option(key, title, target, base_value, rationale, evidence,
                    gain=None, method=None):
         """`title`, `target` and `rationale` are (English, Arabic) pairs. The
         English is what the audited claims and the calculation method cite;
         the Arabic is what an Arabic report shows."""
-        gain = round(base_value * PLANNING_UPLIFT, 2) if gain is None else gain
+        uplift = inputs["uplift"].get(target[0])
+        stated = uplift is not None
+        uplift = PLANNING_UPLIFT if uplift is None else uplift
+        cost = inputs["costs"].get(target[0])
+        if gain is None:
+            gross = round(base_value * uplift, 2)
+            gain = round(gross - (cost or 0.0), 2)
+            method = method or (f"{uplift:.0%} ({'stated' if stated else 'assumed'}) of "
+                                f"{target[0]}'s current {measure} ({base_value:,.2f})"
+                                + (f" minus its stated cost {cost:,.2f}" if cost is not None else ""))
+        else:
+            gross = gain
         calcs.append({"id": f"c_option_{key}", "name": f"expected_gain_{key}",
-                      "value": gain,
-                      "method": method or (f"{PLANNING_UPLIFT:.0%} of {target[0]}'s "
-                                           f"current {measure} ({base_value:,.2f})")})
+                      "value": gain, "method": method})
+        if cost is not None:
+            calcs.append({"id": f"c_cost_{key}", "name": f"cost_{key}", "value": round(cost, 2),
+                          "method": f"cost of {target[0]} as stated in the run's assumptions"})
         option = {"key": key, "title": title[0], "target": target[0],
                   "base_value": round(base_value, 2), "expected_gain": gain,
+                  "gross_gain": gross, "uplift": uplift,
+                  "uplift_source": "stated" if stated else "assumed",
+                  "cost": None if cost is None else round(cost, 2),
                   "rationale": rationale[0],
-                  "evidence": evidence + [f"c_option_{key}"]}
+                  "evidence": evidence + [f"c_option_{key}"]
+                  + ([f"c_cost_{key}"] if cost is not None else [])}
         if arabic:
             option.update(title_ar=title[1], target_ar=target[1],
                           rationale_ar=rationale[1])
@@ -3271,7 +3638,9 @@ def prescriptive(ctx, gateway=None):
                             "الإجمالي أقل من غيره، وهو يقلل اعتماد الإجمالي "
                             "على مجموعة واحدة."),
                            [])
-    contributions = diag.get("contributions", [])
+    # A group's change in a rate is a change in a sum of rates (A4): no
+    # option is built on it either.
+    contributions = [] if prep.get("measure_is_rate") else diag.get("contributions", [])
     if better == "lower":
         # The segment moving against the desired direction is the one that
         # rose, not the one that fell.
@@ -3372,21 +3741,32 @@ def prescriptive(ctx, gateway=None):
     best = options[0]
     runner_up = options[1] if len(options) > 1 else None
     margin = (best["expected_gain"] - runner_up["expected_gain"]) if runner_up else None
+    if margin is not None:
+        calcs.append({"id": "c_margin", "name": "margin_over_next_option", "value": round(margin, 2),
+                      "method": "best option's expected gain minus the next option's"})
 
+    anything_stated = any(o["uplift_source"] == "stated" or o["cost"] is not None
+                          for o in options)
     claims.append(_claim(
         ctx, "cl_recommendation", "recommendation",
-        f"Recommended action: {best['title']}. On the same {PLANNING_UPLIFT:.0%} "
-        f"improvement applied to every option, it is worth {best['expected_gain']:,.2f} "
-        f"in {measure}" +
+        f"Recommended action: {best['title']}. "
+        + (f"On the uplifts and costs stated for this run, it is worth "
+           f"{best['expected_gain']:,.2f} net in {measure}"
+           if anything_stated else
+           f"On the same assumed {PLANNING_UPLIFT:.0%} improvement applied to every "
+           f"option, it is worth an illustrative {best['expected_gain']:,.2f} in {measure}") +
         (f", ahead of the next option by {margin:,.2f}." if margin else ".") +
         " This is a recommendation under a stated assumption, not an observed "
         "outcome.",
-        f"الإجراء الموصى به: {shown(best, 'title')}. عند تطبيق التحسن نفسه بنسبة "
-        f"{PLANNING_UPLIFT:.0%} على كل خيار، تبلغ قيمته {best['expected_gain']:,.2f} "
-        f"في {measure}" +
+        f"الإجراء الموصى به: {shown(best, 'title')}. "
+        + (f"وفق نسب التحسن والتكاليف المعلنة لهذا التحليل، تبلغ قيمته الصافية "
+           f"{best['expected_gain']:,.2f} في {measure}"
+           if anything_stated else
+           f"عند تطبيق التحسن المفترض نفسه بنسبة {PLANNING_UPLIFT:.0%} على كل خيار، "
+           f"تبلغ قيمته التوضيحية {best['expected_gain']:,.2f} في {measure}") +
         (f"، متقدماً على الخيار التالي بمقدار {margin:,.2f}." if margin else ".") +
         " وهذه توصية قائمة على افتراض معلن، لا نتيجة مشاهدة.",
-        best["evidence"]))
+        best["evidence"] + (["c_margin"] if margin is not None else [])))
     claims.append(_claim(
         ctx, "cl_assumption", "assumption",
         f"Every option is scored with the same {PLANNING_UPLIFT:.0%} improvement "
@@ -3444,10 +3824,20 @@ def prescriptive(ctx, gateway=None):
                      "privacy_reason": notice(report_language(ctx))}
     elif not gateway:
         narration = {"text": " ".join(facts), "source": "deterministic"}
-    elif arabic:
-        narration = gateway.narrate(goal, facts, language="ar")
     else:
-        narration = gateway.narrate(goal, facts)
+        narration = gateway.narrate(goal, facts, language="ar" if arabic else "en")
+        if (narration.get("source") == "model"
+                and orchestration.grounded(narration.get("text"), facts) is None):
+            # The model added a figure that is not in the facts, or said
+            # nothing. The summary is then the facts themselves, and the
+            # report says so (audit finding, 22 October).
+            narration = {"text": " ".join(facts), "source": "deterministic",
+                         "grounding_reason": _say(
+                             ctx, "The model's summary was set aside because it stated "
+                                  "a figure that is not in the verified facts; the "
+                                  "summary above is the facts themselves.",
+                             "استُبعد ملخص النموذج لأنه ذكر رقماً ليس في الحقائق المتحقق "
+                             "منها؛ والملخص أعلاه هو الحقائق نفسها.")}
 
     if arabic:
         lines = ["| الخيار | الهدف | المكسب المتوقع | السبب |", "| --- | --- | --- | --- |"]
@@ -3481,19 +3871,94 @@ def prescriptive(ctx, gateway=None):
                            f"{closeness:.0%} من قيمة الخيار الأول."
                            + (" وهذا تقارب يجعل التكلفة والجدوى هما الحكم، لا هذا "
                               "الترتيب.*" if closeness < 0.20 else "*"))]
+    # The decision record (A13): one structured object per recommendation,
+    # persisted with the run, completed by the sensitivity stage (its
+    # uncertainty) and by the approval gate (its approver). No stage
+    # approves anything.
+    low, high = inputs["uplift_range"]
+    costed = [o for o in options if o["cost"] is not None or o["key"] == "hold_course"]
+    all_costed = len(costed) == len(options)
+    if better and all_costed:
+        basis, basis_text = "value", ("ranked by net value: direction declared and every cost stated",
+                                      "مرتب حسب القيمة الصافية: الاتجاه معلن وكل التكاليف محددة")
+    elif not better:
+        basis, basis_text = "size_no_direction", ("ranked by size of change: no direction declared for the measure",
+                                                  "مرتب حسب حجم التغير: لم يُعلن اتجاه للمقياس")
+    else:
+        basis, basis_text = "size_no_cost", ("ranked by size of change: cost not stated for every option",
+                                             "مرتب حسب حجم التغير: التكلفة غير محددة لكل الخيارات")
+    decision = {
+        "decision_id": f"{ctx.get('run_id', 'run')}:{best['key']}",
+        "issue": (diag.get("headline") or desc.get("headline") or ""),
+        "scope": best["target"],
+        "evidence": best["evidence"] + (["c_margin"] if margin is not None else []),
+        "risk": {"measure": measure, "observed": best["base_value"],
+                 "basis": "current total of the target in the data; not a probability"},
+        "alternatives": [{key: o[key] for key in ("key", "title", "target", "base_value",
+                                                  "uplift", "uplift_source", "cost",
+                                                  "expected_gain", "evidence")}
+                         for o in options],
+        "expected_impact": {"low": round(best["base_value"] * low - (best["cost"] or 0.0), 2),
+                            "high": round(best["base_value"] * high - (best["cost"] or 0.0), 2),
+                            "uplift_range": [low, high],
+                            "label": "stated" if best["uplift_source"] == "stated" else "illustrative"},
+        "cost": {"stated_for": [o["target"] for o in options if o["cost"] is not None],
+                 "not_stated_for": [o["target"] for o in options
+                                    if o["cost"] is None and o["key"] != "hold_course"]},
+        "constraints": [],
+        "uncertainty": None,
+        "recommended_action": best["title"] if basis == "value" else None,
+        "recommendation_basis": basis,
+        "approval": None,
+        "audit": {"run_id": ctx.get("run_id"), "snapshot": ctx["collector"].get("snapshot"),
+                  "report_language": report_language(ctx)},
+    }
+    if arabic:
+        lines += ["", "## سجل القرار", "",
+                  f"- **المعرّف:** {decision['decision_id']}",
+                  f"- **النطاق:** {shown(best, 'target')}",
+                  f"- **الأساس:** {basis_text[1]}",
+                  f"- **الأثر المتوقع:** من {decision['expected_impact']['low']:,.2f} إلى "
+                  f"{decision['expected_impact']['high']:,.2f} في {measure} ضمن نطاق تحسن "
+                  f"{low:.0%} إلى {high:.0%}",
+                  f"- **التكلفة:** " + ("محددة لكل الخيارات" if all_costed else
+                                        "غير محددة لـ " + "، ".join(decision['cost']['not_stated_for'])),
+                  "- **القيود:** لم تُسجَّل؛ يضيفها المالك قبل الاعتماد",
+                  "- **الاعتماد:** تكتبه بوابة الاعتماد، لا أي مرحلة"]
+    else:
+        lines += ["", "## Decision record", "",
+                  f"- **Id:** {decision['decision_id']}",
+                  f"- **Scope:** {best['target']}",
+                  f"- **Basis:** {basis_text[0]}",
+                  f"- **Expected impact:** {decision['expected_impact']['low']:,.2f} to "
+                  f"{decision['expected_impact']['high']:,.2f} in {measure} across an uplift range "
+                  f"of {low:.0%} to {high:.0%}",
+                  "- **Cost:** " + ("stated for every option" if all_costed else
+                                    "not stated for " + ", ".join(decision['cost']['not_stated_for'])),
+                  "- **Constraints:** none recorded; the owner adds them before approval",
+                  "- **Approval:** written by the approval gate, never by a stage"]
+
     headline = _say(ctx,
                     f"We recommend: {best['title']}. It is worth about "
-                    f"{best['expected_gain']:,.0f} in {measure} — more than any other "
-                    f"option we compared.",
+                    f"{best['expected_gain']:,.0f} in {measure}, "
+                    + ("on the uplifts and costs stated for this run"
+                       if anything_stated else
+                       f"illustrative at an assumed {PLANNING_UPLIFT:.0%} change")
+                    + " — more than any other option we compared.",
                     f"نوصي بـ: {shown(best, 'title')}. وقيمته نحو "
-                    f"{best['expected_gain']:,.0f} في {measure}، وهي أكبر من أي خيار "
-                    "آخر قارنّاه.")
+                    f"{best['expected_gain']:,.0f} في {measure}، "
+                    + ("وفق نسب التحسن والتكاليف المعلنة لهذا التحليل"
+                       if anything_stated else
+                       f"قيمةً توضيحية عند تغيّر مفترض بنسبة {PLANNING_UPLIFT:.0%}")
+                    + "، وهي أكبر من أي خيار آخر قارنّاه.")
     return _result(
         "succeeded", headline,
         output={"headline": headline, "options": options, "recommendation": best,
+                "decision": decision, "assumptions": inputs,
                 "exec_summary": narration["text"],
                 "exec_summary_source": narration["source"],
                 "exec_summary_privacy_reason": narration.get("privacy_reason"),
+                "exec_summary_grounding_reason": narration.get("grounding_reason"),
                 # Who chose the narrator, when something did. The report
                 # already names which model wrote the summary; why that
                 # one belongs beside it (ADR 0017).
@@ -3578,6 +4043,21 @@ def validator(ctx):
                   for cl in ctx.get(stage + "_result", {}).get("claims", [])]
     unsupported = [cl["id"] for cl in all_claims
                    if not set(cl.get("evidence", [])) <= all_calc_ids]
+    # A claim may cite a calculation and still state a different number
+    # (assessment A6). Every figure of three or more significant digits in a
+    # claim must match a cited calculation's value, allowing the roundings
+    # and the percent and per-thousand scalings the stages write.
+    by_id = {c["id"]: c for stage in evidence_stages(ctx)
+             for c in ctx.get(stage + "_result", {}).get("calculations", [])}
+    mismatched = [cl["id"] for cl in all_claims
+                  if set(cl.get("evidence", [])) <= all_calc_ids
+                  and not claim_figures_match(cl, by_id)]
+    checks.append({"name": "claim_figures_match_evidence", "passed": not mismatched,
+                   "detail": (_say(ctx, "Every figure in a claim is a figure it cites.",
+                                   "كل رقم في استنتاج هو رقم يستشهد به.")
+                              if not mismatched else
+                              _say(ctx, "Claims whose figures are not in their evidence: ",
+                                   "استنتاجات أرقامها ليست في أدلتها: ") + ", ".join(mismatched))})
     checks.append({"name": "every_claim_has_evidence", "passed": not unsupported,
                    "detail": (_say(ctx, "All claims trace to calculations.",
                                    "كل الاستنتاجات تعود إلى عمليات حسابية.")
@@ -3945,6 +4425,8 @@ def reporter(ctx):
                                   source, language)),
         *([ctx["prescriptive"]["exec_summary_privacy_reason"]]
           if ctx["prescriptive"].get("exec_summary_privacy_reason") else []),
+        *([ctx["prescriptive"]["exec_summary_grounding_reason"]]
+          if ctx["prescriptive"].get("exec_summary_grounding_reason") else []),
         *orchestration.report_section(ctx.get("orchestration"), language),
         "",
         text["questions"],

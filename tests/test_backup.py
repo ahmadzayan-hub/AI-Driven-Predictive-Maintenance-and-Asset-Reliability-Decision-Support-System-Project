@@ -226,6 +226,62 @@ class BackupRestoreTestCase(unittest.TestCase):
         # The refusal happened before any DELETE ran.
         self.assertEqual(store.export_all(), before)
 
+    def test_a_failure_part_way_through_a_restore_changes_nothing(self):
+        # Assessment finding B5: deletes and inserts are one transaction,
+        # so an insert that fails midway rolls the deletes back too.
+        self.seed_everything()
+        store = self.store()
+        before = {table: len(rows) for table, rows in store.export_all().items()}
+        payload = create_backup(store)
+        total = sum(before.values())
+        self.assertGreater(total, 5)
+        halfway = total // 2
+        seen = {"n": 0}
+        real_insert = store.insert
+
+        def failing_insert(table, row):
+            seen["n"] += 1
+            if seen["n"] == halfway:
+                raise RuntimeError("simulated connection loss")
+            return real_insert(table, row)
+
+        store.insert = failing_insert
+        with self.assertRaises(RuntimeError):
+            restore_backup(store, payload)
+        store.insert = real_insert
+        after = {table: len(rows) for table, rows in store.export_all().items()}
+        self.assertEqual(after, before)
+        # And the store still works after the rollback.
+        self.assertEqual(restore_backup(store, payload), total)
+
+    def test_a_row_with_an_unknown_column_is_refused_before_any_delete(self):
+        self.seed_everything()
+        store = self.store()
+        before = store.export_all()
+        payload = create_backup(store)
+        payload["tables"]["runs"][0] = dict(payload["tables"]["runs"][0],
+                                             not_a_column="x")
+        statements = []
+        real_exec = store._exec
+
+        def spying_exec(sql, params=()):
+            statements.append(sql)
+            return real_exec(sql, params)
+
+        store._exec = spying_exec
+        try:
+            with self.assertRaises(ValueError) as refused:
+                restore_backup(store, payload)
+        finally:
+            store._exec = real_exec
+        self.assertIn("not_a_column", str(refused.exception))
+        self.assertFalse([s for s in statements if s.lstrip().upper().startswith("DELETE")])
+        self.assertEqual(store.export_all(), before)
+        # A table whose rows are not rows is refused the same way.
+        with self.assertRaises(ValueError):
+            restore_backup(store, {"version": BACKUP_VERSION, "tables": {"runs": ["x"]}})
+        self.assertEqual(store.export_all(), before)
+
     def test_agent_memory_is_backed_up_wherever_that_mode_stores_it(self):
         session = self.client.post("/api/sessions").json()
         self.client.post(f"/api/sessions/{session['session_id']}/memory",

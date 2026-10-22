@@ -147,6 +147,61 @@ class RunEngineTestCase(unittest.TestCase):
         self.assertEqual(again.status_code, 409)
         self.assertEqual(len(list((self.vault / "Reports").glob("*.md"))), 1)
 
+    def test_the_decision_record_travels_with_the_run_and_the_gate_completes_it(self):
+        # Assumptions are inputs (A2); the record is persisted and completed
+        # by the approval, never by a stage (A13).
+        response = self.client.post("/api/runs", json={
+            "goal": "Analyze the sample sales dataset",
+            "assumptions": {"costs": {"North": 1000}, "uplift": {"South": 0.15}}})
+        self.assertEqual(response.status_code, 201)
+        run = self.advance_until(response.json()["id"], {"awaiting_approval"})
+        self.assertEqual(run["state"], "awaiting_approval")
+        self.assertEqual(run["assumptions"], {"costs": {"North": 1000.0},
+                                              "uplift": {"South": 0.15}})
+        record = run["decision"]
+        self.assertIsNotNone(record)
+        self.assertTrue(record["decision_id"].startswith(run["id"] + ":"))
+        self.assertIsNotNone(record["uncertainty"])
+        self.assertIsNone(record["approval"])
+        south = next(a for a in record["alternatives"] if a["target"] == "South")
+        self.assertEqual(south["uplift_source"], "stated")
+        north = next(a for a in record["alternatives"] if a["target"] == "North")
+        self.assertEqual(north["cost"], 1000.0)
+        approval_id = run["approvals"][0]["id"]
+        decided = self.client.post(f"/api/runs/{run['id']}/approvals/{approval_id}",
+                                   json={"decision": "approve"}).json()
+        self.assertEqual(decided["state"], "completed")
+        self.assertEqual(decided["decision"]["approval"]["state"], "approved_once")
+        self.assertIsNotNone(decided["decision"]["approval"]["decided_at"])
+        self.assertEqual(decided["decision"]["approval"]["decided_by"],
+                         decided["approvals"][0]["decided_by"])
+
+    def test_bad_assumptions_are_refused_before_anything_is_written(self):
+        response = self.client.post("/api/runs", json={
+            "goal": "Analyze the sample sales dataset",
+            "assumptions": {"uplift": {"North": "a lot"}}})
+        self.assertIn(response.status_code, (400, 422))
+        self.assertEqual(self.client.get("/api/runs").json()["runs"], [])
+
+    def test_publishing_is_refused_without_a_decision_record(self):
+        run = self.advance_until(self.create_run()["id"], {"awaiting_approval"})
+        engine = self.client.app.state.engine
+        # A stored run from before the record existed: strip it from both
+        # stages' results.
+        for task in engine.store.get_tasks(run["id"]):
+            if task["role"] in ("prescriptive", "sensitivity") and task["result_json"]:
+                result = json.loads(task["result_json"])
+                result["output"].pop("decision", None)
+                engine.store.update("tasks", task["id"],
+                                    {"result_json": json.dumps(result)})
+        self.assertIsNone(self.client.get(f"/api/runs/{run['id']}").json()["decision"])
+        approval_id = run["approvals"][0]["id"]
+        refused = self.client.post(f"/api/runs/{run['id']}/approvals/{approval_id}",
+                                   json={"decision": "approve"})
+        self.assertEqual(refused.status_code, 409)
+        self.assertIn("decision record", refused.json()["detail"])
+        self.assertEqual(list((self.vault / "Reports").glob("*.md")), [])
+
     def test_run_survives_restart(self):
         run = self.create_run()
         for _ in range(4):

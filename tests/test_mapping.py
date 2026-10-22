@@ -25,7 +25,7 @@ if FASTAPI_AVAILABLE:
     from server.app import create_app
 
 from tests.support import closing
-from server.auth import issue_local_test_token
+from tests.support import scoped_token as issue_local_test_token
 
 SECRET = "mapping-test-secret-not-used-anywhere-else"
 
@@ -286,6 +286,32 @@ class ValidationTests(unittest.TestCase):
         error = self.problems(dict(SHOP_MAPPING, date_order="sideways", grain="fortnight"))
         self.assertEqual({p.field for p in error.problems}, {"date_order", "grain"})
 
+    def test_a_currency_is_optional_and_saved_as_an_upper_case_code(self):
+        # Absent, or stated as nothing, means "not stated": never a guess.
+        self.assertIsNone(m.validate(SHOP_MAPPING, self.columns, self.rows)["currency"])
+        self.assertIsNone(m.validate(dict(SHOP_MAPPING, currency=""), self.columns, self.rows)["currency"])
+        self.assertIsNone(m.validate(dict(SHOP_MAPPING, currency="  "), self.columns, self.rows)["currency"])
+        self.assertEqual(m.validate(dict(SHOP_MAPPING, currency="AED"), self.columns, self.rows)["currency"], "AED")
+        self.assertEqual(m.validate(dict(SHOP_MAPPING, currency=" usd "), self.columns, self.rows)["currency"], "USD")
+        self.assertEqual(m.currency_of({"currency": "AED"}), "AED")
+        self.assertIsNone(m.currency_of({"roles": {}}))  # saved before the field existed
+        self.assertIsNone(m.currency_of(None))
+
+    def test_a_currency_that_is_not_a_code_is_refused_in_both_languages(self):
+        for bad in ("dirhams", "AE", "A1D", "$", 7):
+            error = self.problems(dict(SHOP_MAPPING, currency=bad))
+            self.assertEqual([p.field for p in error.problems], ["currency"], bad)
+            self.assertIn("is not a currency code", error.problems[0].en)
+            self.assertIn("ليس رمز عملة", error.problems[0].ar)
+            self.assertEqual(error.detail("ar")["errors"][0]["field"], "currency")
+
+    def test_the_description_names_the_currency_only_when_it_is_stated(self):
+        clean = m.validate(dict(SHOP_MAPPING, currency="AED"), self.columns, self.rows)
+        self.assertIn("currency AED", m.describe(clean, self.columns))
+        self.assertIn("العملة AED", m.describe(clean, self.columns, "ar"))
+        plain = m.validate(SHOP_MAPPING, self.columns, self.rows)
+        self.assertNotIn("currency", m.describe(plain, self.columns))
+
     def test_the_refusal_reads_in_the_readers_language(self):
         error = self.problems(dict(SHOP_MAPPING, measure=None))
         self.assertEqual(error.detail()["message"], "The mapping was not saved: 1 problem to fix.")
@@ -514,7 +540,7 @@ class MappingTenancyTests(unittest.TestCase):
                                     "memory_file": str(root / "m.json"),
                                     "vault_dir": str(root / "v")}), encoding="utf-8")
         self.client = TestClient(closing(self, create_app(path, env={
-            "AGENTIC_OS_JWT_SECRET": SECRET, "AGENTIC_OS_ENV": "production"})),
+            "AGENTIC_OS_JWT_SECRET": SECRET, "SUPABASE_URL": "https://test.supabase.invalid", "AGENTIC_OS_ENV": "production"})),
             raise_server_exceptions=False)
 
     def auth(self, subject, role="owner"):

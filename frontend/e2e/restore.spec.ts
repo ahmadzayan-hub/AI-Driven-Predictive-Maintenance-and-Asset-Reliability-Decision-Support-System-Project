@@ -6,7 +6,7 @@ test.use({ serviceWorkers: 'block' })
 
 test('session survives a page refresh', async ({ page }) => {
   await skipOnboarding(page)
-  await page.goto('/')
+  await page.goto('/#/assistant')
   await expect(composerInput(page)).toBeVisible()
 
   await sendMessage(page, 'Keep this conversation across refreshes')
@@ -26,7 +26,7 @@ test('session survives a page refresh', async ({ page }) => {
 
 test('offline mode clears after a confirmed successful request', async ({ page }) => {
   await skipOnboarding(page)
-  await page.goto('/')
+  await page.goto('/#/assistant')
   await expect(composerInput(page)).toBeVisible()
 
   // Simulate a dead backend: the send fails and the app reports offline.

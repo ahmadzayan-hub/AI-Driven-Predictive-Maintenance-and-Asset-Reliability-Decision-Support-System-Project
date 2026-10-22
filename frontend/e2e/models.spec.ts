@@ -32,7 +32,7 @@ async function expectNoViolations(page: Page, context: string) {
 
 async function openRun(page: Page, runId: string) {
   await page.goto(`/#/runs/${runId}`)
-  await page.locator('.viewload').waitFor({ state: 'detached' })
+  await expect(page.locator('.viewload')).toHaveCount(0)
 }
 
 test('each model card says whether the model beats its baseline', async ({ page }) => {

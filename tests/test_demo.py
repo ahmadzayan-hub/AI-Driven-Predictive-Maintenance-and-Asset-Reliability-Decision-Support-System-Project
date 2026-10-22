@@ -50,9 +50,17 @@ class DemoIdentityTests(unittest.TestCase):
     def test_vercel_without_a_database_or_sign_in_serves_the_demo(self):
         self.assertEqual(build_identity({"VERCEL": "1"}).mode, "demo")
 
+    def test_vercel_with_a_shared_database_needs_sign_in_or_an_explicit_demo(self):
+        # A shared database on a public host with no sign-in would make
+        # every visitor the owner of every tenant's data: refused.
+        from server.auth import AuthNotConfigured
+        with self.assertRaises(AuthNotConfigured):
+            build_identity({"VERCEL": "1", "DATABASE_URL": "postgresql://x"})
+        self.assertEqual(build_identity({"VERCEL": "1", "DATABASE_URL": "postgresql://x",
+                                         "AGENTIC_OS_DEMO": "1"}).mode, "demo")
+
     def test_vercel_keeps_its_configured_mode(self):
-        self.assertEqual(build_identity({"VERCEL": "1", "DATABASE_URL": "postgresql://x"}).mode, "local")
-        self.assertEqual(build_identity({"VERCEL": "1", "SUPABASE_JWT_SECRET": "x"}).mode, "jwt")
+        self.assertEqual(build_identity({"VERCEL": "1", "SUPABASE_JWT_SECRET": "x", "SUPABASE_URL": "https://test.supabase.invalid"}).mode, "jwt")
         self.assertEqual(build_identity({"VERCEL": "1", "AGENTIC_OS_DEMO": "0"}).mode, "local")
         self.assertEqual(build_identity({}).mode, "local")
 

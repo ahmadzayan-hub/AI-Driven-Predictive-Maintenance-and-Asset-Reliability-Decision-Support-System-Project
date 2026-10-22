@@ -434,6 +434,10 @@ class MaintenanceRisk:
                             round(improvement, 4),
                             "(model - baseline) / baseline on the same held-out "
                             "records"),
+            modelling._calc(prefix, f"c_{key}_held_out", f"{key}_held_out_records",
+                            len(test_cohort),
+                            "held-out records with a formed label, scored by "
+                            "the model and the baseline alike"),
         ]
         if verdict == "useful":
             claim = modelling._claim(
@@ -445,7 +449,8 @@ class MaintenanceRisk:
                 f"{target.question_ar} دقة متوازنة {model_score:.0%} مقابل "
                 f"{baseline_score:.0%} لخط الأساس، بتحسن {improvement:.0%} على "
                 f"{len(test_cohort)} سجلات محجوزة. {target.decision_ar}",
-                [f"c_{key}_model", f"c_{key}_baseline", f"c_{key}_improvement"])
+                [f"c_{key}_model", f"c_{key}_baseline", f"c_{key}_improvement",
+                 f"c_{key}_held_out"])
         else:
             claim = modelling._claim(
                 ctx, prefix, f"cl_{key}", "limitation",
@@ -467,7 +472,8 @@ class MaintenanceRisk:
                    f" كما يقع ضمن {CHANCE_MARGIN:.0%} من التخمين العشوائي بالقيمة "
                    f"المطلقة، ويسجل خط أساس الفئة الأكثر شيوعاً {CHANCE:.0%} "
                    f"بحكم تعريف هذا المقياس."),
-                [f"c_{key}_model", f"c_{key}_baseline", f"c_{key}_improvement"])
+                [f"c_{key}_model", f"c_{key}_baseline", f"c_{key}_improvement",
+                 f"c_{key}_held_out"])
         claims = [claim]
         if defining:
             claims.append(modelling._claim(

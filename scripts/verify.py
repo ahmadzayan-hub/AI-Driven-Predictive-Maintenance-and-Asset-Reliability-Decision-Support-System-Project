@@ -38,9 +38,13 @@ DIST = FRONTEND / "dist"
 # CSS is counted the way scripts are (ADR 0028): the stylesheet the first
 # load fetches, and every stylesheet, since a view's styles ship with its
 # chunk (ADR 0032).
-# The report rendering allocation is recorded in
-# docs/adr/2026-10-22-arabic-rendered-analysis-reports.md; initial-load limits stay fixed.
-BUDGET_KB = {"js": 100, "js_total": 212, "js_chunk": 30, "css": 10.5, "css_total": 30.5,
+# The connected workspace/asset inspector allocation is recorded in
+# docs/adr/2026-10-21-connected-agent-workspace.md, the Command Centre
+# allocation in docs/adr/2026-10-22-executive-command-centre.md and the
+# report rendering allocation in
+# docs/adr/2026-10-22-arabic-rendered-analysis-reports.md; initial-load
+# limits stay fixed.
+BUDGET_KB = {"js": 100, "js_total": 216, "js_chunk": 30, "css": 10.5, "css_total": 30.5,
              "fonts": 120}
 LABELS = {"js": "js first load", "js_total": "js total", "js_chunk": "largest js chunk",
           "css": "css first load", "css_total": "css total", "fonts": "fonts"}

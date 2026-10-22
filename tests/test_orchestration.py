@@ -279,5 +279,50 @@ class LocalHermesAndAgentsTestCase(unittest.TestCase):
         self.assertIn("Hermes (orchestrator, ollama:hermes3)", report)
 
 
+class PrivacyBoundaryForRolesTestCase(unittest.TestCase):
+    """A run that carries personal data sends no sentence to a model role:
+    the built-in writer takes every role, as the narrator already does."""
+
+    def test_personal_data_keeps_every_role_built_in(self):
+        import json
+        root = Path(tempfile.mkdtemp())
+        store = open_store(None, root / "runs.db")
+        self.addCleanup(store.close)
+        gateway = FakeGateway()
+        engine = RunEngine(store, root / "vault", ModelGateway(env={}),
+                           roles=ModelRoles(gateway, ROLES))
+        csv = "month,team,email,cost\n" + "\n".join(
+            f"2025-{m:02d},T{m % 2},person{m}@example.invalid,{100 + m}" for m in range(1, 9))
+        run = engine.create_run("Review cost", dataset_text=csv, dataset_name="people.csv")
+        for _ in range(100):
+            if run["state"] not in ("queued", "running"):
+                break
+            run = engine.advance(run["id"])
+        self.assertEqual(run["state"], "awaiting_approval")
+        # Hermes' plan is written before the privacy scan and carries only
+        # the goal and the stage titles; every outgoing text is scanned.
+        self.assertFalse(any("example.invalid" in str(call) for call in gateway.calls))
+        tasks = {t["role"]: json.loads(t["result_json"] or "{}")
+                 for t in store.get_tasks(run["id"])}
+        self.assertTrue(tasks["privacy"]["output"]["personal_data"])
+        after_scan = [role for role, result in tasks.items()
+                      if result.get("agent_note") and role in ("descriptive", "diagnostic",
+                                                                "predictive", "prescriptive")]
+        self.assertTrue(after_scan)
+        self.assertTrue(all(tasks[r]["agent_note"]["provider"] == "built-in" for r in after_scan))
+        orchestration = tasks["reporter"]["orchestration"]
+        self.assertEqual({n["provider"] for n in orchestration["consultants"]}, {"built-in"})
+        self.assertEqual(orchestration["hermes"]["provider"], "built-in")
+        self.assertFalse(any(call[1] in ("anthropic", "openai") and "cost" in str(call).lower()
+                             and "T0" in str(call) for call in gateway.calls))
+
+    def test_restricted_roles_follow_the_switch(self):
+        roles = ModelRoles(FakeGateway(), ROLES).restricted()
+        self.assertEqual((roles.hermes, roles.agents, roles.consultants),
+                         ("built-in", "built-in", ["built-in"]))
+        off = ModelRoles(FakeGateway(), {**ROLES, **NO_BUILT_IN}).restricted()
+        self.assertFalse(off.active)
+
+
 if __name__ == "__main__":
     unittest.main()

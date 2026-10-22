@@ -29,6 +29,27 @@ class RailAssetDecisionsTest(unittest.TestCase):
         row.update(Criticality="Low", Condition_Score=80, Failure_Count=0)
         self.assertEqual(assess_observation(row)["screening"], "routine_review")
 
+    def test_a_failure_on_a_signalling_asset_escalates_whatever_its_criticality(self):
+        # A failure on a safety function is never routine (assessment A8).
+        row = sample()
+        row.update(Criticality="Low", Condition_Score=95, Failure_Count=1)
+        result = assess_observation(row)
+        self.assertEqual(result["screening"], "engineering_review")
+        self.assertEqual(result["screening_reason"], "failure_on_safety_function")
+        self.assertTrue(result["safety_function"])
+        # The same failure on a non-safety class of low criticality stays routine.
+        row.update(Asset_Class="Escalator")
+        result = assess_observation(row)
+        self.assertEqual(result["screening"], "routine_review")
+        self.assertFalse(result["safety_function"])
+
+    def test_the_condition_threshold_is_stated_with_every_screening(self):
+        row = sample()
+        row.update(Criticality="High", Condition_Score=59, Failure_Count=0)
+        result = assess_observation(row)
+        self.assertEqual(result["screening_reason"], "condition_below_threshold")
+        self.assertEqual(result["condition_review_threshold"], 60.0)
+
     def test_missing_or_invalid_data_is_rejected(self):
         for field, value in (("Condition_Score", 101),
                              ("Failure_Count", -1),

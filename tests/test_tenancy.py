@@ -24,7 +24,7 @@ if FASTAPI_AVAILABLE:
     from server.app import create_app
 
 from tests.support import closing, closing_store
-from server.auth import issue_local_test_token
+from tests.support import scoped_token as issue_local_test_token
 from server.storage import RESTORE_ORDER, open_store
 
 SECRET = "tenancy-test-secret-not-used-anywhere-else"
@@ -149,6 +149,7 @@ class HostedPostgresTenancyTestCase(TenantIsolationMixin, unittest.TestCase):
         }), encoding="utf-8")
         return TestClient(
             closing(self, create_app(config, env={"AGENTIC_OS_JWT_SECRET": SECRET,
+                                    "SUPABASE_URL": "https://test.supabase.invalid",
                                     "AGENTIC_OS_ENV": "production"})),
             raise_server_exceptions=False)
 
@@ -166,7 +167,7 @@ class HostedSqliteTenancyTestCase(TenantIsolationMixin, unittest.TestCase):
             "vault_dir": str(root / "vault"),
         }), encoding="utf-8")
         return TestClient(
-            closing(self, create_app(config, env={"AGENTIC_OS_JWT_SECRET": SECRET,
+            closing(self, create_app(config, env={"AGENTIC_OS_JWT_SECRET": SECRET, "SUPABASE_URL": "https://test.supabase.invalid",
                                     "AGENTIC_OS_ENV": "production"})),
             raise_server_exceptions=False)
 
@@ -270,3 +271,52 @@ class LocalModeTestCase(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SessionRetentionPerOwnerTestCase(unittest.TestCase):
+    """Trimming keeps each owner's newest sessions; one tenant's activity
+    never deletes another tenant's conversations (audit, 22 October)."""
+
+    def test_trim_is_scoped_to_the_owner(self):
+        root = Path(tempfile.mkdtemp())
+        store = open_store(None, root / "runs.db")
+        self.addCleanup(store.close)
+
+        def session(owner, n):
+            return {"id": f"{owner}-{n}", "created_at": f"2026-10-22T00:00:{n:02d}",
+                    "updated_at": f"2026-10-22T00:00:{n:02d}", "ended": 0,
+                    "preferences_json": "{}", "history_json": "[]",
+                    "transcript_json": "[]", "next_entry_id": 1, "owner": owner}
+
+        store.upsert_session(session("tenant-b", 0))
+        for n in range(40):
+            store.upsert_session(session("tenant-a", n))
+            store.trim_sessions(32, "tenant-a")
+        self.assertIsNotNone(store.get_session("tenant-b-0"))
+        kept = store._exec("SELECT id FROM sessions WHERE owner = ?", ("tenant-a",))
+        self.assertEqual(len(kept), 32)
+        self.assertIsNone(store.get_session("tenant-a-0"))
+        # Without an owner, every owner is trimmed to the same count.
+        store.trim_sessions(1)
+        self.assertEqual(len(store._exec("SELECT id FROM sessions")), 2)
+
+
+class ApprovalQueueNotCappedTestCase(unittest.TestCase):
+    """Listing runs by state returns every run in that state, past the
+    page size the plain listing uses (assessment finding U1)."""
+
+    def test_every_queued_run_is_listed_by_state(self):
+        from server.runs import RunEngine
+        from server.model_gateway import ModelGateway
+        root = Path(tempfile.mkdtemp())
+        store = open_store(None, root / "runs.db")
+        self.addCleanup(store.close)
+        engine = RunEngine(store, root / "vault", ModelGateway(env={}))
+        for n in range(3):
+            engine.create_run(f"Goal {n}", owner="tenant-a")
+        engine.create_run("Other", owner="tenant-b")
+        self.assertEqual(len(store.list_runs(owner="tenant-a", limit=1)), 1)
+        queued = store.list_runs(owner="tenant-a", limit=1, state="queued")
+        self.assertEqual(len(queued), 3)
+        self.assertEqual(store.list_runs(owner="tenant-a", state="completed"), [])
+        self.assertEqual(len(store.list_runs(state="queued")), 4)

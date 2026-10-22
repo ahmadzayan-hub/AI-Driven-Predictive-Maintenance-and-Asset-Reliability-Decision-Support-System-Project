@@ -7,7 +7,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 from server.app import create_app
-from server.auth import issue_local_test_token
+from tests.support import scoped_token as issue_local_test_token
 from tests.support import closing
 from tests.test_runs import PG_TEST_URL, _postgres_available
 
@@ -30,6 +30,7 @@ class PublishedNoteAccessTests(unittest.TestCase):
         }), encoding="utf-8")
         self.app = closing(self, create_app(config, env={
             "AGENTIC_OS_JWT_SECRET": SECRET,
+            "SUPABASE_URL": "https://test.supabase.invalid",
             "AGENTIC_OS_ROLE_ASSIGNMENTS": "operator:admin",
         }))
         self.client = TestClient(self.app)

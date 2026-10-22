@@ -22,10 +22,11 @@ bounded, figures stay calculated, raw rows stay out of model requests and human
 approval remains required. Existing reports are not rewritten.
 
 Apply the shared personal-data boundary to role requests as well as narration:
-scan outgoing goal/facts and suppress role handoffs when persisted or current
-privacy/merge evidence flags personal data. Authorized human reports retain
-their evidence. This is necessary before enabling the previously disconnected
-worker roles; no raw rows are added to model prompts.
+scan outgoing goal/facts and suppress model handoffs when persisted or current
+privacy/merge evidence flags personal data. Preserve main's concurrent restricted
+role writer: those notes are explicitly built-in (or absent when disabled).
+Authorized human reports retain their evidence. This is necessary before enabling
+the previously disconnected worker roles; no raw rows are added to model prompts.
 
 The live run also exposed severe memory pressure with both local weights retained.
 Hermes did not complete full planning requests within the deadline even after
@@ -38,6 +39,9 @@ For explicit non-reasoning Ollama roles, bound plans, consultant questions and
 closing briefs to a concise response with a 240-token ceiling and a 45-word
 instruction. The earlier reasoning-sized budget could exhaust the deadline for
 a short briefing. Chat and narrative budgets and hosted defaults are unchanged.
+Use an unnumbered paragraph: a live consultant response introduced numbered
+list labels absent from its evidence and was correctly rejected by grounding.
+Change the requested format, not the numeric validator.
 
 This does not assert that a configured
 provider answered, install a model, enable cloud credentials or bypass the

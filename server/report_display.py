@@ -53,13 +53,20 @@ LABELS = {
     "c_slope": ("per_period_change", "التغير لكل فترة"),
     "c_explained": ("movement_explained_by_trend", "الحركة التي يفسرها الاتجاه"),
     "c_backtest": ("backtest_error", "خطأ الاختبار على بيانات سابقة"),
+    "c_naive": ("naive_baseline_error", "خطأ خط الأساس الساذج (تكرار الفترة الأخيرة)"),
+    "c_band_low": ("band_low", "الحد الأدنى لنطاق التوقع"),
+    "c_band_high": ("band_high", "الحد الأعلى لنطاق التوقع"),
+    "c_rate": ("measure_is_rate", "المقياس معدل أو نسبة"),
+    "c_records": ("records_with_a_value", "السجلات التي تتضمن قيمة"),
+    "c_margin": ("margin_over_next_option", "الفارق عن الخيار التالي"),
+    "c_sens_uniform": ("winner_unchanged_uniform_uplift", "ثبات الخيار الأول عند تحسن موحد"),
     "c_periods": ("periods_available", "الفترات المتاحة"),
     "c_anom_periods": ("periods_available", "الفترات المتاحة"),
     "c_anom_spread": ("typical_gap_from_trend", "الفجوة المعتادة عن الاتجاه"),
     "c_direction": ("measure_direction_declared", "تحديد اتجاه تحسن المقياس"),
     "c_nooptions": ("options_available", "الخيارات المتاحة"),
     "c_sens_none": ("options_tested", "الخيارات المختبرة"),
-    "c_sens_stable": ("winner_unchanged_across_scenarios", "ثبات الخيار الأول عبر السيناريوهات"),
+    "c_sens_stable": ("winner_unchanged_within_ranges", "ثبات الخيار الأول ضمن نطاقات التحسن"),
     "c_sens_breakeven": ("break_even_ratio", "نسبة التعادل"),
     "c_lin_calcs": ("calculations_produced", "العمليات الحسابية المنتجة"),
     "c_lin_claims": ("claims_made", "الاستنتاجات المسجلة"),
@@ -69,6 +76,12 @@ LABELS = {
 LABEL_RULES = [
     (r"c_total", r"total_(.+)", "إجمالي {0}"),
     (r"c_contrib_\d+", r"change_from_(.+)", "التغير من {0}"),
+    (r"c_share_\d+", r"share_of_change_(.+)", "حصة {0} من التغير"),
+    (r"c_flip_.+", r"flip_uplift_(.+)", "نسبة التحسن التي يتغير عندها الترتيب لصالح خيار {0}"),
+    (r"c_cost_.+", r"cost_(.+)", "تكلفة خيار {0}"),
+    (r"c_pii_rows_\d+_\d+", r"(.+)_rows", "صفوف {0}"),
+    (r".*c_.+_held_out", r"(.+)_held_out_records", "السجلات المحجوزة لهدف {0}"),
+    (r".*\.c_f\d+_.+", r"(.+):(.+)", "{1} من كاشف {0}"),
     (r"c_assoc_\d+", r"association_(.+)", "الارتباط مع {0}"),
     (r"c_exp_spread", r"typical_spread_of_(.+)", "التشتت المعتاد في {0}"),
     (r"c_exp_n_\d+", r"rows_per_group_for_(\d+)pct", "الصفوف لكل مجموعة لرصد تغير {0} بالمئة"),
@@ -129,6 +142,13 @@ METHODS = {
     "distinct periods": "عدد الفترات المختلفة",
     "standard deviation of the gaps between actual and trend": "الجذر التربيعي لتباين الفجوات بين القيم الفعلية وخط الاتجاه",
     "baseline: no change means no gain beyond the forecast": "خط الأساس: لا تغيير يعني لا مكسب إضافي فوق التوقع",
+    "the same backtest for repeating the previous period's value": "الاختبار نفسه على بيانات سابقة لتكرار قيمة الفترة السابقة",
+    "first forecast × (1 − backtest error)": "التوقع الأول × (1 − خطأ الاختبار على بيانات سابقة)",
+    "first forecast × (1 + backtest error)": "التوقع الأول × (1 + خطأ الاختبار على بيانات سابقة)",
+    "best option's expected gain minus the next option's": "المكسب المتوقع لأفضل خيار ناقص مكسب الخيار التالي",
+    "change from the group / total change; may exceed 1 when other groups moved the other way": "التغير من الفئة / التغير الإجمالي؛ وقد يتجاوز 1 عندما تتحرك فئات أخرى في الاتجاه المعاكس",
+    "rate, fraction or percentage by contract, glossary unit or name": "معدل أو كسر أو نسبة مئوية بحسب عقد البيانات أو وحدة القاموس أو الاسم",
+    "held-out records with a formed label, scored by the model and the baseline alike": "السجلات المحجوزة ذات التصنيف المكتمل، المقيّمة بالنموذج وخط الأساس معاً",
     "no group column and no forecast": "لا يوجد عمود للتجميع ولا توقع",
     "options from the prescriptive stage": "الخيارات الناتجة عن التحليل التوجيهي",
     "recommended option compared at 5%, 10% and 20% uplift": "مقارنة الخيار الموصى به عند تحسن بنسبة 5% و10% و20%",
@@ -160,6 +180,17 @@ METHOD_RULES = [
     (r"least-squares slope of (.+) against period order", "ميل {0} بطريقة المربعات الصغرى مقابل ترتيب الفترات"),
     (r"trend line extended to period (\d+)", "مدّ خط الاتجاه إلى الفترة {0}"),
     (r"average absolute percentage error over the last (\d+) period\(s\), predicted from earlier ones only", "متوسط الخطأ النسبي المطلق خلال آخر {0} فترة، بتوقعات مبنية على الفترات السابقة فقط"),
+    (r"average absolute percentage error over the last (\d+) period\(s\), each predicted from earlier ones only", "متوسط الخطأ النسبي المطلق خلال آخر {0} فترة، كل منها متوقعة من الفترات السابقة لها فقط"),
+    (r"winner at the low end of the uplift range \((.+)\) against every other option at the high end \((.+)\), costs as stated", "الخيار الأول عند الحد الأدنى لنطاق التحسن ({0}) مقابل كل خيار آخر عند الحد الأعلى ({1})، مع التكاليف كما ذُكرت"),
+    (r"recommended option compared at (.+), (.+) and (.+) uplift applied to every option alike", "مقارنة الخيار الموصى به عند تحسن بنسبة {0} و{1} و{2} مطبقاً على كل خيار بالتساوي"),
+    (r"\(winner's gain at the low end of its range \+ cost of “(.+)”\) ÷ current value of “(.+)”", "(مكسب الخيار الأول عند الحد الأدنى لنطاقه + تكلفة «{0}») ÷ القيمة الحالية لـ «{1}»"),
+    (r"rows of (.+) whose value looks like a (.+)", "صفوف {0} التي تبدو قيمتها مثل {1}"),
+    (r"count of rows with a value in (.+)", "عدد الصفوف التي تتضمن قيمة في {0}"),
+    (r"cost of (.+) as stated in the run's assumptions", "تكلفة {0} كما ذُكرت في افتراضات التحليل"),
+    (r"(.+) values that do not read as dates or month names; periods kept in the order recorded", "قيم {0} التي لا تُقرأ كتواريخ أو أسماء أشهر؛ وأُبقيت الفترات بالترتيب المسجل"),
+    (r"(.+%) \((stated|assumed)\) of (.+)'s current (.+) \((.+)\) minus its stated cost (.+)", "{0} ({1}) من القيمة الحالية لـ {3} في {2} ({4}) ناقص تكلفته المذكورة {5}"),
+    (r"(.+%) \((stated|assumed)\) of (.+)'s current (.+) \((.+)\)", "{0} ({1}) من القيمة الحالية لـ {3} في {2} ({4})"),
+    (r"(.+) from (.+) over (.+)", "{0} من كاشف {1} عبر {2}"),
     (r"(.+) actual minus its trend value", "القيمة الفعلية في {0} ناقص قيمة اتجاهها"),
     (r"glossary entry for (.+) declares better: higher or lower", "تعريف {0} في القاموس يحدد اتجاه التحسن: الأعلى أو الأقل"),
     (r"(.+%) of (.+)'s current (.+) \((.+)\)", "{0} من القيمة الحالية لـ {2} في {1} ({3})"),
@@ -169,6 +200,8 @@ METHOD_RULES = [
     (r"rows where (.+) equals (.+) within 0\.5%, over (\d+) checked rows", "الصفوف التي تساوي فيها قيمة {0} الصيغة {1} ضمن 0.5%، عبر {2} صفاً مفحوصاً"),
 ]
 
+PII_KINDS = {"email address": "عنوان بريد إلكتروني", "phone number": "رقم هاتف",
+             "long identifier": "معرّف طويل"}
 GRAINS = {"day": "يوم", "month": "شهر", "quarter": "ربع سنة", "year": "سنة"}
 DATE_ORDERS = {"auto": "تلقائي", "dmy": "يوم/شهر/سنة", "mdy": "شهر/يوم/سنة", "ymd": "سنة/شهر/يوم"}
 
@@ -197,7 +230,15 @@ def calculation(calc, language="en", *, builtin=True):
         key = calc["id"].removeprefix("c_option_")
         if key in OPTION_LABELS and name == f"expected_gain_{key}":
             label = f"المكسب المتوقع لخيار {OPTION_LABELS[key]}"
+    if label and re.fullmatch(r"c_pii_rows_\d+_\d+", calc["id"]):
+        for kind, kind_ar in PII_KINDS.items():
+            label = label.replace(kind, kind_ar)
     translated_method = (METHODS.get(method) or _match(METHOD_RULES, method)) if label else None
+    if translated_method:
+        for word, word_ar in (("(stated)", "(مُعلن)"), ("(assumed)", "(مفترض)")):
+            translated_method = translated_method.replace(word, word_ar)
+        for kind, kind_ar in PII_KINDS.items():
+            translated_method = translated_method.replace(kind, kind_ar)
     if label and calc["id"] == "c_dates_unread":
         match = re.fullmatch(r"filled (.+) cells that do not read as a date at (.+) grain \((.+)\)", method)
         if match:
@@ -236,6 +277,7 @@ CHECK_NAMES = {
     "provenance_chain_is_complete": "اكتمال سلسلة إثبات المصادر",
     "claims_avoid_statistical_jargon": "وضوح لغة الاستنتاجات",
     "both_languages_cite_the_same_figures": "تطابق الأرقام بين اللغتين",
+    "claim_figures_match_evidence": "تطابق أرقام الاستنتاجات مع أدلتها",
     "every_builtin_claim_is_in_the_report_language": "عرض جميع الاستنتاجات المدمجة بلغة التقرير",
 }
 

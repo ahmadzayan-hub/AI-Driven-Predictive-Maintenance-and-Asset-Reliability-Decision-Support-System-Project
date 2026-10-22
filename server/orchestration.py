@@ -282,6 +282,17 @@ class ModelRoles:
         return {"hermes": self.hermes or "rules", "agents": self.agents,
                 "consultants": list(self.consultants), "problems": list(self.problems)}
 
+    def restricted(self):
+        """These roles with every model replaced by the built-in writer:
+        what a run that carries personal data gets, so that no verified
+        sentence with a person in it reaches a provider."""
+        import copy
+        clone = copy.copy(self)
+        clone.hermes = BUILT_IN if self.hermes and self.built_in else None
+        clone.agents = BUILT_IN if self.agents and self.built_in else None
+        clone.consultants = [BUILT_IN] if self.consultants and self.built_in else []
+        return clone
+
     @property
     def all_built_in(self):
         return (self.hermes in (None, BUILT_IN) and self.agents in (None, BUILT_IN)
@@ -317,7 +328,10 @@ class ModelRoles:
             # A short CPU briefing should not spend the reasoning budget
             # reserved for models that think before writing their answer.
             options["max_tokens"] = 240
-            system += " Use at most 45 words; prioritize the essential checks without an introduction."
+            system += (
+                " Use at most 45 words in one plain paragraph, without numbered lists"
+                " or item labels. Prioritize the essential checks without an introduction."
+            )
         if language == "ar":
             system += ARABIC
         return grounded(self.gateway.ask(system, user, provider=provider, **options), facts)

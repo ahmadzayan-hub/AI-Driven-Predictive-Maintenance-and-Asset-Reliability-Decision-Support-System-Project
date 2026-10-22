@@ -9,7 +9,7 @@ test('a sentence the rules cannot place goes to the agent runtime, and its calls
   page,
 }) => {
   await skipOnboarding(page)
-  await page.goto('/')
+  await page.goto('/#/assistant')
 
   await sendMessage(page, 'Please sort out the three things we discussed')
   await expect(lastAgentBubble(page)).toContainText('Here is what I can do')

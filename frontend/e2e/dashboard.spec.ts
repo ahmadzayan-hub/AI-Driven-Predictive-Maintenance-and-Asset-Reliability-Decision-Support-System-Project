@@ -36,7 +36,7 @@ async function horizontalOverflow(page: Page) {
 
 async function openDashboard(page: Page, runId: string, rest = '') {
   await page.goto(`/#/dashboard/${runId}${rest}`)
-  await page.locator('.viewload').waitFor({ state: 'detached' })
+  await expect(page.locator('.viewload')).toHaveCount(0)
   await expect(page.locator('.dash-coverage')).toContainText('records')
 }
 
@@ -49,8 +49,8 @@ test('every page of the dashboard, accessible and without sideways scrolling', a
   await openDashboard(page, runId)
   await expect(page.getByRole('heading', { name: 'Dashboard pages' })).toBeVisible()
   await expect(page.locator('.dash-coverage')).toHaveText('Showing 72 of 72 records.')
-  await expect(page.locator('.kpi').first()).toContainText('72')
-  await expect(page.locator('.kpi').nth(3)).toContainText('North')
+  await expect(page.locator('.dash-kpis .kpi').first()).toContainText('72')
+  await expect(page.locator('.dash-kpis .kpi').nth(3)).toContainText('North')
 
   const pages = page.getByRole('navigation', { name: 'Dashboard pages' })
   for (const name of ['Overview', 'Breakdown', 'Trend', 'Distribution', 'Relationship', 'Records']) {
@@ -81,13 +81,13 @@ test('a filter survives a reload and a group drills down to its records', async 
   expect(page.url()).toContain('f.category=Software')
 
   await page.reload()
-  await page.locator('.viewload').waitFor({ state: 'detached' })
+  await expect(page.locator('.viewload')).toHaveCount(0)
   await expect(page.locator('.dash-coverage')).toHaveText('Showing 24 of 72 records.')
   await expect(page.getByRole('link', { name: 'Records' })).toHaveAttribute('aria-current', 'page')
 
   // The filter holds on every page, then clears in one step.
   await page.getByRole('link', { name: 'Overview' }).click()
-  await expect(page.locator('.kpi').first()).toContainText('24')
+  await expect(page.locator('.dash-kpis .kpi').first()).toContainText('24')
   await page.getByRole('button', { name: 'Clear filters (1)' }).click()
   await expect(page.locator('.dash-coverage')).toHaveText('Showing 72 of 72 records.')
 
@@ -102,7 +102,7 @@ test('the dashboard in Arabic', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('aos-locale', 'ar'))
   const runId = await finishedRun(page.request, 'لوحة بالعربية')
   await page.goto(`/#/dashboard/${runId}/breakdown`)
-  await page.locator('.viewload').waitFor({ state: 'detached' })
+  await expect(page.locator('.viewload')).toHaveCount(0)
   await expect(page.locator('.dash-coverage')).toHaveText('يُعرض 72 من أصل 72 سجلاً.')
   await expect(page.getByRole('navigation', { name: 'صفحات لوحة المعلومات' })).toBeVisible()
   await expect(page.getByLabel('التقسيم حسب')).toBeVisible()
@@ -114,7 +114,7 @@ test('a finished analysis opens its dashboard, and the picker lists it', async (
   await skipOnboarding(page)
   const runId = await finishedRun(page.request, 'Dashboard entry points')
   await page.goto(`/#/runs/${runId}`)
-  await page.locator('.viewload').waitFor({ state: 'detached' })
+  await expect(page.locator('.viewload')).toHaveCount(0)
   await page.getByRole('button', { name: 'Open dashboard' }).click()
   await expect(page).toHaveURL(new RegExp(`#/dashboard/${runId}`))
   await expect(page.locator('.dash-coverage')).toHaveText('Showing 72 of 72 records.')

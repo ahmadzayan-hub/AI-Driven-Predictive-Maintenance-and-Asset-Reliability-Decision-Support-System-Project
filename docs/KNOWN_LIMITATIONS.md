@@ -59,11 +59,18 @@ source trees; historical copies still require remediation before public release.
      regression, a classifier and a clustering are available as optional
      stages on the `models` profile (ADR 0033; see item 28). Fewer than 4 periods produces no
      forecast; fewer than 6 produces a forecast explicitly marked as
-     having unmeasured accuracy.
+     having unmeasured accuracy. With 6 or more, the trend is also
+     backtested against repeating the last period, and a trend that does
+     not beat that by 5% is reported as no better than it. A measure that
+     is a rate (by contract, glossary unit or name) gets no forecast at
+     all, because its period sums are not rates.
    - **Prescriptive** ranks options the dataset itself supplies, scoring
-     each with the same 10% improvement assumption. That ranks where the
-     leverage is; it is not an optimizer and knows nothing about cost,
-     capacity, or feasibility. It also does not know which way is good
+     each with an assumed 10% improvement unless the run states an uplift
+     or a cost per target (API `assumptions`; the interface does not
+     collect them yet). It is not an optimizer and knows nothing about
+     capacity or feasibility; it writes a decision record per
+     recommendation and the sensitivity stage says whether the ranking
+     survives independent uplift ranges. It also does not know which way is good
      news unless the glossary says so: a metric entry may declare
      `better` as `higher` or `lower`, and only then does the stage speak
      of protecting and growing, or of reducing and curbing. With no
@@ -270,9 +277,13 @@ required local files. Both behaviors are covered by tests
     database and must be backed up separately.
 16. Usage is bounded per owner (runs/day, dataset count, dataset bytes)
     but **no cost in currency is tracked**: there is no billing
-    relationship, model tokens are not counted, and serverless execution
-    time is not measured. `/api/usage` names those gaps rather than
-    hiding them. The daily window is calendar-based (midnight UTC), so a
+    relationship, model tokens are counted per process rather than per
+    tenant, and serverless execution time is not measured. `/api/usage`
+    names those gaps rather than hiding them. The gateway's in-process
+    ledger (`GET /api/health`, `model_calls`) records every provider
+    attempt with its latency and the token counts the provider reported,
+    never an estimate; it is lost on restart and summed across tenants,
+    so a per-tenant token budget is still out of scope. The daily window is calendar-based (midnight UTC), so a
     burst either side of midnight can exceed the intended daily rate.
 17. Datasets come from a file (CSV, TSV, Excel `.xlsx`, JSON or JSON
     Lines) or pasted CSV (ADR 0024): up to 4 MB as uploaded, the limit
@@ -437,6 +448,32 @@ required local files. Both behaviors are covered by tests
     show that count, or it re-creates the defect one layer up. Whether a
     blank in a particular source means "none happened" is a question for
     that source's owner and is declared per KPI.
+
+31. The process-wide lock in `server/app.py` now covers only in-memory
+    session state; the assistant's model call and a run's pipeline stage
+    run outside it, so one slow model call no longer stalls every tenant
+    (assessment finding B4). On SQLite a stage's `store.atomic("run:...")`
+    transaction still serialises every store access for its duration,
+    model call included, because the store has one connection; only
+    PostgreSQL locks the one run. In local mode the memory file is
+    written by the assistant outside that lock, so two conversations
+    saving a memory at the same instant can lose one write; the memory
+    endpoints themselves are still serialised.
+32. Request logging (finding B10) is one JSON line per request on the
+    `agentic_os.requests` logger at INFO, with a request id (an incoming
+    `X-Request-ID` of up to 64 safe characters is honoured, otherwise one
+    is generated and echoed), method, path, status, duration and a
+    12-character SHA-256 prefix of the token subject or `anonymous`.
+    Nothing ships the lines anywhere: the handler is whatever the
+    process's Python logging is configured with, the id is not
+    propagated to the worker or to model providers, and bodies, query
+    strings, tokens and raw subjects are never logged.
+33. A restore (finding B5) validates every row of every table against
+    the live schema before any delete and runs the deletes and inserts in
+    one transaction on both SQLite and PostgreSQL, so a failure part-way
+    leaves the database as it was. The whole backup is still held in
+    memory, and a backup written by a build with more columns is refused
+    rather than trimmed.
 
 -   **A child interpreter can fail to start under full-suite load on
     Windows.** `tests/test_backup.test_a_destroyed_database_is_rebuilt_from_a_backup`

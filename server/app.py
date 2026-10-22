@@ -9,7 +9,9 @@ The command-line application (python main.py) is unaffected by this module.
 """
 
 import asyncio
+import hashlib
 import json
+import logging
 import os
 import re
 import threading
@@ -111,6 +113,28 @@ def application_content_policy(env):
 MAX_SESSIONS = 32
 MAX_TEXT_LENGTH = 4000
 PREFERENCE_KEY_PATTERN = re.compile(r"^[a-z][a-z0-9_]{0,39}$")
+# One JSON line per request (assessment finding B10). An incoming id is
+# honoured only when it is short and safe to print; the subject is a
+# hash prefix, never the raw subject, and never the token.
+REQUEST_LOG = logging.getLogger("agentic_os.requests")
+REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,64}$")
+# Per-session locks are dropped once this many sessions have been seen,
+# keeping only the ones a request is holding at that moment.
+MAX_SESSION_LOCKS = 4096
+
+
+def request_id_for(header):
+    """The caller's X-Request-ID when it is printable and bounded,
+    otherwise a fresh one."""
+    if header and REQUEST_ID_PATTERN.match(header):
+        return header
+    return uuid.uuid4().hex
+
+
+def subject_hash(subject):
+    """A 12-hex-character SHA-256 prefix: enough to group one caller's
+    requests in a log, never enough to recover who they are."""
+    return hashlib.sha256(str(subject).encode("utf-8")).hexdigest()[:12]
 
 # Presentation metadata for the Agent's command surface, used by the UI for
 # quick actions and the command palette. Behaviour lives in agent.py only.
@@ -276,6 +300,10 @@ class RunIn(BaseModel):
     # breakdown from the merged table (ADR 0030).
     joins: list[JoinIn] | None = Field(default=None, max_length=joining.MAX_JOINS)
     breakdown: str | None = Field(default=None, max_length=200)
+    # Decision inputs: an uplift per target, a cost per target and the
+    # uplift range the sensitivity stage explores (slice three, A2, A13).
+    # Validated in full by analytics.validate_assumptions.
+    assumptions: dict | None = None
 
 
 class MappingIn(BaseModel):
@@ -286,6 +314,9 @@ class MappingIn(BaseModel):
     dimension: str | None = Field(default=None, max_length=200)
     date_order: str = Field(default="auto", max_length=20)
     grain: str = Field(default="auto", max_length=20)
+    # The currency of the money columns, an ISO 4217 code; absent means
+    # not stated (slice three, U4). Checked by server.mapping.
+    currency: str | None = Field(default=None, max_length=8)
 
 
 class QueryIn(BaseModel):
@@ -373,9 +404,27 @@ def create_app(config_path=None, env=None, dist_dir=None):
         openapi_url=None,
     )
 
+    # Protects the in-memory state the store does not: the read-modify-
+    # write of a session row and, in local mode, the memory file. Model
+    # calls and pipeline stages run outside it (assessment finding B4):
+    # the engine's durable mutations are serialised by store.atomic().
     lock = threading.Lock()
+    app.state.request_lock = lock  # observed by tests, never taken by them
+    # One lock per conversation, so two messages to the same session are
+    # answered in turn while other sessions, and every read, go on.
+    session_locks = {}
+
+    def session_lock_for(session_id):
+        with lock:
+            if session_id not in session_locks and len(session_locks) >= MAX_SESSION_LOCKS:
+                for stale in [k for k, v in session_locks.items() if not v.locked()]:
+                    del session_locks[stale]
+            return session_locks.setdefault(session_id, threading.Lock())
 
     gateway = ModelGateway()
+    # The unwrapped gateway keeps the model call ledger (finding G4);
+    # a router wraps it without replacing it.
+    base_gateway = gateway
     # Which model plays Hermes, the agents and the consultants (ADR
     # 2026-10-21 model roles). Built on the plain gateway, which can be
     # asked for a named provider; nothing configured means no model role.
@@ -548,14 +597,54 @@ def create_app(config_path=None, env=None, dist_dir=None):
     async def security_headers(request: Request, call_next):
         return apply_security_headers(await call_next(request), request.url.path)
 
+    def log_subject(request):
+        """The hashed token subject when a bearer token authenticates,
+        otherwise "anonymous". The token itself is never logged."""
+        header = request.headers.get("authorization")
+        if not header:
+            return "anonymous"
+        try:
+            return subject_hash(identity.authenticate(header).subject)
+        except AuthError:
+            return "anonymous"
+
+    def log_request(request, status, started):
+        REQUEST_LOG.info(json.dumps({
+            "request_id": request.state.request_id,
+            "method": request.method,
+            "path": request.url.path,
+            "status": status,
+            "duration_ms": round((time.monotonic() - started) * 1000, 1),
+            "subject": log_subject(request),
+        }, separators=(",", ":")))
+
+    @app.middleware("http")
+    async def request_log(request: Request, call_next):
+        """Every request gets an id, echoed back, and one JSON log line:
+        id, method, path without the query string, status, duration and
+        a hashed subject. No token, body, query string or raw subject."""
+        request.state.request_id = request_id_for(request.headers.get("x-request-id"))
+        started = time.monotonic()
+        try:
+            response = await call_next(request)
+        except Exception:
+            # The generic handler answers with 500 outside this middleware.
+            log_request(request, 500, started)
+            raise
+        response.headers["X-Request-ID"] = request.state.request_id
+        log_request(request, response.status_code, started)
+        return response
+
     app.add_middleware(InterfaceGZip)
 
     @app.exception_handler(Exception)
     async def handle_unexpected_error(request: Request, exc: Exception):
         # Never leak stack traces or internal details to the browser.
+        request_id = getattr(request.state, "request_id", None)
         return apply_security_headers(JSONResponse(
             status_code=500,
             content={"detail": "Something went wrong on the server. Please try again."},
+            headers={"X-Request-ID": request_id} if request_id else None,
         ), request.url.path)
 
     # ------------------------------------------------------------------
@@ -639,6 +728,9 @@ def create_app(config_path=None, env=None, dist_dir=None):
             "agent_runtime": app.state.runtime_name,
             "runtime_problem": app.state.runtime_problem,
             "execution": worker_status(store, engine.execution_mode),
+            # Model calls this process has made: totals per provider,
+            # never prompts or replies (finding G4).
+            "model_calls": base_gateway.ledger(),
         }
 
     @app.post("/api/sessions", status_code=201)
@@ -650,7 +742,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
             if body is not None and body.language:
                 session.agent.set_preference("language", body.language)
             save_session(session)
-            store.trim_sessions(MAX_SESSIONS)
+            store.trim_sessions(MAX_SESSIONS, principal.subject)
             return session.snapshot()
 
     @app.get("/api/sessions/{session_id}")
@@ -728,31 +820,37 @@ def create_app(config_path=None, env=None, dist_dir=None):
         text = message.text.strip()
         if not text:
             raise HTTPException(status_code=422, detail="Message text is empty.")
-        with lock:
-            session = get_session(session_id, principal)
-            if session.ended:
-                raise HTTPException(
-                    status_code=409,
-                    detail="This session has ended. Start a new session to continue.",
-                )
-            session.add_entry("user", text)
-            if text.startswith("/"):
-                # A command is exact and deterministic; it does not need
-                # understanding.
-                entry = session.add_entry("agent", session.agent.process_input(text),
-                                          source="command", action="command")
-            else:
+        # The session lock orders this conversation's turns; the global
+        # lock covers only the load and the save, so the assistant's
+        # model call holds up nobody else (finding B4).
+        with session_lock_for(session_id):
+            with lock:
+                session = get_session(session_id, principal)
+                if session.ended:
+                    raise HTTPException(
+                        status_code=409,
+                        detail="This session has ended. Start a new session to continue.",
+                    )
+                session.add_entry("user", text)
+                if text.startswith("/"):
+                    # A command is exact and deterministic; it does not need
+                    # understanding.
+                    entry = session.add_entry("agent", session.agent.process_input(text),
+                                              source="command", action="command")
+                    if text.split()[0].lower() == "/exit":
+                        session.ended = True
+                    save_session(session)
+                    return {"reply": entry, "state": session.snapshot()}
                 session.agent.record_request(text)
-                outcome = assistant.handle(text, session)
+            outcome = assistant.handle(text, session)
+            with lock:
                 entry = session.add_entry(
                     "agent", outcome["text"], source=outcome.get("source"),
                     provider=outcome.get("provider"), action=outcome.get("action"),
                     result=outcome.get("result"), pending=outcome.get("pending"),
                     steps=outcome.get("steps"), why=outcome.get("why"))
-            if text.split()[0].lower() == "/exit":
-                session.ended = True
-            save_session(session)
-            return {"reply": entry, "state": session.snapshot()}
+                save_session(session)
+                return {"reply": entry, "state": session.snapshot()}
 
     @app.delete("/api/sessions/{session_id}/history")
     def clear_history(session_id: str, principal=Depends(requires("write"))):
@@ -920,7 +1018,8 @@ def create_app(config_path=None, env=None, dist_dir=None):
                                          language=run.language,
                                          joins=([j.model_dump() for j in run.joins]
                                                 if run.joins else None),
-                                         breakdown=run.breakdown)
+                                         breakdown=run.breakdown,
+                                         assumptions=run.assumptions)
             except KeyError:
                 raise HTTPException(status_code=404, detail='Dataset not found.')
             except joining.JoinError as error:
@@ -1057,10 +1156,11 @@ def create_app(config_path=None, env=None, dist_dir=None):
                 raise HTTPException(status_code=404, detail="Dataset not found.")
 
     @app.get("/api/runs")
-    def list_runs(principal=Depends(requires("read"))):
+    def list_runs(state: str | None = Query(default=None, pattern="^[a-z_]{1,40}$"),
+                  principal=Depends(requires("read"))):
         with lock:
             owner = None if principal.can("admin") else principal.subject
-            return {"runs": engine.list_runs(owner=owner)}
+            return {"runs": engine.list_runs(owner=owner, state=state)}
 
     @app.get("/api/runs/{run_id}")
     def get_run(run_id: str, principal=Depends(requires("read"))):
@@ -1072,8 +1172,10 @@ def create_app(config_path=None, env=None, dist_dir=None):
         if engine.execution_mode == "worker":
             detail = _run_or_404(lambda: engine.advance(run_id), principal, run_id)
             return JSONResponse(detail, status_code=202)
-        with lock:
-            return _run_or_404(lambda: engine.advance(run_id), principal, run_id)
+        # A stage may call a model for most of a minute. The engine holds
+        # store.atomic("run:...") for the run it advances, so the global
+        # lock is not needed here and would stall every tenant (finding B4).
+        return _run_or_404(lambda: engine.advance(run_id), principal, run_id)
 
     @app.post("/api/runs/{run_id}/pause")
     def pause_run(run_id: str, principal=Depends(requires("write"))):
@@ -1306,7 +1408,8 @@ def create_app(config_path=None, env=None, dist_dir=None):
     def decide_approval(run_id: str, approval_id: str, decision: ApprovalIn, principal=Depends(requires("approve"))):
         with lock:
             return _run_or_404(
-                lambda: engine.decide_approval(run_id, approval_id, decision.decision),
+                lambda: engine.decide_approval(run_id, approval_id, decision.decision,
+                                                       approver=principal.subject),
                 principal, run_id,
             )
 
