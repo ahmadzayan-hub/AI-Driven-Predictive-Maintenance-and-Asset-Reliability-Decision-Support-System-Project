@@ -60,7 +60,7 @@ const NAV_GROUPS: Array<{ id: string; items: NavItem[] }> = [
       { id: 'operations', label: 'nav.operations', icon: 'check' },
       { id: 'overview', label: 'nav.overview', icon: 'dashboard' },
       { id: 'assets', label: 'nav.assets', icon: 'activity', short: 'nav.assetsShort' },
-      { id: 'rmd', label: 'nav.rmd', icon: 'shield' },
+      { id: 'rmd', label: 'nav.rmd', icon: 'search' },
       { id: 'dashboard', label: 'nav.dashboard', icon: 'chart' },
       { id: 'approvals', label: 'nav.approvals', icon: 'shield' },
     ],

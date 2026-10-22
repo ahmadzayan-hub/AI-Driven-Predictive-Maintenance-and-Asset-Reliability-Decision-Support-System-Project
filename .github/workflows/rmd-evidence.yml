@@ -50,6 +50,12 @@ jobs:
       - name: Evidence journey, Arabic phone and accessibility
         run: npx playwright test rmd.spec.ts --max-failures=1
         working-directory: frontend
+      - name: Sidebar navigation contract
+        run: npx playwright test overview.spec.ts --grep "sidebar groups" --project=desktop
+        working-directory: frontend
+      - name: Existing Miyaar bilingual, voice and accessibility
+        run: npx playwright test --config=playwright.miyaar.config.ts
+        working-directory: frontend
       - name: Interface budget
         run: python -c "from scripts.verify import check_budget; import sys; ok, detail = check_budget(); print(detail); sys.exit(0 if ok else 1)"
       - name: Retain synthetic UI verification evidence
