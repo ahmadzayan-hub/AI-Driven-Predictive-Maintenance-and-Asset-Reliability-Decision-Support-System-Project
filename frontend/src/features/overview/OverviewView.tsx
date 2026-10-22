@@ -262,6 +262,14 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard,
               <button type="button" className="btn btn--ghost" onClick={() => onOpenRun(latest.id)}>
                 {t('overview.openAnalysis')}
               </button>
+              <a
+                href="/motion-studio/index.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn--ghost"
+              >
+                {reportLang === 'ar' ? 'فتح محرر الموشن' : 'Open Motion Studio'}
+              </a>
               <button
                 type="button"
                 className="btn btn--ghost"
