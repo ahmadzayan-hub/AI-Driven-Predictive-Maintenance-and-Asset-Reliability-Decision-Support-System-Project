@@ -166,15 +166,22 @@ function PackWorkspace({ packId, readOnly, onExplain, onOpenRun }: RmdViewProps 
     event.preventDefault();setView(views[next]);document.getElementById(`${id}-tab-${views[next]}`)?.focus()
   }
   const writesBlocked=readOnly||pack?.permissions?.write===false
+  const leadingPriority=analysis?.priorities[0]
+  const published=analysis?.publication_state==='published'
   return <div className="rmd-stack">
     {loading&&<p role="status">{t('loading')}</p>}
     {error&&<div role="alert" className="rmd-error"><p>{error}</p><button className="btn" onClick={()=>{refresh();setAnalysisAttempt(value=>value+1)}}>{t('retry')}</button></div>}
     {notice&&<p role="status" className="rmd-notice">{notice}</p>}
     {pack&&<div className="rmd-stack" hidden={!packAuthorised} style={!packAuthorised?{display:'none'}:undefined} inert={!packAuthorised}>
       <div className="rmd-context"><strong dir="auto">{pack.title}</strong><span>{t('pack')}: <bdi>{pack.id}</bdi></span><span>{t('sources')}: <bdi>{pack.sources?.length??0}</bdi></span><button className="btn btn--ghost" onClick={refresh} disabled={loading||busy}>{t('refresh')}</button></div>
+      {analysis&&<section className="rmd-card rmd-lead" aria-labelledby={`${id}-finding`}>
+        <div><p className="rmd-eyebrow">{t('mainFinding')} · {published?t('published'):analysis.publication_state==='awaiting_approval'?t('awaitingPublicationApproval'):t('calculatedSnapshot')}</p><h3 id={`${id}-finding`} dir="auto">{leadingPriority?evidenceText(leadingPriority.finding,locale):t('noPriorities')}</h3>{leadingPriority&&<p dir="auto">{evidenceText(leadingPriority.management_implication,locale)}</p>}<p className="rmd-muted">{t('analysisId')}: <bdi>{analysis.id}</bdi> · {t('calculatedAt')}: <bdi>{analysis.calculated_at?formatDate(analysis.calculated_at):t('unknown')}</bdi></p>{published&&analysis.published_path&&<p className="rmd-source-id">{t('publishedPath')}: <bdi>{analysis.published_path}</bdi></p>}</div>
+        <div className="rmd-lead__action">{onOpenRun&&<><p className="rmd-eyebrow">{t('nextAction')}</p><button className="btn btn--primary" disabled={busy||(!analysis.run_id&&writesBlocked)} onClick={reviewReport}>{published?t('openPublishedReport'):t('reviewReport')}</button><p className="rmd-muted">{published?t('publishedNextAction'):t('reviewNextAction')}</p></>}{leadingPriority&&<button className="btn btn--ghost" onClick={()=>setEvidence({title:evidenceText(leadingPriority.finding,locale),query:{record_ids:leadingPriority.evidence.record_ids},explanation:leadingPriority.uncertainty})}>{t('evidence')}</button>}</div>
+      </section>}
       <div className="rmd-toolbar">
         <label htmlFor={`${id}-analysis`}>{t('selectedAnalysis')}<select id={`${id}-analysis`} value={analysisId} onChange={event=>setAnalysisId(event.target.value)} disabled={busy||analysisLoading}><option value="">{t('noAnalysis')}</option>{pack.analyses?.map(item=><option key={item.id} value={item.id}>{item.title??item.id} · {item.created_at||item.calculated_at?formatDate(item.created_at??item.calculated_at!):item.calculation_version}</option>)}</select></label>
       </div>
+      <details className="rmd-setup" open={!analysis}><summary>{t('analysisSetup')}</summary><div className="rmd-stack">
       <ImportSource packId={packId} onImported={refresh} readOnly={writesBlocked}/>
       <details className="rmd-card"><summary>{t('sources')} · {pack.sources?.length??0}</summary><SourceRegister sources={pack.sources??[]} onInspect={setSourceId}/></details>
       <form onSubmit={calculate} className="rmd-card rmd-filters" aria-describedby={`${id}-filter-help`}>
@@ -186,6 +193,7 @@ function PackWorkspace({ packId, readOnly, onExplain, onOpenRun }: RmdViewProps 
         </div><p id={`${id}-filter-help`} className="rmd-muted">{t('filterHelp')}</p>
         <button id={`${id}-calculate`} className={`btn${analysis?'':' btn--primary'}`} type="submit" disabled={writesBlocked||busy||!pack.sources?.length}>{busy?t('calculating'):t('calculate')}</button>
       </form>
+      </div></details>
       {analysis&&<div className="rmd-context"><span>{t('analysisId')}: <bdi>{analysis.id}</bdi></span><span>{t('version')}: <bdi>{analysis.calculation_version}</bdi></span><span>{t('calculatedAt')}: <bdi>{analysis.calculated_at?formatDate(analysis.calculated_at):t('unknown')}</bdi></span></div>}
       <div className="rmd-tabs" role="tablist" aria-label={t('title')}>{views.map(item=><button key={item} id={`${id}-tab-${item}`} role="tab" aria-selected={view===item} aria-controls={`${id}-panel-${item}`} tabIndex={view===item?0:-1} onKeyDown={event=>tabKeys(event,item)} onClick={()=>setView(item)}>{t(item)}</button>)}</div>
       {analysisLoading&&<p role="status">{t('loading')}</p>}
@@ -204,7 +212,7 @@ function PackWorkspace({ packId, readOnly, onExplain, onOpenRun }: RmdViewProps 
           <section className="rmd-card"><h3>{t('limitations')}</h3>{analysis.limitations.length>0?<ul>{analysis.limitations.map((limitation,index)=><li dir="auto" key={index}>{evidenceText(limitation,locale)}</li>)}</ul>:<p>{t('unknown')}</p>}</section>
         </>}
       </div>
-      {analysis&&<footer className="rmd-card"><div className="rmd-actions">{onOpenRun&&<button className="btn btn--primary" disabled={busy||(!analysis.run_id&&writesBlocked)} onClick={reviewReport}>{t('reviewReport')}</button>}<button className="btn" disabled={busy} onClick={()=>exportFile('html')}>{t('exportBrief')}</button><button className="btn" disabled={busy} onClick={()=>exportFile('csv')}>{t('exportActions')}</button>{onExplain&&<button className="btn" onClick={()=>onExplain(packId,analysis.id)}>{t('explain')}</button>}</div><p className="rmd-muted">{t('exportHelp')}</p></footer>}
+      {analysis&&<footer className="rmd-card"><div className="rmd-actions"><button className="btn" disabled={busy} onClick={()=>exportFile('html')}>{t('exportBrief')}</button><button className="btn" disabled={busy} onClick={()=>exportFile('csv')}>{t('exportActions')}</button>{onExplain&&<button className="btn" onClick={()=>onExplain(packId,analysis.id)}>{t('explain')}</button>}</div><p className="rmd-muted">{t('exportHelp')}</p></footer>}
       <p className="rmd-muted">{t('allReadsPrivate')}</p>
     </div>}
     {sourceId&&<SourceInspector key={sourceId} packId={packId} sourceId={sourceId} readOnly={writesBlocked} onClose={()=>setSourceId(null)} onChanged={refresh}/>}

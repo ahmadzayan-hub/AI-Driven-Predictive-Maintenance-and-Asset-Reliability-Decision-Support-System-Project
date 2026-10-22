@@ -19,7 +19,7 @@ from server.rmd_workflow import authorize_run, create_review_run
 from server.runs import RunEngine
 from server.storage import open_store
 from tests.test_rmd_ingestion import workbook, document
-from tests.test_rmd_service import MMS_MAPPING
+from tests.test_rmd_service import MMS_MAPPING, RECON_MAPPING, RECON_SHEET
 
 
 class EvidenceWorkflowTests(unittest.TestCase):
@@ -65,6 +65,9 @@ class EvidenceWorkflowTests(unittest.TestCase):
         self.assertEqual(run["state"], "completed")
         self.assertTrue(Path(run["report"]["published_path"]).is_file())
         self.assertEqual(run["approvals"][0]["decided_by"], "alice")
+        overlay = self.service.get_analysis(self.alice, self.pid, analysis["id"])
+        self.assertEqual(overlay["publication_state"], "published")
+        self.assertEqual(overlay["published_path"], run["report"]["published_path"])
 
     def test_changed_artifact_refuses_old_approval(self):
         run_id = self.review(self.populate())
@@ -155,6 +158,23 @@ class EvidenceWorkflowTests(unittest.TestCase):
         assistant.gateway.narrate.assert_not_called()
         with self.assertRaises(RmdError):
             explain(assistant, self.service, self.bob, self.pid, {"question": "procedure"})
+
+    def test_missing_sr_answer_uses_exact_selected_comparison_records(self):
+        self.populate()
+        source = self.service.import_source(self.alice, self.pid, "synthetic-reconciliation.xlsx",
+            workbook(RECON_SHEET.replace("SR-0007", "SYN-NOT-IN-MMS")), "workbook")
+        self.service.save_mapping(self.alice, self.pid, source["id"], {"sheets": deepcopy(RECON_MAPPING)})
+        mms_id = next(s["id"] for s in self.service.get_pack(self.alice, self.pid)["sources"]
+                      if s["name"] == "synthetic.xlsx")
+        analysis = self.service.create_analysis(self.alice, self.pid, {
+            "filters": {"comparison_source_ids": [mms_id]}, "language": "en"})
+        gateway = Mock()
+        answer = explain(SimpleNamespace(gateway=gateway), self.service, self.alice, self.pid, {
+            "question": "Which SR identifiers are missing from the comparison?", "analysis_id": analysis["id"]})
+        self.assertIn("SYN-NOT-IN-MMS", answer["text"])
+        self.assertIn("only the selected comparison source", answer["text"])
+        self.assertNotIn("root cause", answer["text"])
+        gateway.narrate.assert_not_called()
 
     def test_generic_run_and_vault_routes_recheck_bound_pack_access(self):
         import httpx

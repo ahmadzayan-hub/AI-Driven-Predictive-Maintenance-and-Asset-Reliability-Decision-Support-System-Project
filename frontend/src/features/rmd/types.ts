@@ -88,6 +88,7 @@ export interface Completeness {
 export interface AnalysisFilters { from?: string; to?: string; location?: string; category?: string; grain?: string }
 export interface EvidenceAnalysis extends AnalysisSummary {
   run_id?: string; language?: string; scope?: unknown; period?: unknown; filters?: AnalysisFilters; source_versions?: unknown
+  run_state?: string; publication_state?: 'published' | 'awaiting_approval' | 'not_published'; published_path?: string | null
   coverage?: unknown; counts_by_grain: Record<string, number>; status_distributions?: unknown
   completeness: Completeness[]; reconciliation?: {
     source_labels: { label: string; count: number; record_ids: string[] }[]

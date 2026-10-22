@@ -23,6 +23,9 @@ are actual interface renders with labelled synthetic data. [Image provenance](do
 - **Find what needs attention.** Explore downtime, maintenance cost and asset observations within a defined dataset and period.
 - **Understand the finding.** Follow the analysis, inspect calculations, compare models with baselines, and read the limitations.
 - **Make the decision.** Review the exact report before approving publication; preserve its evidence for the next conversation.
+- **Inspect RMD evidence.** Import private reference documents and workbooks,
+  reconcile source records, inspect cited findings and review proposed actions.
+  [Capability and acceptance notes](docs/RMD_EVIDENCE.md).
 
 **Ask → Select data → Follow the analysis → Inspect evidence → Review → Approve → Publish**
 
@@ -89,6 +92,7 @@ The deterministic analysis path needs no model-provider credentials.
 | Your goal | Start here |
 | --- | --- |
 | Analyze a file | Open `http://127.0.0.1:8000/#/runs?source=upload`; review columns, mapping and the business question before starting. |
+| Inspect private RMD evidence | Open http://127.0.0.1:8000/#/rmd; create a pack, import sources, confirm mappings, then inspect and review its calculated snapshot. |
 | Explore the fictional maintenance preview | Open `http://127.0.0.1:8000/?design=maintenance`; its sample review marks are local and do not dispatch work. |
 | Use local chat and optional voice | Follow the bilingual [local AI setup](docs/LOCAL_AI_SETUP.md); microphone text becomes an editable draft. |
 | Continue analysis after closing the browser | Run the [background worker](#background-worker-optional) with the same configuration; it still stops for approval. |

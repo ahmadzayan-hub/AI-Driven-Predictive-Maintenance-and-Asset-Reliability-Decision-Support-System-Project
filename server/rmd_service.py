@@ -433,7 +433,7 @@ class RmdService:
                 filters = payload.get("filters") or {}
                 if not isinstance(filters, dict) or len(canonical(filters)) > 20_000:
                     fail("invalid_filters", "Filters must be a bounded object.")
-                allowed_filters = {"from", "to", "date_from", "date_to", "period", "location", "category", "status", "source_ids", "sources", "grains", "roles", "grain", "chart_grain"}
+                allowed_filters = {"from", "to", "date_from", "date_to", "period", "location", "category", "status", "source_ids", "sources", "grains", "roles", "grain", "chart_grain", "comparison_source_ids"}
                 if set(filters) - allowed_filters:
                     fail("invalid_filters", "An unsupported filter was requested.")
                 if filters.get("grain") is not None:
@@ -485,6 +485,12 @@ class RmdService:
         run = self.store._exec("SELECT id FROM rmd_runs WHERE pack_id = ? AND analysis_id = ? ORDER BY created_at LIMIT 1", (pack_id, analysis_id))
         if run:
             result["run_id"] = run[0]["id"]
+            state = self.store.get_run(run[0]["id"])
+            artifact = self.store.latest_artifact(run[0]["id"])
+            result["run_state"] = state["state"] if state else None
+            result["published_path"] = artifact.get("published_path") if artifact else None
+            result["publication_state"] = ("published" if result["published_path"] else
+                                           "awaiting_approval" if result["run_state"] == "awaiting_approval" else "not_published")
         return result
 
     def records(self, principal, pack_id, analysis_id, query=None):
@@ -533,7 +539,9 @@ class RmdService:
             doc = meta.get("document", {})
             digest = doc.get("digest", {})
             for clause in doc.get("clauses", []):
-                words = set(re.findall(r"[\w\u0600-\u06ff]+", clause.get("text", "").casefold()))
+                searchable = " ".join((source["name"], digest_candidates(digest, "document_code") or "",
+                                       clause.get("section") or "", clause.get("text", "")))
+                words = set(re.findall(r"[\w\u0600-\u06ff]+", searchable.casefold()))
                 matched = wanted & words
                 if wanted and not matched:
                     continue

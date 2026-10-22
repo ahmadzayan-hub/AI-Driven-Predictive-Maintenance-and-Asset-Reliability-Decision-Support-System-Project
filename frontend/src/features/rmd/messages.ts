@@ -72,6 +72,8 @@ export const messages = definePack({
   dateFormat: 'Text date convention', dateISO: 'ISO: year-month-day', dateDMY: 'Day-month-year', dateMDY: 'Month-day-year', dateFormatHelp: 'Excel-formatted dates retain their source value. Choose a convention for text dates; invalid dates remain unresolved.',
   valueStates: 'Field-specific missing-value meanings', valueStatesHelp: 'Assign a meaning only when the field definition supports it. Matching is exact; unmapped placeholders remain unresolved. Original values are preserved.', sourceValue: 'Exact source value', recordedMeaning: 'Field meaning', addRule: 'Add meaning', removeRule: 'Remove meaning', measuredZero: 'Measured zero', blank: 'Blank',
   mappingStale: 'The saved source mapping changed while your draft was open. Your draft is preserved; reload the saved mapping before making a new edit.', reloadMapping: 'Reload saved mapping', reloadMappingHelp: 'Reloading replaces the draft mapping with the current saved version.',
+  mainFinding: 'Main finding', calculatedSnapshot: 'Calculated snapshot', nextAction: 'Next action', analysisSetup: 'Sources and analysis settings', reviewNextAction: 'Open the governed report to review its evidence and publication state.',
+  published: 'Published', awaitingPublicationApproval: 'Publication approval required', openPublishedReport: 'Open published report', publishedPath: 'Confirmed publication path', publishedNextAction: 'Open the confirmed published report and its supporting evidence.',
 }, {
   title: 'أدلة وإحصاءات إدارة صيانة السكك الحديدية', intro: 'اربط سجلات التشغيل بالإجراءات والأدلة الداعمة للقرار الإداري.',
   privateEvidence: 'مساحة أدلة خاصة', noDemo: 'تستخدم هذه المساحة الأدلة المستوردة، ولا تخلط أي سجلات تجريبية مع مصادرك.',
@@ -144,6 +146,8 @@ export const messages = definePack({
   dateFormat: 'تنسيق التواريخ النصية', dateISO: 'ISO: سنة-شهر-يوم', dateDMY: 'يوم-شهر-سنة', dateMDY: 'شهر-يوم-سنة', dateFormatHelp: 'تحتفظ تواريخ Excel المنسّقة بقيمة المصدر. اختر تنسيق التواريخ النصية، وتبقى التواريخ غير الصالحة غير محسومة.',
   valueStates: 'معاني القيم الناقصة حسب الحقل', valueStatesHelp: 'عيّن المعنى فقط عندما يدعمه تعريف الحقل. تكون المطابقة حرفية، وتبقى القيم البديلة غير المعيّنة غير محسومة. تُحفظ القيم الأصلية.', sourceValue: 'قيمة المصدر الحرفية', recordedMeaning: 'معنى الحقل', addRule: 'إضافة معنى', removeRule: 'حذف المعنى', measuredZero: 'صفر مقاس', blank: 'فارغ',
   mappingStale: 'تغيّر تعيين المصدر المحفوظ أثناء فتح مسودتك. حُفظت المسودة؛ أعد تحميل التعيين المحفوظ قبل إجراء تعديل جديد.', reloadMapping: 'إعادة تحميل التعيين المحفوظ', reloadMappingHelp: 'يستبدل التحميل مسودة التعيين بالإصدار المحفوظ الحالي.',
+  mainFinding: 'النتيجة الرئيسية', calculatedSnapshot: 'لقطة محسوبة', nextAction: 'الإجراء التالي', analysisSetup: 'المصادر وإعدادات التحليل', reviewNextAction: 'افتح التقرير المحكوم لمراجعة أدلته وحالة نشره.',
+  published: 'منشور', awaitingPublicationApproval: 'الموافقة على النشر مطلوبة', openPublishedReport: 'فتح التقرير المنشور', publishedPath: 'مسار النشر المؤكد', publishedNextAction: 'افتح التقرير الذي تأكد نشره والأدلة الداعمة له.',
 })
 
 export type RmdMessageKey = keyof typeof messages.en

@@ -44,6 +44,8 @@ def explain(assistant, service, principal, pack_id, payload):
     procedure = bool(re.search(r"procedure|require|clause|manual|policy|إجراء|يتطلب|يشترط|دليل|وثيقة|بند", question, re.I))
     if procedure or analysis is None:
         hits = service.search_knowledge(principal, pack_id, question[:500], limit=3)["hits"]
+        if not hits and procedure:
+            hits = service.search_knowledge(principal, pack_id, "must shall يجب يتعين", limit=3)["hits"]
         citations = [{"source_id": hit["source_id"], "clause_id": hit["clause_id"],
                       "source_name": hit["source_name"], "locator": hit["locator"],
                       "revision": hit.get("document_revision"), "sha256": hit["source_sha256"]}
@@ -77,6 +79,19 @@ def explain(assistant, service, principal, pack_id, payload):
             "A match result concerns only the selected comparison source. Original labels do not establish that an SR is absent from every system.")]
         for outcome in (analysis.get("reconciliation") or {}).get("calculated_outcomes", []):
             lines.append(f"{outcome['code']}: {outcome['count']}.")
+            if outcome["code"] == "not_in_uploaded_mms" and outcome["record_ids"]:
+                selected = service.records(principal, pack_id, analysis_id, {
+                    "record_ids": outcome["record_ids"], "limit": 40})["records"]
+                lines += [str(record["fields"].get("sr_id")) + " — " + str(record["sheet"]) +
+                          ":" + str(record["source_row"]) for record in selected]
+                if len(outcome["record_ids"]) > len(selected):
+                    lines.append("افتح الأدلة للاطلاع على بقية السجلات." if arabic else
+                                 "Open evidence to inspect the remaining records.")
+    elif any(word in lower for word in ("repeat", "recurr", "تكرر", "متكرر")):
+        lines += [f"{item['symptom_label']} — {item['location']}: {item['count']}."
+                  for item in analysis.get("recurrence", [])[:3]]
+        lines += [("هذه أنماط نصية متكررة مقترحة، وليست أسبابًا جذرية متحققة."
+                   if arabic else "These are candidate repeated text patterns, not verified root causes.")]
     else:
         lines += [bi(p["finding"], language) for p in analysis.get("priorities", [])[:3]]
 
