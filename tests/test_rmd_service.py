@@ -37,11 +37,17 @@ RECON_MAPPING = [
 
 
 class RmdServiceTests(unittest.TestCase):
+    database_url = None
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.db = Path(self.temp.name) / "private-evidence.db"
-        self.store = open_store(None, self.db)
+        self.store = open_store(self.database_url, self.db)
+        if self.database_url:
+            from server.storage import RESTORE_ORDER
+            for table in reversed(RESTORE_ORDER):
+                self.store._exec(f"DELETE FROM {table}")
         self.addCleanup(lambda: self.store.close())
         self.service = RmdService(self.store, identity_mode="local")
         self.alice = Principal("evidence-alice", "owner", "test")
@@ -283,7 +289,7 @@ class RmdServiceTests(unittest.TestCase):
     def test_every_private_record_snapshot_is_durable_after_database_reopen(self):
         self.import_workbooks(); result = self.analyse()
         self.store.close()
-        self.store = open_store(None, self.db)
+        self.store = open_store(self.database_url, self.db)
         self.service = RmdService(self.store)
         restored = self.service.get_analysis(self.alice, self.pid, result["id"])
         self.assertEqual(restored, result)
@@ -377,7 +383,7 @@ class RmdServiceTests(unittest.TestCase):
                 self.assertTrue(review.json()["run_id"])
                 forbidden = await client.post(review_path, json={"idempotency_key": "review"}, headers={"X-User": "bob"})
                 self.assertEqual(forbidden.status_code, 404)
-        async def inline_dispatch(function, *args, **kwargs):
+        async def inline_dispatch(function, /, *args, **kwargs):
             # HTTP semantics can be checked inside the restricted runner where
             # AnyIO worker wakeups stall. Production thread scheduling is not
             # verified by this in-process boundary test.

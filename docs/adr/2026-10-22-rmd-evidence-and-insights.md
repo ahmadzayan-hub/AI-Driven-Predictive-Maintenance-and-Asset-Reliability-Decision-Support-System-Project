@@ -71,3 +71,21 @@ publication regressions exercise the implementation. Actual source baselines
 must be checked after the original inputs become available. UI build, browser,
 accessibility, budget and usability measurements are separate recorded gates;
 untested targets remain pending. See [RMD_EVIDENCE.md](../RMD_EVIDENCE.md).
+
+## Measured lazy-view allocation
+
+Hosted UI Budget Fast on review revision 96456aa7 measured 98.9 KB first-load
+JavaScript, 240.9 KB for all scripts, a 15.9 KB largest lazy chunk, 10.0 KB
+first-load CSS, 32.2 KB total CSS and 119.4 KB fonts. The additional four views,
+private source inspector, protected evidence dialog, translations and scoped
+assistant arrive lazily. There are no new runtime dependencies or fonts.
+
+Keep the first-load JavaScript, first-load CSS, lazy-chunk and font ceilings.
+Allocate 244 KB total JavaScript and 32.5 KB total CSS to this integrated
+capability. This is an explicit total-download tradeoff; it is not evidence of
+LCP/CLS/INP performance, which needs separate browser measurement.
+
+New PostgreSQL evidence DDL and direct API grants are protected atomically at
+store startup: enable RLS and revoke PUBLIC/available anon/authenticated roles.
+The committed initial-schema mirror and additive SQL migration carry the same
+tables and restrictions. No production migration is performed by this change.

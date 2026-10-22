@@ -62,8 +62,18 @@ RMD_SCHEMA = [
 
 def ensure_schema(store):
     """Used by direct-service consumers; application storage also registers DDL."""
-    for statement in RMD_SCHEMA:
-        store._exec(statement)
+    with store.atomic("rmd-schema"):
+        for statement in RMD_SCHEMA:
+            store._exec(statement)
+        if store.placeholder == "%s":
+            # Supabase's default grants must never expose a newly created
+            # evidence table before an operator applies the SQL mirror.
+            roles = {row["rolname"] for row in store._exec(
+                "SELECT rolname FROM pg_roles WHERE rolname IN ('anon','authenticated')")}
+            grantees = ", ".join(["PUBLIC"] + sorted(roles))
+            for table in RMD_TABLES:
+                store._exec(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY")
+                store._exec(f"REVOKE ALL ON TABLE {table} FROM {grantees}")
 
 
 def erase_pack_rmd(store, pack_id):

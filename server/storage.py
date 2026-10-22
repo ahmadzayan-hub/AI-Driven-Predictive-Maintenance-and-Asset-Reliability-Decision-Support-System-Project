@@ -266,7 +266,10 @@ class SqlStore:
 
     def _create_schema(self):
         for statement in SCHEMA_STATEMENTS:
-            self._exec(statement)
+            if statement not in RMD_SCHEMA:
+                self._exec(statement)
+        from server.rmd_schema import ensure_schema
+        ensure_schema(self)
         self._migrate()
 
     def _migrate(self):

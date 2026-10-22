@@ -203,7 +203,7 @@ class EvidenceWorkflowTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertIsNone(app.state.assistant._latest_run("alice"))
 
-        async def inline(function, *args, **kwargs):
+        async def inline(function, /, *args, **kwargs):
             # Same HTTP-only dispatcher adaptation as the service test. The
             # restricted local runner cannot verify AnyIO worker scheduling.
             return function(*args, **kwargs)
