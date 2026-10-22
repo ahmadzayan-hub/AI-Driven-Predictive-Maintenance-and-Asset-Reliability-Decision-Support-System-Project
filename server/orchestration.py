@@ -35,6 +35,7 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 
 from server.model_gateway import split_spec
+from server.model_privacy import blocks_model
 
 MAX_FACTS = 14
 MAX_NOTE_CHARS = 900
@@ -308,9 +309,18 @@ class ModelRoles:
         }
 
     def _ask(self, system, user, provider, language, facts):
+        if blocks_model(texts=[user, *facts]):
+            return None
+        options = {}
+        if (split_spec(provider)[0] == "ollama"
+                and getattr(self.gateway, "ollama_think", None) is False):
+            # A short CPU briefing should not spend the reasoning budget
+            # reserved for models that think before writing their answer.
+            options["max_tokens"] = 240
+            system += " Use at most 45 words; prioritize the essential checks without an introduction."
         if language == "ar":
             system += ARABIC
-        return grounded(self.gateway.ask(system, user, provider=provider), facts)
+        return grounded(self.gateway.ask(system, user, provider=provider, **options), facts)
 
     def agent_note(self, goal, role, result, language="en"):
         """The agent's own findings, phrased by the agents' model."""
@@ -320,6 +330,8 @@ class ModelRoles:
         if self.agents == BUILT_IN:
             text = grounded(built_in_agent_note(role, facts, language), facts)
             return {"text": text, "provider": BUILT_IN, "role": role} if text else None
+        if blocks_model(texts=[goal, *facts]):
+            return None
         narration = self.gateway.narrate(goal, facts, provider=self.agents,
                                          language=language)
         if narration.get("source") != "model":

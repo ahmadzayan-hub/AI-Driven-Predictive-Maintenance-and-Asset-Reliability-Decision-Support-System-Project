@@ -34,6 +34,7 @@ from pathlib import Path
 from server import agent_learning
 from server.connectors import Connectors
 from server.model_gateway import ModelGateway
+from server.orchestration import ModelRoles
 from server.quota import load_limits
 from server.routing import RoutedGateway, build_router
 from server.stages import load_stages
@@ -209,6 +210,9 @@ def build_worker(env=None, config_path=None, **kwargs):
         config.get("database_file") or PROJECT_ROOT / "data" / "agentic.db",
     )
     gateway = ModelGateway(env)
+    # Like the API, roles use the plain gateway so each named provider/model
+    # remains explicit even when a separate router selects report narration.
+    model_roles = ModelRoles(gateway, env)
     # The worker narrates the same reports the API does, so it routes the
     # same way; a run advanced in the background must not be narrated by a
     # different model than one advanced in a browser.
@@ -226,7 +230,8 @@ def build_worker(env=None, config_path=None, **kwargs):
         print(stage_problem, file=sys.stderr, flush=True)
     engine = RunEngine(store, resolve_vault_dir(env=env, config=config),
                        gateway, limits=load_limits(env), stages=stage_registry,
-                       profiles=config.get("profiles") or {}, execution_mode="worker")
+                       profiles=config.get("profiles") or {}, execution_mode="worker",
+                       roles=model_roles if model_roles.active else None)
     interval = agent_learning.interval_from(env)
     steward = agent_learning.Steward(
         interval, ledger=agent_learning.Ledger(agent_learning.ledger_path(env))) \

@@ -228,6 +228,20 @@ class BuiltInRolesTestCase(unittest.TestCase):
 class LocalHermesAndAgentsTestCase(unittest.TestCase):
     """One local Ollama, two models: Hermes on hermes3, agents on qwen3."""
 
+    def test_non_reasoning_local_briefings_have_a_short_budget(self):
+        from unittest.mock import patch
+        env = {"OLLAMA_MODEL": "qwen3:4b", "OLLAMA_THINK": "0",
+               "AGENTIC_OS_TASK_MODELS": "hermes=ollama:qwen3:4b,consultants=ollama:qwen3:4b"}
+        roles = ModelRoles(ModelGateway(env), env)
+        with patch.object(ModelGateway, "_post", autospec=True,
+                          return_value={"message": {"content": "Check coverage before approval."}}) as post:
+            self.assertIsNotNone(roles.plan("Review sales", ["Plan", "Analyze", "Review"]))
+            self.assertIsNotNone(roles.consult("Review sales", ["Coverage is complete."]))
+        self.assertEqual(post.call_count, 3)
+        for call in post.call_args_list:
+            self.assertEqual(call.args[3]["options"]["num_predict"], 240)
+            self.assertIn("45 words", call.args[3]["messages"][0]["content"])
+
     def test_a_run_uses_each_roles_own_model(self):
         import json
         from unittest.mock import patch
