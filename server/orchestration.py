@@ -282,6 +282,17 @@ class ModelRoles:
         return {"hermes": self.hermes or "rules", "agents": self.agents,
                 "consultants": list(self.consultants), "problems": list(self.problems)}
 
+    def restricted(self):
+        """These roles with every model replaced by the built-in writer:
+        what a run that carries personal data gets, so that no verified
+        sentence with a person in it reaches a provider."""
+        import copy
+        clone = copy.copy(self)
+        clone.hermes = BUILT_IN if self.hermes and self.built_in else None
+        clone.agents = BUILT_IN if self.agents and self.built_in else None
+        clone.consultants = [BUILT_IN] if self.consultants and self.built_in else []
+        return clone
+
     @property
     def all_built_in(self):
         return (self.hermes in (None, BUILT_IN) and self.agents in (None, BUILT_IN)

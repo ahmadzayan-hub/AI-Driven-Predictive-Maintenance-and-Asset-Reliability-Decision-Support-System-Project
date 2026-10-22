@@ -99,7 +99,7 @@ class ContentPolicyTests(unittest.TestCase):
         self.assertNotIn("synthetic private details", responses[-1].text)
 
     def test_unauthenticated_responses_also_get_the_api_policy(self):
-        app = closing(self, create_app(self.config, env={"AGENTIC_OS_JWT_SECRET": "synthetic-policy-secret-not-a-real-key"}, dist_dir=self.dist))
+        app = closing(self, create_app(self.config, env={"AGENTIC_OS_JWT_SECRET": "synthetic-policy-secret-not-a-real-key", "SUPABASE_URL": "https://test.supabase.invalid"}, dist_dir=self.dist))
         response = TestClient(app).get("/api/runs")
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.headers["content-security-policy"], API_CONTENT_POLICY)

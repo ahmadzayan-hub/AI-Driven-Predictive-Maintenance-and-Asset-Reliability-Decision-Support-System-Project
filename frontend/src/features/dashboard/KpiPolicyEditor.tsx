@@ -9,8 +9,8 @@ const bounds = (direction: KpiRule['direction']) => direction === 'range'
   ? ['good_min', 'good_max', 'okay_min', 'okay_max'] as const
   : ['good_at', 'okay_at'] as const
 
-export default function KpiPolicyEditor({ runId, measures, onSaved, onClose }: {
-  runId: string; measures: KpiMeasure[]; onSaved: () => void; onClose: () => void
+export default function KpiPolicyEditor({ runId, measures, currency = null, onSaved, onClose }: {
+  runId: string; measures: KpiMeasure[]; currency?: string | null; onSaved: () => void; onClose: () => void
 }) {
   const { t, locale } = usePack(policyMessages)
   const [policy, setPolicy] = useState<KpiPolicy | null>(null)
@@ -45,7 +45,7 @@ export default function KpiPolicyEditor({ runId, measures, onSaved, onClose }: {
   }, [metric, policy])
   const measure = measures.find((item) => item.key === metric)
   const fields = bounds(direction)
-  const unit = measure?.scale === 'percent' ? '%' : measure?.scale === 'hours' ? t('policy.hours') : measure?.scale === 'money' ? t('policy.money') : measure?.scale === 'ratio' ? t('policy.ratio') : measure?.scale === 'count' ? t('policy.count') : measure?.scale || ''
+  const unit = measure?.scale === 'percent' ? '%' : measure?.scale === 'hours' ? t('policy.hours') : measure?.scale === 'money' ? (currency ?? t('policy.money')) : measure?.scale === 'ratio' ? t('policy.ratio') : measure?.scale === 'count' ? t('policy.count') : measure?.scale || ''
   async function save(remove = false) {
     if (!policy || !measure || !writable || busy || error === 'conflict') return
     const numeric = Object.fromEntries(fields.map((key) => [key, values[key]?.trim() ? Number(values[key]) : NaN]))

@@ -66,7 +66,7 @@ test.describe('Arabic interface', () => {
     })
     page.on('pageerror', (error) => consoleErrors.push(String(error)))
 
-    await page.goto('/')
+    await page.goto('/#/assistant')
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl')
     await expect(page.locator('html')).toHaveAttribute('lang', 'ar')
     await expect(page.getByRole('status').filter({ hasText: 'جاهز' })).toBeVisible()
@@ -91,7 +91,7 @@ test.describe('Arabic interface', () => {
     // cleans up memory. Preserve those checks beyond the default test budget.
     test.setTimeout(120_000)
     const memoryText = `قهوة في الثامنة — ${testInfo.project.name}`
-    await page.goto('/')
+    await page.goto('/#/assistant')
     await sendArabic(page, 'مرحبا')
     await lastAgentBubble(page).waitFor()
     await expectNoViolations(page, 'chat view (ar)')
@@ -175,7 +175,7 @@ test.describe('Arabic interface', () => {
   test('switching language from the header changes the interface and the agent together', async ({
     page,
   }) => {
-    await page.goto('/')
+    await page.goto('/#/assistant')
     await expect(arabicComposer(page)).toBeVisible()
 
     // The control is labelled in the other language, so it is findable

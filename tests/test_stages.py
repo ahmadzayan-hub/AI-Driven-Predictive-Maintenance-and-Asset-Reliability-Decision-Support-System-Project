@@ -355,7 +355,7 @@ class GovernanceTestCase(unittest.TestCase):
                       report)
         self.assertIn("| target | 3000000.0 | operator-supplied target", report)
         self.assertIn("| target_attainment | 1.1945 | total_revenue / target |", report)
-        self.assertIn("| calculation | target_attainment.c_attainment, "
+        self.assertIn("| calculation | target_attainment.c_target, target_attainment.c_attainment, "
                       "target_attainment.c_gap, c_total | verified |", report)
         self.assertIn("Did we hit the target?", report)
 

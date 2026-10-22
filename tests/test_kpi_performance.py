@@ -344,7 +344,7 @@ class KpiPolicyPostgresTests(unittest.TestCase):
             "database_url": PG_TEST_URL, "memory_file": str(root / "m.json"),
             "vault_dir": str(root / "vault"), "stages": ["server.maintenance.targets.MaintenanceRisk"],
             "profiles": {"default": [], "maintenance": ["maintenance_risk"]}}), encoding="utf-8")
-        self.app = create_app(config, env={"AGENTIC_OS_ENV": "production", "AGENTIC_OS_JWT_SECRET": fixtures.SECRET})
+        self.app = create_app(config, env={"AGENTIC_OS_ENV": "production", "AGENTIC_OS_JWT_SECRET": fixtures.SECRET, "SUPABASE_URL": "https://test.supabase.invalid"})
         self.client = TestClient(closing(self, self.app), raise_server_exceptions=False)
         # LIFO: erase our rows before the registered store close and temp cleanup.
         self.addCleanup(lambda: erase(self.app.state.store, self.owner))

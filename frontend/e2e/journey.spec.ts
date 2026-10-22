@@ -29,7 +29,7 @@ test.describe('main user journey', () => {
       has: page.locator('.memory__text').filter({ hasText: fixture }),
     })
     // 1. Start the application and open a session.
-    await page.goto('/')
+    await page.goto('/#/assistant')
     await expect(page.getByRole('status').filter({ hasText: 'Ready' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Every asset. A clearer decision.' })).toBeVisible()
 
@@ -155,7 +155,7 @@ test.describe('main user journey', () => {
   })
 
   test('command palette inserts commands and unknown commands fail gracefully', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/#/assistant')
     await expect(composerInput(page)).toBeVisible()
 
     await page.keyboard.press('ControlOrMeta+k')
@@ -176,7 +176,7 @@ test.describe('main user journey', () => {
   })
 
   test('layout has no horizontal overflow', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/#/assistant')
     await expect(composerInput(page)).toBeVisible()
     await sendMessage(page, 'A fairly long message that should wrap correctly on small screens without causing any horizontal scrolling anywhere in the layout.')
     await expect(lastAgentBubble(page)).toBeVisible()

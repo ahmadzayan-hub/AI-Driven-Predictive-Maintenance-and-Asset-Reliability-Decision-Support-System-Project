@@ -260,3 +260,6 @@
 .run-steps li:nth-child(3) { --h: var(--magenta); }
 .run-steps li:nth-child(4) { --h: var(--highlight); }
 .run-more { margin-block: var(--space-3); }
+
+/* The read confirmation sits with the decision buttons (U3). */
+.decision__read { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-s); margin-inline-end: auto; }

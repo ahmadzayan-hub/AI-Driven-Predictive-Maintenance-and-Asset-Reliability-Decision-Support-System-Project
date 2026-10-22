@@ -45,6 +45,8 @@ test('analytics run: goal to approved, published, evidence-backed report', async
   await expect(page.locator('html')).toHaveAttribute('lang', 'en')
 
   // Approve: the report is published to the Obsidian-compatible vault.
+  await approval.getByText('Review the exact report').click()
+  await approval.getByLabel('I have read this exact report').check()
   await approval.getByRole('button', { name: 'Approve and publish' }).click()
   await expect(page.getByText('published to the vault', { exact: false })).toBeVisible()
   await expect(page.getByText('state: completed')).toBeVisible()

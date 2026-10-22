@@ -23,6 +23,10 @@ DATE_ORDERS = ("auto", "day-first", "month-first")
 GRAINS = ("auto", "day", "month", "quarter", "year")
 FINEST_FIRST = ("day", "month", "quarter", "year")
 MAPPING_VERSION = 1
+# The currency of money columns, as the owner states it: an ISO 4217 code,
+# three upper-case letters. Absent means "not stated", which the interface
+# then says in so many words; nothing ever guesses one from the data.
+CURRENCY_CODE = re.compile(r"^[A-Z]{3}$")
 
 # A trend over more periods than this is rolled up (day to month to quarter
 # to year) when the grain is "auto": three years of months fit, a year of
@@ -558,6 +562,9 @@ def validate(mapping, columns, rows):
         problems.append(Problem("grain", None, "Choose day, month, quarter or year as the period.",
                                 "اختر اليوم أو الشهر أو الربع أو السنة فترةً زمنية."))
         grain = "auto"
+    currency, currency_problem = read_currency(mapping.get("currency"))
+    if currency_problem:
+        problems.append(currency_problem)
 
     measures = [c for c in columns if roles.get(c) == "measure"]
     dates = [c for c in columns if roles.get(c) == "date"]
@@ -617,7 +624,36 @@ def validate(mapping, columns, rows):
     return {"version": MAPPING_VERSION,
             "roles": {c: roles[c] for c in columns},
             "measure": measure, "dimension": dimension,
-            "date_order": order, "grain": grain}
+            "date_order": order, "grain": grain, "currency": currency}
+
+
+def read_currency(value):
+    """The stated currency as it is saved, or the problem with it.
+
+    Returns (code, None) for a three-letter ISO 4217 code (case is
+    forgiven), (None, None) when nothing was stated, and (None, Problem)
+    for anything else. A default is never supplied: money a dataset does
+    not label stays labelled "currency not stated"."""
+    if value is None:
+        return None, None
+    text = value.strip().upper() if isinstance(value, str) else None
+    if text == "":
+        return None, None
+    if text is None or not CURRENCY_CODE.fullmatch(text):
+        shown = value if isinstance(value, str) else repr(value)
+        return None, Problem("currency", None,
+                             f"“{shown}” is not a currency code. Use three letters such as AED or USD, or leave it empty.",
+                             f"«{shown}» ليس رمز عملة. استخدم ثلاثة أحرف مثل AED أو USD، أو اتركه فارغاً.")
+    return text, None
+
+
+def currency_of(mapping):
+    """The ISO 4217 code a saved mapping states, or None. Mappings saved
+    before the field existed have no key and mean the same as None."""
+    if not isinstance(mapping, dict):
+        return None
+    code = mapping.get("currency")
+    return code if isinstance(code, str) and CURRENCY_CODE.fullmatch(code) else None
 
 
 def measures_of(mapping, columns):
@@ -642,6 +678,8 @@ def describe(mapping, columns, language="en"):
             parts.append(f"التقسيم «{mapping['dimension']}»")
         if date_column:
             parts.append(f"التاريخ «{date_column}»")
+        if mapping.get("currency"):
+            parts.append(f"العملة {mapping['currency']}")
         if counts["ignore"]:
             parts.append(f"والمستبعد {counts['ignore']}")
         return "ربط الأعمدة الذي حفظه المالك: " + "، ".join(parts) + "."
@@ -650,6 +688,8 @@ def describe(mapping, columns, language="en"):
         parts.append(f"breakdown “{mapping['dimension']}”")
     if date_column:
         parts.append(f"date “{date_column}”")
+    if mapping.get("currency"):
+        parts.append(f"currency {mapping['currency']}")
     if counts["ignore"]:
         parts.append(f"{counts['ignore']} ignored")
     return "Column mapping saved by the owner: " + ", ".join(parts) + "."

@@ -96,5 +96,33 @@ export default defineConfig({
       reuseExistingServer: false,
       timeout: 30_000,
     },
+    {
+      // Third instance in view-only demo mode (ADR 2026-10-21), for
+      // e2e/demo.spec.ts. A fresh database each start, so the server seeds
+      // its one fictional analysis; the maintenance profile is configured
+      // the way test_demo.py does, so Asset Intelligence has evidence.
+      command:
+        `${PYTHON} -c "import json,os,shutil; os.makedirs('frontend/e2e/.tmp/demo',exist_ok=True); ` +
+        'shutil.rmtree(\'frontend/e2e/.tmp/demo/vault\', ignore_errors=True); ' +
+        '[os.remove(p) for p in [\'frontend/e2e/.tmp/demo/agentic.db\'] if os.path.exists(p)]; ' +
+        'json.dump({\'agent_name\':\'Agentic OS\',\'version\':\'1.0.0\',' +
+        "'memory_file':'frontend/e2e/.tmp/demo/memory.json'," +
+        "'database_file':'frontend/e2e/.tmp/demo/agentic.db'," +
+        "'vault_dir':'frontend/e2e/.tmp/demo/vault'," +
+        "'stages':['server.maintenance.governance.MaintenanceGovernance'," +
+        "'server.maintenance.targets.MaintenanceRisk'," +
+        "'server.maintenance.rail_stage.RailAssetManagerStage']," +
+        "'profiles':{'default':[],'maintenance':['maintenance_governance','maintenance_risk','rail_asset_manager']}}, " +
+        'open(\'frontend/e2e/.tmp/demo/config.json\',\'w\'))" ' +
+        `&& ${PYTHON} -m uvicorn server.app:app --host 127.0.0.1 --port 8125`,
+      cwd: '..',
+      url: 'http://127.0.0.1:8125/api/health',
+      env: {
+        AGENTIC_OS_CONFIG: 'frontend/e2e/.tmp/demo/config.json',
+        AGENTIC_OS_DEMO: '1',
+      },
+      reuseExistingServer: false,
+      timeout: 30_000,
+    },
   ],
 })

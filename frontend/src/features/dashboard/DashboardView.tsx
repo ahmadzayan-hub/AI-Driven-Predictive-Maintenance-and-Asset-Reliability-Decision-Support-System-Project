@@ -87,7 +87,7 @@ function RunPicker({ onPick }: { onPick: (id: string) => void }) {
           {failed ? (
             <><p role="alert" className="statusline statusline--error">{t('dash.failed')}</p><button type="button" className="btn btn--ghost" onClick={() => setRevision((v) => v + 1)}>{t('dash.retry')}</button></>
           ) : runs === null ? (
-            <div role="status" aria-label={t('dash.loading')} className="skeleton skeleton--line" />
+            <div role="status" aria-label={t('dash.loading')} className="skeleton skeleton--line"><span className="visually-hidden">{t('dash.loading')}</span></div>
           ) : runs.length === 0 ? (
             <p className="card__empty">{t('dash.none')}</p>
           ) : (
@@ -208,7 +208,7 @@ function Dashboard({ runId, page, query, onNavigate, onOpenRun }: {
     return (
       <section className="panel" aria-label={t('dash.title')}>
         <div className="panel__inner panel__inner--wide">
-          <div role="status" aria-label={t('dash.loading')} className="card">
+          <div role="status" aria-label={t('dash.loading')} className="card"><span className="visually-hidden">{t('dash.loading')}</span>
             <div className="skeleton skeleton--title" />
             <div className="skeleton skeleton--line" />
           </div>
@@ -383,7 +383,7 @@ function Problem({ message }: { message: string | null }) {
 
 function Loading() {
   const { t } = usePack(dashMessages)
-  return <div role="status" aria-label={t('dash.loading')} className="skeleton skeleton--line" />
+  return <div role="status" aria-label={t('dash.loading')} className="skeleton skeleton--line"><span className="visually-hidden">{t('dash.loading')}</span></div>
 }
 
 function TrendCoverage({ answer }: { answer: QueryAnswer | null }) {

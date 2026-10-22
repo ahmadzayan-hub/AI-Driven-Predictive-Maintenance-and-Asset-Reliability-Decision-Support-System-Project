@@ -72,7 +72,7 @@ class ProviderMappingTestCase(unittest.TestCase):
 
     def test_names_a_router_is_likely_to_produce_are_understood(self):
         for name, expected in (("claude-3-5-sonnet", "anthropic"),
-                               ("gpt-4o", "groq"),
+                               ("gpt-4o", None),
                                ("llama3.1:8b", "ollama"),
                                ("qwen3:4b", "ollama"),
                                ("mixtral-8x7b", "groq")):
@@ -134,13 +134,15 @@ class RoutingDecisionTestCase(unittest.TestCase):
 
     def test_an_honoured_choice_is_recorded_with_its_reason(self):
         gateway = gateway_with(GROQ_API_KEY="k")
-        routed = RoutedGateway(gateway, FakeRouter("gpt-4o"))
+        # A Groq-hosted name; a "gpt-4o" choice is OpenAI's and is refused
+        # when OpenAI is not configured (G7), so it would not be honoured.
+        routed = RoutedGateway(gateway, FakeRouter("mixtral-8x7b-32768"))
         result = routed.narrate("Goal", ["A fact."])
         decision = result["routing"]
         self.assertTrue(decision["honoured"])
         self.assertEqual(decision["provider"], "groq")
-        self.assertEqual(decision["chose"], "gpt-4o")
-        self.assertIn("gpt-4o", decision["why"])
+        self.assertEqual(decision["chose"], "mixtral-8x7b-32768")
+        self.assertIn("mixtral-8x7b-32768", decision["why"])
         self.assertEqual(gateway.called, ["groq"],
                          "the chosen provider is not the one that narrated")
 
@@ -315,4 +317,5 @@ class OpenAiNamesTestCase(unittest.TestCase):
         self.assertEqual(provider_for("gpt-4o-mini", available), "openai")
         self.assertEqual(provider_for("openai", available), "openai")
         self.assertEqual(provider_for("gpt-oss-20b", available), "groq")
-        self.assertEqual(provider_for("gpt-4o", [{"provider": "groq", "model": "x"}]), "groq")
+        # An OpenAI name is never substituted with Groq's open model (G7).
+        self.assertIsNone(provider_for("gpt-4o", [{"provider": "groq", "model": "x"}]))

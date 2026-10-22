@@ -58,7 +58,7 @@ async function openArabicTab(page: Page, name: RegExp) {
   await menu.or(target.first()).first().waitFor()
   if (await menu.isVisible()) await menu.click()
   await target.first().click()
-  await page.locator('.viewload').waitFor({ state: 'detached' })
+  await expect(page.locator('.viewload')).toHaveCount(0)
 }
 
 /** Store this spec's tables and reload, so the run form lists them. */
@@ -101,7 +101,7 @@ test('a lookup is joined, previewed and run', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Start run' }).click()
   await expect(page.getByRole('region', { name: 'Approval required' })).toBeVisible({ timeout: 40_000 })
-  await expect(page.getByText(`${ORDERS} + ${CATALOGUE}`).first()).toBeVisible()
+  await expect(page.getByText(`${ORDERS} + ${CATALOGUE}`).filter({ visible: true }).first()).toBeVisible()
   const disclosure = page.locator('.run-timeline__disclosure')
   if ((await disclosure.getAttribute('open')) === null) await disclosure.locator(':scope > summary').click()
   await expect(page.locator('.runtasks').getByText('Data Merge Agent', { exact: false })).toBeVisible()
