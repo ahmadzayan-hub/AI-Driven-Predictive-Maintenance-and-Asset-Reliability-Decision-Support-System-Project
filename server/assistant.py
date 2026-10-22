@@ -29,6 +29,7 @@ do everything, and the reply says so (`source: "rules"`).
 
 import json
 import re
+from contextvars import ContextVar
 from datetime import datetime, timezone
 
 from assistant import (ACTIONS, DESTRUCTIVE, PREFERENCE_KEYS, RUN_STATES,
@@ -133,8 +134,30 @@ def _measured_at(stamp):
     return moment.strftime("%d %b %Y %H:%M UTC")
 
 
+def reference_turn(entry):
+    """Older runtimes embedded reference replies inside a composite turn.
+
+    They carry no durable authorization grant. Keep them out of model context
+    and ordinary transcript exports; current references are retrieved live.
+    """
+    if not isinstance(entry, dict):
+        return False
+    if entry.get("action") in ("search_knowledge", "rmd_evidence") or entry.get("tool") in ("search_knowledge", "rmd_evidence"):
+        return True
+    return any(reference_turn(step) for step in entry.get("steps", []) if isinstance(step, dict))
+
+
+def redact_reference_turns(entries, language="en"):
+    notice = ("افتح عرض المعرفة المصرح به للاطلاع على المرجع الحالي."
+              if language == "ar" else
+              "Open the authorized knowledge view to retrieve this reference again.")
+    return [({key: value for key, value in entry.items()
+              if key in ("id", "role", "time", "action")} | {"text": notice, "reference_redacted": True})
+            if reference_turn(entry) else entry for entry in entries]
+
+
 class Assistant:
-    def __init__(self, gateway, engine, runtime=None, runtime_name=None):
+    def __init__(self, gateway, engine, runtime=None, runtime_name=None, identity_mode="local", env=None):
         self.gateway = gateway
         self.engine = engine
         # Optional (ADR 0021): a loop that may call several tools for one
@@ -142,11 +165,23 @@ class Assistant:
         # nothing the rules can — one exact action stays one exact action.
         self.runtime = runtime
         self.runtime_name = runtime_name
+        self.identity_mode = identity_mode
+        self.env = env
+        self._requester = ContextVar("assistant_requester", default=None)
 
     # ------------------------------------------------------------------
     # Entry point
     # ------------------------------------------------------------------
-    def handle(self, text, session):
+    def handle(self, text, session, principal=None):
+        # The real requester is distinct from a session's creator: an admin
+        # viewing another conversation must not inherit its collection grants.
+        token = self._requester.set(principal)
+        try:
+            return self._handle(text, session)
+        finally:
+            self._requester.reset(token)
+
+    def _handle(self, text, session):
         """Answer one message. Returns a dict for the transcript entry:
         text, source, provider, action, result, pending."""
         agent = session.agent
@@ -282,7 +317,8 @@ class Assistant:
             for section in latest.get("reports", []):
                 if section.get("headline"):
                     lines.append(f"  {section['type']}: {section['headline']}")
-        turns = [e for e in session.transcript if e.get("role") in ("user", "agent")]
+        turns = [e for e in session.transcript if e.get("role") in ("user", "agent")
+                 and not reference_turn(e)]
         if (current_message is not None and turns and turns[-1].get("role") == "user"
                 and turns[-1].get("text") == current_message):
             # The API appends the current turn before asking. It is sent
@@ -391,7 +427,8 @@ class Assistant:
         elif action == "explain_report":
             outcome.update(self._explain(arguments, session))
         elif action == "search_knowledge":
-            outcome.update(self._search_knowledge(arguments, text, language))
+            outcome.update(self._search_knowledge(arguments, text, language, session,
+                                                 for_model=source == "runtime"))
         elif action == "agent_scorecard":
             outcome.update(self._agent_scorecard(arguments, language))
         else:
@@ -426,7 +463,7 @@ class Assistant:
                               rows=rows, notes=notes),
                 "result": card}
 
-    def _search_knowledge(self, arguments, text, language):
+    def _search_knowledge(self, arguments, text, language, session=None, *, for_model=False):
         """Quote the passages that answer a question, with their citations.
 
         The assistant quotes; it does not paraphrase, and it does not
@@ -440,13 +477,30 @@ class Assistant:
         """
         query = str(arguments.get("query") or "").strip() or text.strip()
         collection = str(arguments.get("collection") or "").strip() or None
-        store = knowledge.load()
+        from server.auth import LOCAL_PRINCIPAL
+        local = self is None or getattr(self, "identity_mode", "local") == "local"
+        principal = self._requester.get() if self is not None else None
+        if principal is None and local:
+            principal = LOCAL_PRINCIPAL
+        database = getattr(getattr(self, "engine", None), "store", None)
+        store = knowledge.load(env=getattr(self, "env", None)).for_principal(principal, database, local=local,
+                                               for_model=for_model)
         if not store:
             return {"text": reply(language, "knowledge_empty"), "result": None}
         hits = store.search(query, collection=collection, limit=KNOWLEDGE_HITS)
         if not hits:
             return {"text": reply(language, "knowledge_none", query=query),
                     "result": None}
+        if self is not None and any(
+                not (store.collections[hit.passage.collection].metadata.get("data_classification") == "public"
+                     and store.collections[hit.passage.collection].metadata.get("visibility") == "public")
+                for hit in hits):
+            # Do not persist private excerpts in a general transcript that can
+            # outlive membership. The scoped evidence view retrieves them live.
+            notice = ("تتوفر مراجع مصرح بها. افتح عرض المعرفة للاطلاع على النص والمصدر الحاليين."
+                      if language == "ar" else
+                      "Authorized references are available. Open the knowledge view to inspect their current text and sources.")
+            return {"text": notice, "result": None}
         blank, newline = chr(10) * 2, chr(10)
         passages = blank.join(
             hit.citation + newline + _excerpt(hit.passage.text)
@@ -495,6 +549,10 @@ class Assistant:
 
     def _latest_run(self, owner):
         runs = self.engine.list_runs(owner=owner)
+        # Private RMD reports use live authorized context in the evidence panel,
+        # never the ordinary model/runtime conversation or its retained history.
+        runs = [run for run in runs if not self.engine.store._exec(
+            "SELECT id FROM rmd_runs WHERE id = ?", (run["id"],))]
         if not runs:
             return None
         return self.engine.get_run(runs[0]["id"])

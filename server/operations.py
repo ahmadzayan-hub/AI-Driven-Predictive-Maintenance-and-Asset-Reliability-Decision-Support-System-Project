@@ -450,6 +450,8 @@ def operations_erasure_counts(store, subject, plan):
 def erase_operations(store, subject, plan):
     deleted = {table: 0 for table in OPERATION_DELETE_ORDER}
     for org_id in plan["delete_organizations"]:
+        from server.rmd_schema import erase_org_rmd
+        erase_org_rmd(store, org_id)
         for table in OPERATION_DELETE_ORDER:
             column = "id" if table == "organizations" else "org_id"
             deleted[table] += store._exec_rowcount(f"DELETE FROM {table} WHERE {column} = ?", (org_id,))

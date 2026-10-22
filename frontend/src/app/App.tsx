@@ -23,6 +23,8 @@ import {
   MemoryView,
   Onboarding,
   OperationsView,
+  RmdView,
+  RmdAssistantPanel,
   OverviewView,
   PreferencesView,
   prefetchWhenIdle,
@@ -58,6 +60,7 @@ const NAV_GROUPS: Array<{ id: string; items: NavItem[] }> = [
       { id: 'operations', label: 'nav.operations', icon: 'check' },
       { id: 'overview', label: 'nav.overview', icon: 'dashboard' },
       { id: 'assets', label: 'nav.assets', icon: 'activity', short: 'nav.assetsShort' },
+      { id: 'rmd', label: 'nav.rmd', icon: 'shield' },
       { id: 'dashboard', label: 'nav.dashboard', icon: 'chart' },
       { id: 'approvals', label: 'nav.approvals', icon: 'shield' },
     ],
@@ -83,7 +86,7 @@ const NAV_GROUPS: Array<{ id: string; items: NavItem[] }> = [
 const ALL_ITEMS = NAV_GROUPS.flatMap((group) => group.items)
 // Views the view-only demo leaves out: those that live on a chat session,
 // which the demo does not have, and Operations, which is administration.
-const NEEDS_SESSION: ReadonlySet<Tab> = new Set<Tab>(['chat', 'memory', 'preferences', 'operations'])
+const NEEDS_SESSION: ReadonlySet<Tab> = new Set<Tab>(['chat', 'memory', 'preferences', 'operations', 'rmd'])
 const DEMO_GROUPS = NAV_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => !NEEDS_SESSION.has(item.id)) }))
 
 // A phone's bottom bar holds at most five places: the four a manager opens
@@ -127,6 +130,7 @@ export function App() {
   })
   const composerRef = useRef<ComposerHandle | null>(null)
   const [pendingCommand, setPendingCommand] = useState<string | null>(null)
+  const [evidenceContext, setEvidenceContext] = useState<{ packId: string; analysisId: string } | null>(null)
   const currentRunId = tab === 'runs' ? route.runId ?? null : runTarget?.id ?? null
   // The dashboard keeps its address while another view is open, so going
   // back to it returns to the same page and filters (ADR 0032).
@@ -136,6 +140,7 @@ export function App() {
 
   useLayoutEffect(() => {
     runStore.reset()
+    setEvidenceContext(null)
   }, [store.session?.session_id, store.identity?.principal.subject, store.identity?.principal.role])
 
   const demo = store.demo
@@ -250,6 +255,7 @@ export function App() {
 
   function pickCommand(command: CommandInfo) {
     setPaletteOpen(false)
+    setEvidenceContext(null)
     go('chat')
     const hasArguments = command.usage.trim() !== command.command
     setPendingCommand(hasArguments ? `${command.command} ` : command.command)
@@ -435,11 +441,11 @@ export function App() {
 
   return (
     <div className="shell">
-      <a className="skiplink" href={tab === 'chat' ? '#composer-input' : '#workspace-main'} onClick={(event) => {
+      <a className="skiplink" href={tab === 'chat' && !evidenceContext ? '#composer-input' : '#workspace-main'} onClick={(event) => {
         event.preventDefault()
-        document.getElementById(tab === 'chat' ? 'composer-input' : 'workspace-main')?.focus()
+        document.getElementById(tab === 'chat' && !evidenceContext ? 'composer-input' : 'workspace-main')?.focus()
       }}>
-        {t(tab === 'chat' ? 'shell.skip' : 'shell.skipMain')}
+        {t(tab === 'chat' && !evidenceContext ? 'shell.skip' : 'shell.skipMain')}
       </a>
       <header className="shell__header" inert={drawerOpen}>
         <button
@@ -518,6 +524,9 @@ export function App() {
         <main className="main" id="workspace-main" inert={drawerOpen} tabIndex={-1} key={`${session.session_id}:${store.identity?.principal.subject ?? 'local'}:${store.identity?.principal.role ?? 'local'}`}>
           <ReadOnlyContext.Provider value={demo}>
           {pane('operations', <OperationsView onOpenRun={openRun} />)}
+          {pane('rmd', <RmdView onOpenRun={openRun} onExplain={(packId, analysisId) => {
+            setEvidenceContext({ packId, analysisId }); navigate({ tab: 'chat' })
+          }} />)}
           {pane('overview', (
             <OverviewView onOpenRun={openRun} onStart={startAnalysis} canStart={!demo} onApprovals={() => go('approvals')}
               onOpenDashboard={(id) => (id ? openDashboard(id) : go('dashboard'))} onSeeAll={() => go('runs')} />
@@ -534,6 +543,10 @@ export function App() {
             />
           ))}
           {pane('chat', (
+            evidenceContext ? <RmdAssistantPanel
+              key={evidenceContext.packId + ':' + evidenceContext.analysisId}
+              packId={evidenceContext.packId} analysisId={evidenceContext.analysisId}
+              onDismiss={() => setEvidenceContext(null)} /> :
             <ChatView
               key={session.session_id}
               session={session}
@@ -609,7 +622,7 @@ export function App() {
           </ReadOnlyContext.Provider>
         </main>
 
-        {tab === 'chat' && !demo ? (
+        {tab === 'chat' && !demo && !evidenceContext ? (
           <aside className="rail" aria-label={t('rail.aria')}>
             <div className="rail__section">
               <MiyaarMark large />
