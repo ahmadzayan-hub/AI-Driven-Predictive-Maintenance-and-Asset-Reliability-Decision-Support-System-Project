@@ -21,7 +21,9 @@ below so they can be reversed knowingly.
    in both languages. The three uniform scenarios are kept and labelled for
    what they are: with one uplift for everyone the order is scale-invariant.
    A property test shows a stated uplift and a stated cost each flip the
-   ranking. Nothing in the interface collects the inputs yet; the API does.
+   ranking. The interface collects the inputs since the
+   [decision inputs record](2026-10-22-decision-inputs-interface.md) of the
+   same day.
 2. **One decision record per recommendation (A13).** The prescriptive stage
    writes it (id, issue, scope, evidence, observed risk, every alternative
    with its uplift, cost and gain, expected impact across the range, which

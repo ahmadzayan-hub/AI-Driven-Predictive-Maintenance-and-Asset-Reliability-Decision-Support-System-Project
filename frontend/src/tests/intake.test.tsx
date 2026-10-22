@@ -112,7 +112,7 @@ describe('real data intake', () => {
     await user.click(start)
     await waitFor(() => expect(api.createRun).toHaveBeenCalledTimes(1))
     expect(vi.mocked(api.createRun).mock.calls[0]).toEqual([
-      'Analyse equipment.xlsx and produce a business report', undefined, undefined, undefined, 'en', 'equipment1', undefined,
+      'Analyse equipment.xlsx and produce a business report', undefined, undefined, undefined, 'en', 'equipment1', undefined, undefined,
     ])
   })
 

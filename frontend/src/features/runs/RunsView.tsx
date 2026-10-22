@@ -10,6 +10,7 @@ import type { Locale } from '../../i18n'
 import { api, ApiError, MAX_UPLOAD_BYTES, UPLOAD_ACCEPT } from '../../shared/api'
 import { usePack } from '../../i18n/pack'
 import { intakeMessages } from '../datasets/intakeMessages'
+import { decisionMessages } from './messages'
 import { WorkbookSheetPicker } from '../datasets/WorkbookSheetPicker'
 import { MappingPanel } from '../datasets/MappingPanel'
 import { barGeometry } from '../../shared/charts'
@@ -20,6 +21,7 @@ import type {
   DatasetSummary,
   JoinSpec,
   Pipelines,
+  RunAssumptions,
   RunDetail,
   RunSummary,
   RunTask,
@@ -27,6 +29,8 @@ import type {
 } from '../../shared/types'
 
 import { ApprovalCard } from './ApprovalCard'
+import { DecisionInputs } from './DecisionInputs'
+import { DecisionRecordCard } from './DecisionRecordCard'
 import { EvidencePanel } from './EvidencePanel'
 import { JoinBuilder } from './JoinBuilder'
 import { ModelCards } from './ModelCards'
@@ -180,6 +184,7 @@ function stageTitles(pipelines: Pipelines, profile: string, locale: string): str
 export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRunSelected, onOpenDashboard, draftScope = 'session' }: RunsViewProps) {
   const readOnly = useReadOnly()
   const { t, plural, isRtl, locale, formatNumber, formatDate, formatTime } = usePack(intakeMessages)
+  const { t: tDecision } = usePack(decisionMessages)
   const visible = useRef(true)
   useLayoutEffect(() => { visible.current = true; return () => { visible.current = false } }, [])
   const [runs, setRuns] = useState<RunSummary[]>([])
@@ -234,6 +239,9 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
   const [downloading, setDownloading] = useState(false)
   const [joins, setJoins] = useState<JoinSpec[]>([])
   const [breakdown, setBreakdown] = useState('')
+  // The decision inputs the run states (slice three, A2): undefined when
+  // nothing is stated, null while the form cannot be read as numbers.
+  const [assumptions, setAssumptions] = useState<RunAssumptions | null | undefined>(undefined)
   const changeJoins = useCallback((next: JoinSpec[], nextBreakdown: string) => {
     setJoins(next)
     setBreakdown(nextBreakdown)
@@ -337,6 +345,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
       return
     }
     if (!goal.trim()) return
+    if (assumptions === null) { setErrorMessage(tDecision('decision.invalid')); return }
     starting.current = true
     setBusy(true)
     setErrorMessage(null)
@@ -353,6 +362,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
         reportLanguage,
         datasetId,
         datasetId && joins.length ? { joins, breakdown } : undefined,
+        assumptions ?? undefined,
       )
       setRun(detail)
       void refreshList()
@@ -658,6 +668,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                   onChange={changeJoins}
                 />
               ) : null}
+              <DecisionInputs disabled={busy} onChange={setAssumptions} />
               <PlanPreview pipelines={pipelines} profile={profile} joined={joins.length > 0} />
               <details className="run-more">
                 <summary>{t('intake.more')}</summary>
@@ -791,6 +802,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
             return task ? `${task.title}: ${stateLabel(t, task.state)}` : stateLabel(t, run.state)
           })()}</p>
           <ApprovalCard detail={run} onDecision={(detail) => { setRun(detail); void refreshList() }} />
+          {run.decision ? <DecisionRecordCard decision={run.decision} language={reportLang} /> : null}
           <Suspense fallback={null}><AgentCollaboration key={run.id} run={run} events={snapshot.events}
             interrupted={snapshot.interrupted} pipelines={pipelines} onEvidence={setEvidenceTask} /></Suspense>
           {run.reports.length ? <section className="finding-grid report-theme" aria-label={t('overview.findings')}>

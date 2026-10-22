@@ -1,5 +1,6 @@
 import { translate } from '../i18n'
-import type { AuthConfig, ColumnMapping, DatasetDetail, DatasetSummary, ExportPayload, IdentityInfo, JoinPreview, JoinSpec, KpiPolicy, MappingProblem, Pipelines, QueryAnswer, QuerySpec, RecordsPage, RecordsSpec, RunDetail, RunExecutive, RunKpis, RunSummary, SessionState, TableField, TableFilter, TranscriptEntry, UploadResult, Usage } from './types'
+import type { AuthConfig, ColumnMapping, DatasetDetail, DatasetSummary, ExportPayload, IdentityInfo, JoinPreview, JoinSpec,
+  KpiPolicy, MappingProblem, Pipelines, QueryAnswer, QuerySpec, RecordsPage, RecordsSpec, RunAssumptions, RunDetail, RunExecutive, RunKpis, RunSummary, SessionState, TableField, TableFilter, TranscriptEntry, UploadResult, Usage } from './types'
 
 export const API_BASE = import.meta.env.VITE_API_BASE ?? ''
 const REQUEST_TIMEOUT_MS = 10_000
@@ -236,6 +237,9 @@ export const api = {
     /** Other stored datasets joined onto this one, and a breakdown from
      *  the merged table (ADR 0030). The server checks the merge first. */
     merge?: { joins: JoinSpec[]; breakdown?: string | null },
+    /** The decision inputs the run states (slice three, A2); the server
+     *  validates them before anything is written. */
+    assumptions?: RunAssumptions | null,
   ) =>
     request<RunDetail>(
       '/api/runs',
@@ -250,6 +254,7 @@ export const api = {
           language,
           joins: merge?.joins.length ? merge.joins : null,
           breakdown: merge?.joins.length ? (merge.breakdown || null) : null,
+          assumptions: assumptions ?? null,
         }),
       },
       merge?.joins.length ? UPLOAD_TIMEOUT_MS : REQUEST_TIMEOUT_MS,

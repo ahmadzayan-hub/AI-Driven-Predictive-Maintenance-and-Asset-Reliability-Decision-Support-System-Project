@@ -546,6 +546,20 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Decision inputs in the interface — 22 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-22-decision-inputs-interface.md)):
+the Analytics form collects an improvement and a cost per group and the
+explored range; the run view shows the decision record. `REQUIRE_PG=1
+python scripts/verify.py --quick` against PostgreSQL 16: **1,726 Python
+tests reported, 21 skipped** (optional extras only), brain check (46 notes),
+type check, **353 frontend unit tests**; build and budget passed separately
+(scripts 219.4 of 220 KB in total, first load 98.6 of 100 KB, CSS 30.4 of
+30.5 KB in total). Playwright `decision` **2 passed** (desktop and phone),
+and `runs`, `a11y`, `arabic`, `intake` and `keyboard` **24 passed** after the
+form changed. The full browser suite was not re-run here; the hosted run on
+the pull request is the record for it.
+
 ### Repository presentation — 22 October 2026
 
 Documentation destination/anchor checks, Markdown parsing, image decoding and

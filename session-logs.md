@@ -1417,6 +1417,15 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Follow-up on the same PR:** the Motion Studio merge put the measured script total at 216.3 KB, so the allocation is 218 KB (verify.py, UI_PLAN.md, the slice-three record). The owner's README redesign on main (`b860190`) opens with a hero image and a bilingual heading, which failed the product identity test on main and on the PR; the test now requires the full product name in the README's opening section instead of on line 1, with no README change. Python suite with PostgreSQL: 1726 tests, 1 failure before, OK after.
 
 
+## 2026-10-22 · `d9e3f889` · claude/tender-clarke-m4uwgq (decision inputs in the interface)
+
+- **Found:** slice three made uplift and cost inputs and wrote a decision record, but nothing in the interface collected the inputs or showed the record; every hosted run kept the assumed 10% and the approver never saw who decided what on which inputs.
+- **Done:** the Analytics form has "Improvement and cost (optional)": a group as the data spells it, an improvement in percent and a cost per row, plus the explored range (sent only when changed from 5% to 20%); the API client sends `assumptions`. The run view shows a decision record card under the approval: recommendation and basis, scope, expected impact with the record's stated or illustrative label, every option with its improvement (stated or assumed), cost (or not stated) and net gain, the flip point for a close call, and the gate (awaiting, or who decided and when; `approved_once` reads as approved). English and Arabic strings ship with the Runs chunk. Script allocation 220 KB (measured 219.4). [Decision](docs/adr/2026-10-22-decision-inputs-interface.md); roadmap, known limitations, UI plan and the slice-three record updated.
+- **Verified:** quick verify with PostgreSQL 6 of 6 (1726 Python tests, 21 skipped; 353 frontend unit tests, 4 new); build and budget; Playwright `decision` 2 of 2 and the five specs that cover the Analytics form 24 of 24.
+- **Decided:** the range travels only when it differs from the default, so a run that states nothing carries nothing; the card computes no figure of its own.
+- **Also on PR #21:** the hosted Arabic demo overflow was named by the new assertion: the skip link, pushed 9999 px past the inline start, landed 10,000 px to the right of the right-to-left page. It is now hidden by clipping and restored on focus (`3516746`); demo, accessibility, keyboard, Arabic and workspace specs pass on desktop and phone.
+- **Open / next:** this slice is committed locally and pushed once PR #21 merges; the standards lint and the P2 items remain.
+
 ## 2026-10-22 — Codex: GitHub repository presentation
 
 **Goal:** study the maintenance project, redesign its GitHub page and add original generated images.
