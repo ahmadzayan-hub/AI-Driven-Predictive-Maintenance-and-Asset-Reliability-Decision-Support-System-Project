@@ -635,9 +635,9 @@ class RunEngine:
         roles = self.roles
         if roles is None or roles.all_built_in:
             return roles
-        from server import model_privacy
-        if model_privacy.blocks_model(privacy=ctx.get("privacy"), merged=ctx.get("merge"),
-                                      texts=[run.get("goal") or "", *texts]):
+        if model_privacy.run_blocks_model(self.store, run["id"]) or model_privacy.blocks_model(
+                privacy=ctx.get("privacy"), merged=ctx.get("merge"),
+                texts=[run.get("goal") or "", *texts]):
             return roles.restricted()
         return roles
 
@@ -647,14 +647,12 @@ class RunEngine:
         the stage's own verified claims; a model failure never fails a run."""
         if self.roles is None:
             return
-        if model_privacy.run_blocks_model(self.store, run["id"]) or (
-                task["role"] in ("privacy", "merge")
-                and result.get("output", {}).get("personal_data")):
-            return
         language = run.get("report_language") or "en"
         try:
             facts = [claim.get("text") or "" for claim in result.get("claims", [])]
-            roles = self._roles_for(run, ctx, facts + [t["title"] for t in tasks])
+            # Include the just-completed privacy/merge result before persistence.
+            current = {**ctx, task["role"]: result.get("output", {})}
+            roles = self._roles_for(run, current, facts + [t["title"] for t in tasks])
             if roles is None:
                 return
             if task["role"] == "planner":
@@ -669,7 +667,7 @@ class RunEngine:
 
     def _consult(self, run, ctx):
         """The consultants and Hermes' brief, read by the reporter."""
-        if self.roles is None or model_privacy.run_blocks_model(self.store, run["id"]):
+        if self.roles is None:
             return None
         facts = [claim["text"] for stage in analytics.evidence_stages(ctx)
                  for claim in ctx.get(stage + "_result", {}).get("claims", [])
