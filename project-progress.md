@@ -1,11 +1,13 @@
 # Project progress
 
-Last updated: 2026-10-22, session `ad7e9eca`, preserving the workspace runtime and concurrent main changes. The session-end skill keeps this file current; the SessionStart hook reads the *Now* section into every new session.
+Last updated: 2026-10-22, session `ad7e9eca`, Arabic rendered reports running from the owner's selected home checkout. The session-end skill keeps this file current; the SessionStart hook reads the *Now* section into every new session.
 
 
 **Vision.** **AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project** uses Agentic OS as its governed analytics engine. It digests several datasets with dynamic inputs, then carries them through preparation, cleaning and modelling to a multi-page interactive dashboard with live data, with insights and key findings that are always traceable to a calculation. The product scope and remaining domain work are in `docs/PROJECT_CHARTER.md`; the reusable engine milestones are in `brain/Projects/Analytics OS roadmap.md`.
 
 ## Now
+
+- **Arabic analysis content and rendered reports: delivered locally, 2026-10-22** (`a2d4e4b`, integrated with current main at `5b0e410`). New analyses have an explicit report-language choice. Section reports, the full report and approval previews render headings, lists and tables in the scoped house style; built-in calculation descriptions, checks, chart labels and the fictional Arabic sample are translated without changing evidence values. The owner's selected home checkout now serves port 8000. A new Arabic sample reached the approval gate with its report and chart tables visible in Arabic. Existing reports in the previous checkout remain intact. [Decision and scope](docs/adr/2026-10-22-arabic-rendered-analysis-reports.md); verification and remaining environment limits are recorded in README.md#testing.
 
 - **Interrupted delivery reconciled: 2026-10-22.** Fresh remote checks confirm that the previously blocked maintenance commit `21dae21` and interface commit `77efe87` are on main. The local API and background worker remain ready. The GitHub sync runbook now documents checkpoint verification and guarded terminal recovery without a model session. Account-level usage limits remain controlled by the account provider; no billing or approval policy was changed.
 

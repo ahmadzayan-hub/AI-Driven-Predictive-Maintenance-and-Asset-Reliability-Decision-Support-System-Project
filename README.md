@@ -425,6 +425,40 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Arabic rendered analysis reports — 22 October 2026
+
+New runs expose a report-language selector. Arabic analysis output now renders
+as semantic headings, paragraphs, lists and tables in the scoped house palette.
+Built-in calculation descriptions and checks are translated for display; the
+Arabic fictional sample translates source labels while preserving all numeric
+cells. Existing artifacts retain their original language and audit values.
+See the [decision and boundaries](docs/adr/2026-10-22-arabic-rendered-analysis-reports.md).
+
+- The feature-tree verifier reported **1,642 Python tests, 161 optional skips**;
+  dependency, brain, type, native-contract, build and bundle checks passed.
+  Its frontend run passed **310 tests in 35 files**, but failed overall because
+  the OperationsView worker did not start on this Windows machine. This is not
+  recorded as a fully passing verifier. The complete frontend rerun in the
+  integrated home checkout subsequently passed **329 of 329 tests in 36 files**
+  with exit code zero; no assertions or deadlines were weakened.
+- The real backend browser journeys passed **20 of 20** cases for Arabic,
+  intake, runs and custom stages across desktop and phone. They verify rendered
+  Arabic headings, calculation tables, formula pipes, chart labels/data tables,
+  accessibility and the approval workflow.
+- After merging concurrent main changes, the focused language, sample, house
+  style, gateway, orchestration, run and demo checks reported **169 tests,
+  16 optional skips**. The integrated production build and type check passed:
+  JavaScript **98.0 KB initial / 210.7 KB total**, CSS **10.0 KB initial / 29.6 KB
+  total**, largest lazy chunk **18.9 KB**, fonts **119.4 KB**. The explicit total
+  allocation is **212 KB JavaScript / 30.5 KB CSS**; initial-load limits did not change.
+- A live Arabic sample in the owner's chosen home checkout reached the human
+  approval gate. Its section report, full report, chart labels and chart data
+  table were inspected in the running platform. Screenshots remain local.
+  The live sample was not published and no production deployment was made.
+- A synthetic renderer check on repeated unmatched delimiters retained the
+  complete text after replacing repeated suffix scans with cached boundaries.
+  This checks a pathological input, not a general browser performance score.
+
 ### Connected agent workspace and asset inspection — 22 October 2026
 
 The requested design is implemented in the real workspace: a connected Hermes
