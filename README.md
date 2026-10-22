@@ -493,6 +493,14 @@ The grounding guard is unchanged. Some optional notes can still be
 omitted when a model fails or its output fails grounding. Existing artifacts
 are not rewritten, and completed stages alone do not prove model success.
 
+Final live acceptance on the integrated runtime: Arabic sample `157729f82b7b`
+reached human approval in **307.94 seconds**, with **21 succeeded stages**,
+an accepted Qwen plan, **16 actual Qwen specialist notes**, an accepted Qwen
+consultant review and Qwen orchestrator closing brief. The report labels both
+review authors with `ollama:qwen3:4b-instruct-2507-q4_K_M`. It remains unpublished.
+This is execution acceptance on fictional sales data, not maintenance-domain
+validation or a response-time guarantee.
+
 After integrating main at `7912f6e`, the focused worker, orchestration, gateway,
 privacy, durable execution, worker limits, routing and documentation checks
 reported **163 tests, 17 optional skips, zero failures**. Type checking and the
