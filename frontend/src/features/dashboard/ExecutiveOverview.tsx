@@ -3,6 +3,8 @@ import { usePack } from '../../i18n/pack'
 import { api } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
 import { PerformanceLegend, PerformanceValue, performanceTone } from '../../shared/components/PerformanceValue'
+import { modelTone } from '../../shared/modelTone'
+import { useReadOnly } from '../../shared/readOnly'
 import type { KpiMeasure, RunExecutive, TableFilter } from '../../shared/types'
 import { executiveMessages } from './executiveMessages'
 import { policyMessages } from './policyMessages'
@@ -35,6 +37,7 @@ interface ExportJob {
  * No cross-user/module cache; changing scope aborts and hides old figures. */
 export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill, children }: Props) {
   const { t, locale, isRtl, formatNumber } = usePack(executiveMessages)
+  const readOnly = useReadOnly()
   const key = JSON.stringify([runId, locale, filters])
   const [revision, setRevision] = useState(0)
   const [policyOpen, setPolicyOpen] = useState(false)
@@ -258,7 +261,7 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
     </div>
 
     {(data.kpis.measures.length > 0 || Object.keys(data.kpis.unavailable).length > 0) ? <section aria-labelledby="exec-kpis">
-      <div className="exec-section-head"><h3 id="exec-kpis">{t('exec.kpis')}</h3>{data.kpis.measures.length ? <PolicyButton onClick={() => setPolicyOpen(true)} open={policyOpen} /> : null}</div>
+      <div className="exec-section-head"><h3 id="exec-kpis">{t('exec.kpis')}</h3>{data.kpis.measures.length && !readOnly ? <PolicyButton onClick={() => setPolicyOpen(true)} open={policyOpen} /> : null}</div>
       <PerformanceLegend />
       <details className="exec-about"><summary>{t('exec.about')}</summary><p>{t('exec.kpiScope')}</p><p>{t('exec.snapshot')}</p></details>
       {policyOpen ? <Suspense fallback={<p role="status">{t('exec.loading')}</p>}><KpiPolicyEditor key={`${runId}:${locale}`} runId={runId} measures={data.kpis.measures} onClose={() => setPolicyOpen(false)} onSaved={() => setRevision((v) => v + 1)} /></Suspense> : null}
@@ -297,12 +300,6 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
 const FAMILIES = ['reliability', 'execution', 'cost', 'other'] as const
 type Family = typeof FAMILIES[number]
 const FAMILY_ICON = { reliability: 'activity', execution: 'check', cost: 'database', other: 'dashboard' } as const
-
-function modelTone(model: RunExecutive['models'][number]) {
-  if (model.fitted === false || !model.metric || model.details.verdict === 'not_supported') return 'unassessed'
-  if (model.details.verdict === 'weak' || model.beats_baseline === false) return 'bad'
-  return model.beats_baseline === true ? 'good' : 'unassessed'
-}
 
 function Kpi({ measure }: { measure: KpiMeasure }) {
   const { t, formatNumber } = usePack(executiveMessages)

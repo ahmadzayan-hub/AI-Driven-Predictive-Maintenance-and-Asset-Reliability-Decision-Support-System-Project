@@ -310,7 +310,8 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
           </div>
         )}
 
-        <ConnectorsPanel />
+        {/* Live sources are written through the connector API: not in the demo. */}
+        {readOnly ? null : <ConnectorsPanel />}
       </div>
     </section>
   )

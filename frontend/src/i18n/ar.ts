@@ -196,7 +196,7 @@ export const ar: Record<MessageKey, string> = {
   'nav.memory': 'الذاكرة',
   'nav.activity': 'النشاط',
   'nav.preferences': 'التفضيلات',
-  'nav.overview': 'نظرة عامة',
+  'nav.overview': 'مركز القيادة',
   'nav.datasets': 'مجموعات البيانات',
   'nav.assetsShort': 'الأصول',
   'nav.more': 'المزيد',
@@ -441,8 +441,8 @@ export const ar: Record<MessageKey, string> = {
   'question.prescriptive': 'ماذا ينبغي أن أفعل؟',
 
   // نظرة عامة
-  'overview.aria': 'نظرة عامة',
-  'overview.title': 'نظرة عامة',
+  'overview.aria': 'مركز القيادة',
+  'overview.title': 'مركز القيادة',
   'overview.evidenceHeading': 'أدلة الوكلاء في أحدث تحليل',
   'overview.evidenceStages': 'اكتملت {done} من {total} مرحلة تحليل',
   'overview.evidenceMissing': 'لا يوجد تحليل متاح يحتوي على نتائج',
@@ -450,7 +450,7 @@ export const ar: Record<MessageKey, string> = {
   'overview.evidencePassed': 'اجتازت أدلة التحليل فحوصات التحقق',
   'overview.evidencePending': 'التحقق غير مكتمل أو يحتاج إلى مراجعة',
   'overview.evidenceScope': 'تفحص هذه الحالة الحسابات والأدلة المسجلة لهذا التحليل فقط، ولا تعني اعتماد دقة نماذج الذكاء الاصطناعي أو السلامة أو التشغيل الفعلي.',
-  'overview.desc': 'ما توصّلت إليه تحليلاتك، وما ينتظر قرارك، وما خزّنته من بيانات.',
+  'overview.desc': 'أحدث موجز للقرار، والأرقام التي يستند إليها، وما ينتظر قرارك، وما خزّنته من بيانات.',
   'overview.start': 'ابدأ تحليلًا',
   'overview.loading': 'جارٍ تحميل النظرة العامة',
   'overview.failed': 'تعذّر تحميل النظرة العامة.',

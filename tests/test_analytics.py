@@ -1243,3 +1243,65 @@ class MeasureDirectionTestCase(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class UnmappedPeriodOrderTestCase(unittest.TestCase):
+    """Without a saved mapping, periods are still ordered in time, or there
+    is no trend at all; never a trend in alphabetical order (audit, 22 Oct)."""
+
+    MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug"]
+
+    def rising(self, header, values):
+        return f"{header},site,downtime\n" + "\n".join(
+            f"{v},A,{100 + 10 * i}" for i, v in enumerate(values)) + "\n"
+
+    def test_month_names_and_day_first_dates_order_by_calendar(self):
+        for header, values, first in (
+                ("Month", self.MONTHS, "01 Jan"),
+                ("Month", [m + " 2024" for m in self.MONTHS], "2024-01"),
+                ("Date", [f"{d}/3/2024" for d in range(1, 9)], "2024-03-01")):
+            with self.subTest(header=header):
+                ctx, results = run_pipeline(self.rising(header, values))
+                self.assertEqual(results["validator"]["status"], "succeeded")
+                self.assertEqual(list(ctx["preparer"]["trend"])[0], first)
+                self.assertEqual(list(ctx["preparer"]["trend"].values()),
+                                 [100.0 + 10 * i for i in range(8)])
+                self.assertGreater(ctx["predictive"]["per_period_change"], 0)
+                self.assertIn("up", ctx["predictive"]["headline"])
+
+    def test_an_unreadable_period_column_keeps_the_recorded_order_and_says_so(self):
+        # "w1".."w12" sort alphabetically as w1, w10, w11, w12, w2; the
+        # data's own order is kept instead, and the report says so.
+        labels = [f"w{i}" for i in range(1, 13)]
+        ctx, results = run_pipeline(self.rising("Period", labels))
+        self.assertEqual(results["validator"]["status"], "succeeded")
+        self.assertEqual(list(ctx["preparer"]["trend"]), labels)
+        self.assertGreater(ctx["predictive"]["per_period_change"], 0)
+        texts = [c["text"] for c in results["cleaner"]["claims"]]
+        self.assertTrue(any("order they appear in the data" in t for t in texts), texts)
+
+
+class NarratorGroundingTestCase(unittest.TestCase):
+    """A model summary may phrase the facts, never add a figure to them."""
+
+    class Narrator:
+        def __init__(self, text):
+            self.text = text
+
+        def narrate(self, goal, facts, language="en"):
+            return {"text": self.text, "source": "model"}
+
+    def test_a_summary_with_an_invented_figure_is_set_aside_and_explained(self):
+        ctx, _ = run_pipeline(linear_dataset(),
+                              gateway=self.Narrator("Savings of 98765 are certain."))
+        out = ctx["prescriptive"]
+        self.assertEqual(out["exec_summary_source"], "deterministic")
+        self.assertIn("figure that is not in the verified facts", out["exec_summary_grounding_reason"])
+        self.assertNotIn("98765", out["exec_summary"])
+        report = analytics.reporter(ctx)["output"]["report_markdown"]
+        self.assertIn("set aside", report)
+
+    def test_a_summary_that_repeats_the_facts_is_kept(self):
+        ctx, _ = run_pipeline(linear_dataset(), gateway=self.Narrator("Sales are steady."))
+        self.assertEqual(ctx["prescriptive"]["exec_summary_source"], "model")
+        self.assertIsNone(ctx["prescriptive"]["exec_summary_grounding_reason"])

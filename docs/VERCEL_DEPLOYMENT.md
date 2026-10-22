@@ -16,7 +16,10 @@ project `asset-reliability-team3-saas` (`dpl_85JXfesWXYTtGij8QwYbaLWxpw6H`, Read
 Its `/api/auth/config` reports `local` mode: production has no sign-in
 variables and no `AGENTIC_OS_DEMO`. The connected Vercel account was refused
 (403) when adding `AGENTIC_OS_DEMO=1`, so the project owner must add it and
-redeploy. It does not establish current application identity,
+redeploy. Since 22 October the server no longer falls back to local mode on
+Vercel: with `DATABASE_URL` set and no sign-in provider it refuses to start
+([decision](adr/2026-10-22-audit-fixes-period-order-grounding-privacy-identity.md));
+with neither it serves the view-only demo. It does not establish current application identity,
 database durability or worker readiness. The historical observations below
 apply only to the deployment and date they name.
 
@@ -166,8 +169,10 @@ not reach it rather than because it failed:
   whether `DATABASE_URL` is set is unknown. The health response does not
   say. Without it, state is per-instance and lost on cold start, as the
   section above describes.
-- **Sign-in.** No identity provider is configured, so the deployment runs
-  in local mode: one owner, no login, same as a laptop.
+- **Sign-in.** No identity provider is configured. At the time, the
+  deployment ran in local mode (one owner, no login); since 22 October that
+  combination with `DATABASE_URL` refuses to start, and without it the
+  deployment serves the view-only demo.
 - **The Python version.** The "Other" build installed dependencies under
   CPython 3.14 despite `.python-version` saying 3.12; the function
   served, but the pin is evidently not what selects the runtime under

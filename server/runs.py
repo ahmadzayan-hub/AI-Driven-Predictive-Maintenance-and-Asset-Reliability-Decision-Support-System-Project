@@ -595,7 +595,7 @@ class RunEngine:
             self._set_run_state(run_id, "failed", error=result["summary"])
             return self.get_run(run_id)
 
-        self._annotate(run, task, tasks, result)
+        self._annotate(run, task, tasks, result, ctx)
         if ctx.get("orchestration"):
             result["orchestration"] = ctx["orchestration"]
         self._set_task(task["id"], "succeeded", summary=result["summary"], result=result)
@@ -618,7 +618,21 @@ class RunEngine:
                 "published_path": None, "created_at": _now()})
         return self.get_run(run_id)
 
-    def _annotate(self, run, task, tasks, result):
+    def _roles_for(self, run, ctx, texts):
+        """The roles a run may use. The same personal-data boundary the
+        narrator keeps (server/model_privacy.py) applies here: when the
+        run's privacy scan or the outgoing sentences carry personal data,
+        every model role is played by the built-in writer instead."""
+        roles = self.roles
+        if roles is None or roles.all_built_in:
+            return roles
+        from server import model_privacy
+        if model_privacy.blocks_model(privacy=ctx.get("privacy"), merged=ctx.get("merge"),
+                                      texts=[run.get("goal") or "", *texts]):
+            return roles.restricted()
+        return roles
+
+    def _annotate(self, run, task, tasks, result, ctx):
         """Model notes on a finished stage: Hermes' plan on the planner, the
         agent's note on every stage with findings. Words only, grounded in
         the stage's own verified claims; a model failure never fails a run."""
@@ -626,11 +640,15 @@ class RunEngine:
             return
         language = run.get("report_language") or "en"
         try:
+            facts = [claim.get("text") or "" for claim in result.get("claims", [])]
+            roles = self._roles_for(run, ctx, facts + [t["title"] for t in tasks])
+            if roles is None:
+                return
             if task["role"] == "planner":
-                plan = self.roles.plan(run["goal"], [t["title"] for t in tasks], language)
+                plan = roles.plan(run["goal"], [t["title"] for t in tasks], language)
                 if plan:
                     result["hermes_plan"] = plan
-            note = self.roles.agent_note(run["goal"], task["role"], result, language)
+            note = roles.agent_note(run["goal"], task["role"], result, language)
             if note:
                 result["agent_note"] = note
         except Exception:
@@ -644,8 +662,10 @@ class RunEngine:
                  for claim in ctx.get(stage + "_result", {}).get("claims", [])
                  if claim.get("text")]
         try:
-            return self.roles.consult(run["goal"], facts,
-                                      run.get("report_language") or "en")
+            roles = self._roles_for(run, ctx, facts)
+            if roles is None:
+                return None
+            return roles.consult(run["goal"], facts, run.get("report_language") or "en")
         except Exception:
             return None
 

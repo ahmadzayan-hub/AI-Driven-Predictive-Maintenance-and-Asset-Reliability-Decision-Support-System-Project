@@ -650,7 +650,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
             if body is not None and body.language:
                 session.agent.set_preference("language", body.language)
             save_session(session)
-            store.trim_sessions(MAX_SESSIONS)
+            store.trim_sessions(MAX_SESSIONS, principal.subject)
             return session.snapshot()
 
     @app.get("/api/sessions/{session_id}")

@@ -515,7 +515,8 @@ export function App() {
           <ReadOnlyContext.Provider value={demo}>
           {pane('operations', <OperationsView onOpenRun={openRun} />)}
           {pane('overview', (
-            <OverviewView onOpenRun={openRun} onStart={startAnalysis} canStart={!demo} onApprovals={() => go('approvals')} onOpenDashboard={() => go('dashboard')} />
+            <OverviewView onOpenRun={openRun} onStart={startAnalysis} canStart={!demo} onApprovals={() => go('approvals')}
+              onOpenDashboard={(id) => (id ? openDashboard(id) : go('dashboard'))} onSeeAll={() => go('runs')} />
           ))}
           {pane('assets', (
             <AssetIntelligenceView onOpenRun={openRun}

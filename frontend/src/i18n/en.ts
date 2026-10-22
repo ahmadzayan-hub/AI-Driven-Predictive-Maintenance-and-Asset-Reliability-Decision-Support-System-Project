@@ -195,7 +195,7 @@ export const en = {
   'nav.memory': 'Memory',
   'nav.activity': 'Activity',
   'nav.preferences': 'Preferences',
-  'nav.overview': 'Overview',
+  'nav.overview': 'Command Centre',
   'nav.datasets': 'Datasets',
   'nav.more': 'More',
   'nav.assetsShort': 'Assets',
@@ -459,8 +459,8 @@ export const en = {
   'question.prescriptive': 'What should I do?',
 
   // Overview
-  'overview.aria': 'Overview',
-  'overview.title': 'Overview',
+  'overview.aria': 'Command Centre',
+  'overview.title': 'Command Centre',
   'overview.evidenceHeading': 'Agent evidence for the latest analysis',
   'overview.evidenceStages': '{done} of {total} analysis stages completed',
   'overview.evidenceMissing': 'No analysis with findings available',
@@ -468,7 +468,7 @@ export const en = {
   'overview.evidencePassed': 'Run-level evidence checks passed',
   'overview.evidencePending': 'Validation incomplete or needs review',
   'overview.evidenceScope': 'This checks the recorded calculations and evidence in one run. It does not certify AI model accuracy, safety or live operations.',
-  'overview.desc': 'What your analyses found, what is waiting for you, and what you have stored.',
+  'overview.desc': 'The latest decision brief, the figures behind it, what is waiting for you, and what you have stored.',
   'overview.start': 'Start an analysis',
   'overview.loading': 'Loading the overview',
   'overview.failed': 'The overview could not be loaded.',

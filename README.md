@@ -425,6 +425,23 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Platform assessment, audit fixes and the Command Centre — 22 October 2026
+
+Four code-grounded audits ([assessment](docs/audits/SAAS_PLATFORM_ASSESSMENT.md)),
+five blockers fixed with tests ([decision](docs/adr/2026-10-22-audit-fixes-period-order-grounding-privacy-identity.md)),
+and the Executive Command Centre on the Overview
+([decision](docs/adr/2026-10-22-executive-command-centre.md)). Results, with
+what was not verified, are in [docs/qa/END_TO_END_VALIDATION.md](docs/qa/END_TO_END_VALIDATION.md).
+
+- Full verifier **8 of 8**: **1,662 Python tests, 21 skipped** (optional extras);
+  **323 frontend tests**; typecheck; production build; budget JS 98.0 / 100 KB
+  first load, 211.7 / 214 KB total, CSS 28.7 / 29.5 KB total.
+- `scripts/evaluate_agents.py --check`: 9 of 9 agents at or above floor.
+- Browser: Overview spec **9 passed, 3 skipped**; accessibility spec **4 passed**
+  (WCAG 2.2 AA scan with the Command Centre), desktop and mobile.
+- Not verified: live model providers; the remaining 25 Playwright specs
+  (last full run 21 October); hosted load behaviour.
+
 ### Connected agent workspace and asset inspection — 22 October 2026
 
 The requested design is implemented in the real workspace: a connected Hermes

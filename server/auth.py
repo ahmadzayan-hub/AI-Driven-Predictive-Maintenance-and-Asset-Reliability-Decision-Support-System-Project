@@ -326,6 +326,15 @@ def build_identity(env=None):
     if (env.get("VERCEL") == "1" and not env.get("DATABASE_URL")
             and env.get("AGENTIC_OS_DEMO") != "0"):
         return DemoIdentity()
+    if env.get("VERCEL") == "1" and env.get("DATABASE_URL"):
+        # A shared database on a public host with no sign-in would make
+        # every visitor the owner of every tenant's data. Refuse (audit
+        # finding, 22 October); AGENTIC_OS_DEMO=1 is the explicit opt-in
+        # for a view-only showcase on a shared database.
+        raise AuthNotConfigured(
+            "A hosted deployment with DATABASE_URL needs a sign-in provider: "
+            "set AGENTIC_OS_JWT_SECRET (or SUPABASE_JWT_SECRET) or "
+            "AGENTIC_OS_JWKS_URL, or AGENTIC_OS_DEMO=1 for a view-only demo.")
     production = env.get("AGENTIC_OS_ENV", "").lower() == "production"
     if production or env.get("AGENTIC_OS_REQUIRE_AUTH") == "1":
         raise AuthNotConfigured(

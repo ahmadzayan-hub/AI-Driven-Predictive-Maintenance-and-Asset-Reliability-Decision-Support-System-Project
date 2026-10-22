@@ -482,6 +482,33 @@ def profiler(ctx):
     )
 
 
+DATE_LIKE_NAMES = ("month", "date", "period", "week", "year")
+
+
+def _date_like_column(columns):
+    return next((c for c in columns if c.lower() in DATE_LIKE_NAMES), None)
+
+
+def _period_labels_unmapped(values):
+    """(labels, grain, order) for an unmapped period column, or (None, None,
+    None) when it does not read. Dates go through the mapping parser; bare
+    month names ("Jan", "March") are ordered by calendar under a numbered
+    label that keeps the name."""
+    filled = [v for v in values if v not in (None, "")]
+    if not filled:
+        return None, None, None
+    labels, grain, order = colmap.period_labels(values)
+    readable = sum(1 for v, l in zip(values, labels) if v not in (None, "") and l)
+    if readable >= colmap.SUGGEST_SHARE * len(filled):
+        return [l if v not in (None, "") else None for v, l in zip(values, labels)], grain, order
+    months = {str(v).strip().lower() for v in filled}
+    if months and months <= set(colmap.MONTHS):
+        out = [None if v in (None, "") else
+               f"{colmap.MONTHS[str(v).strip().lower()]:02d} {str(v).strip()}" for v in values]
+        return out, "month", None
+    return None, None, None
+
+
 def cleaner(ctx):
     rows = ctx["collector"]["rows"]
     numeric_columns = ctx["profiler"]["numeric_columns"]
@@ -528,6 +555,39 @@ def cleaner(ctx):
     dates = {"date_col": None, "date_grain": None, "date_order": None,
              "dates_unreadable": 0, "dates_missing": 0}
     date_col = colmap.date_of(mapping, ctx["collector"]["columns"]) if mapping else None
+    if not mapping:
+        # An unmapped run finds its period column by name, as the preparer
+        # always did; it is now labelled here too, so that "January 2024",
+        # "1/2/2024" or "Jan" order by calendar rather than alphabet. A
+        # column that does not read as periods gives no trend at all,
+        # rather than one in a wrong order (audit finding, 22 October).
+        named = _date_like_column(ctx["collector"]["columns"])
+        if named:
+            labels, grain, order = _period_labels_unmapped(
+                [row.get(named) for row in cleaned])
+            if labels is None:
+                # Labels such as "w1" or "P3" are kept in the order the
+                # data lists them, which is the order a reader can check;
+                # alphabetical order ("w1, w10, w2") is never used.
+                calcs.append({"id": "c_dates_unread", "name": "dates_not_read",
+                              "value": sum(1 for row in cleaned if row.get(named)),
+                              "method": f"{named} values that do not read as dates "
+                                        "or month names; periods kept in the order "
+                                        "recorded"})
+                claims.append(_claim(
+                    ctx, "cl_dates_unread", "limitation",
+                    f"The {named} column does not read as dates, so its periods are "
+                    "kept in the order they appear in the data. Check that order "
+                    "before reading any trend or forecast as a sequence in time.",
+                    f"لا يُقرأ عمود {named} تواريخ، فتُحفظ فتراته بالترتيب الذي "
+                    "تظهر به في البيانات. تحقق من هذا الترتيب قبل قراءة أي اتجاه "
+                    "أو توقع على أنه تسلسل زمني.",
+                    ["c_dates_unread"]))
+                dates.update(date_col=named, date_grain=None, date_order="as-recorded")
+            else:
+                for row, label in zip(cleaned, labels):
+                    row[named] = label
+                dates.update(date_col=named, date_grain=grain, date_order=order)
     if date_col:
         # Each date becomes a sortable period label at the mapping's grain,
         # so every later stage orders time by time, not alphabetically. A
@@ -1109,9 +1169,10 @@ def preparer(ctx):
         date_col = ctx["cleaner"].get("date_col")
         group_col = mapping.get("dimension")
     else:
-        date_col = next((c for c in columns if c.lower() in
-                         ("month", "date", "period", "week", "year")), None)
-        could_group = _automatic_groups(columns, numeric_columns, date_col, rows)
+        # The cleaner labelled the period column, or found none it could read.
+        date_col = ctx["cleaner"].get("date_col")
+        could_group = _automatic_groups(columns, numeric_columns,
+                                        date_col or _date_like_column(columns), rows)
         group_col = could_group[0] if could_group else None
     # A breakdown chosen for a joined run wins: it is usually why the
     # lookup was joined at all (ADR 0030).
@@ -1132,10 +1193,12 @@ def preparer(ctx):
     if date_col:
         for row in rows:
             value = row.get(measure)
-            if value is not None and not (mapping and row[date_col] is None):
+            if value is not None and row.get(date_col) is not None:
                 trend.setdefault(row[date_col], []).append(value)
                 trend_counts[row[date_col]] = trend_counts.get(row[date_col], 0) + 1
-        trend = {key: math.fsum(values) for key, values in sorted(trend.items())}
+        ordered = (trend.items() if ctx["cleaner"].get("date_order") == "as-recorded"
+                   else sorted(trend.items()))
+        trend = {key: math.fsum(values) for key, values in ordered}
         trend_counts = {k: trend_counts[k] for k in trend}
     # Evidence retains source precision. Independently rounding each group
     # accumulates into a false reconciliation failure (and changes ratios).
@@ -3435,10 +3498,20 @@ def prescriptive(ctx, gateway=None):
                      "privacy_reason": notice(report_language(ctx))}
     elif not gateway:
         narration = {"text": " ".join(facts), "source": "deterministic"}
-    elif arabic:
-        narration = gateway.narrate(goal, facts, language="ar")
     else:
-        narration = gateway.narrate(goal, facts)
+        narration = gateway.narrate(goal, facts, language="ar" if arabic else "en")
+        if (narration.get("source") == "model"
+                and orchestration.grounded(narration.get("text"), facts) is None):
+            # The model added a figure that is not in the facts, or said
+            # nothing. The summary is then the facts themselves, and the
+            # report says so (audit finding, 22 October).
+            narration = {"text": " ".join(facts), "source": "deterministic",
+                         "grounding_reason": _say(
+                             ctx, "The model's summary was set aside because it stated "
+                                  "a figure that is not in the verified facts; the "
+                                  "summary above is the facts themselves.",
+                             "استُبعد ملخص النموذج لأنه ذكر رقماً ليس في الحقائق المتحقق "
+                             "منها؛ والملخص أعلاه هو الحقائق نفسها.")}
 
     if arabic:
         lines = ["| الخيار | الهدف | المكسب المتوقع | السبب |", "| --- | --- | --- | --- |"]
@@ -3485,6 +3558,7 @@ def prescriptive(ctx, gateway=None):
                 "exec_summary": narration["text"],
                 "exec_summary_source": narration["source"],
                 "exec_summary_privacy_reason": narration.get("privacy_reason"),
+                "exec_summary_grounding_reason": narration.get("grounding_reason"),
                 # Who chose the narrator, when something did. The report
                 # already names which model wrote the summary; why that
                 # one belongs beside it (ADR 0017).
@@ -3936,6 +4010,8 @@ def reporter(ctx):
                                   source, language)),
         *([ctx["prescriptive"]["exec_summary_privacy_reason"]]
           if ctx["prescriptive"].get("exec_summary_privacy_reason") else []),
+        *([ctx["prescriptive"]["exec_summary_grounding_reason"]]
+          if ctx["prescriptive"].get("exec_summary_grounding_reason") else []),
         *orchestration.report_section(ctx.get("orchestration"), language),
         "",
         text["questions"],

@@ -593,11 +593,21 @@ class SqlStore:
         else:
             self._commit()
 
-    def trim_sessions(self, keep):
+    def trim_sessions(self, keep, owner=None):
+        """Keep an owner's `keep` most recent sessions. Retention is per
+        owner: one tenant's new sessions never delete another's (audit
+        finding, 22 October). Without an owner, every owner is trimmed to
+        the same count."""
+        if owner is None:
+            owners = [row["owner"] for row in
+                      self._exec("SELECT DISTINCT owner FROM sessions")]
+            for each in owners:
+                self.trim_sessions(keep, each)
+            return
         self._exec(
-            "DELETE FROM sessions WHERE id NOT IN "
-            "(SELECT id FROM sessions ORDER BY updated_at DESC LIMIT ?)",
-            (keep,))
+            "DELETE FROM sessions WHERE owner = ? AND id NOT IN "
+            "(SELECT id FROM sessions WHERE owner = ? ORDER BY updated_at DESC LIMIT ?)",
+            (owner, owner, keep))
 
     # -- shared memory ----------------------------------------------------
     def memory_load(self, owner="local-owner"):

@@ -270,3 +270,31 @@ class LocalModeTestCase(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SessionRetentionPerOwnerTestCase(unittest.TestCase):
+    """Trimming keeps each owner's newest sessions; one tenant's activity
+    never deletes another tenant's conversations (audit, 22 October)."""
+
+    def test_trim_is_scoped_to_the_owner(self):
+        root = Path(tempfile.mkdtemp())
+        store = open_store(None, root / "runs.db")
+        self.addCleanup(store.close)
+
+        def session(owner, n):
+            return {"id": f"{owner}-{n}", "created_at": f"2026-10-22T00:00:{n:02d}",
+                    "updated_at": f"2026-10-22T00:00:{n:02d}", "ended": 0,
+                    "preferences_json": "{}", "history_json": "[]",
+                    "transcript_json": "[]", "next_entry_id": 1, "owner": owner}
+
+        store.upsert_session(session("tenant-b", 0))
+        for n in range(40):
+            store.upsert_session(session("tenant-a", n))
+            store.trim_sessions(32, "tenant-a")
+        self.assertIsNotNone(store.get_session("tenant-b-0"))
+        kept = store._exec("SELECT id FROM sessions WHERE owner = ?", ("tenant-a",))
+        self.assertEqual(len(kept), 32)
+        self.assertIsNone(store.get_session("tenant-a-0"))
+        # Without an owner, every owner is trimmed to the same count.
+        store.trim_sessions(1)
+        self.assertEqual(len(store._exec("SELECT id FROM sessions")), 2)

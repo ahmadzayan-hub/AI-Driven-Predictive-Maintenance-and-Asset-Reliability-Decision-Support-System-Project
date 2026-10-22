@@ -77,7 +77,7 @@ test('capture interface screenshots', async ({ page }, testInfo) => {
     // The Overview and Datasets views (ADR 0023), in Arabic and English.
     // The latest findings come from the Arabic run, and stay Arabic in
     // the English interface: a report keeps its language.
-    await page.getByRole('button', { name: /^نظرة عامة/ }).first().click()
+    await page.getByRole('button', { name: /^مركز القيادة/ }).first().click()
     await settled()
     await shot('overview-arabic-light')
     await page.getByRole('button', { name: 'تغيير اللغة' }).click()
@@ -92,7 +92,7 @@ test('capture interface screenshots', async ({ page }, testInfo) => {
     await theme('dark')
     await shot('datasets-dark')
   } else {
-    await openTab(page, /^Overview/)
+    await openTab(page, /^Command Centre/)
     await settled()
     await shot('overview-dark')
   }
