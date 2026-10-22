@@ -1,0 +1,111 @@
+/* Decision inputs and the decision record (A2, A13); ships with the Runs chunk. */
+
+.decision-inputs__row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: end;
+  border: 0;
+  padding: 0;
+  margin: 0 0 var(--space-2);
+  min-inline-size: 0;
+}
+
+.decision-inputs__range {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.decision-inputs__remove {
+  min-width: 44px;
+}
+
+@media (max-width: 640px) {
+  .decision-inputs__row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .decision-inputs__row .field:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.decision-record__facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-2) var(--space-3);
+  margin: var(--space-3) 0;
+}
+
+.decision-record__facts dt {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.decision-record__facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.decision-record__basis,
+.decision-record__tag {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.decision-record__table .decision-record__tag {
+  display: inline;
+  margin-inline-start: var(--space-1);
+}
+
+.decision-record__tag--stated {
+  color: var(--success);
+}
+
+.decision-record__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-s);
+  margin-block: var(--space-3);
+}
+
+.decision-record__table caption {
+  text-align: start;
+  font-weight: 600;
+  padding-block-end: var(--space-2);
+}
+
+.decision-record__table th,
+.decision-record__table td {
+  text-align: start;
+  padding: var(--space-1) var(--space-2);
+  border-block-end: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.decision-record__winner th,
+.decision-record__winner td {
+  background: var(--success-soft);
+}
+
+.decision-record__verdict {
+  font-weight: 600;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-s);
+}
+
+.decision-record__verdict--stable {
+  background: var(--success-soft);
+}
+
+.decision-record__verdict--close {
+  background: var(--warning-soft);
+}
+
+@media (max-width: 640px) {
+  .decision-record__facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

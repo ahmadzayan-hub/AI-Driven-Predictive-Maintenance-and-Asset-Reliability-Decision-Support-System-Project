@@ -524,15 +524,40 @@ hardware expectations, hosted configuration and acceptance limits.
 ## Testing
 
 **22 October 2026 · RMD evidence implementation (synthetic inputs).** The local
-targeted run executed **159 Python checks**, with **2 optional private-knowledge
+targeted run executed **164 Python checks**, with **2 optional private-knowledge
 checks skipped**, and no failures. This includes genuine legacy Word conversion,
 workbook provenance, calculations, separate-user/organization permissions,
 immutable exports, erasure and the actual report approval/publication lifecycle.
 The strict brain check passes. HTTP boundary tests use an explicitly documented
 inline dispatcher because this runner stalls AnyIO worker wakeups; production
-thread scheduling and PostgreSQL are separate hosted checks. Frontend type,
-component, build, browser, accessibility and budget checks are in progress on
-the review branch. The owner instructed us to omit unavailable source originals;
+thread scheduling is a separate hosted check. Hosted checks have passed the
+complete frontend suite (**356 component checks**), TypeScript and production
+build. The focused hosted backend run executed **123 checks**, with **1 skipped**
+because LibreOffice is not installed on that runner. The full Python suite's
+PostgreSQL step also passed in hosted CI.
+
+The [RMD acceptance run](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39869725337)
+passed **all 4 real-API browser journeys**: English and Arabic on desktop and
+phone, including import, mapping, calculations, evidence, knowledge, action
+export, reload, contextual assistant, keyboard approval and server-confirmed
+publication. Axe scans passed on the tested states in both themes; the tested
+layouts had no page overflow at **1440, 768, 390 and 320 px**. Synthetic rendered
+captures are retained in that run's `rmd-synthetic-checks` artifact for seven days.
+The phone journey exposed and verified a fix for the primary action being
+covered by bottom navigation.
+
+Measured gzip: JS first load **98.9 / 100 KB**, total **241.5 / 244 KB**, largest
+chunk **15.9 / 30 KB**; CSS first load **10.0 / 10.5 KB**, total **32.3 / 32.5 KB**;
+fonts **119.4 / 120 KB**. The RMD views are lazy loaded; the total allocation grew
+to accommodate them without increasing the first-load limits. These bundle
+checks do not measure production LCP/CLS/INP or manager comprehension. Automated
+accessibility checks do not establish complete WCAG conformance. The broader
+existing browser suite is recorded separately by the CI workflow. These sizes
+describe the tested RMD revision `7f8be777`; main subsequently advanced to
+`bfa00d79` with decision inputs and CI/layout fixes. The combined-tree allocation
+is **248 KB total JS / 33.5 KB total CSS**, with first-load limits unchanged;
+combined verification is recorded below when complete.
+The owner instructed us to omit unavailable source originals;
 no actual-source findings or workbook baseline verification is claimed.
 
 ```bash
@@ -563,6 +588,23 @@ cd frontend && npm run typecheck
 # --e2e adds both the main and Miyaar Playwright suites.
 python scripts/verify.py
 ```
+
+### Decision inputs in the interface — 22 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-22-decision-inputs-interface.md)):
+the Analytics form collects an improvement and a cost per group and the
+explored range; the run view shows the decision record. `REQUIRE_PG=1
+python scripts/verify.py --quick` against PostgreSQL 16: **1,726 Python
+tests reported, 21 skipped** (optional extras only), brain check (46 notes),
+type check, **353 frontend unit tests**; build and budget passed separately
+(scripts 219.4 of 220 KB in total, first load 98.6 of 100 KB, CSS 30.4 of
+30.5 KB in total). Playwright `decision` **2 passed** (desktop and phone),
+and `runs`, `a11y`, `arabic`, `intake` and `keyboard` **24 passed** after the
+form changed. Hosted CI on the pull request (merged as `37fce5e`), after the
+skip link and phone header fixes: **1,726 Python tests, 25 skipped**, 40 unit
+test files, the full Playwright suite **139 passed, 5 skipped** on desktop and
+phone, the Miyaar suite **12 passed**, budget passed, and the Playwright
+browser cache saved for the next run.
 
 ### Repository presentation — 22 October 2026
 

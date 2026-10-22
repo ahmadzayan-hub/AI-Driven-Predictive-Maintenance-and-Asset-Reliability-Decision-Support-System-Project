@@ -92,11 +92,25 @@ the actual workbook baseline checks. These can be assessed after a later import.
 No actual evidence is replaced by demo
 data. Synthetic test fixtures are explicitly labeled.
 
-Still measurement-dependent: manager comprehension within ten seconds, evidence
-within two interactions, mobile Arabic journey, keyboard-only approval,
-320-pixel overflow, both themes, WCAG checks and production performance.
-Record observed results, environment limitations and unresolved issues in the
-delivery log. A designed acceptance target is not a measured outcome.
+Observed with explicitly synthetic inputs: real API-backed import, mapping,
+calculation, source-row and clause drill-down, action export, durable reload,
+contextual assistant and exact-artifact publication pass in English and Arabic
+on desktop and phone. Evidence opens from the tested headline with one action.
+The approval controls were activated entirely by keyboard. Tested layouts had
+no page overflow at 1440, 768, 390 and 320 pixels; automated accessibility scans
+passed on the tested views, dialogs and report states, with both theme
+renderings covered. Phone testing exposed a scroll-containment defect that
+covered the review action with bottom navigation; the corrected journey passes.
+Synthetic rendered captures are available in the linked CI run's temporary
+artifact. Exact test counts, measured bundle sizes and the run link are in
+[README.md#testing](../README.md#testing).
+
+Still measurement-dependent: manager comprehension within ten seconds,
+independent screen-reader/manual WCAG assessment, and actual-workload
+LCP/CLS/INP. Automated scans cover their tested states, not complete WCAG
+conformance. The stricter first-load allocation is preserved; lazy RMD views
+increase the total bundle allocation, documented in the UI plan. No live
+deployment or real-source acceptance is claimed.
 
 Future work: automatic OCR with reviewed visual coverage, advanced engineering
 models after the readiness gate, and deployment-specific native packaging.

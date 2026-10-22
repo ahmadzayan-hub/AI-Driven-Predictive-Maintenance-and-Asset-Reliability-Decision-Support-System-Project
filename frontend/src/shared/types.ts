@@ -132,6 +132,56 @@ export interface RunApproval {
   state: string
   created_at: string
   decided_at: string | null
+  /** Who decided, as the approval row records it (slice three, A13). */
+  decided_by?: string | null
+}
+
+/** The decision inputs a run may state (slice three, A2): an uplift per
+ *  target as a fraction, a cost per target in the measure's units, and the
+ *  uplift range the sensitivity stage explores. Keys are target names as
+ *  the data spells them. The server validates every field. */
+export interface RunAssumptions {
+  uplift?: Record<string, number>
+  costs?: Record<string, number>
+  uplift_range?: [number, number]
+}
+
+/** One option the prescriptive stage compared, with the inputs it used. */
+export interface DecisionOption {
+  key: string
+  title: string
+  target: string
+  base_value: number
+  uplift: number
+  uplift_source: 'stated' | 'assumed'
+  cost: number | null
+  expected_gain: number
+  evidence: string[]
+}
+
+/** The run's decision record (slice three, A13): written by the
+ *  prescriptive stage, given its uncertainty by the sensitivity stage and
+ *  completed by the approval gate. Its text is the audited English. */
+export interface DecisionRecord {
+  decision_id: string
+  issue: string
+  scope: string
+  evidence: string[]
+  risk: { measure: string; observed: number; basis: string }
+  alternatives: DecisionOption[]
+  expected_impact: { low: number; high: number; uplift_range: [number, number]; label: 'stated' | 'illustrative' }
+  cost: { stated_for: string[]; not_stated_for: string[] }
+  constraints: string[]
+  uncertainty: {
+    stable_within_ranges: boolean
+    uplift_range: [number, number]
+    flip_points: Array<{ key: string; target: string; flip_at_uplift: number | null; inside_range: boolean; can_overtake: boolean }>
+    break_even_ratio: number | null
+  } | null
+  recommended_action: string | null
+  recommendation_basis: 'value' | 'size_no_direction' | 'size_no_cost'
+  approval: { state: string; decided_at: string | null; decided_by: string | null } | null
+  audit: { run_id: string; snapshot: string | null; report_language: 'en' | 'ar' }
 }
 
 export interface ChartSpec {
@@ -179,6 +229,10 @@ export interface RunDetail {
   /** Other datasets joined onto this one (ADR 0030); empty for one dataset. */
   joins?: Array<Pick<JoinSpec, 'dataset_id' | 'keys' | 'how'> & { alias: string }>
   breakdown?: string | null
+  /** The decision inputs the run stated, if any (slice three, A2). */
+  assumptions?: RunAssumptions | null
+  /** The decision record, once the prescriptive stage has run (A13). */
+  decision?: DecisionRecord | null
   report: {
     id: string
     name: string

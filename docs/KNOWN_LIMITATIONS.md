@@ -77,8 +77,8 @@ after the main integration. Do not infer it from idle API health.
      all, because its period sums are not rates.
    - **Prescriptive** ranks options the dataset itself supplies, scoring
      each with an assumed 10% improvement unless the run states an uplift
-     or a cost per target (API `assumptions`; the interface does not
-     collect them yet). It is not an optimizer and knows nothing about
+     or a cost per target (API `assumptions`, collected by the Analytics
+     form under "Improvement and cost"). It is not an optimizer and knows nothing about
      capacity or feasibility; it writes a decision record per
      recommendation and the sensitivity stage says whether the ranking
      survives independent uplift ranges. It also does not know which way is good

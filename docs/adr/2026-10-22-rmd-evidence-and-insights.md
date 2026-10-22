@@ -1,7 +1,7 @@
 # RMD evidence workspaces and governed report review
 
 Date: 2026-10-22  
-Status: Accepted for implementation; supplied-source acceptance remains pending.
+Status: Implemented with synthetic acceptance; supplied-source study omitted by owner instruction.
 
 ## Problem
 
@@ -86,9 +86,15 @@ private source inspector, protected evidence dialog, translations and scoped
 assistant arrive lazily. There are no new runtime dependencies or fonts.
 
 Keep the first-load JavaScript, first-load CSS, lazy-chunk and font ceilings.
-Allocate 244 KB total JavaScript and 32.5 KB total CSS to this integrated
-capability. This is an explicit total-download tradeoff; it is not evidence of
-LCP/CLS/INP performance, which needs separate browser measurement.
+The initial RMD branch allocation was 244 KB total JavaScript and 32.5 KB total
+CSS. Before integration, main advanced to bfa00d79 with decision inputs, decision
+records and layout fixes. Preserve that work and allocate 248 KB total
+JavaScript and 33.5 KB total CSS to the combined capability. The allocation
+retains the decision-input script allowance and accommodates its lazy styles;
+the combined production build must pass the exact-byte gate. Observed sizes
+are recorded in README.md#testing after measurement. This is an explicit
+total-download tradeoff; it is not evidence of LCP/CLS/INP performance, which
+needs separate browser measurement.
 
 New PostgreSQL evidence DDL and direct API grants are protected atomically at
 store startup: enable RLS and revoke PUBLIC/available anon/authenticated roles.

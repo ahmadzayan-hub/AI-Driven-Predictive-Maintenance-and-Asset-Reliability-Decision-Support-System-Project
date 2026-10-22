@@ -21,7 +21,9 @@ below so they can be reversed knowingly.
    in both languages. The three uniform scenarios are kept and labelled for
    what they are: with one uplift for everyone the order is scale-invariant.
    A property test shows a stated uplift and a stated cost each flip the
-   ranking. Nothing in the interface collects the inputs yet; the API does.
+   ranking. The interface collects the inputs since the
+   [decision inputs record](2026-10-22-decision-inputs-interface.md) of the
+   same day.
 2. **One decision record per recommendation (A13).** The prescriptive stage
    writes it (id, issue, scope, evidence, observed risk, every alternative
    with its uplift, cost and gain, expected impact across the range, which
@@ -123,7 +125,9 @@ Merging this slice with the Arabic rendered reports of the same day
 (`2026-10-22-arabic-rendered-analysis-reports.md`, which allocated 212 KB
 of scripts and 30.5 KB of CSS) puts the scripts at 215.2 KB against the
 Command Centre's 214 KB. The combined allocation is recorded here as
-**216 KB of scripts in total** and **30.5 KB of CSS in total**; first-load
+**216 KB of scripts in total** and **30.5 KB of CSS in total**, raised to
+**218 KB of scripts** on the same day when the Motion Studio merge (PR #18,
+the owner's) put the measured total at 216.3 KB; first-load
 limits (100 KB scripts, 10.5 KB CSS) and the 30 KB chunk limit are
 unchanged. Main's Arabic display tables gained the labels, methods and the
 check name the two release-gate slices added, so Arabic reports show no
