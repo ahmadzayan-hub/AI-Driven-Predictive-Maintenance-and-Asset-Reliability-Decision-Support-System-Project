@@ -58,7 +58,7 @@ def validate(payload: dict, *, require_approval: bool = False) -> dict:
             fields = ("source_id", "revision", "locator", "data_status")
             if any(not isinstance(ref.get(k), str) or not ref[k] for k in fields):
                 raise MotionInputError("Evidence must identify source, revision, locator and status")
-            if not all(SAFE_REF.fullmatch(ref[k]) for k in ("source_id", "revision", "locator")):
+            if not all(0 < len(ref[k]) <= 150 and not any(ord(ch) < 32 for ch in ref[k]) for k in ("source_id", "revision", "locator")):
                 raise MotionInputError("Unsafe evidence reference format")
             if ref["data_status"] not in SUPPORTED | {"SYNTHETIC"}:
                 raise MotionInputError("Unsupported evidence must remain blocked")
