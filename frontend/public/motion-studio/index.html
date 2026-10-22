@@ -31,6 +31,11 @@ canvas{width:100%;height:auto;max-height:75vh;object-fit:contain;background:#0b1
 <label for="duration">Duration without audio / المدة بدون صوت (seconds)</label><input id="duration" type="number" min="3" max="180" value="15">
 <div class="toolbar"><button id="play">▶ Preview / معاينة</button><button class="secondary" id="stop">■ Stop</button><button id="record">● Export WebM</button></div>
 <div class="toolbar"><button class="secondary" id="save">Save JSON / حفظ</button><button class="secondary" id="load">Open JSON / فتح</button><input id="project" type="file" accept=".json,application/json" hidden></div>
+<label for="evidenceFile">Trusted application evidence pack / ملف أدلة من المنصة</label>
+<input id="evidenceFile" type="file" accept=".json,application/json">
+<div class="toolbar"><button id="exportEvidence" class="secondary">Export reviewed-source manifest / تصدير ملف الأدلة</button></div>
+<p class="help">Source references are imported from an authenticated platform workspace. Editing wording does not revalidate the new text. Export remains a draft requiring human review.</p>
+
 <label for="seek">Timeline / الخط الزمني</label><input id="seek" type="range" min="0" max="15" value="0" step=".05">
 <p class="help"><span id="clock">00:00 / 00:15</span> · 30fps canvas rendering · audio file stays in your browser</p>
 <div class="notice" id="status" role="status">Illustrative draft. No verified KPI, official RTA logo or operational footage is embedded.</div>
@@ -44,6 +49,45 @@ canvas{width:100%;height:auto;max-height:75vh;object-fit:contain;background:#0b1
 (()=>{
 const $=id=>document.getElementById(id),el={lang:$('lang'),format:$('format'),headline:$('headline'),detail:$('detail'),cta:$('cta'),narration:$('narration'),duration:$('duration'),play:$('play'),stop:$('stop'),record:$('record'),save:$('save'),load:$('load'),project:$('project'),seek:$('seek'),clock:$('clock'),status:$('status'),canvas:$('screen'),audio:$('audio')};
 const ctx=el.canvas.getContext('2d');let position=0,playing=false,recording=false,start=0,raf=0,streamURL=null,recorder=null,audioCtx=null,audioNode=null,audioDest=null;
+let sourceManifest=null;
+
+function validMotion(data){
+  if(!data||data.schema!=='motion-evidence-v1'||!['ar','en'].includes(data.language)
+    ||!['wide','vertical'].includes(data.format)||!['SYNTHETIC','INTERNAL'].includes(data.classification)
+    ||!Array.isArray(data.scenes)||data.scenes.length!==3
+    ||!Number.isFinite(data.duration)||data.duration<3||data.duration>180)throw Error('Invalid evidence storyboard');
+  for(let i=0;i<3;i++){
+    const scene=data.scenes[i];
+    if(scene.kind!==['hook','evidence','action'][i]||typeof scene.text!=='string'||!scene.text.trim()
+      ||scene.text.length>480||!Array.isArray(scene.evidence)||!scene.evidence.length)
+      throw Error('Invalid scene or missing evidence');
+    for(const ref of scene.evidence){
+      for(const field of ['source_id','revision','locator']){
+        if(typeof ref[field]!=='string'||!/^[-.a-zA-Z0-9_:/#@]{1,150}$/.test(ref[field]))throw Error('Invalid source reference');
+      }
+      if(!['VERIFIED','RECORDED_IN_REGISTER','SYNTHETIC'].includes(ref.data_status)
+        ||(data.classification==='INTERNAL'&&ref.data_status==='SYNTHETIC'))
+        throw Error('Unreliable evidence cannot be used for internal source-grounded video');
+    }
+  }
+  return true;
+}
+function openEvidence(m){
+  validMotion(m);
+  stop();sourceManifest=m;el.lang.value=m.language;el.format.value=m.format;
+  el.headline.value=m.scenes[0].text;el.detail.value=m.scenes[1].text;
+  el.cta.value=m.scenes[2].text;el.duration.value=String(m.duration);
+  position=0;dims();clock();setStatus('Source-linked storyboard loaded. Text edits require new human fact-check. Never published automatically.');
+}
+function motionManifest(){
+  if(!sourceManifest)throw Error('Import an authorized source-linked storyboard first');
+  const sceneTexts=[el.headline.value,el.detail.value,el.cta.value];
+  const m={...sourceManifest,language:el.lang.value,format:el.format.value,duration:seconds(),
+    approval:{state:'DRAFT',issued:false},
+    scenes:sourceManifest.scenes.map((scene,i)=>({...scene,text:sceneTexts[i]}))};
+  validMotion(m);return m;
+}
+
 const seconds=()=>el.audio.src&&Number.isFinite(el.audio.duration)&&el.audio.duration>0?el.audio.duration:Math.max(3,Math.min(180,Number(el.duration.value)||15));
 const setStatus=s=>el.status.textContent=s;
 function dims(){const portrait=el.format.value==='vertical';el.canvas.width=portrait?720:1280;el.canvas.height=portrait?1280:720;render()}
@@ -63,6 +107,19 @@ function json(){return {schema:'motion-studio-v1',language:el.lang.value,format:
 el.play.onclick=()=>void play();el.stop.onclick=stop;el.seek.oninput=()=>{position=Number(el.seek.value);if(playing){start=performance.now()-position*1000;if(el.audio.src)el.audio.currentTime=position}clock();render()};
 el.narration.onchange=()=>{if(streamURL)URL.revokeObjectURL(streamURL);const f=el.narration.files?.[0];streamURL=f?URL.createObjectURL(f):null;el.audio.removeAttribute('src');el.audio.load();if(streamURL){el.audio.src=streamURL;el.audio.load()}position=0;clock();render();setStatus(f?'Local audio loaded. Video duration follows its metadata.':'Audio removed.')};
 el.audio.onloadedmetadata=()=>{clock();render()};
+
+$('evidenceFile').onchange=async()=>{
+  const file=$('evidenceFile').files?.[0];if(!file)return;
+  if(file.size>250000){setStatus('Evidence manifest is too large');return}
+  try{openEvidence(JSON.parse(await file.text()))}
+  catch(e){sourceManifest=null;setStatus('Evidence import refused: '+e.message)}
+};
+$('exportEvidence').onclick=()=>{
+  try{download(new Blob([JSON.stringify(motionManifest(),null,2)],{type:'application/json'}),
+      'motion-evidence-draft.json');setStatus('Downloaded source-linked DRAFT. Human fact-check and issuance required.')}
+  catch(e){setStatus('Cannot export: '+e.message)}
+};
+
 el.save.onclick=()=>download(new Blob([JSON.stringify(json(),null,2)],{type:'application/json'}),'motion-project.json');
 el.load.onclick=()=>el.project.click();el.project.onchange=async()=>{try{const f=el.project.files?.[0];if(!f)return;const p=JSON.parse(await f.text());if(p.schema!=='motion-studio-v1')throw Error('Unsupported project schema');for(const k of ['lang','format','headline','detail','cta','duration']){const field=k==='lang'?'language':k;if(p[field]!==undefined)el[k].value=String(p[field])}position=0;dims();clock();setStatus('Project loaded; reattach voice-over separately (audio bytes are never stored in JSON).')}catch(e){setStatus('Cannot open project: '+e.message)}};
 async function record(){if(recording)return;const m=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(x=>MediaRecorder.isTypeSupported(x));if(!m||!el.canvas.captureStream){setStatus('This browser cannot capture WebM. Use a compatible browser or supported server renderer.');return}
