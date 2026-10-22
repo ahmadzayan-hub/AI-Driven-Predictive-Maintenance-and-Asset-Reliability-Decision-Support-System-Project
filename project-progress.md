@@ -1,13 +1,13 @@
 # Project progress
 
-Last updated: 2026-10-22, session `ad7e9eca`, Arabic rendered reports running from the owner's selected home checkout. The session-end skill keeps this file current; the SessionStart hook reads the *Now* section into every new session.
+Last updated: 2026-10-22, session `ad7e9eca`, local chat repaired and verified in the owner's selected home checkout. The session-end skill keeps this file current; the SessionStart hook reads the *Now* section into every new session.
 
 
 **Vision.** **AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project** uses Agentic OS as its governed analytics engine. It digests several datasets with dynamic inputs, then carries them through preparation, cleaning and modelling to a multi-page interactive dashboard with live data, with insights and key findings that are always traceable to a calculation. The product scope and remaining domain work are in `docs/PROJECT_CHARTER.md`; the reusable engine milestones are in `brain/Projects/Analytics OS roadmap.md`.
 
 ## Now
 
-- **Local model roles activated: 2026-10-22.** The selected home checkout now routes orchestration to Hermes3 and narration, chat and agent notes to Qwen3 through a private launch profile. Both local models returned text in short connectivity probes; Hermes needed a separate warmup after a cold timeout. Claude Haiku 4.5 and GPT-4.1 mini are selected consultant defaults, but their API keys are absent, so the running platform reports the built-in consultant fallback. Full multi-model report quality and cold-start latency remain to be assessed.
+- **Local chat repaired: 2026-10-22.** A real greeting reproduced the programmed fallback with the generic Qwen tag; the private startup profile now explicitly selects the installed Qwen3 4B Instruct 2507 for narration, chat and agent notes. The same greeting and Arabic browser conversation returned actual model responses. Hermes3 remains configured for orchestration; its earlier short probe needed warmup and full multi-model analysis acceptance remains open. Claude Haiku 4.5 and GPT-4.1 mini remain selected consultant defaults without API keys, so their fallback is still honestly reported. Measured chat evidence and quality limits are in README.md#testing.
 
 - **Arabic analysis content and rendered reports: delivered locally, 2026-10-22** (`a2d4e4b`, integrated with current main at `5b0e410`). New analyses have an explicit report-language choice. Section reports, the full report and approval previews render headings, lists and tables in the scoped house style; built-in calculation descriptions, checks, chart labels and the fictional Arabic sample are translated without changing evidence values. The owner's selected home checkout now serves port 8000. A new Arabic sample reached the approval gate with its report and chart tables visible in Arabic. Existing reports in the previous checkout remain intact. [Decision and scope](docs/adr/2026-10-22-arabic-rendered-analysis-reports.md); verification and remaining environment limits are recorded in README.md#testing.
 
