@@ -1,0 +1,154 @@
+package com.assetreliability.app.ui
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
+
+/** Every reader-facing string, in English and Arabic, like the web's
+ *  message packs. A key missing in one language fails the unit test. */
+object Strings {
+    val en: Map<String, String> = mapOf(
+        "app.name" to "Asset Reliability",
+        "nav.command" to "Command Centre", "nav.analyses" to "Analyses", "nav.approvals" to "Approvals",
+        "nav.memory" to "Memory", "nav.settings" to "Settings",
+        "common.retry" to "Try again", "common.loading" to "Loading", "common.back" to "Back",
+        "common.cancel" to "Cancel", "common.none" to "Nothing here yet.",
+        "command.title" to "Command Centre",
+        "command.subtitle" to "The latest decision brief, every figure the platform's own.",
+        "command.latest" to "Latest analysis",
+        "command.readiness.ready" to "Evidence available", "command.readiness.limited" to "Read with care",
+        "command.readiness.empty" to "No records in scope",
+        "command.scope" to "{records} records · {measures} controlled measures",
+        "command.asOf" to "As of {date}",
+        "command.decisions" to "Decisions requiring attention", "command.decisionsNone" to "No decision is flagged.",
+        "command.owner" to "Proposed owner", "command.gate" to "Gate",
+        "command.kpis" to "Maintenance performance", "command.kpisNone" to "No controlled measure is available.",
+        "command.unavailable" to "{n} measures unavailable in this data",
+        "command.models" to "Predictive readiness",
+        "command.modelsNone" to "No evaluated model; no predictive performance is claimed.",
+        "command.model.good" to "Beats its baseline", "command.model.bad" to "Below its baseline",
+        "command.model.unassessed" to "Not supported by this data",
+        "command.action" to "Recommended action", "command.actionNone" to "No recommendation could be made.",
+        "command.actionNote" to "A recommendation under a stated assumption, not an observed outcome. Approval stays with a person.",
+        "command.quality" to "Data quality and freshness", "command.qualityNone" to "No data quality score was recorded.",
+        "command.limitations" to "{n} limitations to read before acting",
+        "command.failedChecks" to "{n} original run checks did not pass",
+        "command.questions" to "Questions for the approver",
+        "command.present" to "Present", "command.remember" to "Remember this brief",
+        "command.remembered" to "Saved to memory on this phone.",
+        "command.noRuns" to "No analysis with findings yet. Upload data under Analyses.",
+        "command.failed" to "The decision brief could not be loaded.",
+        "tone.good" to "Good", "tone.okay" to "Watch", "tone.bad" to "Needs attention",
+        "tone.unassessed" to "Not assessed", "tone.unavailable" to "Unavailable",
+        "analyses.title" to "Analyses", "analyses.new" to "New analysis", "analyses.pick" to "Choose a data file",
+        "analyses.picked" to "File: {name}", "analyses.goal" to "What should the analysis answer?",
+        "analyses.goalHint" to "For example: where is downtime concentrated and what should we review first?",
+        "analyses.maintenance" to "Maintenance profile (24 governed stages)",
+        "analyses.start" to "Upload and analyse", "analyses.uploading" to "Uploading",
+        "analyses.running" to "Running stage {done} of {total}: {stage}", "analyses.done" to "Waiting for your approval",
+        "analyses.completed" to "Completed", "analyses.failed" to "The analysis failed: {reason}",
+        "analyses.demo" to "This workspace is view-only. Sign in under Settings to upload.",
+        "analyses.state" to "State: {state}",
+        "approvals.title" to "Approvals", "approvals.none" to "Nothing is waiting for your approval.",
+        "approvals.open" to "Open the report", "approvals.read" to "I have read this report",
+        "approvals.approve" to "Approve and publish", "approvals.reject" to "Reject",
+        "approvals.gate" to "Approval publishes the exact report shown. Nothing executes a maintenance action.",
+        "approvals.demo" to "Approvals are decided in a signed-in workspace, not in the view-only demo.",
+        "present.title" to "Presentation", "present.next" to "Next", "present.previous" to "Previous",
+        "present.export.html" to "Share report (HTML)", "present.export.docx" to "Share report (Word)",
+        "present.exporting" to "Preparing the report", "present.slide" to "{n} of {total}",
+        "memory.title" to "Memory", "memory.subtitle" to "Notes stay on this phone. Recall is by shared words ({embedder}).",
+        "memory.add" to "Add a note", "memory.save" to "Save", "memory.search" to "Recall",
+        "memory.query" to "What do you want to recall?", "memory.none" to "No notes yet.",
+        "memory.forget" to "Forget", "memory.score" to "match {score}",
+        "assistant.title" to "Assistant", "assistant.hint" to "Ask about the latest analysis",
+        "assistant.send" to "Send", "assistant.context" to "From memory: {n} related notes",
+        "assistant.demo" to "The assistant needs a signed-in workspace.",
+        "settings.title" to "Settings", "settings.server" to "Platform address", "settings.language" to "Language",
+        "settings.token" to "Sign-in token (optional)", "settings.tokenHelp" to "Paste a token issued by your workspace. It stays on this phone.",
+        "settings.save" to "Save", "settings.check" to "Check connection",
+        "settings.ok" to "Connected: {name} {version}, mode {mode}", "settings.failed" to "Could not connect: {reason}",
+        "settings.english" to "English", "settings.arabic" to "Arabic",
+    )
+
+    val ar: Map<String, String> = mapOf(
+        "app.name" to "موثوقية الأصول",
+        "nav.command" to "مركز القيادة", "nav.analyses" to "التحليلات", "nav.approvals" to "الموافقات",
+        "nav.memory" to "الذاكرة", "nav.settings" to "الإعدادات",
+        "common.retry" to "حاول مجدداً", "common.loading" to "جارٍ التحميل", "common.back" to "رجوع",
+        "common.cancel" to "إلغاء", "common.none" to "لا شيء هنا بعد.",
+        "command.title" to "مركز القيادة",
+        "command.subtitle" to "أحدث موجز للقرار، وكل رقم فيه من المنصة نفسها.",
+        "command.latest" to "أحدث تحليل",
+        "command.readiness.ready" to "الأدلة متاحة", "command.readiness.limited" to "اقرأ بحذر",
+        "command.readiness.empty" to "لا سجلات ضمن النطاق",
+        "command.scope" to "{records} سجلاً · {measures} مؤشراً منضبطاً",
+        "command.asOf" to "حتى {date}",
+        "command.decisions" to "قرارات تحتاج إلى الاهتمام", "command.decisionsNone" to "لم يُعلَّم أي قرار.",
+        "command.owner" to "المالك المقترح", "command.gate" to "البوابة",
+        "command.kpis" to "أداء الصيانة", "command.kpisNone" to "لا يتوفر مؤشر منضبط.",
+        "command.unavailable" to "{n} مؤشرات غير متاحة في هذه البيانات",
+        "command.models" to "الجاهزية التنبؤية",
+        "command.modelsNone" to "لا يوجد نموذج مقيَّم؛ ولا يُدّعى أي أداء تنبؤي.",
+        "command.model.good" to "يتفوق على خط الأساس", "command.model.bad" to "أقل من خط الأساس",
+        "command.model.unassessed" to "لا تدعمه هذه البيانات",
+        "command.action" to "الإجراء الموصى به", "command.actionNone" to "تعذّر تقديم توصية.",
+        "command.actionNote" to "توصية وفق افتراض معلن، لا نتيجة مرصودة. وتبقى الموافقة بيد شخص.",
+        "command.quality" to "جودة البيانات وحداثتها", "command.qualityNone" to "لم تُسجَّل درجة لجودة البيانات.",
+        "command.limitations" to "{n} قيود تُقرأ قبل التصرف",
+        "command.failedChecks" to "{n} من فحوص التشغيل الأصلي لم تُجتَز",
+        "command.questions" to "أسئلة لصاحب الموافقة",
+        "command.present" to "اعرض", "command.remember" to "احفظ هذا الموجز",
+        "command.remembered" to "حُفظ في ذاكرة هذا الهاتف.",
+        "command.noRuns" to "لا يوجد تحليل بنتائج بعد. ارفع البيانات من التحليلات.",
+        "command.failed" to "تعذّر تحميل موجز القرار.",
+        "tone.good" to "جيد", "tone.okay" to "راقب", "tone.bad" to "يحتاج إلى اهتمام",
+        "tone.unassessed" to "غير مقيّم", "tone.unavailable" to "غير متاح",
+        "analyses.title" to "التحليلات", "analyses.new" to "تحليل جديد", "analyses.pick" to "اختر ملف بيانات",
+        "analyses.picked" to "الملف: {name}", "analyses.goal" to "ما السؤال الذي يجيب عنه التحليل؟",
+        "analyses.goalHint" to "مثلاً: أين يتركز التوقف وما الذي نراجعه أولاً؟",
+        "analyses.maintenance" to "ملف الصيانة (24 مرحلة محكومة)",
+        "analyses.start" to "ارفع وحلّل", "analyses.uploading" to "جارٍ الرفع",
+        "analyses.running" to "تنفيذ المرحلة {done} من {total}: {stage}", "analyses.done" to "بانتظار موافقتك",
+        "analyses.completed" to "مكتمل", "analyses.failed" to "فشل التحليل: {reason}",
+        "analyses.demo" to "مساحة العمل هذه للاطلاع فقط. سجّل الدخول من الإعدادات للرفع.",
+        "analyses.state" to "الحالة: {state}",
+        "approvals.title" to "الموافقات", "approvals.none" to "لا شيء ينتظر موافقتك.",
+        "approvals.open" to "افتح التقرير", "approvals.read" to "قرأت هذا التقرير",
+        "approvals.approve" to "اعتمد وانشر", "approvals.reject" to "ارفض",
+        "approvals.gate" to "الموافقة تنشر التقرير المعروض بالضبط. لا ينفّذ أي إجراء صيانة.",
+        "approvals.demo" to "تُقرَّر الموافقات في مساحة عمل مسجَّلة الدخول، لا في العرض التجريبي.",
+        "present.title" to "العرض", "present.next" to "التالي", "present.previous" to "السابق",
+        "present.export.html" to "شارك التقرير (HTML)", "present.export.docx" to "شارك التقرير (Word)",
+        "present.exporting" to "جارٍ إعداد التقرير", "present.slide" to "{n} من {total}",
+        "memory.title" to "الذاكرة", "memory.subtitle" to "تبقى الملاحظات على هذا الهاتف. الاستدعاء بالكلمات المشتركة ({embedder}).",
+        "memory.add" to "أضف ملاحظة", "memory.save" to "احفظ", "memory.search" to "استدعِ",
+        "memory.query" to "ما الذي تريد استدعاءه؟", "memory.none" to "لا ملاحظات بعد.",
+        "memory.forget" to "انسَ", "memory.score" to "تطابق {score}",
+        "assistant.title" to "المساعد", "assistant.hint" to "اسأل عن أحدث تحليل",
+        "assistant.send" to "أرسل", "assistant.context" to "من الذاكرة: {n} ملاحظات ذات صلة",
+        "assistant.demo" to "يحتاج المساعد إلى مساحة عمل مسجَّلة الدخول.",
+        "settings.title" to "الإعدادات", "settings.server" to "عنوان المنصة", "settings.language" to "اللغة",
+        "settings.token" to "رمز تسجيل الدخول (اختياري)", "settings.tokenHelp" to "الصق رمزاً أصدرته مساحة عملك. يبقى على هذا الهاتف.",
+        "settings.save" to "احفظ", "settings.check" to "تحقق من الاتصال",
+        "settings.ok" to "متصل: {name} {version}، الوضع {mode}", "settings.failed" to "تعذّر الاتصال: {reason}",
+        "settings.english" to "الإنجليزية", "settings.arabic" to "العربية",
+    )
+
+    fun of(language: String): Map<String, String> = if (language == "ar") ar else en
+}
+
+class Translator(private val language: String) {
+    private val pack = Strings.of(language)
+    val isArabic: Boolean get() = language == "ar"
+
+    operator fun invoke(key: String, vars: Map<String, Any?> = emptyMap()): String {
+        var text = pack[key] ?: Strings.en[key] ?: key
+        for ((name, value) in vars) text = text.replace("{$name}", value?.toString() ?: "")
+        return text
+    }
+}
+
+val LocalTranslator = compositionLocalOf { Translator("en") }
+
+@Composable
+fun t(key: String, vararg vars: Pair<String, Any?>): String = LocalTranslator.current(key, vars.toMap())

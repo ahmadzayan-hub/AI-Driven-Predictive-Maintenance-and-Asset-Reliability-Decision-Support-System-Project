@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The web design tokens (frontend/src/shared/styles/tokens.css). -->
+    <color name="navy">#111A2E</color>
+    <color name="teal">#006B73</color>
+    <color name="teal_soft">#DFF5F4</color>
+    <color name="amber">#B45309</color>
+    <color name="canvas">#F8FAFC</color>
+</resources>
