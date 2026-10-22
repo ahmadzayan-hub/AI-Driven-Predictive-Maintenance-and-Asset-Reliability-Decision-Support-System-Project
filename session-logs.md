@@ -1424,7 +1424,8 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** quick verify with PostgreSQL 6 of 6 (1726 Python tests, 21 skipped; 353 frontend unit tests, 4 new); build and budget; Playwright `decision` 2 of 2 and the five specs that cover the Analytics form 24 of 24.
 - **Decided:** the range travels only when it differs from the default, so a run that states nothing carries nothing; the card computes no figure of its own.
 - **Also on PR #21:** the hosted Arabic demo overflow was named by the new assertion: the skip link, pushed 9999 px past the inline start, landed 10,000 px to the right of the right-to-left page. It is now hidden by clipping and restored on focus (`3516746`); demo, accessibility, keyboard, Arabic and workspace specs pass on desktop and phone. The next hosted run named the rest: the phone header's fixed controls in Arabic ran 1 px past the viewport with the runner's font, so the header clips sideways overflow and the status badge may shrink.
-- **Open / next:** this slice is committed locally and pushed once PR #21 merges; the standards lint and the P2 items remain.
+- **Merged:** PR #21 (CI second pass plus this slice) into main as `37fce5e` after hosted CI went green on `5c5d0a0`: 1726 Python tests (25 skipped), 40 unit files, Playwright 139 passed and 5 skipped, Miyaar 12 passed, budget passed; the browser cache is now saved for later runs.
+- **Open / next:** the standards lint scores 0% on its blind set; P2 items in the roadmap.
 
 ## 2026-10-22 — Codex: GitHub repository presentation
 
