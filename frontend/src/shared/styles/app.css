@@ -46,6 +46,10 @@
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  /* A phone header full of fixed-width controls can run a pixel past the
+     viewport when a font renders wider (the hosted runner's Arabic did);
+     clip it rather than let the page scroll sideways. */
+  overflow-x: clip;
 }
 
 .brand {
@@ -1894,6 +1898,10 @@ form.field {
 @media (max-width: 479px) {
   .badge {
     padding: 4px 8px;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 }
 
