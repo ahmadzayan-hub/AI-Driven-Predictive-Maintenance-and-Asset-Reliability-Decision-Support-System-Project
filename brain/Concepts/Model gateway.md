@@ -3,7 +3,7 @@ type: concept
 aliases: [Narrator, Provider-neutral gateway]
 tags: [architecture, ai, agents]
 status: active
-updated: 2026-10-21
+updated: 2026-10-22
 review_every_days: 60
 sources: [server/model_gateway.py, server/routing.py, docs/adr/0017-choosing-the-narrator.md, docs/adr/2026-10-21-run-request-timeout.md, docs/adr/2026-10-21-workspace-model-activation.md, .env.example]
 ---
@@ -16,6 +16,7 @@ Language models in [[Agentic OS]] phrase facts that have already been verified. 
 - **Optional narrators, all configured server-side:** a local Ollama model, which is preferred when set because nothing leaves the machine; Claude; Groq; or an explicitly selected Vercel AI Gateway model with a server credential. Deployment OIDC is read on each request; no model is selected just because a Vercel token exists.
 - **Routing:** an optional router picks the narrator for each report, and the report prints why. A choice the deployment cannot reach is refused and reported, never silently swapped.
 - **Keys** stay on the server, never in a client bundle, log or screenshot.
+- **Per-role local selection:** the owner selected Qwen for narration, chat and agent notes, and Hermes3 for orchestration. The local profile passes explicit model ids; the local launcher otherwise overrides `OLLAMA_MODEL` with its default. The active CPU chat profile uses Qwen3 4B Instruct 2507 after the generic Qwen tag fell back on a real message; full Arabic conversation requests, including a contextual follow-up, then returned model replies. Do not replace this with a larger tag based only on a short connectivity probe. See the [[Session lifecycle|session record]] and README for measured limits. Cloud consultants need real server-side keys and selected model ids. Without them, [[Agent team|consultants]] use labelled built-in rules. A configured role is not proof of successful inference; cold loading can consume its timeout.
 - **Activation is deployment-specific:** the local model does not configure the hosted app. A healthy API alone does not prove a model answered; acceptance records the reply source, bilingual quality and latency in README.
 - **Local run timing:** the browser allows ninety seconds for run detail, advance and controls, covering the gateway's sixty-second inference window and response overhead. An uncertain POST is not automatically replayed; [[Governed pipeline|run]] state is reconciled by reading it.
 

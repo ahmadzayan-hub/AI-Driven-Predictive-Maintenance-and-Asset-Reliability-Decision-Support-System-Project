@@ -463,6 +463,32 @@ what was not verified, are in [docs/qa/END_TO_END_VALIDATION.md](docs/qa/END_TO_
   215.2 / 216 KB total under the combined allocation, CSS 30.0 / 30.5 KB
   total); the merge-affected browser specs: **50 passed, 2 failed, 4 skipped** of 56 (runs, workspace, Arabic, accessibility, intake, executive, onboarding, demo, overview); the two failures were the workspace spec reading the approval preview as a `pre` element that main's rendered report replaced, fixed in the spec, after which the workspace spec ran **5 passed, 1 skipped**.
 
+### Local chat recovery — 22 October 2026
+
+The owner's selected local checkout reproduced the screenshot's failure with
+`qwen3:latest`: an actual `HI` message returned `source=rules` after 61.57 seconds.
+The gateway reported an invalid/unavailable intent without distinguishing a
+timeout from malformed output. At inspection the CPU model occupied about 5.9 GB
+and less than 1 GB of physical memory was free; this is evidence of resource
+pressure, not proof of the exact internal Ollama failure.
+
+The private startup profile now explicitly selects the already installed
+`qwen3:4b-instruct-2507-q4_K_M` for the base model and agent notes. After an owned
+server restart and model prewarm, the same API greeting returned an Arabic
+`source=model`, `provider=ollama` reply in 52.60 seconds. In the running React UI,
+an Arabic maintenance question and a contextual follow-up both showed actual
+Ollama model badges without the programmed-fallback banner. These are observed
+acceptance cases, not a general reliability or latency guarantee. The follow-up
+overstated the separation between preventive maintenance and sensor evidence;
+domain wording still needs review before operational use.
+
+The launch profile is private, persistent and contains no API credentials.
+Hermes orchestration and cloud consultants were not newly validated in this
+repair; cloud keys remain absent. No application code, dependency, dataset or
+approval state was changed. Full regression suites were not rerun for this
+configuration-only repair. All 11 documentation tests passed, and the strict brain checker found no
+broken links, missing fields or sources.
+
 ### Arabic rendered analysis reports — 22 October 2026
 
 New runs expose a report-language selector. Arabic analysis output now renders

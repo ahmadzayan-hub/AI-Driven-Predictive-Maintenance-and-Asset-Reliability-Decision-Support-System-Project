@@ -58,6 +58,37 @@ Use a local SQLite configuration and a shell without hosted `DATABASE_URL` or `A
 
 </div>
 
+## Recovering programmed chat replies / معالجة الردود المبرمجة
+
+A healthy API or a configured provider does not prove that the model answered.
+Check the source badge on a fresh general conversation message. If it says
+programmed rules, verify the model used by the running server, its exact installed
+tag, and available memory. On the tested CPU laptop, the generic `qwen3:latest`
+tag failed the full chat request; the instruction-only tag below restored actual
+model replies. Do not increase the timeout or erase conversation history merely
+to hide the fallback.
+
+```powershell
+.\.venv\Scripts\python.exe scripts/local_runtime.py start --worker --port 8000 --model qwen3:4b-instruct-2507-q4_K_M
+```
+
+Run this only after stopping the existing owned server. If a private role profile
+is used, keep the base model and the `agents=ollama:...` override consistent with
+the tested tag; start that profile instead of a second server. Credentials must
+remain in the server environment. Selecting Claude or OpenAI does not activate
+them without real API credentials. See [measured acceptance](../README.md#testing).
+
+<div dir="rtl">
+
+سلامة الخادم وظهور اسم النموذج في الإعدادات لا يثبتان وصول رد منه. تحقّق من مصدر
+رد جديد في المحادثة. إذا ظهر «قواعد مبرمجة»، افحص اسم النموذج الفعلي ووسمه المثبّت
+والذاكرة المتاحة. أعادت نسخة Qwen3 المخصّصة للتعليمات أعلاه الردود الفعلية في
+الاختبار المحلي. أوقف الخادم الذي شغّلته قبل إعادة تشغيله، واستخدم ملف الأدوار
+الخاص إن كان موجودًا بدل تشغيل خادم ثانٍ. تحتاج نماذج Claude وOpenAI مفاتيح حقيقية
+في بيئة الخادم؛ لا تضعها في المستودع أو المحادثة.
+
+</div>
+
 ## Installed components / المكونات المثبتة
 
 | Component / المكوّن | Status / الحالة |
