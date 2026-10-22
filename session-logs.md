@@ -1391,6 +1391,13 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Open / next:** validate Hermes plus specialist notes on a representative full analysis before claiming all role combinations work. Loading or longer conversations can still approach the bounded deadline under memory pressure; no universal latency guarantee is claimed.
 - **Blockers:** real Anthropic/OpenAI API keys remain absent, so cloud consultants still use their labelled built-in fallback. Local chat now returns model responses.
 
+## 2026-10-22 · `d9e3f889` · claude/tender-clarke-m4uwgq (hosted CI back to green)
+
+- **Found:** the "no runner assigned" failures (every job ending in two seconds, run 384 and earlier) were an account-level condition that lifted on its own around 18:58 UTC; from then on jobs ran. The real failure on the merged main (run 395) was the `npm audit --audit-level=high` gate: vite 8.2.1 carried a high advisory and the vitest mocker two moderate ones. The Python step passed on the hosted runner (so slice three runs on Python 3.11).
+- **Done:** vite pinned to ^8.2.4 (resolves 8.3.5) and vitest to ^4.1.12; the lock regenerated with npm 11 because npm 10.9.4's resolver crashes on this dependency set (`Cannot read properties of null (reading 'edgesOut')`), then proven installable by the stock npm 10 `npm ci` that CI uses. The Miyaar browser suite, which CI also runs, opened `/` expecting the assistant; it now opens `#/assistant` (U12).
+- **Verified:** `npm audit --audit-level=high` 0 vulnerabilities; typecheck; 346 unit tests; build; budget 215.4 / 216 KB scripts; the whole Playwright suite 137 passed, 5 skipped, 0 failed; the Miyaar suite 12 passed.
+- **Next:** watch the hosted run on main; the actions still target Node 20 and will need their next releases before GitHub drops it.
+
 ## 2026-10-22 · `ad7e9eca` · main (background roles and all-Qwen local runtime)
 
 **Goal:** complete live model-role verification after chat recovery and apply the owner's explicit selection of Qwen for all local roles.
