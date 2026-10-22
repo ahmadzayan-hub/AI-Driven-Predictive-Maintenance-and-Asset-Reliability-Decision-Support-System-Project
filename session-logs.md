@@ -1334,3 +1334,14 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Decisions:** report language is fixed at creation; existing artifacts and audit values remain unchanged. Customer identifiers and unknown plugin metadata remain traceable original text. Follow the owner's selected runtime directory, whose local database is separate from the former workspace database. See `docs/adr/2026-10-22-arabic-rendered-analysis-reports.md`.
 - **Open / next:** the owner can review and publish the new Arabic sample. Regenerate an older English analysis in Arabic when needed; do not rewrite its approved artifact. Hosted release and live maintenance-system integration remain separate work.
 - **Blockers:** no local runtime blocker remains. Account-provider quotas cannot be overridden by repository changes; the unfinished independent reviewer pass was not presented as complete.
+
+
+## 2026-10-22 · `ad7e9eca` · main (local model-role activation)
+
+**Goal:** apply the owner's Qwen/Hermes task map and select available cloud consultant models.
+
+- **Done:** confirmed installed local model tags, prepared the git-ignored `private/run-local-agents.ps1` without credentials, and restarted only the owned local launcher from the selected home checkout. The profile passes `--model qwen3:latest` so the launcher's smaller default cannot override the requested base model. Live health reports Hermes on `ollama:hermes3`, agents on `ollama:qwen3`, and Ollama for narration/chat. It preserves the requested cloud consultant map while honestly reporting the missing providers.
+- **Verified:** the private PowerShell profile parsed successfully; direct local gateway probes returned text from Qwen and, after a separate warmup, Hermes. Hermes' first cold probe exceeded the configured inference deadline. These short probes establish connectivity, not report quality or a full multi-model analysis. The restarted API is healthy and the existing Arabic sample remains at its human approval gate. No application code or dataset was changed.
+- **Decisions:** selected `claude-haiku-4-5-20251001` and `gpt-4.1-mini` as compatible consultant defaults, retaining an explicitly configured model override. Their official model pages were checked; account availability was not tested without keys. Placeholder values are never used as API keys. The private profile inherits keys from the starting shell and does not save them. Existing per-role ADR applies; no new engine behavior was introduced.
+- **Open / next:** add real Anthropic/OpenAI API keys locally and restart the profile to activate cloud consultants. Assess latency and Arabic quality on a representative new run; cold model loading on this laptop can exceed the inference window. The built-in consultant fallback stays labelled until provider calls are possible.
+- **Blockers:** cloud API credentials are absent; no cloud inference was claimed or billed in this session.
