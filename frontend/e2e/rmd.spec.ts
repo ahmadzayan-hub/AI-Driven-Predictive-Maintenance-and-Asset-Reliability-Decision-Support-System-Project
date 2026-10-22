@@ -130,6 +130,11 @@ for (const locale of ['en', 'ar'] as const) {
     await expect(kpi.locator('.rmd-number')).toHaveText('3')
     await expect(page.getByRole('heading', { name: text.priorities, exact: true })).toBeVisible()
     await accessible(page, `overview ${locale}`)
+    // Exercise both actual theme controls; all fixtures here are synthetic.
+    for (let theme = 0; theme < 2; theme += 1) {
+      await page.getByRole('button', { name: locale === 'ar' ? /التبديل إلى المظهر/ : /Switch to .* theme/ }).click()
+      await accessible(page, 'overview ' + locale + ' theme ' + theme)
+    }
     await kpi.getByRole('button', { name: text.evidence, exact: true }).click()
     const evidence = page.getByRole('dialog', { name: text.kpi, exact: true })
     const records = evidence.getByRole('table', { name: text.records, exact: true })
@@ -171,14 +176,14 @@ for (const locale of ['en', 'ar'] as const) {
     await page.getByRole('button', { name: text.explain, exact: true }).click()
     await expect(page.getByRole('heading', { name: text.assistant, exact: true })).toBeVisible()
     const question = 'Which junction has the most recorded issues in this extract?'
-    await page.getByLabel(text.question, { exact: true }).fill(question)
+    await page.getByRole('textbox', { name: text.question, exact: true }).fill(question)
     const answered = page.waitForResponse(r => new URL(r.url()).pathname === `/api/rmd/packs/${pack.id}/assistant` && r.request().method() === 'POST')
     await page.getByRole('button', { name: text.ask, exact: true }).click()
     expect((await answered).ok()).toBe(true)
     await expect(page.locator('.rmd-assistant__answer')).not.toBeEmpty()
     await navigate(page, locale, locale === 'ar' ? /^أدلة RMD$/ : /^RMD Evidence$/)
     await page.getByRole('button', { name: text.explain, exact: true }).click()
-    await expect(page.getByLabel(text.question, { exact: true })).toHaveValue(question)
+    await expect(page.getByRole('textbox', { name: text.question, exact: true })).toHaveValue(question)
     await expect(page.locator('.rmd-assistant__answer')).toHaveCount(0)
     await navigate(page, locale, locale === 'ar' ? /^أدلة RMD$/ : /^RMD Evidence$/)
 
@@ -199,8 +204,8 @@ for (const locale of ['en', 'ar'] as const) {
 
     // All publication controls are completed with keyboard activation.
     await approval.locator('.decision__preview > summary').focus(); await page.keyboard.press('Enter')
-    await expect(approval.getByLabel(text.read, { exact: true })).toBeEnabled()
-    await approval.getByLabel(text.read, { exact: true }).focus(); await page.keyboard.press('Space')
+    await expect(approval.getByRole('checkbox', { name: text.read, exact: true })).toBeEnabled()
+    await approval.getByRole('checkbox', { name: text.read, exact: true }).focus(); await page.keyboard.press('Space')
     await expect(approval.getByRole('button', { name: text.approve, exact: true })).toBeEnabled()
     await approval.getByRole('button', { name: text.approve, exact: true }).focus(); await page.keyboard.press('Enter')
     let publishedPath = ''

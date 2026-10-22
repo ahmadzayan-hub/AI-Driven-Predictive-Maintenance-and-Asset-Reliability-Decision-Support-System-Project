@@ -108,7 +108,7 @@ def create_review_run(service, engine, principal, pack_id, analysis_id, payload)
             tasks = [
                 ("rmd_evidence", "لقطة الأدلة" if ar else "Evidence snapshot",
                  {"snapshot_id": analysis_id, "fingerprint": stored["fingerprint"]}, []),
-                ("rmd_assurance", "إعادة حساب مستقلة" if ar else "Independent calculation replay", {"passed": True}, checks),
+                ("rmd_assurance", "إعادة حساب لقطة الأدلة" if ar else "Snapshot calculation replay", {"passed": True}, checks),
                 ("rmd_report", "تقرير للمراجعة" if ar else "Report for review", {"report_markdown": report}, []),
             ]
             for index, (role, title, output, quality) in enumerate(tasks):

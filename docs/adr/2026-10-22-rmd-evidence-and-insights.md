@@ -58,6 +58,11 @@ The existing publication task, hash-bound human approval and confirmed vault
 write complete the run. Export is a download and does not imply publication or
 maintenance authorization.
 
+Snapshot replay uses the same deterministic calculation version over the
+preserved mapped records. It checks snapshot reproducibility and tampering;
+independent method review, source applicability and engineering closure are
+separate assurances.
+
 ## Consequences and verification
 
 The standard-library parser is deliberately bounded and does not execute
