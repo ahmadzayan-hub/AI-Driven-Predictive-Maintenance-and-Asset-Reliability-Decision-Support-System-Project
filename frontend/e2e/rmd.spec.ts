@@ -59,7 +59,7 @@ async function fits(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
 }
 
-test.use({ contextOptions: { reducedMotion: 'reduce' } })
+test.use({ contextOptions: { reducedMotion: 'reduce' }, actionTimeout: 15_000 })
 
 for (const locale of ['en', 'ar'] as const) {
   test(`synthetic RMD evidence → mapping → findings → exact report → confirmed publication (${locale})`, async ({ page, request }, testInfo) => {
@@ -88,7 +88,7 @@ for (const locale of ['en', 'ar'] as const) {
       { kind: 'workbook', name: workbookName, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: fixture('workbook') },
       { kind: 'procedure', name: procedureName, mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', buffer: fixture('document') },
     ]) {
-      await importer.getByLabel(text.kind, { exact: true }).selectOption(input.kind)
+      await importer.getByRole('combobox', { name: text.kind, exact: true }).selectOption(input.kind)
       await importer.getByLabel(text.file, { exact: true }).setInputFiles({ name: input.name, mimeType: input.mimeType, buffer: input.buffer })
       const imported = page.waitForResponse(r => new URL(r.url()).pathname === `/api/rmd/packs/${pack.id}/sources` && r.request().method() === 'POST')
       await importer.getByRole('button', { name: text.upload, exact: true }).click()
@@ -100,14 +100,14 @@ for (const locale of ['en', 'ar'] as const) {
     await page.getByRole('button', { name: text.map, exact: true }).click()
     const mapping = page.getByRole('dialog', { name: workbookName, exact: true })
     const working = mapping.getByRole('group', { name: 'Working sheet', exact: true })
-    await working.getByLabel(text.grain, { exact: true }).selectOption('mms_work_order')
+    await working.getByRole('combobox', { name: text.grain, exact: true }).selectOption('mms_work_order')
     await working.getByLabel(text.header, { exact: true }).fill('3')
-    await working.getByLabel(text.date, { exact: true }).selectOption('DMY')
+    await working.getByRole('combobox', { name: text.date, exact: true }).selectOption('DMY')
     for (const [label, column] of [[text.sr, 'A'], [text.wo, 'B'], [text.status, 'C'], [text.location, 'D'], [text.category, 'E'], [text.event, 'F']]) {
-      await working.getByLabel(label, { exact: true }).selectOption(column)
+      await working.getByRole('combobox', { name: label, exact: true }).selectOption(column)
     }
     const summary = mapping.getByRole('group', { name: 'Summary', exact: true })
-    await summary.getByLabel(text.grain, { exact: true }).selectOption('summary')
+    await summary.getByRole('combobox', { name: text.grain, exact: true }).selectOption('summary')
     await summary.getByLabel(text.header, { exact: true }).fill('1')
     await mapping.getByRole('button', { name: text.save, exact: true }).click()
     await expect(mapping.getByText(text.mapped, { exact: true })).toBeVisible()
@@ -166,7 +166,7 @@ for (const locale of ['en', 'ar'] as const) {
 
     // Reload reads the durable analysis and explicitly selected pack again.
     await page.reload()
-    await page.getByLabel(text.pack, { exact: true }).selectOption(pack.id)
+    await page.getByRole('combobox', { name: text.pack, exact: true }).selectOption(pack.id)
     await expect(kpi.locator('.rmd-number')).toHaveText('3')
     await page.getByRole('button', { name: text.explain, exact: true }).click()
     await expect(page.getByRole('heading', { name: text.assistant, exact: true })).toBeVisible()
