@@ -1,41 +1,160 @@
-# AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project
+![Conceptual industrial motor, precision bearing and condition sensor in navy and blue](docs/media/reliability-hero.webp)
 
-A maintenance and asset reliability decision-support product being developed
-as software as a service, powered by **Agentic OS**, its governed analytics
-engine. The web workspace supports data preparation, analysis, model evaluation,
-dashboards and human approval of reports. The original command-line assistant
-remains available.
+# Asset Reliability · موثوقية الأصول
 
-The product name describes the development direction. Asset-specific prediction,
-commercial service readiness and operational savings require separate evidence.
-See the [project charter and delivery roadmap](docs/PROJECT_CHARTER.md) for the
-current scope, reusable capabilities and remaining work.
+**Turn maintenance data into findings, inspect the evidence, and review the next decision.**
 
-**Maintenance UI preview:** run `npm --prefix frontend run dev` and open
-`http://localhost:5173/?design=maintenance` for the interactive executive overview,
-equipment, review, cost and model-evidence screens in English or Arabic. It uses
-clearly labelled fictional data and requires no backend. See the
-[maintenance design specification](docs/design/MAINTENANCE_UI_SPEC.md).
+AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System
+SaaS Project combines a bilingual workspace with governed analytics. **Miyaar / معيار**
+is the assistant, **Hermes** coordinates the specialists, and **Agentic OS** is the engine.
 
-**Analyze your dataset:** start the Python server and open
-`http://127.0.0.1:8000/#/runs?source=upload`, or use **Upload & analyze your data**
-in the preview. Upload a tabular file, review its columns, then start the
-agents and open the computed report/dashboard. See the
-[upload guide](docs/DATASET_ANALYTICS.md) for setup, workbook sheets, supported
-formats, limits and background processing.
+Python · FastAPI · React · TypeScript · English / العربية
 
-In this project, "operating system" means an intelligent assistant
-environment — not a replacement for Windows, macOS, or Linux.
+[Get started](#get-started) · [Product tour](#product-tour) · [Capabilities](#capabilities) ·
+[Project guide](#project-guide) · [Testing](#testing)
 
-![Agentic OS — workspace, dark theme](docs/screenshots/desktop-hero-dark.png)
+*The hero above is original AI-generated concept artwork. Product screenshots below
+are actual interface renders with labelled synthetic data. [Image provenance](docs/design/README_ASSETS.md).*
 
-![Agentic OS — the same workspace in Arabic, right-to-left](docs/screenshots/desktop-chat-arabic-dark.png)
+## What this workspace helps you do
 
-![Agentic OS — the Overview: key figures, the latest findings and the approval queue](docs/screenshots/desktop-overview-light.png)
+- **Find what needs attention.** Explore downtime, maintenance cost and asset observations within a defined dataset and period.
+- **Understand the finding.** Follow the analysis, inspect calculations, compare models with baselines, and read the limitations.
+- **Make the decision.** Review the exact report before approving publication; preserve its evidence for the next conversation.
 
-[Editable Figma designs](https://www.figma.com/design/nLdKZ5cVOtRMTWEvhCJSEK) ·
-[UI specification and API mapping](docs/design/AGENTIC_UI_SPEC.md) ·
-[Current verification and platform scope](docs/design/VALIDATION.md)
+**Ask → Select data → Follow the analysis → Inspect evidence → Review → Approve → Publish**
+
+The product is under active development. Prediction quality, operational savings
+and hosted service readiness require their own evidence. Current scope and
+acceptance gates are recorded in the [project charter](docs/PROJECT_CHARTER.md)
+and [known limitations](docs/KNOWN_LIMITATIONS.md).
+
+## Product tour
+
+### Miyaar: a workspace for the question and its context
+
+![Miyaar desktop workspace with industrial welcome illustration, task actions and session context](docs/media/miyaar-workspace.webp)
+
+*Actual Chromium render with a synthetic test session. Model replies, dictation
+and read-aloud depend on the configured runtime and browser support.*
+
+<details>
+<summary><strong>Explore the maintenance overview and Arabic phone layout</strong></summary>
+
+### Maintenance executive overview
+
+![Maintenance design preview with availability, downtime, cost, equipment conditions and review priorities](docs/media/maintenance-overview.webp)
+
+*Interactive design preview using fictional equipment, costs and conditions.
+These figures are not results from an uploaded dataset or a live telemetry feed.*
+
+### Arabic, right to left, on a phone
+
+<p align="center">
+  <img src="docs/screenshots/maintenance/phone-ar-dark.png" width="300" alt="Arabic maintenance design preview on a phone, with right-to-left navigation and fictional sample indicators">
+</p>
+
+*Actual preview render with fictional fixtures. See the
+[maintenance UI specification](docs/design/MAINTENANCE_UI_SPEC.md) and
+[Miyaar handoff](docs/design/MIYAAR_UI_HANDOFF.md) for interactions and evidence.*
+
+</details>
+
+## Get started
+
+Use Python 3.10+ and a compatible Node.js release; see
+[system requirements](#system-requirements). Clone into a short folder name.
+The repository currently requires authorized GitHub access.
+
+```bash
+git clone https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project.git asset-reliability
+cd asset-reliability
+python -m venv .venv
+
+# Linux / macOS
+source .venv/bin/activate
+# Windows PowerShell: .\.venv\Scripts\Activate.ps1
+
+python -m pip install --require-hashes -r requirements.txt
+npm --prefix frontend ci
+npm --prefix frontend run build
+python scripts/serve.py --local-only
+```
+
+Open **<http://127.0.0.1:8000>**. The server hosts the interface and API.
+The deterministic analysis path needs no model-provider credentials.
+
+| Your goal | Start here |
+| --- | --- |
+| Analyze a file | Open `http://127.0.0.1:8000/#/runs?source=upload`; review columns, mapping and the business question before starting. |
+| Explore the fictional maintenance preview | Open `http://127.0.0.1:8000/?design=maintenance`; its sample review marks are local and do not dispatch work. |
+| Use local chat and optional voice | Follow the bilingual [local AI setup](docs/LOCAL_AI_SETUP.md); microphone text becomes an editable draft. |
+| Continue analysis after closing the browser | Run the [background worker](#background-worker-optional) with the same configuration; it still stops for approval. |
+
+For file formats, workbook sheets, limits and the complete analysis journey,
+use the [dataset guide](docs/DATASET_ANALYTICS.md). Uploading a file does not
+establish that its data supports a prediction or a causal conclusion.
+
+## Capabilities
+
+| Area | Available in the repository | Where to go deeper |
+| --- | --- | --- |
+| Data preparation | Tabular uploads, stored datasets, column roles, explicit joins and cleaned-data access | [Dataset guide](docs/DATASET_ANALYTICS.md) |
+| Governed analysis | Specialist stages, observed progress, pause/recovery, calculations and validation | [Agent catalog](docs/AGENT_CATALOG.md) |
+| Maintenance and models | Domain contracts, diagnostics and model evaluation against baselines | [Product scope](docs/PROJECT_CHARTER.md) |
+| Decisions and reports | Filtered dashboards, asset evidence, report review and approval-bound publication | [Executive workspace](docs/design/EXECUTIVE_DASHBOARD_HANDOFF.md) |
+| Conversation | Miyaar, memory, preferences and optional local models or voice | [Workspace handoff](docs/design/MIYAAR_UI_HANDOFF.md) |
+| Language and access | English/Arabic RTL, light/dark themes and responsive browser/PWA surfaces | [User guide](user_guide.md) |
+
+## Evidence before action
+
+![Conceptual condition sensor on a bearing assembly beside a closed navy review notebook](docs/media/evidence-review.webp)
+
+*Original AI-generated editorial image: a measurement and a person's review.
+It does not document a real asset, sensor connection or customer installation.*
+
+Figures come from server calculations. Models must be assessed against suitable
+baselines, and weak or unavailable results stay visible. Source records do not
+go to a language model; optional narration uses verified findings.
+
+Review the exact report and its limitations before approving publication.
+Exporting a brief, marking a preview record reviewed, and approving a report
+are distinct actions. The interface does not establish savings, failure
+probabilities or commercial readiness by displaying a score.
+
+## Project guide
+
+| Read this | For |
+| --- | --- |
+| [Project charter and roadmap](docs/PROJECT_CHARTER.md) | Product decisions, current capabilities and acceptance gates |
+| [Dataset analytics](docs/DATASET_ANALYTICS.md) | Real uploads, mapping, joins and background execution |
+| [User guide](user_guide.md) | Everyday workspace and command-line use |
+| [Local AI setup](docs/LOCAL_AI_SETUP.md) | Optional local models, voice and runtime checks |
+| [Architecture](#architecture) and [developer reference](#developer-reference) | Engine, API, configuration and operational commands |
+| [Testing](#testing) and [GitHub checks](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions) | Dated verification results and current workflow status |
+| [Known limitations](docs/KNOWN_LIMITATIONS.md) | Remaining domain, device, privacy and hosted-operation work |
+| [Contributing](CONTRIBUTING.md) | Collaboration, setup and repository rules |
+
+<div dir="rtl" lang="ar">
+
+## البدء بالعربية
+
+**موثوقية الأصول** مساحة عمل لتحليل بيانات الصيانة ومراجعة الأدلة قبل اتخاذ القرار.
+المساعد **معيار** يربط السؤال بالبيانات، وينسّق **هيرميس** مراحل التحليل.
+يمكنك رفع ملفك، ومراجعة الأعمدة والنتائج والقيود، ثم الموافقة على نشر التقرير المحدد.
+واجهة الصيانة التجريبية تستخدم بيانات خيالية، ولا تمثّل مراقبة مباشرة للمعدات.
+
+[دليل رفع البيانات والتحليل](docs/DATASET_ANALYTICS.md#البدء-بالعربية) ·
+[إعداد الذكاء الاصطناعي المحلي](docs/LOCAL_AI_SETUP.md) ·
+[دليل الاستخدام](user_guide.md)
+
+</div>
+
+
+## Developer reference
+
+<details>
+<summary><strong>Capabilities, architecture, installation and local runtime</strong></summary>
 
 ## Main Features
 
@@ -394,6 +513,8 @@ key. Microphone text stays an editable draft. See the bilingual
 [setup guide](docs/LOCAL_AI_SETUP.md) for prerequisites, installed skills,
 hardware expectations, hosted configuration and acceptance limits.
 
+</details>
+
 ## Testing
 
 ```bash
@@ -424,6 +545,24 @@ cd frontend && npm run typecheck
 # --e2e adds both the main and Miyaar Playwright suites.
 python scripts/verify.py
 ```
+
+### Repository presentation — 22 October 2026
+
+Documentation destination/anchor checks, Markdown parsing, image decoding and
+lossless screenshot comparisons pass. The existing feature reference, developer
+commands and dated verification history are preserved. Two scoped source reviews
+completed; the Arabic heading and links now share the RTL language container.
+Local Chromium could not launch because the command sandbox rejected a Crashpad
+socket operation. Application tests were not rerun for this documentation-only
+change; the studied main revision's CI and UI Budget Fast runs were failing.
+See [image provenance and validation scope](docs/design/README_ASSETS.md).
+
+Current workflow status can differ from a dated local observation. See the
+[GitHub checks](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions)
+and expand the history for the exact scope, failures, skips and environment.
+
+<details>
+<summary><strong>Dated verification history and acceptance limits</strong></summary>
 
 ### Platform assessment, audit fixes and the Command Centre — 22 October 2026
 
@@ -1502,6 +1641,11 @@ skipped (checked at 584 tests; the 32 that ADR 0022 added and the 30
 operating-system tests need neither and run everywhere). Of the 53
 dataset tests (ADR 0024), one needs openpyxl, which is not a dependency.
 
+</details>
+
+<details>
+<summary><strong>Worker, model providers, extensions, operations and security</strong></summary>
+
 ## Background worker (optional)
 
 In the default client mode, runs advance while the Runs view is open.
@@ -1783,8 +1927,9 @@ See `user_guide.md` for the full command reference.
 - Memory is stored as plain text in `data/memory.json` on your own
   computer; nothing is sent to any external service. Remove entries from
   the Memory panel, with `/forget`, or by deleting the file.
-- The repository contains no secrets; `.env.example` documents the few
-  optional environment variables (all with safe defaults).
+- Keep credentials out of commits and use `.env.example` for placeholders.
+  The repository remains temporarily private under the documented containment
+  decision; visibility and historical remediation require owner review.
 - The API validates input lengths and shapes, restricts CORS, hides stack
   traces, and requires confirmation in the UI before destructive actions.
 
@@ -1841,6 +1986,8 @@ described in [docs/PLAYBOOK.md](docs/PLAYBOOK.md):
   - **Cost:** each job goes to the cheapest tier that can do it right.
     Deterministic scripts and free local models (`scripts/consult.py`)
     come before Claude.
+
+</details>
 
 ## Contributing
 

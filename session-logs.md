@@ -1408,3 +1408,13 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Open / next:** domain quality and latency under real maintenance workloads still need acceptance. A pause request during an earlier model stage failed under SQLite contention; responsive pause/cancel under model load remains unverified after integration. Existing artifacts are retained unchanged, and publication remains a human decision.
 - **Blockers:** cloud credentials are not required for the selected local-only profile. CPU inference and competing processes can still exhaust the bounded deadline; no universal response-time guarantee is claimed.
 - **Final live acceptance:** the integrated runtime's new Arabic fictional sample `157729f82b7b` reached human approval with a Qwen plan, specialist notes, accepted consultant review and orchestrator closing brief. The evidence and timings are recorded in README.md#testing. Earlier samples remain unchanged; the final one was not published.
+
+
+## 2026-10-22 — Codex: GitHub repository presentation
+
+**Goal:** study the maintenance project, redesign its GitHub page and add original generated images.
+
+- **Done:** studied current instructions, product charter, Miyaar and maintenance specifications, source tree and recorded verification. Reworked README with a product journey, clear setup, a screenshot tour, bilingual context and expandable technical/history sections. Generated original motor/bearing and inspection artwork, encoded compact WebPs and created lossless copies of existing synthetic-session screenshots. Added provenance; visibility, application behavior and runtime dependencies are unchanged.
+- **Verified:** documentation destinations/anchors, descriptive image alternatives, Markdown structure, image decoding and exact screenshot-pixel equality. Existing feature/developer text, Testing commands and dated verification history are retained. Two scoped read-only reviews completed; their Arabic language-context finding was fixed and confirmed. Review checks are scoped to documentation and assets; application tests were not rerun.
+- **Decisions:** preserve the formal product identity and existing technical anchors, retain test counts in README, and distinguish generated concept artwork from real interface captures and fictional fixtures. The image tool exposed no model identifier, so no exact image-model version is asserted.
+- **Open / next:** existing CI and UI Budget Fast failures on the studied main revision require a separate application investigation. The sandbox blocked local Chromium startup at Crashpad setsockopt, so no successful browser-preview run is claimed.
