@@ -130,10 +130,12 @@ for (const locale of ['en', 'ar'] as const) {
     await expect(kpi.locator('.rmd-number')).toHaveText('3')
     await expect(page.getByRole('heading', { name: text.priorities, exact: true })).toBeVisible()
     await accessible(page, `overview ${locale}`)
-    // Exercise both actual theme controls; all fixtures here are synthetic.
-    for (let theme = 0; theme < 2; theme += 1) {
-      await page.getByRole('button', { name: locale === 'ar' ? /التبديل إلى المظهر/ : /Switch to .* theme/ }).click()
+    // Match the existing visual-test convention for both theme renderings.
+    // Header theme controls are intentionally hidden at phone widths.
+    for (const theme of ['light', 'dark']) {
+      await page.evaluate(value => { document.documentElement.dataset.theme = value }, theme)
       await accessible(page, 'overview ' + locale + ' theme ' + theme)
+      await page.screenshot({ path: testInfo.outputPath('rmd-' + locale + '-' + theme + '.png'), fullPage: true })
     }
     await kpi.getByRole('button', { name: text.evidence, exact: true }).click()
     const evidence = page.getByRole('dialog', { name: text.kpi, exact: true })
