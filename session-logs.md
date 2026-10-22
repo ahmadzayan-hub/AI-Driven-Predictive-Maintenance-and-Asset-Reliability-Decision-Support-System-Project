@@ -1331,3 +1331,9 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** full verify 8/8 (1,662 Python, 323 frontend, build, budget under the recorded 214 / 29.5 KB allocation); `evaluate_agents --check` 9/9; Overview and accessibility browser specs on the installed Chromium; the Command Centre rendered on a demo server in English and Arabic.
 - **Decided:** no navigation rebuild to the brief's six groups; no product rename, no multi-agent change, no external voice project without the review the brief itself requires. Open owner decisions listed in the roadmap.
 - **Next:** pull request from this branch, not merged to `main` until the gates and a reviewer; then the Android request.
+
+## 2026-10-22 · `d9e3f889` · claude/tender-clarke-m4uwgq (Android app, first release)
+
+- **Done:** `apps/android`: a pure-Kotlin `core` (API client over a Transport seam, brief models, the decision mapping shared with the web Command Centre with browser-identical rounding, a local vector memory with an HNSW index and snapshots) and a Compose `app` (Hilt, Room, DataStore, OkHttp; Command Centre, Analyses with upload and stage-by-stage advance, Approvals that require the report to be read, Presentation with HTML and Word sharing, Memory, Assistant, Settings; English and Arabic). `scripts/build-apk.sh`. [Decision](docs/adr/2026-10-22-android-app-first-release.md); `apps/android/README.md`.
+- **Verified:** `./gradlew :core:test` 14 of 14 on the JVM (HNSW recall ≥ 0.9 against brute force on 1,500 vectors; the live demo brief parses). The `app` module is authored, not compiled: `dl.google.com` (Android SDK and Google Maven) is denied by the environment's network policy. Reported as such, never as built.
+- **Next:** allow `dl.google.com` in the environment and run `scripts/build-apk.sh` here, or build in Android Studio; then an on-device check of upload, approval and sharing.

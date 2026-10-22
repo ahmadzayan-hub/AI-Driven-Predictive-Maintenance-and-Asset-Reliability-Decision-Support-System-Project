@@ -7,6 +7,7 @@ Last updated: 2026-10-22, session `ad7e9eca`, preserving the workspace runtime a
 
 ## Now
 
+- **Android app authored: 2026-10-22.** `apps/android` with a JVM-tested Kotlin core (14 tests) and a Compose app that waits for an Android SDK to compile; honesty boundary in [the record](docs/adr/2026-10-22-android-app-first-release.md). **Blocked here:** `dl.google.com` denied by the network policy.
 - **Platform assessment, five audit fixes and the Executive Command Centre: 2026-10-22, on branch `claude/tender-clarke-m4uwgq`, pull request pending.** 74 code-grounded findings ([assessment](docs/audits/SAAS_PLATFORM_ASSESSMENT.md)); blockers fixed with tests; the Overview is the Command Centre ([decision](docs/adr/2026-10-22-executive-command-centre.md)); P1 backlog and owner decisions in the [roadmap](docs/implementation/DELIVERY_ROADMAP.md). Verified 8/8; details in README.md#testing.
 - **Interrupted delivery reconciled: 2026-10-22.** Fresh remote checks confirm that the previously blocked maintenance commit `21dae21` and interface commit `77efe87` are on main. The local API and background worker remain ready. The GitHub sync runbook now documents checkpoint verification and guarded terminal recovery without a model session. Account-level usage limits remain controlled by the account provider; no billing or approval policy was changed.
 
