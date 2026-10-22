@@ -2,10 +2,12 @@
 recall floors every classifying agent must keep.
 
 The suites in evals/ are synthetic and labelled. Each has dev cases, used
-to find and fix misses, and holdout cases scored before and after. For the
-text classifiers, the current holdout is a blind set written by an
-independent agent from the label definitions only. A change that drops a
-suite below its floor in evals/floors.json fails here.
+to find and fix misses, and holdout cases scored before and after; the
+causal and standards holdouts are not blind (ADR 0056, and the standards
+cases' own source field). The text classifiers also carry a blind split,
+written by an independent agent from the label definitions only and never
+looked at while fixing, which the suite declares and the floors cover. A
+change that drops a suite below its floor in evals/floors.json fails here.
 """
 
 import json
@@ -65,18 +67,41 @@ class SuiteTests(unittest.TestCase):
                         self.assertIn(str(case["label"]), allowed)
 
     def test_no_suite_falls_below_its_recall_floor(self):
+        """Dev, holdout and, where the suite declares one, the blind split."""
         floors = json.loads((ev.EVALS / "floors.json").read_text(encoding="utf-8"))
         for name in ev.default_suites():
             result = ev.run_suite(name)
-            for split in ("dev", "holdout"):
+            for split in ev.SPLITS:
+                if split == "blind" and not ev.SUITES[name].get("blind"):
+                    continue
                 with self.subTest(suite=name, split=split):
                     self.assertGreaterEqual(ev.headline(result[split]) + 1e-9, floors[name][split])
 
+    def test_every_declared_blind_split_exists_is_scored_and_has_a_floor(self):
+        """A blind floor exists exactly for the suites that declare a blind
+        split, and the blind score covers every case of the named set."""
+        floors = json.loads((ev.EVALS / "floors.json").read_text(encoding="utf-8"))
+        for name in ev.default_suites():
+            blind = ev.SUITES[name].get("blind")
+            with self.subTest(suite=name):
+                self.assertEqual("blind" in floors[name], bool(blind))
+                if not blind:
+                    continue
+                data = json.loads((ev.EVALS / ev.SUITES[name]["file"]).read_text(encoding="utf-8"))
+                self.assertIn(blind, data)
+                result = ev.run_suite(name)
+                self.assertEqual(result["blind_split"], blind)
+                self.assertEqual(result["blind"]["split"], blind)
+                self.assertEqual(result["blind"]["cases"], len(data[blind]))
+                self.assertEqual(ev.split_label(result, "blind"), f"blind ({blind})")
+
     def test_the_report_page_draws_every_matrix(self):
         import score_review
-        page = ev.render_html([ev.run_suite("router")], score_review.summary())
+        page = ev.render_html([ev.run_suite("router"), ev.run_suite("standards")], score_review.summary())
         self.assertIn("<table class=\"cm\">", page)
         self.assertIn("Rows: true label", page)
+        self.assertIn("<th>Blind</th>", page)
+        self.assertIn("blind (blind_v1) · 36 cases", page)
         self.assertIn("Reviewers on seeded memos", page)
         self.assertIn("Rows: the planted defect.", page)
 
@@ -204,7 +229,7 @@ class RecallFixTests(unittest.TestCase):
                     if key != skip and isinstance(cases, list)
                     for case in cases if isinstance(case, dict) and "text" in case}
         for name, key, size in (("jargon", "blind_v6", 40), ("intent", "blind_v7", 57),
-                                ("causal", "blind_v7", 50)):
+                                ("causal", "blind_v7", 50), ("standards", "blind_v1", 36)):
             data = json.loads((ev.EVALS / f"{name}.json").read_text(encoding="utf-8"))
             if key not in data:
                 continue

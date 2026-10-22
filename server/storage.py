@@ -287,13 +287,20 @@ class SqlStore:
         # joins_json: the datasets a run joins and on what (ADR 0030); NULL
         # for a run of one dataset, which is every run before it.
         # connector_id: the source a refresh made the run from (ADR 0034).
+        # assumptions_json: the decision inputs a run stated (slice three
+        # of the release gate, A2 and A13); NULL for every run before it.
         for column in ("dataset_id", "lease_owner", "lease_expires_at",
                        "report_language", "mapping_json", "joins_json",
-                       "connector_id"):
+                       "connector_id", "assumptions_json"):
             try:
                 self._exec(f"ALTER TABLE runs ADD COLUMN {column} TEXT")
             except Exception:
                 self._rollback()
+        try:
+            # decided_by: the approver's subject, written by the gate (A13).
+            self._exec("ALTER TABLE approvals ADD COLUMN decided_by TEXT")
+        except Exception:
+            self._rollback()
         try:
             # NULL means "never paused", which reads as not paused.
             self._exec("ALTER TABLE runs ADD COLUMN paused INTEGER")
@@ -708,23 +715,53 @@ class SqlStore:
         """Every durable row, as plain JSON-serialisable dicts."""
         return {table: self._exec(f"SELECT * FROM {table}") for table in TABLES}
 
-    def import_all(self, payload):
-        """Replace all contents with a backup. Returns rows restored.
+    def table_columns(self, table):
+        """The live column names of one table, migrations included."""
+        if table not in TABLES:
+            raise ValueError(f"unknown table {table!r}")
+        return self._table_columns(table)
 
-        Children are deleted before parents and inserted after them, so
-        foreign keys hold at every point."""
-        for table in reversed(RESTORE_ORDER):
-            self._exec(f"DELETE FROM {table}")
-        restored = 0
+    def _prepare_restore(self, payload):
+        """Every row of every table, checked against the live schema
+        before anything is deleted: a dict whose keys are all columns of
+        that table. Returns the rows to insert, in restore order."""
+        prepared = []
         for table in RESTORE_ORDER:
-            for row in payload.get(table, []):
+            rows = payload.get(table, [])
+            if not isinstance(rows, list):
+                raise ValueError(f"backup table {table!r} is not a list of rows")
+            known = set(self.table_columns(table))
+            for index, row in enumerate(rows):
+                if not isinstance(row, dict) or not row:
+                    raise ValueError(f"backup table {table!r} row {index} is not a row")
                 if table == "memory_kv" and not row.get("owner"):
                     # Written before memory had an owner: the same
                     # attribution the migration makes.
                     row = dict(row, owner="local-owner")
+                unknown = sorted(str(c) for c in row if c not in known)
+                if unknown:
+                    raise ValueError(
+                        f"backup table {table!r} row {index} has unknown columns: "
+                        + ", ".join(unknown))
+                prepared.append((table, row))
+        return prepared
+
+    def import_all(self, payload):
+        """Replace all contents with a backup. Returns rows restored.
+
+        All or nothing (assessment finding B5): every row is validated
+        against the live schema before any delete, and the deletes and
+        inserts run inside one transaction, so a failure part-way leaves
+        the database exactly as it was. Children are deleted before
+        parents and inserted after them, so foreign keys hold at every
+        point."""
+        prepared = self._prepare_restore(payload)
+        with self.atomic("restore"):
+            for table in reversed(RESTORE_ORDER):
+                self._exec(f"DELETE FROM {table}")
+            for table, row in prepared:
                 self.insert(table, row)
-                restored += 1
-        return restored
+        return len(prepared)
 
 
 class DbMemoryBackend:
@@ -791,6 +828,9 @@ class SQLiteStore(SqlStore):
     def _commit(self):
         if not self._transaction_depth:
             self._conn.commit()
+
+    def _table_columns(self, table):
+        return [row["name"] for row in self._exec(f"PRAGMA table_info({table})")]
 
 
 class PostgresStore(SqlStore):
@@ -859,6 +899,13 @@ class PostgresStore(SqlStore):
 
     def _commit(self):
         pass  # autocommit
+
+    def _table_columns(self, table):
+        rows = self._exec(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_schema = current_schema() AND table_name = ? "
+            "ORDER BY ordinal_position", (table,))
+        return [row["column_name"] for row in rows]
 
 
 def open_store(database_url=None, sqlite_path=None):

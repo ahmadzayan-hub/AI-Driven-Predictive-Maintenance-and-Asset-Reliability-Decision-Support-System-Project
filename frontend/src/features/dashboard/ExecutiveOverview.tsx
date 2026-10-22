@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
 import { usePack } from '../../i18n/pack'
+import { formatMoney } from '../../shared/format'
 import { api } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
 import { PerformanceLegend, PerformanceValue, performanceTone } from '../../shared/components/PerformanceValue'
@@ -229,7 +230,7 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
           {data.advisory ? <>
             <p className="exec-muted">{data.headline}</p>
             <h4>{t('exec.scorecard')}</h4>
-            <dl>{data.advisory.domains.map((item) => <div key={item.id}><dt>{item.title} · {item.measure}</dt><dd><PerformanceValue tone={item.status} reason={item.reason}>{item.value === null ? t('exec.unavailable') : formatNumber(item.value, { maximumFractionDigits: 2 })}{item.value === null ? '' : item.scale === 'percent' ? '%' : item.scale === 'hours' ? ` ${t('exec.hours')}` : item.scale === 'money' ? ` ${t('exec.money')}` : ''}</PerformanceValue><p>{t('exec.covered', { n: formatNumber(item.records) })} · {t('exec.unmeasured', { n: formatNumber(item.unmeasured) })}</p><p>{item.implication}</p>{refs(item.evidence_refs)}</dd></div>)}</dl>
+            <dl>{data.advisory.domains.map((item) => <div key={item.id}><dt>{item.title} · {item.measure}</dt><dd><PerformanceValue tone={item.status} reason={item.reason}>{item.value === null ? t('exec.unavailable') : item.scale === 'money' && data.currency ? formatMoney(item.value, data.currency, locale) : formatNumber(item.value, { maximumFractionDigits: 2 })}{item.value === null ? '' : item.scale === 'percent' ? '%' : item.scale === 'hours' ? ` ${t('exec.hours')}` : item.scale === 'money' && !data.currency ? ` ${t('exec.money')}` : ''}</PerformanceValue><p>{t('exec.covered', { n: formatNumber(item.records) })} · {t('exec.unmeasured', { n: formatNumber(item.unmeasured) })}</p><p>{item.implication}</p>{refs(item.evidence_refs)}</dd></div>)}</dl>
             <h4>{t('exec.predictive')}</h4><p>{data.advisory.prediction}</p>
             <details><summary>{t('exec.basis')}</summary><p>{data.advisory.new_findings}</p><dl>{data.advisory.sources.map((source) => <div key={source.id}><dt>{source.title}</dt><dd><PerformanceValue tone={source.status}>{source.detail}</PerformanceValue></dd></div>)}</dl><p>{data.advisory.preservation}</p><p>{data.advisory.escalation}</p></details>
           </> : null}
@@ -264,12 +265,12 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
       <div className="exec-section-head"><h3 id="exec-kpis">{t('exec.kpis')}</h3>{data.kpis.measures.length && !readOnly ? <PolicyButton onClick={() => setPolicyOpen(true)} open={policyOpen} /> : null}</div>
       <PerformanceLegend />
       <details className="exec-about"><summary>{t('exec.about')}</summary><p>{t('exec.kpiScope')}</p><p>{t('exec.snapshot')}</p></details>
-      {policyOpen ? <Suspense fallback={<p role="status">{t('exec.loading')}</p>}><KpiPolicyEditor key={`${runId}:${locale}`} runId={runId} measures={data.kpis.measures} onClose={() => setPolicyOpen(false)} onSaved={() => setRevision((v) => v + 1)} /></Suspense> : null}
+      {policyOpen ? <Suspense fallback={<p role="status">{t('exec.loading')}</p>}><KpiPolicyEditor key={`${runId}:${locale}`} runId={runId} measures={data.kpis.measures} currency={data.currency ?? null} onClose={() => setPolicyOpen(false)} onSaved={() => setRevision((v) => v + 1)} /></Suspense> : null}
       {FAMILIES.map((family) => {
         const items = data.kpis.measures.filter((measure) => (FAMILIES.includes(measure.family as Family) ? measure.family : 'other') === family)
         return items.length ? <section key={family} className="exec-family" data-family={family} aria-labelledby={`exec-family-${family}`}>
           <h4 id={`exec-family-${family}`}><Icon name={FAMILY_ICON[family]} size={16} />{t(`exec.family.${family}`)}</h4>
-          <div className="exec-kpis">{items.map((measure) => <Kpi key={measure.key} measure={measure} />)}</div>
+          <div className="exec-kpis">{items.map((measure) => <Kpi key={measure.key} measure={measure} currency={data.currency ?? null} />)}</div>
         </section> : null
       })}
       {Object.keys(data.kpis.unavailable).length ? <details className="exec-unavailable"><summary>{t('exec.unsupported')}</summary><dl>{Object.entries(data.kpis.unavailable).map(([name, reason]) => <div key={name}><dt><bdi>{name}</bdi></dt><dd dir="auto">{reason}</dd></div>)}</dl></details> : null}
@@ -301,10 +302,13 @@ const FAMILIES = ['reliability', 'execution', 'cost', 'other'] as const
 type Family = typeof FAMILIES[number]
 const FAMILY_ICON = { reliability: 'activity', execution: 'check', cost: 'database', other: 'dashboard' } as const
 
-function Kpi({ measure }: { measure: KpiMeasure }) {
-  const { t, formatNumber } = usePack(executiveMessages)
-  const value = measure.value === null ? t('exec.unavailable') : formatNumber(measure.value, { maximumFractionDigits: 2 })
-  const unit = measure.value === null ? '' : measure.scale === 'percent' ? '%' : measure.scale === 'hours' ? t('exec.hours') : measure.scale === 'money' ? t('exec.money') : measure.scale === 'ratio' ? t('exec.ratio') : measure.scale === 'count' ? '' : measure.scale
+/** `currency` is the code the column mapping states, or null: money then
+ *  reads "currency not stated" rather than being given a default. */
+function Kpi({ measure, currency }: { measure: KpiMeasure; currency: string | null }) {
+  const { t, locale, formatNumber } = usePack(executiveMessages)
+  const stated = measure.scale === 'money' && currency ? currency : null
+  const value = measure.value === null ? t('exec.unavailable') : stated ? formatMoney(measure.value, stated, locale) : formatNumber(measure.value, { maximumFractionDigits: 2 })
+  const unit = measure.value === null ? '' : measure.scale === 'percent' ? '%' : measure.scale === 'hours' ? t('exec.hours') : measure.scale === 'money' ? (stated ? '' : t('exec.money')) : measure.scale === 'ratio' ? t('exec.ratio') : measure.scale === 'count' ? '' : measure.scale
   const tone = performanceTone(measure.value, measure.assessment)
   // A verdict's reason stays on the card, and so does a target held for review;
   // "no target is set" moves into the evidence.
@@ -312,12 +316,12 @@ function Kpi({ measure }: { measure: KpiMeasure }) {
     || measure.assessment?.reason_code === 'target_outdated'
   const share = measure.scale === 'percent' && measure.value !== null ? Math.max(0, Math.min(100, measure.value)) : null
   return <article className="exec-kpi" data-source={`kpi.${measure.key}`}>
-    <h5 dir="auto">{measure.title}</h5><p className={`exec-kpi-value${measure.value === null ? ' exec-kpi-value--missing' : ''}`}><PerformanceValue tone={tone} reason={verdict ? measure.assessment?.reason : undefined}><bdi><span className="exec-kpi-n">{value}</span>{unit.length > 2 ? ' ' : '\u00a0'}<small>{unit}</small></bdi></PerformanceValue></p>
+    <h5 dir="auto">{measure.title}</h5><p className={`exec-kpi-value${measure.value === null ? ' exec-kpi-value--missing' : ''}`}><PerformanceValue tone={tone} reason={verdict ? measure.assessment?.reason : undefined}><bdi><span className="exec-kpi-n">{value}</span>{unit ? <>{unit.length > 2 ? ' ' : '\u00a0'}<small>{unit}</small></> : null}</bdi></PerformanceValue></p>
     {share === null ? null : <svg className="exec-kpi-meter" viewBox="0 0 100 4" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect width="100" height="4" rx="2" /><rect width={share} height="4" rx="2" /></svg>}
     <p className="exec-kpi-covered">{t('exec.covered', { n: formatNumber(measure.records) })}</p>
     {measure.records_unmeasured > 0 ? <p className="exec-kpi-caution">{t('exec.unmeasured', { n: formatNumber(measure.records_unmeasured) })}</p> : null}
     {measure.undefined_reason ? <p className="exec-kpi-caution" dir="auto">{measure.undefined_reason}</p> : null}
-    <details><summary>{t('exec.sources')}</summary>{!verdict && measure.assessment?.reason ? <p dir="auto">{measure.assessment.reason}</p> : null}<dl><div><dt>{t('exec.formula')}</dt><dd dir="auto">{measure.formula} · <bdi>{formatNumber(measure.numerator)} / {formatNumber(measure.denominator)}</bdi></dd></div><div><dt>{t('exec.population')}</dt><dd dir="auto">{measure.population_label ?? measure.population}</dd></div><div><dt>{t('exec.missing')}</dt><dd dir="auto">{measure.missing_policy}</dd></div></dl><TargetEvidence measure={measure} />{measure.records_excluded > 0 ? <p>{t('exec.excluded', { n: formatNumber(measure.records_excluded) })}</p> : null}</details>
+    <details><summary>{t('exec.sources')}</summary>{!verdict && measure.assessment?.reason ? <p dir="auto">{measure.assessment.reason}</p> : null}<dl><div><dt>{t('exec.formula')}</dt><dd dir="auto">{measure.formula} · <bdi>{formatNumber(measure.numerator)} / {formatNumber(measure.denominator)}</bdi></dd></div><div><dt>{t('exec.population')}</dt><dd dir="auto">{measure.population_label ?? measure.population}</dd></div><div><dt>{t('exec.missing')}</dt><dd dir="auto">{measure.missing_policy}</dd></div></dl><TargetEvidence measure={measure} currency={currency} />{measure.records_excluded > 0 ? <p>{t('exec.excluded', { n: formatNumber(measure.records_excluded) })}</p> : null}</details>
   </article>
 }
 
@@ -326,10 +330,10 @@ function PolicyButton({ onClick, open }: { onClick: () => void; open: boolean })
   return <button type="button" className="btn btn--ghost" disabled={open} aria-expanded={open} onClick={onClick}>{t('policy.title')}</button>
 }
 
-function TargetEvidence({ measure }: { measure: KpiMeasure }) {
+function TargetEvidence({ measure, currency }: { measure: KpiMeasure; currency: string | null }) {
   const { t, formatNumber } = usePack(policyMessages)
   const assessment = measure.assessment
-  const unit = measure.scale === 'percent' ? '%' : measure.scale === 'hours' ? t('policy.hours') : measure.scale === 'money' ? t('policy.money') : measure.scale === 'ratio' ? t('policy.ratio') : measure.scale === 'count' ? t('policy.count') : measure.scale
+  const unit = measure.scale === 'percent' ? '%' : measure.scale === 'hours' ? t('policy.hours') : measure.scale === 'money' ? (currency ?? t('policy.money')) : measure.scale === 'ratio' ? t('policy.ratio') : measure.scale === 'count' ? t('policy.count') : measure.scale
   if (!assessment?.direction) return null
   return <dl><div><dt>{t('policy.direction')}</dt><dd>{t(`policy.${assessment.direction}`)}</dd></div>
     {Object.entries(assessment.thresholds || {}).map(([key, number]) => <div key={key}><dt>{t(`policy.${key}` as 'policy.good_at')}</dt><dd><bdi>{formatNumber(number, { maximumSignificantDigits: 12 })} {unit}</bdi></dd></div>)}

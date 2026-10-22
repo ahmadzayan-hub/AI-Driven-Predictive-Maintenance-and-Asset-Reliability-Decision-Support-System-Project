@@ -610,14 +610,22 @@ class GovernedSpecialistsTestCase(unittest.TestCase):
         self.assertEqual(ctx["anomaly"]["anomalies"], [])
 
     def test_sensitivity_reports_whether_the_advice_survives_the_assumption(self):
-        ctx, results = run_pipeline(analytics.sample_dataset())
-        self.assertTrue(ctx["sensitivity"]["stable"])
-        self.assertEqual(len(ctx["sensitivity"]["scenarios"]), 3)
-        # Every scenario picks the same winner, which is what "stable" means.
-        self.assertEqual(len({s["winner"] for s in ctx["sensitivity"]["scenarios"]}), 1)
+        ctx, results = run_pipeline(linear_dataset(), mapping=explicit_grouping())
+        sens = ctx["sensitivity"]
+        # One uplift for everyone cannot change the order (scale-invariant),
+        # and the stage says so rather than calling that "stable".
+        self.assertTrue(sens["uniform_stable"])
+        self.assertEqual(len(sens["scenarios"]), 3)
+        self.assertEqual(len({s["winner"] for s in sens["scenarios"]}), 1)
+        # Independent ranges can: Beta at 20% beats Alpha at 5% here.
+        self.assertFalse(sens["stable"])
+        flip = next(f for f in sens["flip_points"] if f["key"] == "smallest_source")
+        self.assertTrue(flip["can_overtake"])
+        self.assertAlmostEqual(flip["flip_at_uplift"], 0.125)
         claim = results["sensitivity"]["claims"][0]
-        self.assertIn("does not depend on the size", claim["text"])
-        self.assertIn("break_even", str(ctx["sensitivity"]))
+        self.assertIn("overtakes it at an improvement of 12%", claim["text"])
+        self.assertIn("c_flip_smallest_source", claim["evidence"])
+        self.assertIn("break_even", str(sens))
 
     def test_provenance_walks_every_claim_back_to_a_calculation(self):
         ctx, _ = run_pipeline(analytics.sample_dataset())
@@ -1451,3 +1459,133 @@ class ClaimFiguresMatchEvidenceTestCase(unittest.TestCase):
         self.assertFalse(checks["claim_figures_match_evidence"]["passed"])
         self.assertIn(ctx["descriptive_result"]["claims"][0]["id"],
                       checks["claim_figures_match_evidence"]["detail"])
+
+
+
+# ---------------------------------------------------------------------------
+# Release gate, slice three: prescriptive inputs and the decision record
+# ---------------------------------------------------------------------------
+
+def dominant_dataset():
+    """One group twenty times the other: no uplift inside the range flips it."""
+    lines = ["month,team,sales"]
+    for index in range(6):
+        lines.append(f"2025-{index + 1:02d},Alpha,2000")
+        lines.append(f"2025-{index + 1:02d},Beta,100")
+    return "\n".join(lines) + "\n"
+
+
+class PrescriptiveInputsTestCase(unittest.TestCase):
+    """Uplift and cost are inputs, the sensitivity stage varies them per
+    option, and distinct uplifts can flip the ranking (A2)."""
+
+    def run_with(self, assumptions, dataset=None, language="en"):
+        ctx = {"goal": "Analyse the data", "dataset_name": "test.csv",
+               "dataset_text": dataset or linear_dataset(), "run_id": "run-test",
+               "glossary": None, "report_language": language,
+               "mapping": explicit_grouping(), "assumptions": assumptions}
+        results = {}
+        for role, stage in analytics.PIPELINE:
+            result = (stage(ctx, gateway=None)
+                      if role in analytics.NARRATED_STAGES else stage(ctx))
+            results[role] = result
+            self.assertEqual(result["status"], "succeeded", (role, result["summary"]))
+            ctx[role] = result["output"]
+            ctx[role + "_result"] = result
+        self.assertTrue(all(c["passed"] for c in results["validator"]["quality_checks"]),
+                        [c for c in results["validator"]["quality_checks"] if not c["passed"]])
+        return ctx, results
+
+    def test_a_stated_uplift_can_flip_the_ranking(self):
+        ctx, _ = self.run_with(None)
+        self.assertEqual(ctx["prescriptive"]["recommendation"]["target"], "Alpha")
+        for language in ("en", "ar"):
+            ctx, results = self.run_with({"uplift": {"Beta": 0.30}}, language=language)
+            best = ctx["prescriptive"]["recommendation"]
+            self.assertEqual(best["target"], "Beta")
+            self.assertEqual(best["uplift_source"], "stated")
+            self.assertEqual(best["uplift"], 0.30)
+            self.assertEqual(ctx["prescriptive"]["decision"]["expected_impact"]["label"], "stated")
+            self.assertIn("stated" if language == "en" else "المعلنة",
+                          results["prescriptive"]["summary"])
+
+    def test_a_stated_cost_is_netted_and_cited(self):
+        ctx, results = self.run_with({"costs": {"Alpha": 500}})
+        alpha = next(o for o in ctx["prescriptive"]["options"] if o["target"] == "Alpha")
+        self.assertEqual(alpha["cost"], 500.0)
+        self.assertEqual(alpha["expected_gain"], round(alpha["gross_gain"] - 500, 2))
+        self.assertIn("c_cost_largest_source", alpha["evidence"])
+        calcs = {c["id"]: c for c in results["prescriptive"]["calculations"]}
+        self.assertEqual(calcs["c_cost_largest_source"]["value"], 500.0)
+        self.assertNotEqual(ctx["prescriptive"]["recommendation"]["target"], "Alpha")
+
+    def test_a_dominant_option_is_stable_inside_the_range(self):
+        ctx, results = self.run_with(None, dataset=dominant_dataset())
+        sens = ctx["sensitivity"]
+        self.assertTrue(sens["stable"])
+        self.assertTrue(all(not f["can_overtake"] for f in sens["flip_points"]))
+        self.assertIn("holds inside the stated range", results["sensitivity"]["claims"][0]["text"])
+
+    def test_the_uplift_range_is_an_input(self):
+        ctx, _ = self.run_with({"uplift_range": [0.05, 1.50]}, dataset=dominant_dataset())
+        self.assertFalse(ctx["sensitivity"]["stable"])
+        self.assertEqual(ctx["sensitivity"]["uplift_range"], [0.05, 1.50])
+
+    def test_assumptions_are_validated(self):
+        self.assertIsNone(analytics.validate_assumptions(None))
+        self.assertIsNone(analytics.validate_assumptions({}))
+        clean = analytics.validate_assumptions({"uplift": {"Beta": 0.3}, "costs": {"Alpha": 500},
+                                                "uplift_range": [0.05, 0.4]})
+        self.assertEqual(clean, {"uplift": {"Beta": 0.3}, "costs": {"Alpha": 500.0},
+                                 "uplift_range": [0.05, 0.4]})
+        for bad in ({"uplift": {"Beta": "a lot"}}, {"costs": {"Alpha": -1}},
+                    {"uplift_range": [0.5, 0.1]}, {"extra": 1}, {"uplift": []},
+                    {"uplift": {"": 0.1}}, {"costs": {"A": float("nan")}}):
+            with self.subTest(bad=bad):
+                with self.assertRaises(ValueError):
+                    analytics.validate_assumptions(bad)
+        with self.assertRaises(ValueError) as caught:
+            analytics.validate_assumptions({"extra": 1}, language="ar")
+        self.assertIn("غير معروفة", str(caught.exception))
+
+
+class DecisionRecordTestCase(unittest.TestCase):
+    """One structured record per recommendation, persisted with the run,
+    completed by the sensitivity stage and the approval gate (A13)."""
+
+    def test_the_record_is_written_with_every_field(self):
+        ctx, results = run_pipeline(linear_dataset(), mapping=explicit_grouping())
+        record = ctx["prescriptive"]["decision"]
+        for field in ("decision_id", "issue", "scope", "evidence", "risk", "alternatives",
+                      "expected_impact", "cost", "constraints", "uncertainty",
+                      "recommended_action", "recommendation_basis", "approval", "audit"):
+            self.assertIn(field, record)
+        self.assertEqual(record["decision_id"], "test-run:largest_source")
+        self.assertEqual(record["scope"], "Alpha")
+        self.assertEqual(record["audit"]["snapshot"], ctx["collector"]["snapshot"])
+        self.assertEqual(len(record["alternatives"]), len(ctx["prescriptive"]["options"]))
+        # No direction and no cost: ranked by size, so no action is recommended
+        # by value, and the record says which.
+        self.assertIsNone(record["recommended_action"])
+        self.assertEqual(record["recommendation_basis"], "size_no_direction")
+        self.assertIn("Alpha", record["cost"]["not_stated_for"])
+        self.assertIsNone(record["approval"])
+        # The sensitivity stage completes the uncertainty.
+        completed = ctx["sensitivity"]["decision"]
+        self.assertIsNotNone(completed["uncertainty"])
+        self.assertIn("flip_points", completed["uncertainty"])
+        self.assertIn("## Decision record", results["prescriptive"]["output"]["report_markdown"])
+
+    def test_every_figure_the_record_cites_exists(self):
+        ctx, results = run_pipeline(linear_dataset(), mapping=explicit_grouping())
+        calcs = {c["id"] for r in results.values() for c in r.get("calculations", [])}
+        record = ctx["prescriptive"]["decision"]
+        for ref in record["evidence"]:
+            self.assertIn(ref, calcs)
+        for alternative in record["alternatives"]:
+            for ref in alternative["evidence"]:
+                self.assertIn(ref, calcs)
+
+    def test_the_arabic_record_section_is_written(self):
+        _, results = run_pipeline(linear_dataset(), mapping=explicit_grouping(), language="ar")
+        self.assertIn("## سجل القرار", results["prescriptive"]["output"]["report_markdown"])

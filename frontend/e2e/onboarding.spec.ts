@@ -1,5 +1,4 @@
 import { expect, test } from '@playwright/test'
-import { composerInput } from './helpers'
 
 test('first visit shows dismissible onboarding that never returns', async ({ page }) => {
   await page.goto('/')
@@ -12,6 +11,7 @@ test('first visit shows dismissible onboarding that never returns', async ({ pag
   await expect(dialog).toBeHidden()
 
   await page.reload()
-  await expect(composerInput(page)).toBeVisible()
+  // The app lands on the Command Centre (finding U12), with no dialog again.
+  await expect(page.getByRole('heading', { name: 'Command Centre', level: 2 })).toBeVisible()
   await expect(page.getByRole('dialog', { name: 'Welcome to Asset Reliability' })).toBeHidden()
 })

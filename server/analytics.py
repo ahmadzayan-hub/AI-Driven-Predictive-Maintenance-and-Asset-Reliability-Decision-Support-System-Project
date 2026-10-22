@@ -2888,67 +2888,127 @@ def sensitivity(ctx):
                            "مع أقل من خيارين لا يوجد ترتيب يمكن اختبار حساسيته.",
                            ["c_sens_none"])])
 
-    # Every option is scored as base_value × uplift, so the ranking is
-    # scale-invariant in the uplift — the honest way to say that is to
-    # show it rather than assert it.
+    # Each option's improvement may sit anywhere in the uplift range,
+    # independently of the others (A2). The ranking is stable only when the
+    # winner at the low end of the range still beats every other option at
+    # the high end; otherwise the flip point says how much better the other
+    # option would have to do. The three uniform scenarios are kept because
+    # they show the other truth: with one uplift for everyone the order is
+    # scale-invariant.
+    inputs = ctx["prescriptive"].get("assumptions") or decision_inputs(ctx)
+    low, high = inputs["uplift_range"]
     winner = options[0]
     runner_up = options[1]
     scenarios = []
-    for uplift in (0.05, PLANNING_UPLIFT, 0.20):
+    for uplift in (low, PLANNING_UPLIFT, high):
         scored = sorted(
             ({"key": o["key"], "title": o["title"],
-              "gain": round(o["base_value"] * uplift, 2)} for o in options),
+              "gain": round(o["base_value"] * uplift - (o.get("cost") or 0.0), 2)}
+             for o in options),
             key=lambda o: -o["gain"])
         scenarios.append({"uplift": uplift, "winner": scored[0]["key"],
                           "gain": scored[0]["gain"]})
-    stable = len({s["winner"] for s in scenarios}) == 1
+    uniform_stable = len({s["winner"] for s in scenarios}) == 1
+
+    def net(option, uplift):
+        if option["key"] == "hold_course":
+            return 0.0
+        return option["base_value"] * uplift - (option.get("cost") or 0.0)
+
+    winner_low_uplift = winner["uplift"] if winner.get("uplift_source") == "stated" else low
+    winner_low = net(winner, winner_low_uplift)
+    flips = []
+    for other in options[1:]:
+        other_high = net(other, other["uplift"] if other.get("uplift_source") == "stated" else high)
+        flip_at = None
+        if other["base_value"] and other["key"] != "hold_course":
+            # The uplift at which this option ties the winner when the
+            # winner only reaches the low end of its range (or its stated
+            # uplift): the same comparison the stability rule makes.
+            flip_at = round(max(0.0, winner_low + (other.get("cost") or 0.0))
+                            / other["base_value"], 4)
+        flips.append({"key": other["key"], "title": other["title"],
+                      "title_ar": other.get("title_ar"), "target": other["target"],
+                      "target_ar": other.get("target_ar"),
+                      "flip_at_uplift": flip_at,
+                      "inside_range": flip_at is not None and low <= flip_at <= high,
+                      "can_overtake": other_high >= winner_low})
+    stable = not any(f["can_overtake"] for f in flips)
+    first_flip = next((f for f in flips if f["can_overtake"]), None)
 
     break_even = None
     if runner_up["base_value"]:
-        # How much better the runner-up's uplift would have to be for it
-        # to win, holding the leader's assumption fixed.
         break_even = round(winner["base_value"] / runner_up["base_value"], 3)
 
-    calcs = [{"id": "c_sens_stable", "name": "winner_unchanged_across_scenarios",
+    calcs = [{"id": "c_sens_stable", "name": "winner_unchanged_within_ranges",
               "value": 1 if stable else 0,
-              "method": "recommended option compared at 5%, 10% and 20% uplift"}]
+              "method": f"winner at the low end of the uplift range ({low:.0%}) against every "
+                        f"other option at the high end ({high:.0%}), costs as stated"},
+             {"id": "c_sens_uniform", "name": "winner_unchanged_uniform_uplift",
+              "value": 1 if uniform_stable else 0,
+              "method": f"recommended option compared at {low:.0%}, {PLANNING_UPLIFT:.0%} and "
+                        f"{high:.0%} uplift applied to every option alike"}]
+    for flip in flips:
+        if flip["flip_at_uplift"] is not None:
+            calcs.append({"id": f"c_flip_{flip['key']}", "name": f"flip_uplift_{flip['key']}",
+                          "value": flip["flip_at_uplift"],
+                          "method": f"(winner's gain at the low end of its range + cost of "
+                                    f"“{flip['target']}”) ÷ current value of “{flip['target']}”"})
     if break_even is not None:
         calcs.append({"id": "c_sens_breakeven", "name": "break_even_ratio",
                       "value": break_even,
                       "method": f"“{winner['target']}” current value ÷ "
                                 f"“{runner_up['target']}” current value"})
+    flip_evidence = [f"c_flip_{first_flip['key']}"] if first_flip and first_flip["flip_at_uplift"] is not None else []
     claims = [_claim(
         ctx, "cl_sens", "finding",
-        (f"The recommendation does not depend on the size of the improvement "
-         f"assumed: “{winner['title']}” wins at 5%, 10% and 20% alike."
+        (f"The recommendation holds inside the stated range: “{winner['title']}” at a "
+         f"{low:.0%} improvement still beats every other option at {high:.0%}."
          if stable else
-         "The recommendation changes with the size of the improvement assumed, "
-         "so it should be treated as a close call rather than a conclusion.")
+         f"The recommendation can change inside the stated range: “{first_flip['title']}” "
+         f"overtakes it"
+         + (f" at an improvement of {first_flip['flip_at_uplift']:.0%} if “{winner['target']}” "
+            f"reaches only {winner_low_uplift:.0%}"
+            if first_flip["flip_at_uplift"] is not None else "")
+         + ", so treat the ranking as a close call rather than a conclusion.")
         + (f" It would take a {break_even:.1f}× better result in "
            f"“{runner_up['target']}” than in “{winner['target']}” to change the answer."
            if break_even else ""),
-        (f"لا تعتمد التوصية على حجم التحسن المفترض: "
-         f"«{winner.get('title_ar', winner['title'])}» يتصدر عند "
-         "5% و10% و20% على حد سواء."
+        (f"تصمد التوصية داخل النطاق المعلن: «{winner.get('title_ar', winner['title'])}» عند "
+         f"تحسن {low:.0%} ما زال يتفوق على كل خيار آخر عند {high:.0%}."
          if stable else
-         "تتغير التوصية بتغير حجم التحسن المفترض، فينبغي التعامل معها بوصفها قراراً "
-         "متقارباً لا نتيجة محسومة.")
+         f"قد تتغير التوصية داخل النطاق المعلن: «{first_flip.get('title_ar') or first_flip['title']}» "
+         "يتجاوزها"
+         + (f" عند تحسن بنسبة {first_flip['flip_at_uplift']:.0%} إذا لم يحقق "
+            f"«{winner.get('target_ar', winner['target'])}» سوى {winner_low_uplift:.0%}"
+            if first_flip["flip_at_uplift"] is not None else "")
+         + "، فتعامل مع الترتيب بوصفه قراراً متقارباً لا نتيجة محسومة.")
         + (f" ولتغيير الجواب يلزم أن تكون النتيجة في "
            f"«{runner_up.get('target_ar', runner_up['target'])}» أفضل بمقدار "
            f"{break_even:.1f}× مما هي في «{winner.get('target_ar', winner['target'])}»."
            if break_even else ""),
-        ["c_sens_stable"] + (["c_sens_breakeven"] if break_even else []))]
+        ["c_sens_stable"] + flip_evidence + (["c_sens_breakeven"] if break_even else []))]
+    decision = dict(ctx["prescriptive"].get("decision") or {})
+    if decision:
+        decision["uncertainty"] = {
+            "stable_within_ranges": stable, "uplift_range": [low, high],
+            "flip_points": [{k: f[k] for k in ("key", "target", "flip_at_uplift",
+                                                "inside_range", "can_overtake")}
+                            for f in flips],
+            "break_even_ratio": break_even}
     return _result(
         "succeeded",
         _say(ctx,
-             ("The recommendation holds across every improvement assumption tested."
+             ("The recommendation holds across the stated range of improvement."
               if stable else
               "The recommendation depends on the improvement assumed — treat it as a "
               "close call."),
-             ("تصمد التوصية أمام كل افتراضات التحسن التي اختُبرت."
+             ("تصمد التوصية عبر نطاق التحسن المعلن."
               if stable else
               "تعتمد التوصية على التحسن المفترض، فتعامل معها بوصفها قراراً متقارباً.")),
-        output={"stable": stable, "scenarios": scenarios, "break_even": break_even},
+        output={"stable": stable, "uniform_stable": uniform_stable, "scenarios": scenarios,
+                "break_even": break_even, "flip_points": flips,
+                "uplift_range": [low, high], "decision": decision or None},
         calculations=calcs, claims=claims,
     )
 
@@ -3375,6 +3435,64 @@ def predictive(ctx):
 # ranking reflects where the leverage is — not a claim about how easy any
 # option is. That assumption is printed next to the recommendation.
 PLANNING_UPLIFT = 0.10
+# The range an improvement is allowed to take, per option and independently,
+# when the sensitivity stage asks whether the ranking can flip (A2).
+UPLIFT_RANGE = (0.05, 0.20)
+MAX_ASSUMPTION_KEYS = 50
+
+
+def validate_assumptions(assumptions, language="en"):
+    """The decision inputs a run may carry (assessment A2, A13): an
+    uplift per target, a cost per target, and the uplift range the
+    sensitivity stage explores. Returns the clean dict, or raises
+    ValueError with the reason in the report's language. Keys are target
+    names as the data spells them; nothing here is a model input."""
+    if assumptions in (None, {}):
+        return None
+    if not isinstance(assumptions, dict):
+        raise ValueError("assumptions must be an object" if language != "ar"
+                         else "يجب أن تكون الافتراضات كائناً")
+    unknown = sorted(set(assumptions) - {"uplift", "costs", "uplift_range"})
+    if unknown:
+        raise ValueError((f"unknown assumption fields: {', '.join(unknown)}")
+                         if language != "ar" else
+                         f"حقول افتراضات غير معروفة: {', '.join(unknown)}")
+    clean = {}
+    for field, low, high in (("uplift", 0.0, 10.0), ("costs", 0.0, 1e15)):
+        table = assumptions.get(field)
+        table = {} if table is None else table
+        if not isinstance(table, dict) or len(table) > MAX_ASSUMPTION_KEYS:
+            raise ValueError(f"{field} must map at most {MAX_ASSUMPTION_KEYS} targets to numbers")
+        out = {}
+        for key, value in table.items():
+            if not isinstance(key, str) or not key.strip() or len(key) > 200:
+                raise ValueError(f"{field}: target names must be short text")
+            if isinstance(value, bool) or not isinstance(value, (int, float)) \
+                    or not math.isfinite(value) or not low <= value <= high:
+                raise ValueError(f"{field}: “{key}” must be a number between {low:g} and {high:g}")
+            out[key.strip()] = float(value)
+        if out:
+            clean[field] = out
+    rng = assumptions.get("uplift_range")
+    if rng is not None:
+        ok = (isinstance(rng, (list, tuple)) and len(rng) == 2
+              and all(isinstance(v, (int, float)) and not isinstance(v, bool)
+                      and math.isfinite(v) for v in rng)
+              and 0 <= rng[0] < rng[1] <= 10)
+        if not ok:
+            raise ValueError("uplift_range must be two numbers, low then high, between 0 and 10")
+        clean["uplift_range"] = [float(rng[0]), float(rng[1])]
+    return clean or None
+
+
+def decision_inputs(ctx):
+    """What the run stated: per-target uplifts, per-target costs and the
+    uplift range; defaults where it stated nothing."""
+    stated = ctx.get("assumptions") or {}
+    rng = stated.get("uplift_range") or list(UPLIFT_RANGE)
+    return {"uplift": dict(stated.get("uplift") or {}),
+            "costs": dict(stated.get("costs") or {}),
+            "uplift_range": [float(rng[0]), float(rng[1])]}
 
 
 def prescriptive(ctx, gateway=None):
@@ -3393,21 +3511,40 @@ def prescriptive(ctx, gateway=None):
     calcs, claims, options = [], [], []
 
     arabic = report_language(ctx) == "ar"
+    # Uplift and cost are inputs where the run stated them (A2, A13); the
+    # assumed uniform uplift is the fallback, and every option says which.
+    inputs = decision_inputs(ctx)
 
     def add_option(key, title, target, base_value, rationale, evidence,
                    gain=None, method=None):
         """`title`, `target` and `rationale` are (English, Arabic) pairs. The
         English is what the audited claims and the calculation method cite;
         the Arabic is what an Arabic report shows."""
-        gain = round(base_value * PLANNING_UPLIFT, 2) if gain is None else gain
+        uplift = inputs["uplift"].get(target[0])
+        stated = uplift is not None
+        uplift = PLANNING_UPLIFT if uplift is None else uplift
+        cost = inputs["costs"].get(target[0])
+        if gain is None:
+            gross = round(base_value * uplift, 2)
+            gain = round(gross - (cost or 0.0), 2)
+            method = method or (f"{uplift:.0%} ({'stated' if stated else 'assumed'}) of "
+                                f"{target[0]}'s current {measure} ({base_value:,.2f})"
+                                + (f" minus its stated cost {cost:,.2f}" if cost is not None else ""))
+        else:
+            gross = gain
         calcs.append({"id": f"c_option_{key}", "name": f"expected_gain_{key}",
-                      "value": gain,
-                      "method": method or (f"{PLANNING_UPLIFT:.0%} of {target[0]}'s "
-                                           f"current {measure} ({base_value:,.2f})")})
+                      "value": gain, "method": method})
+        if cost is not None:
+            calcs.append({"id": f"c_cost_{key}", "name": f"cost_{key}", "value": round(cost, 2),
+                          "method": f"cost of {target[0]} as stated in the run's assumptions"})
         option = {"key": key, "title": title[0], "target": target[0],
                   "base_value": round(base_value, 2), "expected_gain": gain,
+                  "gross_gain": gross, "uplift": uplift,
+                  "uplift_source": "stated" if stated else "assumed",
+                  "cost": None if cost is None else round(cost, 2),
                   "rationale": rationale[0],
-                  "evidence": evidence + [f"c_option_{key}"]}
+                  "evidence": evidence + [f"c_option_{key}"]
+                  + ([f"c_cost_{key}"] if cost is not None else [])}
         if arabic:
             option.update(title_ar=title[1], target_ar=target[1],
                           rationale_ar=rationale[1])
@@ -3599,17 +3736,25 @@ def prescriptive(ctx, gateway=None):
         calcs.append({"id": "c_margin", "name": "margin_over_next_option", "value": round(margin, 2),
                       "method": "best option's expected gain minus the next option's"})
 
+    anything_stated = any(o["uplift_source"] == "stated" or o["cost"] is not None
+                          for o in options)
     claims.append(_claim(
         ctx, "cl_recommendation", "recommendation",
-        f"Recommended action: {best['title']}. On the same assumed {PLANNING_UPLIFT:.0%} "
-        f"improvement applied to every option, it is worth an illustrative "
-        f"{best['expected_gain']:,.2f} in {measure}" +
+        f"Recommended action: {best['title']}. "
+        + (f"On the uplifts and costs stated for this run, it is worth "
+           f"{best['expected_gain']:,.2f} net in {measure}"
+           if anything_stated else
+           f"On the same assumed {PLANNING_UPLIFT:.0%} improvement applied to every "
+           f"option, it is worth an illustrative {best['expected_gain']:,.2f} in {measure}") +
         (f", ahead of the next option by {margin:,.2f}." if margin else ".") +
         " This is a recommendation under a stated assumption, not an observed "
         "outcome.",
-        f"الإجراء الموصى به: {shown(best, 'title')}. عند تطبيق التحسن المفترض نفسه بنسبة "
-        f"{PLANNING_UPLIFT:.0%} على كل خيار، تبلغ قيمته التوضيحية {best['expected_gain']:,.2f} "
-        f"في {measure}" +
+        f"الإجراء الموصى به: {shown(best, 'title')}. "
+        + (f"وفق نسب التحسن والتكاليف المعلنة لهذا التحليل، تبلغ قيمته الصافية "
+           f"{best['expected_gain']:,.2f} في {measure}"
+           if anything_stated else
+           f"عند تطبيق التحسن المفترض نفسه بنسبة {PLANNING_UPLIFT:.0%} على كل خيار، "
+           f"تبلغ قيمته التوضيحية {best['expected_gain']:,.2f} في {measure}") +
         (f"، متقدماً على الخيار التالي بمقدار {margin:,.2f}." if margin else ".") +
         " وهذه توصية قائمة على افتراض معلن، لا نتيجة مشاهدة.",
         best["evidence"] + (["c_margin"] if margin is not None else [])))
@@ -3717,16 +3862,90 @@ def prescriptive(ctx, gateway=None):
                            f"{closeness:.0%} من قيمة الخيار الأول."
                            + (" وهذا تقارب يجعل التكلفة والجدوى هما الحكم، لا هذا "
                               "الترتيب.*" if closeness < 0.20 else "*"))]
+    # The decision record (A13): one structured object per recommendation,
+    # persisted with the run, completed by the sensitivity stage (its
+    # uncertainty) and by the approval gate (its approver). No stage
+    # approves anything.
+    low, high = inputs["uplift_range"]
+    costed = [o for o in options if o["cost"] is not None or o["key"] == "hold_course"]
+    all_costed = len(costed) == len(options)
+    if better and all_costed:
+        basis, basis_text = "value", ("ranked by net value: direction declared and every cost stated",
+                                      "مرتب حسب القيمة الصافية: الاتجاه معلن وكل التكاليف محددة")
+    elif not better:
+        basis, basis_text = "size_no_direction", ("ranked by size of change: no direction declared for the measure",
+                                                  "مرتب حسب حجم التغير: لم يُعلن اتجاه للمقياس")
+    else:
+        basis, basis_text = "size_no_cost", ("ranked by size of change: cost not stated for every option",
+                                             "مرتب حسب حجم التغير: التكلفة غير محددة لكل الخيارات")
+    decision = {
+        "decision_id": f"{ctx.get('run_id', 'run')}:{best['key']}",
+        "issue": (diag.get("headline") or desc.get("headline") or ""),
+        "scope": best["target"],
+        "evidence": best["evidence"] + (["c_margin"] if margin is not None else []),
+        "risk": {"measure": measure, "observed": best["base_value"],
+                 "basis": "current total of the target in the data; not a probability"},
+        "alternatives": [{key: o[key] for key in ("key", "title", "target", "base_value",
+                                                  "uplift", "uplift_source", "cost",
+                                                  "expected_gain", "evidence")}
+                         for o in options],
+        "expected_impact": {"low": round(best["base_value"] * low - (best["cost"] or 0.0), 2),
+                            "high": round(best["base_value"] * high - (best["cost"] or 0.0), 2),
+                            "uplift_range": [low, high],
+                            "label": "stated" if best["uplift_source"] == "stated" else "illustrative"},
+        "cost": {"stated_for": [o["target"] for o in options if o["cost"] is not None],
+                 "not_stated_for": [o["target"] for o in options
+                                    if o["cost"] is None and o["key"] != "hold_course"]},
+        "constraints": [],
+        "uncertainty": None,
+        "recommended_action": best["title"] if basis == "value" else None,
+        "recommendation_basis": basis,
+        "approval": None,
+        "audit": {"run_id": ctx.get("run_id"), "snapshot": ctx["collector"].get("snapshot"),
+                  "report_language": report_language(ctx)},
+    }
+    if arabic:
+        lines += ["", "## سجل القرار", "",
+                  f"- **المعرّف:** {decision['decision_id']}",
+                  f"- **النطاق:** {shown(best, 'target')}",
+                  f"- **الأساس:** {basis_text[1]}",
+                  f"- **الأثر المتوقع:** من {decision['expected_impact']['low']:,.2f} إلى "
+                  f"{decision['expected_impact']['high']:,.2f} في {measure} ضمن نطاق تحسن "
+                  f"{low:.0%} إلى {high:.0%}",
+                  f"- **التكلفة:** " + ("محددة لكل الخيارات" if all_costed else
+                                        "غير محددة لـ " + "، ".join(decision['cost']['not_stated_for'])),
+                  "- **القيود:** لم تُسجَّل؛ يضيفها المالك قبل الاعتماد",
+                  "- **الاعتماد:** تكتبه بوابة الاعتماد، لا أي مرحلة"]
+    else:
+        lines += ["", "## Decision record", "",
+                  f"- **Id:** {decision['decision_id']}",
+                  f"- **Scope:** {best['target']}",
+                  f"- **Basis:** {basis_text[0]}",
+                  f"- **Expected impact:** {decision['expected_impact']['low']:,.2f} to "
+                  f"{decision['expected_impact']['high']:,.2f} in {measure} across an uplift range "
+                  f"of {low:.0%} to {high:.0%}",
+                  "- **Cost:** " + ("stated for every option" if all_costed else
+                                    "not stated for " + ", ".join(decision['cost']['not_stated_for'])),
+                  "- **Constraints:** none recorded; the owner adds them before approval",
+                  "- **Approval:** written by the approval gate, never by a stage"]
+
     headline = _say(ctx,
                     f"We recommend: {best['title']}. It is worth about "
-                    f"{best['expected_gain']:,.0f} in {measure}, illustrative at an assumed {PLANNING_UPLIFT:.0%} change — more than any other "
-                    f"option we compared.",
+                    f"{best['expected_gain']:,.0f} in {measure}, "
+                    + ("on the uplifts and costs stated for this run"
+                       if anything_stated else
+                       f"illustrative at an assumed {PLANNING_UPLIFT:.0%} change")
+                    + " — more than any other option we compared.",
                     f"نوصي بـ: {shown(best, 'title')}. وقيمته نحو "
-                    f"{best['expected_gain']:,.0f} في {measure}، قيمةً توضيحية عند تغيّر "
-                    f"مفترض بنسبة {PLANNING_UPLIFT:.0%}، وهي أكبر من أي خيار آخر قارنّاه.")
+                    f"{best['expected_gain']:,.0f} في {measure}، "
+                    + ("وفق نسب التحسن والتكاليف المعلنة لهذا التحليل"
+                       if anything_stated else
+                       f"قيمةً توضيحية عند تغيّر مفترض بنسبة {PLANNING_UPLIFT:.0%}")
+                    + "، وهي أكبر من أي خيار آخر قارنّاه.")
     return _result(
         "succeeded", headline,
         output={"headline": headline, "options": options, "recommendation": best,
+                "decision": decision, "assumptions": inputs,
                 "exec_summary": narration["text"],
                 "exec_summary_source": narration["source"],
                 "exec_summary_privacy_reason": narration.get("privacy_reason"),

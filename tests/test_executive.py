@@ -64,6 +64,25 @@ class ExecutiveTests(unittest.TestCase):
         revised["result"]["claims"][0]["text"] = "A revised stored observation over the same records."
         self.assertNotEqual(first["snapshot_id"], self.brief(tasks=[revised])["snapshot_id"])
 
+    def test_the_brief_carries_the_mapped_currency_and_never_invents_one(self):
+        # No mapping, a mapping without a currency, and one saved before the
+        # field existed all say "not stated"; only the owner's code is carried.
+        self.assertIsNone(self.brief()["currency"])
+        unstated = {**run(), "mapping_json": json.dumps({"roles": {}, "measure": "Downtime_Hours",
+                                                         "dimension": None, "date_order": "auto",
+                                                         "grain": "auto", "currency": None})}
+        self.assertIsNone(self.agent.brief(table(), unstated, (), None, "en")["currency"])
+        old = {**run(), "mapping_json": json.dumps({"roles": {}, "measure": "Downtime_Hours"})}
+        self.assertIsNone(self.agent.brief(table(), old, (), None, "en")["currency"])
+        self.assertIsNone(self.agent.brief(table(), {**run(), "mapping_json": "{not json"}, (), None, "en")["currency"])
+        mapped = {**run(), "mapping_json": json.dumps({"roles": {}, "measure": "Downtime_Hours",
+                                                       "currency": "AED"})}
+        stated = self.agent.brief(table(), mapped, (), None, "en")
+        self.assertEqual(stated["currency"], "AED")
+        self.assertEqual(self.agent.brief(table(), mapped, (), None, "ar")["currency"], "AED")
+        # The currency is part of the snapshot, so an export cannot outlive a change to it.
+        self.assertNotEqual(stated["snapshot_id"], self.brief()["snapshot_id"])
+
     def test_filters_reuse_query_semantics_and_kpis_keep_population_and_missing_counts(self):
         filters = [{"column": "Site", "op": "in", "values": ["North"]}]
         snapshot = copy.deepcopy(filters)

@@ -284,7 +284,7 @@ describe('Command Centre', () => {
   const RUNS = { runs: [{ id: 'r2', goal: 'Why did revenue change?', dataset_name: 'fleet.csv', state: 'awaiting_approval', created_at: '2026-10-21T08:00:00Z', updated_at: '2026-10-22T09:00:00Z' }] }
   const BRIEF = {
     run: { id: 'r2', dataset_name: 'fleet.csv', state: 'awaiting_approval', updated_at: '2026-10-22T09:00:00Z' },
-    language: 'en', source: 'engine', scope: { records: 240, total_records: 240, filters: [] },
+    language: 'en', source: 'engine', currency: 'AED', scope: { records: 240, total_records: 240, filters: [] },
     headline: '240 records in scope; 2 controlled measures available for review.',
     readiness: { status: 'limited', limitations: ['Some models are weak or unsupported.'] },
     kpis: { measures: [
@@ -315,6 +315,9 @@ describe('Command Centre', () => {
     expect(screen.getByText('Review overdue work')).toBeInTheDocument()
     expect(screen.getByText(/Maintenance planner/)).toBeInTheDocument()
     expect(screen.getByText('95.8%')).toBeInTheDocument()
+    // Money carries the currency the column mapping states, by its code.
+    expect(screen.getByText('AED 4,332.03')).toBeInTheDocument()
+    expect(screen.queryByText(/currency not stated/)).toBeNull()
     expect(screen.getByText('Above target')).toBeInTheDocument()
     expect(screen.getByText('1 measures unavailable in this data')).toBeInTheDocument()
     expect(screen.getByText('Not supported by this data')).toBeInTheDocument()

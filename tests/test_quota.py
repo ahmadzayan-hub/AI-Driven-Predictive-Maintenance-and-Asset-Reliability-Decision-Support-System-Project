@@ -159,7 +159,7 @@ class QuotaTestCase(unittest.TestCase):
         self.assertIn("resets_at", body["runs_today"])
         # What is NOT measured is named rather than quietly omitted.
         self.assertIn("currency", body["not_tracked"])
-        self.assertIn("model tokens", body["not_tracked"])
+        self.assertIn("model tokens per tenant", body["not_tracked"])
 
     def test_usage_is_per_tenant(self):
         """One tenant's spending must not appear in another's budget."""

@@ -62,9 +62,17 @@ def restore_backup(store, payload):
             f"backup version {version!r} cannot be read by this build "
             f"(expected {BACKUP_VERSION})")
     tables = payload["tables"]
+    if not isinstance(tables, dict):
+        raise ValueError("backup tables are not a mapping of table to rows")
     unknown = sorted(set(tables) - set(TABLES))
     if unknown:
         raise ValueError(f"backup contains unknown tables: {', '.join(unknown)}")
+    for table, rows in tables.items():
+        if not isinstance(rows, list) or not all(isinstance(r, dict) for r in rows):
+            raise ValueError(f"backup table {table!r} is not a list of rows")
+    # The store checks every row's columns against the live schema and
+    # restores inside one transaction, so a bad row or a failure part-way
+    # leaves the database as it was.
     return store.import_all(tables)
 
 

@@ -13,7 +13,7 @@ test('plain language in the chat saves, analyses, explains, and confirms before 
   // its 40-second assertion must fit within the complete journey's budget.
   test.setTimeout(90_000)
   await skipOnboarding(page)
-  await page.goto('/')
+  await page.goto('/#/assistant')
 
   // Projects share the local owner's memory. Identify this newly saved note
   // by its internal data attribute; keys are no longer displayed as text.

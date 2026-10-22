@@ -41,7 +41,7 @@ test('drafts, deep links, evidence and exact-report keyboard approval', async ({
   test.setTimeout(90_000)
   const goal = `Find what changed in sample sales (${testInfo.project.name} ${randomUUID()})`
   await skipOnboarding(page)
-  await page.goto('/')
+  await page.goto('/#/assistant')
   await composerInput(page).fill('Keep my unsent question')
   await openTab(page, /^Datasets/)
   await openTab(page, /^Workspace/)

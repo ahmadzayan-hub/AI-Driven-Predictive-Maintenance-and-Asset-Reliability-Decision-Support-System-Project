@@ -83,3 +83,20 @@ describe('dashboard pages follow the table', () => {
     expect(pagesFor(roles)).toEqual(['overview', 'breakdown', 'distribution', 'records'])
   })
 })
+
+describe('landing (the 22 October decision)', () => {
+  it('opens on the Command Centre when the address names no view', () => {
+    expect(parseRoute('')).toEqual({ tab: 'overview' })
+    expect(parseRoute('#')).toEqual({ tab: 'overview' })
+    expect(parseRoute('#/')).toEqual({ tab: 'overview' })
+    expect(parseRoute('#/nowhere')).toEqual({ tab: 'overview' })
+    expect(routeHash({ tab: 'overview' })).toBe('#/overview')
+  })
+  it('keeps every explicit address, including the assistant', () => {
+    expect(parseRoute('#/assistant')).toEqual({ tab: 'chat' })
+    expect(parseRoute('#/workspace')).toEqual({ tab: 'chat' })
+    expect(parseRoute('#/approvals')).toEqual({ tab: 'approvals' })
+    expect(parseRoute('#/dashboard')).toEqual({ tab: 'dashboard' })
+    expect(routeHash({ tab: 'chat' })).toBe('#/assistant')
+  })
+})

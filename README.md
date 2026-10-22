@@ -451,6 +451,12 @@ what was not verified, are in [docs/qa/END_TO_END_VALIDATION.md](docs/qa/END_TO_
   total, CSS 28.7 / 29.5 KB total); Runs, Workspace, Overview and accessibility
   specs **24 passed, 4 skipped** (approve through the read gate by mouse and
   keyboard); the dataset sweep in both languages under the new figure check.
+- Slice three of the release gate ([decision](docs/adr/2026-10-22-release-gate-slice-three.md)):
+  full verifier **8 of 8** (**1,712 Python tests, 21 skipped** with PostgreSQL;
+  **336 frontend tests**; budget JS 98.5 / 100 KB first load, 213.0 / 214 KB
+  total, CSS 28.7 / 29.5 KB total); `evaluate_agents --check` 9 of 9 with the
+  new blind floors (standards blind set 0% recall, recorded, not tuned);
+  the whole Playwright suite with the demo server: full run **132 passed, 5 failed, 5 skipped** of 142; the five failures were spec locators that matched the Command Centre pane the app now lands on, fixed in the specs, after which those five specs ran **32 passed, 0 failed**.
 
 ### Connected agent workspace and asset inspection — 22 October 2026
 

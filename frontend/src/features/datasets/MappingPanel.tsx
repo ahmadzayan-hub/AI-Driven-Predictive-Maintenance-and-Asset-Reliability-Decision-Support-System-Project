@@ -5,6 +5,7 @@ import { useReadOnly } from '../../shared/readOnly'
 import type { MessageKey } from '../../i18n'
 import { useI18n } from '../../i18n'
 import { api, ApiError } from '../../shared/api'
+import { CURRENCY_CODE } from '../../shared/format'
 import { Icon } from '../../shared/components/Icon'
 import type {
   ColumnMapping,
@@ -37,6 +38,7 @@ function sameMapping(a: ColumnMapping | null, b: ColumnMapping | null): boolean 
     a.dimension === b.dimension &&
     a.date_order === b.date_order &&
     a.grain === b.grain &&
+    (a.currency ?? null) === (b.currency ?? null) &&
     Object.keys(a.roles).length === Object.keys(b.roles).length &&
     Object.entries(a.roles).every(([column, role]) => b.roles[column] === role)
   )
@@ -115,6 +117,7 @@ export function MappingPanel({ datasetId, focusOnOpen, onClose, onChanged, onAna
     dimension: `${base}-dimension`,
     order: `${base}-order`,
     grain: `${base}-grain`,
+    currency: `${base}-currency`,
   }
 
   const columns = detail?.columns ?? []
@@ -127,12 +130,23 @@ export function MappingPanel({ datasetId, focusOnOpen, onClose, onChanged, onAna
     if (problem.field === 'measure') return ids.measure
     if (problem.field === 'dimension') return ids.dimension
     if (problem.field === 'date_order') return ids.order
+    if (problem.field === 'currency') return ids.currency
     return ids.grain
   }
-  const errorsFor = (target: string) => problems.filter((p) => fieldId(p) === target)
+  // The currency is checked as it is typed, so the field explains itself
+  // before a save; the server checks it again and answers by field.
+  const currencyInvalid = Boolean(draft?.currency && !CURRENCY_CODE.test(draft.currency))
+  const currencyProblem: MappingProblem = { field: 'currency', column: null, message: t('mapping.currencyInvalid') }
+  const errorsFor = (target: string) =>
+    [...problems, ...(currencyInvalid ? [currencyProblem] : [])].filter((p) => fieldId(p) === target)
 
   async function save() {
     if (!draft) return
+    if (currencyInvalid) {
+      setProblems([currencyProblem])
+      setSummary(t('mapping.currencyInvalid'))
+      return
+    }
     setBusy('save')
     setNotice(null)
     try {
@@ -388,6 +402,38 @@ export function MappingPanel({ datasetId, focusOnOpen, onClose, onChanged, onAna
                 ))}
               </select>
               {errorText(ids.dimension)}
+            </div>
+            <div className="field">
+              <label className="field__label" htmlFor={ids.currency}>
+                {t('mapping.currency')}
+              </label>
+              <span className="field__help" id={`${ids.currency}-help`}>
+                {t('mapping.currencyHelp')}
+              </span>
+              <input
+                id={ids.currency}
+                className="field__input"
+                type="text"
+                dir="ltr"
+                maxLength={3}
+                autoCapitalize="characters"
+                autoComplete="off"
+                spellCheck={false}
+                value={draft.currency ?? ''}
+                aria-invalid={errorsFor(ids.currency).length > 0 || undefined}
+                aria-describedby={described(ids.currency, `${ids.currency}-help`)}
+                onChange={(event) => {
+                  setDraft({ ...draft, currency: event.target.value.trim().toUpperCase() || null })
+                  setNotice(null)
+                  // A refusal of the old code is answered by the new one.
+                  const rest = problems.filter((p) => p.field !== 'currency')
+                  if (rest.length !== problems.length) {
+                    setProblems(rest)
+                    if (!rest.length) setSummary(null)
+                  }
+                }}
+              />
+              {errorText(ids.currency)}
             </div>
             {hasDate ? (
               <>

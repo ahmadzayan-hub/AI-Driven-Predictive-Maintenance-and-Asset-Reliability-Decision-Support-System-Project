@@ -290,6 +290,7 @@ export const api = {
           dimension: mapping.dimension,
           date_order: mapping.date_order,
           grain: mapping.grain,
+          currency: mapping.currency ?? null,
         }),
       },
       UPLOAD_TIMEOUT_MS,

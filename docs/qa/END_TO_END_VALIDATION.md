@@ -48,3 +48,47 @@ tests and one message pack to the parity test.
 - Load, concurrency and the hosted lock behaviour (B4): proposed tests only.
 - Any failure, remaining-life or condition prediction: the data cannot carry
   one.
+
+## 4. 22 October, later: demo journey and the views left out (U13)
+
+Run with the installed Chromium 1194
+(`PLAYWRIGHT_EXECUTABLE_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome`)
+after `npm --prefix frontend run build`, against the production build and
+three disposable servers (8123 local, 8124 managed sign-in, 8125 view-only
+demo with `AGENTIC_OS_DEMO=1`, new in `frontend/playwright.config.ts`).
+
+| Command | Result |
+| --- | --- |
+| `npx playwright test a11y.spec.ts responsive.spec.ts demo.spec.ts overview.spec.ts arabic.spec.ts assistant.spec.ts csp.spec.ts journey.spec.ts onboarding.spec.ts restore.spec.ts runtime.spec.ts screenshots.spec.ts workspace.spec.ts auth.spec.ts` | **67 passed, 5 skipped, 0 failed** (6.7 min): desktop 35 passed, 1 skipped; mobile 32 passed, 4 skipped. The skips are the device-specific tests (phone bar on desktop; viewport-resize, sidebar and Arabic phone cockpit on mobile) |
+
+What the new and changed specs prove:
+
+- `a11y.spec.ts`: the WCAG 2.2 AA loop now also scans Asset Intelligence
+  and the Approval inbox with the run above waiting in it and its card
+  open (ten audits per project, still within the 120 s budget): 4 passed.
+- `responsive.spec.ts`: Workspace, Assets and Approvals (with a waiting run)
+  have no horizontal overflow at 320, 768 and 1024 px: 1 passed, 1 skipped
+  (runs once, on desktop).
+- `demo.spec.ts` (new, port 8125): no sign-in and no dialog, the seeded
+  fictional analysis on the Command Centre, the executive overview rendered
+  from it, `#/chat` landing on the Command Centre, no failed request or page
+  error; upload, add-dataset, analyse, approve, reject, pause, cancel and the
+  assistant absent, with the approval card carrying the view-only note; axe
+  on the Command Centre and the run view; one Arabic journey (right-to-left,
+  the inbox, the Arabic note, no overflow, axe): 6 passed (3 per project).
+- Finding U12 (landing on the Command Centre; the phone bar now Command
+  Centre, Assets, Approvals, Workspace, More): the specs that used the
+  composer straight after `goto('/')` now open `#/assistant` first;
+  `onboarding.spec.ts` expects the Command Centre heading after dismissal;
+  `helpers.ts` waits for every loading placeholder, since two panes can load
+  at once now.
+- `auth.spec.ts` and `csp.spec.ts`: the e2e token predated the audience and
+  issuer requirement (slice two, finding B7) and was refused with 401 by the
+  committed spec as well; re-minted with `server.auth.issue_local_test_token`
+  for `authenticated` and `https://example.supabase.co/auth/v1`.
+
+Not verified here: the thirteen other specs (datasets, intake, joins,
+mapping, models, plugins, live, operations, dashboard, executive,
+collaboration, keyboard, metric-colors) were not re-run after U12; those
+that open a view with `openTab` first are expected to be unaffected.
+`docs/screenshots` was restored after each run.

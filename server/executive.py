@@ -9,6 +9,7 @@ import hashlib
 import json
 import math
 
+from server import mapping as colmap
 from server import query
 from server.executive_advisory import advisory
 from server.maintenance import contract, kpis, performance
@@ -66,6 +67,22 @@ def parse_filters(encoded):
                            "يحتاج كل مرشح إلى عمود وعامل وقيم مفردة.")
     return [{k: copy.deepcopy(v) for k, v in item.items()
              if k in {"column", "op", "value", "values"}} for item in filters]
+
+
+def currency_of(run):
+    """The currency the owner stated in the dataset's column mapping, as the
+    run kept it (ADR 0025), or None when the run has no mapping or the
+    mapping names none. The brief carries it so that readers see money
+    figures as "AED 1,250,000" rather than a figure with no unit, and the
+    interface needs no second request. Nothing here guesses a currency."""
+    raw = run.get("mapping_json")
+    if not raw:
+        return None
+    try:
+        mapping = json.loads(raw) if isinstance(raw, str) else raw
+    except ValueError:
+        return None
+    return colmap.currency_of(mapping)
 
 
 class ExecutiveDashboardAgent:
@@ -315,7 +332,8 @@ class ExecutiveDashboardAgent:
                         f"يتضمن النطاق {len(selected)} سجلاً؛ ويتاح {len(measures)} مؤشراً منضبطاً للمراجعة."))
         brief = {"run": {"id": run["id"], "dataset_name": run.get("dataset_name", ""),
                         "state": run.get("state"), "updated_at": run.get("updated_at")},
-                "language": language, "source": "engine", "scope": {"records": len(selected),
+                "language": language, "source": "engine", "currency": currency_of(run),
+                "scope": {"records": len(selected),
                 "total_records": len(table.rows), "filters": filters}, "headline": headline,
                 "readiness": {"status": status, "limitations": limitations},
                 "kpis": {"measures": measures, "unavailable": unavailable},

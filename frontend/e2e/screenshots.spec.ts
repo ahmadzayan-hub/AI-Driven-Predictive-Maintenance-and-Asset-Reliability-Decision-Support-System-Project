@@ -13,7 +13,7 @@ test('capture interface screenshots', async ({ page }, testInfo) => {
   // the whole capture sequence time without extending its individual waits.
   test.setTimeout(testInfo.project.name === 'desktop' ? 90_000 : 30_000)
   await skipOnboarding(page)
-  await page.goto('/')
+  await page.goto('/#/assistant')
   const shot = (name: string) =>
     page.screenshot({ path: `../docs/screenshots/${testInfo.project.name}-${name}.png` })
   // A view is ready to capture once its skeletons have been replaced.

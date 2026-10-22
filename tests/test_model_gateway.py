@@ -465,3 +465,86 @@ class PerRoleModelTestCase(unittest.TestCase):
         self.assertEqual(post.call_args_list[0].args[3]["model"], "other/model:free")
         self.assertEqual(post.call_args_list[1].args[3]["model"], "default/model:free")
         self.assertEqual(gateway.task_problems, [])
+
+
+class CallLedgerTestCase(unittest.TestCase):
+    """Assessment finding G4: every provider attempt is on the record,
+    with the token counts the provider reported and nothing estimated."""
+
+    def test_an_openai_compatible_reply_records_its_usage_block(self):
+        gateway = ModelGateway(env={"GROQ_API_KEY": "k", "GROQ_MODEL": "m"})
+        reply = {"choices": [{"message": {"content": "Costs are rising."}}],
+                 "usage": {"prompt_tokens": 40, "completion_tokens": 12, "total_tokens": 52}}
+        with patch.object(gateway, "_post", return_value=reply):
+            self.assertEqual(gateway.ask("sys", "user"), "Costs are rising.")
+            gateway.narrate("goal", ["Revenue is up."])
+        entries = gateway.ledger_entries()
+        self.assertEqual([e["task"] for e in entries], ["chat", "narration"])
+        first = entries[0]
+        self.assertEqual((first["provider"], first["model"], first["outcome"]),
+                         ("groq", "m", "ok"))
+        self.assertEqual((first["input_tokens"], first["output_tokens"], first["total_tokens"]),
+                         (40, 12, 52))
+        self.assertGreaterEqual(first["latency_ms"], 0)
+        totals = gateway.ledger()["providers"]["groq"]
+        self.assertEqual(totals["calls"], 2)
+        self.assertEqual(totals["failures"], 0)
+        self.assertEqual(totals["total_tokens"], 104)
+        self.assertEqual(totals["calls_with_tokens"], 2)
+        self.assertNotIn("entries", gateway.ledger())
+
+    def test_anthropic_and_ollama_usage_fields_are_read_and_absent_counts_stay_none(self):
+        gateway = ModelGateway(env={"ANTHROPIC_API_KEY": "k"})
+        reply = {"content": [{"text": "Fine."}], "usage": {"input_tokens": 9, "output_tokens": 3}}
+        with patch.object(gateway, "_post", return_value=reply):
+            gateway.ask("sys", "user", task="hermes")
+        entry = gateway.ledger_entries()[-1]
+        self.assertEqual((entry["provider"], entry["task"]), ("anthropic", "hermes"))
+        self.assertEqual((entry["input_tokens"], entry["output_tokens"], entry["total_tokens"]),
+                         (9, 3, 12))
+
+        local = ModelGateway(env={"OLLAMA_MODEL": "qwen3:4b"})
+        with patch.object(local, "_post", return_value={"message": {"content": "Ok."},
+                                                        "prompt_eval_count": 20, "eval_count": 5}):
+            local.ask("sys", "user")
+        with patch.object(local, "_post", return_value={"message": {"content": "Ok."}}):
+            local.ask("sys", "user")
+        counted, uncounted = local.ledger_entries()
+        self.assertEqual((counted["input_tokens"], counted["output_tokens"], counted["total_tokens"]),
+                         (20, 5, 25))
+        self.assertEqual((uncounted["input_tokens"], uncounted["output_tokens"],
+                          uncounted["total_tokens"]), (None, None, None))
+        totals = local.ledger()["providers"]["ollama"]
+        self.assertEqual((totals["calls"], totals["calls_with_tokens"], totals["total_tokens"]),
+                         (2, 1, 25))
+
+    def test_a_failed_call_and_an_empty_reply_are_counted_as_failures(self):
+        gateway = ModelGateway(env={"ANTHROPIC_API_KEY": "k", "GROQ_API_KEY": "k"})
+        with patch.object(gateway, "_post", side_effect=[None, {"choices": []}]):
+            self.assertIsNone(gateway.ask("sys", "user"))
+        outcomes = [(e["provider"], e["outcome"]) for e in gateway.ledger_entries()]
+        self.assertEqual(outcomes, [("anthropic", "error"), ("groq", "empty")])
+        providers = gateway.ledger()["providers"]
+        self.assertEqual(providers["anthropic"]["failures"], 1)
+        self.assertEqual(providers["groq"]["failures"], 1)
+        self.assertEqual(providers["anthropic"]["total_tokens"], 0)
+        self.assertIsNone(gateway.ledger_entries()[0]["total_tokens"])
+
+    def test_a_role_model_copy_writes_to_the_same_ledger(self):
+        gateway = ModelGateway(env={"OLLAMA_MODEL": "hermes3"})
+        reply = {"message": {"content": "Ok."}}
+        with patch.object(ModelGateway, "_post", autospec=True, return_value=reply):
+            gateway.ask("sys", "user", provider="ollama:qwen3")
+        self.assertEqual([e["model"] for e in gateway.ledger_entries()], ["qwen3"])
+
+    def test_the_ledger_keeps_only_the_last_entries_and_never_the_text(self):
+        from server.model_gateway import LEDGER_ENTRIES
+        gateway = ModelGateway(env={"GROQ_API_KEY": "k", "GROQ_MODEL": "m"})
+        reply = {"choices": [{"message": {"content": "secret sentence"}}]}
+        with patch.object(gateway, "_post", return_value=reply):
+            for _ in range(LEDGER_ENTRIES + 3):
+                gateway.ask("sys", "user")
+        self.assertEqual(len(gateway.ledger_entries()), LEDGER_ENTRIES)
+        self.assertEqual(gateway.ledger()["providers"]["groq"]["calls"], LEDGER_ENTRIES + 3)
+        self.assertNotIn("secret sentence", repr(gateway.ledger_entries()))
+

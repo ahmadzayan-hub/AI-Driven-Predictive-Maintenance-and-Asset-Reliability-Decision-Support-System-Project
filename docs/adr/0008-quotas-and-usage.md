@@ -61,7 +61,7 @@ be fabricated, and a fabricated cost is worse than a blank one — it gets
 put in a slide.
 
 So usage is reported in the units the system genuinely measures, and the
-response names what it does **not** measure — model tokens, function
+response names what it does **not** measure per tenant — model tokens (counted per process since 22 October 2026, slice three of the release gate), function
 execution time, currency — as a field rather than omitting them silently.
 Converting usage into money needs the bill, and whoever holds the bill
 can do the multiplication.

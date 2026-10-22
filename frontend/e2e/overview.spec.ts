@@ -110,7 +110,7 @@ test('the phone bar holds five places and More opens the rest', async ({ page })
   const bar = page.getByRole('navigation', { name: 'Primary' })
   await expect(bar.getByRole('button')).toHaveCount(5)
   // The four places a manager opens most, with a short label that fits.
-  await expect(bar.getByRole('button')).toHaveText(['Command Centre', 'Assets', 'Dashboards', 'Workspace', 'More'])
+  await expect(bar.getByRole('button')).toHaveText(['Command Centre', 'Assets', 'Approvals', 'Workspace', 'More'])
   await bar.getByRole('button', { name: 'Command Centre' }).click()
   await expect(bar.getByRole('button', { name: 'Command Centre' })).toHaveAttribute('aria-current', 'page')
 
@@ -118,7 +118,7 @@ test('the phone bar holds five places and More opens the rest', async ({ page })
   await more.click()
   const drawer = page.getByRole('dialog', { name: 'Navigation' })
   await expect(drawer).toBeVisible()
-  // Operations remains reachable through More with the manager navigation shortcuts.
+  // Dashboards and Operations remain reachable through More with the manager navigation shortcuts.
   await drawer.getByRole('button', { name: /^Operations/ }).click()
   await expect(drawer).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Maintenance operations', level: 2 })).toBeVisible()

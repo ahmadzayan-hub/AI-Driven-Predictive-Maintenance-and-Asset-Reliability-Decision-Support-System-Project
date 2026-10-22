@@ -24,6 +24,7 @@ The repository's `server/analytics.py` declares 21 core stages from planner to r
 
 - Passing unit tests proves behavior against **those fixtures only**.
 - Passing `evaluate_agents.py --check` proves the published synthetic classifier recall floors **for the evaluated suites**; it does **not** measure every analytics specialist or guarantee 100% correct answers.
+- Since 22 October 2026 the floors in `evals/floors.json` also cover each text classifier's blind split, the set never looked at while fixing: causal blind_v7 (0.60), intent blind_v7 (0.61), jargon blind_v6 (0.85) and standards blind_v1 (0.0, the lint caught none of its 19 refused sentences). The holdout floors are unchanged, but the causal holdout was read while its fixes were chosen (ADR 0056) and the standards holdout was written by the session that wrote the patterns, so the blind score is the one to quote.
 - Generated reports require source version, metric definitions, formula traceability, scope/grain, bilingual parity, model card and human approval.
 - Any model without chronological, leakage-controlled evaluation must say **unvalidated**.
 - Any obsolescence output lacking independently sourced OEM end-of-support evidence must say **insufficient evidence**.

@@ -35,6 +35,9 @@ narrator, which is reported honestly as the source in the report itself.
 import os
 import re
 import math
+import threading
+import time
+from collections import deque
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
@@ -67,6 +70,9 @@ MAX_OUTPUT_TOKENS = 220
 # (qwen3, deepseek-r1, …) spend tokens thinking before they answer, and a
 # 220-token cap would be exhausted by the scratchpad, leaving no summary.
 LOCAL_OUTPUT_TOKENS = 600
+
+# The in-process model call ledger keeps this many recent attempts.
+LEDGER_ENTRIES = 500
 
 # Reasoning models wrap their scratchpad in <think> tags. That is working
 # out loud, not an executive summary: it never belongs in a report.
@@ -187,6 +193,15 @@ class ModelGateway:
 
         self.task_map, self.task_problems = self._read_task_map(
             env.get("AGENTIC_OS_TASK_MODELS") or "")
+        # The call ledger (assessment finding G4): one entry per provider
+        # attempt and running totals per provider. Shared by the copies
+        # `with_model` makes, so every role's calls land in one record.
+        self._ledger_lock = threading.Lock()
+        self._ledger_entries = deque(maxlen=LEDGER_ENTRIES)
+        self._ledger_totals = {}
+        # The task a call serves, per thread, so the completers (which
+        # tests and roles may replace) keep their signatures.
+        self._ledger_task = threading.local()
 
     def _read_task_map(self, raw):
         """AGENTIC_OS_TASK_MODELS, e.g. "narration=groq,chat=openrouter,
@@ -298,7 +313,7 @@ class ModelGateway:
                       "local_only": True})
         return found
 
-    def narrate(self, goal, facts, provider=None, language="en"):
+    def narrate(self, goal, facts, provider=None, language="en", task=None):
         """Return {'text', 'source'}. Facts are short verified statements;
         the model is asked only to phrase them.
 
@@ -308,10 +323,15 @@ class ModelGateway:
 
         `language` is the report's language; the facts are already in it.
         A "provider:model" spec (or task map entry) picks that model.
+        `task` names the role the call serves in the ledger; narration
+        when the call site says nothing.
         """
+        task = task or "narration"
         gateway, provider = self._resolve(provider or self.task_provider("narration"))
         if gateway is not self:
-            return gateway.narrate(goal, facts, provider=provider, language=language)
+            return gateway.narrate(goal, facts, provider=provider, language=language,
+                                   task=task)
+        self._ledger_task.name = task
         callers = {"ollama": self._call_ollama,
                    "vercel": self._call_vercel,
                    "anthropic": self._call_anthropic,
@@ -335,18 +355,22 @@ class ModelGateway:
             "source": "deterministic",
         }
 
-    def ask(self, system, user, provider=None, max_tokens=None):
+    def ask(self, system, user, provider=None, max_tokens=None, task=None):
         """A free-form completion: the assistant's understanding step.
 
         Returns the model's text, or None when no provider is configured
         or the call fails — the caller decides what "no answer" means,
         which for the assistant is "the rules decide". The same
         no-dataset rule applies: `user` is built from verified sentences
-        and settings, never rows.
+        and settings, never rows. `task` names the role in the ledger;
+        chat when the call site says nothing.
         """
+        task = task or "chat"
         gateway, provider = self._resolve(provider or self.task_provider("chat"))
         if gateway is not self:
-            return gateway.ask(system, user, provider=provider, max_tokens=max_tokens)
+            return gateway.ask(system, user, provider=provider, max_tokens=max_tokens,
+                               task=task)
+        self._ledger_task.name = task
         callers = {"ollama": self._complete_ollama,
                    "vercel": self._complete_vercel,
                    "anthropic": self._complete_anthropic,
@@ -378,22 +402,25 @@ class ModelGateway:
     def _prompt(self, goal, facts):
         return "Goal: " + goal + "\nVerified facts:\n- " + "\n- ".join(facts)
 
-    def ask_json(self, system, user, provider=None, max_tokens=None, schema=None):
+    def ask_json(self, system, user, provider=None, max_tokens=None, schema=None,
+                 task=None):
         """Intent-only structured output; report narration keeps plain text.
 
         Hosted providers retain their existing request contracts. A caller
         without this optional method can continue exposing ordinary ask.
         """
+        task = task or "chat"
         gateway, provider = self._resolve(provider or self.task_provider("chat"))
         if gateway is not self:
             return gateway.ask_json(system, user, provider=provider,
-                                    max_tokens=max_tokens, schema=schema)
+                                    max_tokens=max_tokens, schema=schema, task=task)
+        self._ledger_task.name = task
         if (provider or self.provider) == "ollama":
             return self._complete_ollama(system, user, max_tokens, json_output=True,
                                          schema=schema)
         if (provider or self.provider) == "vercel":
             return self._complete_vercel(system, user, max_tokens, json_output=True)
-        return self.ask(system, user, provider=provider, max_tokens=max_tokens)
+        return self.ask(system, user, provider=provider, max_tokens=max_tokens, task=task)
 
     def _post(self, url, headers, payload):
         try:
@@ -411,6 +438,84 @@ class ModelGateway:
         except Exception:
             # Timeouts, network, schema drift: degrade to deterministic.
             return None
+
+    # -- the call ledger (assessment finding G4) --------------------------
+    @staticmethod
+    def _count(value):
+        """A token count the provider reported, or None. Never estimated."""
+        return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else None
+
+    @classmethod
+    def _usage(cls, provider, body):
+        """(input, output, total) token counts as the response reports them.
+
+        OpenAI-compatible replies (openai, groq, vercel and the compat
+        providers) carry `usage.prompt_tokens` / `completion_tokens` /
+        `total_tokens`; Anthropic carries `usage.input_tokens` /
+        `output_tokens`; Ollama carries `prompt_eval_count` / `eval_count`
+        at the top level. Anything missing is None.
+        """
+        if not isinstance(body, dict):
+            return None, None, None
+        if provider == "ollama":
+            prompt, done = cls._count(body.get("prompt_eval_count")), cls._count(body.get("eval_count"))
+            total = None
+        else:
+            usage = body.get("usage")
+            usage = usage if isinstance(usage, dict) else {}
+            if provider == "anthropic":
+                prompt, done = cls._count(usage.get("input_tokens")), cls._count(usage.get("output_tokens"))
+                total = None
+            else:
+                prompt, done = cls._count(usage.get("prompt_tokens")), cls._count(usage.get("completion_tokens"))
+                total = cls._count(usage.get("total_tokens"))
+        if total is None and prompt is not None and done is not None:
+            total = prompt + done
+        return prompt, done, total
+
+    def _record(self, provider, model, body, text, started):
+        """One ledger entry per provider attempt. `body` is the parsed
+        response (None when the call failed) and `text` the cleaned reply
+        (None when the reply held nothing usable). The task is the one
+        narrate, ask or ask_json noted for this thread."""
+        task = getattr(self._ledger_task, "name", None)
+        latency_ms = round((time.monotonic() - started) * 1000, 1)
+        outcome = "error" if body is None else ("ok" if text else "empty")
+        prompt, done, total = self._usage(provider, body)
+        entry = {"provider": provider, "model": model, "task": task,
+                 "outcome": outcome, "latency_ms": latency_ms,
+                 "input_tokens": prompt, "output_tokens": done, "total_tokens": total}
+        with self._ledger_lock:
+            self._ledger_entries.append(entry)
+            totals = self._ledger_totals.setdefault(provider, {
+                "calls": 0, "failures": 0, "latency_ms": 0.0,
+                "input_tokens": 0, "output_tokens": 0, "total_tokens": 0,
+                "calls_with_tokens": 0})
+            totals["calls"] += 1
+            if outcome != "ok":
+                totals["failures"] += 1
+            totals["latency_ms"] = round(totals["latency_ms"] + latency_ms, 1)
+            if total is not None:
+                totals["calls_with_tokens"] += 1
+                totals["total_tokens"] += total
+                totals["input_tokens"] += prompt or 0
+                totals["output_tokens"] += done or 0
+        return text
+
+    def ledger(self):
+        """Running totals per provider for this process: calls, failures,
+        summed latency and the token counts providers reported. Token
+        totals cover only `calls_with_tokens`; no count is estimated."""
+        with self._ledger_lock:
+            return {"entries_kept": len(self._ledger_entries),
+                    "entries_limit": LEDGER_ENTRIES,
+                    "providers": {name: dict(t) for name, t in self._ledger_totals.items()}}
+
+    def ledger_entries(self):
+        """The most recent attempts, oldest first. Prompts and replies are
+        never kept: an entry is provider, model, task, outcome and counts."""
+        with self._ledger_lock:
+            return [dict(entry) for entry in self._ledger_entries]
 
     @staticmethod
     def _clean(text):
@@ -462,10 +567,17 @@ class ModelGateway:
                                 {"role": "user", "content": user}]}
         if json_output:
             payload["response_format"] = {"type": "json_object"}
+        started = time.monotonic()
         body = self._post(AI_GATEWAY_URL,
                           {"Authorization": f"Bearer {token}"}, payload)
+        return self._record("vercel", self.ai_gateway_model, body,
+                            self._choice_text(body), started)
+
+    @classmethod
+    def _choice_text(cls, body):
+        """The reply of an OpenAI-compatible response, cleaned, or None."""
         try:
-            return self._clean(body["choices"][0]["message"]["content"])
+            return cls._clean(body["choices"][0]["message"]["content"])
         except (TypeError, KeyError, IndexError):
             return None
 
@@ -480,16 +592,19 @@ class ModelGateway:
             payload["think"] = self.ollama_think
         if json_output:
             payload["format"] = schema if schema is not None else "json"
+        started = time.monotonic()
         body = self._post(
             self.ollama_host.rstrip("/") + "/api/chat",
             {"Authorization": f"Bearer {self.ollama_key}"} if self.ollama_key else {},
             payload)
         try:
-            return self._clean(body["message"]["content"])
+            text = self._clean(body["message"]["content"])
         except (TypeError, KeyError, IndexError):
-            return None
+            text = None
+        return self._record("ollama", self.ollama_model, body, text, started)
 
     def _complete_anthropic(self, system, user, max_tokens=None):
+        started = time.monotonic()
         body = self._post(
             ANTHROPIC_URL,
             {"x-api-key": self.anthropic_key,
@@ -500,23 +615,23 @@ class ModelGateway:
              "system": system,
              "messages": [{"role": "user", "content": user}]})
         try:
-            return self._clean(body["content"][0]["text"])
+            text = self._clean(body["content"][0]["text"])
         except (TypeError, KeyError, IndexError):
-            return None
+            text = None
+        return self._record("anthropic", self.anthropic_model, body, text, started)
 
     def _complete_openai(self, system, user, max_tokens=None):
         if not (self.openai_key and self.openai_model):
             return None
+        started = time.monotonic()
         body = self._post(
             OPENAI_URL, {"Authorization": f"Bearer {self.openai_key}"},
             {"model": self.openai_model,
              "max_completion_tokens": max_tokens or MAX_OUTPUT_TOKENS,
              "messages": [{"role": "system", "content": system},
                           {"role": "user", "content": user}]})
-        try:
-            return self._clean(body["choices"][0]["message"]["content"])
-        except (TypeError, KeyError, IndexError):
-            return None
+        return self._record("openai", self.openai_model, body,
+                            self._choice_text(body), started)
 
     def _compat_caller(self, name):
         def call(goal, facts, language="en"):
@@ -532,23 +647,20 @@ class ModelGateway:
         if name not in self.compat:
             return None
         url, key, model = self.compat[name]
+        started = time.monotonic()
         body = self._post(
             url, {"Authorization": f"Bearer {key}"},
             {"model": model, "max_tokens": max_tokens or MAX_OUTPUT_TOKENS,
              "messages": [{"role": "system", "content": system},
                           {"role": "user", "content": user}]})
-        try:
-            return self._clean(body["choices"][0]["message"]["content"])
-        except (TypeError, KeyError, IndexError):
-            return None
+        return self._record(name, model, body, self._choice_text(body), started)
 
     def _complete_groq(self, system, user, max_tokens=None):
+        started = time.monotonic()
         body = self._post(
             GROQ_URL, {"Authorization": f"Bearer {self.groq_key}"},
             {"model": self.groq_model, "max_tokens": max_tokens or MAX_OUTPUT_TOKENS,
              "messages": [{"role": "system", "content": system},
                           {"role": "user", "content": user}]})
-        try:
-            return self._clean(body["choices"][0]["message"]["content"])
-        except (TypeError, KeyError, IndexError):
-            return None
+        return self._record("groq", self.groq_model, body,
+                            self._choice_text(body), started)

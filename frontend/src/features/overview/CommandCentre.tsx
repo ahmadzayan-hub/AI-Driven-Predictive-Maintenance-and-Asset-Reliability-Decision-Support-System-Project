@@ -1,6 +1,7 @@
 import { usePack } from '../../i18n/pack'
 import { Icon } from '../../shared/components/Icon'
 import { PerformanceValue, performanceTone } from '../../shared/components/PerformanceValue'
+import { formatMoney } from '../../shared/format'
 import { modelTone } from '../../shared/modelTone'
 import type { KpiMeasure, RunExecutive, RunSummary } from '../../shared/types'
 import { formatValue } from '../assets/kpiDisplay'
@@ -97,8 +98,11 @@ export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCe
         <section className="card" aria-labelledby="command-kpis">
           <h3 className="card__title" id="command-kpis">{t('command.kpis')}</h3>
           {measures.length ? <dl className="command__kpis">{measures.map((m) => {
-            const value = formatValue(m, locale)
-            const unit = m.scale === 'hours' ? ` ${t('command.hours')}` : m.scale === 'money' ? ` ${t('command.currency')}` : ''
+            // Money carries the mapping's currency code when the owner stated
+            // one; otherwise it says so, and never assumes a currency.
+            const stated = m.scale === 'money' && m.value !== null && Number.isFinite(m.value) && brief.currency ? brief.currency : null
+            const value = stated ? formatMoney(m.value as number, stated, locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : formatValue(m, locale)
+            const unit = m.scale === 'hours' ? ` ${t('command.hours')}` : m.scale === 'money' && !stated ? ` ${t('command.currency')}` : ''
             const tone = performanceTone(m.value, m.assessment)
             const verdict = tone === 'good' || tone === 'okay' || tone === 'bad'
             return <div key={m.key} data-source={`kpi.${m.key}`}>

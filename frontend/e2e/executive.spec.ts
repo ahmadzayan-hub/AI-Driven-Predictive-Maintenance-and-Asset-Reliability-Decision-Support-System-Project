@@ -55,7 +55,7 @@ async function executive(request: APIRequestContext, runId: string, filters: Tab
 
 async function openOverview(page: Page, runId: string, query = '', language: 'en' | 'ar' = 'en') {
   await page.goto(`/#/dashboard/${runId}/overview${query ? `?${query}` : ''}`)
-  await page.locator('.viewload').waitFor({ state: 'detached' })
+  await expect(page.locator('.viewload')).toHaveCount(0)
   await expect(page.getByRole('heading', {
     name: language === 'ar' ? 'النظرة التنفيذية' : 'Executive overview', exact: true,
   })).toBeVisible()
@@ -373,7 +373,7 @@ test('an executive priority preserves the period filter when drilling into recor
 
   const address = page.url()
   await page.reload()
-  await page.locator('.viewload').waitFor({ state: 'detached' })
+  await expect(page.locator('.viewload')).toHaveCount(0)
   await expect(page).toHaveURL(address)
   await expect(page.locator('.dash-coverage')).toHaveText('Showing 1 of 4 records.')
   await expect(records).toContainText('MIYAAR-FICTIONAL-D')
