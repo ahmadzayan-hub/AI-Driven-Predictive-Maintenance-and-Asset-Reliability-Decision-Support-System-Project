@@ -32,10 +32,11 @@ the Command Centre with Approvals in the phone bar (U12). The signalling
 rule (A8) escalates every recorded failure on a safety-function asset class
 and names its condition threshold as a convention, not a standard.
 
-Carried forward from slice three: the interface does not yet collect uplift
-and cost (the API does); the standards lint scored 0% on its first blind
+Carried forward from slice three: the standards lint scored 0% on its first blind
 set and waits for the rewrite planned for the causal lint; per-tenant model
-budgets remain open (the ledger is per process).
+budgets remain open (the ledger is per process). The interface inputs for uplift and cost, and
+the decision record card on the run, were delivered the same day
+([decision](../adr/2026-10-22-decision-inputs-interface.md)).
 
 ## 3. Following release (P2) and backlog (P3)
 

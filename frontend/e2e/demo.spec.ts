@@ -152,8 +152,24 @@ test('the demo reads in Arabic, right-to-left, with the same note', async ({ pag
   await expect(card).toBeVisible()
   await expect(card).toContainText(DEMO_NOTE_AR)
   await expect(page.getByRole('button', { name: 'الموافقة والنشر', exact: true })).toHaveCount(0)
-  expect(
-    await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth),
-  ).toBeLessThanOrEqual(0)
+  // When something scrolls sideways, name it: the hosted runner's Arabic
+  // fonts differ from a laptop's, and a bare "1" explains nothing.
+  const overflow = await page.evaluate(() => {
+    const root = document.documentElement
+    const spill = root.scrollWidth - root.clientWidth
+    if (spill <= 0) return { spill, culprits: [] as string[] }
+    const culprits: string[] = []
+    for (const element of Array.from(document.body.querySelectorAll<HTMLElement>('*'))) {
+      const box = element.getBoundingClientRect()
+      if (box.width === 0) continue
+      if (box.right > root.clientWidth + 0.5 || box.left < -0.5) {
+        const label = `${element.tagName.toLowerCase()}${element.className ? '.' + String(element.className).split(' ').join('.') : ''}`
+        culprits.push(`${label} [${Math.round(box.left)}..${Math.round(box.right)}] ${(element.textContent ?? '').trim().slice(0, 40)}`)
+      }
+      if (culprits.length >= 8) break
+    }
+    return { spill, culprits }
+  })
+  expect(overflow.spill, overflow.culprits.join('\n')).toBeLessThanOrEqual(0)
   await expectNoViolations(page, 'approval inbox (demo, ar)')
 })

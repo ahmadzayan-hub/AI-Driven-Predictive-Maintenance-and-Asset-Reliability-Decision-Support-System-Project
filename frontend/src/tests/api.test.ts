@@ -158,6 +158,7 @@ describe('api client', () => {
       language: 'ar',
       joins: null,
       breakdown: null,
+      assumptions: null,
     })
   })
 
