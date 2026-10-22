@@ -60,7 +60,7 @@ test('a live source is added, refreshed and opened from the Datasets view', asyn
   await removeConnectors(page.request, name)
   await skipOnboarding(page)
   await page.goto('/#/datasets')
-  await page.locator('.viewload').waitFor({ state: 'detached' })
+  await expect(page.locator('.viewload')).toHaveCount(0)
 
   const panel = page.getByRole('region', { name: 'Live sources' })
   await expect(panel.locator('.live-badge')).toHaveText('Live')
@@ -100,7 +100,7 @@ test('a dashboard over one snapshot offers the next one', async ({ page }, info)
 
   await skipOnboarding(page)
   await page.goto(`/#/dashboard/${first.run}`)
-  await page.locator('.viewload').waitFor({ state: 'detached' })
+  await expect(page.locator('.viewload')).toHaveCount(0)
   await expect(page.locator('.dash-coverage')).toHaveText('Showing 24 of 24 records.')
   await expect(page.locator('.live-badge')).toHaveText('Live')
 
@@ -124,7 +124,7 @@ test('the badge says when it is reconnecting or offline, in Arabic', async ({ pa
   await page.addInitScript(() => localStorage.setItem('aos-locale', 'ar'))
   await page.route('**/api/events*', (route) => route.fulfill({ status: 503, body: '' }))
   await page.goto('/#/datasets')
-  await page.locator('.viewload').waitFor({ state: 'detached' })
+  await expect(page.locator('.viewload')).toHaveCount(0)
   const badge = page.getByRole('region', { name: 'المصادر الحية' }).locator('.live-badge')
   await expect(badge).toHaveText('جارٍ إعادة الاتصال…')
 

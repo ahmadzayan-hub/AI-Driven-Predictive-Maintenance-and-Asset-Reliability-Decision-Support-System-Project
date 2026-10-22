@@ -79,3 +79,12 @@ frontend/e2e/.tmp/
 frontend/playwright-report/
 frontend/test-results/
 frontend/test-results-preview/
+
+# Android app build state (apps/android)
+apps/android/.gradle/
+apps/android/.kotlin/
+apps/android/build/
+apps/android/*/build/
+apps/android/local.properties
+apps/android/.idea/
+apps/android/*.iml

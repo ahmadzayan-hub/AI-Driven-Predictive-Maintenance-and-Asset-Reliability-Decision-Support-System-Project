@@ -5,8 +5,8 @@ const AUTH_BASE = 'http://127.0.0.1:8124'
 // The successful mocked provider response uses the established, synthetic
 // auth.spec token. No real identity provider or credentials are contacted.
 const TEST_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.' +
-  'eyJzdWIiOiJlMmUtdXNlciIsImV4cCI6Mjc4NjQwMTcwMywiYWdlbnRpY19vc19yb2xlIjoiYW5hbHlzdCJ9.' +
-  'J_dVri2xv87fsz8tl31lIpFa9mlPuStl3HBUnpMuFr0'
+  'eyJzdWIiOiJlMmUtdXNlciIsImV4cCI6Mjc5MjY5MTA0MywiYWdlbnRpY19vc19yb2xlIjoiYW5hbHlzdCIsImF1ZCI6ImF1dGhlbnRpY2F0ZWQiLCJpc3MiOiJodHRwczovL2V4YW1wbGUuc3VwYWJhc2UuY28vYXV0aC92MSJ9.' +
+  'RNyXg3ACSP23KpieEeYMf3Lqo2eECjse8OzSJ2D6Jvg'
 
 test('CSP preserves prepaint preferences and blocks injected inline scripts', async ({ page }) => {
   await skipOnboarding(page)
@@ -18,7 +18,7 @@ test('CSP preserves prepaint preferences and blocks injected inline scripts', as
     Object.assign(window, { cspObserved: observed, cspInjected: false })
     document.addEventListener('securitypolicyviolation', (event) => observed.push(event.effectiveDirective))
   })
-  const response = await page.goto('/')
+  const response = await page.goto('/#/assistant')
   expect(response?.headers()['content-security-policy']).toContain("script-src 'self' 'sha256-")
   await expect(page.locator('.composer textarea')).toBeVisible()
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
@@ -45,7 +45,8 @@ test('CSP allows the configured managed sign-in endpoint', async ({ page }) => {
       headers: { 'access-control-allow-origin': '*' },
       body: JSON.stringify({ access_token: TEST_TOKEN, token_type: 'bearer' }) })
   })
-  await page.goto(AUTH_BASE)
+  // Signed in, the app lands where the address says (finding U12): the assistant.
+  await page.goto(`${AUTH_BASE}/#/assistant`)
   await page.getByLabel('Email').fill('synthetic.user@example.invalid')
   await page.getByLabel('Password', { exact: true }).fill('synthetic-password')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
@@ -55,7 +56,7 @@ test('CSP allows the configured managed sign-in endpoint', async ({ page }) => {
 
 test('CSP allows the service worker, blob audio and generated downloads', async ({ page }) => {
   await skipOnboarding(page)
-  await page.goto('/')
+  await page.goto('/#/assistant')
   await expect(composerInput(page)).toBeVisible()
   const workerUrl = await page.evaluate(async () => (await navigator.serviceWorker.ready).active?.scriptURL)
   expect(workerUrl).toMatch(/\/sw\.js$/)

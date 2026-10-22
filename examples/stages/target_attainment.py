@@ -66,8 +66,9 @@ class TargetAttainment:
         claims = [{
             "id": f"{prefix}.cl_attainment", "type": "calculation",
             "text": headline,
-            # Its own figures, and the built-in total it divided by.
-            "evidence": [f"{prefix}.c_attainment", f"{prefix}.c_gap", "c_total"],
+            # Every figure it states, and the built-in total it divided by.
+            "evidence": [f"{prefix}.c_target", f"{prefix}.c_attainment",
+                         f"{prefix}.c_gap", "c_total"],
             "status": "verified",
         }]
         checks = [{"name": "target_is_positive", "passed": True,

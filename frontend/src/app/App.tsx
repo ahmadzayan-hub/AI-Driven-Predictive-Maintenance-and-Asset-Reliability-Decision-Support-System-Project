@@ -87,8 +87,10 @@ const NEEDS_SESSION: ReadonlySet<Tab> = new Set<Tab>(['chat', 'memory', 'prefere
 const DEMO_GROUPS = NAV_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => !NEEDS_SESSION.has(item.id)) }))
 
 // A phone's bottom bar holds at most five places: the four a manager opens
-// most, and "More", which opens the drawer holding the rest.
-const BAR_TABS: Tab[] = ['overview', 'assets', 'dashboard', 'chat']
+// most, and "More", which opens the drawer holding the rest. Approvals is
+// on the bar because publishing waits for a person; Dashboards stays in
+// the drawer under More.
+const BAR_TABS: Tab[] = ['overview', 'assets', 'approvals', 'chat']
 const BAR_ITEMS = BAR_TABS.map((id) => ALL_ITEMS.find((item) => item.id === id)!)
 const DEMO_BAR_ITEMS = BAR_ITEMS.map((item) => item.id === 'chat' ? ALL_ITEMS.find((other) => other.id === 'runs')! : item)
 
@@ -98,11 +100,13 @@ export function App() {
   const store = useStore()
   const { t, locale } = useI18n()
   const { isDark, toggleTheme } = useTheme()
-  // The session opens on the assistant: it greets a newcomer and is where
-  // a returning reader types. The Overview is one click away.
+  // The session opens on the Command Centre: a returning manager lands on
+  // the decision, and a newcomer sees the onboarding dialog first and then
+  // the same view. The assistant is one tap away. An explicit address
+  // still opens the view it names.
   const [route, navigate] = useHashRoute()
   const tab = route.tab
-  const [visited, setVisited] = useState<Tab[]>(['chat'])
+  const [visited, setVisited] = useState<Tab[]>(['overview'])
   useEffect(() => { setVisited((previous) => previous.includes(tab) ? previous : [...previous, tab]) }, [tab])
   // Which run the Runs view opens, and what its form starts with. Only one
   // of the two is set at a time, so the view never has to choose.
@@ -322,7 +326,7 @@ export function App() {
             </p>
           </div>
         ) : (
-          <div className="boot" role="status" aria-label={t('boot.startingAria')}>
+          <div className="boot" role="status" aria-label={t('boot.startingAria')}><span className="visually-hidden">{t('boot.startingAria')}</span>
             <div className="skeleton skeleton--orb" />
             <div className="skeleton skeleton--title" />
             <div className="skeleton skeleton--line" />
@@ -515,7 +519,8 @@ export function App() {
           <ReadOnlyContext.Provider value={demo}>
           {pane('operations', <OperationsView onOpenRun={openRun} />)}
           {pane('overview', (
-            <OverviewView onOpenRun={openRun} onStart={startAnalysis} canStart={!demo} onApprovals={() => go('approvals')} onOpenDashboard={() => go('dashboard')} />
+            <OverviewView onOpenRun={openRun} onStart={startAnalysis} canStart={!demo} onApprovals={() => go('approvals')}
+              onOpenDashboard={(id) => (id ? openDashboard(id) : go('dashboard'))} onSeeAll={() => go('runs')} />
           ))}
           {pane('assets', (
             <AssetIntelligenceView onOpenRun={openRun}

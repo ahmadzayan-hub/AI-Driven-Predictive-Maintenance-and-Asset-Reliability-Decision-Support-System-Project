@@ -279,3 +279,71 @@ describe('DatasetsView', () => {
     expect(heading).not.toHaveFocus()
   })
 })
+
+describe('Command Centre', () => {
+  const RUNS = { runs: [{ id: 'r2', goal: 'Why did revenue change?', dataset_name: 'fleet.csv', state: 'awaiting_approval', created_at: '2026-10-21T08:00:00Z', updated_at: '2026-10-22T09:00:00Z' }] }
+  const BRIEF = {
+    run: { id: 'r2', dataset_name: 'fleet.csv', state: 'awaiting_approval', updated_at: '2026-10-22T09:00:00Z' },
+    language: 'en', source: 'engine', currency: 'AED', scope: { records: 240, total_records: 240, filters: [] },
+    headline: '240 records in scope; 2 controlled measures available for review.',
+    readiness: { status: 'limited', limitations: ['Some models are weak or unsupported.'] },
+    kpis: { measures: [
+      { key: 'availability', title: 'Availability', value: 95.8, scale: 'percent', numerator: 3996.9, denominator: 96000, formula: '', population: 'all records', definition: 2, records: 240, records_excluded: 0, records_unmeasured: 0, missing_policy: 'exclude', family: 'reliability', undefined_reason: null, assessment: { status: 'good', reason_code: 'ok', reason: 'Above target', direction: 'higher', source_ref: null, rule_id: null, thresholds: null } },
+      { key: 'loss_per_record', title: 'Loss per record', value: 4332.03, scale: 'money', numerator: 1, denominator: 1, formula: '', population: 'all records', definition: 1, records: 240, records_excluded: 0, records_unmeasured: 0, missing_policy: 'exclude', family: 'cost', undefined_reason: null, assessment: { status: 'unassessed', reason_code: 'no_target', reason: '', direction: null, source_ref: null, rule_id: null, thresholds: null } },
+    ], unavailable: { mtbf: 'needs Failure_Count' } },
+    priorities: [], questions: [{ id: 'q1', text: 'Which procedure governs the engineering review?', evidence_refs: [] }],
+    findings: [
+      { id: 'cl_dq', text: 'Data quality scores 100.0 out of 100 (grade A).', stage: 'quality', kind: 'calculation', evidence_refs: [], scope: 'whole_run' },
+      { id: 'cl_recommendation', text: 'Recommended action: Act on the largest source of Downtime_Hours: “North”.', stage: 'prescriptive', kind: 'recommendation', evidence_refs: [], scope: 'whole_run' },
+    ],
+    models: [{ kind: 'maintenance_risk', target: 'repeat_failure: more than one failure?', fitted: false, details: { verdict: 'not_supported' }, role: 'maintenance_risk', scope: 'whole_run' }],
+    evidence: [{ id: 'executive.validation.failed_checks', kind: 'calculation', label: 'checks', value: 4, method: '', scope: 'whole_run' }],
+    drilldowns: [],
+    advisory: { title: 't', subtitle: 's', role: 'r', recommendation: 'Endorse a scoped maintenance and reliability review.', prediction: 'Retrospective discrimination is not evidence of future failure prediction.', domains: [], sources: [], new_findings: '', preservation: '', escalation: '',
+      decisions: [{ id: 'overdue', title: 'Review overdue work', action: 'Observed work requiring review.', owner: 'Maintenance planner', gate: 'Before approving a maintenance intervention', evidence_refs: [] }] },
+  }
+
+  it('shows the decision brief of the latest analysis, each tile from the server', async () => {
+    const user = userEvent.setup()
+    serve({ '/api/runs': RUNS, '/api/usage': USAGE, '/api/runs/r2': { ...DETAIL, state: 'awaiting_approval', tasks: [] },
+      '/api/runs/r2/executive?language=en&filters=%5B%5D': BRIEF })
+    const onOpenDashboard = vi.fn()
+    const onSeeAll = vi.fn()
+    render(<OverviewView onOpenRun={vi.fn()} onStart={vi.fn()} onOpenDashboard={onOpenDashboard} onSeeAll={onSeeAll} />)
+    expect(await screen.findByText('Endorse a scoped maintenance and reliability review.')).toBeInTheDocument()
+    expect(screen.getByText('Read with care')).toBeInTheDocument()
+    expect(screen.getByText('Review overdue work')).toBeInTheDocument()
+    expect(screen.getByText(/Maintenance planner/)).toBeInTheDocument()
+    expect(screen.getByText('95.8%')).toBeInTheDocument()
+    // Money carries the currency the column mapping states, by its code.
+    expect(screen.getByText('AED 4,332.03')).toBeInTheDocument()
+    expect(screen.queryByText(/currency not stated/)).toBeNull()
+    expect(screen.getByText('Above target')).toBeInTheDocument()
+    expect(screen.getByText('1 measures unavailable in this data')).toBeInTheDocument()
+    expect(screen.getByText('Not supported by this data')).toBeInTheDocument()
+    expect(screen.getByText(/Recommended action: Act on the largest source/)).toBeInTheDocument()
+    expect(screen.getByText(/Data quality scores 100.0/)).toBeInTheDocument()
+    expect(screen.getByText('4 original run checks did not pass')).toBeInTheDocument()
+    expect(screen.getByText('Which procedure governs the engineering review?')).toBeInTheDocument()
+    // Counts are plain numbers, not performance verdicts.
+    expect(within(screen.getByText('Waiting for approval').closest('.kpi')!).queryByText('Not assessed')).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'Open the executive overview' }))
+    expect(onOpenDashboard).toHaveBeenCalledWith('r2')
+    await user.click(screen.getByRole('button', { name: 'See all analyses' }))
+    expect(onSeeAll).toHaveBeenCalled()
+  })
+
+  it('keeps the counts and lists when the brief cannot be loaded', async () => {
+    serve({ '/api/runs': RUNS, '/api/usage': USAGE, '/api/runs/r2': { ...DETAIL, state: 'awaiting_approval', tasks: [] } })
+    render(<OverviewView onOpenRun={vi.fn()} onStart={vi.fn()} />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('The decision brief for the latest analysis is not available')
+    expect(screen.getAllByText('Why did revenue change?').length).toBeGreaterThan(0)
+  })
+
+  it('hides the live-source controls in the view-only demo', async () => {
+    serve({ '/api/datasets': { datasets: [] }, '/api/usage': USAGE, '/api/connectors': { connectors: [] } })
+    render(<ReadOnlyContext.Provider value={true}><DatasetsView onAnalyse={vi.fn()} /></ReadOnlyContext.Provider>)
+    await screen.findByText('No datasets yet')
+    expect(screen.queryByText('Add a live source')).toBeNull()
+  })
+})

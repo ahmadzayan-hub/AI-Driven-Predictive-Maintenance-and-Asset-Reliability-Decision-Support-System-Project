@@ -99,8 +99,12 @@ def usage(store, owner, limits, now=None):
             "remaining": max(0, limits["dataset_bytes"] - datasets["bytes"]),
         },
         # Stated rather than silently omitted: these are real costs the
-        # system does not currently measure.
-        "not_tracked": ["model tokens", "function execution time", "currency"],
+        # system does not currently measure. Model calls, their latency
+        # and the tokens providers report are counted per process in the
+        # gateway's ledger (GET /api/health, "model_calls"), not per
+        # tenant: a per-tenant token budget is still out of scope.
+        "not_tracked": ["model tokens per tenant", "function execution time", "currency"],
+        "tracked_per_process": ["model calls", "model latency", "model tokens where reported"],
     }
 
 

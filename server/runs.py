@@ -366,19 +366,23 @@ class RunEngine:
 
     def create_run(self, goal, dataset_text=None, dataset_name=None,
                    owner="local-owner", dataset_id=None, profile=None,
-                   language="en", joins=None, breakdown=None):
+                   language="en", joins=None, breakdown=None, assumptions=None):
         with self.store.atomic("owner:" + owner):
             return self._create_run_atomic(goal, dataset_text, dataset_name, owner,
-                                           dataset_id, profile, language, joins, breakdown)
+                                           dataset_id, profile, language, joins, breakdown,
+                                           assumptions)
 
     def _create_run_atomic(self, goal, dataset_text=None, dataset_name=None,
                            owner="local-owner", dataset_id=None, profile=None,
-                           language="en", joins=None, breakdown=None):
+                           language="en", joins=None, breakdown=None, assumptions=None):
         # An unknown profile, or a language reports are not written in, is
         # refused before anything is written.
         roles = self.roles_for(profile, joined=bool(joins))
         if language not in analytics.REPORT_LANGUAGES:
             raise ValueError(f"Reports are not written in “{language}”.")
+        # The decision inputs (uplift, cost, uplift range) are checked here,
+        # with every reason, and kept with the run (assessment A2, A13).
+        assumptions = analytics.validate_assumptions(assumptions, language)
         if not joins and breakdown is not None and str(breakdown).strip():
             # ADR 0030 defines this override only for a merged table.
             # Refuse before admission rather than accept a grouping the
@@ -436,7 +440,9 @@ class RunEngine:
             # Fixed for the run's life: the approval gate binds to the hash
             # of one artifact, written in one language (ADR 0022).
             "report_language": language,
-            "mapping_json": mapping_json, "joins_json": joins_json})
+            "mapping_json": mapping_json, "joins_json": joins_json,
+            "assumptions_json": (json.dumps(assumptions, ensure_ascii=False)
+                                 if assumptions else None)})
         titles = analytics.ROLE_TITLES_AR if language == "ar" else analytics.ROLE_TITLES
         for idx, role in enumerate(roles):
             # A plugin may name itself in Arabic too (ADR 0033).
@@ -475,7 +481,9 @@ class RunEngine:
                "glossary": self.glossary,
                "report_language": run.get("report_language") or "en",
                "mapping": (json.loads(run["mapping_json"])
-                           if run.get("mapping_json") else None)}
+                           if run.get("mapping_json") else None),
+               "assumptions": (json.loads(run["assumptions_json"])
+                               if run.get("assumptions_json") else None)}
         for task in tasks:
             if task["state"] == "succeeded" and task["result_json"]:
                 result = json.loads(task["result_json"])
@@ -596,7 +604,7 @@ class RunEngine:
             self._set_run_state(run_id, "failed", error=result["summary"])
             return self.get_run(run_id)
 
-        self._annotate(run, task, tasks, result)
+        self._annotate(run, task, tasks, result, ctx)
         if ctx.get("orchestration"):
             result["orchestration"] = ctx["orchestration"]
         self._set_task(task["id"], "succeeded", summary=result["summary"], result=result)
@@ -619,7 +627,21 @@ class RunEngine:
                 "published_path": None, "created_at": _now()})
         return self.get_run(run_id)
 
-    def _annotate(self, run, task, tasks, result):
+    def _roles_for(self, run, ctx, texts):
+        """The roles a run may use. The same personal-data boundary the
+        narrator keeps (server/model_privacy.py) applies here: when the
+        run's privacy scan or the outgoing sentences carry personal data,
+        every model role is played by the built-in writer instead."""
+        roles = self.roles
+        if roles is None or roles.all_built_in:
+            return roles
+        from server import model_privacy
+        if model_privacy.blocks_model(privacy=ctx.get("privacy"), merged=ctx.get("merge"),
+                                      texts=[run.get("goal") or "", *texts]):
+            return roles.restricted()
+        return roles
+
+    def _annotate(self, run, task, tasks, result, ctx):
         """Model notes on a finished stage: Hermes' plan on the planner, the
         agent's note on every stage with findings. Words only, grounded in
         the stage's own verified claims; a model failure never fails a run."""
@@ -627,11 +649,15 @@ class RunEngine:
             return
         language = run.get("report_language") or "en"
         try:
+            facts = [claim.get("text") or "" for claim in result.get("claims", [])]
+            roles = self._roles_for(run, ctx, facts + [t["title"] for t in tasks])
+            if roles is None:
+                return
             if task["role"] == "planner":
-                plan = self.roles.plan(run["goal"], [t["title"] for t in tasks], language)
+                plan = roles.plan(run["goal"], [t["title"] for t in tasks], language)
                 if plan:
                     result["hermes_plan"] = plan
-            note = self.roles.agent_note(run["goal"], task["role"], result, language)
+            note = roles.agent_note(run["goal"], task["role"], result, language)
             if note:
                 result["agent_note"] = note
         except Exception:
@@ -645,8 +671,10 @@ class RunEngine:
                  for claim in ctx.get(stage + "_result", {}).get("claims", [])
                  if claim.get("text")]
         try:
-            return self.roles.consult(run["goal"], facts,
-                                      run.get("report_language") or "en")
+            roles = self._roles_for(run, ctx, facts)
+            if roles is None:
+                return None
+            return roles.consult(run["goal"], facts, run.get("report_language") or "en")
         except Exception:
             return None
 
@@ -714,16 +742,44 @@ class RunEngine:
         self._set_run_state(run_id, "awaiting_approval")
         return self.get_run(run_id)
 
-    def decide_approval(self, run_id, approval_id, decision):
+    def decide_approval(self, run_id, approval_id, decision, approver=None):
         with self.store.atomic("run:" + run_id):
-            return self._decide_approval_atomic(run_id, approval_id, decision)
+            return self._decide_approval_atomic(run_id, approval_id, decision, approver)
 
-    def _decide_approval_atomic(self, run_id, approval_id, decision):
+    def _decision_record(self, tasks):
+        """The run's decision record, as the sensitivity stage completed it
+        or as the prescriptive stage wrote it; None when neither ran. The
+        record carries the recommendation claim's id when there is one."""
+        results = {}
+        for t in tasks:
+            if t["state"] == "succeeded" and t.get("result_json"):
+                results[t["role"]] = json.loads(t["result_json"])
+        for role in ("sensitivity", "prescriptive"):
+            record = (results.get(role) or {}).get("output", {}).get("decision")
+            if record:
+                return dict(record)
+        return None
+
+    def _recommends(self, tasks):
+        for t in tasks:
+            if t["role"] == "prescriptive" and t["state"] == "succeeded" and t.get("result_json"):
+                claims = json.loads(t["result_json"]).get("claims") or []
+                return any(c.get("id") == "cl_recommendation" for c in claims)
+        return False
+
+    def _decide_approval_atomic(self, run_id, approval_id, decision, approver=None):
         approval = self.store.get_approval(approval_id, run_id)
         if approval is None:
             raise KeyError(approval_id)
         if approval["state"] != "pending":
             raise ValueError(f"Approval already {approval['state']}.")
+        tasks = self.store.get_tasks(run_id)
+        if decision == "approve" and self._recommends(tasks) and not self._decision_record(tasks):
+            # A recommendation without its decision record cannot be
+            # published: there would be no audit trail from advice to
+            # action (assessment A13).
+            raise ValueError("The run recommends an action but carries no decision "
+                             "record; publishing is refused.")
         task = next(t for t in self.store.get_tasks(run_id)
                     if t["role"] == "publish")
         artifact = self.store.latest_artifact(run_id)
@@ -734,7 +790,8 @@ class RunEngine:
         if decision == "approve":
             path = self._publish(run_id, artifact)
             self.store.update("approvals", approval_id,
-                              {"state": "approved_once", "decided_at": _now()})
+                              {"state": "approved_once", "decided_at": _now(),
+                               "decided_by": approver})
             self.store.update("artifacts", artifact["id"],
                               {"published_path": str(path)})
             self._set_task(task["id"], "succeeded",
@@ -742,7 +799,8 @@ class RunEngine:
             self._set_run_state(run_id, "completed")
         else:
             self.store.update("approvals", approval_id,
-                              {"state": "rejected", "decided_at": _now()})
+                              {"state": "rejected", "decided_at": _now(),
+                               "decided_by": approver})
             self._set_task(task["id"], "skipped",
                            summary="Publishing rejected by the user; no note was written.")
             self._set_run_state(run_id, "completed")
@@ -885,8 +943,8 @@ class RunEngine:
             raise KeyError(run_id)
         return run
 
-    def list_runs(self, owner=None):
-        return self.store.list_runs(owner=owner)
+    def list_runs(self, owner=None, state=None):
+        return self.store.list_runs(owner=owner, state=state)
 
     def owner_of(self, run_id):
         return self._row(run_id).get("owner") or "local-owner"
@@ -934,11 +992,18 @@ class RunEngine:
                       "version": artifact["version"], "content": artifact["content"],
                       "published_path": artifact["published_path"]}
         approvals = [
-            {key: a[key] for key in ("id", "action", "target", "risk", "impact",
-                                     "reversibility", "state", "created_at",
-                                     "decided_at")}
+            {key: a.get(key) for key in ("id", "action", "target", "risk", "impact",
+                                         "reversibility", "state", "created_at",
+                                         "decided_at", "decided_by")}
             for a in self.store.approvals_for_run(run_id)
         ]
+        # The decision record, completed by the gate: who decided, what and
+        # when, from the approval row itself (A13). No stage writes this part.
+        decision = self._decision_record(self.store.get_tasks(run_id))
+        if decision is not None:
+            gate = next((a for a in approvals if a["state"] != "pending"), None)
+            decision["approval"] = ({"state": gate["state"], "decided_at": gate["decided_at"],
+                                     "decided_by": gate.get("decided_by")} if gate else None)
         declared = json.loads(run.get("joins_json") or "{}")
         joins = [{key: item.get(key) for key in ("dataset_id", "alias", "how", "keys")}
                  for item in declared.get("joins") or []]
@@ -951,6 +1016,8 @@ class RunEngine:
                 "updated_at": run["updated_at"], "tasks": tasks,
                 "paused": bool(run.get("paused")),
                 "approvals": approvals, "charts": charts, "report": report,
-                "reports": reports, "models": models,
+                "reports": reports, "models": models, "decision": decision,
+                "assumptions": (json.loads(run["assumptions_json"])
+                                if run.get("assumptions_json") else None),
                 # The live source a refresh made this run from (ADR 0034).
                 "connector_id": run.get("connector_id")}

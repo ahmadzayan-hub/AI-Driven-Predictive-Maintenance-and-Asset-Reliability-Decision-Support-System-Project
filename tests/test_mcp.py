@@ -198,7 +198,8 @@ class StdioTestCase(unittest.TestCase):
         self.assertEqual(len(engine.list_runs(owner="local-owner")), 1)
 
     def test_a_hosted_deployment_is_refused_over_stdio(self):
-        env = dict(os.environ, SUPABASE_JWT_SECRET="x" * 40)
+        env = dict(os.environ, SUPABASE_JWT_SECRET="x" * 40,
+                   SUPABASE_URL="https://test.supabase.invalid")
         completed = subprocess.run(
             [sys.executable, str(SCRIPT), "--config", str(self.config)],
             input="", capture_output=True, text=True, timeout=120, cwd=str(ROOT), env=env)

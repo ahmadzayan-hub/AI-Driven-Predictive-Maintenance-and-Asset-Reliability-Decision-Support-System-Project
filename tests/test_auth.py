@@ -21,7 +21,7 @@ try:
         build_identity,
         issue_local_test_token,
     )
-    from tests.support import closing
+    from tests.support import closing, scoped_token
     DEPS_AVAILABLE = True
 except ImportError:  # pragma: no cover - CLI-only environments
     DEPS_AVAILABLE = False
@@ -45,12 +45,23 @@ class IdentitySelectionTestCase(unittest.TestCase):
 
     def test_production_with_a_secret_selects_jwt_mode(self):
         identity = build_identity(
-            {"AGENTIC_OS_ENV": "production", "AGENTIC_OS_JWT_SECRET": SECRET})
+            {"AGENTIC_OS_ENV": "production", "AGENTIC_OS_JWT_SECRET": SECRET, "SUPABASE_URL": "https://test.supabase.invalid"})
         self.assertEqual(identity.mode, "jwt")
+
+    def test_a_provider_without_audience_and_issuer_fails_closed(self):
+        with self.assertRaises(AuthNotConfigured):
+            build_identity({"AGENTIC_OS_JWT_SECRET": SECRET})
+        with self.assertRaises(AuthNotConfigured):
+            build_identity({"AGENTIC_OS_JWT_SECRET": SECRET, "AGENTIC_OS_JWT_AUDIENCE": "x"})
+        explicit = build_identity({"AGENTIC_OS_JWT_SECRET": SECRET, "AGENTIC_OS_JWT_AUDIENCE": "aud",
+                                   "AGENTIC_OS_JWT_ISSUER": "https://issuer.invalid"})
+        self.assertEqual((explicit.audience, explicit.issuer), ("aud", "https://issuer.invalid"))
+        derived = build_identity({"SUPABASE_JWT_SECRET": SECRET, "SUPABASE_URL": "https://p.supabase.invalid/"})
+        self.assertEqual((derived.audience, derived.issuer), ("authenticated", "https://p.supabase.invalid/auth/v1"))
 
     def test_supabase_secret_variable_is_honored(self):
         self.assertEqual(
-            build_identity({"SUPABASE_JWT_SECRET": SECRET}).mode, "jwt")
+            build_identity({"SUPABASE_JWT_SECRET": SECRET, "SUPABASE_URL": "https://test.supabase.invalid"}).mode, "jwt")
 
 
 @unittest.skipUnless(DEPS_AVAILABLE, "fastapi/pyjwt are not installed")
@@ -151,12 +162,12 @@ class ApiAuthorizationTestCase(unittest.TestCase):
         }), encoding="utf-8")
         self.client = TestClient(
             closing(self, create_app(self.config_path,
-                       env={"AGENTIC_OS_JWT_SECRET": SECRET,
+                       env={"AGENTIC_OS_JWT_SECRET": SECRET, "SUPABASE_URL": "https://test.supabase.invalid",
                             "AGENTIC_OS_ENV": "production"})),
             raise_server_exceptions=False)
 
     def auth(self, subject, role):
-        return {"Authorization": "Bearer " + issue_local_test_token(
+        return {"Authorization": "Bearer " + scoped_token(
             SECRET, subject=subject, role=role)}
 
     def test_unauthenticated_requests_are_rejected(self):
@@ -265,7 +276,7 @@ class AuthConfigTestCase(unittest.TestCase):
 
     def test_hosted_mode_advertises_publishable_config_only(self):
         client = self.build({
-            "AGENTIC_OS_JWT_SECRET": SECRET,
+            "AGENTIC_OS_JWT_SECRET": SECRET, "SUPABASE_URL": "https://test.supabase.invalid",
             "SUPABASE_URL": "https://example.supabase.co",
             "SUPABASE_ANON_KEY": "publishable-anon-key",
         })
@@ -281,12 +292,12 @@ class AuthConfigTestCase(unittest.TestCase):
         self.assertNotIn(SECRET, response.text)
 
     def test_config_is_reachable_without_a_token(self):
-        client = self.build({"AGENTIC_OS_JWT_SECRET": SECRET,
+        client = self.build({"AGENTIC_OS_JWT_SECRET": SECRET, "SUPABASE_URL": "https://test.supabase.invalid",
                              "AGENTIC_OS_ENV": "production"})
         self.assertEqual(client.get("/api/auth/config").status_code, 200)
 
     def test_hosted_mode_without_provider_urls_offers_no_flows(self):
-        body = self.build({"AGENTIC_OS_JWT_SECRET": SECRET}).get(
+        body = self.build({"AGENTIC_OS_JWT_SECRET": SECRET, "SUPABASE_URL": "https://test.supabase.invalid"}).get(
             "/api/auth/config").json()
         self.assertEqual(body["flows"], [])
 

@@ -425,6 +425,44 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Platform assessment, audit fixes and the Command Centre — 22 October 2026
+
+Four code-grounded audits ([assessment](docs/audits/SAAS_PLATFORM_ASSESSMENT.md)),
+five blockers fixed with tests ([decision](docs/adr/2026-10-22-audit-fixes-period-order-grounding-privacy-identity.md)),
+and the Executive Command Centre on the Overview
+([decision](docs/adr/2026-10-22-executive-command-centre.md)). Results, with
+what was not verified, are in [docs/qa/END_TO_END_VALIDATION.md](docs/qa/END_TO_END_VALIDATION.md).
+
+- Full verifier **8 of 8**: **1,662 Python tests, 21 skipped** (optional extras);
+  **323 frontend tests**; typecheck; production build; budget JS 98.0 / 100 KB
+  first load, 211.7 / 214 KB total, CSS 28.7 / 29.5 KB total.
+- `scripts/evaluate_agents.py --check`: 9 of 9 agents at or above floor.
+- Browser: Overview spec **9 passed, 3 skipped**; accessibility spec **4 passed**
+  (WCAG 2.2 AA scan with the Command Centre), desktop and mobile.
+- Not verified: live model providers; the remaining 25 Playwright specs
+  (last full run 21 October); hosted load behaviour.
+- Slice one of the release gate ([decision](docs/adr/2026-10-22-release-gate-slice-one.md)):
+  full verifier **8 of 8** (**1,663 Python tests, 21 skipped**); `evaluate_agents --check` 9 of 9 with the router floor
+  recorded at 0.88 after relabelling; **323 frontend tests**; Overview and
+  accessibility specs **13 passed, 3 skipped**.
+- Slice two of the release gate ([decision](docs/adr/2026-10-22-release-gate-slice-two.md)):
+  full verifier **8 of 8** (**1,674 Python tests, 21 skipped** with PostgreSQL;
+  **326 frontend tests**; budget JS 98.1 / 100 KB first load, 211.9 / 214 KB
+  total, CSS 28.7 / 29.5 KB total); Runs, Workspace, Overview and accessibility
+  specs **24 passed, 4 skipped** (approve through the read gate by mouse and
+  keyboard); the dataset sweep in both languages under the new figure check.
+- Slice three of the release gate ([decision](docs/adr/2026-10-22-release-gate-slice-three.md)):
+  full verifier **8 of 8** (**1,712 Python tests, 21 skipped** with PostgreSQL;
+  **336 frontend tests**; budget JS 98.5 / 100 KB first load, 213.0 / 214 KB
+  total, CSS 28.7 / 29.5 KB total); `evaluate_agents --check` 9 of 9 with the
+  new blind floors (standards blind set 0% recall, recorded, not tuned);
+  the whole Playwright suite with the demo server: full run **132 passed, 5 failed, 5 skipped** of 142; the five failures were spec locators that matched the Command Centre pane the app now lands on, fixed in the specs, after which those five specs ran **32 passed, 0 failed**.
+- After merging main's Arabic rendered reports of the same day into the
+  branch: full verifier **8 of 8** (**1,721 Python tests, 21 skipped** with
+  PostgreSQL; **346 frontend tests**; budget JS 98.5 / 100 KB first load,
+  215.2 / 216 KB total under the combined allocation, CSS 30.0 / 30.5 KB
+  total); the merge-affected browser specs: **50 passed, 2 failed, 4 skipped** of 56 (runs, workspace, Arabic, accessibility, intake, executive, onboarding, demo, overview); the two failures were the workspace spec reading the approval preview as a `pre` element that main's rendered report replaced, fixed in the spec, after which the workspace spec ran **5 passed, 1 skipped**.
+
 ### Local chat recovery — 22 October 2026
 
 The owner's selected local checkout reproduced the screenshot's failure with

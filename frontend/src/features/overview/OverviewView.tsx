@@ -4,11 +4,11 @@ import { useEffect, useState } from 'react'
 import { useI18n } from '../../i18n'
 import { api, ApiError } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
-import { PerformanceLegend, PerformanceValue, performanceTone } from '../../shared/components/PerformanceValue'
 import { stateLabel, typeLabel } from '../../shared/labels'
-import type { RunDetail, RunSummary, Usage } from '../../shared/types'
+import type { RunDetail, RunExecutive, RunSummary, Usage } from '../../shared/types'
 import type { RunPreset } from '../runs/RunsView'
 import { countRuns, latestWithFindings, recentRuns, RUN_PAGE, waitingForApproval } from './summary'
+import { CommandCentre } from './CommandCentre'
 import { DecisionActions } from './DecisionActions'
 import { summarizeRunEvidence } from './evidence'
 
@@ -18,21 +18,27 @@ interface OverviewViewProps {
   /** False in the view-only demo: no button that would start an analysis. */
   canStart?: boolean
   onApprovals?: () => void
-  onOpenDashboard?: () => void
+  /** With a run id, opens that run's executive overview; without, the
+   *  dashboard as last left. */
+  onOpenDashboard?: (runId?: string) => void
+  /** The list of analyses. Falls back to the new-analysis form when absent. */
+  onSeeAll?: () => void
 }
 
 /** Where the workspace stands, on one screen: the figures, the latest
  *  findings, what is waiting at the approval gate, and the newest runs.
  *  Everything comes from existing endpoints; nothing is computed here
  *  that the server did not already say. */
-export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard, canStart = true }: OverviewViewProps) {
-  const { t, tx, formatNumber, formatDate } = useI18n()
+export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard, onSeeAll, canStart = true }: OverviewViewProps) {
+  const { t, tx, locale, formatNumber, formatDate } = useI18n()
   const [runs, setRuns] = useState<RunSummary[] | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
   const [usage, setUsage] = useState<Usage | null>(null)
   const [usageFailed, setUsageFailed] = useState(false)
   const [latest, setLatest] = useState<RunDetail | null>(null)
   const [latestFailed, setLatestFailed] = useState(false)
+  const [brief, setBrief] = useState<RunExecutive | null>(null)
+  const [briefFailed, setBriefFailed] = useState(false)
   const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
@@ -41,6 +47,8 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard,
     setRuns(null)
     setLatest(null)
     setLatestFailed(false)
+    setBrief(null)
+    setBriefFailed(false)
     setUsageFailed(false)
     api
       .listRuns()
@@ -49,6 +57,11 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard,
         setRuns(result.runs)
         const source = latestWithFindings(result.runs)
         if (!source) return
+        // The decision brief and the run detail are independent reads:
+        // one failing never hides the other.
+        api.runExecutive(source.id, locale)
+          .then((executive) => !cancelled && setBrief(executive))
+          .catch(() => !cancelled && setBriefFailed(true))
         try {
           const detail = await api.getRun(source.id)
           if (!cancelled) setLatest(detail)
@@ -68,16 +81,16 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard,
     return () => {
       cancelled = true
     }
-    // `t` changes only with the locale; a retry is the key.
+    // A retry or a language change re-reads; `t` follows the locale.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attempt])
+  }, [attempt, locale])
 
   const orderedRuns = recentRuns(runs ?? [], RUN_PAGE)
   const agentRun = orderedRuns.find((run) => run.state === 'running' || run.state === 'queued') ?? orderedRuns[0]
   const actions = onOpenDashboard ? (
     <DecisionActions
       onUpload={canStart ? () => onStart({ kind: 'upload' }) : undefined}
-      onDashboard={onOpenDashboard}
+      onDashboard={() => onOpenDashboard()}
       onApprovals={onApprovals}
       onAgents={agentRun ? () => onOpenRun(agentRun.id) : undefined}
     />
@@ -122,7 +135,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard,
         <div className="panel__inner panel__inner--wide">
           {header}
           {actions}
-          <div className="kpis" role="status" aria-label={t('overview.loading')}>
+          <div className="kpis" role="status" aria-label={t('overview.loading')}><span className="visually-hidden">{t('overview.loading')}</span>
             {[0, 1, 2, 3].map((n) => (
               <div key={n} className="kpi">
                 <div className="skeleton skeleton--line" />
@@ -169,6 +182,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard,
   const counts = countRuns(runs)
   const waiting = waitingForApproval(runs)
   const recent = recentRuns(runs)
+  const source = latestWithFindings(runs)
   const findings = latest ? latest.reports.filter((report) => (report.headline ?? '').trim()) : []
   const reportLang = latest?.report_language === 'ar' ? 'ar' : 'en'
   // A run's independent validator is evidence about that run, not a claim
@@ -223,12 +237,14 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard,
       <div className="panel__inner panel__inner--wide">
         {header}
 
-        <PerformanceLegend />
+        {source ? <CommandCentre run={source} brief={brief} failed={briefFailed} onOpenDashboard={onOpenDashboard} /> : null}
+
+        {/* Counts are counts: a status reads only where a target exists. */}
         <dl className="kpis">
           {tiles.map((tile) => (
             <div key={tile.key} data-hue={tile.hue} className={`kpi ${tile.attention ? 'kpi--attention' : ''}`}>
               <dt className="kpi__label">{tile.label}</dt>
-              <dd className="kpi__value"><PerformanceValue tone={performanceTone(tile.value)}><bdi>{tile.value === undefined ? '—' : formatNumber(tile.value)}</bdi></PerformanceValue></dd>
+              <dd className="kpi__value"><bdi>{tile.value === undefined ? '—' : formatNumber(tile.value)}</bdi></dd>
               {tile.sub ? <dd className="kpi__sub">{tile.sub}</dd> : null}
             </div>
           ))}
@@ -364,7 +380,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard,
               </li>
             ))}
           </ul>
-          <button type="button" className="btn btn--subtle" onClick={() => onStart(null)}>
+          <button type="button" className="btn btn--subtle" onClick={() => (onSeeAll ? onSeeAll() : onStart(null))}>
             {t('overview.seeAll')}
           </button>
         </div>

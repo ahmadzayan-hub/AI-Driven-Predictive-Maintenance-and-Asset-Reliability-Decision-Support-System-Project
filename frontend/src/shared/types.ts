@@ -229,6 +229,9 @@ export interface ColumnMapping {
   date_order: DateOrder
   grain: Grain
   version?: number
+  /** The ISO 4217 code of money columns, as the owner stated it; null or
+   *  absent means not stated, and the interface says so. Never guessed. */
+  currency?: string | null
 }
 
 /** What the server read in one column, and the role it suggests. */
@@ -263,7 +266,7 @@ export interface DatasetDetail {
  *  column; a join's problems also say which join (ADR 0030). */
 export interface MappingProblem {
   field:
-    | 'roles' | 'measure' | 'dimension' | 'date_order' | 'grain'
+    | 'roles' | 'measure' | 'dimension' | 'date_order' | 'grain' | 'currency'
     | 'joins' | 'keys' | 'how' | 'alias' | 'breakdown' | 'dataset'
   column: string | null
   message: string
@@ -545,6 +548,10 @@ export interface RunExecutive {
   run: { id: string; dataset_name: string; state: string; updated_at?: string | null }
   language: 'en' | 'ar'
   source: 'engine'
+  /** The currency the dataset's column mapping states for money measures,
+   *  or null when there is no mapping or it states none: the figures are
+   *  then labelled "currency not stated" rather than given a default. */
+  currency?: string | null
   scope: { records: number; total_records: number; filters: TableFilter[] }
   headline: string
   readiness: { status: 'ready' | 'limited' | 'empty'; limitations: string[] }

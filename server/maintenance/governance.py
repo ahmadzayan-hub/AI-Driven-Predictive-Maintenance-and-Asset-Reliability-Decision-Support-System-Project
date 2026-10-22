@@ -191,6 +191,16 @@ class MaintenanceGovernance:
                                 f"{', '.join(finding['columns'])}; "
                                 + "; ".join(f"{k}={v}" for k, v in numbers.items())),
             })
+            # Every figure the finding's text states is a calculation of its
+            # own, so the validator's figure check can find it (A6).
+            for key, value in numbers.items():
+                if isinstance(value, (int, float)) and not isinstance(value, bool) \
+                        and value != headline_number:
+                    calculations.append({
+                        "id": f"{prefix}.c_f{index}_{key}",
+                        "name": f"{finding['detector']}:{key}", "value": value,
+                        "method": f"{key} from {finding['detector']} over "
+                                  f"{', '.join(finding['columns'][:2])}"})
         return calculations
 
     def _claims(self, prefix, findings, tier, usable, excluded):
@@ -245,7 +255,12 @@ class MaintenanceGovernance:
                 "text": _clip(f"{finding['headline']}. {finding['detail']}"),
                 "text_ar": _clip(f"{arabic}. "
                                  + ARABIC_CONSEQUENCE.get(detector, "")),
-                "evidence": [f"{prefix}.c_f{index}"],
+                "evidence": [f"{prefix}.c_f{index}"] + [
+                    f"{prefix}.c_f{index}_{key}"
+                    for key, value in finding["numbers"].items()
+                    if isinstance(value, (int, float)) and not isinstance(value, bool)
+                    and value != next(iter(finding["numbers"].values()),
+                                      len(finding["columns"]))],
                 "status": "verified"})
         return claims
 
