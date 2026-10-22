@@ -16,7 +16,7 @@ function validMotion(data){
       throw Error('Invalid scene or missing evidence');
     for(const ref of scene.evidence){
       for(const field of ['source_id','revision','locator']){
-        if(typeof ref[field]!=='string'||!/^[-.a-zA-Z0-9_:/#@]{1,150}$/.test(ref[field]))throw Error('Invalid source reference');
+        if(typeof ref[field]!=='string'||ref[field].length<1||ref[field].length>150||/[\x00-\x1f]/.test(ref[field]))throw Error('Invalid source reference');
       }
       if(!['VERIFIED','RECORDED_IN_REGISTER','SYNTHETIC'].includes(ref.data_status)
         ||(data.classification==='INTERNAL'&&ref.data_status==='SYNTHETIC'))
