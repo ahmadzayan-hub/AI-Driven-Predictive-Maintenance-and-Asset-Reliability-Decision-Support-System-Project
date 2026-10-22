@@ -10,18 +10,15 @@ from __future__ import annotations
 import argparse
 import json
 import math
-import re
 import shutil
 import subprocess
 import tempfile
-import wave
 from pathlib import Path
 
 SUPPORTED = {"VERIFIED", "RECORDED_IN_REGISTER"}
 SCENES = 3
 MAX_DURATION = 180
 MAX_TEXT = 480
-SAFE_REF = re.compile(r"^[A-Za-z0-9_.:/#@-]{1,150}$")
 
 
 class MotionInputError(ValueError):
@@ -96,26 +93,6 @@ def probe_audio(path: Path) -> float:
     if not math.isfinite(duration) or not 3 <= duration <= MAX_DURATION:
         raise MotionInputError("Audio duration outside permitted range")
     return duration
-
-
-def render(payload: dict, output: Path, audio: Path | None = None, *, fps: int = 30) -> dict:
-    validate(payload)
-    if not shutil.which("ffmpeg"):
-        raise MotionInputError("ffmpeg unavailable")
-    if fps != 30:
-        raise MotionInputError("Use constant 30 fps")
-    seconds = probe_audio(audio) if audio else float(payload["duration"])
-    size = (1280, 720) if payload["format"] == "wide" else (720, 1280)
-    # Rendering from SVG rasterized through ffmpeg's input is not guaranteed
-    # across OS builds. Use text-free, precomposed PPM frames and render text
-    # separately through the existing browser composition for RTL correctness.
-    # This CLI intentionally refuses unsupported high-fidelity text rendering.
-    # It produces a background-only proof frame if requested with title metadata,
-    # but MUST NOT claim the storyboard text was rendered.
-    raise MotionInputError(
-        "MP4 text rendering requires an approved browser-frame capture adapter "
-        "that provides verified PNG frames at 30 fps; refusing misleading blank video."
-    )
 
 
 def mux_frames(frames_dir: Path, output: Path, audio: Path | None = None, *,
