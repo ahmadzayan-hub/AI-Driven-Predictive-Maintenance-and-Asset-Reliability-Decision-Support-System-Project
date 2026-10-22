@@ -46,6 +46,13 @@ class TokenTests(unittest.TestCase):
     def test_both_modes_carry_the_same_tokens(self):
         self.assertEqual(list(TOKENS["light"]), list(TOKENS["dark"]))
 
+    def test_app_report_tokens_are_scoped_fresh_and_carry_no_name(self):
+        path = ROOT / "frontend/src/features/runs/report-theme.css"
+        actual = path.read_text(encoding="utf-8")
+        self.assertEqual(actual, build.report_css(TOKENS))
+        self.assertIn(":root[data-theme=dark] .report-theme", actual)
+        self.assertIsNone(FORBIDDEN.search(actual))
+
     def test_text_meets_aa_contrast_in_light_and_dark(self):
         for mode in ("light", "dark"):
             palette = TOKENS[mode]

@@ -1,6 +1,9 @@
 import { definePack } from '../../i18n/pack'
 
 export const intakeMessages = definePack({
+  'intake.reportLanguage': 'Report language',
+  'intake.reportLanguageHelp': 'Sets the language of the analysis, recommendations, tables and chart descriptions. A completed report keeps its original language.',
+  'intake.reportLanguageFixed': 'This report was created in {language}. To get the full report in another language, start a new analysis and choose its report language.',
   'intake.goal': 'Analyze my dataset, explain its quality and limitations, and produce an evidence-based report',
   'intake.required': 'Upload a file, paste CSV, or choose a stored dataset before starting.',
   'intake.wait': 'Wait for the file to finish uploading before starting the analysis.',
@@ -15,6 +18,9 @@ export const intakeMessages = definePack({
   'intake.limits': 'Supported tabular files: CSV/TSV, Excel (.xlsx/.xlsm), JSON and JSON Lines. Limit: 4 MB uploaded, 50,000 rows and 500 columns; 10 MB after conversion. PDF, images, Parquet and old .xls files need conversion first.',
   'intake.models': 'Choose the models profile to include baseline-tested regression, classification, clustering and seasonal analysis. Unsuitable data produces limitations, not invented predictions.',
 }, {
+  'intake.reportLanguage': 'لغة التقرير',
+  'intake.reportLanguageHelp': 'تحدّد لغة التحليل والتوصيات والجداول وأوصاف الرسوم البيانية. يحتفظ التقرير المكتمل بلغته الأصلية.',
+  'intake.reportLanguageFixed': 'أُنشئ هذا التقرير باللغة {language}. للحصول على التقرير كاملًا بلغة أخرى، ابدأ تحليلًا جديدًا واختر لغة التقرير المطلوبة.',
   'intake.goal': 'حلّل بياناتي واشرح جودتها وقيودها وأنتج تقريرًا يستند إلى الأدلة',
   'intake.required': 'ارفع ملفًا أو الصق CSV أو اختر مجموعة بيانات محفوظة قبل البدء.',
   'intake.wait': 'انتظر اكتمال رفع الملف قبل بدء التحليل.',

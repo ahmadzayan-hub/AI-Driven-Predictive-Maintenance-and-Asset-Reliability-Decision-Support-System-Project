@@ -1,7 +1,11 @@
 import '../../shared/styles/analytics.css'
+import './report-theme.css'
+import './report-document.css'
+import { ReportDocument } from './ReportDocument'
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useSessionDraft } from '../../shared/useSessionDraft'
-import { useI18n } from '../../i18n'
+import { translate } from '../../i18n'
+import type { Locale } from '../../i18n'
 import { api, ApiError, MAX_UPLOAD_BYTES, UPLOAD_ACCEPT } from '../../shared/api'
 import { usePack } from '../../i18n/pack'
 import { intakeMessages } from '../datasets/intakeMessages'
@@ -72,8 +76,7 @@ function BarChart({ chart }: { chart: ChartSpec }) {
   )
 }
 
-function LineChart({ chart }: { chart: ChartSpec }) {
-  const { t } = useI18n()
+function LineChart({ chart, language }: { chart: ChartSpec; language: Locale }) {
   const max = Math.max(...chart.values, 1)
   const min = Math.min(...chart.values, 0)
   const span = max - min || 1
@@ -111,7 +114,7 @@ function LineChart({ chart }: { chart: ChartSpec }) {
             strokeDasharray="1 1"
           />
           <text x={boundaryX + 1} y="7" fontSize="3.2" fill="var(--text-faint)">
-            {t('runs.forecast')}
+            {translate('runs.forecast', undefined, language)}
           </text>
         </>
       ) : null}
@@ -188,7 +191,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
     onRunSelected?.(detail?.id ?? null)
   }, [onRunSelected])
   const [evidenceTask, setEvidenceTask] = useState<RunTask | null>(null)
-  const fullReportRef = useRef<HTMLPreElement | null>(null)
+  const fullReportRef = useRef<HTMLDivElement | null>(null)
   const closeEvidence = useCallback(() => setEvidenceTask(null), [])
   const starting = useRef(false)
   // Where the data comes from (ADR 0024). A stored dataset and an
@@ -201,6 +204,8 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
   const suggestedGoal = preset?.kind === 'stored' ? t('runs.goalStored', { name: preset.name }) : preset?.kind === 'upload' ? t('intake.goal') : t('runs.goalDefault')
   const questionContext = preset?.kind === 'stored' ? preset.id : preset?.kind ?? 'sample'
   const [goal, setGoal] = useSessionDraft(`${draftScope}:analysis-question:${questionContext}`, () => suggestedGoal)
+  const [chosenLanguage, setChosenLanguage] = useState<'en' | 'ar' | null>(null)
+  const reportLanguage = chosenLanguage ?? locale
   // The goal the form last wrote itself. A goal the person typed is
   // never replaced when they pick another dataset.
   const autoGoal = useRef(suggestedGoal)
@@ -341,9 +346,9 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
         pasted ? csvDraft : undefined,
         pasted ? t('runs.pastedName') : undefined,
         profile || undefined,
-        // The report is written in the reader's language, and stays in it:
+        // The report is written in the chosen language, and stays in it:
         // switching the interface later does not rewrite an approved artifact.
-        locale,
+        reportLanguage,
         datasetId,
         datasetId && joins.length ? { joins, breakdown } : undefined,
       )
@@ -460,6 +465,16 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                   onChange={(event) => setGoal(event.target.value)}
                   disabled={busy}
                 />
+              </div>
+              <div className="field">
+                <label className="field__label" htmlFor="run-language">{t('intake.reportLanguage')}</label>
+                <select id="run-language" className="field__select" value={reportLanguage}
+                  aria-describedby="run-language-help" disabled={busy}
+                  onChange={(event) => setChosenLanguage(event.target.value === 'ar' ? 'ar' : 'en')}>
+                  <option value="ar" lang="ar">العربية</option>
+                  <option value="en" lang="en">English</option>
+                </select>
+                <p className="field__help" id="run-language-help">{t('intake.reportLanguageHelp')}</p>
               </div>
               <div className="field">
                 <span className="field__label" id="dataset-label">
@@ -767,6 +782,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
           </div>
 
           <p className="cockpit__continuity"><Icon name="shield" size={14} />{t('cockpit.keepOpen')}</p>
+          {reportLang !== locale ? <p className="report-language-note">{t('intake.reportLanguageFixed', { language: languageLabel(t, reportLang) })}</p> : null}
           <p className="visually-hidden" role="status" aria-live="polite">{(() => {
             const event = [...snapshot.events].reverse().find((item) => item.kind === 'stage.changed')
             const task = run.tasks.find((item) => item.id === event?.subject)
@@ -775,7 +791,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
           <ApprovalCard detail={run} onDecision={(detail) => { setRun(detail); void refreshList() }} />
           <Suspense fallback={null}><AgentCollaboration key={run.id} run={run} events={snapshot.events}
             interrupted={snapshot.interrupted} pipelines={pipelines} onEvidence={setEvidenceTask} /></Suspense>
-          {run.reports.length ? <section className="finding-grid" aria-label={t('overview.findings')}>
+          {run.reports.length ? <section className="finding-grid report-theme" aria-label={t('overview.findings')}>
             {run.reports.filter((section) => ['descriptive', 'diagnostic', 'predictive', 'prescriptive'].includes(section.type)).map((section) => {
               const task = run.tasks.find((item) => item.role === section.type)
               return <article className="finding-card" key={section.type}>
@@ -789,25 +805,25 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
           {run.tasks.find((task) => task.role === 'validator')?.quality_checks.length ? <div className="assurance-strip"><Icon name="shield" size={16} /><span>{t('cockpit.checks')}: {run.tasks.find((task) => task.role === 'validator')!.quality_checks.every((check) => check.passed) ? t('cockpit.passed') : t('cockpit.notPassed')}</span><span>{run.report?.published_path ? t('cockpit.published') : t('cockpit.unpublished')}</span></div> : null}
 
           {run.charts.length > 0 ? (
-            <div className="card">
-              <h3 className="card__title">{t('runs.charts')}</h3>
+            <div className="card report-theme report-sheet" lang={reportLang}>
+              <h3 className="card__title" lang={locale}>{t('runs.charts')}</h3>
               {/* A chart's axis runs left to right in either language;
                   the labels come from the data and are shown as written. */}
               {run.charts.map((chart) => (
-                <figure key={chart.id} className="runchart" dir="ltr">
+                <figure key={chart.id} className="runchart" dir="ltr" lang={reportLang}>
                   <figcaption className="field__label" dir="auto">
                     {chart.title}
                   </figcaption>
-                  {chart.type === 'bar' ? <BarChart chart={chart} /> : <LineChart chart={chart} />}
+                  {chart.type === 'bar' ? <BarChart chart={chart} /> : <LineChart chart={chart} language={reportLang} />}
                   {/* The same numbers as a table: nobody has to read a
                       value off a bar, and a screen reader gets every one. */}
-                  <details className="runchart__data" dir={isRtl ? 'rtl' : 'ltr'}>
-                    <summary>{t('runs.chartData')}</summary>
+                  <details className="runchart__data" dir={reportDir}>
+                    <summary lang={locale} dir={isRtl ? 'rtl' : 'ltr'}>{t('runs.chartData')}</summary>
                     <table className="datatable">
                       <thead>
                         <tr>
-                          <th scope="col">{t('runs.chartLabel')}</th>
-                          <th scope="col">{t('runs.chartValue')}</th>
+                          <th scope="col">{translate('runs.chartLabel', undefined, reportLang)}</th>
+                          <th scope="col">{translate('runs.chartValue', undefined, reportLang)}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -816,7 +832,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                             <th scope="row" dir="auto">
                               {label}
                               {chart.forecast_from !== undefined && index >= chart.forecast_from
-                                ? ` (${t('runs.forecast')})`
+                                ? ` (${translate('runs.forecast', undefined, reportLang)})`
                                 : ''}
                             </th>
                             <td>{formatNumber(chart.values[index])}</td>
@@ -833,7 +849,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
           <ModelCards models={run.models ?? []} language={reportLang} />
 
           {run.reports.length ? (
-            <div className="card">
+            <div className="card report-theme report-sheet">
               <h3 className="card__title">{t('runs.reports')}</h3>
               <div
                 className="reporttabs"
@@ -872,32 +888,19 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                     aria-labelledby={`reporttab-${section.type}`}
                   >
                     {section.headline ? (
-                      <p className="reporthead" dir="auto">
+                      <p className="reporthead" dir={reportDir} lang={reportLang}>
                         {section.headline}
                       </p>
                     ) : null}
-                    {/* The <pre> is what scrolls, so the tab stop belongs
-                        here rather than on the panel around it. The block
-                        carries the report's own language, which is the
-                        run's, not the interface's (ADR 0022), so a screen
-                        reader and the bidi algorithm read it correctly. */}
-                    <pre
-                      className="runreport"
-                      tabIndex={0}
-                      role="region"
-                      lang={reportLang}
-                      dir={reportDir}
-                      aria-label={t('runs.reportText', { type: typeLabel(t, section.type, section.title) })}
-                    >
-                      {section.content}
-                    </pre>
+                    <ReportDocument content={section.content} language={reportLang}
+                      label={t('runs.reportText', { type: typeLabel(t, section.type, section.title) })} />
                   </div>
                 ))}
             </div>
           ) : null}
 
           {run.report ? (
-            <div className="card">
+            <div className="card report-theme report-sheet">
               <h3 className="card__title">
                 {t('runs.comprehensive', { version: run.report.version })}
                 {run.report.published_path ? t('runs.published') : ''}
@@ -907,17 +910,8 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                   <Icon name="check" size={14} /> <span dir="ltr">{run.report.published_path}</span>
                 </p>
               ) : null}
-              <pre
-                ref={fullReportRef}
-                className="runreport runreport--full"
-                tabIndex={0}
-                role="region"
-                lang={reportLang}
-                dir={reportDir}
-                aria-label={t('runs.comprehensiveText')}
-              >
-                {run.report.content}
-              </pre>
+              <ReportDocument ref={fullReportRef} className="runreport--full" content={run.report.content}
+                language={reportLang} label={t('runs.comprehensiveText')} />
             </div>
           ) : null}
 

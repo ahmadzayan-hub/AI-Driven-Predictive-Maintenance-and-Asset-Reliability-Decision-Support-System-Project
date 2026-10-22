@@ -404,9 +404,10 @@ class RunEngine:
             # mapping later never changes a run already made (ADR 0025).
             mapping_json = dataset.get("mapping_json")
         else:
-            text = dataset_text or analytics.sample_dataset()
+            text = dataset_text or analytics.sample_dataset(language)
             name = dataset_name or (
-                "uploaded dataset" if dataset_text else "sample sales dataset")
+                ("بيانات مرفوعة" if language == "ar" else "uploaded dataset") if dataset_text else
+                ("بيانات مبيعات تجريبية" if language == "ar" else "sample sales dataset"))
             dataset = self.store_dataset(text, name, owner,
                                          "csv" if dataset_text else "sample")
         now = _now()
