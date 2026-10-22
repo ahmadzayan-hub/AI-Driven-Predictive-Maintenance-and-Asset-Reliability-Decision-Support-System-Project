@@ -25,7 +25,7 @@ from collections import OrderedDict
 from datetime import datetime, timezone
 from pathlib import Path
 
-from server import analytics, datasets, metrics, quota
+from server import analytics, datasets, metrics, quota, model_privacy
 from server import joins as joining
 from server import query
 from server import mapping as colmap
@@ -625,6 +625,10 @@ class RunEngine:
         the stage's own verified claims; a model failure never fails a run."""
         if self.roles is None:
             return
+        if model_privacy.run_blocks_model(self.store, run["id"]) or (
+                task["role"] in ("privacy", "merge")
+                and result.get("output", {}).get("personal_data")):
+            return
         language = run.get("report_language") or "en"
         try:
             if task["role"] == "planner":
@@ -639,7 +643,7 @@ class RunEngine:
 
     def _consult(self, run, ctx):
         """The consultants and Hermes' brief, read by the reporter."""
-        if self.roles is None:
+        if self.roles is None or model_privacy.run_blocks_model(self.store, run["id"]):
             return None
         facts = [claim["text"] for stage in analytics.evidence_stages(ctx)
                  for claim in ctx.get(stage + "_result", {}).get("claims", [])
