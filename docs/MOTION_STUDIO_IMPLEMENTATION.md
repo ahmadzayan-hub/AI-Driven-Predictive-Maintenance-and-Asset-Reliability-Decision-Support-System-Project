@@ -48,3 +48,49 @@ Check the decoded output and full narration before publication. For voice-over a
 
 ## Next engineering implementation
 Integrate a governed composition registry, upload validation, protected drafts, resource limits, an isolated FFmpeg/Remotion renderer, queued jobs, render-progress API, controlled download permissions, bilingual subtitle tracks and explicit human publishing approval. Evaluate Remotion licensing for commercial and enterprise use before installing it. Avoid expensive rendering inside the main synchronous request or unrelated Vercel static frontend.
+
+
+## 22 October 2026: implementation status and real-data handoff
+
+**Implemented in this draft PR (not merged):**
+- Standalone responsive HTML editor: `frontend/public/motion-studio/index.html`.
+- CSP-compatible local assets: `studio.js`, `studio.css`. No external audio/media upload.
+- UI lets authorized users export a **source-linked** `motion-evidence-v1` JSON manifest, load it in Motion Studio, edit three scene texts, and export it for local rendering.
+- Python CLI: `scripts/motion_studio_render.py`, `motion_studio_frames.py`. With a local TTF/OTF font, Pillow, FFmpeg and FFprobe, it builds sequential 30 fps PNG frames, then creates H.264 MP4 (yuv420p), AAC 48 kHz with full source audio and an output status of **DRAFT_REQUIRES_HUMAN_REVIEW**. Audio metadata determines final duration when supplied.
+- For Arabic, use a font with Arabic glyphs and a Pillow build with libraqm. The script refuses Arabic rendering when shaping is unavailable, rather than producing disconnected letters.
+- Browser preview/export remains WebM only. Browser WebM audio synchronization requires playback verification. MP4 uses an independent deterministic frame timeline and checks frame/audio duration within one frame.
+- Human publication / official correspondence is **not implemented**; this software deliberately has no authorization-bypassing release route. Final controlled release needs a separate owner-approved workflow.
+
+### Authoritative source connections
+
+- **Asset Reliability AI:** an authenticated user opens the Executive Overview; the action becomes enabled only for a stored run with a report and an independent run-level evidence check. It exports a headline derived from the actual owned run and a citation to that report's version/ID. The video remains a draft and is not a certification of predictive accuracy.
+
+No source file content or API token is sent to a cloud model/renderer by these flows. Imported snippets and project JSON remain on the user's device except for any deliberate user-controlled downloads. Local MP4 rendering requires the operator to run the commands in an approved environment.
+
+### Local renderer command
+
+```bash
+python -m pip install Pillow
+python scripts/motion_studio_render.py \
+  --manifest motion-evidence-draft.json \
+  --font "/path/to/approved-arabic-font.ttf" \
+  --audio "/path/to/voiceover.wav" \
+  --output motion-review-draft.mp4
+```
+
+Omit `--audio` for a silent draft using the manifest duration. Do not install licensed fonts from unapproved internet sources. The worker needs `ffmpeg`, `ffprobe`, available disk space for frames, and an encoding environment with libx264. Existing files will not be overwritten.
+
+For an established frame renderer, replace `--font` with `--frames "/path/to/frame-directory"` containing sequential `frame-000000.png` etc. The encoder checks the exact total frame count and optional narration duration.
+
+### Mandatory verification before PR approval
+
+1. Run `python scripts/test_motion_studio_render.py` and platform frontend typecheck/unit tests.
+2. Run browser smoke tests on the correct local preview/server with supported Chromium.
+3. Execute a real render on both languages, inspect the full MP4 with sound, record codec/size/duration evidence and compare visual content with the source manifest.
+4. Verify confidentiality, access control and downstream external processing restrictions. Video exports remain drafts.
+5. Design a controlled, durable local/private render job runner with owner/tenant scoping and a human approval-linked publishing transition; do not run untrusted FFmpeg inputs inside serverless API functions.
+6. Test failure/recovery, resource quotas, max three-minute videos, malformed audio, insufficient font shaping, and mixed Arabic/Latin technical IDs.
+
+**Hosting constraint:** SaaS Vercel serverless requests cannot be assumed to perform long-running motion rendering; use a separately provisioned authorized worker. RMD Vercel preview is static frontend only; local RMD FastAPI/backend must be available for live data.
+
+This is an integrated draft workflow and runnable local renderer, not a claim that a hosted one-click MP4 render or formal publication approval has been delivered.
