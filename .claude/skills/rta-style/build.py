@@ -62,10 +62,25 @@ a{{color:var(--doc-primary-2)}}
 """
 
 
+def report_css(tokens):
+    """Scoped screen tokens for the app's rendered analysis documents."""
+    roles = ("brand", "bar", "bar-edge", "on-brand", "accent", "accent-tint",
+             "bg", "surface", "surface-2", "text", "muted", "border", "chart-1", "chart-2")
+    def block(mode):
+        return ";".join(f"--report-{key}:{tokens[mode][key]}" for key in roles)
+    return f"""/* Generated from the house-style tokens.json by build.py. Do not edit by hand. */
+.report-theme{{{block('light')};--report-font:{tokens['font']['family']}}}
+@media (prefers-color-scheme:dark){{:root:not([data-theme=light]) .report-theme{{{block('dark')}}}}}
+:root[data-theme=dark] .report-theme{{{block('dark')}}}
+"""
+
+
 def main():
     tokens = json.loads((HERE / "tokens.json").read_text(encoding="utf-8"))
     (HERE / "tokens.css").write_text(css(tokens), encoding="utf-8")
     (HERE / "document.css").write_text(document_css(tokens), encoding="utf-8")
+    report = HERE.parents[2] / "frontend/src/features/runs/report-theme.css"
+    report.write_text(report_css(tokens), encoding="utf-8")
     print("wrote", HERE / "tokens.css", "and", HERE / "document.css")
 
 

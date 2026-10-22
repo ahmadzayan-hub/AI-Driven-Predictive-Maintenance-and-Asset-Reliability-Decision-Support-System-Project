@@ -26,6 +26,41 @@ afterEach(() => {
 })
 
 describe('real data intake', () => {
+  it.each([
+    { ui: 'en', report: 'ar', label: 'Report language', start: 'Start run' },
+    { ui: 'ar', report: 'en', label: 'لغة التقرير', start: 'بدء التحليل' },
+  ] as const)('requests a $report report independently of the $ui interface', async ({ ui, report, label, start }) => {
+    applyLocale(ui)
+    const user = userEvent.setup()
+    render(<RunsView preset={{ kind: 'upload' }} />)
+    const language = screen.getByRole('combobox', { name: label })
+    expect(language).toHaveValue(ui)
+    const csv = 'plant,cost\nNorth,320\nSouth,180'
+    fireEvent.change(screen.getByRole('textbox', { name: /CSV/ }), { target: { value: csv } })
+    await user.selectOptions(language, report)
+    expect(document.documentElement.lang).toBe(ui)
+    await user.click(screen.getByRole('button', { name: start }))
+    await waitFor(() => expect(api.createRun).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(api.createRun).mock.calls[0][4]).toBe(report)
+    expect(vi.mocked(api.createRun).mock.calls[0][1]).toBe(csv)
+    expect(language).toHaveValue(report)
+    expect(screen.getByRole('textbox', { name: /CSV/ })).toHaveValue(csv)
+    expect(document.documentElement.lang).toBe(ui)
+  })
+
+  it('follows the interface language until an explicit report language is chosen', async () => {
+    const user = userEvent.setup()
+    render(<RunsView />)
+    expect(screen.getByRole('combobox', { name: 'Report language' })).toHaveValue('en')
+    act(() => applyLocale('ar'))
+    const language = screen.getByRole('combobox', { name: 'لغة التقرير' })
+    expect(language).toHaveValue('ar')
+    await user.selectOptions(language, 'en')
+    act(() => applyLocale('en'))
+    act(() => applyLocale('ar'))
+    expect(screen.getByRole('combobox', { name: 'لغة التقرير' })).toHaveValue('en')
+  })
+
   it('shows the run as four steps and folds the file limits and model notes', async () => {
     render(<RunsView preset={{ kind: 'upload' }} />)
     const steps = document.querySelector('.run-steps')!

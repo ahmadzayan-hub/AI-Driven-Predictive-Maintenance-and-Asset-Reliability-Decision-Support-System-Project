@@ -26,6 +26,7 @@ from server import joins as joining
 from server import mapping as colmap
 from server import metrics as glossary
 from server import orchestration
+from server import report_display
 from server import sequential
 
 MAX_ROWS = 50_000
@@ -35,18 +36,24 @@ MAX_ROWS = 50_000
 MAX_DATASET_BYTES = 10_000_000
 
 
-def sample_dataset():
-    """Deterministic bundled sales dataset (72 rows)."""
+def sample_dataset(language="en"):
+    """Bundled fictional sales data; language changes labels, never values."""
     months = ["2025-%02d" % m for m in range(1, 13)]
     base = {"Hardware": 42000, "Software": 61000, "Services": 23000}
-    lines = ["month,region,category,revenue,units"]
+    arabic = language == "ar"
+    labels = {"North": "الشمال", "South": "الجنوب", "Hardware": "الأجهزة",
+              "Software": "البرمجيات", "Services": "الخدمات"}
+    lines = ["الشهر,المنطقة,الفئة,الإيرادات,الوحدات" if arabic else
+             "month,region,category,revenue,units"]
     for mi, month in enumerate(months):
         for region, offset in (("North", 1.08), ("South", 0.92)):
             for category, base_rev in base.items():
                 seasonal = 1.0 + 0.03 * mi + (0.12 if mi in (10, 11) else 0.0)
                 revenue = round(base_rev * seasonal * offset, 2)
                 units = int(revenue / (95 if category != "Services" else 240))
-                lines.append(f"{month},{region},{category},{revenue},{units}")
+                region_label = labels[region] if arabic else region
+                category_label = labels[category] if arabic else category
+                lines.append(f"{month},{region_label},{category_label},{revenue},{units}")
     return "\n".join(lines) + "\n"
 
 
@@ -377,10 +384,10 @@ SECTION_TITLES_AR = {
     "Prescriptive": ("التحليل التوجيهي", "ماذا ينبغي أن أفعل؟"),
 }
 
-# Said once under every calculation table in an Arabic report, because the
-# table is deliberately left as the evidence record wrote it.
-AR_METHODS_NOTE = ("*تبقى أسماء الأرقام وطرق حسابها بصيغتها الأصلية، لأنها "
-                   "المعرّفات التي تستند إليها كل جملة في التقرير.*")
+# Display text is translated; the evidence and approved artifacts are unchanged.
+AR_METHODS_NOTE = ("*تُعرض أسماء العمليات الحسابية وطرقها المدمجة بالعربية، مع "
+                   "بقاء الأرقام ومعرّفات الأدلة والسجل الأصلي دون تغيير. تبقى "
+                   "أسماء أعمدة البيانات وقيمها والنصوص غير المعروفة كما وردت.*")
 
 
 def _section_report(title, question, ctx, body_lines, calculations, headline=None):
@@ -407,7 +414,8 @@ def _section_report(title, question, ctx, body_lines, calculations, headline=Non
                            "## كيف حُسب كل رقم"),
                   _say(ctx, "| Figure | Value | Method |", "| الرقم | القيمة | الطريقة |"),
                   "| --- | --- | --- |"]
-        lines += [f"| {c['name']} | {c['value']} | {c['method']} |" for c in calculations]
+        lines += [report_display.calculation_row(c, report_language(ctx))
+                  for c in calculations]
         if report_language(ctx) == "ar":
             lines += ["", AR_METHODS_NOTE]
     return "\n".join(lines)
@@ -550,7 +558,8 @@ def profiler(ctx):
     )
 
 
-DATE_LIKE_NAMES = ("month", "date", "period", "week", "year")
+DATE_LIKE_NAMES = ("month", "date", "period", "week", "year",
+                   "الشهر", "التاريخ", "الفترة", "الأسبوع", "السنة")
 
 
 def _date_like_column(columns):
@@ -4459,7 +4468,8 @@ def reporter(ctx):
               "", text["metrics_head"], "| --- | --- | --- |"]
     for stage in evidence_stages(ctx):
         for calc in ctx.get(stage + "_result", {}).get("calculations", []):
-            lines.append(f"| {calc['name']} | {calc['value']} | {calc['method']} |")
+            lines.append(report_display.calculation_row(
+                calc, language, builtin=stage in EVIDENCE_STAGES))
     if arabic:
         lines += ["", AR_METHODS_NOTE]
 
@@ -4493,11 +4503,13 @@ def reporter(ctx):
                              f"{', '.join(claim['evidence'])} | {claim['status']} |")
     lines += ["", text["charts"]]
     for chart in ctx["visuals"]["charts"]:
-        lines.append(f"- **{chart['title']}** ({chart['type']}): {chart['alt']}")
+        kind = report_display.chart_type(chart["type"], language)
+        lines.append(f"- **{chart['title']}** ({kind}): {chart['alt']}")
     lines += ["", text["validation"], ctx["validator_result"]["summary"]]
     for check in ctx["validator_result"]["quality_checks"]:
         verdict = text["pass"] if check["passed"] else text["fail"]
-        lines.append(f"- {verdict}: {check['name']}: {check['detail']}"
+        caption, detail = report_display.check(check, language)
+        lines.append(f"- {verdict}: {caption}: {detail}"
                      if arabic else
                      f"- {verdict} — {check['name']}: {check['detail']}")
     lines += ["", text["limits"]]

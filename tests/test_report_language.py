@@ -14,7 +14,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from server import analytics
+from server import analytics, report_display
 from tests.support import closing
 from server.model_gateway import ModelGateway
 from server.routing import RoutedGateway
@@ -47,6 +47,8 @@ DATASETS = {
     "thin_arms": _rows("variant,revenue", ["control,5", "control,7", "treatment,9"]),
     "short": _rows("month,region,revenue",
                    ["2025-01,N,10", "2025-02,N,12", "2025-01,S,8", "2025-02,S,6"]),
+    "uneven_periods": _rows("month,revenue",
+                           ["2025-01,10", "2025-02,20", "2025-02,30", "2025-02,40"]),
     "five_months": _rows("month,revenue", [f"2025-0{m},{10 * m}" for m in range(1, 6)]),
     "personal": _rows("email,revenue", ["a@b.com,5", "c@d.com,7", "e@f.com,9"]),
     "no_dates": _rows("region,revenue", ["N,1", "S,2", "E,3", "W,5", "C,8"]),
@@ -250,9 +252,13 @@ class TheArabicReportReadsAsArabic(unittest.TestCase):
         self.assertIn("## الملخص التنفيذي", self.report)
         self.assertNotIn("Executive summary", self.report)
 
-    def test_the_evidence_record_is_left_as_it_was_written(self):
-        # Calculation names are identifiers; the Arabic report says so.
-        self.assertIn("| forecast_2026-01 | 361505.45 |", self.report)
+    def test_calculation_display_is_arabic_while_the_evidence_record_is_unchanged(self):
+        self.assertIn("| التوقع للفترة 2026-01 | 361505.45 | مدّ خط الاتجاه إلى الفترة 13 |",
+                      self.report)
+        forecast = self.results["predictive"]["calculations"][2]
+        self.assertEqual(forecast["name"], "forecast_2026-01")
+        self.assertEqual(forecast["method"], "trend line extended to period 13")
+        self.assertIn("c_forecast_0", self.report)
         self.assertIn(analytics.AR_METHODS_NOTE, self.report)
 
     def test_digits_stay_western(self):
@@ -272,6 +278,90 @@ class TheArabicReportReadsAsArabic(unittest.TestCase):
         for name, _ in analytics.REPORT_SECTIONS:
             self.assertRegex(self.results[name]["output"]["headline"],
                              r"[؀-ۿ]", name)
+
+
+class ArabicEvidenceDisplay(unittest.TestCase):
+
+    def test_arithmetic_bars_are_literal_table_content(self):
+        calc = {"id": "c_unusual", "name": "unusual_rows", "value": 3,
+                "method": "count(|x - mean| > 2 × spread)"}
+        row = report_display.calculation_row(calc, "ar")
+        self.assertIn(r"\|القيمة - المتوسط\|", row)
+        self.assertEqual(len(re.split(r"(?<!\\)\|", row)), 5)
+        self.assertEqual(calc["method"], "count(|x - mean| > 2 × spread)")
+
+    def test_all_default_calculation_cells_have_arabic_labels_and_methods(self):
+        datasets = {**DATASETS, "arabic_sample": analytics.sample_dataset("ar")}
+        for dataset, text in datasets.items():
+            results, _ = run_pipeline(text, "ar")
+            for role, result in results.items():
+                for calc in result["calculations"]:
+                    with self.subTest(dataset=dataset, role=role, calculation=calc["id"]):
+                        original = json.dumps(calc, ensure_ascii=False)
+                        label, value, method = report_display.calculation(calc, "ar")
+                        self.assertRegex(label, r"[؀-ۿ]")
+                        self.assertRegex(method, r"[؀-ۿ]")
+                        self.assertFalse(label.startswith("الاسم الأصلي:"), label)
+                        self.assertFalse(method.startswith("الطريقة الأصلية:"), method)
+                        self.assertEqual(analytics.figures(f"{calc['name']} {calc['value']} {calc['method']}"),
+                                         analytics.figures(f"{label} {value} {method}"))
+                        self.assertEqual(json.dumps(calc, ensure_ascii=False), original)
+                        self.assertEqual(report_display.calculation(calc, "en"),
+                                         (calc["name"], calc["value"], calc["method"]))
+
+    def test_translations_are_in_the_full_and_individual_reports(self):
+        results, _ = run_pipeline(DATASETS["sample"], "ar")
+        full = results["reporter"]["output"]["report_markdown"]
+        self.assertIn("| إجمالي revenue | 3583440.0 | مجموع revenue في الصفوف المنظفة |", full)
+        for role in ("descriptive", "diagnostic", "experiment", "predictive", "prescriptive"):
+            section = results[role]["output"]["report_markdown"]
+            for calc in results[role]["calculations"]:
+                rendered = report_display.calculation_row(calc, "ar")
+                self.assertIn(rendered, section)
+                self.assertIn(rendered, full)
+        self.assertIn("المكسب المتوقع لخيار تغيير أكبر مصدر", full)
+
+    def test_chart_types_and_validation_captions_and_arithmetic_are_arabic(self):
+        results, _ = run_pipeline(DATASETS["sample"], "ar")
+        full = results["reporter"]["output"]["report_markdown"]
+        self.assertIn("(مخطط أعمدة):", full)
+        self.assertIn("(مخطط خطي):", full)
+        self.assertNotIn("(bar):", full)
+        self.assertNotIn("(line):", full)
+        self.assertIn("مجموع الفئات=3,583,440.00 مقابل الإجمالي=3,583,440.00", full)
+        self.assertIn("مجموع تغيرات الفئات=113,400.00 مقابل التغير الإجمالي=113,400.00", full)
+        for check in results["validator"]["quality_checks"]:
+            before = copy.deepcopy(check)
+            caption, detail = report_display.check(check, "ar")
+            self.assertIn(caption, full)
+            self.assertRegex(caption, r"[؀-ۿ]")
+            self.assertRegex(detail, r"[؀-ۿ]")
+            self.assertNotIn(f": {check['name']}:", full)
+            self.assertEqual(check, before)
+            self.assertEqual(analytics.figures(check["detail"]), analytics.figures(detail))
+
+    def test_user_text_is_preserved_and_unknown_or_plugin_metadata_is_explicit(self):
+        calc = {"id": "c_total", "name": "total_Client_custom_measure", "value": -123.456789,
+                "method": "sum(Client_custom_measure) over cleaned rows"}
+        label, value, method = report_display.calculation(calc, "ar")
+        self.assertEqual(label, "إجمالي Client_custom_measure")
+        self.assertEqual(value, -123.456789)
+        self.assertEqual(method, "مجموع Client_custom_measure في الصفوف المنظفة")
+        calc = {"id": "c_mean", "name": "mean", "value": 8, "method": "fmean"}
+        self.assertEqual(report_display.calculation(calc, "ar", builtin=False),
+                         ("الاسم الأصلي: mean", 8, "الطريقة الأصلية: fmean"))
+        calc.update(id="vendor.custom", name="vendor label", method="vendor formula")
+        self.assertEqual(report_display.calculation(calc, "ar"),
+                         ("الاسم الأصلي: vendor label", 8, "الطريقة الأصلية: vendor formula"))
+        calc.update(id="c_mean", name="mean", method="new unregistered algorithm")
+        self.assertEqual(report_display.calculation(calc, "ar")[2],
+                         "الطريقة الأصلية: new unregistered algorithm")
+
+    def test_arithmetic_ranges_translate_only_the_separator_without_rounding(self):
+        calc = {"id": "c_exp_range_0", "name": "range_B_vs_A", "value": "-1,234.56 to 7,890.12",
+                "method": "unknown method"}
+        self.assertEqual(report_display.calculation(calc, "ar")[1], "-1,234.56 إلى 7,890.12")
+        self.assertEqual(calc["value"], "-1,234.56 to 7,890.12")
 
 
 class ArabicCountsAndFigures(unittest.TestCase):

@@ -32,6 +32,15 @@ afterEach(() => {
 })
 
 describe('the dictionaries', () => {
+  it('translates fixed report labels without changing the interface language', () => {
+    applyLocale('en')
+    expect(translate('runs.chartLabel', undefined, 'ar')).toBe('العنصر')
+    expect(translate('runs.forecast', undefined, 'ar')).toBe(ar['runs.forecast'])
+    expect(currentLocale()).toBe('en')
+    applyLocale('ar')
+    expect(translate('runs.chartValue', undefined, 'en')).toBe('Value')
+    expect(currentLocale()).toBe('ar')
+  })
   it('cover the same keys in both languages', () => {
     // The type system enforces this at compile time; this keeps it true
     // at runtime too, where a stray `as` cast could hide a gap.

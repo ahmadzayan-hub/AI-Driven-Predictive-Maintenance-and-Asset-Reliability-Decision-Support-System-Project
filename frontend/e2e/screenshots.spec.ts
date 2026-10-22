@@ -1,4 +1,4 @@
-import { test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import { lastAgentBubble, openTab, sendMessage, skipOnboarding } from './helpers'
 
 // Captures the final interface for the documentation. Runs last in file
@@ -63,8 +63,13 @@ test('capture interface screenshots', async ({ page }, testInfo) => {
     // A report keeps the language its run was started in, so the Arabic
     // screenshot starts an Arabic run (ADR 0022).
     await page.getByRole('button', { name: 'كل التحليلات' }).click()
+    await expect(page.getByLabel('لغة التقرير', { exact: true })).toHaveValue('ar')
     await page.getByRole('button', { name: 'بدء التحليل' }).click()
-    await page.locator('pre.runreport--full[lang="ar"]').waitFor({ timeout: 20_000 })
+    const arabicReport = page.locator('.runreport--full.report-document[lang="ar"]')
+    await arabicReport.waitFor({ timeout: 20_000 })
+    await expect(arabicReport.getByRole('heading', { name: 'تقرير تحليل الأعمال: بيانات مبيعات تجريبية', exact: true })).toBeVisible()
+    await expect(arabicReport.getByRole('table', { name: 'المؤشرات الرئيسية', exact: true })).toBeVisible()
+    await expect(arabicReport.locator('pre')).toHaveCount(0)
     await page.getByRole('region', { name: 'موافقة مطلوبة' }).waitFor()
     await shot('runs-arabic-dark')
 

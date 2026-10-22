@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { createRef } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MessageBubble } from '../features/chat/MessageBubble'
 import { cardType } from '../features/chat/ResultCard'
@@ -7,6 +8,7 @@ import AgentCollaboration from '../features/runs/AgentCollaboration'
 import { runFixture } from './run-fixture'
 import { appendEvents, snapshotEvents } from '../features/runs/runEvents'
 import { applyLocale } from '../i18n'
+import { ReportDocument } from '../features/runs/ReportDocument'
 
 const entry: TranscriptEntry = { id: 1, role: 'agent', text: '<img src=x onerror=alert(1)>', time: '2026-10-16T10:00:00Z', action: 'unknown-card' }
 describe('typed assistant results', () => {
@@ -23,6 +25,104 @@ describe('typed assistant results', () => {
     expect(cardType({ ...entry, action: 'explain_report', result: { run_id: 'run-test' } })).toBe('run')
     expect(cardType({ ...entry, action: 'runtime', result: { run_id: 'run-test' } })).toBe('run')
     expect(cardType({ ...entry, role: 'user', action: 'start_run', result: { run_id: 'run-test' } })).toBeNull()
+  })
+})
+
+describe('safe report documents', () => {
+  it('keeps repeated unmatched markup literal without reparsing each remaining suffix', () => {
+    const blocks = ['[', '<', '[', '<'].map((char) => `Text ${char.repeat(15_900)} END 001.250`)
+    const content = blocks.join('\n\n') + '\n\n[literal **label**](https://example.test)'
+    const { container } = render(<ReportDocument content={content} language="en" label="Malformed report" />)
+    for (const block of blocks) expect(container.textContent).toContain(block)
+    expect(container.textContent).toContain('[literal **label**](https://example.test)')
+    expect(container.querySelector('a, strong')).toBeNull()
+  })
+  it('renders the generated report structure with semantic headings, emphasis, lists and quotations', () => {
+    const content = [
+      '# Maintenance report', '## Findings', '',
+      'The **confirmed result** includes *reviewed evidence* and `pump_A-01`.', '',
+      '- Inspect the seal', '- Retain evidence', '',
+      '3. First recorded action', '7. Seventh recorded action', '',
+      '> Human review is required.', '> Evidence remains attached.', '', '---',
+    ].join('\n')
+    const { container } = render(<ReportDocument content={content} language="en" label="Published report" />)
+    expect(screen.getByRole('heading', { level: 2, name: 'Maintenance report' })).toBeVisible()
+    expect(screen.getByRole('heading', { level: 3, name: 'Findings' })).toBeVisible()
+    expect(container.querySelector('strong')).toHaveTextContent('confirmed result')
+    expect(container.querySelector('em')).toHaveTextContent('reviewed evidence')
+    expect(container.querySelector('code')).toHaveTextContent('pump_A-01')
+    expect(container.querySelectorAll('ul li')).toHaveLength(2)
+    expect(container.querySelector('ol')).toHaveAttribute('start', '3')
+    expect(container.querySelectorAll('ol li')[1]).toHaveAttribute('value', '7')
+    expect(container.querySelector('blockquote')).toHaveTextContent('Human review is required.')
+    expect(container.querySelector('blockquote')).toHaveTextContent('Evidence remains attached.')
+    expect(screen.getByRole('separator')).toBeInTheDocument()
+  })
+
+  it('renders Arabic tables with exact values, empty cells, escaped pipes and explicit numeric isolation', () => {
+    const content = [
+      '# تقرير الصيانة', '## المؤشرات', '',
+      '| الأصل | القيمة | الملاحظة |', '| :--- | ---: | :---: |',
+      '| مضخة A-01 | -0.0001250% | |',
+      '| محرك B-02 | 9007199254740993.125 | ضغط \\| تدفق |',
+      '| احتياطي | ٠٫٠٠٥٠ | 0 |',
+    ].join('\n')
+    const { container } = render(<ReportDocument content={content} language="ar" label="التقرير المنشور" />)
+    const region = screen.getByRole('region', { name: 'التقرير المنشور' })
+    expect(region).toHaveAttribute('lang', 'ar')
+    expect(region).toHaveAttribute('dir', 'rtl')
+    expect(region).toHaveAttribute('tabindex', '0')
+    const table = screen.getByRole('table', { name: 'المؤشرات' })
+    expect(table.parentElement).toHaveAttribute('tabindex', '0')
+    const headers = within(table).getAllByRole('columnheader')
+    expect(headers.map((cell) => cell.style.textAlign)).toEqual(['left', 'right', 'center'])
+    expect(headers.every((cell) => cell.getAttribute('scope') === 'col')).toBe(true)
+    const rows = within(table).getAllByRole('row').slice(1)
+    expect(within(rows[0]).getAllByRole('cell').map((cell) => cell.textContent)).toEqual(['مضخة A-01', '-0.0001250%', ''])
+    expect(within(rows[1]).getAllByRole('cell').map((cell) => cell.textContent)).toEqual(['محرك B-02', '9007199254740993.125', 'ضغط | تدفق'])
+    expect(within(rows[2]).getAllByRole('cell').map((cell) => cell.textContent)).toEqual(['احتياطي', '٠٫٠٠٥٠', '0'])
+    expect(within(rows[0]).getAllByRole('cell')[1].querySelector('bdi')).toHaveAttribute('dir', 'ltr')
+    expect(container.querySelector('h1')).toBeNull()
+  })
+
+  it('keeps HTML, links, images and fenced executable-looking code inert and readable', () => {
+    const attack = '<script>alert("report")</script> <img src=x onerror=alert(1)>'
+    const links = '[Open](javascript:alert(1)) ![Image](https://example.test/tracker.png) <https://example.test>'
+    const code = '<iframe src="https://example.test"></iframe>\n  const exact = "001.2300";\n'
+    const content = `${attack}\n\n${links}\n\n\`\`\`html\n${code}\`\`\``
+    const { container } = render(<ReportDocument content={content} language="en" label="Untrusted report" />)
+    expect(container.querySelector('script, img, iframe, a, object, embed, style')).toBeNull()
+    expect(container.textContent).toContain(attack)
+    expect(container.textContent).toContain(links)
+    expect(container.querySelector('pre code')?.textContent).toBe(code)
+    expect(container.querySelector('pre')).toHaveAttribute('dir', 'ltr')
+    expect(container.querySelector('pre')).toHaveAttribute('tabindex', '0')
+  })
+
+  it('preserves pipe-containing code and malformed extra cells instead of dropping report values', () => {
+    const content = ['Name | Value', '--- | ---', '`A|B` | 1.230000', 'extra | 2 | MUST KEEP', '', '**unclosed', '', '~~~text', 'literal **not bold** | 00042'].join('\n')
+    const { container } = render(<ReportDocument content={content} language="en" label="Report evidence" />)
+    const table = screen.getByRole('table', { name: 'Report evidence' })
+    expect(within(table).getAllByRole('cell').map((cell) => cell.textContent)).toEqual(['A|B', '1.230000'])
+    expect(container.textContent).toContain('extra | 2 | MUST KEEP')
+    expect(container.textContent).toContain('**unclosed')
+    expect(container.querySelector('pre code')?.textContent).toBe('literal **not bold** | 00042')
+    expect(container.querySelector('pre strong')).toBeNull()
+  })
+
+  it('forwards its React19 ref and preserves oversized and over-line-limit content as literal text', () => {
+    const ref = createRef<HTMLDivElement>()
+    const content = `${'x'.repeat(200_001)}\nFINAL 9007199254740993.000`
+    const { rerender, container } = render(<ReportDocument ref={ref} content={content} language="en" label="Long report" className="preview" />)
+    expect(ref.current).toBe(screen.getByRole('region', { name: 'Long report' }))
+    expect(ref.current).toHaveClass('runreport', 'report-document', 'preview')
+    expect(ref.current).toHaveAttribute('dir', 'ltr')
+    expect(container.querySelector('.report-document__literal')?.textContent).toBe(content)
+    const lines = Array.from({ length: 4_005 }, (_, index) => `Value ${index}.000`).join('\n')
+    rerender(<ReportDocument content={lines} language="en" label="Long report" />)
+    expect(container.textContent).toContain('Value 3999.000')
+    expect(container.querySelector('.report-document__literal')?.textContent).toBe(lines.split('\n').slice(4_000).join('\n'))
+    expect(container.textContent).toContain('Value 4004.000')
   })
 })
 

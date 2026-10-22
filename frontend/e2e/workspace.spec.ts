@@ -87,7 +87,7 @@ test('drafts, deep links, evidence and exact-report keyboard approval', async ({
   await page.keyboard.press('Enter')
   await card.locator('.decision__preview > summary').focus()
   await page.keyboard.press('Enter')
-  await expect(card.locator('pre')).toContainText('Every claim in this report')
+  await expect(card.locator('.runreport__content')).toContainText('Every claim in this report')
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag22aa']).analyze()).violations).toEqual([])
   await page.screenshot({ path: `../docs/screenshots/${testInfo.project.name}-approvals.png` })
   // The gate needs the reader's word: tick the confirmation from the keyboard.

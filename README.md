@@ -457,6 +457,45 @@ what was not verified, are in [docs/qa/END_TO_END_VALIDATION.md](docs/qa/END_TO_
   total, CSS 28.7 / 29.5 KB total); `evaluate_agents --check` 9 of 9 with the
   new blind floors (standards blind set 0% recall, recorded, not tuned);
   the whole Playwright suite with the demo server: full run **132 passed, 5 failed, 5 skipped** of 142; the five failures were spec locators that matched the Command Centre pane the app now lands on, fixed in the specs, after which those five specs ran **32 passed, 0 failed**.
+- After merging main's Arabic rendered reports of the same day into the
+  branch: full verifier **8 of 8** (**1,721 Python tests, 21 skipped** with
+  PostgreSQL; **346 frontend tests**; budget JS 98.5 / 100 KB first load,
+  215.2 / 216 KB total under the combined allocation, CSS 30.0 / 30.5 KB
+  total); the merge-affected browser specs: **50 passed, 2 failed, 4 skipped** of 56 (runs, workspace, Arabic, accessibility, intake, executive, onboarding, demo, overview); the two failures were the workspace spec reading the approval preview as a `pre` element that main's rendered report replaced, fixed in the spec, after which the workspace spec ran **5 passed, 1 skipped**.
+
+### Arabic rendered analysis reports — 22 October 2026
+
+New runs expose a report-language selector. Arabic analysis output now renders
+as semantic headings, paragraphs, lists and tables in the scoped house palette.
+Built-in calculation descriptions and checks are translated for display; the
+Arabic fictional sample translates source labels while preserving all numeric
+cells. Existing artifacts retain their original language and audit values.
+See the [decision and boundaries](docs/adr/2026-10-22-arabic-rendered-analysis-reports.md).
+
+- The feature-tree verifier reported **1,642 Python tests, 161 optional skips**;
+  dependency, brain, type, native-contract, build and bundle checks passed.
+  Its frontend run passed **310 tests in 35 files**, but failed overall because
+  the OperationsView worker did not start on this Windows machine. This is not
+  recorded as a fully passing verifier. The complete frontend rerun in the
+  integrated home checkout subsequently passed **329 of 329 tests in 36 files**
+  with exit code zero; no assertions or deadlines were weakened.
+- The real backend browser journeys passed **20 of 20** cases for Arabic,
+  intake, runs and custom stages across desktop and phone. They verify rendered
+  Arabic headings, calculation tables, formula pipes, chart labels/data tables,
+  accessibility and the approval workflow.
+- After merging concurrent main changes, the focused language, sample, house
+  style, gateway, orchestration, run and demo checks reported **169 tests,
+  16 optional skips**. The integrated production build and type check passed:
+  JavaScript **98.0 KB initial / 210.7 KB total**, CSS **10.0 KB initial / 29.6 KB
+  total**, largest lazy chunk **18.9 KB**, fonts **119.4 KB**. The explicit total
+  allocation is **212 KB JavaScript / 30.5 KB CSS**; initial-load limits did not change.
+- A live Arabic sample in the owner's chosen home checkout reached the human
+  approval gate. Its section report, full report, chart labels and chart data
+  table were inspected in the running platform. Screenshots remain local.
+  The live sample was not published and no production deployment was made.
+- A synthetic renderer check on repeated unmatched delimiters retained the
+  complete text after replacing repeated suffix scans with cached boundaries.
+  This checks a pathological input, not a general browser performance score.
 
 ### Connected agent workspace and asset inspection — 22 October 2026
 
