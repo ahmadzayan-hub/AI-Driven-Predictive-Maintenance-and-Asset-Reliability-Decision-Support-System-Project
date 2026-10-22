@@ -91,6 +91,36 @@ them without real API credentials. See [measured acceptance](../README.md#testin
 
 ## Installed components / المكونات المثبتة
 
+The owner-selected local profile now uses Qwen3 4B Instruct for every local role:
+chat, narration, orchestration, specialist notes and consultant review. A single
+model stays loaded. The roles use distinct prompts, not independent providers.
+The worker receives the same model-role configuration as the API (see the
+[worker decision](adr/2026-10-22-worker-model-role-parity.md)). Hosted consultants
+can be selected separately when their server credentials are available.
+
+```powershell
+$env:OLLAMA_MODEL = 'qwen3:4b-instruct-2507-q4_K_M'
+$env:OLLAMA_THINK = '0'
+$env:AGENTIC_OS_TASK_MODELS = 'narration=ollama,chat=ollama,hermes=ollama,agents=ollama,consultants=ollama'
+.\.venv\Scripts\python.exe scripts/local_runtime.py start --worker --port 8000 --model $env:OLLAMA_MODEL
+```
+
+Explicit `AGENTIC_OS_HERMES_MODEL`, `AGENTIC_OS_AGENT_MODEL` and
+`AGENTIC_OS_CONSULTANTS` overrides take precedence over the map; align any existing
+ones with the intended selection. The owner's ignored `private/run-local-agents.ps1`
+already pins these overrides. Start it after stopping the existing owned server.
+Do not start another server on the same port.
+
+<div dir="rtl">
+
+اختار المالك Qwen3 4B Instruct لجميع الأدوار المحلية: المحادثة والسرد والتنسيق
+وملاحظات الوكلاء والمراجعة الاستشارية. تبقى نسخة واحدة من النموذج في الذاكرة،
+وتستخدم الأدوار تعليمات مختلفة للنموذج نفسه. يتلقّى العامل الخلفي إعدادات الأدوار
+كما يتلقّاها الخادم. حُفظ الاختيار في ملف التشغيل الخاص؛ يظل النشر مشروطًا بموافقة
+بشرية، ويمكن اختيار الاستشاريين السحابيين لاحقًا عند توفر مفاتيحهم في بيئة الخادم.
+
+</div>
+
 | Component / المكوّن | Status / الحالة |
 | --- | --- |
 | Python web dependencies / اعتماديات خادم Python | Installed in `.venv`; dependency consistency check passed. / مثبّتة في `.venv`، واجتازت فحص توافق الاعتماديات. |

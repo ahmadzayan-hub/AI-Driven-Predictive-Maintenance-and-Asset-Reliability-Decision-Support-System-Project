@@ -25,7 +25,7 @@ from collections import OrderedDict
 from datetime import datetime, timezone
 from pathlib import Path
 
-from server import analytics, datasets, metrics, quota
+from server import analytics, datasets, metrics, quota, model_privacy
 from server import joins as joining
 from server import query
 from server import mapping as colmap
@@ -635,9 +635,9 @@ class RunEngine:
         roles = self.roles
         if roles is None or roles.all_built_in:
             return roles
-        from server import model_privacy
-        if model_privacy.blocks_model(privacy=ctx.get("privacy"), merged=ctx.get("merge"),
-                                      texts=[run.get("goal") or "", *texts]):
+        if model_privacy.run_blocks_model(self.store, run["id"]) or model_privacy.blocks_model(
+                privacy=ctx.get("privacy"), merged=ctx.get("merge"),
+                texts=[run.get("goal") or "", *texts]):
             return roles.restricted()
         return roles
 
@@ -650,7 +650,9 @@ class RunEngine:
         language = run.get("report_language") or "en"
         try:
             facts = [claim.get("text") or "" for claim in result.get("claims", [])]
-            roles = self._roles_for(run, ctx, facts + [t["title"] for t in tasks])
+            # Include the just-completed privacy/merge result before persistence.
+            current = {**ctx, task["role"]: result.get("output", {})}
+            roles = self._roles_for(run, current, facts + [t["title"] for t in tasks])
             if roles is None:
                 return
             if task["role"] == "planner":

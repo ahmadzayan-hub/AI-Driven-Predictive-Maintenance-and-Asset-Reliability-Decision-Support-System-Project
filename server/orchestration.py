@@ -35,6 +35,7 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 
 from server.model_gateway import split_spec
+from server.model_privacy import blocks_model
 
 MAX_FACTS = 14
 MAX_NOTE_CHARS = 900
@@ -59,10 +60,11 @@ HERMES_BRIEF_SYSTEM = (
 )
 CONSULTANT_SYSTEM = (
     "You are an independent senior reliability and analytics consultant "
-    "reviewing verified findings from a maintenance analysis. Name at most "
-    "three risks, gaps or questions the approver should raise before acting. "
-    "Use only numbers that appear in the findings; never invent figures, "
-    "causes or predictions. Short, plain business English."
+    "reviewing verified analytics findings. Write exactly two short sentences "
+    "in a single paragraph about the most important evidence gap or question "
+    "the approver should raise before acting. This is a qualitative review: "
+    "do not state numbers, enumerate points, use bullets or add headings. "
+    "Never invent causes or predictions. Plain business English."
 )
 ARABIC = (" Write in formal Arabic, copying every number exactly as written "
           "in the facts with the same digits.")
@@ -319,9 +321,21 @@ class ModelRoles:
         }
 
     def _ask(self, system, user, provider, language, facts):
+        if blocks_model(texts=[user, *facts]):
+            return None
+        options = {}
+        if (split_spec(provider)[0] == "ollama"
+                and getattr(self.gateway, "ollama_think", None) is False):
+            # A short CPU briefing should not spend the reasoning budget
+            # reserved for models that think before writing their answer.
+            options["max_tokens"] = 240
+            system += (
+                " Use at most 45 words in one plain paragraph, without numbered lists"
+                " or item labels. Prioritize the essential checks without an introduction."
+            )
         if language == "ar":
             system += ARABIC
-        return grounded(self.gateway.ask(system, user, provider=provider), facts)
+        return grounded(self.gateway.ask(system, user, provider=provider, **options), facts)
 
     def agent_note(self, goal, role, result, language="en"):
         """The agent's own findings, phrased by the agents' model."""
@@ -331,6 +345,8 @@ class ModelRoles:
         if self.agents == BUILT_IN:
             text = grounded(built_in_agent_note(role, facts, language), facts)
             return {"text": text, "provider": BUILT_IN, "role": role} if text else None
+        if blocks_model(texts=[goal, *facts]):
+            return None
         narration = self.gateway.narrate(goal, facts, provider=self.agents,
                                          language=language)
         if narration.get("source") != "model":
