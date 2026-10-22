@@ -11,6 +11,7 @@ import { countRuns, latestWithFindings, recentRuns, RUN_PAGE, waitingForApproval
 import { CommandCentre } from './CommandCentre'
 import { DecisionActions } from './DecisionActions'
 import { summarizeRunEvidence } from './evidence'
+import { downloadMotionRun, motionFromRun } from './motionEvidence'
 
 interface OverviewViewProps {
   onOpenRun: (id: string) => void
@@ -273,9 +274,38 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard,
             <p>{t('overview.evidenceScope')}</p>
           </div>
           {latest ? (
-            <button type="button" className="btn btn--ghost" onClick={() => onOpenRun(latest.id)}>
-              {t('overview.openAnalysis')}
-            </button>
+            <>
+              <button type="button" className="btn btn--ghost" onClick={() => onOpenRun(latest.id)}>
+                {t('overview.openAnalysis')}
+              </button>
+              <a
+                href="/motion-studio/index.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn--ghost"
+              >
+                {reportLang === 'ar' ? 'فتح محرر الموشن' : 'Open Motion Studio'}
+              </a>
+              <button
+                type="button"
+                className="btn btn--ghost"
+                disabled={evidence.status !== 'passed' || !latest.report?.id || !latest.reports.some((r) => r.headline?.trim())}
+                title={evidence.status === 'passed'
+                  ? (reportLang === 'ar' ? 'تنزيل مسودة موشن من تحليل موثق، لا يعني الموافقة للنشر'
+                    : 'Download a source-linked motion draft, not publication approval')
+                  : (reportLang === 'ar' ? 'يتطلب تحليلًا اجتاز فحوص الأدلة'
+                    : 'Requires a run that passed evidence checks')}
+                onClick={() => {
+                  try {
+                    downloadMotionRun(motionFromRun(latest))
+                  } catch {
+                    onOpenRun(latest.id)
+                  }
+                }}
+              >
+                {reportLang === 'ar' ? 'مسودة فيديو تحليلي' : 'Motion draft'}
+              </button>
+            </>
           ) : null}
         </section>
 

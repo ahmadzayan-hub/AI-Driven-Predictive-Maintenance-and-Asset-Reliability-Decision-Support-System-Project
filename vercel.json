@@ -20,7 +20,7 @@
       "destination": "/api/index"
     },
     {
-      "source": "/((?!api/|assets/|icons/).*)",
+      "source": "/((?!api/|assets/|icons/|motion-studio/).*)",
       "destination": "/index.html"
     }
   ],
