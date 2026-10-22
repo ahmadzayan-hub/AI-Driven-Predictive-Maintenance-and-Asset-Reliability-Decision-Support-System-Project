@@ -2,9 +2,18 @@
    Application shell
    ================================================================== */
 
+/* Hidden by clipping, never by a huge offset: an element pushed 9999 px
+   past the inline start lands far to the right of a right-to-left page and
+   gives it sideways scroll on some browsers. */
 .skiplink {
   position: absolute;
-  inset-inline-start: -9999px;
+  inset-inline-start: var(--space-2);
+  top: var(--space-2);
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
   z-index: 60;
   background: var(--accent-solid);
   color: var(--on-accent);
@@ -15,8 +24,10 @@
 }
 
 .skiplink:focus {
-  inset-inline-start: var(--space-2);
-  top: var(--space-2);
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip-path: none;
 }
 
 .shell {
