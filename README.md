@@ -557,8 +557,11 @@ type check, **353 frontend unit tests**; build and budget passed separately
 (scripts 219.4 of 220 KB in total, first load 98.6 of 100 KB, CSS 30.4 of
 30.5 KB in total). Playwright `decision` **2 passed** (desktop and phone),
 and `runs`, `a11y`, `arabic`, `intake` and `keyboard` **24 passed** after the
-form changed. The full browser suite was not re-run here; the hosted run on
-the pull request is the record for it.
+form changed. Hosted CI on the pull request (merged as `37fce5e`), after the
+skip link and phone header fixes: **1,726 Python tests, 25 skipped**, 40 unit
+test files, the full Playwright suite **139 passed, 5 skipped** on desktop and
+phone, the Miyaar suite **12 passed**, budget passed, and the Playwright
+browser cache saved for the next run.
 
 ### Repository presentation — 22 October 2026
 
