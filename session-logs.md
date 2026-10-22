@@ -1312,3 +1312,9 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Done:** researched free hosted open-source model tiers (Groq, OpenRouter, Ollama Cloud, NVIDIA NIM, Mistral, Cerebras; dated third-party sources, to confirm on each provider's page). Added OpenRouter, NVIDIA, Mistral and Cerebras on the chat-completions contract, and `AGENTIC_OS_TASK_MODELS` mapping a provider to narration, chat, hermes, agents and consultants; `/api/health` returns `model_map` ([decision](docs/adr/2026-10-22-free-open-models-and-task-map.md), [reference](docs/FREE_OPEN_MODELS.md) with a recommended free map and daily capacity).
 - **Verified:** 1,644 Python tests (21 skipped; 5 new) after restarting PostgreSQL, 319 frontend, typecheck, brain check. No live provider call: hosts unreachable from the container.
 - **Open:** the owner adds keys and the map in Vercel (Production); earlier model keys never reached Production.
+
+## 2026-10-22 · `d9e3f889` · claude/tender-clarke-m4uwgq (a model per role)
+
+- **Done:** every task map entry and role variable accepts `provider:model`, so one local Ollama serves Hermes (`ollama:hermes3`) and the agents (`ollama:qwen3`) while Claude and OpenAI consult ([decision](docs/adr/2026-10-22-a-model-per-role.md)). The gateway answers from a copy with that model; the shared gateway never changes. Laptop setup for both models kept loaded is in `docs/FREE_OPEN_MODELS.md`.
+- **Verified:** quick verify 6/6 (1,649 Python with 5 new, 21 skipped; 319 frontend; typecheck; brain check). No live model: none installed or reachable in this container.
+- **Open:** the owner runs it on the laptop and reads `model_map` in `/api/health`; production cannot reach a laptop's Ollama.

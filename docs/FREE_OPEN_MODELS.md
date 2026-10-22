@@ -41,6 +41,38 @@ the default provider. A provider named in the map but not configured is reported
 under `model_map.problems` in `/api/health` and skipped. When a provider fails,
 the next configured hosted provider answers once, then the built-in template.
 
+## A different model per role
+
+Any entry can name a model as well as a provider, as `provider:model`. Everything
+after the first colon is the model id, so ids that contain colons stay whole. One
+local Ollama can then serve Hermes with one model and the agents with another:
+
+```
+OLLAMA_MODEL=qwen3
+AGENTIC_OS_TASK_MODELS=narration=ollama,chat=ollama,hermes=ollama:hermes3,agents=ollama:qwen3,consultants=anthropic+openai
+```
+
+The same form works in the role variables (`AGENTIC_OS_HERMES_MODEL=ollama:hermes3`)
+and for hosted providers (`openrouter:another/model:free`). The provider must still
+be configured (for Ollama, `OLLAMA_MODEL` set); the model named must exist there
+(`ollama pull hermes3`). `/api/health` shows each role with its model.
+
+### Everything on one laptop, at full capacity
+
+1. `ollama pull hermes3` and `ollama pull qwen3`, then start Ollama with
+   `OLLAMA_MAX_LOADED_MODELS=2` so both models stay loaded instead of swapping, and
+   `OLLAMA_KEEP_ALIVE=30m` so they are not unloaded between runs.
+2. Export, in the terminal that starts the platform (it does not read a `.env` file):
+   `OLLAMA_MODEL=qwen3`, `OLLAMA_THINK=0`, `AGENTIC_OS_MODEL_TIMEOUT_SECONDS=60`,
+   `OLLAMA_NUM_THREAD` set to the number of performance cores, the Claude and OpenAI
+   keys and model ids, and the task map above.
+3. `python scripts/serve.py --local-only`, then open `/api/health` and check
+   `model_map`: hermes `ollama:hermes3`, agents `ollama:qwen3`, consultants
+   `anthropic` and `openai`.
+
+The laptop must have memory for both models at once; `ollama ps` shows what is
+loaded. Speed depends on the machine and was not measured in this repository.
+
 ## Capacity of the free tiers
 
 With every role on, one analysis makes about 22 model calls: up to 17 agent notes,

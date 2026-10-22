@@ -97,6 +97,16 @@ ARABIC_INSTRUCTION = (
 )
 
 
+def split_spec(spec):
+    """"ollama:hermes3" -> ("ollama", "hermes3"); "groq" -> ("groq", None).
+
+    The provider is everything before the first colon, so a model id that
+    itself contains colons ("qwen3:4b", "some/model:free") survives whole.
+    The provider is case-insensitive; the model id is kept as written."""
+    name, _, model = (spec or "").strip().partition(":")
+    return name.strip().lower(), (model.strip() or None)
+
+
 def _is_loopback(url):
     """True when the Ollama host is this machine, the only case in which
     a call sends nothing anywhere."""
@@ -194,18 +204,49 @@ class ModelGateway:
                 problems.append(f"AGENTIC_OS_TASK_MODELS: unknown task {task!r}; skipped.")
                 continue
             chosen = []
-            for name in names.split("+"):
-                name = name.strip().lower()
+            for spec in names.split("+"):
+                name, model = split_spec(spec)
                 if not name:
                     continue
                 if name not in reachable or name == "deterministic":
                     problems.append(f"AGENTIC_OS_TASK_MODELS: {task}={name} is not a "
                                     "configured provider; skipped.")
-                elif name not in chosen:
-                    chosen.append(name)
+                    continue
+                spec = f"{name}:{model}" if model else name
+                if spec not in chosen:
+                    chosen.append(spec)
             if chosen:
                 mapping[task] = chosen
         return mapping, problems
+
+    def with_model(self, provider, model):
+        """A copy of this gateway whose `provider` answers with `model`
+        instead of its configured one: how one Ollama serves Hermes with
+        hermes3 and the agents with qwen3. The original is untouched, so
+        parallel callers never see each other's choice."""
+        import copy
+        clone = copy.copy(self)
+        if provider == "ollama":
+            clone.ollama_model = model
+        elif provider == "anthropic":
+            clone.anthropic_model = model
+        elif provider == "openai":
+            clone.openai_model = model
+        elif provider == "groq":
+            clone.groq_model = model
+        elif provider == "vercel":
+            clone.ai_gateway_model = model
+        elif provider in self.compat:
+            url, key, _ = self.compat[provider]
+            clone.compat = {**self.compat, provider: (url, key, model)}
+        return clone
+
+    def _resolve(self, spec):
+        """(gateway, provider) for a "provider" or "provider:model" spec."""
+        name, model = split_spec(spec)
+        if not name:
+            return self, None
+        return (self.with_model(name, model) if model else self), name
 
     def task_provider(self, task):
         """The provider mapped to a task, or None for the default."""
@@ -266,14 +307,18 @@ class ModelGateway:
         a particular one.
 
         `language` is the report's language; the facts are already in it.
+        A "provider:model" spec (or task map entry) picks that model.
         """
+        gateway, provider = self._resolve(provider or self.task_provider("narration"))
+        if gateway is not self:
+            return gateway.narrate(goal, facts, provider=provider, language=language)
         callers = {"ollama": self._call_ollama,
                    "vercel": self._call_vercel,
                    "anthropic": self._call_anthropic,
                    "openai": self._call_openai,
                    "groq": self._call_groq,
                    **{name: self._compat_caller(name) for name in self.compat}}
-        for name in self._attempts(provider or self.task_provider("narration")):
+        for name in self._attempts(provider):
             caller = callers.get(name)
             if caller is None:
                 continue
@@ -299,13 +344,16 @@ class ModelGateway:
         no-dataset rule applies: `user` is built from verified sentences
         and settings, never rows.
         """
+        gateway, provider = self._resolve(provider or self.task_provider("chat"))
+        if gateway is not self:
+            return gateway.ask(system, user, provider=provider, max_tokens=max_tokens)
         callers = {"ollama": self._complete_ollama,
                    "vercel": self._complete_vercel,
                    "anthropic": self._complete_anthropic,
                    "openai": self._complete_openai,
                    "groq": self._complete_groq,
                    **{name: self._compat_completer(name) for name in self.compat}}
-        for name in self._attempts(provider or self.task_provider("chat")):
+        for name in self._attempts(provider):
             caller = callers.get(name)
             text = caller(system, user, max_tokens) if caller else None
             if text:
@@ -336,7 +384,10 @@ class ModelGateway:
         Hosted providers retain their existing request contracts. A caller
         without this optional method can continue exposing ordinary ask.
         """
-        provider = provider or self.task_provider("chat")
+        gateway, provider = self._resolve(provider or self.task_provider("chat"))
+        if gateway is not self:
+            return gateway.ask_json(system, user, provider=provider,
+                                    max_tokens=max_tokens, schema=schema)
         if (provider or self.provider) == "ollama":
             return self._complete_ollama(system, user, max_tokens, json_output=True,
                                          schema=schema)

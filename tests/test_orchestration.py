@@ -141,5 +141,45 @@ class PipelineWithRolesTestCase(unittest.TestCase):
         self.assertNotIn("Orchestrator and consultant notes", report)
 
 
+class LocalHermesAndAgentsTestCase(unittest.TestCase):
+    """One local Ollama, two models: Hermes on hermes3, agents on qwen3."""
+
+    def test_a_run_uses_each_roles_own_model(self):
+        import json
+        from unittest.mock import patch
+        env = {"OLLAMA_MODEL": "qwen3",
+               "AGENTIC_OS_TASK_MODELS": "hermes=ollama:hermes3,agents=ollama:qwen3"}
+        root = Path(tempfile.mkdtemp())
+        store = open_store(None, root / "runs.db")
+        self.addCleanup(store.close)
+        gateway = ModelGateway(env=env)
+        engine = RunEngine(store, root / "vault", ModelGateway(env={}),
+                           roles=ModelRoles(gateway, env))
+        models = []
+
+        def answer(self, url, headers, payload):
+            models.append(payload["model"])
+            # No digits: a note may not add a figure (grounded()).
+            return {"message": {"content": "Check data coverage first."}}
+
+        with patch.object(ModelGateway, "_post", autospec=True, side_effect=answer):
+            run = engine.create_run("Review maintenance cost")
+            for _ in range(100):
+                if run["state"] not in ("queued", "running"):
+                    break
+                run = engine.advance(run["id"])
+        self.assertEqual(run["state"], "awaiting_approval")
+        tasks = {t["role"]: json.loads(t["result_json"] or "{}")
+                 for t in store.get_tasks(run["id"])}
+        self.assertEqual(tasks["planner"]["hermes_plan"],
+                         {"text": "Check data coverage first.", "provider": "ollama:hermes3"})
+        notes = [r["agent_note"] for r in tasks.values() if r.get("agent_note")]
+        self.assertTrue(notes)
+        self.assertTrue(all(n["provider"] == "ollama:qwen3" for n in notes))
+        self.assertEqual(set(models), {"hermes3", "qwen3"})
+        report = store.latest_artifact(run["id"])["content"]
+        self.assertIn("Hermes (orchestrator, ollama:hermes3)", report)
+
+
 if __name__ == "__main__":
     unittest.main()

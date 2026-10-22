@@ -402,3 +402,62 @@ class FreeOpenModelsAndTaskMapTestCase(unittest.TestCase):
         empty = ModelRoles(ModelGateway(env={}), {}).model_map()
         self.assertEqual((empty["narration"], empty["hermes"], empty["consultants"]),
                          ("built-in", "built-in", ["none"]))
+
+
+class PerRoleModelTestCase(unittest.TestCase):
+    """"provider:model" gives one provider a different model per role:
+    Hermes on a local hermes3 while the agents use a local qwen3."""
+
+    LOCAL = {"OLLAMA_MODEL": "qwen3:4b",
+             "AGENTIC_OS_TASK_MODELS": "hermes=ollama:hermes3,agents=ollama:qwen3:4b,"
+                                       "consultants=ollama:hermes3+ollama:qwen3:4b"}
+
+    @staticmethod
+    def answer(gateway, url, headers, payload):
+        return {"message": {"content": f"Answered by {payload['model']}."}}
+
+    def test_a_spec_splits_at_the_first_colon_only(self):
+        from server.model_gateway import split_spec
+        self.assertEqual(split_spec("ollama:qwen3:4b"), ("ollama", "qwen3:4b"))
+        self.assertEqual(split_spec(" OpenRouter:Some/Model:free "),
+                         ("openrouter", "Some/Model:free"))
+        self.assertEqual(split_spec("groq"), ("groq", None))
+        self.assertEqual(split_spec(""), ("", None))
+
+    def test_each_role_reaches_the_same_ollama_with_its_own_model(self):
+        from server.orchestration import ModelRoles
+        gateway = ModelGateway(env=self.LOCAL)
+        roles = ModelRoles(gateway, self.LOCAL)
+        self.assertEqual((roles.hermes, roles.agents, roles.consultants),
+                         ("ollama:hermes3", "ollama:qwen3:4b",
+                          ["ollama:hermes3", "ollama:qwen3:4b"]))
+        with patch.object(ModelGateway, "_post", autospec=True,
+                          side_effect=self.answer) as post:
+            self.assertEqual(gateway.ask("s", "u", provider=roles.hermes), "Answered by hermes3.")
+            narration = gateway.narrate("goal", ["Costs rose."], provider=roles.agents)
+        self.assertEqual(narration, {"text": "Answered by qwen3:4b.", "source": "model"})
+        self.assertTrue(all("127.0.0.1" in call.args[1] for call in post.call_args_list))
+        # The shared gateway keeps its own model; only the copy changed.
+        self.assertEqual(gateway.ollama_model, "qwen3:4b")
+        self.assertEqual(roles.model_map()["hermes"], "ollama:hermes3")
+
+    def test_a_role_variable_may_name_a_model_and_keeps_its_case(self):
+        from server.orchestration import ModelRoles
+        env = {"OLLAMA_MODEL": "qwen3", "AGENTIC_OS_HERMES_MODEL": "Ollama:Hermes3",
+               "AGENTIC_OS_CONSULTANTS": "anthropic:claude-x, ollama:qwen3"}
+        roles = ModelRoles(ModelGateway(env=env), env)
+        self.assertEqual(roles.hermes, "ollama:Hermes3")
+        self.assertEqual(roles.consultants, ["ollama:qwen3"])
+        self.assertEqual(len(roles.problems), 1)
+
+    def test_a_hosted_provider_takes_a_model_override_too(self):
+        env = {"OPENROUTER_API_KEY": "o", "OPENROUTER_MODEL": "default/model:free",
+               "AGENTIC_OS_TASK_MODELS": "chat=openrouter:other/model:free"}
+        gateway = ModelGateway(env=env)
+        reply = {"choices": [{"message": {"content": "ok"}}]}
+        with patch.object(ModelGateway, "_post", autospec=True, return_value=reply) as post:
+            gateway.ask("system", "user")
+            gateway.narrate("goal", ["Costs rose."])
+        self.assertEqual(post.call_args_list[0].args[3]["model"], "other/model:free")
+        self.assertEqual(post.call_args_list[1].args[3]["model"], "default/model:free")
+        self.assertEqual(gateway.task_problems, [])

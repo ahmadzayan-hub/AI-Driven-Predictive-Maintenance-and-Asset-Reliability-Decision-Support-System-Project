@@ -16,8 +16,10 @@ roles):
   before the report, each independently reviews the verified findings and
   names the risks and questions an approver should raise.
 
-Each value names a provider the model gateway can reach; an unreachable
-one is reported in /api/health and skipped. Every model sees verified
+Each value names a provider the model gateway can reach, optionally with
+a model of its own ("ollama:hermes3" for Hermes while the agents use
+"ollama:qwen3"); an unreachable provider is reported in /api/health and
+skipped. Every model sees verified
 sentences only, never a dataset row, and writes words only: a note that
 introduces a figure absent from its facts is dropped, so no number in a
 report comes from a model. With nothing configured (the default, and in
@@ -26,6 +28,8 @@ every test) nothing here runs and runs are exactly as before.
 
 import re
 from concurrent.futures import ThreadPoolExecutor
+
+from server.model_gateway import split_spec
 
 MAX_FACTS = 14
 MAX_NOTE_CHARS = 900
@@ -106,17 +110,20 @@ class ModelRoles:
         # (AGENTIC_OS_TASK_MODELS) on the gateway names it.
         task_map = getattr(gateway, "task_map", {}) or {}
 
-        def pick(variable, task):
-            name = (env.get(variable) or "").strip().lower()
-            if not name and task_map.get(task):
-                return task_map[task][0]
+        def checked(spec, label):
+            """The spec, normalised, if its provider is reachable."""
+            name, model = split_spec(spec)
             if not name:
                 return None
             if name not in reachable:
-                self.problems.append(
-                    f"{variable}={name} is not a configured provider; skipped.")
+                self.problems.append(f"{label}{name} is not a configured provider; skipped.")
                 return None
-            return name
+            return f"{name}:{model}" if model else name
+
+        def pick(variable, task):
+            if not (env.get(variable) or "").strip():
+                return task_map[task][0] if task_map.get(task) else None
+            return checked(env[variable], f"{variable}=")
 
         self.hermes = pick("AGENTIC_OS_HERMES_MODEL", "hermes")
         self.agents = pick("AGENTIC_OS_AGENT_MODEL", "agents")
@@ -124,15 +131,10 @@ class ModelRoles:
         consultants = env.get("AGENTIC_OS_CONSULTANTS")
         if not consultants and task_map.get("consultants"):
             consultants = ",".join(task_map["consultants"])
-        for name in (consultants or "").split(","):
-            name = name.strip().lower()
-            if not name or name in self.consultants:
-                continue
-            if name not in reachable:
-                self.problems.append(
-                    f"AGENTIC_OS_CONSULTANTS: {name} is not a configured provider; skipped.")
-                continue
-            self.consultants.append(name)
+        for spec in (consultants or "").split(","):
+            spec = checked(spec, "AGENTIC_OS_CONSULTANTS: ")
+            if spec and spec not in self.consultants:
+                self.consultants.append(spec)
 
     @property
     def active(self):
