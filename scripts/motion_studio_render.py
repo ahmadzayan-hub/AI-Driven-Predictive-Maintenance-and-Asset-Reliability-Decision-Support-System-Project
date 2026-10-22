@@ -159,15 +159,28 @@ def mux_frames(frames_dir: Path, output: Path, audio: Path | None = None, *,
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, required=True)
-    parser.add_argument("--frames", type=Path, required=True,
-                        help="Directory containing verified frame-000000.png etc")
+    parser.add_argument("--frames", type=Path,
+                        help="Directory containing approved frame-000000.png etc")
+    parser.add_argument("--font", type=Path,
+                        help="Approved local TTF/OTF for automatic evidence-scene composition")
     parser.add_argument("--audio", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     try:
         manifest = validate(json.loads(args.manifest.read_text(encoding="utf-8")))
         duration = probe_audio(args.audio) if args.audio else manifest["duration"]
-        result = mux_frames(args.frames, args.output, args.audio, duration=duration)
+        if args.frames:
+            if args.font:
+                raise MotionInputError("Choose either pre-rendered frames or a font")
+            result = mux_frames(args.frames, args.output, args.audio, duration=duration)
+        elif args.font:
+            from motion_studio_frames import render_frames
+            with tempfile.TemporaryDirectory(prefix="motion-studio-") as tmp:
+                folder = Path(tmp)
+                render_frames(manifest, folder, args.font, duration=duration)
+                result = mux_frames(folder, args.output, args.audio, duration=duration)
+        else:
+            raise MotionInputError("Provide --font for local scene rendering or --frames for trusted frames")
     except (OSError, ValueError, subprocess.TimeoutExpired) as exc:
         parser.exit(2, f"Refused: {exc}\n")
     print(json.dumps(result))
