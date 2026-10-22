@@ -130,7 +130,7 @@ export function SourceInspector({ packId, sourceId, readOnly, onClose, onChanged
             {(sheet.hidden || (sheet.visibility && sheet.visibility !== 'visible')) && <p className="rmd-notice">{t('hiddenSheet')}</p>}
             <div className="rmd-form-row">
               <label htmlFor={`${id}-${index}-grain`}>{t('grain')}<select id={`${id}-${index}-grain`} disabled={readOnly || busy} value={draft.role} onChange={event => change({ role: event.target.value as SheetMapping['role'] })}>{grains.map(grain => <option key={grain} value={grain}>{t(grain)}</option>)}</select></label>
-              <label htmlFor={`${id}-${index}-row`}>{t('headerRow')}<input id={`${id}-${index}-row`} min="1" max={sheet.source_row_count ?? 1_048_576} required type="number" disabled={readOnly || busy} value={draft.header_row} onChange={event => change({ header_row: Number(event.target.value) })} /></label>
+              <label htmlFor={`${id}-${index}-row`}>{t('headerRow')}<input id={`${id}-${index}-row`} min="1" max={1_048_576} required type="number" disabled={readOnly || busy} value={draft.header_row} onChange={event => change({ header_row: Number(event.target.value) })} /></label>
               <label htmlFor={`${id}-${index}-date`}>{t('dateFormat')}<select id={`${id}-${index}-date`} disabled={readOnly||busy} value={draft.date_format??'ISO'} onChange={event=>change({date_format:event.target.value as SheetMapping['date_format']})}><option value="ISO">{t('dateISO')}</option><option value="DMY">{t('dateDMY')}</option><option value="MDY">{t('dateMDY')}</option></select></label>
             </div>
             <p className="rmd-muted">{t('dateFormatHelp')}</p>
