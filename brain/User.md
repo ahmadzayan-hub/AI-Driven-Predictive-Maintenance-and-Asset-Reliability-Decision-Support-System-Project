@@ -3,7 +3,7 @@ type: profile
 aliases: [Owner, Project owner]
 tags: [core]
 status: active
-updated: 2026-10-20
+updated: 2026-10-22
 review_every_days: 14
 sources: [README.md, Memory.md, project-progress.md]
 ---
@@ -37,6 +37,7 @@ No contact details, student numbers or teammates' personal data belong in this n
 - Wants every agent measured, with confusion matrices and recall, reported honestly ([[Agent evaluation]]).
 - Wants dashboard numbers and percentages to share a clear convention: bad red, okay blue, good green, in English and Arabic RTL. The [[Design system]] records the tokens and text labels.
 - Wants professional, restrained agent motion: live handoffs, clear statuses and expandable details (20 October). The [[Design system]] presents observed workflow activity without invented conversations.
+- Wants complete Arabic analysis content, not only Arabic controls: recommendations, calculation descriptions, tables and charts, rendered in the [[House style]] inside the platform (22 October).
 
 ## Related
 

@@ -1,4 +1,7 @@
 import '../../shared/styles/analytics.css'
+import './report-theme.css'
+import './report-document.css'
+import { ReportDocument } from './ReportDocument'
 import { useState } from 'react'
 import { useReadOnly } from '../../shared/readOnly'
 import { useI18n } from '../../i18n'
@@ -41,10 +44,10 @@ export function ApprovalCard({ detail, onDecision }: {
       </div>
       <p className="decision__intro">{t('cockpit.approvalIntro')}</p>
       {run.report ? <p className="decision__artifact"><span dir="auto">{run.report.name}</span> · {t('cockpit.version', { version: formatNumber(run.report.version) })}</p> : null}
-      {run.report ? <details className="decision__preview">
+      {run.report ? <details className="decision__preview report-theme">
         <summary>{t('cockpit.exactReport')}</summary>
         <p className="card__meta">{t('cockpit.previewIncludesEvidence')}</p>
-        <pre className="runreport__content" tabIndex={0} aria-label={t('cockpit.exactReport')} dir={run.report_language === 'ar' ? 'rtl' : 'ltr'} lang={run.report_language}>{run.report.content}</pre>
+        <ReportDocument className="runreport__content" content={run.report.content} language={run.report_language === 'ar' ? 'ar' : 'en'} label={t('cockpit.exactReport')} />
       </details> : <p role="status">{t('cockpit.reportUnavailable')}</p>}
       <dl className="decision__facts">
         {[

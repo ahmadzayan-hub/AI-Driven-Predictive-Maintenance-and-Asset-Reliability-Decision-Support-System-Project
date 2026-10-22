@@ -108,11 +108,9 @@ export function interpolate(template: string, vars?: Vars): string {
   )
 }
 
-/** Translate outside React (the store, the API client). Reads the
- *  current locale each call, so a message produced after a switch is in
- *  the new language. */
-export function translate(key: MessageKey, vars?: Vars): string {
-  const locale = currentLocale()
+/** Defaults to the current interface locale. Fixed-language artifacts can
+ *  supply their own locale without changing the reader's interface. */
+export function translate(key: MessageKey, vars?: Vars, locale = currentLocale()): string {
   const template = LOCALES[locale].messages[key] ?? en[key]
   return interpolate(template, vars)
 }

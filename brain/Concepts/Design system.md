@@ -43,6 +43,13 @@ work history, evidence and completion records; criticality stays separate from
 condition. `docs/adr/2026-10-21-connected-agent-workspace.md` records the
 responsive behavior and the explicit allocation for lazy-view assets.
 
+The 22 October Arabic report decision applies the [[House style]] only to analysis
+output surfaces. A bounded semantic Markdown renderer supports Arabic tables,
+numeric isolation and inert untrusted markup. Report language is explicit at
+creation and stays fixed independently of the interface language. Calculation
+display translations preserve the audited values and identifiers; the source is
+`docs/adr/2026-10-22-arabic-rendered-analysis-reports.md`.
+
 ## Related
 
 - [[Home]]

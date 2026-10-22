@@ -6,6 +6,7 @@ Durable facts a future session needs and cannot get quickly from the code. The s
 
 - English and Arabic: reply in the language of the request. More in [brain/User.md](brain/User.md).
 - Wants finished, verified work: run the tests and report real counts. Short progress notes, then the result.
+- Wants the full analysis content in Arabic, including recommendations, tables and chart descriptions, with rendered writing in the house style (22 October). Report language is chosen per new run; published artifacts retain their original language and evidence. See `docs/adr/2026-10-22-arabic-rendered-analysis-reports.md`.
 - Works with four capstone teammates; shares work as links they can review and edit.
 
 ## Non-negotiable rules
