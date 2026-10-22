@@ -5,7 +5,7 @@ tags: [interface, design]
 status: active
 updated: 2026-10-22
 review_every_days: 30
-sources: [frontend/src/tests/charts.test.tsx, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0028-views-load-on-demand.md, docs/UI_PLAN.md, design-system/agentic-os/MASTER.md, frontend/src/shared/styles/tokens.css, .claude/skills/ui-ux-pro-max/PROVENANCE.md, .claude/skills/design/PROVENANCE.md, docs/design/REACT_AGENT_CONNECTIONS_STUDY.md]
+sources: [frontend/src/tests/charts.test.tsx, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0028-views-load-on-demand.md, docs/UI_PLAN.md, design-system/agentic-os/MASTER.md, frontend/src/shared/styles/tokens.css, .claude/skills/ui-ux-pro-max/PROVENANCE.md, .claude/skills/design/PROVENANCE.md, docs/design/REACT_AGENT_CONNECTIONS_STUDY.md, docs/design/README_ASSETS.md]
 ---
 
 # Design system
@@ -51,6 +51,13 @@ display translations preserve the audited values and identifiers; the source is
 `docs/adr/2026-10-22-arabic-rendered-analysis-reports.md`.
 
 ## Related
+
+The 22 October repository presentation uses GitHub-native Markdown, a short
+product journey and expandable technical/verification references. Original
+concept artwork is labelled separately from actual synthetic-session UI
+captures, following [[Soul]] and [[Evidence and claims]].
+`docs/design/README_ASSETS.md` records provenance and scoped checks; this
+documentation redesign does not change the application or certify its CI.
 
 - [[Home]]
 - [[Identity]], whose two languages the interface serves equally.
