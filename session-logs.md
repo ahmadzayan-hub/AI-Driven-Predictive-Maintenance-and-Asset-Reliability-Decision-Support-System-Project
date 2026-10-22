@@ -1300,3 +1300,9 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 
 - **Tested:** all 9 measured agents at or above their floors (weakest: intent holdout 77%, router holdout 83%, unchanged); a full maintenance run, 24 of 24 stages, validator passed, with no model and again with Hermes, Ollama agents and Claude/OpenAI consultants on stand-in models (plan, 17 agent notes, both consultants, brief); model-layer suites (gateway 31, routing 24, orchestration 9, assistant 67, agent runtime 29, privacy boundary 9, local runtime 17; llmrouter 5 skipped as optional). Live model calls not possible: OpenAI, Groq, Hugging Face and Ollama hosts blocked by this session's network policy; no Claude key.
 - **Fixed:** the intermittent Python failure (3 in 40 runs of an agent-runtime test): random hex ids with long digit runs read as phone or account numbers, so the privacy guard refused the model in about one conversation in seventy. Ids are now redrawn when they hold 8+ consecutive digits ([decision](docs/adr/2026-10-22-generated-ids-never-look-personal.md)); 200 of 200 repeats pass; full verify 8/8 first time (1,635 Python, 319 frontend).
+
+## 2026-10-22 · `d9e3f889` · claude/tender-clarke-m4uwgq (hosted open-source models; model status)
+
+- **Done:** hosted Ollama endpoints supported (`OLLAMA_HOST` + `OLLAMA_API_KEY`), and only a loopback host counts as local ([decision](docs/adr/2026-10-22-hosted-open-source-models.md)); Groq documented as the no-change route for hosted open-source models. Model status page published as a private artifact.
+- **Verified:** quick verify 6/6 (1,639 Python with 4 new, 319 frontend). Live health after the owner's redeploy (`dpl_ARdVXBqSxWtmsCCV8krhHXLov7W4`): still `deterministic`, Hermes on rules, no roles, no problems listed, so the model keys did not reach the Production environment.
+- **Next:** owner confirms the keys are saved for Production; then redeploy and read the health check.

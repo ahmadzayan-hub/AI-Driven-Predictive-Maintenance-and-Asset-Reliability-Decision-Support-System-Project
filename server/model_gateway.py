@@ -8,7 +8,11 @@ the application is fully functional offline and no test needs credentials.
 
 Five providers, chosen by environment variable, in priority order:
 
-- **ollama** — a model running on the operator's own machine
+- **ollama** — an open-source model through Ollama's chat API. On the
+  operator's own machine (the default host) nothing leaves it. A hosted
+  Ollama endpoint (OLLAMA_HOST pointing elsewhere, with OLLAMA_API_KEY) is
+  treated like any hosted provider: it ranks after Claude and OpenAI and
+  can fail over. Hosted open-source models also come through Groq.
   (OLLAMA_MODEL, optional OLLAMA_HOST). No key, no account, and the facts
   never leave the host. Preferred when set, because it is the only option
   that sends nothing anywhere.
@@ -77,6 +81,14 @@ ARABIC_INSTRUCTION = (
 )
 
 
+def _is_loopback(url):
+    """True when the Ollama host is this machine, the only case in which
+    a call sends nothing anywhere."""
+    from urllib.parse import urlparse
+    host = (urlparse(url).hostname or "").lower()
+    return host in ("localhost", "::1") or host.startswith("127.")
+
+
 class ModelGateway:
     def __init__(self, env=None):
         env = os.environ if env is None else env
@@ -85,6 +97,9 @@ class ModelGateway:
         self.ai_gateway_model = env.get("AI_GATEWAY_MODEL") or None
         self.ollama_model = env.get("OLLAMA_MODEL") or None
         self.ollama_host = env.get("OLLAMA_HOST") or DEFAULT_OLLAMA_HOST
+        # A hosted Ollama endpoint takes a bearer key; a local one needs none.
+        self.ollama_key = env.get("OLLAMA_API_KEY") or None
+        self.ollama_local = _is_loopback(self.ollama_host)
         self.anthropic_key = env.get("ANTHROPIC_API_KEY") or None
         self.anthropic_model = env.get("ANTHROPIC_MODEL", DEFAULT_ANTHROPIC_MODEL)
         self.openai_key = env.get("OPENAI_API_KEY") or None
@@ -121,13 +136,16 @@ class ModelGateway:
             self.ollama_options["temperature"] = min(2, max(0, temperature))
 
         # Local first: it is the only provider that sends nothing off the
-        # machine, so it wins when the operator has configured one.
-        if self.ollama_model:
+        # machine, so it wins when the operator has configured one. A hosted
+        # Ollama endpoint has no such claim and ranks with the hosted ones.
+        if self.ollama_model and self.ollama_local:
             self.provider, self.model = "ollama", self.ollama_model
         elif self.anthropic_key:
             self.provider, self.model = "anthropic", self.anthropic_model
         elif self.openai_key and self.openai_model:
             self.provider, self.model = "openai", self.openai_model
+        elif self.ollama_model:
+            self.provider, self.model = "ollama", self.ollama_model
         elif self.groq_key:
             self.provider, self.model = "groq", self.groq_model
         elif self.ai_gateway_model and self._ai_gateway_token():
@@ -142,7 +160,8 @@ class ModelGateway:
             "configured": self.provider != "deterministic",
             # Stated plainly because it is the question that matters: does
             # anything leave this machine?
-            "local_only": self.provider in ("deterministic", "ollama"),
+            "local_only": (self.provider == "deterministic"
+                           or (self.provider == "ollama" and self.ollama_local)),
         }
 
     def providers(self):
@@ -154,7 +173,7 @@ class ModelGateway:
         that wants to choose per report (see server/routing.py).
         """
         found = []
-        if self.ollama_model:
+        if self.ollama_model and self.ollama_local:
             found.append({"provider": "ollama", "model": self.ollama_model,
                           "local_only": True})
         if self.anthropic_key:
@@ -162,6 +181,9 @@ class ModelGateway:
                           "local_only": False})
         if self.openai_key and self.openai_model:
             found.append({"provider": "openai", "model": self.openai_model,
+                          "local_only": False})
+        if self.ollama_model and not self.ollama_local:
+            found.append({"provider": "ollama", "model": self.ollama_model,
                           "local_only": False})
         if self.groq_key:
             found.append({"provider": "groq", "model": self.groq_model,
@@ -236,7 +258,7 @@ class ModelGateway:
         first = provider or self.provider
         if first == "deterministic":
             return []
-        if first == "ollama":
+        if first == "ollama" and self.ollama_local:
             return ["ollama"]
         hosted = [entry["provider"] for entry in self.providers()
                   if not entry["local_only"] and entry["provider"] != first]
@@ -263,7 +285,7 @@ class ModelGateway:
             import httpx
 
             options = {"timeout": self.timeout}
-            if url == self.ollama_host.rstrip("/") + "/api/chat":
+            if self.ollama_local and url == self.ollama_host.rstrip("/") + "/api/chat":
                 # A loopback provider must not send verified context through
                 # an ambient HTTP_PROXY. Cloud provider behavior is unchanged.
                 options["trust_env"] = False
@@ -344,7 +366,8 @@ class ModelGateway:
         if json_output:
             payload["format"] = schema if schema is not None else "json"
         body = self._post(
-            self.ollama_host.rstrip("/") + "/api/chat", {},
+            self.ollama_host.rstrip("/") + "/api/chat",
+            {"Authorization": f"Bearer {self.ollama_key}"} if self.ollama_key else {},
             payload)
         try:
             return self._clean(body["message"]["content"])

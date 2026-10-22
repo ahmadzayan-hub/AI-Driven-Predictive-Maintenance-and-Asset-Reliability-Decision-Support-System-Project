@@ -306,3 +306,41 @@ class OpenAiAndFailoverTestCase(unittest.TestCase):
             gateway.narrate("goal", ["Costs rose 4%."])
         self.assertEqual(post.call_count, 1)
         self.assertIn("11434", post.call_args.args[0])
+
+
+class HostedOllamaTestCase(unittest.TestCase):
+    """Open-source models on a hosted Ollama endpoint: reachable from a
+    serverless deployment, and never described as staying on the machine."""
+
+    HOSTED = {"OLLAMA_MODEL": "an-open-model", "OLLAMA_HOST": "https://ollama.example.com",
+              "OLLAMA_API_KEY": "secret"}
+
+    def test_a_hosted_endpoint_sends_the_key_and_uses_the_proxy(self):
+        gateway = ModelGateway(env=self.HOSTED)
+        reply = Mock(status_code=200, json=lambda: {"message": {"content": "Costs are rising."}})
+        with patch("httpx.post", return_value=reply) as post:
+            result = gateway.narrate("goal", ["Costs rose 4%."])
+        url, = post.call_args.args
+        self.assertEqual(url, "https://ollama.example.com/api/chat")
+        self.assertEqual(post.call_args.kwargs["headers"], {"Authorization": "Bearer secret"})
+        self.assertNotIn("trust_env", post.call_args.kwargs)
+        self.assertEqual(result["source"], "model")
+
+    def test_a_hosted_endpoint_is_not_local_and_ranks_after_claude(self):
+        gateway = ModelGateway(env=self.HOSTED)
+        self.assertEqual(gateway.provider, "ollama")
+        self.assertFalse(gateway.status()["local_only"])
+        both = ModelGateway(env={**self.HOSTED, "ANTHROPIC_API_KEY": "a"})
+        self.assertEqual(both.provider, "anthropic")
+        self.assertEqual([p["provider"] for p in both.providers()],
+                         ["anthropic", "ollama", "deterministic"])
+
+    def test_a_hosted_endpoint_may_fail_over_and_a_local_one_may_not(self):
+        hosted = ModelGateway(env={**self.HOSTED, "ANTHROPIC_API_KEY": "a"})
+        self.assertEqual(hosted._attempts("ollama"), ["ollama", "anthropic"])
+        local = ModelGateway(env={"OLLAMA_MODEL": "m", "ANTHROPIC_API_KEY": "a"})
+        self.assertEqual(local._attempts("ollama"), ["ollama"])
+        self.assertTrue(local.status()["local_only"])
+
+    def test_the_status_never_shows_the_key(self):
+        self.assertNotIn("secret", repr(ModelGateway(env=self.HOSTED).status()))
