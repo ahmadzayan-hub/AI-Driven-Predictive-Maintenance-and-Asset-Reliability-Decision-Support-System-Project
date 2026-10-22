@@ -41,7 +41,10 @@ instruction. The earlier reasoning-sized budget could exhaust the deadline for
 a short briefing. Chat and narrative budgets and hosted defaults are unchanged.
 Use an unnumbered paragraph: a live consultant response introduced numbered
 list labels absent from its evidence and was correctly rejected by grounding.
-Change the requested format, not the numeric validator.
+The shorter paragraph instruction alone did not prevent another numbered
+response. The consultant prompt now asks for a brief qualitative review of the
+most important evidence gap, with no figures or enumeration; an actual local
+probe passed grounding. Change the requested format, not the numeric validator.
 
 This does not assert that a configured
 provider answered, install a model, enable cloud credentials or bypass the

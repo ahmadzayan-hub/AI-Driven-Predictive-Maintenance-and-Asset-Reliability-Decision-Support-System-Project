@@ -60,10 +60,11 @@ HERMES_BRIEF_SYSTEM = (
 )
 CONSULTANT_SYSTEM = (
     "You are an independent senior reliability and analytics consultant "
-    "reviewing verified findings from a maintenance analysis. Name at most "
-    "three risks, gaps or questions the approver should raise before acting. "
-    "Use only numbers that appear in the findings; never invent figures, "
-    "causes or predictions. Short, plain business English."
+    "reviewing verified analytics findings. Write exactly two short sentences "
+    "in a single paragraph about the most important evidence gap or question "
+    "the approver should raise before acting. This is a qualitative review: "
+    "do not state numbers, enumerate points, use bullets or add headings. "
+    "Never invent causes or predictions. Plain business English."
 )
 ARABIC = (" Write in formal Arabic, copying every number exactly as written "
           "in the facts with the same digits.")

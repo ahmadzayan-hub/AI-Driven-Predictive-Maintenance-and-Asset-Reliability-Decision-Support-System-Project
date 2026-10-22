@@ -463,6 +463,50 @@ what was not verified, are in [docs/qa/END_TO_END_VALIDATION.md](docs/qa/END_TO_
   215.2 / 216 KB total under the combined allocation, CSS 30.0 / 30.5 KB
   total); the merge-affected browser specs: **50 passed, 2 failed, 4 skipped** of 56 (runs, workspace, Arabic, accessibility, intake, executive, onboarding, demo, overview); the two failures were the workspace spec reading the approval preview as a `pre` element that main's rendered report replaced, fixed in the spec, after which the workspace spec ran **5 passed, 1 skipped**.
 
+### Background model roles and the all-Qwen profile — 22 October 2026
+
+The production worker omitted `ModelRoles` even though API health advertised
+them. A real fictional sample reached approval with no plan, agent note or
+consultation. The worker now receives the same role configuration as the API.
+Regression coverage checks the production builder, distinct model tags,
+restricted personal-data handling, built-in/disabled roles and human approval.
+See the [decision](docs/adr/2026-10-22-worker-model-role-parity.md).
+
+The owner explicitly chose the installed `qwen3:4b-instruct-2507-q4_K_M` for
+every local role after Hermes3 exceeded the inference deadline on full planning
+requests, including an isolated low-memory attempt. The ignored persistent
+launch profile pins chat, narration, orchestrator, specialists and a consultant
+to this one model. Distinct role prompts are not independent provider reviews.
+No cloud key, subscription, model installation or production deployment was added.
+
+The first complete all-Qwen sample (`97fac30833d7`) took 392.75 seconds to reach
+human approval: all 21 calculation stages succeeded, with an actual model plan,
+15 accepted specialist notes, model narration and a Qwen closing brief. Its
+consultant note was absent. A separate real probe returned a numbered list;
+the numeric grounding guard correctly rejected unsupported list labels.
+Local briefings now request an unnumbered paragraph within 45 words and a
+240-token ceiling. A further completed sample (`d4ed25208c24`, 386.18 seconds)
+again produced the plan, 15 notes and brief but no accepted consultant. Its
+numbered reply led to a qualitative consultant prompt without figures or
+enumeration, which passed a direct real-model probe in 22.81 seconds.
+The grounding guard is unchanged. Some optional notes can still be
+omitted when a model fails or its output fails grounding. Existing artifacts
+are not rewritten, and completed stages alone do not prove model success.
+
+After integrating main at `7912f6e`, the focused worker, orchestration, gateway,
+privacy, durable execution, worker limits, routing and documentation checks
+reported **163 tests, 17 optional skips, zero failures**. Type checking and the
+production build passed in both local checkouts. The rebuilt interface passed
+its existing allocation: **98.5 KB initial / 215.2 KB total JavaScript**,
+**10.0 KB initial / 30.0 KB total CSS**, **19.1 KB largest lazy chunk** and
+**119.4 KB fonts**. The full Python, PostgreSQL and Playwright suites were not
+rerun for this repair. After the final consultant wording change, all **22**
+orchestration/worker-role checks passed. Focused frontend verification passed
+**25 tests in 3 files** for run state, run events and approval controls. The
+initial full frontend attempt was stopped without a result under memory
+pressure; the focused rerun ran after unloading the idle model, which the
+launcher subsequently prewarmed again. No full frontend pass is claimed.
+
 ### Local chat recovery — 22 October 2026
 
 The owner's selected local checkout reproduced the screenshot's failure with

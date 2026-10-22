@@ -24,6 +24,17 @@ source trees; historical copies still require remediation before public release.
 
 ## Intelligence
 
+Local role acceptance is recorded in [README testing](../README.md#testing).
+The selected CPU profile shares one Qwen model across separate role prompts;
+it is not an independent multi-provider review. Optional notes are omitted when
+inference fails or grounding rejects the response. Successful numeric grounding
+does not certify the model's domain interpretation. Human review remains required.
+
+A live pause request during the earlier long-running SQLite model analysis
+returned a server error while the worker held its stage transaction; the analysis
+then completed. Responsive pause/cancel under model load remains unverified
+after the main integration. Do not infer it from idle API health.
+
 1. The chat understands and acts on plain language — save, recall,
    change a preference, start an analysis, report its status, explain a
    report, in English or Arabic — through a **rules-based vocabulary**

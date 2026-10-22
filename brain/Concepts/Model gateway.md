@@ -5,7 +5,7 @@ tags: [architecture, ai, agents]
 status: active
 updated: 2026-10-22
 review_every_days: 60
-sources: [server/model_gateway.py, server/routing.py, docs/adr/0017-choosing-the-narrator.md, docs/adr/2026-10-21-run-request-timeout.md, docs/adr/2026-10-21-workspace-model-activation.md, .env.example]
+sources: [server/model_gateway.py, server/routing.py, docs/adr/0017-choosing-the-narrator.md, docs/adr/2026-10-21-run-request-timeout.md, docs/adr/2026-10-21-workspace-model-activation.md, docs/adr/2026-10-22-worker-model-role-parity.md, .env.example]
 ---
 
 # Model gateway
