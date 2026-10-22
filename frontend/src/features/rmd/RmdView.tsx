@@ -91,6 +91,7 @@ function PackWorkspace({ packId, readOnly, onExplain, onOpenRun }: RmdViewProps 
   const { t, locale, formatDate } = usePack(messages)
   const id = useId(), alive = useRef(true), key = useRequestKey(), lock = useRef(false), generation = useRef(0)
   const [pack, setPack] = useState<EvidencePack | null>(null), [attempt, setAttempt] = useState(0)
+  const [packAuthorised,setPackAuthorised]=useState(false)
   const [loading, setLoading] = useState(true), [error, setError] = useState<string | null>(null), [notice, setNotice] = useState<string | null>(null)
   const [analysisId, setAnalysisId] = useState(''), [analysis, setAnalysis] = useState<EvidenceAnalysis | null>(null), [analysisLoading, setAnalysisLoading] = useState(false)
   const [analysisAttempt, setAnalysisAttempt] = useState(0), [view, setView] = useState<View>('overview')
@@ -101,10 +102,10 @@ function PackWorkspace({ packId, readOnly, onExplain, onOpenRun }: RmdViewProps 
   const refresh = useCallback(()=>setAttempt(value=>value+1),[])
   useEffect(()=>{alive.current=true;generation.current+=1;lock.current=false;setBusy(false);return()=>{alive.current=false;generation.current+=1}},[])
   useEffect(()=>{
-    const controller = new AbortController(); setLoading(true); setError(null)
+    const controller = new AbortController(); setLoading(true); setError(null);setPackAuthorised(false)
     rmdApi.pack(packId,controller.signal).then(result=>{
       if(controller.signal.aborted)return
-      setPack(result); setAnalysisId(current=>result.analyses?.some(item=>item.id===current)?current:result.analyses?.[0]?.id??'')
+      setPack(result);setPackAuthorised(true);setAnalysisId(current=>result.analyses?.some(item=>item.id===current)?current:result.analyses?.[0]?.id??'')
     }).catch(reason=>{if(!controller.signal.aborted)setError(reason instanceof Error&&reason.message?reason.message:t('failed'))})
       .finally(()=>{if(!controller.signal.aborted)setLoading(false)})
     setActionsLoading(true);setActionsError(null)
@@ -166,10 +167,10 @@ function PackWorkspace({ packId, readOnly, onExplain, onOpenRun }: RmdViewProps 
   }
   const writesBlocked=readOnly||pack?.permissions?.write===false
   return <div className="rmd-stack">
-    {loading&&!pack&&<p role="status">{t('loading')}</p>}
+    {loading&&<p role="status">{t('loading')}</p>}
     {error&&<div role="alert" className="rmd-error"><p>{error}</p><button className="btn" onClick={()=>{refresh();setAnalysisAttempt(value=>value+1)}}>{t('retry')}</button></div>}
     {notice&&<p role="status" className="rmd-notice">{notice}</p>}
-    {pack&&<>
+    {pack&&<div className="rmd-stack" hidden={!packAuthorised} style={!packAuthorised?{display:'none'}:undefined} inert={!packAuthorised}>
       <div className="rmd-context"><strong dir="auto">{pack.title}</strong><span>{t('pack')}: <bdi>{pack.id}</bdi></span><span>{t('sources')}: <bdi>{pack.sources?.length??0}</bdi></span><button className="btn btn--ghost" onClick={refresh} disabled={loading||busy}>{t('refresh')}</button></div>
       <div className="rmd-toolbar">
         <label htmlFor={`${id}-analysis`}>{t('selectedAnalysis')}<select id={`${id}-analysis`} value={analysisId} onChange={event=>setAnalysisId(event.target.value)} disabled={busy||analysisLoading}><option value="">{t('noAnalysis')}</option>{pack.analyses?.map(item=><option key={item.id} value={item.id}>{item.title??item.id} · {item.created_at||item.calculated_at?formatDate(item.created_at??item.calculated_at!):item.calculation_version}</option>)}</select></label>
@@ -205,7 +206,7 @@ function PackWorkspace({ packId, readOnly, onExplain, onOpenRun }: RmdViewProps 
       </div>
       {analysis&&<footer className="rmd-card"><div className="rmd-actions">{onOpenRun&&<button className="btn btn--primary" disabled={busy||(!analysis.run_id&&writesBlocked)} onClick={reviewReport}>{t('reviewReport')}</button>}<button className="btn" disabled={busy} onClick={()=>exportFile('html')}>{t('exportBrief')}</button><button className="btn" disabled={busy} onClick={()=>exportFile('csv')}>{t('exportActions')}</button>{onExplain&&<button className="btn" onClick={()=>onExplain(packId,analysis.id)}>{t('explain')}</button>}</div><p className="rmd-muted">{t('exportHelp')}</p></footer>}
       <p className="rmd-muted">{t('allReadsPrivate')}</p>
-    </>}
+    </div>}
     {sourceId&&<SourceInspector key={sourceId} packId={packId} sourceId={sourceId} readOnly={writesBlocked} onClose={()=>setSourceId(null)} onChanged={refresh}/>}
     {evidence&&analysis&&<RecordsDialog packId={packId} analysisId={analysis.id} selection={evidence} onClose={()=>setEvidence(null)}/>}
   </div>

@@ -519,6 +519,18 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+**22 October 2026 · RMD evidence implementation (synthetic inputs).** The local
+targeted run executed **159 Python checks**, with **2 optional private-knowledge
+checks skipped**, and no failures. This includes genuine legacy Word conversion,
+workbook provenance, calculations, separate-user/organization permissions,
+immutable exports, erasure and the actual report approval/publication lifecycle.
+The strict brain check passes. HTTP boundary tests use an explicitly documented
+inline dispatcher because this runner stalls AnyIO worker wakeups; production
+thread scheduling and PostgreSQL are separate hosted checks. Frontend type,
+component, build, browser, accessibility and budget checks are in progress on
+the review branch. The owner instructed us to omit unavailable source originals;
+no actual-source findings or workbook baseline verification is claimed.
+
 ```bash
 # Python: agent, utils, API, runs, analytics, sequential ranges,
 # metrics, auth, tenancy, erasure, quotas, backups, worker, recovery,

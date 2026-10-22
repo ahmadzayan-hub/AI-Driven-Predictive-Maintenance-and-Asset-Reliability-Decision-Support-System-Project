@@ -69,14 +69,15 @@ export function SourceInspector({ packId, sourceId, readOnly, onClose, onChanged
   const generation=useRef(0)
   translate.current = t
   const [source, setSource] = useState<EvidenceSource | null>(null)
+  const [authorised,setAuthorised]=useState(false)
   const [mapping, setMapping] = useState<SheetMapping[]>([])
   const [loading, setLoading] = useState(true), [attempt, setAttempt] = useState(0)
   const [error, setError] = useState<string | null>(null), [busy, setBusy] = useState(false), [notice, setNotice] = useState(false)
   useEffect(() => { alive.current = true;generation.current+=1;lock.current=false;setBusy(false);return () => { alive.current = false;generation.current+=1 } }, [])
   useEffect(() => {
-    const controller = new AbortController(); setLoading(true); setError(null)
+    const controller = new AbortController(); setLoading(true); setError(null);setAuthorised(false)
     rmdApi.source(packId, sourceId, controller.signal).then(result => { if (!controller.signal.aborted) {
-      setSource(result)
+      setSource(result);setAuthorised(true)
       if(draftSource.current!==result.id||!dirty.current){draftSource.current=result.id;draftRevision.current=result.revision;dirty.current=false;setMapping(startingMapping(result))}
       else if(draftRevision.current!==result.revision)setError(translate.current('mappingStale'))
     } })
@@ -104,10 +105,10 @@ export function SourceInspector({ packId, sourceId, readOnly, onClose, onChanged
   const document = source?.document ?? source?.metadata?.document
   const coverage = source?.coverage ?? source?.metadata?.coverage
   const warnings = source?.warnings ?? source?.metadata?.warnings ?? []
-  return <Dialog title={source?.name ?? t('inspectSource')} onClose={onClose} wide initialFocus="panel">
+  return <Dialog title={authorised&&source?source.name:t('inspectSource')} onClose={onClose} wide initialFocus="panel">
     {loading && <p role="status">{t('loading')}</p>}
     {error && <div className="rmd-error" role="alert"><p>{error}</p><button className="btn" disabled={busy} onClick={() => {dirty.current=false;setAttempt(value => value + 1)}}>{source ? t('reloadMapping') : t('retry')}</button>{source&&<p>{t('reloadMappingHelp')}</p>}</div>}
-    {source && <div className="rmd-stack">
+    {source && authorised && <div className="rmd-stack">
       <p className="rmd-source-id"><strong>{t('sourceVersion')}</strong> <bdi>{source.sha256}</bdi></p>
       {source.kind==='procedure'&&<><SourceApplicability value={source.applicability}/><details><summary>{t('applicability')}</summary><EvidenceDetails value={source.applicability} empty={t('unknown')}/></details></>}
       {warnings.length > 0 && <div><h3>{t('warnings')}</h3><ul>{warnings.map((warning, index) => <li key={index} dir="auto">{evidenceText(warning, locale)}</li>)}</ul></div>}

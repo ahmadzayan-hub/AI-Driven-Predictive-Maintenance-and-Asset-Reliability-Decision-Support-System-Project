@@ -7,6 +7,16 @@ Last updated: 2026-10-22, session `ad7e9eca`, background worker model roles repa
 
 ## Now
 
+- **RMD Evidence and Insights, 2026-10-22:** integrated private ingestion,
+  persistence, source/column provenance, reviewed record relationships,
+  deterministic snapshot calculations, bilingual views, ephemeral assistant,
+  matching exports and the existing artifact-bound publication gate.
+  Synthetic backend/permission/lifecycle checks pass; hosted frontend and
+  browser acceptance is underway on codex/rmd-evidence-insights-20261022.
+  The owner explicitly omitted the unavailable original inputs, so actual
+  document/workbook findings are outside this delivery. See
+  [reuse map and acceptance](docs/RMD_EVIDENCE.md).
+
 - **GitHub presentation, 2026-10-22:** README redesigned around the product journey, actual synthetic-session screenshots and a clear local start. Original generated maintenance images have documented provenance; all existing developer commands and dated verification history are retained in expandable sections. Documentation/asset checks and scoped source reviews pass. Local Chromium preview is blocked by the command sandbox; application behavior and existing CI failures are outside this documentation change. See [presentation notes](docs/design/README_ASSETS.md).
 
 - **Release gate, slice three: 2026-10-22, on branch `claude/tender-clarke-m4uwgq`.** The P1 list is closed: decision inputs and record (A2, A13), signalling escalation (A8), currency (U4), landing and phone bar (U12), hosted robustness (B4, B5, B10), blind floors (G1), model ledger (G4), browser coverage (U13); [decision](docs/adr/2026-10-22-release-gate-slice-three.md). Verified 8/8 with PostgreSQL; counts in README.md#testing. Open: interface inputs for uplift and cost; the standards lint scores 0% on its blind set; P2 items in the [roadmap](docs/implementation/DELIVERY_ROADMAP.md).

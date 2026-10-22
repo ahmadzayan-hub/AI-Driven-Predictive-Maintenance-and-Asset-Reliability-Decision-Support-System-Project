@@ -86,9 +86,10 @@ Implemented: private ingestion/persistence, citations/search, reviewed mapping,
 snapshot calculations, record relationships/review history, supported actions,
 four UI views, contextual assistant, snapshot exports and governed report gate.
 
-Still source-dependent: supplied document digests, image-appendix review,
+Omitted by the owner's instruction on 22 October: supplied document digests, image-appendix review,
 authority/applicability determinations, comparison-source identification and
-the actual workbook baseline checks. No actual evidence is replaced by demo
+the actual workbook baseline checks. These can be assessed after a later import.
+No actual evidence is replaced by demo
 data. Synthetic test fixtures are explicitly labeled.
 
 Still measurement-dependent: manager comprehension within ten seconds, evidence
