@@ -40,7 +40,13 @@ class ProductIdentityTestCase(unittest.TestCase):
         self.assertEqual(page.title, title)
         self.assertEqual(manifest["name"], title)
         self.assertEqual(page.apple_title, manifest["short_name"])
-        self.assertEqual((ROOT / "README.md").read_text(encoding="utf-8").splitlines()[0], "# " + title)
+        # The README opens with a hero image and a short bilingual heading, so the
+        # full product name is required in the opening section (everything before
+        # the first second-level heading), not on a fixed line.
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        opening = " ".join(readme.split("\n## ", 1)[0].split())
+        self.assertIn("\n# ", "\n" + readme)
+        self.assertIn(title, opening)
         # Renaming a product must not create a second installed application.
         self.assertEqual(manifest["id"], "/")
         self.assertEqual(manifest["start_url"], "/")
