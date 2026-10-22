@@ -38,6 +38,22 @@ import math
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
+# Hosted open-source models behind the same chat-completions contract
+# (ADR 2026-10-22 free open models and the task map). Each needs its key
+# and an explicit model id: free model ids rotate, so none is chosen here.
+COMPAT_PROVIDERS = {
+    "openrouter": ("https://openrouter.ai/api/v1/chat/completions",
+                   "OPENROUTER_API_KEY", "OPENROUTER_MODEL"),
+    "nvidia": ("https://integrate.api.nvidia.com/v1/chat/completions",
+               "NVIDIA_API_KEY", "NVIDIA_MODEL"),
+    "mistral": ("https://api.mistral.ai/v1/chat/completions",
+                "MISTRAL_API_KEY", "MISTRAL_MODEL"),
+    "cerebras": ("https://api.cerebras.ai/v1/chat/completions",
+                 "CEREBRAS_API_KEY", "CEREBRAS_MODEL"),
+}
+# The tasks a model can be mapped to. narration and chat are the gateway's
+# own; hermes, agents and consultants are the model roles.
+TASKS = ("narration", "chat", "hermes", "agents", "consultants")
 AI_GATEWAY_URL = "https://ai-gateway.vercel.sh/v1/chat/completions"
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_VERSION = "2023-06-01"
@@ -105,6 +121,9 @@ class ModelGateway:
         self.openai_key = env.get("OPENAI_API_KEY") or None
         self.openai_model = env.get("OPENAI_MODEL") or None
         self.groq_key = env.get("GROQ_API_KEY") or None
+        self.compat = {name: (url, env.get(key_var), env.get(model_var))
+                       for name, (url, key_var, model_var) in COMPAT_PROVIDERS.items()
+                       if env.get(key_var) and env.get(model_var)}
         self.groq_model = env.get("GROQ_MODEL", DEFAULT_GROQ_MODEL)
         # CPU-hosted models need a bounded cold-start window. Hosted defaults
         # remain unchanged; callers can explicitly allow up to one minute.
@@ -148,10 +167,50 @@ class ModelGateway:
             self.provider, self.model = "ollama", self.ollama_model
         elif self.groq_key:
             self.provider, self.model = "groq", self.groq_model
+        elif self.compat:
+            name = next(iter(self.compat))
+            self.provider, self.model = name, self.compat[name][2]
         elif self.ai_gateway_model and self._ai_gateway_token():
             self.provider, self.model = "vercel", self.ai_gateway_model
         else:
             self.provider, self.model = "deterministic", None
+
+        self.task_map, self.task_problems = self._read_task_map(
+            env.get("AGENTIC_OS_TASK_MODELS") or "")
+
+    def _read_task_map(self, raw):
+        """AGENTIC_OS_TASK_MODELS, e.g. "narration=groq,chat=openrouter,
+        consultants=anthropic+openai": which configured provider serves
+        each task. An unknown task or a provider that is not configured is
+        reported and skipped, never guessed."""
+        reachable = {entry["provider"] for entry in self.providers()}
+        mapping, problems = {}, []
+        for item in raw.split(","):
+            if not item.strip():
+                continue
+            task, _, names = item.partition("=")
+            task = task.strip().lower()
+            if task not in TASKS:
+                problems.append(f"AGENTIC_OS_TASK_MODELS: unknown task {task!r}; skipped.")
+                continue
+            chosen = []
+            for name in names.split("+"):
+                name = name.strip().lower()
+                if not name:
+                    continue
+                if name not in reachable or name == "deterministic":
+                    problems.append(f"AGENTIC_OS_TASK_MODELS: {task}={name} is not a "
+                                    "configured provider; skipped.")
+                elif name not in chosen:
+                    chosen.append(name)
+            if chosen:
+                mapping[task] = chosen
+        return mapping, problems
+
+    def task_provider(self, task):
+        """The provider mapped to a task, or None for the default."""
+        chosen = getattr(self, "task_map", {}).get(task)
+        return chosen[0] if chosen else None
 
     def status(self):
         return {
@@ -188,6 +247,8 @@ class ModelGateway:
         if self.groq_key:
             found.append({"provider": "groq", "model": self.groq_model,
                           "local_only": False})
+        for name, (_, _, model) in self.compat.items():
+            found.append({"provider": name, "model": model, "local_only": False})
         if self.ai_gateway_model and self._ai_gateway_token():
             found.append({"provider": "vercel", "model": self.ai_gateway_model,
                           "local_only": False})
@@ -210,8 +271,9 @@ class ModelGateway:
                    "vercel": self._call_vercel,
                    "anthropic": self._call_anthropic,
                    "openai": self._call_openai,
-                   "groq": self._call_groq}
-        for name in self._attempts(provider):
+                   "groq": self._call_groq,
+                   **{name: self._compat_caller(name) for name in self.compat}}
+        for name in self._attempts(provider or self.task_provider("narration")):
             caller = callers.get(name)
             if caller is None:
                 continue
@@ -241,8 +303,9 @@ class ModelGateway:
                    "vercel": self._complete_vercel,
                    "anthropic": self._complete_anthropic,
                    "openai": self._complete_openai,
-                   "groq": self._complete_groq}
-        for name in self._attempts(provider):
+                   "groq": self._complete_groq,
+                   **{name: self._compat_completer(name) for name in self.compat}}
+        for name in self._attempts(provider or self.task_provider("chat")):
             caller = callers.get(name)
             text = caller(system, user, max_tokens) if caller else None
             if text:
@@ -273,6 +336,7 @@ class ModelGateway:
         Hosted providers retain their existing request contracts. A caller
         without this optional method can continue exposing ordinary ask.
         """
+        provider = provider or self.task_provider("chat")
         if (provider or self.provider) == "ollama":
             return self._complete_ollama(system, user, max_tokens, json_output=True,
                                          schema=schema)
@@ -396,6 +460,30 @@ class ModelGateway:
             OPENAI_URL, {"Authorization": f"Bearer {self.openai_key}"},
             {"model": self.openai_model,
              "max_completion_tokens": max_tokens or MAX_OUTPUT_TOKENS,
+             "messages": [{"role": "system", "content": system},
+                          {"role": "user", "content": user}]})
+        try:
+            return self._clean(body["choices"][0]["message"]["content"])
+        except (TypeError, KeyError, IndexError):
+            return None
+
+    def _compat_caller(self, name):
+        def call(goal, facts, language="en"):
+            return self._complete_compat(name, self._system(language),
+                                         self._prompt(goal, facts), MAX_OUTPUT_TOKENS)
+        return call
+
+    def _compat_completer(self, name):
+        return lambda system, user, max_tokens=None: self._complete_compat(
+            name, system, user, max_tokens)
+
+    def _complete_compat(self, name, system, user, max_tokens=None):
+        if name not in self.compat:
+            return None
+        url, key, model = self.compat[name]
+        body = self._post(
+            url, {"Authorization": f"Bearer {key}"},
+            {"model": model, "max_tokens": max_tokens or MAX_OUTPUT_TOKENS,
              "messages": [{"role": "system", "content": system},
                           {"role": "user", "content": user}]})
         try:

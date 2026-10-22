@@ -1306,3 +1306,9 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Done:** hosted Ollama endpoints supported (`OLLAMA_HOST` + `OLLAMA_API_KEY`), and only a loopback host counts as local ([decision](docs/adr/2026-10-22-hosted-open-source-models.md)); Groq documented as the no-change route for hosted open-source models. Model status page published as a private artifact.
 - **Verified:** quick verify 6/6 (1,639 Python with 4 new, 319 frontend). Live health after the owner's redeploy (`dpl_ARdVXBqSxWtmsCCV8krhHXLov7W4`): still `deterministic`, Hermes on rules, no roles, no problems listed, so the model keys did not reach the Production environment.
 - **Next:** owner confirms the keys are saved for Production; then redeploy and read the health check.
+
+## 2026-10-22 · `d9e3f889` · claude/tender-clarke-m4uwgq (free open-source models and the task map)
+
+- **Done:** researched free hosted open-source model tiers (Groq, OpenRouter, Ollama Cloud, NVIDIA NIM, Mistral, Cerebras; dated third-party sources, to confirm on each provider's page). Added OpenRouter, NVIDIA, Mistral and Cerebras on the chat-completions contract, and `AGENTIC_OS_TASK_MODELS` mapping a provider to narration, chat, hermes, agents and consultants; `/api/health` returns `model_map` ([decision](docs/adr/2026-10-22-free-open-models-and-task-map.md), [reference](docs/FREE_OPEN_MODELS.md) with a recommended free map and daily capacity).
+- **Verified:** 1,644 Python tests (21 skipped; 5 new) after restarting PostgreSQL, 319 frontend, typecheck, brain check. No live provider call: hosts unreachable from the container.
+- **Open:** the owner adds keys and the map in Vercel (Production); earlier model keys never reached Production.

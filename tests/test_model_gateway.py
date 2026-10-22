@@ -344,3 +344,61 @@ class HostedOllamaTestCase(unittest.TestCase):
 
     def test_the_status_never_shows_the_key(self):
         self.assertNotIn("secret", repr(ModelGateway(env=self.HOSTED).status()))
+
+
+class FreeOpenModelsAndTaskMapTestCase(unittest.TestCase):
+    """Hosted open-source providers on the chat-completions contract, and
+    one map from each AI task to the provider that serves it."""
+
+    def reply(self, text):
+        return {"choices": [{"message": {"content": text}}]}
+
+    def test_each_open_provider_needs_a_key_and_an_explicit_model(self):
+        self.assertEqual(ModelGateway(env={"OPENROUTER_API_KEY": "k"}).provider, "deterministic")
+        gateway = ModelGateway(env={"OPENROUTER_API_KEY": "k", "OPENROUTER_MODEL": "some/model:free"})
+        self.assertEqual((gateway.provider, gateway.model), ("openrouter", "some/model:free"))
+        self.assertNotIn("k'", repr(gateway.status()))
+
+    def test_the_request_goes_to_that_provider_with_its_key(self):
+        from server.model_gateway import COMPAT_PROVIDERS
+        for name, (url, key_var, model_var) in COMPAT_PROVIDERS.items():
+            gateway = ModelGateway(env={key_var: "secret", model_var: "m"})
+            with patch.object(gateway, "_post", return_value=self.reply("Costs are rising.")) as post:
+                result = gateway.narrate("goal", ["Costs rose 4%."])
+            self.assertEqual(post.call_args.args[0], url, name)
+            self.assertEqual(post.call_args.args[1], {"Authorization": "Bearer secret"}, name)
+            self.assertEqual(result["source"], "model", name)
+
+    def test_the_task_map_sends_each_task_to_its_provider(self):
+        env = {"GROQ_API_KEY": "g", "OPENROUTER_API_KEY": "o", "OPENROUTER_MODEL": "m",
+               "AGENTIC_OS_TASK_MODELS": "narration=openrouter, chat=groq"}
+        gateway = ModelGateway(env=env)
+        with patch.object(gateway, "_post", return_value=self.reply("ok")) as post:
+            gateway.narrate("goal", ["Costs rose 4%."])
+            self.assertIn("openrouter.ai", post.call_args.args[0])
+            gateway.ask("system", "user")
+            self.assertIn("groq.com", post.call_args.args[0])
+            gateway.ask_json("system", "user")
+            self.assertIn("groq.com", post.call_args.args[0])
+        self.assertEqual(gateway.task_problems, [])
+
+    def test_a_wrong_task_or_provider_is_reported_not_guessed(self):
+        gateway = ModelGateway(env={"GROQ_API_KEY": "g",
+                                    "AGENTIC_OS_TASK_MODELS": "narration=nvidia,poetry=groq,chat=groq"})
+        self.assertEqual(gateway.task_map, {"chat": ["groq"]})
+        self.assertEqual(len(gateway.task_problems), 2)
+
+    def test_the_roles_and_the_health_map_follow_the_task_map(self):
+        from server.orchestration import ModelRoles
+        env = {"GROQ_API_KEY": "g", "OPENROUTER_API_KEY": "o", "OPENROUTER_MODEL": "m",
+               "AGENTIC_OS_TASK_MODELS": "hermes=groq,agents=openrouter,consultants=groq+openrouter"}
+        gateway = ModelGateway(env=env)
+        roles = ModelRoles(gateway, env)
+        self.assertEqual((roles.hermes, roles.agents, roles.consultants),
+                         ("groq", "openrouter", ["groq", "openrouter"]))
+        mapping = roles.model_map()
+        self.assertEqual(mapping["narration"], "groq")
+        self.assertEqual(mapping["consultants"], ["groq", "openrouter"])
+        empty = ModelRoles(ModelGateway(env={}), {}).model_map()
+        self.assertEqual((empty["narration"], empty["hermes"], empty["consultants"]),
+                         ("built-in", "built-in", ["none"]))

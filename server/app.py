@@ -631,6 +631,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
             "version": str(config.get("version", "1.0.0")),
             "model_provider": gateway.status(),
             "model_roles": model_roles.status(),
+            "model_map": model_roles.model_map(),
             # A misconfigured router is the operator's to fix, and they
             # will not find it unless something says so.
             "router_problem": app.state.router_problem,

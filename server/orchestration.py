@@ -102,8 +102,14 @@ class ModelRoles:
         self.gateway = gateway
         self.problems = []
 
-        def pick(variable):
+        # A role's own variable wins; otherwise the task map
+        # (AGENTIC_OS_TASK_MODELS) on the gateway names it.
+        task_map = getattr(gateway, "task_map", {}) or {}
+
+        def pick(variable, task):
             name = (env.get(variable) or "").strip().lower()
+            if not name and task_map.get(task):
+                return task_map[task][0]
             if not name:
                 return None
             if name not in reachable:
@@ -112,10 +118,13 @@ class ModelRoles:
                 return None
             return name
 
-        self.hermes = pick("AGENTIC_OS_HERMES_MODEL")
-        self.agents = pick("AGENTIC_OS_AGENT_MODEL")
+        self.hermes = pick("AGENTIC_OS_HERMES_MODEL", "hermes")
+        self.agents = pick("AGENTIC_OS_AGENT_MODEL", "agents")
         self.consultants = []
-        for name in (env.get("AGENTIC_OS_CONSULTANTS") or "").split(","):
+        consultants = env.get("AGENTIC_OS_CONSULTANTS")
+        if not consultants and task_map.get("consultants"):
+            consultants = ",".join(task_map["consultants"])
+        for name in (consultants or "").split(","):
             name = name.strip().lower()
             if not name or name in self.consultants:
                 continue
@@ -132,6 +141,26 @@ class ModelRoles:
     def status(self):
         return {"hermes": self.hermes or "rules", "agents": self.agents,
                 "consultants": list(self.consultants), "problems": list(self.problems)}
+
+    def model_map(self):
+        """Every AI task and the provider that serves it now: the whole
+        mapping in one place for /api/health. "built-in" means the
+        deterministic template or rules answer, with no model."""
+        gateway = self.gateway
+        default = gateway.status()["provider"] if hasattr(gateway, "status") else "deterministic"
+        task = getattr(gateway, "task_provider", lambda name: None)
+
+        def name(provider):
+            return "built-in" if provider in (None, "deterministic") else provider
+
+        return {
+            "narration": name(task("narration") or default),
+            "chat": name(task("chat") or default),
+            "hermes": self.hermes or "built-in",
+            "agents": self.agents or "built-in",
+            "consultants": list(self.consultants) or ["none"],
+            "problems": list(getattr(gateway, "task_problems", [])) + list(self.problems),
+        }
 
     def _ask(self, system, user, provider, language, facts):
         if language == "ar":
