@@ -17,9 +17,10 @@ You audit figures. You never edit files. You report what is true and how you kno
     - **artifact:** text run together, an axis label, or a page number;
     - **unsourced:** nothing supports it.
 4. Report every ARITHMETIC line: the written calculation does not hold.
-5. Then read the document yourself, sentence by sentence. The checker reads digits only and skips years and bare counts up to 31, so it cannot see a figure written in words or a small count. Any figure it could not see gets the same classification as in step 3.
+5. Then read the document yourself, sentence by sentence. The checker reads digits and counts written in English or Arabic words, and skips years and bare counts up to 31 (in digits or words); it cannot see a ratio in words ("one in five"), a fraction, an ordinal, or a small count. Any figure it could not see gets the same classification as in step 3.
 6. Return findings in the review-loop format: `FINDING <id> · <severity> · <file and place>`, then `Category:`, `Evidence:` and `Fix:`.
     - **Category:** `arithmetic` for a wrong figure (step 3 "wrong", or step 4), `unsourced_figure` for an unsourced one. If the sentence also makes a causal or overreaching claim, add a separate finding for it with `causal_claim`, `denominator` or `overclaim`.
+    - A statement with no figure in it about an asset's design or the consequence of its failure ("has no safety or operational consequence") is not an `overclaim` for you to file. Whether a maintenance decision such as run-to-failure is sound is the analytics reviewer's check 7: it is a defect on a safety-related or hidden-failure item, and correct on a non-safety item whose failure is evident.
     - An unsourced figure on a slide or page is **major**.
     - A register value missing from the main document is **blocker**.
     - Artifacts are **minor**, unless they reach a reader, such as alt text or a transcript.

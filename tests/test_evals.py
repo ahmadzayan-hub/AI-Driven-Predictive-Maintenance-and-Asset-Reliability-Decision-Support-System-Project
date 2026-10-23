@@ -454,6 +454,47 @@ class RecallFixTests(unittest.TestCase):
         self.assertEqual(result["wrong_arithmetic"], [])
         self.assertEqual(len(result["unsourced"]), 10)
 
+    def test_counts_written_in_english_words_are_read(self):
+        # Memo F: coverage reported "five" interchange stations and "two"
+        # rectifiers as missing. Fresh sentences, so F stays held out.
+        text = ("The depot has seven hoists, twenty-four wheel lathes, two hundred and fifty bogies, "
+                "a thousand spare bolts and forty two cranes. Two million dirhams were spent.")
+        expected = {"seven": 7, "twenty-four": 24, "two hundred and fifty": 250, "a thousand": 1000,
+                    "forty two": 42, "Two million": 2_000_000}
+        self.assertEqual({p: fc.value_of(p) for p, _, _ in fc.word_figures(text)}, expected)
+        numbers = fc.numbers_in(text, keep_small=True)
+        for value in ("7", "24", "250", "1,000", "42", "2,000,000"):
+            self.assertIn("(in words)", fc.found_in(text, value, numbers) or "", value)
+        # A count in words is whole: "seven" is not a rounded 6.8.
+        self.assertIsNone(fc.found_in(text, "6.8", numbers))
+        # Small counts in words are labels in the sourcing pass, as digits are;
+        # a larger figure in words must be sourced like any other.
+        result = self.sourcing(text, {"Bogies": "250", "Spend": "2,000,000"})
+        self.assertEqual(sorted(u["number"] for u in result["unsourced"]), ["a thousand", "forty two"])
+
+    def test_number_words_that_are_not_counts_are_left_alone(self):
+        text = ("One of the fans failed. It was a one-off. No one was hurt, and the new one is fitted. "
+                "One in five trains ran late. Two-thirds of the staff work the second shift for "
+                "hundreds of hours on a three-phase supply.")
+        self.assertEqual([p for p, _, _ in fc.word_figures(text)], ["three"])
+        for value in ("1", "5", "2"):
+            self.assertIsNone(fc.found_in(text, value), value)
+
+    def test_counts_written_in_arabic_words_are_read(self):
+        text = ("في المستودع خمس محطات وخمسة وعشرون مصعدا وثلاثمئة مضخة واثنتا عشرة رافعة. "
+                "بلغت ساعات العمل ثلاثة آلاف ساعة، وكلفت الصيانة ألفا وخمسمئة. ومئة وعشرون مروحة.")
+        found = {fc._ar(p): v for p, v, _ in fc.word_figures(text)}
+        self.assertEqual(sorted(found.values()), [5, 12, 25, 120, 300, 1500, 3000])
+        numbers = fc.numbers_in(text, keep_small=True)
+        for value in ("5", "25", "300", "12", "3,000", "1,500", "120"):
+            self.assertIn("(in words)", fc.found_in(text, value, numbers) or "", value)
+        # Feminine and masculine forms, and the two spellings of a hundred, are one number.
+        for phrase, value in (("ثلاث", 3), ("ثلاثة", 3), ("مائة", 100), ("مئة", 100), ("إحدى عشرة", 11),
+                              ("أربعون", 40), ("تسعين", 90), ("ألف", 1000)):
+            self.assertEqual(fc.value_of(phrase), value, phrase)
+        # A short feminine form before a definite noun is a fraction: "خمس السكان" is a fifth.
+        self.assertEqual(fc.word_figures("يسكن خمس السكان في المدينة، وكل واحد منهم يعمل."), [])
+
     def test_one_figure_written_twice_is_not_two_inputs(self):
         # 75.2% and 0.752 are one quantity: their difference must not source 74.1%.
         result = self.sourcing("The preventive ratio was 75.2%, up from 74.1%.", {"Preventive ratio": "0.752"})
