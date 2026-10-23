@@ -27,7 +27,7 @@ A run is a reviewer's reply, saved as `runs/<reviewer>-<memo>-<tag>.txt`. The re
 
 - `named-v1`, `named-repeat`, `named-newtool`, `named-v3`: the project subagent as the session loaded it, in its first run, a repeat run, a run after the checker changed, and a run with its v3 instructions loaded.
 - `ctl-v1`, `ctl-v2`, `ctl-v3`: a general-purpose agent on the reviewer's model, given the v1, v2 or v3 instructions, with everything else the same. This is the controlled comparison, because a subagent's edited instructions only load in a new session.
-- `v1` to `v6`: the checker after each round of fixes (v5 reads percentage points; v6 ignores clock times and longer numbers in coverage).
+- `v1` to `v7`: the checker after each round of fixes (v5 reads percentage points; v6 ignores clock times and longer numbers in coverage; v7 reads counts written in English and Arabic words).
 
 Each run is told to put the paragraph id on the FINDING line and add a `Category:` line, and to open only the memo and its register.
 

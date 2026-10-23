@@ -62,6 +62,17 @@ class RosterTests(unittest.TestCase):
         for name in ("figures-auditor", "security-privacy-reviewer", "accessibility-i18n-reviewer"):
             self.assertEqual(frontmatter(AGENTS / f"{name}.md")["model"], "haiku")
 
+    def test_run_to_failure_is_judged_on_safety_and_evidence_of_failure(self):
+        # Memo F: the figures-auditor filed the correct run-to-failure decoy
+        # (P15, decorative lights) as an overclaim, in both runs. Check 7 names
+        # both sides; the auditor leaves the method to it (ADR 2026-10-23).
+        check7 = (AGENTS / "analytics-expert-reviewer.md").read_text(encoding="utf-8")
+        for phrase in ("hidden", "failure-finding task", "evident", "separate, tested system", "is correct"):
+            self.assertIn(phrase, check7)
+        auditor = (AGENTS / "figures-auditor.md").read_text(encoding="utf-8")
+        self.assertIn("check 7", auditor)
+        self.assertIn("not an `overclaim` for you to file", auditor)
+
     def test_the_skills_the_team_uses_exist(self):
         for skill in ("review-loop", "dashboards", "motion", "verify"):
             meta = frontmatter(ROOT / ".claude" / "skills" / skill / "SKILL.md")

@@ -167,8 +167,9 @@ after the main integration. Do not infer it from idle API health.
    The local conversational smoke does not measure maintenance-domain
    prediction or general narrator accuracy. Hosted narrators remain
    unvalidated against an independently labelled task set. The
-   figures checker cannot read a figure written in words ("one in five");
-   the figures-auditor reads the text for those.
+   figures checker reads counts written in English and Arabic words
+   ("twenty-four", "خمسة وعشرون") but not ratios ("one in five"),
+   fractions or ordinals; the figures-auditor reads the text for those.
 
 ## Resolved since the first release
 
