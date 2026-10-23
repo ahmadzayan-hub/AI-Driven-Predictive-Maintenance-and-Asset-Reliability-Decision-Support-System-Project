@@ -5,6 +5,8 @@ requests, publishing, office applications or additional dependencies are used.
 """
 
 from dataclasses import dataclass, field
+from base64 import b64encode
+from functools import partial
 from html import escape
 from io import BytesIO
 import math
@@ -13,13 +15,14 @@ import unicodedata
 from xml.etree import ElementTree as ET
 from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
 
+from server.report_fonts import verified_font, obfuscate_font, FONT_KEY
 from server.maintenance import performance
 from server.maintenance.kpis import POPULATION_AR, REGISTER
 
 
 HTML_MIME = "text/html"
 DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-CONTENT_POLICY = "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"
+CONTENT_POLICY = "default-src 'none'; style-src 'unsafe-inline'; font-src data:; base-uri 'none'; form-action 'none'"
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 ET.register_namespace("w", W)
 PERFORMANCE_COLORS = {"good": "0F7A55", "okay": "1D4ED8", "bad": "B3323F",
@@ -319,6 +322,10 @@ bdi { unicode-bidi: isolate; }
 
 def render_html(brief):
     title, sections = report_sections(brief)
+    font = verified_font()
+    font_css = ("@font-face { font-family: Dubai; src: url(data:font/ttf;base64," +
+                b64encode(font).decode("ascii") + ") format('truetype'); } body { font-family: Dubai, Arial, sans-serif; }"
+                if font else "")
     language = brief["language"]
 
     def text(item):
@@ -343,8 +350,9 @@ def render_html(brief):
     direction = "rtl" if language == "ar" else "ltr"
     return (f'<!doctype html><html lang="{language}" dir="{direction}"><head><meta charset="utf-8">'
             f'<meta name="viewport" content="width=device-width, initial-scale=1">'
+            f'<meta name="miyaar-export-font" content="{"Dubai" if font else "Arial-fallback"}">'
             f'<meta http-equiv="Content-Security-Policy" content="{escape(CONTENT_POLICY, quote=True)}">'
-            f"<title>{escape(title)}</title><style>{STYLE}" +
+            f"<title>{escape(title)}</title><style>{STYLE}{font_css}" +
             "".join(f".performance--{status} {{ color: #{color}; font-weight: 600; }}" for status, color in PERFORMANCE_COLORS.items()) +
             "</style></head><body>" + "".join(body) + "</body></html>").encode("utf-8")
 
@@ -353,7 +361,7 @@ def _w(parent, name, **attrs):
     return ET.SubElement(parent, f"{{{W}}}{name}", {f"{{{W}}}{key}": str(v) for key, v in attrs.items()})
 
 
-def _paragraph(parent, text, ar, style=None, bold=False, auto_direction=False):
+def _paragraph(parent, text, ar, style=None, bold=False, auto_direction=False, font_name="Arial"):
     tone = getattr(text, "status", None)
     cleaned = _clean(text)
     paragraph_ar = ar
@@ -388,7 +396,7 @@ def _paragraph(parent, text, ar, style=None, bold=False, auto_direction=False):
             continue
         r = _w(p, "r")
         rp = _w(r, "rPr")
-        _w(rp, "rFonts", ascii="Arial", hAnsi="Arial", cs="Arial", eastAsia="Arial")
+        _w(rp, "rFonts", ascii=font_name, hAnsi=font_name, cs=font_name, eastAsia=font_name)
         rtl = paragraph_ar and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_./:+%(),<>= -]*", part)
         if bold:
             _w(rp, "b")
@@ -408,15 +416,18 @@ def _paragraph(parent, text, ar, style=None, bold=False, auto_direction=False):
 
 def render_docx(brief):
     """A real Office Open XML package, with internal relationships only."""
+    font = verified_font()
+    font_name = "Dubai" if font else "Arial"
+    add_paragraph = partial(_paragraph, font_name=font_name)
     title, sections = report_sections(brief)
     ar = brief["language"] == "ar"
     document = ET.Element(f"{{{W}}}document")
     body = _w(document, "body")
-    _paragraph(body, title, ar, "Title")
+    add_paragraph(body, title, ar, "Title")
     for section in sections:
-        _paragraph(body, section.title, ar, "Heading1")
+        add_paragraph(body, section.title, ar, "Heading1")
         for paragraph in section.paragraphs:
-            _paragraph(body, paragraph, ar)
+            add_paragraph(body, paragraph, ar)
         for table in section.tables:
             tbl = _w(body, "tbl")
             pr = _w(tbl, "tblPr")
@@ -447,9 +458,9 @@ def render_docx(brief):
                     if index == 0:
                         _w(tcp, "shd", val="clear", fill="EEEEEE")
                     _w(tcp, "vAlign", val="center")
-                    _paragraph(tc, cell, ar, bold=index == 0, auto_direction=True)
+                    add_paragraph(tc, cell, ar, bold=index == 0, auto_direction=True)
             # A following paragraph keeps adjacent tables distinct in Word.
-            _paragraph(body, "", ar)
+            add_paragraph(body, "", ar)
     section = _w(body, "sectPr")
     _w(section, "pgSz", w=12240, h=15840, orient="portrait")
     _w(section, "pgMar", top=1440, right=1440, bottom=1440, left=1440, header=720, footer=720, gutter=0)
@@ -470,7 +481,7 @@ def render_docx(brief):
         _w(pr, "spacing", before=200 if identifier == "Heading1" else 0, after=140,
            line=320 if ar else 280, lineRule="auto")
         rp = _w(style, "rPr")
-        _w(rp, "rFonts", ascii="Arial", hAnsi="Arial", cs="Arial", eastAsia="Arial")
+        _w(rp, "rFonts", ascii=font_name, hAnsi=font_name, cs=font_name, eastAsia=font_name)
         if identifier != "Normal":
             _w(rp, "b")
             _w(rp, "bCs")
@@ -484,6 +495,18 @@ def render_docx(brief):
              "word/document.xml": ET.tostring(document, encoding="utf-8", xml_declaration=True),
              "word/styles.xml": ET.tostring(styles, encoding="utf-8", xml_declaration=True),
              "word/_rels/document.xml.rels": document_rels}
+    if font:
+        rel_base = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/"
+        font_table = ET.Element(f"{{{W}}}fonts")
+        entry = _w(font_table, "font")
+        entry.set(f"{{{W}}}name", "Dubai")
+        embedded = _w(entry, "embedRegular", fontKey=FONT_KEY, subsetted="0")
+        embedded.set("{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id", "rId1")
+        parts["word/fontTable.xml"] = ET.tostring(font_table, encoding="utf-8", xml_declaration=True)
+        parts["word/fonts/Dubai-Regular.odttf"] = obfuscate_font(font)
+        parts["word/_rels/fontTable.xml.rels"] = (f'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="{rel_base}font" Target="fonts/Dubai-Regular.odttf"/></Relationships>').encode()
+        parts["word/_rels/document.xml.rels"] = document_rels.replace(b"</Relationships>", (f'<Relationship Id="rId2" Type="{rel_base}fontTable" Target="fontTable.xml"/></Relationships>').encode())
+        parts["[Content_Types].xml"] = content_types.replace(b"</Types>", b'<Override PartName="/word/fontTable.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml"/><Default Extension="odttf" ContentType="application/vnd.openxmlformats-officedocument.obfuscatedFont"/></Types>')
     stream = BytesIO()
     with ZipFile(stream, "w", compression=ZIP_DEFLATED) as archive:
         for name, content in parts.items():
