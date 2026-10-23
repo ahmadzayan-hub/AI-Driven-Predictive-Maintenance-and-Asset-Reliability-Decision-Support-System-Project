@@ -81,6 +81,14 @@ class LocalMotion:
             con.execute("UPDATE motion_jobs SET status='FAILED', error='Interrupted by server restart'"
                         " WHERE status IN ('RUNNING','QUEUED')")
 
+    def _record(self, job_id):
+        """Internal lookup; HTTP callers must apply current source ACL first."""
+        with self.lock, self.connect() as con:
+            row = con.execute("SELECT * FROM motion_jobs WHERE id=?", (job_id,)).fetchone()
+        if row is None:
+            raise MotionError("Video unavailable / الفيديو غير متاح")
+        return dict(row)
+
     def record(self, job_id, owner):
         with self.lock, self.connect() as con:
             row = con.execute("SELECT * FROM motion_jobs WHERE id=? AND owner=?", (job_id, owner)).fetchone()
@@ -88,14 +96,14 @@ class LocalMotion:
             raise MotionError("No such video job owned by this account")
         return dict(row)
 
-    def create(self, owner, run_id, run, audio: bytes | None, suffix=".wav"):
+    def create(self, owner, run_id, run, audio: bytes | None, suffix=".wav", *, storyboard=None):
         if not isinstance(owner, str) or not owner.strip():
             raise MotionError("Owner is missing")
         if audio and (len(audio) > MAX_BYTES or len(audio) == 0):
             raise MotionError("Invalid narration size")
         if suffix not in {".wav",".mp3",".m4a",".aac",".flac"}:
             raise MotionError("Unsupported narration format")
-        story = from_run(run)
+        story = from_run(run) if storyboard is None else storyboard
         if story["language"] == "ar" and not audio:
             raise MotionError("Arabic media requires an attached human-approved narration")
         story_raw = json.dumps(story, ensure_ascii=False, sort_keys=True)
@@ -183,10 +191,12 @@ class LocalMotion:
         return path
 
     def submit(self, job_id, owner):
-        row = self.record(job_id, owner)
-        if row["status"] != "RENDERED_DRAFT":
-            raise MotionError("Video must be rendered before review submission")
-        self._update(job_id, "REVIEW_REQUESTED")
+        with self.lock, self.connect() as con:
+            con.execute("BEGIN IMMEDIATE")
+            row = con.execute("SELECT status FROM motion_jobs WHERE id=? AND owner=?", (job_id, owner)).fetchone()
+            if row is None or row["status"] != "RENDERED_DRAFT":
+                raise MotionError("Video must be rendered before review submission")
+            con.execute("UPDATE motion_jobs SET status='REVIEW_REQUESTED' WHERE id=?", (job_id,))
         return self.view(job_id, owner)
 
     def decide(self, job_id, reviewer, outcome, note, checks, approval_allowed=False):
@@ -195,20 +205,25 @@ class LocalMotion:
         if outcome not in ("approve","return"):
             raise MotionError("Unsupported decision")
         with self.lock, self.connect() as con:
+            # One terminal human decision, including across separate instances.
+            con.execute("BEGIN IMMEDIATE")
             row = con.execute("SELECT * FROM motion_jobs WHERE id=?", (job_id,)).fetchone()
-        if row is None or row["status"] != "REVIEW_REQUESTED":
-            raise MotionError("Video is not waiting for review")
-        if reviewer == row["owner"]:
-            raise MotionError("Four-eyes rule: video author cannot approve")
-        required = ("watched_full_video","checked_audio_alignment","checked_arabic",
-                    "checked_evidence","checked_brand_and_rights")
-        if outcome == "approve" and not all(checks.get(k) is True for k in required):
-            raise MotionError("Human checklist incomplete")
-        if outcome == "return" and not (note or "").strip():
-            raise MotionError("A return requires an explanation")
-        self.preview(job_id, row["owner"])
-        self._update(job_id, "INTERNAL_APPROVED" if outcome == "approve" else "RETURNED",
-                     reviewer=reviewer, reviewer_note=(note or "")[:2000],
-                     review_checks=json.dumps(checks), reviewed_at=datetime.now(UTC).isoformat())
-        return {"status": "INTERNAL_APPROVED" if outcome == "approve" else "RETURNED",
-                "reviewer": reviewer, "publication_allowed": False}
+            if row is None or row["status"] != "REVIEW_REQUESTED":
+                raise MotionError("Video is not waiting for review")
+            if reviewer == row["owner"]:
+                raise MotionError("Four-eyes rule: video author cannot approve")
+            required = ("watched_full_video","checked_audio_alignment","checked_arabic",
+                        "checked_evidence","checked_brand_and_rights")
+            if outcome == "approve" and not all(checks.get(k) is True for k in required):
+                raise MotionError("Human checklist incomplete")
+            if outcome == "return" and not (note or "").strip():
+                raise MotionError("A return requires an explanation")
+            if hashlib.sha256(row["storyboard"].encode()).hexdigest() != row["storyboard_sha"]:
+                raise MotionError("Source storyboard was changed")
+            self.preview(job_id, row["owner"])
+            status = "INTERNAL_APPROVED" if outcome == "approve" else "RETURNED"
+            con.execute("UPDATE motion_jobs SET status=?, reviewer=?, reviewer_note=?, review_checks=?, reviewed_at=? WHERE id=?",
+                        (status, reviewer, (note or "")[:2000],
+                         json.dumps({**json.loads(row["review_checks"] or "{}"), **checks}),
+                         datetime.now(UTC).isoformat(), job_id))
+        return {"status": status, "reviewer": reviewer, "publication_allowed": False}

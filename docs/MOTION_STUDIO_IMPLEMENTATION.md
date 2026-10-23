@@ -52,7 +52,7 @@ Integrate a governed composition registry, upload validation, protected drafts, 
 
 ## 22 October 2026: implementation status and real-data handoff
 
-**Implemented in this draft PR (not merged):**
+**Implemented in the source tree (deployment remains separately verified):**
 - Standalone responsive HTML editor: `frontend/public/motion-studio/index.html`.
 - CSP-compatible local assets: `studio.js`, `studio.css`. No external audio/media upload.
 - UI lets authorized users export a **source-linked** `motion-evidence-v1` JSON manifest, load it in Motion Studio, edit three scene texts, and export it for local rendering.
