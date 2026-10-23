@@ -289,6 +289,7 @@ export function OverviewView({ onOpenRun, onStart, onAddDataset, onApprovals, on
         {header}
         {briefing}
         {next(runs)}
+        {motionError ? <p role="alert" className="statusline statusline--error">{motionError}</p> : null}
 
         {source ? <CommandCentre run={source} brief={brief} failed={briefFailed} onOpenDashboard={onOpenDashboard} /> : null}
 
