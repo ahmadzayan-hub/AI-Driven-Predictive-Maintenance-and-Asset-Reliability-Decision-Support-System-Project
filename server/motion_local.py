@@ -203,20 +203,25 @@ class LocalMotion:
         if outcome not in ("approve","return"):
             raise MotionError("Unsupported decision")
         with self.lock, self.connect() as con:
+            # One terminal human decision, including across separate instances.
+            con.execute("BEGIN IMMEDIATE")
             row = con.execute("SELECT * FROM motion_jobs WHERE id=?", (job_id,)).fetchone()
-        if row is None or row["status"] != "REVIEW_REQUESTED":
-            raise MotionError("Video is not waiting for review")
-        if reviewer == row["owner"]:
-            raise MotionError("Four-eyes rule: video author cannot approve")
-        required = ("watched_full_video","checked_audio_alignment","checked_arabic",
-                    "checked_evidence","checked_brand_and_rights")
-        if outcome == "approve" and not all(checks.get(k) is True for k in required):
-            raise MotionError("Human checklist incomplete")
-        if outcome == "return" and not (note or "").strip():
-            raise MotionError("A return requires an explanation")
-        self.preview(job_id, row["owner"])
-        self._update(job_id, "INTERNAL_APPROVED" if outcome == "approve" else "RETURNED",
-                     reviewer=reviewer, reviewer_note=(note or "")[:2000],
-                     review_checks=json.dumps(checks), reviewed_at=datetime.now(UTC).isoformat())
-        return {"status": "INTERNAL_APPROVED" if outcome == "approve" else "RETURNED",
-                "reviewer": reviewer, "publication_allowed": False}
+            if row is None or row["status"] != "REVIEW_REQUESTED":
+                raise MotionError("Video is not waiting for review")
+            if reviewer == row["owner"]:
+                raise MotionError("Four-eyes rule: video author cannot approve")
+            required = ("watched_full_video","checked_audio_alignment","checked_arabic",
+                        "checked_evidence","checked_brand_and_rights")
+            if outcome == "approve" and not all(checks.get(k) is True for k in required):
+                raise MotionError("Human checklist incomplete")
+            if outcome == "return" and not (note or "").strip():
+                raise MotionError("A return requires an explanation")
+            if hashlib.sha256(row["storyboard"].encode()).hexdigest() != row["storyboard_sha"]:
+                raise MotionError("Source storyboard was changed")
+            self.preview(job_id, row["owner"])
+            status = "INTERNAL_APPROVED" if outcome == "approve" else "RETURNED"
+            con.execute("UPDATE motion_jobs SET status=?, reviewer=?, reviewer_note=?, review_checks=?, reviewed_at=? WHERE id=?",
+                        (status, reviewer, (note or "")[:2000],
+                         json.dumps({**json.loads(row["review_checks"] or "{}"), **checks}),
+                         datetime.now(UTC).isoformat(), job_id))
+        return {"status": status, "reviewer": reviewer, "publication_allowed": False}
