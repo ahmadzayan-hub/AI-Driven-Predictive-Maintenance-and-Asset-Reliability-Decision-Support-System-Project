@@ -1577,3 +1577,14 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Decided:** the floor is the first score even though it is lower than v2's: v3 is a harder set in dashboard and slide register, both old blind sets score 100%, and lowering nothing but the split name would hide that. v3 is never looked at while fixing; the next fix moves it into dev and is judged on v4.
 - **Open / next:** the dashboard and slide register families; U8 and U20 (owner decisions); the model half of G8.
 
+
+
+## 2026-10-23 · `portfolio-limiter-review` · fix/shared-write-limiter-20261023
+
+**Goal:** Stop writes when shared rate admission cannot be established, without claiming product acceptance.
+
+- **Done:** Dedicated limiter-unavailable error, sanitized bilingual 503 with retry guidance; public MBA preservation and current main/deployment approval rules corrected. No assets removed.
+- **Verified:** Focused quota/worker/model and contract suites were run during review; this split limiter-only tree is checked independently before publication. PostgreSQL and hosted acceptance are not inferred from SQLite.
+- **Decisions:** Preserve PR24/32 merged work and leave divergent PR30/31 untouched. Separate model-budget repair because the existing run transaction boundary invalidates naive durable reservation.
+- **Open / next:** Resolve the model admission boundary and test PostgreSQL/hosted identity/worker recovery on approved infrastructure. Review PR30 integration before any merge.
+- **Blockers:** Production merge/deploy and database migration need approval; no live credentials, provider calls or production writes performed.

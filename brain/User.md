@@ -19,7 +19,7 @@ The person this brain serves: the owner of [[Agentic OS]], who builds it as a fi
 - **Languages:** English and Arabic. Writes in either, and expects replies in the same language.
 - **Team:** works with four capstone teammates through GitHub and shared documents, as set out in [[Team collaboration]].
 
-No contact details, student numbers or teammates' personal data belong in this note. The repository is temporarily private for containment; private working material still goes in `brain/private/`, which Git ignores.
+Preserve intentionally public MBA/course materials as instructed by the owner on 23 October 2026. Do not remove or rewrite those assets based on stale confidentiality claims. Keep secrets and genuinely non-public personal data out; changes to repository visibility, production deployments and merges to main require explicit owner approval.
 
 ## Goals
 

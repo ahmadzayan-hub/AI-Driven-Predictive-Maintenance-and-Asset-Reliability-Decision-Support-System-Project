@@ -19,8 +19,10 @@ scores describe adjudicated registered windows only. Pending outcomes,
 correlated asset windows, declared training cutoff and external evidence
 require explicit interpretation. Worker heartbeat is not an availability SLA.
 Offline technician execution and enterprise provisioning remain conditional.
-The two documented confidential course artifacts are untracked from future
-source trees; historical copies still require remediation before public release.
+The owner confirmed that the intentionally public MBA/course files are to be
+preserved (23 October 2026). Earlier confidentiality/removal claims are not
+authorization to delete those materials or rewrite history. This does not
+authorize publishing secrets or genuinely non-public personal information.
 
 ## Intelligence
 
