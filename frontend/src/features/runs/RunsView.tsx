@@ -7,7 +7,7 @@ import { usePack } from '../../i18n/pack'
 import { intakeMessages } from '../datasets/intakeMessages'
 import { WorkbookSheetPicker } from '../datasets/WorkbookSheetPicker'
 import { MappingPanel } from '../datasets/MappingPanel'
-import { barGeometry } from '../../shared/charts'
+import { barGeometry, valueScale } from '../../shared/charts'
 import { Icon } from '../../shared/components/Icon'
 import { languageLabel, formatLabel, questionLabel, stateLabel, typeLabel } from '../../shared/labels'
 import type {
@@ -71,13 +71,11 @@ function BarChart({ chart }: { chart: ChartSpec }) {
 }
 
 function LineChart({ chart }: { chart: ChartSpec }) {
-  const { t } = useI18n()
-  const max = Math.max(...chart.values, 1)
-  const min = Math.min(...chart.values, 0)
-  const span = max - min || 1
+  const { t, formatNumber } = useI18n()
+  const scale = valueScale(chart.values, 6, 48)
   const xy = chart.values.map((value, index) => ({
-    x: (index / Math.max(chart.values.length - 1, 1)) * 96 + 2,
-    y: 48 - ((value - min) / span) * 42,
+    x: (index / Math.max(chart.values.length - 1, 1)) * 90 + 8,
+    y: scale.y(value),
   }))
   const join = (list: { x: number; y: number }[]) => list.map((p) => `${p.x},${p.y}`).join(' ')
   // A projection is drawn dashed from the last measured point onwards, with
@@ -113,8 +111,16 @@ function LineChart({ chart }: { chart: ChartSpec }) {
           </text>
         </>
       ) : null}
-      <line x1="0" y1="50" x2="100" y2="50" stroke="var(--border-strong)" strokeWidth="0.5" />
-      <text x="2" y="56" fontSize="3.4" fill="var(--text-faint)">
+      <line x1="8" y1={scale.zero} x2="100" y2={scale.zero} stroke="var(--border-strong)" strokeWidth="0.5" />
+      <text x="7" y={scale.y(scale.max) + 1} fontSize="3" textAnchor="end" fill="var(--text-faint)">
+        {formatNumber(scale.max, { notation: 'compact' })}
+      </text>
+      {scale.min !== scale.max ? (
+        <text x="7" y={scale.y(scale.min) + 1} fontSize="3" textAnchor="end" fill="var(--text-faint)">
+          {formatNumber(scale.min, { notation: 'compact' })}
+        </text>
+      ) : null}
+      <text x="8" y="56" fontSize="3.4" fill="var(--text-faint)">
         {chart.labels[0]}
       </text>
       <text x="98" y="56" fontSize="3.4" textAnchor="end" fill="var(--text-faint)">
