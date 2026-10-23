@@ -1,0 +1,11 @@
+{
+  "daemons": {
+    "miyaar-worker": {
+      "root": ".",
+      "entrypoint": "Dockerfile.worker",
+      "instances": { "iad1": 0 },
+      "resources": { "requests": { "memory": "1Gi" } },
+      "terminationGracePeriodSeconds": 300
+    }
+  }
+}

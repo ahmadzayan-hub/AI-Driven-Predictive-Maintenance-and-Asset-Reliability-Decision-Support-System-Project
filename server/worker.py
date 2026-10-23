@@ -25,7 +25,9 @@ the gate like any other.
 
 import argparse
 import json
+import signal
 import sys
+import threading
 import time
 import uuid
 from datetime import datetime, timedelta
@@ -116,17 +118,23 @@ class RunWorker:
     def heartbeat(self, state="idle"):
         self.store.upsert_worker_heartbeat(self.worker_id, _stamp(self.clock()), state)
 
-    def step(self):
+    def step(self, stop=None):
         """Claim one run and advance it until a human is needed or it ends.
 
         Returns the run id worked on, or None when nothing was runnable.
         """
+        if stop is not None and stop.is_set():
+            return None
         self.heartbeat()
         run_id = self.claim()
         if run_id is None:
             return None
         try:
             for _ in range(MAX_STEPS_PER_CLAIM):
+                # SIGTERM finishes the current atomic stage, not the whole run.
+                # Its successor resumes from committed state after lease release.
+                if stop is not None and stop.is_set():
+                    break
                 self.heartbeat("running")
                 try:
                     tenant.current_owner.set(self.engine.owner_of(run_id))
@@ -175,17 +183,21 @@ class RunWorker:
         try:
             while stop is None or not stop.is_set():
                 try:
-                    worked = self.step()
+                    worked = self.step(stop=stop)
                 except Exception as error:  # one bad run, not a dead worker
                     print(f"Worker run failed ({type(error).__name__}).",
                           file=sys.stderr, flush=True)
                     worked = None
+                if stop is not None and stop.is_set():
+                    break
                 try:
                     refreshed = self.refresh_due()
                 except Exception as error:  # never log upstream exception contents
                     print(f"Worker refresh failed ({type(error).__name__}).",
                           file=sys.stderr, flush=True)
                     refreshed = None
+                if stop is not None and stop.is_set():
+                    break
                 try:
                     if self.steward is not None:
                         self.heartbeat("evaluating")
@@ -195,7 +207,12 @@ class RunWorker:
                     print(f"Worker evaluation failed ({type(error).__name__}).",
                           file=sys.stderr, flush=True)
                 if worked is None and refreshed is None:
-                    sleep(poll_seconds)
+                    # An idle daemon exits promptly even with a conservative
+                    # poll interval. Keep the injected sleeper for deterministic tests.
+                    if stop is not None and sleep is time.sleep:
+                        stop.wait(poll_seconds)
+                    else:
+                        sleep(poll_seconds)
         finally:
             self.heartbeat("stopped")
 
@@ -256,25 +273,33 @@ def main(argv=None):
     parser.add_argument("--config", help="config.json to read the database from")
     args = parser.parse_args(argv)
 
-    worker = build_worker(config_path=args.config, lease_seconds=args.lease)
+    stop = threading.Event()
+    previous = signal.getsignal(signal.SIGTERM)
+    signal.signal(signal.SIGTERM, lambda _signum, _frame: stop.set())
+    worker = None
     try:
+        worker = build_worker(config_path=args.config, lease_seconds=args.lease)
         if args.once:
-            run_id = worker.step()
-            connector_id = worker.refresh_due()
+            run_id = worker.step(stop=stop)
+            connector_id = None if stop.is_set() else worker.refresh_due()
             print(json.dumps({"worker": worker.worker_id, "run": run_id,
                               "connector": connector_id}))
             return 0
         print(json.dumps({"worker": worker.worker_id, "polling_seconds": args.poll}),
               flush=True)
         try:
-            worker.run_forever(poll_seconds=args.poll)
+            worker.run_forever(poll_seconds=args.poll, stop=stop)
         except KeyboardInterrupt:
             pass
     finally:
         # A one-shot worker is known to have stopped; do not advertise it
         # as ready for the full freshness window after the process exits.
         try:
-            worker.heartbeat("stopped")
+            if worker is not None:
+                try:
+                    worker.heartbeat("stopped")
+                finally:
+                    worker.store.close()
         finally:
-            worker.store.close()
+            signal.signal(signal.SIGTERM, previous)
     return 0
