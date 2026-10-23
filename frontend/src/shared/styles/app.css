@@ -1422,6 +1422,13 @@ form.field {
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
+/* A 2 px ring for keyboard focus, beside the soft halo (U17). */
+.field__input:focus-visible,
+.field__select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 .segmented {
   display: inline-flex;
   border: 1px solid var(--border-strong);

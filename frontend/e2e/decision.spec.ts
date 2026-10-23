@@ -8,7 +8,7 @@ import { openTab, skipOnboarding } from './helpers'
 test('stated improvement and cost reach the decision record, which the approval completes', async ({ page }) => {
   await skipOnboarding(page)
   await page.goto('/')
-  await openTab(page, /^Analytics/)
+  await openTab(page, /^Analyses/)
 
   await page.getByText('Improvement and cost (optional)').click()
   const first = page.getByRole('group', { name: 'Group 1' })

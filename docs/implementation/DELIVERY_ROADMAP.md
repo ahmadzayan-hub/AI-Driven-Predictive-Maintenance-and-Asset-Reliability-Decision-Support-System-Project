@@ -26,6 +26,8 @@ outside this repository), **Proposed** (designed, not built).
 | P2 slice three: a corrective repair time (A7), screened inputs on the maintenance card (A11, in part), versioned cards bound to the snapshot (A14, in part), reversible cleaning (A18), a store-backed rate limit with a per-tenant model budget (B6), one PostgreSQL connection per thread (B11, in part) | Implemented, Tested | `docs/adr/2026-10-23-p2-slice-three.md`; `tests/test_p2_slice_three.py` |
 | P2 slice four: screened inputs for the generic models (A11, closed), probabilities with a Brier score and reliability bins (A14, closed), a bounded connection pool (B11, closed), structured answers checked on the server with JSON mode per provider (G5), agreement by finding reference (G6), rules and cases for the knowledge search and the scorecard (G8) | Implemented, Tested | `docs/adr/2026-10-23-p2-slice-four.md`; `tests/test_p2_slice_four.py` |
 | P2 slice five: blind benchmarks and first-run floors for the brief-compliance, security-privacy and accessibility-i18n reviewers (G9) | Implemented, Tested | `docs/adr/2026-10-23-p2-slice-five-reviewer-benchmarks.md`; `evals/reviewers/H`, `I`, `J`; `tests/test_evals.py::ReviewerBenchmarkTests` |
+| P2 slice six: the interface items, paid for by committed font subsets (U19), one-call asset evidence (U10), the table note (U11), one noun per destination (U14), every upload call to action through Datasets (U15), as-of times and the empty-picker action (U16), every pack in the parity test and the export hook (U18) | Implemented, Tested | `docs/adr/2026-10-23-p2-slice-six-interface.md`; `tests/test_p2_slice_six.py`; the frontend unit and end-to-end suites |
+| P3 slice seven: the minor findings A16, A17, A19, B17, B18, B19, B20, G12, G13, G14, G15 and U17 | Implemented, Tested | `docs/adr/2026-10-23-p3-slice-seven.md`; `tests/test_p2_slice_seven.py` |
 
 ## 2. Next release gate (P1)
 
@@ -63,8 +65,11 @@ October ([slice one](../adr/2026-10-23-p2-slice-one.md),
 A11, A14 and B11 and delivered G5, G6 and the rules half of G8
 ([slice four](../adr/2026-10-23-p2-slice-four.md)). The fifth benchmarked the three
 remaining reviewers (G9, [slice five](../adr/2026-10-23-p2-slice-five-reviewer-benchmarks.md)).
-Still open from the list: the U-items and the model half of G8 (an opt-in
-suite that needs a provider).
+The sixth delivered the interface items
+([slice six](../adr/2026-10-23-p2-slice-six-interface.md)) and the seventh the
+P3 findings ([slice seven](../adr/2026-10-23-p3-slice-seven.md)). Still open:
+the model half of G8 (an opt-in suite that needs a provider) and the two
+owner decisions, U8 and U20.
 
 ## 4. The brief's deliverables and their status
 

@@ -41,6 +41,10 @@ import { runStore } from '../features/runs/runStore'
 import { useHashRoute } from './routing'
 import type { Route, Tab } from './routing'
 
+// The command shortcut as this platform writes it (assessment U17): the
+// Command key on Apple hardware, Control elsewhere.
+const MODIFIER_KEY = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform) ? '⌘' : 'Ctrl'
+
 interface NavItem {
   id: Tab
   label: MessageKey
@@ -85,7 +89,7 @@ const NAV_GROUPS: Array<{ id: string; items: NavItem[] }> = [
 
 const ALL_ITEMS = NAV_GROUPS.flatMap((group) => group.items)
 // Views the view-only demo leaves out: those that live on a chat session,
-// which the demo does not have, and Operations, which is administration.
+// which the demo does not have, and Administration.
 const NEEDS_SESSION: ReadonlySet<Tab> = new Set<Tab>(['chat', 'memory', 'preferences', 'operations', 'rmd'])
 const DEMO_GROUPS = NAV_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => !NEEDS_SESSION.has(item.id)) }))
 
@@ -471,7 +475,7 @@ export function App() {
           >
             <Icon name="search" size={16} />
             <span className="searchbtn__text">{t('search.button')}</span>
-            <kbd>Ctrl K</kbd>
+            <kbd>{MODIFIER_KEY} K</kbd>
           </button>
         </div>
         <div className="header__spacer" />
@@ -528,12 +532,12 @@ export function App() {
             setEvidenceContext({ packId, analysisId }); navigate({ tab: 'chat' })
           }} />)}
           {pane('overview', (
-            <OverviewView onOpenRun={openRun} onStart={startAnalysis} canStart={!demo} onApprovals={() => go('approvals')}
+            <OverviewView onOpenRun={openRun} onStart={startAnalysis} onAddDataset={() => go('datasets')} canStart={!demo} onApprovals={() => go('approvals')}
               onOpenDashboard={(id) => (id ? openDashboard(id) : go('dashboard'))} onSeeAll={() => go('runs')} />
           ))}
           {pane('assets', (
             <AssetIntelligenceView onOpenRun={openRun}
-              onUpload={demo ? undefined : () => startAnalysis({ kind: 'upload', profile: 'maintenance' })} />
+              onUpload={demo ? undefined : () => go('datasets')} />
           ))}
           {pane('datasets', (
             <DatasetsView
@@ -556,7 +560,8 @@ export function App() {
               requestError={store.requestError}
               connectionStatus={status}
               onAction={(action) => {
-                if (action === 'analyse' || action === 'report') startAnalysis({ kind: 'upload' })
+                // The assistant's upload suggestion reaches the Datasets flow too (U15).
+                if (action === 'analyse' || action === 'report') go('datasets')
                 else if (action === 'approvals') go('approvals')
                 else go('assets')
               }}

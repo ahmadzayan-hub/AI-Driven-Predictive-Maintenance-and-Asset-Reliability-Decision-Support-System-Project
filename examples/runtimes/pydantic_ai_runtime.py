@@ -66,8 +66,14 @@ class PydanticAIRuntime:
             return tools.call(name, arguments)["text"]
 
         call.__name__ = name
-        # Sequential: Pydantic AI otherwise runs a turn's tool calls concurrently, so a
-        # `recall` asked for after `remember` in the same turn could run first and miss
-        # what was just saved (an intermittent CI failure, 5 of 40 local runs).
-        return Tool.from_schema(call, name=name, description=spec["description"],
-                                json_schema=spec["inputSchema"], sequential=True)
+        # The tools share one tool box whose steps are the transcript, so
+        # two calls from one model turn must run in the order the model
+        # gave them, not concurrently (the hosted run of 23 October saw
+        # "recall" land before "remember"). Older releases have no such
+        # switch and run them in order anyway.
+        try:
+            return Tool.from_schema(call, name=name, description=spec["description"],
+                                    json_schema=spec["inputSchema"], sequential=True)
+        except TypeError:
+            return Tool.from_schema(call, name=name, description=spec["description"],
+                                    json_schema=spec["inputSchema"])

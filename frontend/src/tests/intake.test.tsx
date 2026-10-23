@@ -19,6 +19,7 @@ const upload: UploadResult = {
 beforeEach(() => {
   applyLocale('en')
   vi.spyOn(api, 'listRuns').mockResolvedValue({ runs: [] })
+  vi.spyOn(api, 'assetEvidence').mockResolvedValue({ run: null, scanned: 0, capped: false })
   vi.spyOn(api, 'listDatasets').mockResolvedValue({ datasets: [] })
   vi.spyOn(api, 'pipelines').mockResolvedValue({ stages: [], profiles: {}, default: [], problems: [] })
   vi.spyOn(api, 'createRun').mockRejectedValue(new ApiError('Test stopped after validating request'))

@@ -6,16 +6,19 @@ test('maintenance preview leads to a real upload, agents, approval gate and dash
   test.setTimeout(75_000)
   await skipOnboarding(page)
   await page.goto('/?design=maintenance')
+  // Every upload call to action reaches the one Datasets flow (U15), where
+  // the preview and the mapping live; the stored dataset is then analysed.
   await page.getByRole('link', { name: 'Upload & analyze your data', exact: true }).click()
-  await expect(page).toHaveURL(/#\/runs\?source=upload$/)
-  const start = page.getByRole('button', { name: 'Start run', exact: true })
-  await expect(start).toBeDisabled()
+  await expect(page).toHaveURL(/#\/datasets$/)
   const uploadPromise = page.waitForResponse((response) => response.url().includes('/api/datasets?') && response.request().method() === 'POST')
-  await page.getByLabel('Choose a file').setInputFiles({
+  await page.locator('input[type="file"]').setInputFiles({
     name: 'maintenance-intake.csv', mimeType: 'text/csv',
     buffer: Buffer.from('month,plant,maintenance_cost,downtime_hours\n2026-07,North,310,2\n2026-08,South,322,4\n2026-09,North,331,3\n'),
   })
   const uploaded = await (await uploadPromise).json()
+  await page.getByRole('button', { name: 'Analyse maintenance-intake.csv', exact: true }).click()
+  await expect(page).toHaveURL(/#\/runs/)
+  const start = page.getByRole('button', { name: 'Start run', exact: true })
   await expect(start).toBeEnabled()
   const createPromise = page.waitForResponse((response) => response.url().endsWith('/api/runs') && response.request().method() === 'POST')
   await start.click()

@@ -25,7 +25,7 @@ function result(text: string, isFinal: boolean) {
 function begin(language: 'en' | 'ar' = 'en') {
   const onTranscript = vi.fn(), onActiveChange = vi.fn()
   const view = render(<VoiceDictation language={language} disabled={false} onTranscript={onTranscript} onActiveChange={onActiveChange} />)
-  fireEvent.click(screen.getByRole('button', { name: 'voice.start' }))
+  fireEvent.click(screen.getByRole('button', { name: 'voice.toggle' }))
   fireEvent.click(screen.getByRole('button', { name: 'voice.allow' }))
   return { ...view, onTranscript, onActiveChange, recognition: MockRecognition.instance! }
 }
@@ -41,7 +41,7 @@ afterEach(() => {
 describe('VoiceDictation lifecycle', () => {
   it('does not request capture before consent, and waits for an actual start event', () => {
     render(<VoiceDictation language="ar" disabled={false} onTranscript={vi.fn()} />)
-    fireEvent.click(screen.getByRole('button', { name: 'voice.start' }))
+    fireEvent.click(screen.getByRole('button', { name: 'voice.toggle' }))
     expect(MockRecognition.instance).toBeUndefined()
     fireEvent.click(screen.getByRole('button', { name: 'voice.allow' }))
     expect(MockRecognition.instance!.lang).toBe('ar-AE')
@@ -64,7 +64,7 @@ describe('VoiceDictation lifecycle', () => {
   it('finalizes on stop, then allows the final transcript to be reviewed', () => {
     const { recognition, onTranscript } = begin()
     act(() => recognition.onstart?.())
-    fireEvent.click(screen.getByRole('button', { name: 'voice.stop' }))
+    fireEvent.click(screen.getByRole('button', { name: 'voice.toggle' }))
     expect(recognition.stop).toHaveBeenCalled()
     expect(screen.getByText('voice.processing')).toBeInTheDocument()
     act(() => recognition.onresult?.(result('inspect pump', true)))
@@ -73,7 +73,7 @@ describe('VoiceDictation lifecycle', () => {
   it('cancels a pending permission request and ignores its late results', () => {
     const { recognition, onTranscript } = begin()
     const late = recognition.onresult
-    fireEvent.click(screen.getByRole('button', { name: 'voice.stop' }))
+    fireEvent.click(screen.getByRole('button', { name: 'voice.toggle' }))
     act(() => late?.(result('late text', true)))
     expect(onTranscript).not.toHaveBeenCalled()
     expect(screen.getByText('voice.ready')).toBeInTheDocument()
@@ -85,7 +85,7 @@ describe('VoiceDictation lifecycle', () => {
     act(() => late?.(result('late private text', true)))
     expect(recognition.stop).toHaveBeenCalled()
     expect(onTranscript).not.toHaveBeenCalled()
-    expect(screen.getByRole('button', { name: 'voice.start' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'voice.toggle' })).toBeDisabled()
   })
   it('invalidates callbacks when changing language or unmounting', () => {
     const { recognition, onTranscript, rerender, unmount } = begin()
@@ -115,7 +115,7 @@ describe('VoiceDictation lifecycle', () => {
     delete (window as unknown as { webkitSpeechRecognition?: typeof MockRecognition }).webkitSpeechRecognition
     render(<VoiceDictation language="en" disabled={false} onTranscript={vi.fn()} />)
     expect(screen.getByText('voice.unsupported')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'voice.start' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'voice.toggle' })).toBeDisabled()
     expect(MockRecognition.instance).toBeUndefined()
   })
 })

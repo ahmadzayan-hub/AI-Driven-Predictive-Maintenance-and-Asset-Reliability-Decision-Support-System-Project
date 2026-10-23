@@ -105,12 +105,31 @@ def validate_plan(plan):
     for gate in plan.get("gates", []):
         if gate.get("type") not in KINDS:
             problems.append(f"gate {gate.get('id')}: type must be one of {', '.join(KINDS)}")
+    known = known_reviewers(plan)
     for item in plan.get("accepted", []):
         if item.get("gate") not in ids:
             problems.append(f"an acceptance names no gate: {item.get('gate')}")
         if not (item.get("by") and item.get("reason")):
             problems.append(f"accepting {item.get('gate')} needs `by` (a person) and a `reason`")
+        elif known is not None and item["by"] not in known:
+            problems.append(f"accepting {item.get('gate')}: `by` must be a known reviewer "
+                            f"({', '.join(sorted(known))}), not “{item['by']}”")
     return problems
+
+
+def known_reviewers(plan, repo=ROOT):
+    """Who may accept a gate (assessment G14): the plan's `reviewers` list
+    when it has one, otherwise the people who have committed to this
+    repository. None when neither is known, which keeps the old check."""
+    if plan.get("reviewers"):
+        return set(plan["reviewers"])
+    try:
+        out = subprocess.run(["git", "-C", str(repo), "log", "--format=%an"], capture_output=True,
+                             text=True, check=True, timeout=20).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    authors = {line.strip() for line in out.splitlines() if line.strip()}
+    return authors or None
 
 
 def decide(rounds, max_rounds):

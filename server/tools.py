@@ -22,6 +22,7 @@ import json
 
 from assistant import ACTIONS, DESTRUCTIVE, PREFERENCE_KEYS, SECTIONS, arguments_valid, reply
 from server import model_privacy
+from server import schema
 
 MAX_STEPS = 8
 MAX_STEP_TEXT = 2000
@@ -72,7 +73,10 @@ TOOLS = (
     {"name": "run_status",
      "description": "How the latest analysis is going: its state, steps done, "
                     "and whether it waits for approval.",
-     "inputSchema": _schema({})},
+     "inputSchema": _schema({
+         "run_id": {"type": "string",
+                    "description": "One analysis id, to ask about it instead of the latest."},
+     })},
     {"name": "search_knowledge",
      "description": "Search the knowledge collections for passages that answer "
                     "a question, and quote them with the section each came "
@@ -102,6 +106,8 @@ TOOLS = (
                     "not paraphrase.",
      "inputSchema": _schema({
          "section": {"type": "string", "enum": [*SECTIONS, "all"]},
+         "run_id": {"type": "string",
+                    "description": "One analysis id, to quote it instead of the latest."},
      })},
 )
 
@@ -163,6 +169,15 @@ class ToolBox:
                 return {"ok": False, "arguments": {}, "result": None,
                         "text": reply(language, "tool_bad_arguments", name=name)}
             arguments[key] = value if isinstance(value, bool) else str(value)
+        # Unknown arguments are dropped and scalars read as text, as before;
+        # what remains is held to the catalogue's inputSchema (assessment
+        # G15): a value outside an enum, or a required argument missing,
+        # is refused rather than passed on, so the schema a driver was
+        # shown and the executor cannot drift apart silently.
+        spec = next(tool for tool in TOOLS if tool["name"] == name)
+        if not schema.valid(spec["inputSchema"], arguments):
+            return {"ok": False, "arguments": arguments, "result": None,
+                    "text": reply(language, "tool_bad_arguments", name=name)}
         if not arguments_valid(name, arguments):
             return {"ok": False, "arguments": arguments, "result": None,
                     "text": reply(language, "tool_bad_arguments", name=name)}

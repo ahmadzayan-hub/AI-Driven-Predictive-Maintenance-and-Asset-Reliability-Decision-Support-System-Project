@@ -149,6 +149,9 @@ def model_cards(result):
 # The longest idempotency key a run creation accepts (B14).
 MAX_IDEMPOTENCY_KEY = 200
 
+# How many orchestration failures the engine remembers for the health detail.
+MAX_ORCHESTRATION_PROBLEMS = 20
+
 class RunEngine:
     def __init__(self, store, vault_dir, gateway, limits=None, glossary=None,
                  stages=None, profiles=None, execution_mode="client", roles=None,
@@ -157,6 +160,9 @@ class RunEngine:
             raise ValueError("AGENTIC_OS_RUN_EXECUTION must be client or worker.")
         self.execution_mode = execution_mode
         self.store = store
+        # The last reasons an orchestration note is missing (G12), shown
+        # by /api/health to a signed-in reader.
+        self.orchestration_problems = []
         # Every row id the engine makes comes from here. The public demo
         # swaps in a seeded generator while it seeds, so each serverless
         # instance builds its demo under the same ids (server/demo.py).
@@ -632,6 +638,8 @@ class RunEngine:
         self._annotate(run, task, tasks, result, ctx)
         if ctx.get("orchestration"):
             result["orchestration"] = ctx["orchestration"]
+        if ctx.get("orchestration_problem"):
+            result["orchestration_problem"] = ctx["orchestration_problem"]
         self._set_task(task["id"], "succeeded", summary=result["summary"], result=result)
 
         if task["role"] == "validator" and not result["output"]["passed"]:
@@ -687,8 +695,13 @@ class RunEngine:
             note = roles.agent_note(run["goal"], task["role"], result, language)
             if note:
                 result["agent_note"] = note
-        except Exception:
-            pass
+        except Exception as error:
+            # A model failure never fails a run, but it is not silent
+            # (assessment G12): the task result and the engine both say why.
+            problem = f"{task['role']}: {type(error).__name__}: {str(error)[:200]}"
+            result["orchestration_problem"] = problem
+            self.orchestration_problems.append(problem)
+            del self.orchestration_problems[:-MAX_ORCHESTRATION_PROBLEMS]
 
     def _consult(self, run, ctx):
         """The consultants and Hermes' brief, read by the reporter."""
@@ -702,7 +715,11 @@ class RunEngine:
             if roles is None:
                 return None
             return roles.consult(run["goal"], facts, run.get("report_language") or "en")
-        except Exception:
+        except Exception as error:
+            problem = f"consult: {type(error).__name__}: {str(error)[:200]}"
+            ctx["orchestration_problem"] = problem
+            self.orchestration_problems.append(problem)
+            del self.orchestration_problems[:-MAX_ORCHESTRATION_PROBLEMS]
             return None
 
     def _advance_custom(self, run_id, task, descriptor, ctx):
@@ -826,10 +843,12 @@ class RunEngine:
             self.store.update("approvals", approval_id,
                               {"state": "approved_once", "decided_at": _now(),
                                "decided_by": approver})
+            # The path a reader sees is relative to the vault folder
+            # (assessment B19): never the server's absolute layout.
             self.store.update("artifacts", artifact["id"],
-                              {"published_path": str(path)})
+                              {"published_path": self._relative(path)})
             self._set_task(task["id"], "succeeded",
-                           summary=(f"Published to {path}." if on_disk else
+                           summary=(f"Published to {self._relative(path)}." if on_disk else
                                     f"Published to the database store as {path}; the vault "
                                     "folder is not writable on this host."))
             self._set_run_state(run_id, "completed")
@@ -841,6 +860,17 @@ class RunEngine:
                            summary="Publishing rejected by the user; no note was written.")
             self._set_run_state(run_id, "completed")
         return self.get_run(run_id)
+
+    def _relative(self, path):
+        """A published path as the vault sees it: `Reports/<note>.md`, or
+        the `store:` form when the vault folder was not writable."""
+        text = str(path)
+        if text.startswith("store:"):
+            return text
+        try:
+            return Path(path).resolve().relative_to(Path(self.vault_dir).resolve()).as_posix()
+        except ValueError:
+            return Path(path).name
 
     def _publish(self, run_id, artifact):
         """Publish the approved report and its run log.
@@ -859,7 +889,7 @@ class RunEngine:
             "---\n"
             f"type: analytics-report\nrun: {run_id}\n"
             f"generated: {_now()}\nstatus: approved\n"
-            f"dataset: \"{run['dataset_name']}\"\n"
+            f"dataset: {json.dumps(run['dataset_name'], ensure_ascii=False)}\n"
             f"lang: {run.get('report_language') or 'en'}\n---\n\n"
         )
         report_text = frontmatter + artifact["content"] + f"\n\nRun log: [[{run_id}]]\n"

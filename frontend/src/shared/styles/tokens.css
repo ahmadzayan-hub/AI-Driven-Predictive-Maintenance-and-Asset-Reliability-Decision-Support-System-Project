@@ -78,7 +78,7 @@
 
   /* Typography */
   /* Fira Sans for text and headings, Fira Code for figures and code. Both
-     are bundled (Latin subsets, @fontsource) — never fetched from a third
+     are bundled (subsets of the @fontsource Latin files, scripts/subset_fonts.py) — never fetched from a third
      party — and fall back to the system stacks while they load. */
   --font-sans: 'Fira Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
     Roboto, 'Helvetica Neue', Arial, sans-serif;

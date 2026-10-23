@@ -184,7 +184,8 @@ export function VoiceDictation({ language, disabled, onTranscript, onActiveChang
     <div className="voice-console__row">
       <button type="button" className="voice-capture__button"
         disabled={disabled || !supported || insecure}
-        aria-label={active ? t('voice.stop') : t('voice.start')}
+        aria-label={t('voice.toggle')}
+        title={active ? t('voice.stop') : t('voice.start')}
         aria-pressed={active}
         onClick={() => {
           if (state === 'processing') cancel()

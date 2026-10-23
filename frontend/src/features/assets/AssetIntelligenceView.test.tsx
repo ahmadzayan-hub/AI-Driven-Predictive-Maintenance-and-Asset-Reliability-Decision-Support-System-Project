@@ -27,24 +27,35 @@ beforeEach(() => {
 })
 afterEach(() => { vi.restoreAllMocks(); act(() => applyLocale('en')) })
 
-it('finds railway evidence behind more than eight newer unrelated analyses', async () => {
+it('reads the one server answer for the evidence and never the run list (U10)', async () => {
   const old = railway('older-railway')
-  const newer = Array.from({ length: 10 }, (_, index) => runFixture({ id: `generic-${index}`, updated_at: '2026-10-20T00:00:00Z' }))
-  vi.spyOn(api, 'listRuns').mockResolvedValue({ runs: [...newer, old] })
-  vi.spyOn(api, 'getRun').mockImplementation(async (id) => id === old.id ? old : newer.find((run) => run.id === id)!)
+  vi.spyOn(api, 'assetEvidence').mockResolvedValue({ run: old, scanned: 11, capped: false })
+  const list = vi.spyOn(api, 'listRuns')
+  const detail = vi.spyOn(api, 'getRun')
   vi.spyOn(api, 'runKpis').mockResolvedValue(measures(old.id, 'Older railway measure'))
   render(<AssetIntelligenceView onUpload={vi.fn()} onOpenRun={vi.fn()} />)
   expect(await screen.findByText('older-railway.csv')).toBeVisible()
   expect(await screen.findByText(/Older railway measure/)).toBeVisible()
   expect(screen.queryByText('No validated railway asset analysis yet')).not.toBeInTheDocument()
-  expect(api.getRun).toHaveBeenCalledTimes(11)
+  expect(api.assetEvidence).toHaveBeenCalledTimes(1)
+  expect(list).not.toHaveBeenCalled()
+  expect(detail).not.toHaveBeenCalled()
+  // The figures say when their run was last updated (U16).
+  expect(screen.getByText('As of')).toBeVisible()
+})
+
+it('says the scan was capped when the server says so', async () => {
+  vi.spyOn(api, 'assetEvidence').mockResolvedValue({ run: null, scanned: 50, capped: true })
+  render(<AssetIntelligenceView onUpload={vi.fn()} onOpenRun={vi.fn()} />)
+  expect(await screen.findByText('No validated railway asset analysis yet')).toBeVisible()
+  expect(screen.getByText(/most recent/i)).toBeVisible()
 })
 
 it('hides the previous run measurements while a different run KPI request is pending and translates states', async () => {
   const old = railway('old'), next = railway('new')
   const pending = deferred<RunKpis>()
-  vi.spyOn(api, 'listRuns').mockResolvedValueOnce({ runs: [old] }).mockResolvedValue({ runs: [next] })
-  vi.spyOn(api, 'getRun').mockImplementation(async (id) => id === old.id ? old : next)
+  vi.spyOn(api, 'assetEvidence').mockResolvedValueOnce({ run: old, scanned: 1, capped: false })
+    .mockResolvedValue({ run: next, scanned: 1, capped: false })
   vi.spyOn(api, 'runKpis').mockImplementation((id) => id === old.id
     ? Promise.resolve(measures(old.id, 'Old measurement')) : pending.promise)
   render(<AssetIntelligenceView onUpload={vi.fn()} onOpenRun={vi.fn()} />)
@@ -62,8 +73,8 @@ it('hides the previous run measurements while a different run KPI request is pen
 it('ignores a delayed KPI response from a previous run', async () => {
   const old = railway('old'), next = railway('new')
   const pending = deferred<RunKpis>()
-  vi.spyOn(api, 'listRuns').mockResolvedValueOnce({ runs: [old] }).mockResolvedValue({ runs: [next] })
-  vi.spyOn(api, 'getRun').mockImplementation(async (id) => id === old.id ? old : next)
+  vi.spyOn(api, 'assetEvidence').mockResolvedValueOnce({ run: old, scanned: 1, capped: false })
+    .mockResolvedValue({ run: next, scanned: 1, capped: false })
   vi.spyOn(api, 'runKpis').mockImplementation((id) => id === old.id
     ? pending.promise : Promise.resolve(measures(next.id, 'Current measurement')))
   render(<AssetIntelligenceView onUpload={vi.fn()} onOpenRun={vi.fn()} />)
@@ -78,8 +89,7 @@ it('ignores a delayed KPI response from a previous run', async () => {
 it('shows measures as family tiles, keeps a verdict reason on its tile and says "no target" once, folded', async () => {
   const run = railway('tiles')
   const base = measures(run.id, 'unused').measures[0]
-  vi.spyOn(api, 'listRuns').mockResolvedValue({ runs: [run] })
-  vi.spyOn(api, 'getRun').mockResolvedValue(run)
+  vi.spyOn(api, 'assetEvidence').mockResolvedValue({ run, scanned: 1, capped: false })
   vi.spyOn(api, 'runKpis').mockResolvedValue({ ...measures(run.id, 'unused'), measures: [
     { ...base, key: 'availability', title: 'Availability', scale: 'percent', value: 97.5, family: 'reliability', population_label: 'Every observation',
       assessment: { status: 'unassessed', reason: 'No display target is configured.', reason_code: 'no_target', direction: null, source_ref: null, rule_id: null, thresholds: null } },

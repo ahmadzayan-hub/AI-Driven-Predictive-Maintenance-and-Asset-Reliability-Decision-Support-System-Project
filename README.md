@@ -623,6 +623,37 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### P3 slice seven: the minor findings — 23 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-23-p3-slice-seven.md)): signed
+driver shares with n (A16); a leave-one-out robust anomaly rule with a stated
+minimum (A17); a uniform-noise floor for clustering and two held-out seasons
+(A19); PATCH preflight tested and one CSP source (B17); public liveness with
+authenticated detail on `/api/health` (B18); relative published paths and a
+JSON-quoted frontmatter (B19); one `ConnectorError` handler and `uvicorn`
+without extras (B20); recorded orchestration failures (G12); quantity words
+and the causal lint in grounding (G13); acceptance by a known reviewer (G14);
+tool arguments held to `inputSchema` (G15); one voice toggle name, a
+platform-aware shortcut hint and a 2 px focus ring (U17). `REQUIRE_PG=1
+python scripts/verify.py --quick` against PostgreSQL 16: **1,957 Python
+tests reported, 21 skipped** (optional extras only; 23 new), brain check,
+type check, **378 frontend unit tests**; build and budget within limits.
+
+### P2 slice six: interface items, paid for by font subsets — 23 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-23-p2-slice-six-interface.md)):
+committed woff2 subsets from `scripts/subset_fonts.py`, 119.4 KB to 86.5 KB
+(U19); `GET /api/assets/evidence` and a one-call Asset Intelligence view
+(U10); the relationship table says it lists the first 100 points (U11);
+"Analyses" and "Administration" (U14); every upload call to action through
+Datasets (U15); the evidence's as-of time and an action on the empty
+dashboard picker (U16); all 21 message packs in the parity test, the export
+job in a hook, no line over 200 characters, one `hasVerdict()` (U18).
+Budgets: JS 99.0 of 100 KB first load, 245.2 of 248 KB total; CSS 10.0 of
+10.5 and 32.7 of 33.5 KB; fonts 86.5 of 100 KB. Frontend unit tests: **377
+passed** (8 new). End-to-end: the thirteen specs the slice touches, counts
+in the session log.
+
 ### P2 slice five: benchmarks and floors for the three unmeasured reviewers — 23 October 2026
 
 Behaviour change ([decision](docs/adr/2026-10-23-p2-slice-five-reviewer-benchmarks.md)):

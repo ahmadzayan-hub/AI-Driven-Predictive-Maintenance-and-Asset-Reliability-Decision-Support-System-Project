@@ -1,7 +1,7 @@
 import { definePack, usePack } from '../../i18n/pack'
 import { Icon } from '../../shared/components/Icon'
 
-const messages = definePack({
+export const decisionActionMessages = definePack({
   agents: 'Inspect agent workflow',
   agentsHelp: 'Follow handoffs, stages and the evidence behind a run',
 }, {
@@ -21,7 +21,7 @@ interface DecisionActionsProps {
 /** A factual, action-first entry point. Never displays fictional
  * asset KPIs or opens a non-existent feature. */
 export function DecisionActions({ onUpload, onDashboard, onApprovals, onAgents }: DecisionActionsProps) {
-  const { t } = usePack(messages)
+  const { t } = usePack(decisionActionMessages)
   return (
     <section className="decision-actions" aria-labelledby="decision-actions-title">
       <div className="decision-actions__intro">

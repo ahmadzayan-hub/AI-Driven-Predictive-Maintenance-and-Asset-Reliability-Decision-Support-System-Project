@@ -20,6 +20,12 @@ export function PerformanceLegend() {
 
 /** Only a supplied assessment establishes performance. Sign, magnitude and
  * metric name never establish an outcome; an absent number stays unavailable. */
+/** A tone that carries a verdict a reason can explain; "unassessed" and
+ *  "unavailable" do not (shared by the Command Centre and Asset Intelligence, U18). */
+export function hasVerdict(tone: PerformanceTone): boolean {
+  return tone === 'good' || tone === 'okay' || tone === 'bad'
+}
+
 export function performanceTone(value: number | null | undefined, assessment?: { status?: string } | null): PerformanceTone {
   if (value == null || !Number.isFinite(value)) return 'unavailable'
   const status = assessment?.status

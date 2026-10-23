@@ -4,7 +4,7 @@ import { assetMessages } from './messages'
 import { api, ApiError } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
 import { stateLabel } from '../../shared/labels'
-import { PerformanceLegend, PerformanceValue, performanceTone } from '../../shared/components/PerformanceValue'
+import { PerformanceLegend, PerformanceValue, hasVerdict, performanceTone } from '../../shared/components/PerformanceValue'
 import type { Pipelines } from '../../shared/types'
 import { loadAssetEvidence } from './assetEvidence'
 import type { AssetEvidence } from './assetEvidence'
@@ -19,7 +19,7 @@ interface Props {
 }
 
 export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
-  const { t, locale } = usePack(assetMessages)
+  const { t, locale, formatTime } = usePack(assetMessages)
   const [evidence, setEvidence] = useState<AssetEvidence | null>(null)
   const [pipelines, setPipelines] = useState<Pipelines | null>(null)
   const [kpiAnswer, setKpiAnswer] = useState<{ key: string; data: RunKpis } | null>(null)
@@ -33,16 +33,12 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
     setBusy(true)
     setError('')
     setEvidence(null)
-    Promise.all([api.pipelines(), api.listRuns()])
-      .then(async ([config, list]) => {
-        const result = await loadAssetEvidence(list.runs, api.getRun, () => !alive)
+    Promise.all([api.pipelines(), loadAssetEvidence(api.assetEvidence)])
+      .then(([config, result]) => {
         if (!alive) return
         setPipelines(config)
-        setSearchCapped(list.runs.length >= 50)
+        setSearchCapped(result.capped)
         setEvidence(result.evidence)
-        if (result.incomplete) {
-          setError(t('assets.unavailable'))
-        }
       })
       .catch((reason) => alive && setError(reason instanceof ApiError ? reason.message : t('assets.unavailable')))
       .finally(() => { if (alive) setBusy(false) })
@@ -95,6 +91,7 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
                 <div><dt>{t('assets.dataset')}</dt><dd dir="auto">{evidence.run.dataset_name}</dd></div>
                 <div><dt>{t('assets.runState')}</dt><dd>{stateLabel(t, evidence.run.state)}</dd></div>
                 <div><dt>{t('assets.stage')}</dt><dd>{stateLabel(t, evidence.screen.state)}</dd></div>
+                <div><dt>{t('assets.asOf')}</dt><dd><time dateTime={evidence.run.updated_at}>{formatTime(evidence.run.updated_at)}</time></dd></div>
               </dl>
               {/* Figures first; the screening and model notes that qualify the run follow. */}
               {kpis && kpis.measures.length ? (
@@ -106,8 +103,7 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
                       const shown = formatValue(measure, locale === 'ar' ? 'ar' : 'en')
                       const tone = performanceTone(measure.value, measure.assessment)
                       // A reason explains a verdict; "no target" is said once, below.
-                      const verdict = tone === 'good' || tone === 'okay' || tone === 'bad'
-                        || measure.assessment?.reason_code === 'target_outdated'
+                      const verdict = hasVerdict(tone) || measure.assessment?.reason_code === 'target_outdated'
                       return (
                         <li key={measure.key} data-family={measure.family ?? 'other'}>
                           <span dir="auto">{measure.title}</span>

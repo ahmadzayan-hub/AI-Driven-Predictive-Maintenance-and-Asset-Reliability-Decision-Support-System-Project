@@ -1620,11 +1620,13 @@ def diagnostic(ctx):
             claims.append(_claim(
                 ctx, "cl_driver", "finding",
                 f"Most of the movement comes from “{driver['group']}”: it accounts "
-                f"for {abs(driver['share_of_change']):.0%} of the total change of "
-                f"{total_change:,.2f}. This identifies where the change happened, "
-                "not what caused it.",
+                f"for {driver['share_of_change']:.0%} of the total change of "
+                f"{total_change:,.2f}"
+                + (" (more than the whole, because other groups moved the other way)"
+                   if driver['share_of_change'] > 1 else "")
+                + ". This identifies where the change happened, not what caused it.",
                 f"يأتي معظم التحرك من «{driver['group']}»: فهو يمثل "
-                f"{abs(driver['share_of_change']):.0%} من التغير الكلي البالغ "
+                f"{driver['share_of_change']:.0%} من التغير الكلي البالغ "
                 f"{total_change:,.2f}. وهذا يحدد أين وقع التغير، لا ما الذي "
                 "سبّبه.",
                 ["c_totalchange", "c_contrib_0", "c_share_0"]))
@@ -1653,21 +1655,26 @@ def diagnostic(ctx):
         correlation = _correlation([p[0] for p in pairs], [p[1] for p in pairs])
         if correlation is None:
             continue
-        associations.append({"column": column, "correlation": round(correlation, 4)})
+        associations.append({"column": column, "correlation": round(correlation, 4),
+                             "rows": len(pairs)})
         calcs.append({"id": f"c_assoc_{index}", "name": f"association_{column}",
                       "value": round(correlation, 4),
                       "method": f"Pearson correlation of {column} and {measure} "
                                 f"over {len(pairs)} rows"})
+        # The n a reader needs beside r is a calculation of its own (A16).
+        calcs.append({"id": f"c_assoc_n_{index}", "name": f"association_rows_{column}",
+                      "value": len(pairs),
+                      "method": f"rows with both {column} and {measure} present"})
         if abs(correlation) >= 0.5:
             claims.append(_claim(
                 ctx, f"cl_assoc_{index}", "finding",
                 f"“{column}” moves {'up' if correlation > 0 else 'down'} "
-                f"together with {measure} ({abs(correlation):.0%} of their movement "
-                "is shared). Moving together is not proof that one causes the other.",
+                f"together with {measure} (correlation {correlation:+.2f} over "
+                f"{len(pairs)} rows). Moving together is not proof that one causes the other.",
                 f"يتحرك «{column}» {'صعوداً' if correlation > 0 else 'هبوطاً'} مع "
-                f"{measure} ({abs(correlation):.0%} من حركتهما مشتركة). والتحرك "
+                f"{measure} (ارتباط {correlation:+.2f} على {len(pairs)} صفاً). والتحرك "
                 "معاً ليس دليلاً على أن أحدهما يسبب الآخر.",
-                [f"c_assoc_{index}"]))
+                [f"c_assoc_{index}", f"c_assoc_n_{index}"]))
 
     if not calcs:
         calcs.append({"id": "c_nodiag", "name": "diagnosable_structure", "value": 0,
@@ -1717,11 +1724,30 @@ def diagnostic(ctx):
                       "مضبوطة أو معرفة بالمجال لا تحملها هذه البيانات.*"))
     if contributions and contributions[0]["share_of_change"] is not None:
         driver = contributions[0]
-        headline = _say(ctx,
-                        f"The movement is concentrated in “{driver['group']}”, which "
-                        f"accounts for {abs(driver['share_of_change']):.0%} of the change.",
-                        f"يتركز التحرك في «{driver['group']}» الذي يمثل "
-                        f"{abs(driver['share_of_change']):.0%} من التغير.")
+        share = driver["share_of_change"]
+        # A share above one, or below zero, is a real thing (A16): the
+        # group moved further than the total, and others moved the other
+        # way. It is said as such rather than printed as an absolute value.
+        if 0 <= share <= 1:
+            headline = _say(ctx,
+                            f"The movement is concentrated in “{driver['group']}”, which "
+                            f"accounts for {share:.0%} of the change.",
+                            f"يتركز التحرك في «{driver['group']}» الذي يمثل "
+                            f"{share:.0%} من التغير.")
+        elif share > 1:
+            headline = _say(ctx,
+                            f"“{driver['group']}” moved further than the total "
+                            f"({share:.0%} of the change); other groups moved the other "
+                            "way and offset part of it.",
+                            f"تحرك «{driver['group']}» أكثر من الإجمالي ({share:.0%} من "
+                            "التغير)؛ وتحركت مجموعات أخرى في الاتجاه المعاكس فعوّضت جزءاً منه.")
+        else:
+            headline = _say(ctx,
+                            f"“{driver['group']}” moved against the total "
+                            f"({share:.0%} of the change), so the movement is carried by the "
+                            "other groups.",
+                            f"تحرك «{driver['group']}» عكس الإجمالي ({share:.0%} من التغير)، "
+                            "فالتحرك تحمله المجموعات الأخرى.")
         if associations and abs(associations[0]["correlation"]) >= 0.5:
             headline += _say(ctx,
                              f" It moves closely with {associations[0]['column']}, "
@@ -2858,6 +2884,23 @@ def _incomplete_period_calc(dropped):
                       f"earlier period ({dropped['most']})"}
 
 
+ANOMALY_MAD_SCALE = 1.4826   # median absolute deviation to a normal spread
+ANOMALY_Z = 3.0              # robust spreads a gap must exceed
+ANOMALY_MIN_PERIODS = 4      # the fewest periods the check judges
+ANOMALY_FLOOR = 0.05         # of the series' scale: the least spread a gap is judged against
+
+
+def _linear_fit_at(positions, values):
+    """Least squares of values on the given positions (not 0..n-1)."""
+    n = len(values)
+    if n < 2:
+        return 0.0, (values[0] if values else 0.0), 0.0
+    mx, my = statistics.fmean(positions), statistics.fmean(values)
+    sxx = sum((x - mx) ** 2 for x in positions)
+    slope = sum((x - mx) * (y - my) for x, y in zip(positions, values)) / sxx if sxx else 0.0
+    return slope, my - slope * mx, 0.0
+
+
 def anomaly(ctx):
     """Anomaly Agent — which periods do not fit the pattern?
 
@@ -2868,7 +2911,7 @@ def anomaly(ctx):
     """
     prep = ctx["preparer"]
     labels, series, dropped = _complete_periods(prep)
-    if len(series) < 4:
+    if len(series) < ANOMALY_MIN_PERIODS:
         return _result(
             "succeeded",
             _say(ctx,
@@ -2878,28 +2921,65 @@ def anomaly(ctx):
                  "اعتيادية عن التباين المعتاد."),
             output={"anomalies": [], "residual_spread": None},
             calculations=[{"id": "c_anom_periods", "name": "periods_available",
-                           "value": len(series), "method": "distinct periods"}],
+                           "value": len(series), "method": "distinct periods"},
+                          {"id": "c_anom_minimum", "name": "periods_needed",
+                           "value": ANOMALY_MIN_PERIODS,
+                           "method": "the fewest periods the check needs"}],
             claims=[_claim(ctx, "cl_anom_none", "limitation",
                            f"With {len(series)} period(s) there is no basis for "
-                           "calling any of them unusual.",
+                           f"calling any of them unusual; the check needs at least "
+                           f"{ANOMALY_MIN_PERIODS}.",
                            f"مع {len(series)} من الفترات لا يوجد أساس لوصف أي منها "
-                           "بأنها غير اعتيادية.",
-                           ["c_anom_periods"])])
+                           f"بأنها غير اعتيادية؛ ويحتاج الفحص إلى {ANOMALY_MIN_PERIODS} "
+                           "فترات على الأقل.",
+                           ["c_anom_periods", "c_anom_minimum"])])
 
+    # Each period is judged against the trend fitted on the other periods,
+    # and the spread is a robust one (1.4826 × median absolute gap), so one
+    # outlier cannot hide inside the spread it inflates (assessment A17):
+    # an obvious outlier stands out at four periods, which is the minimum.
     slope, intercept, _ = _linear_fit(series)
     residuals = [value - (intercept + slope * index)
                  for index, value in enumerate(series)]
     spread = statistics.pstdev(residuals) if len(residuals) > 1 else 0.0
-    anomalies = [
-        {"period": labels[index], "value": round(series[index], 2),
-         "expected": round(intercept + slope * index, 2),
-         "gap": round(residual, 2)}
-        for index, residual in enumerate(residuals)
-        if spread and abs(residual) > 2 * spread
-    ]
-    calcs = [{"id": "c_anom_spread", "name": "typical_gap_from_trend",
+    # One period at a time: the period furthest from the trend the others
+    # set is judged first and, if unusual, left out of the trend the next
+    # is judged against, so a large spike cannot make its neighbours look
+    # unusual. A floor on the spread (a share of the series' scale) keeps
+    # a straight history from calling rounding noise unusual.
+    floor = ANOMALY_FLOOR * statistics.fmean(abs(v) for v in series)
+    excluded, anomalies = set(), []
+    while len(series) - len(excluded) >= 3 and len(anomalies) < len(series) // 2:
+        best = None
+        for index, value in enumerate(series):
+            if index in excluded:
+                continue
+            positions = [i for i in range(len(series)) if i != index and i not in excluded]
+            others = [series[i] for i in positions]
+            slope_i, intercept_i, _ = _linear_fit_at(positions, others)
+            expected = intercept_i + slope_i * index
+            gaps = [abs(v - (intercept_i + slope_i * i)) for i, v in zip(positions, others)]
+            robust = ANOMALY_MAD_SCALE * statistics.median(gaps) if gaps else 0.0
+            robust = robust or (statistics.pstdev(gaps) if len(gaps) > 1 else 0.0)
+            robust = max(robust, floor)
+            ratio = abs(value - expected) / robust if robust else 0.0
+            if best is None or ratio > best[0]:
+                best = (ratio, index, expected)
+        if best is None or best[0] <= ANOMALY_Z:
+            break
+        ratio, index, expected = best
+        excluded.add(index)
+        anomalies.append({"period": labels[index], "value": round(series[index], 2),
+                          "expected": round(expected, 2), "gap": round(series[index] - expected, 2)})
+    anomalies.sort(key=lambda a: a["period"])
+    calcs = [{"id": "c_anom_periods", "name": "periods_available",
+              "value": len(series), "method": "distinct periods"},
+             {"id": "c_anom_spread", "name": "typical_gap_from_trend",
               "value": round(spread, 2),
-              "method": "standard deviation of the gaps between actual and trend"}]
+              "method": "standard deviation of the gaps between actual and trend"},
+             {"id": "c_anom_rule", "name": "unusual_period_rule", "value": ANOMALY_Z,
+              "method": "robust spreads a period's gap from the trend fitted on the other "
+                        "periods must exceed"}]
     if dropped:
         calcs.append(_incomplete_period_calc(dropped))
     for index, item in enumerate(anomalies[:5]):
@@ -2924,10 +3004,11 @@ def anomaly(ctx):
     else:
         claims.append(_claim(
             ctx, "cl_anom_clear", "fact",
-            "Every period sits close to the overall pattern; nothing stands "
-            "out as unusual.",
-            "كل الفترات قريبة من النمط العام، ولا شيء يبرز على أنه غير اعتيادي.",
-            ["c_anom_spread"]))
+            f"Every one of the {len(series)} periods sits close to the pattern the "
+            "others set; nothing stands out as unusual.",
+            f"كل الفترات الـ{len(series)} قريبة من النمط الذي ترسمه الفترات الأخرى، "
+            "ولا شيء يبرز على أنه غير اعتيادي.",
+            ["c_anom_spread", "c_anom_periods"]))
     if dropped:
         claims.append(_incomplete_period_claim(ctx, "cl_anom_incomplete", dropped,
                                                "the check", "الفحص"))

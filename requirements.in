@@ -8,9 +8,12 @@
 #
 # The optional web interface (server/app.py) requires:
 fastapi>=0.141
-uvicorn[standard]>=0.52
+# The plain server: the [standard] extras (uvloop, httptools, websockets,
+# watchfiles) were never imported by the application (assessment B20).
+uvicorn>=0.52
 
-# Used only by the API test suite (tests/test_api.py):
+# The model gateway's HTTP client (server/model_gateway.py) and the API
+# test suite's client:
 httpx>=0.28
 
 # Hosted-mode PostgreSQL driver (DATABASE_URL); local SQLite needs nothing:

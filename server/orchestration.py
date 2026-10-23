@@ -160,7 +160,7 @@ BUILT_IN_TEXT = {
              "Finance: confirm the cost basis and the period before quoting a money "
              "figure outside this report."),
             (("overdue", "downtime", "failure", "repeat", "backlog"),
-             "Operations: ask which assets and work orders drive these figures; a "
+             "Operations: ask which assets and work orders carry these figures; a "
              "fleet-wide rate can hide one bad site."),
             (("cause", "causal", "driver", "associated", "correlat"),
              "Causation: an association is not a cause; ask what controlled "
@@ -180,16 +180,16 @@ BUILT_IN_TEXT = {
                   "يذكره أكثر من مستشار مؤكد؛ وما يذكره مستشار واحد يحتاج إلى سبب قبل "
                   "التصرف بناءً عليه."),
         "brief_compared": ("تحقّق أولاً من: {first}. قورنت مخاطر المستشارين حسب "
-                           "النتيجة التي يسمّيها كل منهم."),
+                           "البند الذي يسمّيه كل منهم."),
         "agreed": "سمّاها أكثر من مستشار فهي مؤكدة: {findings}.",
         "single": ("سمّاها مستشار واحد فتحتاج إلى سبب قبل التصرف بناءً عليها: "
                    "{findings}."),
         "joiner": "، ",
-        "example": " نتيجة للتحقق: {fact}",
+        "example": " البند المطلوب التحقق منه: {fact}",
         "rules": [
             (("مفقود", "فجوة", "فارغ", "ناقص", "غير متاح", "غير مدعوم",
               "missing", "gap", "blank", "null", "incomplete", "unavailable", "not supported"),
-             "التغطية: تشير نتيجة إلى بيانات مفقودة أو غير مدعومة؛ تأكد من الفجوة قبل "
+             "التغطية: تشير إحدى النتائج إلى بيانات مفقودة أو غير مدعومة؛ تأكد من الفجوة قبل "
              "الاعتماد على أي معدل مبني عليها."),
             (("توقع", "تنبؤ", "خط الأساس", "خطأ", "forecast", "predict", "baseline", "error"),
              "التنبؤ: اعتبر أي توقع إرشادياً، وتأكد أنه تفوّق على خط الأساس المذكور قبل "
@@ -316,20 +316,82 @@ def built_in_brief(facts, language="en", agreed=None):
     return text["brief_compared"].format(first=facts[0]) + " " + " ".join(parts)
 
 
+# Quantity words a model can use to smuggle a figure past the digit check
+# (assessment G13): each maps to the number it states. "one in five" and
+# "two thirds" are read as the fraction they name.
+# "one", "third" and "quarter" are left out on purpose: as a pronoun, an
+# ordinal and a period they are prose, not figures ("one of them", "the
+# third stage", "this quarter"); "one in five" is still read as a fraction.
+QUANTITY_WORDS = {
+    "zero": 0, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
+    "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12, "dozen": 12, "thirteen": 13,
+    "fourteen": 14, "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18,
+    "nineteen": 19, "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60,
+    "seventy": 70, "eighty": 80, "ninety": 90, "hundred": 100, "thousand": 1000,
+    "million": 1_000_000, "half": 0.5, "halved": 0.5,
+    "double": 2, "doubled": 2, "twice": 2, "triple": 3, "tripled": 3, "threefold": 3,
+    "fourfold": 4, "tenfold": 10,
+    "ضعف": 2, "ضعفين": 2, "ثلاثة أضعاف": 3, "نصف": 0.5,
+}
+QUANTITY = re.compile(r"\b(" + "|".join(sorted(map(re.escape, QUANTITY_WORDS), key=len, reverse=True))
+                      + r")\b", re.I)
+FRACTION = re.compile(r"\b(one|two|three|four|five|six|seven|eight|nine)\s+in\s+"
+                      r"(two|three|four|five|six|seven|eight|nine|ten|twenty|hundred)\b", re.I)
+
+
 def _numbers(text):
     return {match.replace(",", "") for match in NUMBER.findall(text or "")}
 
 
+def _quantities(text):
+    """Every quantity a text states, as digits and as words, normalised to
+    a number: "doubled" and "2" are the same claim."""
+    found = set()
+    for match in _numbers(text):
+        try:
+            found.add(float(match))
+        except ValueError:
+            pass
+    for match in FRACTION.finditer(text or ""):
+        words = {"one": 1, **QUANTITY_WORDS}
+        found.add(round(words[match.group(1).lower()] / words[match.group(2).lower()], 6))
+    for match in QUANTITY.finditer(text or ""):
+        found.add(float(QUANTITY_WORDS[match.group(1).lower()]))
+    return {round(value, 6) for value in found}
+
+
+def _causal(text):
+    """Causal wording the claims lint would refuse, when the lint is
+    importable; the notes are written after the validator, so they get
+    the same lint here (G13)."""
+    try:
+        from scripts.claims_lint import causal_phrases
+    except Exception:
+        return []
+    return causal_phrases(text)
+
+
 def grounded(text, facts):
-    """The note, trimmed, if every number in it appears in the facts;
-    otherwise None. A model may phrase a figure, never produce one."""
+    """The note, trimmed, if every quantity in it appears in the facts
+    (as digits or as words) and it claims no cause; otherwise None. A
+    model may phrase a figure, never produce one."""
     if not text:
         return None
     text = text.strip()[:MAX_NOTE_CHARS]
     allowed = set()
     for fact in facts:
-        allowed |= _numbers(fact)
-    return text if _numbers(text) <= allowed else None
+        allowed |= _quantities(fact)
+    if not _quantities(text) <= allowed:
+        return None
+    # The facts are verified already; the lint judges only what the
+    # writer added around them.
+    own = text
+    for fact in sorted(facts, key=len, reverse=True):
+        if fact:
+            own = own.replace(fact, " ")
+    if _causal(own):
+        return None
+    return text
 
 
 def claim_texts(result):

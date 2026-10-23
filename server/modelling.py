@@ -470,6 +470,25 @@ def kmeans(points, k, seed=7, iterations=60):
     return assignment, centres, spread
 
 
+# A found structure must beat shapeless data's silhouette by this much (A19).
+NOISE_MARGIN = 0.05
+
+
+def _noise_silhouette(points, k, probe, seed=11):
+    """The silhouette k-means reaches on uniform noise with the same size
+    and per-feature ranges as `points`: the floor a real structure must
+    clear. Seeded, so the same table always gets the same floor."""
+    if not points:
+        return 0.0
+    rng = random.Random(seed)
+    width = len(points[0])
+    lows = [min(p[i] for p in points) for i in range(width)]
+    highs = [max(p[i] for p in points) for i in range(width)]
+    noise = [[rng.uniform(lows[i], highs[i]) for i in range(width)] for _ in points]
+    assignment, _, _ = kmeans(noise, k)
+    return silhouette([noise[i] for i in probe], [assignment[i] for i in probe])
+
+
 def silhouette(points, assignment):
     """How well separated the groups are, from -1 to 1 (Rousseeuw, 1987)."""
     groups = set(assignment)
@@ -863,7 +882,11 @@ class ClusteringModel:
             trials.append((score, k, assignment, centres, spread))
         score, k, assignment, centres, spread = max(trials, key=lambda t: (t[0], -t[1]))
         explained = 1 - spread / whole if whole else 0.0
-        found = score >= SEPARATED
+        # Structure must beat what k-means finds in shapeless data of the
+        # same size and ranges (assessment A19): uniform noise also gets a
+        # positive silhouette, so the threshold alone cannot fail it.
+        noise_score = _noise_silhouette(points, k, probe)
+        found = score >= SEPARATED and score >= noise_score + NOISE_MARGIN
         profiles = []
         for group in range(k):
             members = [r for r, a in zip(sample, assignment) if a == group]
@@ -888,6 +911,9 @@ class ClusteringModel:
                   "one group explains nothing)"),
             _calc(role, "c_improvement", "improvement_over_baseline", round(explained, 4),
                   "share of spread explained over the one-group baseline"),
+            _calc(role, "c_noise", "separation_in_shapeless_data", round(noise_score, 4),
+                  f"the same k-means on uniform noise with these ranges; a found structure "
+                  f"must beat it by {NOISE_MARGIN}"),
         ]
         claims = [_claim(
             ctx, role, "cl_fit", "calculation",
@@ -901,12 +927,14 @@ class ClusteringModel:
         if not found:
             claims.append(_claim(
                 ctx, role, "cl_weak", "limitation",
-                f"The groups overlap (separation {score:.2f}, below the 0.25 needed), so "
-                "the records do not fall into natural groups and the groups should not be "
-                "treated as segments.",
-                f"المجموعات متداخلة (فصل {score:.2f}، أقل من 0.25 المطلوب)، فالسجلات لا "
-                "تنقسم إلى مجموعات طبيعية ولا ينبغي معاملة المجموعات كشرائح.",
-                ["c_separation"]))
+                f"The groups overlap (separation {score:.2f}, against 0.25 needed and "
+                f"{noise_score:.2f} in shapeless data of the same shape), so the records do "
+                "not fall into natural groups and the groups should not be treated as "
+                "segments.",
+                f"المجموعات متداخلة (فصل {score:.2f}، مقابل 0.25 المطلوب و{noise_score:.2f} "
+                "في بيانات بلا شكل بالحجم نفسه)، فالسجلات لا تنقسم إلى مجموعات طبيعية ولا "
+                "ينبغي معاملة المجموعات كشرائح.",
+                ["c_separation", "c_noise"]))
         headline = _say(
             ctx,
             (f"The records fall into {k} groups that explain {explained:.0%} of the spread."
@@ -926,8 +954,10 @@ class ClusteringModel:
             "status": "succeeded", "summary": headline, "claims": claims,
             "calculations": calcs,
             "quality_checks": [{"name": "groups_are_separated", "passed": found,
-                                "detail": _say(ctx, f"Separation {score:.2f} (0.25 needed).",
-                                               f"الفصل {score:.2f} (المطلوب 0.25).")}],
+                                "detail": _say(ctx, f"Separation {score:.2f} (0.25 needed; "
+                                                    f"{noise_score:.2f} in shapeless data).",
+                                               f"الفصل {score:.2f} (المطلوب 0.25؛ "
+                                               f"{noise_score:.2f} في بيانات بلا شكل).")}],
             "output": {
                 "headline": headline, "fitted": True,
                 "question": _say(ctx, self.question, "هل تنقسم السجلات إلى مجموعات طبيعية؟"),
@@ -937,7 +967,8 @@ class ClusteringModel:
                     {"kind": "none"}, "separation", round(score, 4), SEPARATED,
                     "separation_needed", round(explained, 4), found,
                     {"groups": k, "share_of_spread_explained": round(explained, 4),
-                     "profiles": profiles}, ctx=ctx),
+                     "separation_in_noise": round(noise_score, 4), "profiles": profiles},
+                    ctx=ctx),
             },
         }
 
@@ -964,11 +995,17 @@ class SeasonalForecast:
         needed = 3 * season
         if len(series) < needed:
             return _thin(ctx, role, title, needed, len(series), "periods", "الفترات")
-        history, held = series[:-season], series[-season:]
-        forecast = seasonal_forecast(history, season, season)
+        # Two held-out seasons when the history allows (assessment A19):
+        # one season can agree with the model by chance; the card says
+        # how many were held.
+        held_seasons = 2 if len(series) >= 4 * season else 1
+        hold = held_seasons * season
+        history, held = series[:-hold], series[-hold:]
+        forecast = seasonal_forecast(history, season, hold)
         model_error = statistics.fmean(abs(a - f) for a, f in zip(held, forecast))
         naive = statistics.fmean(abs(a - history[-1]) for a in held)
-        last_season = statistics.fmean(abs(a - b) for a, b in zip(held, history[-season:]))
+        last_season = statistics.fmean(abs(a - history[-season:][i % season])
+                                       for i, a in enumerate(held))
         # A trend with no season is a baseline too: a season is only found
         # when it adds to what the trend alone already forecasts.
         slope, intercept, _ = analytics._linear_fit(history)
@@ -985,8 +1022,9 @@ class SeasonalForecast:
         calcs = [
             _calc(role, "c_periods", "periods", len(series), f"periods at {grain} grain"),
             _calc(role, "c_model_error", "model_average_error", round(model_error, 4),
-                  f"mean of |actual − forecast| total {measure} over the last {season} "
-                  "periods, fitted on the periods before them"),
+                  f"mean of |actual − forecast| total {measure} over the last {hold} "
+                  f"periods ({held_seasons} season(s) held out), fitted on the periods "
+                  "before them"),
             _calc(role, "c_base_error", "baseline_average_error", round(base_error, 4),
                   "the best of repeating the last period, repeating the season before, and "
                   f"the straight trend alone (here: {base_name})"),
@@ -995,10 +1033,10 @@ class SeasonalForecast:
         ]
         claims = [_claim(
             ctx, role, "cl_fit", "calculation",
-            f"Forecasting the last {season} periods from the ones before, the seasonal model "
+            f"Forecasting the last {hold} periods from the ones before, the seasonal model "
             f"is off by {model_error:,.2f} a period on average, against {base_error:,.2f} "
             f"for the better simple guess: {improvement:.0%} better.",
-            f"عند توقع آخر {season} فترات من الفترات السابقة لها، يخطئ النموذج الموسمي "
+            f"عند توقع آخر {hold} فترات من الفترات السابقة لها، يخطئ النموذج الموسمي "
             f"بمقدار {model_error:,.2f} في الفترة في المتوسط، مقابل {base_error:,.2f} لأفضل "
             f"تخمين بسيط: أفضل بنسبة {improvement:.0%}.",
             ["c_model_error", "c_base_error", "c_improvement"])]
@@ -1038,7 +1076,9 @@ class SeasonalForecast:
                 "report_markdown": _section(ctx, title, headline, calcs, lines),
                 "model_card": _card(
                     "seasonal", measure, [f"{grain} season of {season}"], len(history),
-                    season, {"kind": "last_season"}, "average_error", round(model_error, 4),
+                    hold, {"kind": "last_season" if held_seasons == 1 else "last_two_seasons",
+                           "seasons_held": held_seasons},
+                    "average_error", round(model_error, 4),
                     round(base_error, 4), base_name, round(improvement, 4), beats,
                     {"season": season, "grain": grain,
                      "forecast": [{"label": l, "value": round(v, 2)}

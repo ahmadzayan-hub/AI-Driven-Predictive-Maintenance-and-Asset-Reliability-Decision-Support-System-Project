@@ -60,7 +60,9 @@ class RequirementsParsingTestCase(unittest.TestCase):
 
     def test_extras_are_carried_because_they_change_the_tree(self):
         direct = sbom.direct_python_requirements()
-        self.assertEqual(direct["uvicorn"], {"standard"})
+        # uvicorn lost its [standard] extras on 23 October (assessment B20);
+        # pyjwt keeps [crypto], which the token verification needs.
+        self.assertEqual(direct["uvicorn"], set())
         self.assertEqual(direct["pyjwt"], {"crypto"})
 
     def test_comments_and_blank_lines_are_ignored(self):

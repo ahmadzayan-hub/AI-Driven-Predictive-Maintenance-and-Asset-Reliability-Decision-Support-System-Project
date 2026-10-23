@@ -39,6 +39,8 @@ import './dashboard.css'
 const READY_STATES = ['awaiting_approval', 'completed', 'partially_completed']
 const PAGE_SIZE = 25
 const SAMPLE = 500
+// The numeric alternative lists this many points and says so (U11).
+const TABLE_ROWS = 100
 
 interface DashboardViewProps {
   runId: string | null
@@ -81,7 +83,7 @@ function RunPicker({ onPick }: { onPick: (id: string) => void }) {
             <h2 className="panel__title" id="dash-title">{t('dash.title')}</h2>
             <p className="panel__desc">{t('dash.pick')}</p>
           </div>
-          {readOnly ? null : <a className="btn btn--primary" href="#/runs?source=upload&profile=maintenance"><Icon name="plus" size={16} />{t('dash.uploadMaintenance')}</a>}
+          {readOnly ? null : <a className="btn btn--primary" href="#/datasets"><Icon name="plus" size={16} />{t('dash.uploadMaintenance')}</a>}
         </div>
         <div className="card">
           {failed ? (
@@ -89,7 +91,10 @@ function RunPicker({ onPick }: { onPick: (id: string) => void }) {
           ) : runs === null ? (
             <div role="status" aria-label={t('dash.loading')} className="skeleton skeleton--line"><span className="visually-hidden">{t('dash.loading')}</span></div>
           ) : runs.length === 0 ? (
-            <p className="card__empty">{t('dash.none')}</p>
+            <div className="card__empty">
+              <p>{t('dash.none')}</p>
+              {readOnly ? null : <a className="btn btn--ghost" href="#/datasets"><Icon name="plus" size={16} />{t('dash.noneAction')}</a>}
+            </div>
           ) : (
             <ul className="controls__list">
               {runs.map((run) => (
@@ -653,9 +658,12 @@ function RelationshipPage({ runId, roles, state, filters, setState }: PageProps)
           title={t('dash.chart.relationship', { measure: m, other: vs })}
           chart={<Scatter points={points} label={t('dash.alt.relationship', { measure: m, other: vs, n: formatNumber(points.length) })} />}
           table={<GroupTable head={[vs, m]}
-            rows={points.slice(0, 100).map((p) => ({ label: formatNumber(p.x), cells: [formatNumber(p.y)] }))} />}
+            rows={points.slice(0, TABLE_ROWS).map((p) => ({ label: formatNumber(p.x), cells: [formatNumber(p.y)] }))} />}
         />
       )}
+      {points.length > TABLE_ROWS ? (
+        <p className="field__help">{t('dash.tableRows', { shown: formatNumber(TABLE_ROWS), n: formatNumber(points.length) })}</p>
+      ) : null}
       {sample.data ? (
         <p className="field__help">
           {sample.data.sampled
