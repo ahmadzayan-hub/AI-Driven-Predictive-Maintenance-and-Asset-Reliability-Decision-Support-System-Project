@@ -34,6 +34,12 @@ export function pickMeasures(measures: KpiMeasure[]): KpiMeasure[] {
   return chosen.slice(0, MAX_KPIS)
 }
 
+/** Literal source lead only: never synthesize, clip a sentence or drop the full text. */
+export function recommendationLead(text: string, fallback: string): string {
+  if (text.length <= 180) return text
+  return text.match(/^(.{20,180}?[.!?؟。])(?:\s|$)/u)?.[1] ?? fallback
+}
+
 /** The decision brief of the latest analysis, on one screen: what to
  *  decide, how the fleet performs, whether a model can be trusted, what is
  *  recommended, how good and fresh the data is, and what to ask before
@@ -66,6 +72,8 @@ export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCe
   const assumption = brief.findings.find((f) => f.stage === 'prescriptive' && f.kind === 'assumption')
   const quality = brief.findings.find((f) => f.stage === 'quality')
   const failedChecks = brief.evidence.find((e) => e.id === 'executive.validation.failed_checks')?.value
+  const fullRecommendation = brief.advisory?.recommendation ?? brief.headline
+  const lead = recommendationLead(fullRecommendation, t('command.action'))
   const limitations = brief.readiness.limitations
 
   return (
@@ -73,7 +81,8 @@ export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCe
       <div className="card command__hero">
         <div className="command__hero-body">
           <span className="command__eyebrow">{t('command.eyebrow')} · <span dir="auto">{run.dataset_name}</span></span>
-          <p className="command__headline" dir="auto">{brief.advisory?.recommendation ?? brief.headline}</p>
+          <p className="command__headline" dir="auto">{lead}</p>
+          {lead !== fullRecommendation && <details className="command__limits"><summary>{t('command.fullRecommendation')}</summary><p dir="auto">{fullRecommendation}</p></details>}
           <p className="command__meta">
             <span className="performance-value" data-performance={brief.readiness.status === 'ready' ? 'good' : brief.readiness.status === 'limited' ? 'okay' : 'unavailable'}>
               <span className="performance-value__status">{t(`command.readiness.${brief.readiness.status}`)}</span>

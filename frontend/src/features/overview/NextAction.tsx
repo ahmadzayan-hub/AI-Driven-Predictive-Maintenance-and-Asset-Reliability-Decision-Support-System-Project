@@ -21,7 +21,8 @@ export const journeyMessages = definePack({
   reviewAction: 'Review this report',
   uploadAction: 'Upload data',
   demo: 'Explore the sample report',
-  demoHelp: 'This workspace is read-only. Sample results do not describe your assets.',
+  demoHelp: 'Fictional data, not your assets.',
+  steps: 'Workflow steps',
   counts: 'Workspace totals',
   basis: 'Count basis',
   countBasis: 'Workspace count from {source}; source as-of unavailable. Owner unassigned; no performance target.',
@@ -45,7 +46,8 @@ export const journeyMessages = definePack({
   reviewAction: 'مراجعة هذا التقرير',
   uploadAction: 'رفع البيانات',
   demo: 'استعرض التقرير التجريبي',
-  demoHelp: 'مساحة العمل للعرض فقط. النتائج التجريبية لا تصف أصولك.',
+  demoHelp: 'بيانات افتراضية، وليست بيانات أصولك.',
+  steps: 'خطوات العمل',
   counts: 'إجماليات مساحة العمل',
   basis: 'تفسير العدد',
   countBasis: 'عدد من مساحة العمل، المصدر {source}؛ تاريخ المصدر غير متاح. المسؤول غير محدد؛ لا يوجد هدف أداء.',
@@ -80,8 +82,9 @@ export function NextAction({ runs, canStart, onUpload, onOpenRun }: {
     {run || canStart ? <button className="btn btn--primary" type="button" onClick={() => run ? onOpenRun(run.id) : onUpload()}>
       {t(run ? (waiting && canStart ? 'reviewAction' : 'view') : 'uploadAction')}
     </button> : null}
+    <details className="next-action__help"><summary>{t('steps')}</summary>
     <ol className="next-action__steps" aria-label={t('journey')}>
       {(['upload', 'quality', 'analyse', 'review'] as const).map((label, index) => <li key={label} aria-current={index === step ? 'step' : undefined}><span aria-hidden="true">{index + 1}</span>{t(label)}</li>)}
-    </ol>
+    </ol></details>
   </section>
 }

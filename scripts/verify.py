@@ -30,8 +30,8 @@ FRONTEND = ROOT / "frontend"
 DIST = FRONTEND / "dist"
 
 # The interface budget from docs/UI_PLAN.md §7, in kilobytes (1,000 bytes).
-# Scripts and styles are measured gzipped, as they are sent; fonts as woff2,
-# which is already compressed. Views load on demand (ADR 0028), so scripts
+# Scripts and styles are measured gzipped, as they are sent; fonts as original file bytes (including TTF).
+# The Dubai font decision changes only the font cap. Views load on demand (ADR 0028), so scripts
 # have three limits: what the first page load fetches (the entry module and
 # its preloads in index.html), every script together, and the largest chunk
 # fetched on demand, which is the wait for one view.
@@ -47,7 +47,7 @@ DIST = FRONTEND / "dist"
 # Fonts are the subsets scripts/subset_fonts.py writes (U19, 23 October):
 # 86 KB measured, 100 KB allowed.
 BUDGET_KB = {"js": 100, "js_total": 252, "js_chunk": 30, "css": 10.5, "css_total": 33.5,
-             "fonts": 100}
+             "fonts": 145}
 LABELS = {"js": "js first load", "js_total": "js total", "js_chunk": "largest js chunk",
           "css": "css first load", "css_total": "css total", "fonts": "fonts"}
 FIRST_LOAD = re.compile(
@@ -127,7 +127,7 @@ def measure_budget(dist, exact=False):
                 sizes["js_chunk"] = max(sizes["js_chunk"], size)
             if path.suffix == ".js":
                 sizes["js_total"] += size
-        elif path.suffix == ".woff2":
+        elif path.suffix.lower() in (".woff2", ".woff", ".ttf", ".otf"):
             sizes["fonts"] += path.stat().st_size
     if exact:
         return sizes
