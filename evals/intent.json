@@ -10,7 +10,9 @@
   "start_run",
   "run_status",
   "explain_report",
-  "chat"
+  "chat",
+  "search_knowledge",
+  "agent_scorecard"
  ],
  "dev": [
   {
@@ -1582,6 +1584,146 @@
    "text": "how often should rail grinding normally be done on curves?",
    "label": "chat",
    "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "Search the knowledge base for bearing lubrication intervals",
+   "label": "search_knowledge",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "What does the maintenance manual say about brake pad wear limits?",
+   "label": "search_knowledge",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "Look up the standard for signalling cable insulation tests",
+   "label": "search_knowledge",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "Check the procedure for isolating a traction substation",
+   "label": "search_knowledge",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "Find the guideline on escalator step chain tension",
+   "label": "search_knowledge",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "What does the handbook require for point machine inspection?",
+   "label": "search_knowledge",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "Consult the documentation about SCADA alarm acknowledgement",
+   "label": "search_knowledge",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "search the docs for the definition of mean time to restore",
+   "label": "search_knowledge",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "Query the knowledge collection on axle counter resets",
+   "label": "search_knowledge",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "ابحث في قاعدة المعرفة عن فترات تشحيم المحامل",
+   "label": "search_knowledge",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "ماذا يقول الدليل عن حدود تآكل بطانة الفرامل؟",
+   "label": "search_knowledge",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "راجع الإجراء الخاص بعزل محطة الجر الفرعية",
+   "label": "search_knowledge",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "ماذا تقول المواصفة حول اختبار عزل كابلات الإشارات؟",
+   "label": "search_knowledge",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "ابحث في الوثائق عن تعريف متوسط زمن الاستعادة",
+   "label": "search_knowledge",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "Show me the agent scorecard",
+   "label": "agent_scorecard",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "How accurate are the agents?",
+   "label": "agent_scorecard",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "What is the recall of the jargon detector?",
+   "label": "agent_scorecard",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "Give me the classifier scorecard for intent",
+   "label": "agent_scorecard",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "scorecard",
+   "label": "agent_scorecard",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "Show the evaluation recall and precision for the causal lint",
+   "label": "agent_scorecard",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "How well do the detectors score on the holdout?",
+   "label": "agent_scorecard",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "Print the agents' confusion matrix for personal_data",
+   "label": "agent_scorecard",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "Are the agents above their floors?",
+   "label": "agent_scorecard",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "أرني بطاقة الأداء للوكلاء",
+   "label": "agent_scorecard",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "ما مدى دقة الوكلاء؟",
+   "label": "agent_scorecard",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "كم دقة المصنّف الخاص بالنوايا؟",
+   "label": "agent_scorecard",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "اعرض سجل الأداء",
+   "label": "agent_scorecard",
+   "source": "slice four, 23 October 2026 (G8)"
+  },
+  {
+   "text": "بطاقة التقييم للمصنفات من فضلك",
+   "label": "agent_scorecard",
+   "source": "slice four, 23 October 2026 (G8)"
   }
  ],
  "holdout": [
@@ -1884,6 +2026,66 @@
    "text": "عامل إيه؟ يومك كان مزحوم ولا إيه؟",
    "label": "chat",
    "source": "blind v4, written by an independent agent from the label definitions only"
+  },
+  {
+   "text": "Can you look up what the standard says about rail grinding frequency?",
+   "label": "search_knowledge",
+   "source": "slice four, 23 October 2026 (G8), written before the rules were run"
+  },
+  {
+   "text": "search knowledge base: door obstruction detection test",
+   "label": "search_knowledge",
+   "source": "slice four, 23 October 2026 (G8), written before the rules were run"
+  },
+  {
+   "text": "What do the procedures require for a hot axle box alarm?",
+   "label": "search_knowledge",
+   "source": "slice four, 23 October 2026 (G8), written before the rules were run"
+  },
+  {
+   "text": "Find in the manual the torque for pantograph carbon strip bolts",
+   "label": "search_knowledge",
+   "source": "slice four, 23 October 2026 (G8), written before the rules were run"
+  },
+  {
+   "text": "ابحث في الدليل عن تردد تجليخ القضبان",
+   "label": "search_knowledge",
+   "source": "slice four, 23 October 2026 (G8), written before the rules were run"
+  },
+  {
+   "text": "ماذا تقول الإجراءات بشأن إنذار علبة المحور الساخنة؟",
+   "label": "search_knowledge",
+   "source": "slice four, 23 October 2026 (G8), written before the rules were run"
+  },
+  {
+   "text": "Where do the agents stand on recall right now?",
+   "label": "agent_scorecard",
+   "source": "slice four, 23 October 2026 (G8), written before the rules were run"
+  },
+  {
+   "text": "agent scorecard for the standards suite",
+   "label": "agent_scorecard",
+   "source": "slice four, 23 October 2026 (G8), written before the rules were run"
+  },
+  {
+   "text": "How good is the assistant at understanding intents?",
+   "label": "agent_scorecard",
+   "source": "slice four, 23 October 2026 (G8), written before the rules were run"
+  },
+  {
+   "text": "Show me the eval floors",
+   "label": "agent_scorecard",
+   "source": "slice four, 23 October 2026 (G8), written before the rules were run"
+  },
+  {
+   "text": "ما مدى دقة المساعد في فهم النوايا؟",
+   "label": "agent_scorecard",
+   "source": "slice four, 23 October 2026 (G8), written before the rules were run"
+  },
+  {
+   "text": "أرني بطاقة النتائج للوكيل",
+   "label": "agent_scorecard",
+   "source": "slice four, 23 October 2026 (G8), written before the rules were run"
   }
  ],
  "holdout_v1": [

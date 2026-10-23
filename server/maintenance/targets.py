@@ -304,7 +304,7 @@ class MaintenanceRisk:
         cards, checks, verdicts = [], [], []
         for target in self.targets:
             card, target_claims, target_calcs, check = self._evaluate(
-                ctx, target, rows, columns, usable, date, numeric)
+                ctx, target, rows, columns, usable, date, numeric, excluded)
             cards.append(card)
             claims += target_claims
             calculations += target_calcs
@@ -329,7 +329,7 @@ class MaintenanceRisk:
         }
 
     # -- one target -----------------------------------------------------
-    def _evaluate(self, ctx, target, rows, columns, usable, date, numeric):
+    def _evaluate(self, ctx, target, rows, columns, usable, date, numeric, excluded=None):
         prefix, key = self.role, target.key
         missing = [c for c in target.needs if c not in columns]
         if missing:
@@ -458,7 +458,8 @@ class MaintenanceRisk:
              "baseline_best_rule": round(rule_score, 4),
              "baseline_rule_column": rule_column,
              "train_records_unmeasured": len(train_rows) - len(train_cohort),
-             "test_records_unmeasured": len(test_rows) - len(test_cohort)})
+             "test_records_unmeasured": len(test_rows) - len(test_cohort)}, ctx=ctx, window=modelling._window(train_rows, date),
+            excluded=dict(excluded or {}))
 
         defining = [c for c in target.defines_label
                     if any(c == name or name.startswith(f"{c} =") for name in names)]

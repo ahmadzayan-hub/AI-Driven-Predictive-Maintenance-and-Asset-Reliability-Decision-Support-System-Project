@@ -5,6 +5,8 @@ tags: [governance, agents]
 status: active
 updated: 2026-10-23
 review_every_days: 60
+sources: [docs/OBSIDIAN_INTEGRATION.md, server/runs.py, docs/adr/2026-10-22-release-gate-slice-two.md, docs/adr/2026-10-22-release-gate-slice-three.md]
+
 sources: [docs/OBSIDIAN_INTEGRATION.md, server/runs.py, docs/adr/2026-10-23-database-publication-target.md, docs/implementation/PLATFORM_RELEASE.md]
 ---
 
@@ -14,7 +16,7 @@ A report is published only after a person approves it. The approval is bound to 
 
 On approval, the run writes the report, with escaped provenance frontmatter, and its run log. Local `vault` mode keeps physical Obsidian notes as well as SQL copies. Serverless `database` mode writes SQL notes with the approval and run state in one transaction, without filesystem access; existing authorized routes retrieve them. Only confirmed state and a returned path establish publication. Physical local writes are not an atomic filesystem transaction. Runtime notes hold user data and stay separate from this [[Second brain]], which is curated project knowledge committed to the repository.
 
-The gate is the product's version of a rule in [[Soul]]: people approve consequential actions.
+The gate is the product's version of a rule in [[Soul]]: people approve consequential actions. Since 22 October 2026 the approver must open the exact report and say they read it before approving, and the gate completes the run's decision record with who decided, what and when; no stage writes that part.
 
 ## Related
 

@@ -14,7 +14,23 @@ engine never sees a driver type.
 
 import hashlib
 import threading
+import time
 from contextlib import contextmanager
+import logging
+import sqlite3
+from datetime import datetime, timezone
+
+
+LOG = logging.getLogger("agentic.storage")
+
+
+def is_database_error(error):
+    """True for an error raised by the database driver (sqlite3 or psycopg),
+    the kind a caller may answer with 503 rather than 500 (B9)."""
+    if isinstance(error, sqlite3.Error):
+        return True
+    module = type(error).__module__ or ""
+    return module.startswith("psycopg")
 
 from server.rmd_schema import RMD_RESTORE_ORDER, RMD_SCHEMA, RMD_TABLES
 
@@ -22,6 +38,11 @@ from server.rmd_schema import RMD_RESTORE_ORDER, RMD_SCHEMA, RMD_TABLES
 # test teardown all derive from this, so adding a table cannot leave one
 # of them stale (a bug that has already bitten once).
 TABLES = (
+    # Which migration pass this database has had (B12); in backups so a
+    # restored database carries its version.
+    "schema_migrations",
+    "rate_windows",
+    "model_calls_daily",
     "runs",
     "tasks",
     "approvals",
@@ -38,6 +59,9 @@ TABLES = (
 
 # Restore must insert parents before children.
 RESTORE_ORDER = (
+    "schema_migrations",
+    "rate_windows",
+    "model_calls_daily",
     "datasets",
     "runs",
     "kpi_policies",
@@ -51,6 +75,9 @@ RESTORE_ORDER = (
     "organizations", "organization_members", "operation_sites", "operation_assets",
     "work_orders", "operation_audit", "operation_requests", "worker_heartbeats", "reliability_trials",
 ) + RMD_RESTORE_ORDER
+
+# Bump when _migrate gains a step; a database below it gets the pass.
+SCHEMA_VERSION = 1
 
 SCHEMA_STATEMENTS = [
     """CREATE TABLE IF NOT EXISTS organizations (
@@ -87,16 +114,33 @@ SCHEMA_STATEMENTS = [
       actor TEXT NOT NULL, request_key TEXT NOT NULL, payload_hash TEXT NOT NULL,
       response_json TEXT NOT NULL, created_at TEXT NOT NULL,
       UNIQUE(org_id, actor, request_key))""",
+    # A store-backed token window per caller (B6), shared by every instance.
+    """CREATE TABLE IF NOT EXISTS rate_windows (
+      key TEXT NOT NULL, window_start INTEGER NOT NULL, count INTEGER NOT NULL,
+      PRIMARY KEY (key, window_start))""",
+    # Model calls per owner per UTC day (B6): the tenant's model budget.
+    """CREATE TABLE IF NOT EXISTS model_calls_daily (
+      owner TEXT NOT NULL, day TEXT NOT NULL, count INTEGER NOT NULL,
+      PRIMARY KEY (owner, day))""",
+    # Which migration pass this database has had (B12); read at start-up.
+    """CREATE TABLE IF NOT EXISTS schema_migrations (
+      version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)""",
     """CREATE TABLE IF NOT EXISTS worker_heartbeats (
       id TEXT PRIMARY KEY, seen_at TEXT NOT NULL, state TEXT NOT NULL)""",
     """CREATE TABLE IF NOT EXISTS reliability_trials (
       id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
       created_by TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
       revision INTEGER NOT NULL, protocol_json TEXT NOT NULL, predictions_json TEXT NOT NULL)""",
+    # The columns after `error` arrived by migration over time; a fresh
+    # database gets them here, and _migrate adds them to older ones (B12).
     """CREATE TABLE IF NOT EXISTS runs (
       id TEXT PRIMARY KEY, goal TEXT NOT NULL, dataset_name TEXT NOT NULL,
       dataset_text TEXT NOT NULL, state TEXT NOT NULL,
-      created_at TEXT NOT NULL, updated_at TEXT NOT NULL, error TEXT)""",
+      created_at TEXT NOT NULL, updated_at TEXT NOT NULL, error TEXT,
+      owner TEXT, dataset_id TEXT, lease_owner TEXT, lease_expires_at TEXT,
+      report_language TEXT, mapping_json TEXT, joins_json TEXT,
+      connector_id TEXT, assumptions_json TEXT, idempotency_key TEXT,
+      request_hash TEXT, paused INTEGER)""",
     """CREATE TABLE IF NOT EXISTS tasks (
       id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(id),
       idx INTEGER NOT NULL, role TEXT NOT NULL, title TEXT NOT NULL,
@@ -113,7 +157,7 @@ SCHEMA_STATEMENTS = [
       action TEXT NOT NULL, target TEXT NOT NULL, risk TEXT NOT NULL,
       impact TEXT NOT NULL, reversibility TEXT NOT NULL,
       content_hash TEXT NOT NULL, state TEXT NOT NULL,
-      created_at TEXT NOT NULL, decided_at TEXT)""",
+      created_at TEXT NOT NULL, decided_at TEXT, decided_by TEXT)""",
     """CREATE TABLE IF NOT EXISTS artifacts (
       id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(id),
       name TEXT NOT NULL, kind TEXT NOT NULL, version INTEGER NOT NULL,
@@ -122,7 +166,7 @@ SCHEMA_STATEMENTS = [
       id TEXT PRIMARY KEY, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
       ended INTEGER NOT NULL, preferences_json TEXT NOT NULL,
       history_json TEXT NOT NULL, transcript_json TEXT NOT NULL,
-      next_entry_id INTEGER NOT NULL)""",
+      next_entry_id INTEGER NOT NULL, owner TEXT)""",
     # Memory is per owner. The composite key matters as much as the
     # column: keys are handed out per owner, so the first thing two
     # tenants save is "memory_1" for both, and a single-column primary
@@ -139,7 +183,9 @@ SCHEMA_STATEMENTS = [
     """CREATE TABLE IF NOT EXISTS datasets (
       id TEXT PRIMARY KEY, sha256 TEXT NOT NULL, name TEXT NOT NULL,
       content TEXT NOT NULL, byte_size INTEGER NOT NULL,
-      owner TEXT NOT NULL, created_at TEXT NOT NULL)""",
+      owner TEXT NOT NULL, created_at TEXT NOT NULL,
+      source_format TEXT, row_count INTEGER, column_count INTEGER,
+      mapping_json TEXT, mapping_updated_at TEXT)""",
     # Live data (ADR 0034): an owner's saved source, what its last
     # refresh found, when the next one is due, and the worker's lease.
     """CREATE TABLE IF NOT EXISTS connectors (
@@ -150,7 +196,7 @@ SCHEMA_STATEMENTS = [
       last_status TEXT, last_error TEXT, last_checked_at TEXT,
       last_dataset_id TEXT, last_sha256 TEXT, last_run_id TEXT,
       next_due_at TEXT, lease_owner TEXT, lease_expires_at TEXT,
-      created_at TEXT NOT NULL, updated_at TEXT NOT NULL)""",
+      created_at TEXT NOT NULL, updated_at TEXT NOT NULL, credential_id TEXT)""",
 ] + RMD_SCHEMA
 
 
@@ -265,24 +311,52 @@ class SqlStore:
                 cursor.close()
 
     def _create_schema(self):
-        for statement in SCHEMA_STATEMENTS:
-            if statement not in RMD_SCHEMA:
-                self._exec(statement)
-        from server.rmd_schema import ensure_schema
-        ensure_schema(self)
-        self._migrate()
+        """Create what is missing and migrate what is old, once.
+
+        The migrations are recorded in `schema_migrations` (assessment
+        B12): a database already at SCHEMA_VERSION skips the ALTER TABLE
+        pass on every later start, and on PostgreSQL the whole pass runs
+        under an advisory lock so two cold-starting instances do not race
+        on the same DDL."""
+        self._lock_schema()
+        try:
+            for statement in SCHEMA_STATEMENTS:
+                if statement not in RMD_SCHEMA:
+                    self._exec(statement)
+            # The evidence tables (RMD) carry their own guard, which also
+            # revokes Supabase's default grants on PostgreSQL.
+            from server.rmd_schema import ensure_schema
+            ensure_schema(self)
+            if self._schema_version() < SCHEMA_VERSION:
+                self._migrate()
+                self._exec("INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)",
+                           (SCHEMA_VERSION, datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")))
+            # After the pass: an older database only now has both columns.
+            self._exec("CREATE UNIQUE INDEX IF NOT EXISTS runs_idempotency "
+                       "ON runs (owner, idempotency_key)")
+        finally:
+            self._unlock_schema()
+
+    def _schema_version(self):
+        rows = self._exec("SELECT MAX(version) AS version FROM schema_migrations")
+        return int(rows[0]["version"] or 0) if rows else 0
+
+    def _lock_schema(self):
+        """SQLite serialises writers itself; PostgreSQL overrides this."""
+
+    def _unlock_schema(self):
+        pass
 
     def _migrate(self):
         """Additive migrations for databases created by earlier versions.
 
-        ADD COLUMN errors when the column already exists in both dialects,
-        which makes this safely repeatable on every startup."""
+        Each column is added only when the catalogue says it is missing, so
+        the pass is repeatable and quiet: no expected error reaches the
+        database log (B9). A fresh database already has every column from
+        the base statements and gets nothing here."""
         for table in ("runs", "sessions"):
-            try:
+            if not self._has_column(table, "owner"):
                 self._exec(f"ALTER TABLE {table} ADD COLUMN owner TEXT")
-            except Exception:
-                self._rollback()
-            else:
                 # Rows written before ownership existed belong to the
                 # local owner, matching pre-auth behavior.
                 self._exec(
@@ -299,41 +373,33 @@ class SqlStore:
         for column in ("dataset_id", "lease_owner", "lease_expires_at",
                        "report_language", "mapping_json", "joins_json",
                        "connector_id", "assumptions_json", "idempotency_key", "request_hash"):
-            try:
+            if not self._has_column("runs", column):
                 self._exec(f"ALTER TABLE runs ADD COLUMN {column} TEXT")
-            except Exception:
-                self._rollback()
+        # Claim queries filter on role and state (platform contract, 23 Oct 2026). The unique
+        # idempotency index is created once, after the whole pass, above.
         self._exec("CREATE INDEX IF NOT EXISTS tasks_role_state_run ON tasks (role, state, run_id)")
-        try:
-            self._exec("CREATE UNIQUE INDEX IF NOT EXISTS runs_idempotency "
-                       "ON runs (owner, idempotency_key)")
-        except Exception:
-            self._rollback()
-        try:
-            # decided_by: the approver's subject, written by the gate (A13).
+        # decided_by: the approver's subject, written by the gate (A13).
+        if not self._has_column("approvals", "decided_by"):
             self._exec("ALTER TABLE approvals ADD COLUMN decided_by TEXT")
-        except Exception:
-            self._rollback()
-        try:
-            # NULL means "never paused", which reads as not paused.
+        # NULL means "never paused", which reads as not paused.
+        if not self._has_column("runs", "paused"):
             self._exec("ALTER TABLE runs ADD COLUMN paused INTEGER")
-        except Exception:
-            self._rollback()
         # What a dataset is (ADR 0024). NULL for rows stored before the
         # dataset API, until the same data is stored again.
         # The owner's column mapping (ADR 0025), and the copy a run takes.
         for column, kind in (("source_format", "TEXT"), ("row_count", "INTEGER"),
                              ("column_count", "INTEGER"), ("mapping_json", "TEXT"),
                              ("mapping_updated_at", "TEXT")):
-            try:
+            if not self._has_column("datasets", column):
                 self._exec(f"ALTER TABLE datasets ADD COLUMN {column} {kind}")
-            except Exception:
-                self._rollback()
         self._migrate_memory_owner()
-        try:
+        if not self._has_column("connectors", "credential_id"):
             self._exec("ALTER TABLE connectors ADD COLUMN credential_id TEXT")
-        except Exception:
-            self._rollback()
+
+    def _has_column(self, table, column):
+        """Whether the live table has the column, from the catalogue."""
+        rows = self._exec("PRAGMA table_info(" + table + ")")
+        return any(row["name"] == column for row in rows)
 
     def upsert_worker_heartbeat(self, worker_id, seen_at, state):
         with self.atomic("worker-heartbeats"):
@@ -361,11 +427,8 @@ class SqlStore:
         one: a database written before ownership existed was written by
         a single-user install.
         """
-        try:
-            self._exec("SELECT owner FROM memory_kv LIMIT 1")
+        if self._has_column("memory_kv", "owner"):
             return  # already migrated
-        except Exception:
-            self._rollback()
         try:
             self._exec("ALTER TABLE memory_kv RENAME TO memory_kv_pre_owner")
             for statement in SCHEMA_STATEMENTS:
@@ -411,6 +474,42 @@ class SqlStore:
         rows = self._exec("SELECT * FROM runs WHERE owner = ? AND idempotency_key = ? LIMIT 1",
                           (owner, idempotency_key))
         return rows[0] if rows else None
+
+
+    def rate_hit(self, key, window_start, keep_from):
+        """Count one request in the caller's window and return the window's
+        count; windows older than `keep_from` are dropped as they are seen
+        (B6). One atomic read-modify-write per request."""
+        with self.atomic("rate:" + key):
+            rows = self._exec("SELECT count FROM rate_windows WHERE key = ? AND window_start = ?",
+                              (key, window_start))
+            count = (rows[0]["count"] if rows else 0) + 1
+            if rows:
+                self._exec("UPDATE rate_windows SET count = ? WHERE key = ? AND window_start = ?",
+                           (count, key, window_start))
+            else:
+                self._exec("INSERT INTO rate_windows (key, window_start, count) VALUES (?, ?, ?)",
+                           (key, window_start, count))
+                self._exec("DELETE FROM rate_windows WHERE key = ? AND window_start < ?",
+                           (key, keep_from))
+            return count
+
+    def model_calls_today(self, owner, day):
+        rows = self._exec("SELECT count FROM model_calls_daily WHERE owner = ? AND day = ?",
+                          (owner, day))
+        return rows[0]["count"] if rows else 0
+
+    def count_model_call(self, owner, day):
+        """One more model call for the owner today; returns the new count."""
+        with self.atomic("model-calls:" + owner):
+            count = self.model_calls_today(owner, day) + 1
+            if count == 1:
+                self._exec("INSERT INTO model_calls_daily (owner, day, count) VALUES (?, ?, 1)",
+                           (owner, day))
+            else:
+                self._exec("UPDATE model_calls_daily SET count = ? WHERE owner = ? AND day = ?",
+                           (count, owner, day))
+            return count
 
     def list_runs(self, owner=None, limit=50, state=None):
         """The newest `limit` runs, or every run in one `state` up to a
@@ -817,7 +916,12 @@ class DbMemoryBackend:
     def load(self):
         try:
             return self._store.memory_load(self._owner)
-        except Exception:
+        except Exception as error:
+            # Only a database outage reads as an empty memory, and it is
+            # logged; any other error is a bug and surfaces (B9).
+            if not is_database_error(error):
+                raise
+            LOG.warning("memory load failed for an owner: %s", type(error).__name__)
             return {}
 
     def save(self, payload):
@@ -867,8 +971,36 @@ class SQLiteStore(SqlStore):
 
 class PostgresStore(SqlStore):
     placeholder = "%s"
+    # One lock id for the schema pass, shared by every instance (B12).
+    SCHEMA_LOCK = 727001
+
+    def _has_column(self, table, column):
+        rows = self._exec("SELECT 1 AS present FROM information_schema.columns "
+                          "WHERE table_schema = current_schema() AND table_name = ? "
+                          "AND column_name = ?", (table, column))
+        return bool(rows)
+
+    def _lock_schema(self):
+        self._exec("SELECT pg_advisory_lock(?)", (self.SCHEMA_LOCK,))
+
+    def _unlock_schema(self):
+        try:
+            self._exec("SELECT pg_advisory_unlock(?)", (self.SCHEMA_LOCK,))
+        except Exception:
+            self._rollback()
 
     def __init__(self, database_url):
+        # Each thread owns a connection, a lock and a transaction depth
+        # (assessment B11): a request thread's read never queues behind
+        # another thread's transaction, and a transaction's statements
+        # all run on the connection that began it. The connections are
+        # tracked so close() releases every one of them.
+        self._local = threading.local()
+        self._pool_lock = threading.Lock()
+        self._pool_available = threading.Condition(self._pool_lock)
+        self._connections = []
+        self._released = []
+        self._opening = 0
         super().__init__()
         import psycopg2  # lazy: only hosted mode needs the driver
 
@@ -877,13 +1009,129 @@ class PostgresStore(SqlStore):
         self._conn = self._connect()
         self._create_schema()
 
-    def _connect(self):
-        conn = self._psycopg2.connect(self._database_url, connect_timeout=10)
-        conn.autocommit = True
+    @property
+    def _conn(self):
+        conn = getattr(self._local, "conn", None)
+        if conn is None:
+            conn = self._connect()
+            self._local.conn = conn
         return conn
+
+    @_conn.setter
+    def _conn(self, conn):
+        self._local.conn = conn
+
+    @property
+    def _operation_lock(self):
+        lock = getattr(self._local, "lock", None)
+        if lock is None:
+            lock = self._local.lock = threading.RLock()
+        return lock
+
+    @_operation_lock.setter
+    def _operation_lock(self, lock):
+        self._local.lock = lock
+
+    @property
+    def _transaction_depth(self):
+        return getattr(self._local, "depth", 0)
+
+    @_transaction_depth.setter
+    def _transaction_depth(self, depth):
+        self._local.depth = depth
+
+    def open_connections(self):
+        """How many connections this store holds, for tests and health."""
+        with self._pool_lock:
+            self._connections = [c for c in self._connections if not c.closed]
+            return len(self._connections)
+
+    # The most connections one process holds (B11): the serverless
+    # function and the worker each stay well under a pooler's budget.
+    # A thread that needs a connection past the bound waits for one to
+    # be released rather than opening another.
+    MAX_CONNECTIONS = 20
+
+    # How long a thread waits for a released connection at the bound
+    # before the request fails rather than hangs.
+    POOL_WAIT_SECONDS = 30
+
+    def _connect(self):
+        with self._pool_available:
+            deadline = time.monotonic() + self.POOL_WAIT_SECONDS
+            while True:
+                self._connections = [c for c in self._connections if not c.closed]
+                idle = self._idle_connection()
+                if idle is not None:
+                    return idle
+                if len(self._connections) + self._opening < self.MAX_CONNECTIONS:
+                    self._opening += 1
+                    break
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise self._psycopg2.OperationalError(
+                        f"no database connection free within {self.POOL_WAIT_SECONDS}s "
+                        f"(bound {self.MAX_CONNECTIONS} per process)")
+                self._pool_available.wait(remaining)
+        try:
+            conn = self._psycopg2.connect(self._database_url, connect_timeout=10)
+            conn.autocommit = True
+        finally:
+            with self._pool_available:
+                self._opening -= 1
+        with self._pool_available:
+            self._connections.append(conn)
+        return conn
+
+    def _idle_connection(self):
+        """A connection whose thread has finished with it, or None.
+
+        Threads record their connection on exit of every statement, so a
+        pool at its bound hands a finished thread's connection to the
+        next thread. Called with the pool lock held."""
+        while self._released:
+            conn = self._released.pop()
+            if not conn.closed:
+                return conn
+        return None
+
+    def _release(self):
+        """Hand this thread's connection back once no transaction is open.
+
+        Every statement outside a transaction returns its connection to
+        the pool, so an idle request thread never holds one: the bound
+        counts connections in use, not threads that once ran a statement.
+        A transaction keeps its connection until it commits or rolls back."""
+        conn = getattr(self._local, "conn", None)
+        if conn is None or self._transaction_depth or getattr(self._local, "pinned", False):
+            return
+        with self._pool_available:
+            if conn not in self._released:
+                self._released.append(conn)
+            self._local.conn = None
+            self._pool_available.notify()
+
+    def close(self):
+        """Release every thread's connection; the next statement on any
+        thread opens a fresh one."""
+        with self._pool_available:
+            connections, self._connections = self._connections, []
+            self._released = []
+            self._pool_available.notify_all()
+        for conn in connections:
+            try:
+                conn.close()
+            except Exception:
+                pass
+        self._local.conn = None
 
     def _begin_transaction(self):
         # Reconnection is safe before the transaction has acquired any state.
+        # The connection is pinned to this thread before BEGIN so the
+        # statement's release keeps it for the whole transaction; the depth
+        # stays 0 until BEGIN has run, so a dead connection is still
+        # replaced here rather than failing the operation.
+        self._local.pinned = True
         self._exec("BEGIN")
 
     def _lock_transaction(self, key):
@@ -922,15 +1170,32 @@ class PostgresStore(SqlStore):
                 return statement(sql, params)
 
     def _exec(self, sql, params=()):
-        return self._retrying(super()._exec, sql, params)
+        try:
+            return self._retrying(super()._exec, sql, params)
+        finally:
+            self._release()
 
     def _exec_rowcount(self, sql, params=()):
         # The lease statements run through here, which is to say the
         # worker's entire job does.
-        return self._retrying(super()._exec_rowcount, sql, params)
+        try:
+            return self._retrying(super()._exec_rowcount, sql, params)
+        finally:
+            self._release()
 
     def _commit(self):
         pass  # autocommit
+
+    def _finish_transaction(self, statement):
+        try:
+            super()._finish_transaction(statement)
+        finally:
+            # atomic() resets the depth after this; the connection goes
+            # back to the pool on the next statement's release, or here
+            # when none follows.
+            self._local.depth = 0
+            self._local.pinned = False
+            self._release()
 
     def _table_columns(self, table):
         rows = self._exec(

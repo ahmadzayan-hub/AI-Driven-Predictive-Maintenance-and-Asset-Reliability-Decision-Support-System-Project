@@ -24,12 +24,15 @@ from datetime import datetime, timedelta, timezone
 # not to ration ordinary use. An operator lowers them per deployment.
 DEFAULTS = {
     "runs_per_day": 200,
+    # Model calls (every provider attempt) per owner per UTC day (B6).
+    "model_calls_per_day": 500,
     "datasets": 100,
     "dataset_bytes": 50_000_000,   # 50 MB across all of a tenant's uploads
 }
 
 ENV_KEYS = {
     "runs_per_day": "AGENTIC_OS_QUOTA_RUNS_PER_DAY",
+    "model_calls_per_day": "AGENTIC_OS_QUOTA_MODEL_CALLS_PER_DAY",
     "datasets": "AGENTIC_OS_QUOTA_DATASETS",
     "dataset_bytes": "AGENTIC_OS_QUOTA_DATASET_BYTES",
 }
@@ -103,8 +106,14 @@ def usage(store, owner, limits, now=None):
         # and the tokens providers report are counted per process in the
         # gateway's ledger (GET /api/health, "model_calls"), not per
         # tenant: a per-tenant token budget is still out of scope.
+        "model_calls": {
+            "used": store.model_calls_today(owner, _day_start(now)[:10]),
+            "limit": limits["model_calls_per_day"],
+            "remaining": max(0, limits["model_calls_per_day"]
+                             - store.model_calls_today(owner, _day_start(now)[:10])),
+        },
         "not_tracked": ["model tokens per tenant", "function execution time", "currency"],
-        "tracked_per_process": ["model calls", "model latency", "model tokens where reported"],
+        "tracked_per_process": ["model latency", "model tokens where reported"],
     }
 
 
@@ -135,3 +144,29 @@ def check_dataset(store, owner, limits, incoming_bytes):
             f"Storage limit reached: this upload would take you to "
             f"{projected / 1_000_000:.1f} MB of a {limits['dataset_bytes'] / 1_000_000:.0f} MB "
             "allowance. Re-run an existing dataset, or remove one you no longer need.")
+
+
+class ModelBudget:
+    """The gateway's budget hook (B6): a provider attempt is allowed while
+    the owner's model calls today are under the limit, and every attempt
+    is charged to the owner the tenant context names. Over the limit the
+    gateway makes no attempt and the built-in writer answers, which the
+    ledger shows as no call rather than a failed one."""
+
+    def __init__(self, store, limits, now=None):
+        self.store = store
+        self.limits = limits
+        self._now = now
+
+    def _owner(self):
+        from server import tenant
+        return tenant.owner_or_local()
+
+    def allow(self, provider):
+        day = _day_start(self._now() if self._now else None)[:10]
+        return self.store.model_calls_today(self._owner(), day) < self.limits["model_calls_per_day"]
+
+    def charge(self, entry):
+        day = _day_start(self._now() if self._now else None)[:10]
+        return self.store.count_model_call(self._owner(), day)
+

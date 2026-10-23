@@ -4,7 +4,7 @@ import { assetMessages } from './messages'
 import { api, ApiError } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
 import { stateLabel } from '../../shared/labels'
-import { PerformanceLegend, PerformanceValue, performanceTone } from '../../shared/components/PerformanceValue'
+import { PerformanceLegend, PerformanceValue, hasVerdict, performanceTone } from '../../shared/components/PerformanceValue'
 import type { Pipelines } from '../../shared/types'
 import { findAssetEvidence } from './assetEvidence'
 import type { AssetEvidence } from './assetEvidence'
@@ -121,8 +121,7 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
                       const shown = formatValue(measure, locale === 'ar' ? 'ar' : 'en')
                       const tone = performanceTone(measure.value, measure.assessment)
                       // A reason explains a verdict; "no target" is said once, below.
-                      const verdict = tone === 'good' || tone === 'okay' || tone === 'bad'
-                        || measure.assessment?.reason_code === 'target_outdated'
+                      const verdict = hasVerdict(tone) || measure.assessment?.reason_code === 'target_outdated'
                       return (
                         <li key={measure.key} data-family={measure.family ?? 'other'}>
                           <span dir="auto">{measure.title}</span>

@@ -131,15 +131,23 @@ class ProviderCallTestCase(unittest.TestCase):
         gateway.ask("system", "ordinary runtime question")
         self.assertNotIn("format", self.sent["payload"])
 
-    def test_hosted_json_intent_keeps_each_existing_provider_request_contract(self):
-        for environment, response in (({"ANTHROPIC_API_KEY": "test"}, {"content": [{"text": "{}"}]}),
-                                       ({"GROQ_API_KEY": "test"}, {"choices": [{"message": {"content": "{}"}}]})):
+    def test_hosted_json_intent_uses_each_providers_own_json_mode(self):
+        # Assessment G5: the OpenAI-compatible providers take
+        # response_format; Anthropic has no JSON switch and is asked in text.
+        gateway = self.gateway_with({"ANTHROPIC_API_KEY": "test"}, {"content": [{"text": "{}"}]})
+        gateway.ask("system", "user", max_tokens=400)
+        ordinary = self.sent
+        gateway.ask_json("system", "user", max_tokens=400, schema=INTENT_SCHEMA)
+        self.assertEqual(self.sent, ordinary)
+        for environment, response in (({"GROQ_API_KEY": "test"}, {"choices": [{"message": {"content": "{}"}}]}),
+                                       ({"OPENAI_API_KEY": "test", "OPENAI_MODEL": "m"},
+                                        {"choices": [{"message": {"content": "{}"}}]})):
             with self.subTest(provider=environment):
                 gateway = self.gateway_with(environment, response)
                 gateway.ask("system", "user", max_tokens=400)
-                ordinary = self.sent
+                self.assertNotIn("response_format", self.sent["payload"])
                 gateway.ask_json("system", "user", max_tokens=400, schema=INTENT_SCHEMA)
-                self.assertEqual(self.sent, ordinary)
+                self.assertEqual(self.sent["payload"]["response_format"], {"type": "json_object"})
                 self.assertNotIn("format", self.sent["payload"])
 
     def test_anthropic_sends_the_versioned_header_and_reads_its_reply(self):

@@ -77,7 +77,7 @@ test('a lookup is joined, previewed and run', async ({ page }) => {
   await skipOnboarding(page)
   await page.goto('/')
   const orders = await startFromOrders(page)
-  await openTab(page, /^Analytics/)
+  await openTab(page, /^Analyses/)
   await page.getByRole('button', { name: 'Stored dataset' }).click()
   await page.getByLabel('Choose a stored dataset').selectOption(orders)
 
@@ -122,7 +122,7 @@ test('a lookup whose key repeats is refused with the reason', async ({ page }) =
   await skipOnboarding(page)
   await page.goto('/')
   const orders = await startFromOrders(page)
-  await openTab(page, /^Analytics/)
+  await openTab(page, /^Analyses/)
   await page.getByRole('button', { name: 'Stored dataset' }).click()
   await page.getByLabel('Choose a stored dataset').selectOption(orders)
   const builder = page.getByRole('group', { name: 'Join other datasets (optional)' })

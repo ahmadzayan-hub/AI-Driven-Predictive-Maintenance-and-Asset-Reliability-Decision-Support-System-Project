@@ -83,6 +83,14 @@ What each round of brain maintenance changed, newest last. The SessionStart hook
 
 ## 2026-10-23
 
+- `scripts/brain_check.py --json` before the edits: 46 notes, 553 links, no broken links, missing fields, bad dates, stale notes, duplicate candidates, unlinked mentions or orphans; maintenance due since 21 October.
+- Refreshed [[Decision log]] with the fourteen records it lacked: the thirteen of 22 October (a model per role, built-in roles, free and hosted open models, generated ids, Arabic rendered reports, the Android app, the audit fixes, the Executive Command Centre, the three release-gate slices, decision inputs in the interface) and today's P2 slice one (sources: `docs/adr`).
+- Refreshed 4 values in [[Model validation]]: the three-test verdict with the Wilson lower bound, declared splits, the unscored dated target without a chronological hold-out, and how to read an older card (sources: `server/maintenance/targets.py`, `server/modelling.py`, `docs/adr/2026-10-23-p2-slice-one.md`).
+- Refreshed [[Run lifecycle]] with idempotent creation, the stage and runtime deadlines and the decision record; [[Governed pipeline]] with rates never summed, decision inputs and incomplete periods; [[Approval gate]] with the read-before-approve rule and the completed record; [[Custom stages]] with the wall-clock limit (sources: `server/runs.py`, `server/deadline.py`, `server/analytics.py`, the 22 and 23 October records).
+- Refreshed [[Release acceptance]] with the closed P1 list, the slice rhythm and the hosted CI state (139 passed, 5 skipped on the merged head), and [[Verification and budgets]] with the current allocations (220 KB of scripts, 30.5 KB of CSS in total) (sources: `docs/implementation/DELIVERY_ROADMAP.md`, `README.md`, `.github/workflows/ci.yml`, `scripts/verify.py`).
+- Refreshed [[User]] with the slice-by-slice way of working of 22 and 23 October (sources: session logs).
+- Linked 1 mention ([[Agent runtimes and MCP|agent runtime]] in [[Run lifecycle]]). Merged no notes: no duplicate candidates were reported, and today's decisions extend existing concepts rather than introduce new ones.
+- `scripts/brain_check.py --strict` exits 0 after the edits; [[Home]] still lists every note.
 - Recovered the interrupted [[Agentic OS]] delivery from GitHub refs and the frozen local handoff snapshot. The application revision's full hosted CI is green; no application code was lost or repeated.
 - Rechecked the source-backed RMD acceptance record and retained the owner's original-input omission. Updated only delivery observations; no runtime evidence was copied into the brain.
 - Rechecked the brain structure and existing [[Home]] coverage before the final synchronization. No new note, duplicate or structural repair was needed.

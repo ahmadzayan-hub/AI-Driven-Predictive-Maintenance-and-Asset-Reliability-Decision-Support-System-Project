@@ -63,7 +63,7 @@ class EvidenceWorkflowTests(unittest.TestCase):
         self.assertIn(analysis["fingerprint"], run["report"]["content"])
         run = self.engine.decide_approval(run_id, approval_id, "approve", approver="alice")
         self.assertEqual(run["state"], "completed")
-        self.assertTrue(Path(run["report"]["published_path"]).is_file())
+        self.assertTrue((self.engine.vault_dir / run["report"]["published_path"]).is_file())
         self.assertEqual(run["approvals"][0]["decided_by"], "alice")
         overlay = self.service.get_analysis(self.alice, self.pid, analysis["id"])
         self.assertEqual(overlay["publication_state"], "published")
@@ -81,7 +81,7 @@ class EvidenceWorkflowTests(unittest.TestCase):
         run_id = self.review(self.populate())
         run = self.engine.advance(run_id)
         run = self.engine.decide_approval(run_id, run["approvals"][0]["id"], "approve", "alice")
-        path = Path(run["report"]["published_path"])
+        path = self.engine.vault_dir / run["report"]["published_path"]
         self.assertTrue(path.exists())
         result = self.service.delete_pack(self.alice, self.pid)
         self.assertFalse(path.exists())

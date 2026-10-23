@@ -24,6 +24,14 @@ import { prefsMessages } from '../features/preferences/messages'
 import { activityMessages } from '../features/activity/messages'
 import { voiceMessages } from '../features/chat/voiceMessages'
 import { commandMessages } from '../features/overview/commandMessages'
+import { decisionActionMessages } from '../features/overview/DecisionActions'
+import { collaborationMessages } from '../features/runs/collaborationMessages'
+import { decisionMessages } from '../features/runs/messages'
+import { performanceMessages } from '../shared/components/performanceMessages'
+import { validationMessages } from '../features/operations/validationMessages'
+import { messages as operationsMessages } from '../features/operations/messages'
+import { policyMessages } from '../features/dashboard/policyMessages'
+import { messages as rmdMessages } from '../features/rmd/messages'
 import { StatusBadge } from '../shared/components/StatusBadge'
 
 afterEach(() => {
@@ -186,7 +194,8 @@ describe('useI18n', () => {
 // rules: the same keys and placeholders in both languages, none blank or
 // left in English, and no key that the main dictionary also defines.
 describe('message packs', () => {
-  const packs = { dashMessages, executiveMessages, joinMessages, modelMessages, liveMessages, maintenanceMessages, intakeMessages, assetMessages, memoryMessages, prefsMessages, activityMessages, voiceMessages, commandMessages }
+  // Every pack the views define (assessment U18); a new pack is added here.
+  const packs = { dashMessages, executiveMessages, joinMessages, modelMessages, decisionMessages, liveMessages, maintenanceMessages, intakeMessages, assetMessages, memoryMessages, prefsMessages, activityMessages, voiceMessages, commandMessages, decisionActionMessages, collaborationMessages, performanceMessages, validationMessages, operationsMessages, policyMessages, rmdMessages }
   const names = (text: string) => (text.match(/\{\w+\}/g) ?? []).sort()
 
   for (const [name, pack] of Object.entries(packs)) {

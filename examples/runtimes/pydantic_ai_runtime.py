@@ -66,5 +66,14 @@ class PydanticAIRuntime:
             return tools.call(name, arguments)["text"]
 
         call.__name__ = name
-        return Tool.from_schema(call, name=name, description=spec["description"],
-                                json_schema=spec["inputSchema"])
+        # The tools share one tool box whose steps are the transcript, so
+        # two calls from one model turn must run in the order the model
+        # gave them, not concurrently (the hosted run of 23 October saw
+        # "recall" land before "remember"). Older releases have no such
+        # switch and run them in order anyway.
+        try:
+            return Tool.from_schema(call, name=name, description=spec["description"],
+                                    json_schema=spec["inputSchema"], sequential=True)
+        except TypeError:
+            return Tool.from_schema(call, name=name, description=spec["description"],
+                                    json_schema=spec["inputSchema"])

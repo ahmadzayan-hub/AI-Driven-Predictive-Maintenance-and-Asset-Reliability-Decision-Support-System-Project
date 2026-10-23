@@ -49,7 +49,7 @@ test('drafts, deep links, evidence and exact-report keyboard approval', async ({
   await page.reload()
   await expect(composerInput(page)).toHaveValue('Keep my unsent question')
 
-  await openTab(page, /^Analytics/)
+  await openTab(page, /^Analyses/)
   await page.getByLabel('Goal').fill(goal)
   await page.reload()
   await expect(page.getByLabel('Goal')).toHaveValue(goal)
@@ -65,6 +65,7 @@ test('drafts, deep links, evidence and exact-report keyboard approval', async ({
   await expect(page.locator('.cockpit__finding')).toContainText('45%')
   const collaboration = page.getByRole('region', { name: 'Agents working together' })
   await expect(collaboration).toBeVisible()
+  // The agent flow's own Analytics tab, not the navigation entry.
   await collaboration.getByRole('button', { name: /^Analytics/ }).click()
   await expect(collaboration.getByText(/Connections show stage order/)).toBeVisible()
   await expect(collaboration).toHaveAttribute('data-working', 'false')

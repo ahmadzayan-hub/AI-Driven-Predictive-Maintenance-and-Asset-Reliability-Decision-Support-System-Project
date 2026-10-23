@@ -214,6 +214,11 @@ try:
 except ImportError:  # pragma: no cover
     MCP_SDK_AVAILABLE = False
 
+# The optional-runtimes CI job installs the mcp SDK and sets this flag, so
+# a missing SDK there is a failure rather than a silent skip (G11).
+if os.environ.get("REQUIRE_OPTIONAL_RUNTIMES") == "1" and not MCP_SDK_AVAILABLE:
+    raise ImportError("REQUIRE_OPTIONAL_RUNTIMES=1 but the mcp SDK is not installed")
+
 
 @unittest.skipUnless(MCP_SDK_AVAILABLE, "the mcp SDK is not installed (optional)")
 class OfficialClientTestCase(unittest.TestCase):

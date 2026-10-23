@@ -36,7 +36,7 @@ from assistant import (ACTIONS, DESTRUCTIVE, PREFERENCE_KEYS, RUN_STATES,
                        SECTION_QUESTIONS, arguments_valid, confirmation_prompt,
                        execute_local, fallback, intent, is_no, is_yes, reply,
                        understand)
-from server import agent_learning, knowledge, model_privacy, quota, deadline
+from server import agent_learning, knowledge, model_privacy, quota, deadline, schema
 from server.tools import ToolBox
 
 # Enough passages that the answer is usually among them, few enough that a
@@ -347,6 +347,15 @@ class Assistant:
             return None
         if not isinstance(data, dict):
             return None
+        # The shape the model was told to answer in is checked here, not
+        # trusted (assessment G5): a hosted JSON mode only promises an
+        # object, and a local model can still drift from `format`. The
+        # check runs on the normalised answer so the contracts older
+        # models were given still hold: an internal action name, a
+        # missing `arguments`, and a reply beside a non-chat action (which
+        # is discarded, never shown as if the action had happened).
+        if not schema.valid(INTENT_SCHEMA, self._normalised(data)):
+            return None
         action = str(data.get("action") or "").strip()
         action = MODEL_ACTION_ALIASES.get(action, action)
         if action not in ACTIONS:
@@ -364,6 +373,19 @@ class Assistant:
         if not self._arguments_valid(action, arguments, session):
             return None
         return intent(action, arguments, text, source="model")
+
+    @staticmethod
+    def _normalised(data):
+        action = str(data.get("action") or "").strip()
+        internal = MODEL_ACTION_ALIASES.get(action, action)
+        shaped = {"action": _MODEL_ACTION_NAMES.get(internal, internal),
+                  "arguments": data.get("arguments") if "arguments" in data else {},
+                  "reply": data.get("reply", "")}
+        if shaped["action"] != "chat":
+            shaped["reply"] = ""
+        elif "arguments" not in data or shaped["arguments"] == {}:
+            shaped["arguments"] = {}
+        return shaped
 
     @staticmethod
     def _arguments_valid(action, arguments, session):

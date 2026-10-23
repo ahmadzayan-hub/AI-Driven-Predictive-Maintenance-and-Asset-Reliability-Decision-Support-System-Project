@@ -81,7 +81,7 @@ function RunPicker({ onPick }: { onPick: (id: string) => void }) {
             <h2 className="panel__title" id="dash-title">{t('dash.title')}</h2>
             <p className="panel__desc">{t('dash.pick')}</p>
           </div>
-          {readOnly ? null : <a className="btn btn--primary" href="#/runs?source=upload&profile=maintenance"><Icon name="plus" size={16} />{t('dash.uploadMaintenance')}</a>}
+          {readOnly ? null : <a className="btn btn--primary" href="#/datasets"><Icon name="plus" size={16} />{t('dash.uploadMaintenance')}</a>}
         </div>
         <div className="card">
           {failed ? (
@@ -89,7 +89,10 @@ function RunPicker({ onPick }: { onPick: (id: string) => void }) {
           ) : runs === null ? (
             <div role="status" aria-label={t('dash.loading')} className="skeleton skeleton--line"><span className="visually-hidden">{t('dash.loading')}</span></div>
           ) : runs.length === 0 ? (
-            <p className="card__empty">{t('dash.none')}</p>
+            <div className="card__empty">
+              <p>{t('dash.none')}</p>
+              {readOnly ? null : <a className="btn btn--ghost" href="#/datasets"><Icon name="plus" size={16} />{t('dash.noneAction')}</a>}
+            </div>
           ) : (
             <ul className="controls__list">
               {runs.map((run) => (

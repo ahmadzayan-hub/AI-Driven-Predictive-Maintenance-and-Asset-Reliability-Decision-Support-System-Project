@@ -3,7 +3,7 @@ type: profile
 aliases: [Owner, Project owner]
 tags: [core]
 status: active
-updated: 2026-10-22
+updated: 2026-10-23
 review_every_days: 14
 sources: [README.md, Memory.md, project-progress.md]
 ---
@@ -38,6 +38,7 @@ No contact details, student numbers or teammates' personal data belong in this n
 - Wants dashboard numbers and percentages to share a clear convention: bad red, okay blue, good green, in English and Arabic RTL. The [[Design system]] records the tokens and text labels.
 - Wants professional, restrained agent motion: live handoffs, clear statuses and expandable details (20 October). The [[Design system]] presents observed workflow activity without invented conversations.
 - Wants complete Arabic analysis content, not only Arabic controls: recommendations, calculation descriptions, tables and charts, rendered in the [[House style]] inside the platform (22 October).
+- Works the assessment's backlog slice by slice: "next slice", then "merge it once CI is green". Each slice ships as a dated decision, tests and a merged pull request; the [[Release acceptance]] note records the rhythm (22 and 23 October).
 
 ## Related
 
