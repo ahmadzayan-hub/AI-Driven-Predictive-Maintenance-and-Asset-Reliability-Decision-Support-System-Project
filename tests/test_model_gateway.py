@@ -286,9 +286,9 @@ class OpenAiAndFailoverTestCase(unittest.TestCase):
         self.assertEqual(payload["model"], "m")
         self.assertEqual(result, {"text": "Costs are rising.", "source": "model"})
 
-    def test_a_failed_claude_call_fails_over_to_openai(self):
+    def test_explicit_edge_allows_one_claude_to_openai_attempt(self):
         gateway = ModelGateway(env={"ANTHROPIC_API_KEY": "a", "OPENAI_API_KEY": "o",
-                                    "OPENAI_MODEL": "m"})
+                                    "OPENAI_MODEL": "m", "AGENTIC_OS_MODEL_FAILOVER": "anthropic>openai"})
         replies = [None, self.reply("Costs are rising.")]
         with patch.object(gateway, "_post", side_effect=replies) as post:
             result = gateway.narrate("goal", ["Costs rose 4%."])
@@ -301,7 +301,7 @@ class OpenAiAndFailoverTestCase(unittest.TestCase):
 
     def test_failover_stops_after_two_attempts_then_says_deterministic(self):
         gateway = ModelGateway(env={"ANTHROPIC_API_KEY": "a", "OPENAI_API_KEY": "o",
-                                    "OPENAI_MODEL": "m", "GROQ_API_KEY": "g"})
+                                    "OPENAI_MODEL": "m", "GROQ_API_KEY": "g", "AGENTIC_OS_MODEL_FAILOVER": "anthropic>openai,openai>groq"})
         with patch.object(gateway, "_post", return_value=None) as post:
             result = gateway.narrate("goal", ["Costs rose 4%."])
         self.assertEqual(post.call_count, 2)
@@ -344,7 +344,7 @@ class HostedOllamaTestCase(unittest.TestCase):
                          ["anthropic", "ollama", "deterministic"])
 
     def test_a_hosted_endpoint_may_fail_over_and_a_local_one_may_not(self):
-        hosted = ModelGateway(env={**self.HOSTED, "ANTHROPIC_API_KEY": "a"})
+        hosted = ModelGateway(env={**self.HOSTED, "ANTHROPIC_API_KEY": "a", "AGENTIC_OS_MODEL_FAILOVER": "ollama>anthropic"})
         self.assertEqual(hosted._attempts("ollama"), ["ollama", "anthropic"])
         local = ModelGateway(env={"OLLAMA_MODEL": "m", "ANTHROPIC_API_KEY": "a"})
         self.assertEqual(local._attempts("ollama"), ["ollama"])
@@ -527,7 +527,7 @@ class CallLedgerTestCase(unittest.TestCase):
                          (2, 1, 25))
 
     def test_a_failed_call_and_an_empty_reply_are_counted_as_failures(self):
-        gateway = ModelGateway(env={"ANTHROPIC_API_KEY": "k", "GROQ_API_KEY": "k"})
+        gateway = ModelGateway(env={"ANTHROPIC_API_KEY": "k", "GROQ_API_KEY": "k", "AGENTIC_OS_MODEL_FAILOVER": "anthropic>groq"})
         with patch.object(gateway, "_post", side_effect=[None, {"choices": []}]):
             self.assertIsNone(gateway.ask("sys", "user"))
         outcomes = [(e["provider"], e["outcome"]) for e in gateway.ledger_entries()]

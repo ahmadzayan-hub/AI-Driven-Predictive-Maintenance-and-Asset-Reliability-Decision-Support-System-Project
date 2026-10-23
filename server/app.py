@@ -812,6 +812,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         return {
             **liveness,
             "model_provider": gateway.status(),
+            "model_configuration": base_gateway.configuration_report(),
             "model_roles": model_roles.status(),
             "model_map": model_roles.model_map(),
             # A misconfigured router is the operator's to fix, and they

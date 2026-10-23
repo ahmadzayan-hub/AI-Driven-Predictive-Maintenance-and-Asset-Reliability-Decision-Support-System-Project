@@ -23,9 +23,9 @@ Five providers, chosen by environment variable, in priority order:
 - **vercel** — an explicit AI_GATEWAY_MODEL and deployment OIDC token
   or AI_GATEWAY_API_KEY. No hosted model is selected implicitly.
 
-When the chosen hosted provider fails, the next configured hosted one is
-tried once before the deterministic narrator (failover), so one provider's
-outage does not silence the model.
+When the chosen provider fails, the deterministic narrator is the default.
+A second hosted recipient is used only for an explicit operator-configured
+failover edge; merely having another key is not consent to send it context.
 
 Keys are read server-side only. They are never logged, stored, or sent to
 the browser, and any provider failure degrades to the deterministic
@@ -207,9 +207,55 @@ class ModelGateway:
         self.budget = None
         self._ledger_entries = deque(maxlen=LEDGER_ENTRIES)
         self._ledger_totals = {}
+        self._ledger_blocks = {}
         # The task a call serves, per thread, so the completers (which
         # tests and roles may replace) keep their signatures.
         self._ledger_task = threading.local()
+
+    def configuration_report(self):
+        """Configuration, not live availability or a promise of free usage."""
+        specs = {"openai": ("OPENAI_API_KEY", "OPENAI_MODEL", None),
+                 "anthropic": ("ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", self.anthropic_model),
+                 "groq": ("GROQ_API_KEY", "GROQ_MODEL", self.groq_model),
+                 **{name: (key, model, None) for name, (_, key, model) in COMPAT_PROVIDERS.items()}}
+        entries = []
+        for name, (key, model_key, default) in specs.items():
+            if not (self._env.get(key) or self._env.get(model_key)):
+                continue
+            state = ("missing_credential" if not self._env.get(key) else
+                     "missing_model" if not (self._env.get(model_key) or default) else "configured")
+            entry = {"provider": name, "configuration": state, "availability": "unverified",
+                     "model_selection": ("explicit" if self._env.get(model_key) else
+                                         "legacy_default" if default else "missing")}
+            if name == "anthropic" and (self._env.get(model_key) or default) in {
+                    "claude-sonnet-4-5", "claude-sonnet-4-5-20250929"}:
+                entry["lifecycle_review"] = {
+                    "status_at_review": "deprecated", "reviewed_on": "2026-10-23",
+                    "retirement_date": "2026-11-30",
+                    "source": "https://platform.claude.com/docs/en/about-claude/model-deprecations"}
+            entries.append(entry)
+        if self._env.get("AI_GATEWAY_MODEL"):
+            entries.append({"provider": "vercel", "configuration": "configured" if self._ai_gateway_token()
+                            else "missing_credential", "availability": "unverified"})
+        if self.ollama_model or self._env.get("OLLAMA_HOST"):
+            entries.append({"provider": "ollama", "configuration": "configured" if self.ollama_model
+                            else "missing_model", "availability": "unverified"})
+        edges = []
+        for candidate in self.providers():
+            attempts = self._attempts(candidate["provider"])
+            if len(attempts) == 2:
+                edges.append({"from": attempts[0], "to": attempts[1]})
+        return {"providers": entries, "fallback": "deterministic",
+                "cross_provider_failover_enabled": bool(edges), "configured_failover_edges": edges,
+                "failover_requires_explicit_edge": True,
+                "cost_status": "unverified"}
+
+    def _admit(self, provider):
+        if self.budget is None or self.budget.allow(provider):
+            return True
+        with self._ledger_lock:
+            self._ledger_blocks[provider] = self._ledger_blocks.get(provider, 0) + 1
+        return False
 
     def _read_task_map(self, raw):
         """AGENTIC_OS_TASK_MODELS, e.g. "narration=groq,chat=openrouter,
@@ -346,11 +392,15 @@ class ModelGateway:
                    "openai": self._call_openai,
                    "groq": self._call_groq,
                    **{name: self._compat_caller(name) for name in self.compat}}
-        for name in self._attempts(provider):
+        self._ledger_task.last_failure = None
+        for attempt, name in enumerate(self._attempts(provider)):
+            if attempt and getattr(self._ledger_task, "last_failure", None) not in {
+                    "network_error", "timeout", "provider_error"}:
+                break  # Quota, credentials and model retirement need an operator.
             caller = callers.get(name)
             if caller is None:
                 continue
-            if self.budget is not None and not self.budget.allow(name):
+            if not self._admit(name):
                 break  # budget denied or unavailable: explicitly deterministic text
             text = (caller(goal, facts, language=language) if language != "en"
                     else caller(goal, facts))
@@ -387,8 +437,12 @@ class ModelGateway:
                    "openai": self._complete_openai,
                    "groq": self._complete_groq,
                    **{name: self._compat_completer(name) for name in self.compat}}
-        for name in self._attempts(provider):
-            if self.budget is not None and not self.budget.allow(name):
+        self._ledger_task.last_failure = None
+        for attempt, name in enumerate(self._attempts(provider)):
+            if attempt and getattr(self._ledger_task, "last_failure", None) not in {
+                    "network_error", "timeout", "provider_error"}:
+                break
+            if not self._admit(name):
                 # Budget admission was denied or unavailable: no
                 # attempt is made, and the built-in writer answers.
                 return None
@@ -399,11 +453,12 @@ class ModelGateway:
         return None
 
     def _attempts(self, provider=None):
-        """The chosen provider, then at most one other configured hosted
-        provider as failover. Two attempts at most keep a request inside a
-        serverless time limit (two timeouts of TIMEOUT_SECONDS each). A
-        local model is never swapped for a hosted one: choosing Ollama is
-        a choice that nothing leaves the machine."""
+        """At most one explicitly allowed failover edge, otherwise no transfer.
+
+        AGENTIC_OS_MODEL_FAILOVER=anthropic>openai authorizes that direction
+        only; it never selects a new model or configures credentials. Local
+        models never transfer to hosted recipients, even with a matching edge.
+        """
         first = provider or self.provider
         if first == "deterministic":
             return []
@@ -411,7 +466,11 @@ class ModelGateway:
             return ["ollama"]
         hosted = [entry["provider"] for entry in self.providers()
                   if not entry["local_only"] and entry["provider"] != first]
-        return [first] + hosted[:1]
+        for edge in (self._env.get("AGENTIC_OS_MODEL_FAILOVER") or "").split(","):
+            source, separator, target = edge.strip().partition(">")
+            if separator and source == first and target in hosted:
+                return [first, target]
+        return [first]
 
     def _prompt(self, goal, facts):
         return "Goal: " + goal + "\nVerified facts:\n- " + "\n- ".join(facts)
@@ -446,12 +505,13 @@ class ModelGateway:
                          for name in self.compat}}
         chosen = provider or self.provider
         if chosen in completers:
-            if self.budget is not None and not self.budget.allow(chosen):
+            if not self._admit(chosen):
                 return None
             return completers[chosen]()
         return self.ask(system, user, provider=provider, max_tokens=max_tokens, task=task)
 
     def _post(self, url, headers, payload):
+        self._ledger_task.failure = None
         try:
             import httpx
 
@@ -462,11 +522,58 @@ class ModelGateway:
                 options["trust_env"] = False
             response = httpx.post(url, headers=headers, json=payload, **options)
             if response.status_code != 200:
+                try:
+                    body = response.json()
+                except (ValueError, TypeError):
+                    body = None
+                self._ledger_task.failure = self._failure_category(response.status_code, body)
                 return None
-            return response.json()
-        except Exception:
-            # Timeouts, network, schema drift: degrade to deterministic.
+            try:
+                body = response.json()
+            except (ValueError, TypeError):
+                self._ledger_task.failure = "invalid_response"
+                return None
+            if not isinstance(body, dict):
+                self._ledger_task.failure = "invalid_response"
+                return None
+            return body
+        except ImportError:
+            self._ledger_task.failure = "client_unavailable"
+        except Exception as error:
+            # Do not retain response bodies, exception messages, URLs or keys.
+            if isinstance(error, httpx.TimeoutException):
+                self._ledger_task.failure = "timeout"
+            elif isinstance(error, httpx.RequestError):
+                self._ledger_task.failure = "network_error"
+            else:
+                self._ledger_task.failure = "client_error"
             return None
+
+    @staticmethod
+    def _failure_category(status, body):
+        error = body.get("error") if isinstance(body, dict) else None
+        error = error if isinstance(error, dict) else {}
+        codes = {value for value in (error.get("code"), error.get("type")) if isinstance(value, str)}
+        if codes & {"model_decommissioned", "model_retired", "deprecated_model"}:
+            return "model_retired"
+        if codes & {"model_not_found", "invalid_model", "model_not_available"}:
+            return "model_unavailable"
+        if codes & {"insufficient_quota", "quota_exceeded", "billing_hard_limit_reached",
+                    "organization_usage_limit_exceeded", "billing_limit_exceeded"}:
+            return "provider_quota"
+        if status == 401:
+            return "credential_rejected"
+        if status == 402:
+            return "payment_required"
+        if status == 403:
+            return "permission_denied"
+        if status == 404:
+            return "not_found"  # Not enough evidence to declare a model retired.
+        if status == 429:
+            return "rate_limited"
+        if status >= 500:
+            return "provider_error"
+        return "request_rejected"
 
     # -- the call ledger (assessment finding G4) --------------------------
     @staticmethod
@@ -510,9 +617,13 @@ class ModelGateway:
         task = getattr(self._ledger_task, "name", None)
         latency_ms = round((time.monotonic() - started) * 1000, 1)
         outcome = "error" if body is None else ("ok" if text else "empty")
+        failure = (getattr(self._ledger_task, "failure", None) or "provider_error") if body is None else (
+            None if text else "empty_response")
+        self._ledger_task.failure = None
+        self._ledger_task.last_failure = failure
         prompt, done, total = self._usage(provider, body)
         entry = {"provider": provider, "model": model, "task": task,
-                 "outcome": outcome, "latency_ms": latency_ms,
+                 "outcome": outcome, "error_code": failure, "latency_ms": latency_ms,
                  "input_tokens": prompt, "output_tokens": done, "total_tokens": total}
         if self.budget is not None:
             try:
@@ -524,10 +635,13 @@ class ModelGateway:
             totals = self._ledger_totals.setdefault(provider, {
                 "calls": 0, "failures": 0, "latency_ms": 0.0,
                 "input_tokens": 0, "output_tokens": 0, "total_tokens": 0,
-                "calls_with_tokens": 0})
+                "calls_with_tokens": 0, "failures_by_category": {}, "last_error": None})
             totals["calls"] += 1
             if outcome != "ok":
                 totals["failures"] += 1
+                categories = totals["failures_by_category"]
+                categories[failure] = categories.get(failure, 0) + 1
+            totals["last_error"] = failure
             totals["latency_ms"] = round(totals["latency_ms"] + latency_ms, 1)
             if total is not None:
                 totals["calls_with_tokens"] += 1
@@ -543,7 +657,9 @@ class ModelGateway:
         with self._ledger_lock:
             return {"entries_kept": len(self._ledger_entries),
                     "entries_limit": LEDGER_ENTRIES,
-                    "providers": {name: dict(t) for name, t in self._ledger_totals.items()}}
+                    "admission_denials_by_provider": dict(self._ledger_blocks),
+                    "providers": {name: {**t, "failures_by_category": dict(t["failures_by_category"])}
+                                  for name, t in self._ledger_totals.items()}}
 
     def ledger_entries(self):
         """The most recent attempts, oldest first. Prompts and replies are

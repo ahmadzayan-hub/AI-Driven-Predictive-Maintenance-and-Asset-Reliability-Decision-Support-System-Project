@@ -61,7 +61,7 @@ class BudgetAdmissionTest(unittest.TestCase):
             tenant.current_owner.reset(other)
 
     def test_failed_provider_counts_once_and_blocks_failover(self):
-        gateway = ModelGateway(env={'OPENAI_API_KEY': 'synthetic-test', 'OPENAI_MODEL': 'synthetic-model', 'GROQ_API_KEY': 'synthetic-test'})
+        gateway = ModelGateway(env={'OPENAI_API_KEY': 'synthetic-test', 'OPENAI_MODEL': 'synthetic-model', 'GROQ_API_KEY': 'synthetic-test', 'AGENTIC_OS_MODEL_FAILOVER': 'openai>groq'})
         gateway.budget = self.budget()
         token = tenant.current_owner.set('synthetic-owner')
         self.addCleanup(tenant.current_owner.reset, token)
