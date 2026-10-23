@@ -113,9 +113,12 @@ def from_evidence_run(service, principal, run):
         source_versions=stored["source_versions"], filters=filters,
         language=row["language"], calculated_at=stored["calculated_at"])
     keys = ("calculation_version", "counts_by_grain", "kpis", "charts", "calculations", "evidence_index", "priorities", "readiness")
+    report = run.get("report")
+    if not isinstance(report, dict) or not isinstance(report.get("content"), str):
+        raise MotionStoryRefused("A saved report body is required / يلزم نص تقرير محفوظ")
     if (fingerprint != row["fingerprint"] or fingerprint != stored["fingerprint"]
             or any(stored.get(key) != replay.get(key) for key in keys)
-            or (run.get("report") or {}).get("content") != report_markdown(stored)):
+            or report["content"] != report_markdown(stored)):
         raise MotionStoryRefused("RMD source/report changed; create a new reviewed draft / تغير المصدر أو التقرير؛ أنشئ مسودة جديدة للمراجعة")
     language = row["language"]
     if run.get("report_language") != language:

@@ -181,7 +181,7 @@ class MotionAccessTests(unittest.TestCase):
         row = self.store._exec("SELECT result_json FROM rmd_analyses WHERE id = ?", (analysis["id"],))[0]
         result = json.loads(row["result_json"]); result["counts_by_grain"]["mms_work_order"] += 1
         self.store.update("rmd_analyses", analysis["id"], {"result_json": json.dumps(result)})
-        self.assertEqual(self.get(job, "alice").status_code, 409)
+        self.assertTrue(self.get(job, "alice").json()["needs_update"])
 
     def test_removed_run_cannot_authorize_stored_media(self):
         pack, _, _, job, _ = self.fixture()
@@ -209,8 +209,8 @@ class MotionAccessTests(unittest.TestCase):
         raw = json.dumps(story, ensure_ascii=False, sort_keys=True)
         self.motion._update(job, "RENDERED_DRAFT", storyboard=raw, storyboard_sha=hashlib.sha256(raw.encode()).hexdigest())
         response = self.get(job, "alice")
-        self.assertEqual(response.status_code, 409)
-        self.assertIn("new video draft", response.text)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["needs_update"])
 
     def test_invalid_report_content_is_refused_not_a_type_error(self):
         from tests.test_motion_storyboard import run as fixture
@@ -223,7 +223,7 @@ class MotionAccessTests(unittest.TestCase):
         _, _, run, job, source = self.fixture()
         self.store.update("rmd_sources", source["id"], {"sha256": "0" * 64})
         self.assertEqual(self.engine.get_run(run["id"])["report"], run["report"])
-        self.assertEqual(self.get(job, "alice").status_code, 409)
+        self.assertTrue(self.get(job, "alice").json()["needs_update"])
         self.assertEqual(self.get(job, "bob", "/preview").status_code, 409)
         self.assertEqual(self.decide(job, "bob").status_code, 409)
 

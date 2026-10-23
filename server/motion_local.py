@@ -21,7 +21,7 @@ from server.motion_storyboard import from_run, MotionStoryRefused
 
 WORKERS = ThreadPoolExecutor(max_workers=1, thread_name_prefix="motion-local")
 MAX_BYTES = 24_000_000
-STATES = ("QUEUED", "RUNNING", "FAILED", "RENDERED_DRAFT",
+STATES = ("SCRIPT_REVIEW_REQUESTED", "SCRIPT_APPROVED", "QUEUED", "RUNNING", "FAILED", "RENDERED_DRAFT",
           "REVIEW_REQUESTED", "INTERNAL_APPROVED", "RETURNED")
 
 
@@ -96,7 +96,30 @@ class LocalMotion:
             raise MotionError("No such video job owned by this account")
         return dict(row)
 
-    def create(self, owner, run_id, run, audio: bytes | None, suffix=".wav", *, storyboard=None):
+    def create(self, *args, **kwargs):
+        created = []
+        try:
+            with self.lock, self.connect() as con:
+                con.execute("BEGIN IMMEDIATE")
+                result = self._create(*args, **kwargs, con=con, created=created)
+        except Exception:
+            # Only this request's exclusively created narration files, never old
+            # media. A database rollback must not leak a large orphan upload.
+            for path in created:
+                path.unlink(missing_ok=True)
+            raise
+        if result["status"] == "QUEUED":
+            self._enqueue(result["id"])
+        return result
+
+    def _enqueue(self, job_id):
+        try:
+            WORKERS.submit(self._encode, job_id)
+        except Exception:
+            self._update(job_id, "FAILED", error="Render worker unavailable; create a reviewed repair draft")
+            raise MotionError("Render worker unavailable; job failed, not queued for execution") from None
+
+    def _create(self, owner, run_id, run, audio: bytes | None, suffix=".wav", *, storyboard=None, workflow=None, con, created):
         if not isinstance(owner, str) or not owner.strip():
             raise MotionError("Owner is missing")
         if audio and (len(audio) > MAX_BYTES or len(audio) == 0):
@@ -109,23 +132,117 @@ class LocalMotion:
         story_raw = json.dumps(story, ensure_ascii=False, sort_keys=True)
         digest = hashlib.sha256(story_raw.encode()).hexdigest()
         job_id = "MOT-" + uuid.uuid4().hex[:20]
+        if workflow:
+            workflow = dict(workflow)
+            workflow["root_id"] = workflow.get("root_id") or job_id
+            if workflow.get("parent_id"):
+                parent = con.execute("SELECT * FROM motion_jobs WHERE id=? AND owner=?",
+                                     (workflow["parent_id"], owner)).fetchone()
+                prior = self.workflow(parent) if parent else None
+                if (not prior or parent["run_id"] != run_id or parent["status"] not in {"FAILED", "RETURNED"}
+                        or workflow["root_id"] != prior["root_id"]
+                        or workflow.get("repair_attempt") != prior["repair_attempt"] + 1
+                        or workflow["repair_attempt"] > 2 or not workflow.get("repair_note", "").strip()):
+                    raise MotionError("Invalid repair lineage or exhausted repair budget")
+                rows = con.execute("SELECT review_checks FROM motion_jobs WHERE owner=?", (owner,)).fetchall()
+                existing = [self.workflow(row) for row in rows]
+                siblings = [f for f in existing if f and f.get("root_id") == workflow["root_id"] and f.get("parent_id")]
+                if len(siblings) >= 2 or any(f["parent_id"] == workflow["parent_id"] for f in siblings):
+                    raise MotionError("Repair budget consumed or child draft already exists; human escalation required")
         name = job_id + suffix if audio else None
         sha = hashlib.sha256(audio).hexdigest() if audio else None
         if audio:
             target = self.base / name
             with target.open("xb") as stream:
+                created.append(target)
                 stream.write(audio)
             try:
                 target.chmod(0o600)
             except OSError:
                 pass
+        con.execute("""INSERT INTO motion_jobs
+            (id,run_id,owner,storyboard,storyboard_sha,audio_name,audio_sha,status,created_at)
+            VALUES(?,?,?,?,?,?,?,?,?)""",
+            (job_id,run_id,owner,story_raw,digest,name,sha,
+             "SCRIPT_REVIEW_REQUESTED" if workflow else "QUEUED",datetime.now(UTC).isoformat()))
+        if workflow:
+            workflow = dict(workflow)
+            workflow["binding"] = self.script_binding(digest, sha, workflow)
+            con.execute("UPDATE motion_jobs SET review_checks=? WHERE id=?",
+                        (json.dumps({"workflow": workflow}), job_id))
+        return {"id": job_id, "status": "SCRIPT_REVIEW_REQUESTED" if workflow else "QUEUED",
+                "publication_allowed": False}
+
+    @staticmethod
+    def script_binding(story_sha, audio_sha, workflow):
+        payload = {"storyboard_sha": story_sha, "audio_sha": audio_sha,
+                   **{key: workflow.get(key) for key in ("audience", "format", "parent_id", "repair_attempt", "repair_note", "root_id")}}
+        return hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+
+    @staticmethod
+    def workflow(row):
+        return json.loads(row["review_checks"] or "{}").get("workflow")
+
+    def script(self, job_id, owner):
+        row = self.record(job_id, owner)
+        self.verify_content(row)
+        flow = self.workflow(row)
+        if not flow:
+            raise MotionError("This legacy job has no script approval workflow; create a new draft")
+        return {"id": job_id, "status": row["status"], "storyboard": json.loads(row["storyboard"]),
+                "workflow": flow, "narration_attached": bool(row["audio_sha"]), "publication_allowed": False}
+
+    def approve_script(self, job_id, reviewer, binding, checks):
         with self.lock, self.connect() as con:
-            con.execute("""INSERT INTO motion_jobs
-                (id,run_id,owner,storyboard,storyboard_sha,audio_name,audio_sha,status,created_at)
-                VALUES(?,?,?,?,?,?,?,?,?)""",
-                (job_id,run_id,owner,story_raw,digest,name,sha,"QUEUED",datetime.now(UTC).isoformat()))
-        WORKERS.submit(self._encode, job_id)
+            con.execute("BEGIN IMMEDIATE")
+            row = con.execute("SELECT * FROM motion_jobs WHERE id=?", (job_id,)).fetchone()
+            if row is None or row["status"] != "SCRIPT_REVIEW_REQUESTED":
+                raise MotionError("Script is not waiting for review")
+            if reviewer == row["owner"]:
+                raise MotionError("Four-eyes rule: script author cannot approve")
+            self.verify_content(row)
+            flow = self.workflow(row)
+            if not flow or binding != flow["binding"] or binding != self.script_binding(row["storyboard_sha"], row["audio_sha"], flow):
+                raise MotionError("Script approval binding changed; create a new draft")
+            required = ("reviewed_script", "checked_evidence", "checked_audience_format", "checked_narration_rights")
+            if not all(checks.get(k) is True for k in required):
+                raise MotionError("Human script checklist incomplete")
+            flow["approval"] = {"reviewer": reviewer, "binding": binding, "checks": checks,
+                                "approved_at": datetime.now(UTC).isoformat()}
+            con.execute("UPDATE motion_jobs SET status='SCRIPT_APPROVED', review_checks=? WHERE id=?",
+                        (json.dumps({"workflow": flow}), job_id))
+        return {"id": job_id, "status": "SCRIPT_APPROVED", "publication_allowed": False}
+
+    def render_approved(self, job_id, owner):
+        with self.lock, self.connect() as con:
+            con.execute("BEGIN IMMEDIATE")
+            row = con.execute("SELECT * FROM motion_jobs WHERE id=? AND owner=?", (job_id, owner)).fetchone()
+            if row is None or row["status"] != "SCRIPT_APPROVED":
+                raise MotionError("Explicit human script approval is required before rendering")
+            if not self.workflow(row):
+                raise MotionError("Explicit human script approval is required before rendering")
+            self.verify_script_approval(row)
+            con.execute("UPDATE motion_jobs SET status='QUEUED' WHERE id=?", (job_id,))
+        self._enqueue(job_id)
         return {"id": job_id, "status": "QUEUED", "publication_allowed": False}
+
+    def verify_content(self, row):
+        if hashlib.sha256(row["storyboard"].encode()).hexdigest() != row["storyboard_sha"]:
+            raise MotionError("Source storyboard was changed")
+        if row["audio_name"]:
+            audio = self.base / row["audio_name"]
+            if not audio.is_file() or file_digest(audio) != row["audio_sha"]:
+                raise MotionError("Narration has changed")
+
+    def verify_script_approval(self, row):
+        self.verify_content(row)
+        flow = self.workflow(row)
+        if flow:
+            approval = flow.get("approval", {})
+            binding = self.script_binding(row["storyboard_sha"], row["audio_sha"], flow)
+            if (approval.get("binding") != binding or flow.get("binding") != binding
+                    or not approval.get("reviewer") or approval["reviewer"] == row["owner"]):
+                raise MotionError("Script approval is missing or stale")
 
     def _update(self, job_id, status, **fields):
         parts = ["status=?"] + [f"{key}=?" for key in fields]
@@ -139,21 +256,22 @@ class LocalMotion:
                 row = con.execute("SELECT * FROM motion_jobs WHERE id=?", (job_id,)).fetchone()
             if row is None:
                 return
+            self.verify_script_approval(row)
             self._update(job_id, "RUNNING")
             story = json.loads(row["storyboard"])
             if hashlib.sha256(row["storyboard"].encode()).hexdigest() != row["storyboard_sha"]:
                 raise MotionError("Source storyboard was changed")
+            audio = self.base / row["audio_name"] if row["audio_name"] else None
+            if audio is not None and (
+                not audio.is_file() or file_digest(audio) != row["audio_sha"]
+            ):
+                raise MotionError("Narration has changed")
             from scripts.motion_studio_render import mux_frames, probe_audio
             from scripts.motion_studio_frames import render_frames
             from scripts.motion_studio_qc import inspect_mp4
             font = Path(os.environ.get("AGENTIC_MOTION_FONT", ""))
             if not font.is_file() or font.suffix.lower() not in {".ttf",".otf"}:
                 raise MotionError("Approved local TTF/OTF font not configured")
-            audio = self.base / row["audio_name"] if row["audio_name"] else None
-            if audio is not None and (
-                not audio.is_file() or file_digest(audio) != row["audio_sha"]
-            ):
-                raise MotionError("Narration has changed")
             duration = probe_audio(audio) if audio else float(story["duration"])
             if duration > 60:
                 raise MotionError("Local worker limited to 60 seconds; use approved dedicated renderer")
@@ -217,6 +335,6 @@ class LocalMotion:
         self.preview(job_id, row["owner"])
         self._update(job_id, "INTERNAL_APPROVED" if outcome == "approve" else "RETURNED",
                      reviewer=reviewer, reviewer_note=(note or "")[:2000],
-                     review_checks=json.dumps(checks), reviewed_at=datetime.now(UTC).isoformat())
+                     review_checks=json.dumps({**json.loads(row["review_checks"] or "{}"), **checks}), reviewed_at=datetime.now(UTC).isoformat())
         return {"status": "INTERNAL_APPROVED" if outcome == "approve" else "RETURNED",
                 "reviewer": reviewer, "publication_allowed": False}

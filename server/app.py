@@ -1374,7 +1374,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         from server.rmd_service import RmdError
         motion = LocalMotion()
 
-        def media_source(job_id, principal, *, write=False, review=False):
+        def media_source(job_id, principal, *, write=False, review=False, allow_stale=False):
             """Existing source grants are checked live; a job is not a grant."""
             try:
                 row = motion._record(job_id)
@@ -1385,15 +1385,26 @@ def create_app(config_path=None, env=None, dist_dir=None):
                                   permission="write" if write else "read")
                 if review or not is_author:
                     if (identity.mode == "local" or not principal.can("approve")
-                            or (not is_author and row["status"] not in {"REVIEW_REQUESTED", "INTERNAL_APPROVED", "RETURNED"})):
+                            or (not is_author and row["status"] not in {"REVIEW_REQUESTED", "INTERNAL_APPROVED", "RETURNED", "SCRIPT_REVIEW_REQUESTED", "SCRIPT_APPROVED"})):
                         raise KeyError(job_id)
                     scoped = authorize_evidence_run(rmd, principal, row["run_id"], "authorize")
                     if scoped is False or (scoped is None and not principal.can("admin")):
                         raise KeyError(job_id)
-                story = from_evidence_run(rmd, principal, run)
+                try:
+                    story = from_evidence_run(rmd, principal, run)
+                except MotionStoryRefused:
+                    if allow_stale:
+                        return dict(row, needs_update=True)
+                    raise
+                flow = motion.workflow(row)
+                if flow:
+                    story["format"] = flow["format"]
                 canonical_story = json.dumps(story, ensure_ascii=False, sort_keys=True)
                 import hashlib
-                if hashlib.sha256(canonical_story.encode()).hexdigest() != row["storyboard_sha"]:
+                if (hashlib.sha256(canonical_story.encode()).hexdigest() != row["storyboard_sha"]
+                        or hashlib.sha256(row["storyboard"].encode()).hexdigest() != row["storyboard_sha"]):
+                    if allow_stale:
+                        return dict(row, needs_update=True)
                     raise MotionError("Source report changed; create a new video draft / تغير التقرير؛ أنشئ مسودة فيديو جديدة")
                 return row
             except (KeyError, RmdError):
@@ -1430,10 +1441,104 @@ def create_app(config_path=None, env=None, dist_dir=None):
             except (MotionError, MotionStoryRefused) as exc:
                 raise HTTPException(409, detail=str(exc)) from exc
 
+        @app.post("/api/motion/runs/{run_id}/draft", status_code=201)
+        async def create_motion_draft(
+            run_id: str, request: Request,
+            narration_suffix: str = Query(default=".wav", pattern=r"^\.(wav|m4a|mp3|aac|flac)$"),
+            audience: str = Query(default="internal", pattern=r"^(internal|leadership|maintenance)$"),
+            video_format: str = Query(default="wide", pattern=r"^(wide|vertical)$"),
+            parent_id: str | None = Query(default=None, max_length=80),
+            repair_note: str = Query(default="", max_length=2000),
+            principal=Depends(requires("write")),
+        ):
+            with lock:
+                _run_or_404(lambda: engine.get_run(run_id), principal, run_id, permission="write")
+            attempt = 0
+            root_id = None
+            if parent_id:
+                parent = media_source(parent_id, principal, write=True, allow_stale=True)
+                flow = motion.workflow(parent)
+                if (parent["run_id"] != run_id or not flow or parent["status"] not in {"FAILED", "RETURNED"}
+                        or not repair_note.strip()):
+                    raise HTTPException(409, detail="Repair requires a failed/returned workflow draft and an explanation")
+                root_id = flow["root_id"]
+                attempt = flow["repair_attempt"] + 1
+                if attempt > 2:
+                    raise HTTPException(409, detail="Two repair attempts exhausted; unresolved issues require human escalation")
+            # Raw audio bytes; no multipart spooling. Read at most 24MB+1.
+            size = 0
+            audio = bytearray()
+            async for chunk in request.stream():
+                size += len(chunk)
+                if size > MAX_BYTES:
+                    raise HTTPException(413, detail="Narration exceeds 24MB")
+                audio.extend(chunk)
+            with lock:
+                run = _run_or_404(lambda: engine.get_run(run_id), principal, run_id, permission="write")
+            try:
+                story = from_evidence_run(rmd, principal, run)
+                story["format"] = video_format
+                return motion.create(
+                    principal.subject, run_id, run,
+                    bytes(audio) if audio else None, suffix=narration_suffix, storyboard=story,
+                    workflow={"audience": audience, "format": video_format, "parent_id": parent_id,
+                              "repair_attempt": attempt, "repair_note": repair_note.strip(), "root_id": root_id,
+                              "creative_generation": "deterministic_evidence_template_not_llm_specialists"},
+                )
+            except RmdError:
+                raise HTTPException(404, detail="Run not found.") from None
+            except (MotionError, MotionStoryRefused) as exc:
+                raise HTTPException(409, detail=str(exc)) from exc
+
+        @app.get("/api/motion/jobs/{job_id}/script")
+        def motion_script(job_id: str, principal=Depends(requires("read"))):
+            row = media_source(job_id, principal)
+            try:
+                return motion.script(job_id, row["owner"])
+            except MotionError as exc:
+                raise HTTPException(409, detail=str(exc)) from None
+
+        @app.get("/api/motion/jobs/{job_id}/narration")
+        def motion_narration(job_id: str, principal=Depends(requires("read"))):
+            from server.motion_local import file_digest
+            row = media_source(job_id, principal)
+            audio = motion.base / row["audio_name"] if row["audio_name"] else None
+            if audio is None or not audio.is_file() or file_digest(audio) != row["audio_sha"]:
+                raise HTTPException(404, detail="Narration unavailable")
+            return FileResponse(audio, headers={"Cache-Control": "private, no-store", "X-Robots-Tag": "noindex"})
+
+        class ScriptApproval(BaseModel):
+            binding: str = Field(min_length=64, max_length=64)
+            reviewed_script: bool = False
+            checked_evidence: bool = False
+            checked_audience_format: bool = False
+            checked_narration_rights: bool = False
+
+        @app.post("/api/motion/jobs/{job_id}/script-approval")
+        def motion_script_approve(job_id: str, body: ScriptApproval,
+                                  principal=Depends(requires("approve"))):
+            media_source(job_id, principal, review=True)
+            try:
+                return motion.approve_script(job_id, principal.subject, body.binding,
+                    body.model_dump(exclude={"binding"}))
+            except MotionError as exc:
+                raise HTTPException(409, detail=str(exc)) from None
+
+        @app.post("/api/motion/jobs/{job_id}/render-approved", status_code=202)
+        def motion_render_approved(job_id: str, principal=Depends(requires("write"))):
+            media_source(job_id, principal, write=True)
+            try:
+                return motion.render_approved(job_id, principal.subject)
+            except MotionError as exc:
+                raise HTTPException(409, detail=str(exc)) from None
+
         @app.get("/api/motion/jobs/{job_id}")
         def motion_job(job_id: str, principal=Depends(requires("read"))):
             try:
-                row = media_source(job_id, principal)
+                row = media_source(job_id, principal, allow_stale=True)
+                if row.get("needs_update"):
+                    return {"id": job_id, "needs_update": True, "status": "SOURCE_STALE",
+                            "next_action": "create_new_reviewed_draft", "publication_allowed": False}
                 return motion.view(job_id, row["owner"])
             except MotionError:
                 raise HTTPException(404, detail="No such owned video")
