@@ -1,0 +1,59 @@
+Note: evidence lines condensed by the orchestrator; paragraph ids, severities and categories are exactly as the reviewer gave them.
+
+FINDING F01 · blocker · P03
+Category: arithmetic
+Evidence: 11.6%, not 12.6%.
+
+FINDING F02 · blocker · P05
+Category: arithmetic
+Evidence: Decline is 3.4 points, not 8.3.
+
+FINDING F03 · major · P07
+Category: unsourced_figure
+Evidence: Unit costs per order not in register.
+
+FINDING F04 · blocker · P09
+Category: overclaim
+Evidence: One fall called a sustained trend; 2027 forecast.
+
+FINDING F05 · blocker · P10
+Category: arithmetic
+Evidence: 3,420 minutes, not 3,720.
+
+FINDING F06 · blocker · P14
+Category: causal_claim
+Evidence: MTBF gain 'delivered by' cleaning cycle.
+
+FINDING F07 · blocker · P15
+Category: causal_claim
+Evidence: Fall 'thanks to' lubrication schedule.
+
+FINDING F08 · major · P16
+Category: denominator
+Evidence: 97 fleet failures over 124 mainline machines.
+
+FINDING F09 · blocker · P19
+Category: overclaim
+Evidence: 2 of 42 stations generalised to network.
+
+FINDING F10 · major · P20
+Category: denominator
+Evidence: Raised over completed orders.
+
+FINDING F11 · major · P22
+Category: unsourced_figure
+Evidence: CCTV MTTR 6.4 h not in register.
+
+FINDING F12 · major · P24
+Category: denominator
+Evidence: 86.0% simple average; pooled 87.2%.
+
+FINDING F13 · blocker · P28
+Category: causal_claim
+Evidence: Contractors 'drove' response time fall.
+
+FINDING F14 · major · P29
+Category: unsourced_figure
+Evidence: 214 orders held by spares not in register.
+
+TOTAL: 14 findings

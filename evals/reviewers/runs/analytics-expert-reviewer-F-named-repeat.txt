@@ -1,0 +1,51 @@
+Note: evidence lines condensed by the orchestrator; paragraph ids, severities and categories are exactly as the reviewer gave them. The reviewer listed its checks as: Definitions, Arithmetic you can redo, Models, Causal language, Scope and limits, Recommendations, Maintenance and reliability method (v3 loaded).
+
+FINDING F01 · blocker · P04
+Category: domain_method
+Evidence: Series chain is a product: 93.1%, below target.
+
+FINDING F02 · major · P05
+Category: domain_method
+Evidence: Restoration 4.9 h; 1,656.2 h; 99.84%.
+
+FINDING F03 · major · P07
+Category: domain_method
+Evidence: Alarm log cannot show capacity; discharge test is the check.
+
+FINDING F04 · major · P08
+Category: domain_method
+Evidence: Shared controller: about 0.54%.
+
+FINDING F05 · major · P10
+Category: domain_method
+Evidence: 13-week survey longer than 8-week P-F interval.
+
+FINDING F06 · major · P12
+Category: domain_method
+Evidence: Shape 3.4 is wear-out.
+
+FINDING F07 · major · P14
+Category: domain_method
+Evidence: Backlog met by deferring safety sensor defects.
+
+FINDING F08 · major · P16
+Category: domain_method
+Evidence: Monitoring ranked by cost; track circuits excluded.
+
+FINDING F09 · blocker · P17
+Category: domain_method
+Evidence: MTBF is not service life.
+
+FINDING F10 · blocker · P18
+Category: causal_claim
+Evidence: Contractor change before/after, no control.
+
+FINDING F11 · blocker · P19
+Category: denominator
+Evidence: Per pump: 22 / 74 = 29.7%.
+
+FINDING F12 · blocker · P20
+Category: overclaim
+Evidence: Six sections, five months generalised.
+
+TOTAL: 12 findings

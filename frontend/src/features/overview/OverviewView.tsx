@@ -5,31 +5,41 @@ import { useI18n } from '../../i18n'
 import { api, ApiError } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
 import { stateLabel, typeLabel } from '../../shared/labels'
-import type { RunDetail, RunSummary, Usage } from '../../shared/types'
+import type { RunDetail, RunExecutive, RunSummary, Usage } from '../../shared/types'
 import type { RunPreset } from '../runs/RunsView'
 import { countRuns, latestWithFindings, recentRuns, RUN_PAGE, waitingForApproval } from './summary'
+import { CommandCentre } from './CommandCentre'
 import { DecisionActions } from './DecisionActions'
 import { summarizeRunEvidence } from './evidence'
+import { downloadMotionRun, motionFromRun } from './motionEvidence'
 
 interface OverviewViewProps {
   onOpenRun: (id: string) => void
   onStart: (preset: RunPreset | null) => void
+  /** False in the view-only demo: no button that would start an analysis. */
+  canStart?: boolean
   onApprovals?: () => void
-  onOpenDashboard?: () => void
+  /** With a run id, opens that run's executive overview; without, the
+   *  dashboard as last left. */
+  onOpenDashboard?: (runId?: string) => void
+  /** The list of analyses. Falls back to the new-analysis form when absent. */
+  onSeeAll?: () => void
 }
 
 /** Where the workspace stands, on one screen: the figures, the latest
  *  findings, what is waiting at the approval gate, and the newest runs.
  *  Everything comes from existing endpoints; nothing is computed here
  *  that the server did not already say. */
-export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard }: OverviewViewProps) {
-  const { t, tx, formatNumber, formatDate } = useI18n()
+export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard, onSeeAll, canStart = true }: OverviewViewProps) {
+  const { t, tx, locale, formatNumber, formatDate } = useI18n()
   const [runs, setRuns] = useState<RunSummary[] | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
   const [usage, setUsage] = useState<Usage | null>(null)
   const [usageFailed, setUsageFailed] = useState(false)
   const [latest, setLatest] = useState<RunDetail | null>(null)
   const [latestFailed, setLatestFailed] = useState(false)
+  const [brief, setBrief] = useState<RunExecutive | null>(null)
+  const [briefFailed, setBriefFailed] = useState(false)
   const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
@@ -38,6 +48,8 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
     setRuns(null)
     setLatest(null)
     setLatestFailed(false)
+    setBrief(null)
+    setBriefFailed(false)
     setUsageFailed(false)
     api
       .listRuns()
@@ -46,6 +58,11 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
         setRuns(result.runs)
         const source = latestWithFindings(result.runs)
         if (!source) return
+        // The decision brief and the run detail are independent reads:
+        // one failing never hides the other.
+        api.runExecutive(source.id, locale)
+          .then((executive) => !cancelled && setBrief(executive))
+          .catch(() => !cancelled && setBriefFailed(true))
         try {
           const detail = await api.getRun(source.id)
           if (!cancelled) setLatest(detail)
@@ -65,15 +82,18 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
     return () => {
       cancelled = true
     }
-    // `t` changes only with the locale; a retry is the key.
+    // A retry or a language change re-reads; `t` follows the locale.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attempt])
+  }, [attempt, locale])
 
+  const orderedRuns = recentRuns(runs ?? [], RUN_PAGE)
+  const agentRun = orderedRuns.find((run) => run.state === 'running' || run.state === 'queued') ?? orderedRuns[0]
   const actions = onOpenDashboard ? (
     <DecisionActions
-      onUpload={() => onStart({ kind: 'upload' })}
-      onDashboard={onOpenDashboard}
+      onUpload={canStart ? () => onStart({ kind: 'upload' }) : undefined}
+      onDashboard={() => onOpenDashboard()}
       onApprovals={onApprovals}
+      onAgents={agentRun ? () => onOpenRun(agentRun.id) : undefined}
     />
   ) : null
 
@@ -83,10 +103,10 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
         <h2 className="panel__title">{t('overview.title')}</h2>
         <p className="panel__desc">{t('overview.desc')}</p>
       </div>
-      <button type="button" className="btn btn--primary" onClick={() => onStart({ kind: 'upload' })}>
+      {canStart ? <button type="button" className="btn btn--primary" onClick={() => onStart({ kind: 'upload' })}>
         <Icon name="plus" size={16} />
         {t('overview.start')}
-      </button>
+      </button> : null}
     </div>
   )
 
@@ -116,7 +136,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
         <div className="panel__inner panel__inner--wide">
           {header}
           {actions}
-          <div className="kpis" role="status" aria-label={t('overview.loading')}>
+          <div className="kpis" role="status" aria-label={t('overview.loading')}><span className="visually-hidden">{t('overview.loading')}</span>
             {[0, 1, 2, 3].map((n) => (
               <div key={n} className="kpi">
                 <div className="skeleton skeleton--line" />
@@ -142,7 +162,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
             </div>
             <h3 className="empty__title">{t('overview.emptyTitle')}</h3>
             <p className="empty__text">{t('overview.emptyText')}</p>
-            <div className="empty__actions">
+            {canStart ? <div className="empty__actions">
               <button type="button" className="btn btn--primary" onClick={() => onStart(null)}>
                 {t('overview.trySample')}
               </button>
@@ -153,7 +173,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
               >
                 {t('overview.addDataset')}
               </button>
-            </div>
+            </div> : null}
           </div>
         </div>
       </section>
@@ -163,6 +183,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
   const counts = countRuns(runs)
   const waiting = waitingForApproval(runs)
   const recent = recentRuns(runs)
+  const source = latestWithFindings(runs)
   const findings = latest ? latest.reports.filter((report) => (report.headline ?? '').trim()) : []
   const reportLang = latest?.report_language === 'ar' ? 'ar' : 'en'
   // A run's independent validator is evidence about that run, not a claim
@@ -172,22 +193,25 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
   const tiles = [
     {
       key: 'finished',
+      hue: 'teal',
       label: t('overview.finished'),
-      value: formatNumber(counts.finished),
+      value: counts.finished,
       sub: counts.active > 0 ? t('overview.inProgress', { n: formatNumber(counts.active) }) : '',
       attention: false,
     },
     {
       key: 'waiting',
+      hue: 'teal',
       label: t('overview.waitingTile'),
-      value: formatNumber(counts.waiting),
+      value: counts.waiting,
       sub: '',
       attention: counts.waiting > 0,
     },
     {
       key: 'datasets',
+      hue: 'violet',
       label: t('usage.datasets'),
-      value: usage ? formatNumber(usage.datasets.used) : '—',
+      value: usage?.datasets.used,
       sub: usage
         ? t('overview.ofLimit', { limit: formatNumber(usage.datasets.limit) })
         : usageFailed
@@ -197,8 +221,9 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
     },
     {
       key: 'today',
+      hue: 'magenta',
       label: t('usage.runs'),
-      value: usage ? formatNumber(usage.runs_today.used) : '—',
+      value: usage?.runs_today.used,
       sub: usage
         ? t('overview.ofLimit', { limit: formatNumber(usage.runs_today.limit) })
         : usageFailed
@@ -213,11 +238,14 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
       <div className="panel__inner panel__inner--wide">
         {header}
 
+        {source ? <CommandCentre run={source} brief={brief} failed={briefFailed} onOpenDashboard={onOpenDashboard} /> : null}
+
+        {/* Counts are counts: a status reads only where a target exists. */}
         <dl className="kpis">
           {tiles.map((tile) => (
-            <div key={tile.key} className={`kpi ${tile.attention ? 'kpi--attention' : ''}`}>
+            <div key={tile.key} data-hue={tile.hue} className={`kpi ${tile.attention ? 'kpi--attention' : ''}`}>
               <dt className="kpi__label">{tile.label}</dt>
-              <dd className="kpi__value">{tile.value}</dd>
+              <dd className="kpi__value"><bdi>{tile.value === undefined ? '—' : formatNumber(tile.value)}</bdi></dd>
               {tile.sub ? <dd className="kpi__sub">{tile.sub}</dd> : null}
             </div>
           ))}
@@ -246,12 +274,42 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
             <p>{t('overview.evidenceScope')}</p>
           </div>
           {latest ? (
-            <button type="button" className="btn btn--ghost" onClick={() => onOpenRun(latest.id)}>
-              {t('overview.openAnalysis')}
-            </button>
+            <>
+              <button type="button" className="btn btn--ghost" onClick={() => onOpenRun(latest.id)}>
+                {t('overview.openAnalysis')}
+              </button>
+              <a
+                href="/motion-studio/index.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn--ghost"
+              >
+                {reportLang === 'ar' ? 'فتح محرر الموشن' : 'Open Motion Studio'}
+              </a>
+              <button
+                type="button"
+                className="btn btn--ghost"
+                disabled={evidence.status !== 'passed' || !latest.report?.id || !latest.reports.some((r) => r.headline?.trim())}
+                title={evidence.status === 'passed'
+                  ? (reportLang === 'ar' ? 'تنزيل مسودة موشن من تحليل موثق، لا يعني الموافقة للنشر'
+                    : 'Download a source-linked motion draft, not publication approval')
+                  : (reportLang === 'ar' ? 'يتطلب تحليلًا اجتاز فحوص الأدلة'
+                    : 'Requires a run that passed evidence checks')}
+                onClick={() => {
+                  try {
+                    downloadMotionRun(motionFromRun(latest))
+                  } catch {
+                    onOpenRun(latest.id)
+                  }
+                }}
+              >
+                {reportLang === 'ar' ? 'مسودة فيديو تحليلي' : 'Motion draft'}
+              </button>
+            </>
           ) : null}
         </section>
 
+        {actions}
         <div className="overview__grid">
           <div className="card">
             <h3 className="card__title">{t('overview.findings')}</h3>
@@ -266,7 +324,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
                 {findings.length > 0 ? (
                   <ul className="findings">
                     {findings.map((report) => (
-                      <li key={report.type} className="finding">
+                      <li key={report.type} className="finding" data-type={report.type}>
                         <span className="finding__type">
                           {typeLabel(t, report.type, report.title)}
                         </span>
@@ -352,7 +410,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard 
               </li>
             ))}
           </ul>
-          <button type="button" className="btn btn--subtle" onClick={() => onStart(null)}>
+          <button type="button" className="btn btn--subtle" onClick={() => (onSeeAll ? onSeeAll() : onStart(null))}>
             {t('overview.seeAll')}
           </button>
         </div>

@@ -2,10 +2,12 @@
 recall floors every classifying agent must keep.
 
 The suites in evals/ are synthetic and labelled. Each has dev cases, used
-to find and fix misses, and holdout cases scored before and after. For the
-text classifiers, the current holdout is a blind set written by an
-independent agent from the label definitions only. A change that drops a
-suite below its floor in evals/floors.json fails here.
+to find and fix misses, and holdout cases scored before and after; the
+causal and standards holdouts are not blind (ADR 0056, and the standards
+cases' own source field). The text classifiers also carry a blind split,
+written by an independent agent from the label definitions only and never
+looked at while fixing, which the suite declares and the floors cover. A
+change that drops a suite below its floor in evals/floors.json fails here.
 """
 
 import json
@@ -54,7 +56,8 @@ class MetricsTests(unittest.TestCase):
 class SuiteTests(unittest.TestCase):
 
     def test_every_suite_has_dev_and_holdout_cases_with_known_labels(self):
-        for name, spec in ev.SUITES.items():
+        for name in ev.default_suites():
+            spec = ev.SUITES[name]
             with self.subTest(suite=name):
                 data = json.loads((ev.EVALS / spec["file"]).read_text(encoding="utf-8"))
                 self.assertTrue(data["dev"] and data["holdout"])
@@ -64,18 +67,41 @@ class SuiteTests(unittest.TestCase):
                         self.assertIn(str(case["label"]), allowed)
 
     def test_no_suite_falls_below_its_recall_floor(self):
+        """Dev, holdout and, where the suite declares one, the blind split."""
         floors = json.loads((ev.EVALS / "floors.json").read_text(encoding="utf-8"))
-        for name in ev.SUITES:
+        for name in ev.default_suites():
             result = ev.run_suite(name)
-            for split in ("dev", "holdout"):
+            for split in ev.SPLITS:
+                if split == "blind" and not ev.SUITES[name].get("blind"):
+                    continue
                 with self.subTest(suite=name, split=split):
                     self.assertGreaterEqual(ev.headline(result[split]) + 1e-9, floors[name][split])
 
+    def test_every_declared_blind_split_exists_is_scored_and_has_a_floor(self):
+        """A blind floor exists exactly for the suites that declare a blind
+        split, and the blind score covers every case of the named set."""
+        floors = json.loads((ev.EVALS / "floors.json").read_text(encoding="utf-8"))
+        for name in ev.default_suites():
+            blind = ev.SUITES[name].get("blind")
+            with self.subTest(suite=name):
+                self.assertEqual("blind" in floors[name], bool(blind))
+                if not blind:
+                    continue
+                data = json.loads((ev.EVALS / ev.SUITES[name]["file"]).read_text(encoding="utf-8"))
+                self.assertIn(blind, data)
+                result = ev.run_suite(name)
+                self.assertEqual(result["blind_split"], blind)
+                self.assertEqual(result["blind"]["split"], blind)
+                self.assertEqual(result["blind"]["cases"], len(data[blind]))
+                self.assertEqual(ev.split_label(result, "blind"), f"blind ({blind})")
+
     def test_the_report_page_draws_every_matrix(self):
         import score_review
-        page = ev.render_html([ev.run_suite("router")], score_review.summary())
+        page = ev.render_html([ev.run_suite("router"), ev.run_suite("standards")], score_review.summary())
         self.assertIn("<table class=\"cm\">", page)
         self.assertIn("Rows: true label", page)
+        self.assertIn("<th>Blind</th>", page)
+        self.assertIn("blind (blind_v1) · 36 cases", page)
         self.assertIn("Reviewers on seeded memos", page)
         self.assertIn("Rows: the planted defect.", page)
 
@@ -192,6 +218,108 @@ class RecallFixTests(unittest.TestCase):
         for case in suite["probe_v5"]:
             self.assertIn("NOT a blind holdout", case["source"])
 
+    def test_a_blind_set_is_independent_until_it_is_used_to_fix_rules(self):
+        """Blind sets were written by an agent that saw only the label definitions
+        (2026-10-20 decision). While a set is still blind, none of its sentences
+        may also sit in another split. Once the rules are fixed against it, it
+        moves into dev, says so in every case's source, and a new blind set is
+        needed to judge the fix."""
+        def every_other_text(data, skip):
+            return {case["text"] for key, cases in data.items()
+                    if key != skip and isinstance(cases, list)
+                    for case in cases if isinstance(case, dict) and "text" in case}
+        for name, key, size in (("jargon", "blind_v6", 40), ("intent", "blind_v7", 57),
+                                ("causal", "blind_v7", 50), ("standards", "blind_v1", 36)):
+            data = json.loads((ev.EVALS / f"{name}.json").read_text(encoding="utf-8"))
+            if key not in data:
+                continue
+            with self.subTest(suite=name, set=key):
+                blind = data[key]
+                self.assertEqual(len(blind), size)
+                self.assertEqual([c["text"] for c in blind
+                                  if c["text"] in every_other_text(data, key)], [])
+                for case in blind:
+                    self.assertIn(case["label"], data["labels"])
+                    self.assertIn("independent agent", case["source"])
+                    self.assertIn("definitions only", case["source"])
+
+    def test_blind_v6_cases_fixed_against_say_so_in_dev(self):
+        """intent and causal blind_v6 were used to fix the rules on 2026-10-20."""
+        for name, count in (("intent", 48), ("causal", 37)):
+            data = json.loads((ev.EVALS / f"{name}.json").read_text(encoding="utf-8"))
+            self.assertNotIn("blind_v6", data)
+            moved = [c for c in data["dev"] if "moved into dev" in c.get("source", "")]
+            self.assertEqual(len(moved), count, name)
+            for case in moved:
+                self.assertIn("no longer independent", case["source"])
+
+    def test_the_causal_lint_catches_the_families_blind_v6_missed(self):
+        """Attribution, phrasal and Arabic origin constructions (2026-10-20)."""
+        for text in ("Skipped lubrication was responsible for the gearbox breakdown.",
+                     "The overrun was what brought about the pantograph failure.",
+                     "Heat buckling gave rise to the speed restrictions.",
+                     "Cost overruns stem from the late discovery of cracked frames.",
+                     "Work orders closed late as a consequence of the planner shortage.",
+                     "The cracked weld set off the chain of events.",
+                     "نتج عطل الإشارة عن تسرب المياه إلى صندوق التوصيل.",
+                     "كان الانحراف ناجماً عن اتساع المسافة بين القضبان.",
+                     "التأخير في إغلاق أوامر العمل ناتج عن قلة المخططين.",
+                     "إن نقص التزييت هو المسؤول عن انهيار علبة التروس."):
+            with self.subTest(text=text):
+                self.assertTrue(claims_lint.causal_phrases(text))
+
+    def test_the_causal_lint_does_not_flag_vehicles_test_results_or_lags(self):
+        """The false alarms found on the same set, and one found on the project's own docs."""
+        for text in ("The driver will drive the train to the maintenance shed after the final run.",
+                     "Drivers drive trams to the depot at night.",
+                     "جاءت نتيجة اختبار عينة القضيب ضمن الحدود المسموحة.",
+                     "The verification record was behind the tree.",
+                     "Nothing was behind the reading."):
+            with self.subTest(text=text):
+                self.assertEqual(claims_lint.causal_phrases(text), [])
+        self.assertTrue(claims_lint.causal_phrases("Rising temperatures drive the failures."))
+        self.assertTrue(claims_lint.causal_phrases("جاءت نتيجة تحديث النظام."))
+
+    def test_the_model_suite_is_opt_in_and_says_so_without_a_provider(self):
+        """intent_model sends every case to a provider, so it is never part of the
+        default run, the floors or the agent loop, and it reports "not available"
+        rather than a score when nothing is configured."""
+        self.assertNotIn("intent_model", ev.default_suites())
+        self.assertIn("intent_model", ev.SUITES)
+
+        class Unconfigured:
+            def status(self):
+                return {"configured": False}
+        self.assertIsNone(ev._intent_model([{"text": "help", "label": "help"}], Unconfigured()))
+        from server import agent_learning
+        self.assertNotIn("intent_model", agent_learning.measure(["column_roles"])["suites"])
+
+    def test_the_model_suite_scores_the_whole_assistant_through_a_scripted_provider(self):
+        """What the number would mean once a real provider is configured: the model
+        decides first, and the rules decide when its answer is not a valid intent."""
+        answers = {"save this for me": "remember", "how is the run": "run_status",
+                   "show the notes": "recall", "hello there friend": "chat"}
+
+        class Scripted:
+            def status(self):
+                return {"configured": True, "provider": "scripted", "model": "fake"}
+
+            def ask_json(self, system, user, **options):
+                text = user.rsplit("Message: ", 1)[1]
+                if text == "show the notes":       # an invalid answer: the rules decide
+                    return "not json"
+                action = answers[text]
+                arguments = {"information": "the user's note"} if action == "remember" else {}
+                return json.dumps({"action": action, "arguments": arguments,
+                                   "reply": "Hi!" if action == "chat" else ""})
+        cases = [{"text": t, "label": a} for t, a in answers.items()]
+        pairs = ev._intent_model(cases, Scripted())
+        self.assertEqual([p[1] for p in pairs], ["remember", "run_status", "recall", "chat"])
+        # "show the notes" got an invalid answer and the rules placed it correctly;
+        # the suite says how many sentences the model did not decide.
+        self.assertIn("1 of 4", ev.NOTES["intent_model"])
+        self.assertEqual(sum(1 for t, p, _ in pairs if t == p), 4)
+
     def test_the_claims_lint_cli_exits_by_result(self):
         with tempfile.TemporaryDirectory() as tmp:
             doc = Path(tmp) / "doc.md"
@@ -261,6 +389,62 @@ class RecallFixTests(unittest.TestCase):
         self.assertAlmostEqual(wrong["13.4%"], 11.428571, places=4)
         self.assertAlmostEqual(wrong["15.2"], 12.708333, places=4)
 
+    def test_a_fall_written_as_a_positive_size_is_read_as_the_fall(self):
+        # Benchmark D showed "fell from 468 to 412, a fall of 12.0%" flagged as
+        # 56 / 412: a fall computes negative, prose writes its size. These
+        # sentences are new, so D stays held out for the checker.
+        register = {"Lift faults 2024": "250", "Lift faults 2025": "200", "Lift fault change": "-20.0%",
+                    "Escalator stoppages 2024": "160", "Escalator stoppages 2025": "136",
+                    "Door faults 2024": "80", "Door faults 2025": "60"}
+        text = ("Lift faults fell from 250 in 2024 to 200 in 2025, 50 fewer or a fall of 20.0%. "
+                "Escalator stoppages dropped from 160 to 136, a reduction of 24 or 15.0%. "
+                "Door faults declined from 80 to 60, a reduction of 30.0%.")
+        result = self.sourcing(text, register)
+        self.assertEqual(result["unsourced"], [])
+        wrong = {w["result"]: w["computed"] for w in result["wrong_arithmetic"]}
+        # The real slip is still caught, against the right base: 20 / 80.
+        self.assertEqual(set(wrong), {"30.0%"})
+        self.assertAlmostEqual(abs(wrong["30.0%"]), 25.0, places=4)
+
+    def test_euro_pound_and_dirham_amounts_are_read_like_dollars(self):
+        # Benchmark E showed "€310" and "€1,150" reported as unsourced although
+        # the register held them: only "$" was read as money. Fresh figures.
+        register = {"Pump seal": "€420", "Hoist service": "£2,750", "Lift contract": "AED 96,000",
+                    "Escalator contract": "48,500 AED", "Fan belt": "د.إ 380"}
+        text = ("A pump seal costs €420 and a hoist service £2,750. The lift contract is AED 96,000, "
+                "the escalator contract 48,500 AED and a fan belt د.إ 380. A spare motor costs €9,900.")
+        result = self.sourcing(text, register)
+        self.assertEqual([u["number"] for u in result["unsourced"]], ["$9,900"])
+
+    def test_a_figure_is_not_found_inside_a_longer_number_or_a_clock_time(self):
+        # Memo F: coverage reported a missing 4.9 as "05" from "05:00", and a
+        # count of 5 as found in "5.2". A missing figure must read as missing.
+        text = "Shift handover runs from 06:00 to 07:30. Mean delay was 3.8 minutes over 1,240.5 km."
+        numbers = fc.numbers_in(text, keep_small=True)
+        self.assertNotIn("06", numbers)
+        self.assertNotIn("00", numbers)
+        for value in ("6", "7", "3", "1,240", "7.4"):
+            self.assertIsNone(fc.found_in(text, value, numbers), value)
+        for value in ("3.8", "1,240.5"):
+            self.assertIsNotNone(fc.found_in(text, value, numbers), value)
+        self.assertIsNotNone(fc.found_in("a wait of 4.0 hours", "4"))  # the same figure
+
+    def test_a_change_in_percentage_points_is_the_difference_of_the_percentages(self):
+        # Benchmark D: "fell from 40.9% to 37.5%, a decline of 8.3 percentage
+        # points" was reported as an unsourced 8.3, when 8.3 is the relative
+        # change written as points. Fresh sentences, so D stays held out.
+        register = {"On-time 2024": "88.0%", "On-time 2025": "92.4%", "Rework 2024": "12.5%", "Rework 2025": "10.0%",
+                    "Uptime 2024": "97.20%", "Uptime 2025": "97.65%"}
+        text = ("On-time completion rose from 88.0% to 92.4%, a gain of 4.4 percentage points. "
+                "Rework fell from 12.5% to 10.0%, a drop of 20.0 percentage points. "
+                "Uptime improved from 97.20% to 97.65%, up 0.45 points.")
+        result = self.sourcing(text, register)
+        self.assertEqual(result["unsourced"], [])
+        wrong = {w["result"]: w["computed"] for w in result["wrong_arithmetic"]}
+        # 20.0 is the relative fall (2.5 / 12.5); in points it is 2.5.
+        self.assertEqual(set(wrong), {"20.0"})
+        self.assertAlmostEqual(wrong["20.0"], 2.5, places=4)
+
     def test_a_table_read_as_one_sentence_derives_nothing(self):
         # A dashboard's data table: dozens of figures and the word "per"; any
         # two of them would "derive" a third, so the rule keeps to prose.
@@ -281,7 +465,7 @@ class ReviewerBenchmarkTests(unittest.TestCase):
 
     def test_every_benchmark_labels_paragraphs_that_exist(self):
         import re
-        for bench in ("A", "B", "C"):
+        for bench in ("A", "B", "C", "D", "E", "F"):
             with self.subTest(bench=bench):
                 folder = ROOT / "evals" / "reviewers" / bench
                 labels = json.loads((folder / "labels.json").read_text(encoding="utf-8"))

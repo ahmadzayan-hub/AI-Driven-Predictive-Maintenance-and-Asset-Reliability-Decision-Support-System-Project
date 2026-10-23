@@ -49,3 +49,13 @@ def temp_workspace(case, tempfile_module):
     directory = tempfile_module.TemporaryDirectory()
     case.addCleanup(directory.cleanup)
     return directory
+
+
+def scoped_token(secret, subject, role=None, audience=None, issuer=None, **kwargs):
+    """A test token that carries the audience and issuer a provider now
+    requires (assessment finding B7), matching the SUPABASE_URL the API
+    tests configure. Explicit values still win."""
+    from server.auth import issue_local_test_token
+    return issue_local_test_token(secret, subject, role=role,
+                                  audience=audience or "authenticated",
+                                  issuer=issuer or "https://test.supabase.invalid/auth/v1", **kwargs)

@@ -12,6 +12,10 @@ placeholder differs. Rows cross the boundary as plain dicts, so the
 engine never sees a driver type.
 """
 
+import hashlib
+import threading
+from contextlib import contextmanager
+
 # The single source of truth for which tables exist. Backup, restore and
 # test teardown all derive from this, so adding a table cannot leave one
 # of them stale (a bug that has already bitten once).
@@ -26,6 +30,8 @@ TABLES = (
     "datasets",
     "connectors",
     "kpi_policies",
+    "organizations", "organization_members", "operation_sites", "operation_assets",
+    "work_orders", "operation_audit", "operation_requests", "worker_heartbeats", "reliability_trials",
 )
 
 # Restore must insert parents before children.
@@ -40,9 +46,51 @@ RESTORE_ORDER = (
     "memory_kv",
     "vault_notes",
     "connectors",
+    "organizations", "organization_members", "operation_sites", "operation_assets",
+    "work_orders", "operation_audit", "operation_requests", "worker_heartbeats", "reliability_trials",
 )
 
 SCHEMA_STATEMENTS = [
+    """CREATE TABLE IF NOT EXISTS organizations (
+      id TEXT PRIMARY KEY, name TEXT NOT NULL, version INTEGER NOT NULL,
+      created_at TEXT NOT NULL, updated_at TEXT NOT NULL)""",
+    """CREATE TABLE IF NOT EXISTS organization_members (
+      id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
+      subject TEXT NOT NULL, role TEXT NOT NULL, created_at TEXT NOT NULL,
+      UNIQUE(org_id, subject))""",
+    """CREATE TABLE IF NOT EXISTS operation_sites (
+      id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
+      code TEXT NOT NULL, name TEXT NOT NULL, created_at TEXT NOT NULL,
+      UNIQUE(org_id, code))""",
+    """CREATE TABLE IF NOT EXISTS operation_assets (
+      id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
+      site_id TEXT NOT NULL REFERENCES operation_sites(id),
+      external_id TEXT NOT NULL, source_system TEXT NOT NULL, name TEXT NOT NULL,
+      criticality TEXT NOT NULL, version INTEGER NOT NULL, created_at TEXT NOT NULL,
+      UNIQUE(org_id, source_system, external_id))""",
+    """CREATE TABLE IF NOT EXISTS work_orders (
+      id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
+      asset_id TEXT NOT NULL REFERENCES operation_assets(id), title TEXT NOT NULL,
+      rationale TEXT NOT NULL, status TEXT NOT NULL, priority TEXT NOT NULL,
+      assignee TEXT NOT NULL, due_date TEXT NOT NULL, evidence_json TEXT NOT NULL,
+      completion_json TEXT NOT NULL, version INTEGER NOT NULL,
+      created_by TEXT NOT NULL, authorized_by TEXT, created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL)""",
+    """CREATE TABLE IF NOT EXISTS operation_audit (
+      id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
+      entity_id TEXT NOT NULL, actor TEXT NOT NULL, action TEXT NOT NULL,
+      version INTEGER NOT NULL, detail_json TEXT NOT NULL, created_at TEXT NOT NULL)""",
+    """CREATE TABLE IF NOT EXISTS operation_requests (
+      id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
+      actor TEXT NOT NULL, request_key TEXT NOT NULL, payload_hash TEXT NOT NULL,
+      response_json TEXT NOT NULL, created_at TEXT NOT NULL,
+      UNIQUE(org_id, actor, request_key))""",
+    """CREATE TABLE IF NOT EXISTS worker_heartbeats (
+      id TEXT PRIMARY KEY, seen_at TEXT NOT NULL, state TEXT NOT NULL)""",
+    """CREATE TABLE IF NOT EXISTS reliability_trials (
+      id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
+      created_by TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+      revision INTEGER NOT NULL, protocol_json TEXT NOT NULL, predictions_json TEXT NOT NULL)""",
     """CREATE TABLE IF NOT EXISTS runs (
       id TEXT PRIMARY KEY, goal TEXT NOT NULL, dataset_name TEXT NOT NULL,
       dataset_text TEXT NOT NULL, state TEXT NOT NULL,
@@ -104,8 +152,60 @@ SCHEMA_STATEMENTS = [
 ]
 
 
+# Runs listed by state (the approval queue) are capped far above the page.
+STATE_LIST_LIMIT = 1000
+
+
 class SqlStore:
     """Shared SQL behaviour. Subclasses supply the connection and dialect."""
+
+    def __init__(self):
+        self._operation_lock = threading.RLock()
+        self._transaction_depth = 0
+
+    @contextmanager
+    def atomic(self, key):
+        """Serialize one logical mutation, including its checks and writes.
+
+        Nested calls share the outer transaction. PostgreSQL locks only the
+        named owner/run; SQLite serializes writers as its local-mode contract.
+        A lost connection aborts the operation, never retries a fragment of it.
+        """
+        with self._operation_lock:
+            if self._transaction_depth:
+                self._transaction_depth += 1
+                try:
+                    yield
+                finally:
+                    self._transaction_depth -= 1
+                return
+            self._begin_transaction()
+            self._transaction_depth = 1
+            try:
+                self._lock_transaction(key)
+                yield
+                self._finish_transaction("COMMIT")
+            except BaseException:
+                try:
+                    self._finish_transaction("ROLLBACK")
+                except Exception:
+                    pass  # Preserve the original failure, including connection loss.
+                raise
+            finally:
+                self._transaction_depth = 0
+
+    def _begin_transaction(self):
+        self._conn.execute("BEGIN IMMEDIATE")
+
+    def _lock_transaction(self, key):
+        pass  # SQLite's BEGIN IMMEDIATE already owns the write reservation.
+
+    def _finish_transaction(self, statement):
+        cursor = self._conn.cursor()
+        try:
+            cursor.execute(statement)
+        finally:
+            cursor.close()
 
     def close(self):
         """Release the connection.
@@ -139,20 +239,28 @@ class SqlStore:
         return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
     def _exec(self, sql, params=()):
-        cursor = self._conn.cursor()
-        cursor.execute(sql.replace("?", self.placeholder), params)
-        rows = self._rows(cursor)
-        self._commit()
-        return rows
+        with self._operation_lock:
+            cursor = self._conn.cursor()
+            try:
+                cursor.execute(sql.replace("?", self.placeholder), params)
+                rows = self._rows(cursor)
+                self._commit()
+                return rows
+            finally:
+                cursor.close()
 
     def _exec_rowcount(self, sql, params=()):
         """Like _exec, but reports how many rows the statement changed —
         which is how a lease claim knows whether it won the race."""
-        cursor = self._conn.cursor()
-        cursor.execute(sql.replace("?", self.placeholder), params)
-        count = cursor.rowcount
-        self._commit()
-        return count
+        with self._operation_lock:
+            cursor = self._conn.cursor()
+            try:
+                cursor.execute(sql.replace("?", self.placeholder), params)
+                count = cursor.rowcount
+                self._commit()
+                return count
+            finally:
+                cursor.close()
 
     def _create_schema(self):
         for statement in SCHEMA_STATEMENTS:
@@ -179,13 +287,27 @@ class SqlStore:
         # joins_json: the datasets a run joins and on what (ADR 0030); NULL
         # for a run of one dataset, which is every run before it.
         # connector_id: the source a refresh made the run from (ADR 0034).
+        # assumptions_json: the decision inputs a run stated (slice three
+        # of the release gate, A2 and A13); NULL for every run before it.
+        # idempotency_key: the caller's key for a run creation, unique per
+        # owner, so a retried POST returns the run it already made (B14).
         for column in ("dataset_id", "lease_owner", "lease_expires_at",
                        "report_language", "mapping_json", "joins_json",
-                       "connector_id"):
+                       "connector_id", "assumptions_json", "idempotency_key"):
             try:
                 self._exec(f"ALTER TABLE runs ADD COLUMN {column} TEXT")
             except Exception:
                 self._rollback()
+        try:
+            self._exec("CREATE UNIQUE INDEX IF NOT EXISTS runs_idempotency "
+                       "ON runs (owner, idempotency_key)")
+        except Exception:
+            self._rollback()
+        try:
+            # decided_by: the approver's subject, written by the gate (A13).
+            self._exec("ALTER TABLE approvals ADD COLUMN decided_by TEXT")
+        except Exception:
+            self._rollback()
         try:
             # NULL means "never paused", which reads as not paused.
             self._exec("ALTER TABLE runs ADD COLUMN paused INTEGER")
@@ -202,6 +324,22 @@ class SqlStore:
             except Exception:
                 self._rollback()
         self._migrate_memory_owner()
+        try:
+            self._exec("ALTER TABLE connectors ADD COLUMN credential_id TEXT")
+        except Exception:
+            self._rollback()
+
+    def upsert_worker_heartbeat(self, worker_id, seen_at, state):
+        with self.atomic("worker-heartbeats"):
+            self._exec("INSERT INTO worker_heartbeats (id, seen_at, state) VALUES (?, ?, ?) "
+                       "ON CONFLICT (id) DO UPDATE SET seen_at = excluded.seen_at, "
+                       "state = excluded.state", (worker_id, seen_at, state))
+            stale = self._exec("SELECT id FROM worker_heartbeats ORDER BY seen_at DESC, id LIMIT 1000 OFFSET 100")
+            for row in stale:
+                self._exec("DELETE FROM worker_heartbeats WHERE id = ?", (row["id"],))
+
+    def list_worker_heartbeats(self):
+        return self._exec("SELECT * FROM worker_heartbeats ORDER BY seen_at DESC, id LIMIT 100")
 
     def _migrate_memory_owner(self):
         """Give memory_kv an owner, rebuilding the table if it predates one.
@@ -262,15 +400,26 @@ class SqlStore:
         rows = self._exec("SELECT * FROM runs WHERE id = ?", (run_id,))
         return rows[0] if rows else None
 
-    def list_runs(self, owner=None, limit=50):
-        if owner is None:
-            return self._exec(
-                "SELECT id, goal, dataset_name, state, created_at, updated_at "
-                "FROM runs ORDER BY created_at DESC LIMIT ?", (limit,))
+    def find_run_by_key(self, owner, idempotency_key):
+        """The run an owner already created under this key, or None (B14)."""
+        rows = self._exec("SELECT * FROM runs WHERE owner = ? AND idempotency_key = ? LIMIT 1",
+                          (owner, idempotency_key))
+        return rows[0] if rows else None
+
+    def list_runs(self, owner=None, limit=50, state=None):
+        """The newest `limit` runs, or every run in one `state` up to a
+        larger ceiling: the approval queue must never lose its oldest
+        request to the page size (assessment finding U1)."""
+        where, params = [], []
+        if owner is not None:
+            where.append("owner = ?"); params.append(owner)
+        if state is not None:
+            where.append("state = ?"); params.append(state)
+            limit = max(limit, STATE_LIST_LIMIT)
+        clause = (" WHERE " + " AND ".join(where)) if where else ""
         return self._exec(
             "SELECT id, goal, dataset_name, state, created_at, updated_at "
-            "FROM runs WHERE owner = ? ORDER BY created_at DESC LIMIT ?",
-            (owner, limit))
+            f"FROM runs{clause} ORDER BY created_at DESC LIMIT ?", (*params, limit))
 
     def get_tasks(self, run_id):
         return self._exec(
@@ -473,11 +622,21 @@ class SqlStore:
         else:
             self._commit()
 
-    def trim_sessions(self, keep):
+    def trim_sessions(self, keep, owner=None):
+        """Keep an owner's `keep` most recent sessions. Retention is per
+        owner: one tenant's new sessions never delete another's (audit
+        finding, 22 October). Without an owner, every owner is trimmed to
+        the same count."""
+        if owner is None:
+            owners = [row["owner"] for row in
+                      self._exec("SELECT DISTINCT owner FROM sessions")]
+            for each in owners:
+                self.trim_sessions(keep, each)
+            return
         self._exec(
-            "DELETE FROM sessions WHERE id NOT IN "
-            "(SELECT id FROM sessions ORDER BY updated_at DESC LIMIT ?)",
-            (keep,))
+            "DELETE FROM sessions WHERE owner = ? AND id NOT IN "
+            "(SELECT id FROM sessions WHERE owner = ? ORDER BY updated_at DESC LIMIT ?)",
+            (owner, owner, keep))
 
     # -- shared memory ----------------------------------------------------
     def memory_load(self, owner="local-owner"):
@@ -505,13 +664,30 @@ class SqlStore:
                                     "content": content,
                                     "created_at": created_at})
 
-    def list_notes(self):
-        return self._exec(
-            "SELECT path, run_id, created_at FROM vault_notes "
-            "ORDER BY created_at DESC")
+    def list_notes(self, owner=None):
+        """Published knowledge inherits its run's owner, including old notes.
 
-    def get_note(self, path):
-        rows = self._exec("SELECT * FROM vault_notes WHERE path = ?", (path,))
+        None is reserved for trusted operator callers. API requests supply
+        their subject unless the principal has platform administration.
+        Filtering in SQL keeps both note paths and contents out of another
+        customer's response; the filesystem is never a read fallback.
+        """
+        if owner is None:
+            return self._exec(
+                "SELECT path, run_id, created_at FROM vault_notes "
+                "ORDER BY created_at DESC")
+        return self._exec(
+            "SELECT n.path, n.run_id, n.created_at FROM vault_notes n "
+            "JOIN runs r ON r.id = n.run_id WHERE r.owner = ? "
+            "ORDER BY n.created_at DESC", (owner,))
+
+    def get_note(self, path, owner=None):
+        if owner is None:
+            rows = self._exec("SELECT * FROM vault_notes WHERE path = ?", (path,))
+        else:
+            rows = self._exec(
+                "SELECT n.* FROM vault_notes n JOIN runs r ON r.id = n.run_id "
+                "WHERE n.path = ? AND r.owner = ?", (path, owner))
         return rows[0] if rows else None
 
     # -- datasets ---------------------------------------------------------
@@ -552,23 +728,53 @@ class SqlStore:
         """Every durable row, as plain JSON-serialisable dicts."""
         return {table: self._exec(f"SELECT * FROM {table}") for table in TABLES}
 
-    def import_all(self, payload):
-        """Replace all contents with a backup. Returns rows restored.
+    def table_columns(self, table):
+        """The live column names of one table, migrations included."""
+        if table not in TABLES:
+            raise ValueError(f"unknown table {table!r}")
+        return self._table_columns(table)
 
-        Children are deleted before parents and inserted after them, so
-        foreign keys hold at every point."""
-        for table in reversed(RESTORE_ORDER):
-            self._exec(f"DELETE FROM {table}")
-        restored = 0
+    def _prepare_restore(self, payload):
+        """Every row of every table, checked against the live schema
+        before anything is deleted: a dict whose keys are all columns of
+        that table. Returns the rows to insert, in restore order."""
+        prepared = []
         for table in RESTORE_ORDER:
-            for row in payload.get(table, []):
+            rows = payload.get(table, [])
+            if not isinstance(rows, list):
+                raise ValueError(f"backup table {table!r} is not a list of rows")
+            known = set(self.table_columns(table))
+            for index, row in enumerate(rows):
+                if not isinstance(row, dict) or not row:
+                    raise ValueError(f"backup table {table!r} row {index} is not a row")
                 if table == "memory_kv" and not row.get("owner"):
                     # Written before memory had an owner: the same
                     # attribution the migration makes.
                     row = dict(row, owner="local-owner")
+                unknown = sorted(str(c) for c in row if c not in known)
+                if unknown:
+                    raise ValueError(
+                        f"backup table {table!r} row {index} has unknown columns: "
+                        + ", ".join(unknown))
+                prepared.append((table, row))
+        return prepared
+
+    def import_all(self, payload):
+        """Replace all contents with a backup. Returns rows restored.
+
+        All or nothing (assessment finding B5): every row is validated
+        against the live schema before any delete, and the deletes and
+        inserts run inside one transaction, so a failure part-way leaves
+        the database exactly as it was. Children are deleted before
+        parents and inserted after them, so foreign keys hold at every
+        point."""
+        prepared = self._prepare_restore(payload)
+        with self.atomic("restore"):
+            for table in reversed(RESTORE_ORDER):
+                self._exec(f"DELETE FROM {table}")
+            for table, row in prepared:
                 self.insert(table, row)
-                restored += 1
-        return restored
+        return len(prepared)
 
 
 class DbMemoryBackend:
@@ -607,6 +813,7 @@ class SQLiteStore(SqlStore):
     placeholder = "?"
 
     def __init__(self, path):
+        super().__init__()
         import os
         import sqlite3
         import tempfile
@@ -625,18 +832,25 @@ class SQLiteStore(SqlStore):
             path = Path(tempfile.gettempdir()) / "agentic-os" / path.name
             path.parent.mkdir(parents=True, exist_ok=True)
         self.path = path
-        self._conn = sqlite3.connect(str(path), check_same_thread=False)
+        # A bounded local narration can take 60 seconds. Other writers wait
+        # for that stage's atomic commit instead of failing after five seconds.
+        self._conn = sqlite3.connect(str(path), check_same_thread=False, timeout=65)
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._create_schema()
 
     def _commit(self):
-        self._conn.commit()
+        if not self._transaction_depth:
+            self._conn.commit()
+
+    def _table_columns(self, table):
+        return [row["name"] for row in self._exec(f"PRAGMA table_info({table})")]
 
 
 class PostgresStore(SqlStore):
     placeholder = "%s"
 
     def __init__(self, database_url):
+        super().__init__()
         import psycopg2  # lazy: only hosted mode needs the driver
 
         self._psycopg2 = psycopg2
@@ -648,6 +862,15 @@ class PostgresStore(SqlStore):
         conn = self._psycopg2.connect(self._database_url, connect_timeout=10)
         conn.autocommit = True
         return conn
+
+    def _begin_transaction(self):
+        # Reconnection is safe before the transaction has acquired any state.
+        self._exec("BEGIN")
+
+    def _lock_transaction(self, key):
+        identifier = int.from_bytes(hashlib.sha256(key.encode()).digest()[:8],
+                                    "big", signed=True)
+        self._exec("SELECT pg_advisory_xact_lock(?)", (identifier,))
 
     def _retrying(self, statement, sql, params):
         """Run a statement, reconnecting once if the connection is gone.
@@ -665,16 +888,19 @@ class PostgresStore(SqlStore):
         acknowledgement was lost, and `claim_run` checks for that
         directly rather than trusting the row count.
         """
-        try:
-            return statement(sql, params)
-        except (self._psycopg2.OperationalError,
-                self._psycopg2.InterfaceError):
+        with self._operation_lock:
             try:
-                self._conn.close()
-            except Exception:
-                pass
-            self._conn = self._connect()
-            return statement(sql, params)
+                return statement(sql, params)
+            except (self._psycopg2.OperationalError,
+                    self._psycopg2.InterfaceError):
+                if self._transaction_depth:
+                    raise  # The caller must retry the whole logical operation.
+                try:
+                    self._conn.close()
+                except Exception:
+                    pass
+                self._conn = self._connect()
+                return statement(sql, params)
 
     def _exec(self, sql, params=()):
         return self._retrying(super()._exec, sql, params)
@@ -686,6 +912,13 @@ class PostgresStore(SqlStore):
 
     def _commit(self):
         pass  # autocommit
+
+    def _table_columns(self, table):
+        rows = self._exec(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_schema = current_schema() AND table_name = ? "
+            "ORDER BY ordinal_position", (table,))
+        return [row["column_name"] for row in rows]
 
 
 def open_store(database_url=None, sqlite_path=None):

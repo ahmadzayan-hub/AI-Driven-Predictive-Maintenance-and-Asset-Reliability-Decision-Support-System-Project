@@ -410,6 +410,14 @@ class ServerAssistantTestCase(unittest.TestCase):
 
 
 class ModelPathTestCase(unittest.TestCase):
+    def test_exact_workspace_commands_do_not_wait_for_a_model(self):
+        gateway = FakeGateway(None)
+        gateway.ask = Mock(side_effect=AssertionError("exact command called a model"))
+        result = Assistant(gateway, self.engine).handle("is the analysis done?", self.session)
+        self.assertEqual(result["source"], "rules")
+        self.assertNotEqual(result["action"], "chat")
+        gateway.ask.assert_not_called()
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
@@ -692,6 +700,44 @@ class AssistantApiTestCase(unittest.TestCase):
     def test_the_request_is_in_the_history_whichever_path_answered(self):
         self.send("remember coffee at 8")
         self.assertIn("remember coffee at 8", self.send("/history")["reply"]["text"])
+
+class IndirectPhrasingTestCase(unittest.TestCase):
+    """Indirect and Arabic phrasings found by an independent blind set (2026-10-20)."""
+
+    def action(self, text):
+        return assistant.understand(text)["action"]
+
+    def test_each_phrasing_family_reaches_its_action(self):
+        cases = {
+            "help": ["What kinds of things can I ask you?", "ما هي الأشياء اللي أقدر أطلبها منك"],
+            "remember": ["could you maybe save this for later, the target is 4500 hours",
+                         "خلّ في بالك إن الورشة تسكر يوم الجمعة"],
+            "recall": ["show me everything you've saved", "did I tell you anything about the thresholds",
+                       "شو اللي حافظه عن المشروع؟", "وش الملاحظات اللي سجلتها سابقا"],
+            "forget": ["please remove that saved item about line 2", "انسَ موضوع هدف التوقف"],
+            "run_status": ["any update on the analysis you started", "وين وصل التحليل؟"],
+            "explain_report": ["what did the diagnostic part say about the cause",
+                               "quote the descriptive summary from the latest report",
+                               "وش قالت التوصيات في قسم prescriptive"],
+        }
+        for expected, texts in cases.items():
+            for text in texts:
+                with self.subTest(text=text):
+                    self.assertEqual(self.action(text), expected)
+
+    def test_stopping_the_history_is_a_setting_and_deletes_nothing(self):
+        off = assistant.understand("stop recording our conversation history")
+        self.assertEqual((off["action"], off["arguments"]),
+                         ("set_preference", {"key": "save_history", "value": "false"}))
+        on = assistant.understand("start recording our conversation history again")
+        self.assertEqual(on["arguments"], {"key": "save_history", "value": "true"})
+        self.assertEqual(self.action("clear the conversation history"), "clear_history")
+
+    def test_the_new_rules_do_not_widen_into_other_actions(self):
+        self.assertEqual(self.action("Remember to delete all the old files"), "remember")
+        self.assertEqual(self.action("I like Arabic coffee"), "chat")
+        self.assertEqual(self.action("thanks, that was useful"), "chat")
+        self.assertEqual(self.action("the report was behind schedule"), "chat")
 
 
 if __name__ == "__main__":

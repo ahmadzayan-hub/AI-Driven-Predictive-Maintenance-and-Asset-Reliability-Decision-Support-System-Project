@@ -3,7 +3,7 @@ type: decision
 aliases: [ADR index, Architecture decisions]
 tags: [decisions]
 status: active
-updated: 2026-10-20
+updated: 2026-10-22
 review_every_days: 30
 sources: [docs/adr]
 ---
@@ -15,7 +15,7 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 | ADR | Decision | Shapes |
 | --- | --- | --- |
 | 0001 | SQLite locally, PostgreSQL hosted, for run-engine persistence | [[Agentic OS]] |
-| 0002 | Managed identity, roles and tenant isolation | [[Agentic OS]] |
+| 0002 | [[Managed identity]], roles and [[Tenant isolation|tenant isolation]] | [[Agentic OS]] |
 | 0003 | Sign-in flow and request rate limiting | [[Agentic OS]] |
 | 0004 | Content-addressed dataset storage and upload | [[Analytics OS roadmap]] |
 | 0005 | Backups, restore drills, measured RPO and RTO | [[Agentic OS]] |
@@ -48,7 +48,7 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 | 0031 | The cleaned table: download, fields, totals and records | [[Analytics OS roadmap]] |
 | 0032 | Dashboard pages with filters in the address and drill-down | [[Design system]] |
 | 0033 | Modelling stages as plugins, each against its baseline | [[Custom stages]] |
-| 0034 | Live data: connectors, scheduled refreshes, pushed updates | [[Analytics OS roadmap]] |
+| 0034 | [[Live data]]: connectors, scheduled refreshes, pushed updates | [[Analytics OS roadmap]] |
 | 0035 | A view's strings ship with the view | [[Design system]] |
 | 0036 | Maintenance SaaS product identity over the existing Agentic OS engine | [[Identity]], [[Agentic OS]] |
 | 0037 | Isolated bilingual maintenance design preview with fictional fixtures | [[Design system]], [[Agentic OS]] |
@@ -79,5 +79,24 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 | 2026-10-20-a-clips-number-must-be-in-its-source | A clip's figure is read against the file its source names, not merely required to cite one | [[Agent team]], [[Governed pipeline]] |
 | 2026-10-20-decision-records-are-dated-not-numbered | The sequential counter is closed at 0060; a new record is named for the day it was decided | [[Session lifecycle]] |
 | 2026-10-20-semantic-performance-colors | Explicit performance colors and sourced per-analysis display targets with neutral unknowns | [[Agentic OS]], [[Design system]], [[Weighted KPIs]] |
+| 2026-10-20-observed-agent-collaboration | Observed workflow handoffs, stage inspection and independent visual pause with restrained [[Accessible motion|accessible motion]] | [[Agentic OS]], [[Design system]], [[Hermes orchestrator]] |
+| 2026-10-20-agent-measurement-loop | Agents are measured on a schedule in a bounded loop that hands over to a person; holdout text never leaves the evaluation | [[Agent evaluation]], [[Agent runtimes and MCP]] |
+| 2026-10-20-labelled-cases-from-real-use | **Accepted:** new labelled cases come from independent blind synthetic sets now; per-item consented contribution stays closed until a measured mismatch and a pilot customer's written agreement; blind_v6 then blind_v7: causal wording recall 28% to 60% after the fix, intent gain within noise | [[Agent evaluation]], [[Tenant isolation]], [[Model privacy]] |
+| 2026-10-21-run-request-timeout | Run transport waits through bounded narration and serialized controls without replaying failed POSTs | [[Model gateway]], [[Governed pipeline]] |
+| 2026-10-21-register-availability-and-pooled-reliability-measures | Register availability is uptime on planned time (96.96%), utilisation is its own measure, MTBF pooled with censoring, MTTR, overdue rate and SLA attainment added | [[Weighted KPIs]], [[Team 3 maintenance dataset]] |
+| 2026-10-21-durable-worker-and-source-credentials | Persisted background run progress and owner/host-scoped operator credential aliases | [[Maintenance pilot]], [[Live data]] |
+| 2026-10-21-maintenance-operations | Organization membership, evidence-linked drafts, independent repair authorization and completion audit | [[Maintenance pilot]], [[Tenant isolation]] |
+| 2026-10-21-prospective-maintenance-validation | Immutable prospective protocols and bounded read-only MaintainX integration | [[Maintenance pilot]], [[Agent evaluation]] |
+| 2026-10-21-operations-workspace | Lazy bilingual operations and validation workflows with actual API state | [[Maintenance pilot]], [[Design system]] |
+| 2026-10-21-course-artifacts-untracked | Preserve local confidential artifacts while removing them from future source trees; history remains contained | [[Soul]], [[Team 3 Capstone]] |
+| 2026-10-21-browser-journey-isolation | Exact browser-owned fixtures and scoped budgets preserve full sequential accessibility and approval checks | [[Design system]], [[Agentic OS]] |
+| 2026-10-21-performance-status-presentation | Shared bilingual status badges and a five-state legend; counts without targets remain neutral | [[Design system]], [[Weighted KPIs]] |
+| 2026-10-21-reviewer-maintenance-method-check | The analytics reviewer checks maintenance and reliability method (check 7, `domain_method`); the figures checker reads percentage points | [[Agent evaluation]], [[Agent team]] |
+| 2026-10-21-kpi-register-aligned-with-power-bi | MTTR, first-time fix and repeat repair follow the team's Power BI Method page (definition 2); four report measures added, 18 in all; a KPI number never breaks across lines | [[Weighted KPIs]], [[Team 3 maintenance dataset]] |
+| 2026-10-21-view-only-demo-mode | A no-sign-in demo is one read-only principal on generated data, refused next to a real provider; server half only, not to be switched on yet | [[Tenant isolation]], [[Managed identity]] |
+
+| 2026-10-21-executive-analytics-advisory | Decision-led bilingual maintenance briefs, five-domain exposure, explicit source roles and instructor escalation without master-data mutation | [[Business report exports]], [[Evidence and claims]] |
 
 All seven [[Analytics OS roadmap]] milestones have their records.
+| 2026-10-21-connected-agent-workspace | Responsive connected workflow, bounded zoom and recorded asset inspection; lazy-view allocation | [[Agent collaboration]], [[Design system]] |
+| 2026-10-22-worker-model-role-parity | Background execution honors model roles, concise local briefs and the shared privacy boundary; owner-selected one-model CPU profile | [[Model gateway]], [[Hermes orchestrator]], [[Model privacy]] |

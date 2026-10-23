@@ -24,7 +24,7 @@ if FASTAPI_AVAILABLE:
     from server.app import create_app
 
 from tests.support import closing
-from server.auth import issue_local_test_token
+from tests.support import scoped_token as issue_local_test_token
 
 SECRET = "query-test-secret-not-used-anywhere-else"
 
@@ -349,7 +349,8 @@ class TableTenancyTests(unittest.TestCase):
                                     "memory_file": str(root / "m.json"),
                                     "vault_dir": str(root / "v")}), encoding="utf-8")
         self.client = TestClient(closing(self, create_app(path, env={
-            "AGENTIC_OS_JWT_SECRET": SECRET, "AGENTIC_OS_ENV": "production"})),
+            "AGENTIC_OS_JWT_SECRET": SECRET, "SUPABASE_URL": "https://test.supabase.invalid",
+            "AGENTIC_OS_ENV": "production"})),
             raise_server_exceptions=False)
 
     def auth(self, subject, role="analyst"):
@@ -451,6 +452,16 @@ class MaintenanceKpiEndpointTests(unittest.TestCase):
                           "missing_policy", "undefined_reason", "scale"):
                 self.assertIn(field, measure, f"{key} is missing {field}")
 
+    def test_the_population_reads_in_the_readers_language_and_keeps_its_code(self):
+        run = self.finished_run()
+        _, english = self.measures(run["id"])
+        _, arabic = self.measures(run["id"], "ar")
+        self.assertEqual(english["first_time_fix"]["population_label"], "all records")
+        self.assertEqual(arabic["first_time_fix"]["population_label"], "جميع السجلات")
+        # The code is what exports and stored policies match on.
+        self.assertEqual(arabic["first_time_fix"]["population"], "all records")
+        self.assertNotIn("population_ar", arabic["first_time_fix"])
+
     def test_a_gap_is_disclosed_rather_than_counted_as_a_zero(self):
         # The defect ADR 0042 fixed, now guarded at the API boundary.
         run = self.finished_run()
@@ -474,7 +485,7 @@ class MaintenanceKpiEndpointTests(unittest.TestCase):
         body, measures = self.measures(run["id"])
         self.assertIn("downtime_per_record", measures)
         self.assertIn("availability", body["unavailable"])
-        self.assertIn("Operating_Hours", body["unavailable"]["availability"])
+        self.assertIn("Planned_Operating_Hours", body["unavailable"]["availability"])
 
     def test_the_titles_come_back_in_the_reader_s_language(self):
         run = self.finished_run()

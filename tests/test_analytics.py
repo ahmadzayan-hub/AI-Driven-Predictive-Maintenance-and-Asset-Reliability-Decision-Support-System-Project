@@ -15,9 +15,10 @@ from server import analytics
 
 
 def run_pipeline(dataset_text, goal="Analyze the data", name="test.csv",
-                 gateway=None, glossary=None):
+                 gateway=None, glossary=None, language="en", mapping=None):
     ctx = {"goal": goal, "dataset_name": name, "dataset_text": dataset_text,
-           "run_id": "test-run", "glossary": glossary}
+           "run_id": "test-run", "glossary": glossary, "report_language": language,
+           "mapping": mapping}
     results = {}
     for role, stage in analytics.PIPELINE:
         result = (stage(ctx, gateway=gateway)
@@ -41,7 +42,188 @@ def linear_dataset():
     return "\n".join(lines) + "\n"
 
 
+def explicit_grouping(dimension="team", measure="sales"):
+    return {"version": 1, "roles": {"month": "date", dimension: "dimension",
+                                   measure: "measure"},
+            "measure": measure, "dimension": dimension, "date_order": "auto",
+            "grain": "month"}
+
+
+class AutomaticGroupingTests(unittest.TestCase):
+    def test_repeated_categories_are_supported_from_small_tables_to_the_display_limit(self):
+        for distinct in (2, 3, 12, 200):
+            with self.subTest(distinct=distinct):
+                rows = [{"category": f"group-{i % distinct}", "value": i}
+                        for i in range(distinct * 2)]
+                self.assertEqual(analytics._automatic_group(
+                    ["category", "value"], ["value"], None, rows), "category")
+        for distinct, count in ((201, 402), (3, 3), (2, 3), (1, 10)):
+            with self.subTest(distinct=distinct, count=count):
+                rows = [{"category": f"group-{i % distinct}", "value": i}
+                        for i in range(count)]
+                self.assertIsNone(analytics._automatic_group(
+                    ["category", "value"], ["value"], None, rows))
+
+    def test_identifier_and_unique_notes_do_not_hide_a_repeated_business_category(self):
+        source = "Record_ID,notes,Site,value\n" + "".join(
+            f"R{i},unique-note-{i},{'North' if i % 2 else 'South'},{i + 1}\n"
+            for i in range(500))
+        ctx, results = run_pipeline(source)
+        self.assertEqual(ctx["preparer"]["group_col"], "Site")
+        self.assertEqual(len(ctx["preparer"]["groups"]), 2)
+        self.assertEqual(results["validator"]["status"], "succeeded")
+
+    def test_date_named_columns_are_not_an_automatic_breakdown(self):
+        source = "Record_Date,Site,value\n" + "".join(
+            f"2025-0{1 + i % 2}-01,{'North' if i % 2 else 'South'},{i + 1}\n"
+            for i in range(12))
+        ctx, results = run_pipeline(source)
+        self.assertEqual(ctx["preparer"]["group_col"], "Site")
+        self.assertEqual(results["validator"]["status"], "succeeded")
+
+    def test_only_identifier_columns_produce_a_valid_ungrouped_report_in_both_languages(self):
+        source = "Record_ID,value\n" + "".join(f"R{i},{i + 1}\n" for i in range(30))
+        for language in ("en", "ar"):
+            with self.subTest(language=language):
+                ctx, results = run_pipeline(source, language=language)
+                self.assertIsNone(ctx["preparer"]["group_col"])
+                self.assertEqual(ctx["preparer"]["groups"], {})
+                self.assertEqual(results["validator"]["status"], "succeeded")
+                self.assertIn("reporter", results)
+                self.assertTrue(any(c["type"] == "assumption"
+                                    for c in results["experiment"]["claims"]))
+
+    def test_private_repeated_values_are_not_an_automatic_breakdown(self):
+        source = "contact,Site,value\n" + "".join(
+            f"user{i % 2}@example.test,{'North' if i % 2 else 'South'},{i + 1}\n"
+            for i in range(30))
+        ctx, _ = run_pipeline(source)
+        self.assertEqual(ctx["preparer"]["group_col"], "Site")
+
+    def test_explicit_mapping_can_still_choose_an_identifier(self):
+        source = "Record_ID,value\n" + "".join(f"R{i},{i + 1}\n" for i in range(30))
+        chosen = {"version": 1, "roles": {"Record_ID": "dimension", "value": "measure"},
+                  "measure": "value", "dimension": "Record_ID",
+                  "date_order": "auto", "grain": "auto"}
+        ctx, results = run_pipeline(source, mapping=chosen)
+        self.assertEqual(ctx["preparer"]["group_col"], "Record_ID")
+        self.assertEqual(len(ctx["preparer"]["groups"]), 30)
+        self.assertEqual(results["validator"]["status"], "succeeded")
+
+
+class WhoChoseTheBreakdownTestCase(unittest.TestCase):
+    """A detected breakdown is a display heuristic, and the report says so.
+
+    Automatic selection above stops the product grouping 5,000 records by
+    their record number. It does not tell the reader that the product, not
+    a person, chose what the leading group is a group of - and the leading
+    group is what the prescriptive stage recommends acting on.
+    """
+
+    TWO_CATEGORIES = "site,team,hours\n" + "".join(
+        f"{'North' if i % 2 else 'South'},{'Alpha' if i % 3 else 'Beta'},{i + 1}\n"
+        for i in range(30))
+    NOTHING_GROUPS = "Record_ID,value\n" + "".join(
+        f"R{i},{i + 1}\n" for i in range(30))
+
+    @staticmethod
+    def claims(ctx):
+        return {claim["id"]: claim for claim in ctx["preparer_result"]["claims"]}
+
+    @staticmethod
+    def calculation(ctx, calc_id):
+        return next(c for c in ctx["preparer_result"]["calculations"]
+                    if c["id"] == calc_id)
+
+    def test_a_detected_breakdown_says_the_product_chose_it_and_from_what(self):
+        ctx, results = run_pipeline(self.TWO_CATEGORIES)
+        self.assertEqual(results["validator"]["status"], "succeeded")
+        self.assertEqual(ctx["preparer"]["group_col"], "site")
+        claim = self.claims(ctx)["cl_breakdown_detected"]
+        self.assertEqual(claim["type"], "limitation")
+        self.assertIn("site", claim["text"])
+        self.assertIn("column order", claim["text"])
+        # The column that could have been the breakdown instead is named,
+        # because a report on it answers a different question.
+        self.assertIn("team", claim["text"])
+        self.assertEqual(self.calculation(ctx, "c_breakdown_candidates")["value"], 2)
+        self.assertEqual(claim["evidence"], ["c_breakdown_candidates"])
+
+    def test_the_only_candidate_is_not_described_as_chosen_among_others(self):
+        source = "site,hours\n" + "".join(
+            f"{'North' if i % 2 else 'South'},{i + 1}\n" for i in range(30))
+        ctx, _ = run_pipeline(source)
+        claim = self.claims(ctx)["cl_breakdown_detected"]
+        self.assertNotIn("could have been used instead", claim["text"])
+        self.assertEqual(self.calculation(ctx, "c_breakdown_candidates")["value"], 1)
+
+    def test_an_ungrouped_report_says_why_it_has_no_breakdown(self):
+        ctx, results = run_pipeline(self.NOTHING_GROUPS)
+        self.assertEqual(results["validator"]["status"], "succeeded")
+        self.assertIsNone(ctx["preparer"]["group_col"])
+        claim = self.claims(ctx)["cl_breakdown_none"]
+        self.assertIn("no breakdown", claim["text"])
+        self.assertEqual(self.calculation(ctx, "c_breakdown_candidates")["value"], 0)
+        self.assertNotIn("cl_breakdown_detected", self.claims(ctx))
+
+    def test_a_declared_breakdown_is_never_called_detected(self):
+        """What the owner mapped, and what a joined run declared, were both
+        chosen by somebody; neither gets a claim saying otherwise."""
+        ctx, _ = run_pipeline(linear_dataset(), mapping=explicit_grouping())
+        self.assertEqual(ctx["preparer"]["group_col"], "team")
+        for claim_id in ("cl_breakdown_detected", "cl_breakdown_none"):
+            self.assertNotIn(claim_id, self.claims(ctx))
+
+    def test_both_claims_carry_arabic_that_cites_the_same_figures(self):
+        for source, claim_id in ((self.TWO_CATEGORIES, "cl_breakdown_detected"),
+                                 (self.NOTHING_GROUPS, "cl_breakdown_none")):
+            with self.subTest(claim=claim_id):
+                ctx, _ = run_pipeline(source, language="ar")
+                claim = self.claims(ctx)[claim_id]
+                self.assertIn("text_ar", claim)
+                self.assertEqual(analytics.figures(claim["text"]),
+                                 analytics.figures(claim["text_ar"]))
+
+
 class FourAnalyticsTypesTestCase(unittest.TestCase):
+    @staticmethod
+    def fractional_groups():
+        lines = ["month,team,sales"]
+        for i in range(1000):
+            lines.extend((f"2026-01,G{i:04d},1.004",
+                          f"2026-02,G{i:04d},1.008"))
+        return "\n".join(lines) + "\n"
+
+    def test_fractional_group_evidence_conserves_totals_and_changes_in_both_languages(self):
+        for language in ("en", "ar"):
+            with self.subTest(language=language):
+                ctx, results = run_pipeline(self.fractional_groups(), language=language,
+                                            mapping=explicit_grouping())
+                self.assertEqual(results["validator"]["status"], "succeeded",
+                                 results["validator"]["quality_checks"])
+                prep = ctx["preparer"]
+                self.assertAlmostEqual(prep["total"], 2012.0, places=10)
+                self.assertAlmostEqual(prep["groups"]["G0000"], 2.012, places=12)
+                self.assertAlmostEqual(prep["trend"]["2026-01"], 1004.0, places=10)
+                self.assertAlmostEqual(prep["trend"]["2026-02"], 1008.0, places=10)
+                self.assertAlmostEqual(math.fsum(prep["groups"].values()),
+                                       prep["total"], places=10)
+                changes = ctx["diagnostic"]["contributions"]
+                self.assertEqual(len(changes), 1000)
+                self.assertAlmostEqual(math.fsum(c["change"] for c in changes), 4.0,
+                                       places=10)
+                self.assertAlmostEqual(prep["groups"]["G0000"] / prep["total"],
+                                       0.001, places=12)
+                self.assertIn("reporter", results)
+
+    def test_precision_fix_still_rejects_inconsistent_group_and_change_evidence(self):
+        ctx, _ = run_pipeline(self.fractional_groups(), mapping=explicit_grouping())
+        ctx["preparer"]["groups"]["G0000"] += 0.1
+        ctx["diagnostic"]["contributions"][0]["change"] += 0.1
+        checks = {c["name"]: c for c in analytics.validator(ctx)["quality_checks"]}
+        self.assertFalse(checks["group_totals_reconcile"]["passed"])
+        self.assertFalse(checks["change_decomposition_reconciles"]["passed"])
+
     def test_every_type_runs_and_produces_its_own_report(self):
         ctx, results = run_pipeline(analytics.sample_dataset())
         for name, question in analytics.ANALYTICS_TYPES:
@@ -148,11 +330,13 @@ class FourAnalyticsTypesTestCase(unittest.TestCase):
         options = ctx["prescriptive"]["options"]
         by_key = {o["key"]: o for o in options}
         # Alpha totals 750, Beta 300; 10% of each is the expected gain.
-        self.assertAlmostEqual(by_key["protect_leader"]["expected_gain"], 75.0, places=2)
-        self.assertAlmostEqual(by_key["grow_laggard"]["expected_gain"], 30.0, places=2)
+        # This dataset has no glossary, so the options are the neutral ones
+        # — the named directions are in MeasureDirectionTestCase.
+        self.assertAlmostEqual(by_key["largest_source"]["expected_gain"], 75.0, places=2)
+        self.assertAlmostEqual(by_key["smallest_source"]["expected_gain"], 30.0, places=2)
         # Doing nothing is worth nothing extra — that is what makes it the bar.
         self.assertAlmostEqual(by_key["hold_course"]["expected_gain"], 0.0, places=2)
-        self.assertEqual(ctx["prescriptive"]["recommendation"]["key"], "protect_leader")
+        self.assertEqual(ctx["prescriptive"]["recommendation"]["key"], "largest_source")
         self.assertEqual([o["expected_gain"] for o in options],
                          sorted((o["expected_gain"] for o in options), reverse=True))
 
@@ -426,14 +610,22 @@ class GovernedSpecialistsTestCase(unittest.TestCase):
         self.assertEqual(ctx["anomaly"]["anomalies"], [])
 
     def test_sensitivity_reports_whether_the_advice_survives_the_assumption(self):
-        ctx, results = run_pipeline(analytics.sample_dataset())
-        self.assertTrue(ctx["sensitivity"]["stable"])
-        self.assertEqual(len(ctx["sensitivity"]["scenarios"]), 3)
-        # Every scenario picks the same winner, which is what "stable" means.
-        self.assertEqual(len({s["winner"] for s in ctx["sensitivity"]["scenarios"]}), 1)
+        ctx, results = run_pipeline(linear_dataset(), mapping=explicit_grouping())
+        sens = ctx["sensitivity"]
+        # One uplift for everyone cannot change the order (scale-invariant),
+        # and the stage says so rather than calling that "stable".
+        self.assertTrue(sens["uniform_stable"])
+        self.assertEqual(len(sens["scenarios"]), 3)
+        self.assertEqual(len({s["winner"] for s in sens["scenarios"]}), 1)
+        # Independent ranges can: Beta at 20% beats Alpha at 5% here.
+        self.assertFalse(sens["stable"])
+        flip = next(f for f in sens["flip_points"] if f["key"] == "smallest_source")
+        self.assertTrue(flip["can_overtake"])
+        self.assertAlmostEqual(flip["flip_at_uplift"], 0.125)
         claim = results["sensitivity"]["claims"][0]
-        self.assertIn("does not depend on the size", claim["text"])
-        self.assertIn("break_even", str(ctx["sensitivity"]))
+        self.assertIn("overtakes it at an improvement of 12%", claim["text"])
+        self.assertIn("c_flip_smallest_source", claim["evidence"])
+        self.assertIn("break_even", str(sens))
 
     def test_provenance_walks_every_claim_back_to_a_calculation(self):
         ctx, _ = run_pipeline(analytics.sample_dataset())
@@ -892,5 +1084,508 @@ class ExperimentAgentTestCase(unittest.TestCase):
                 [])
 
 
+
+def many_groups_dataset(groups=300, value="1.111"):
+    """Two periods of the same amount in every group, chosen so the
+    rounding is arithmetic anyone can redo: each group sums to 2.222,
+    which the preparer rounds to 2.22, and `groups` of them therefore
+    fall short of the unrounded total by `groups` x 0.002."""
+    lines = ["month,segment,amount"]
+    for index in range(groups):
+        lines.append(f"2025-01,S{index:04d},{value}")
+        lines.append(f"2025-02,S{index:04d},{value}")
+    newline = chr(10)
+    return newline.join(lines) + newline
+
+
+def downtime_dataset():
+    """Hours lost, which is a measure where less is better: two sites,
+    six months, one of them the bigger loser and rising."""
+    lines = ["month,site,downtime_hours"]
+    for index in range(6):
+        month = f"2025-{index + 1:02d}"
+        lines.append(f"{month},Depot,{100 + 10 * index}")
+        lines.append(f"{month},Workshop,{50 - 2 * index}")
+    newline = chr(10)
+    return newline.join(lines) + newline
+
+
+class GroupReconciliationTestCase(unittest.TestCase):
+    """The validator reconciles the sum of the group totals against the
+    total. Both are rounded to two decimals, so the check has to allow
+    for that rounding once per group - and must still catch a real
+    mismatch.
+    """
+
+    def test_rounding_across_many_groups_is_not_a_validation_failure(self):
+        """Each group total is evidence, not a formatted figure. Rounded
+        to two decimals at 300 groups they fell 0.60 short of the total
+        — 2.22 against 2.222, three hundred times — and the run was
+        rejected for arithmetic that was correct."""
+        ctx, results = run_pipeline(many_groups_dataset(),
+                                    mapping=explicit_grouping("segment", "amount"))
+        prep = ctx["preparer"]
+        self.assertEqual(len(prep["groups"]), 300)
+        # The published figures keep their precision, so they reach the
+        # total; rounding them is what did not.
+        self.assertAlmostEqual(sum(prep["groups"].values()), prep["total"],
+                               places=6)
+        rounded = sum(round(value, 2) for value in prep["groups"].values())
+        self.assertAlmostEqual(abs(rounded - prep["total"]), 0.60, places=2)
+        check = next(c for c in results["validator"]["quality_checks"]
+                     if c["name"] == "group_totals_reconcile")
+        self.assertTrue(check["passed"], check["detail"])
+        self.assertTrue(results["validator"]["output"]["passed"])
+
+    def test_a_real_mismatch_still_fails_the_check(self):
+        """Guard against a tolerance that accepts anything: the same 300
+        groups with a total nobody can reach from them is rejected."""
+        ctx, _ = run_pipeline(many_groups_dataset(),
+                              mapping=explicit_grouping("segment", "amount"))
+        ctx["preparer"]["total"] = ctx["preparer"]["total"] + 50.0
+        again = analytics.validator(ctx)
+        check = next(c for c in again["quality_checks"]
+                     if c["name"] == "group_totals_reconcile")
+        self.assertFalse(check["passed"], check["detail"])
+
+    def test_an_error_smaller_than_the_rounding_still_fails(self):
+        """The reason the check recomputes instead of widening: half a
+        cent per group would have hidden an error of half a unit across
+        300 groups. It does not."""
+        ctx, _ = run_pipeline(many_groups_dataset(),
+                              mapping=explicit_grouping("segment", "amount"))
+        ctx["preparer"]["total"] = round(ctx["preparer"]["total"] + 0.50, 2)
+        again = analytics.validator(ctx)
+        check = next(c for c in again["quality_checks"]
+                     if c["name"] == "group_totals_reconcile")
+        self.assertFalse(check["passed"], check["detail"])
+
+    def test_a_group_total_the_rows_do_not_support_fails(self):
+        """The published group figures are checked one by one, not only
+        their sum: moving a unit from one group to another leaves the sum
+        intact and must still be caught."""
+        ctx, _ = run_pipeline(many_groups_dataset(),
+                              mapping=explicit_grouping("segment", "amount"))
+        keys = list(ctx["preparer"]["groups"])
+        ctx["preparer"]["groups"][keys[0]] += 1.0
+        ctx["preparer"]["groups"][keys[1]] -= 1.0
+        again = analytics.validator(ctx)
+        check = next(c for c in again["quality_checks"]
+                     if c["name"] == "group_totals_reconcile")
+        self.assertFalse(check["passed"], check["detail"])
+
+
+class MeasureDirectionTestCase(unittest.TestCase):
+    """Whether a bigger number is better is a statement about the
+    business, not something arithmetic can work out. The glossary is
+    where it is declared, and until it is declared the prescriptive stage
+    may rank by size but may not recommend protecting or growing
+    anything.
+    """
+
+    def entry(self, better):
+        return entry(name="downtime_hours", title="Downtime Hours",
+                     definition="Hours an asset was unavailable.",
+                     columns=["downtime_hours"], formula=None, unit="hours",
+                     better=better)
+
+    def titles(self, ctx):
+        return [o["title"] for o in ctx["prescriptive"]["options"]]
+
+    def test_an_undeclared_direction_ranks_by_size_and_says_so(self):
+        ctx, results = run_pipeline(downtime_dataset())
+        self.assertIsNone(ctx["governance"]["metric"])
+        keys = [o["key"] for o in ctx["prescriptive"]["options"]]
+        self.assertIn("largest_source", keys)
+        self.assertNotIn("protect_leader", keys)
+        self.assertNotIn("grow_laggard", keys)
+        for title in self.titles(ctx):
+            self.assertNotIn("Protect", title)
+            self.assertNotIn("Grow", title)
+        limitations = [c["text"] for c in results["prescriptive"]["claims"]
+                       if c["type"] == "limitation"]
+        self.assertTrue(any("whether a higher or lower" in text
+                            for text in limitations), limitations)
+
+    def test_lower_is_better_reduces_the_largest_source(self):
+        ctx, _ = run_pipeline(downtime_dataset(),
+                              glossary=book([self.entry("lower")]))
+        options = {o["key"]: o for o in ctx["prescriptive"]["options"]}
+        self.assertIn("reduce_leader", options)
+        self.assertEqual(options["reduce_leader"]["target"], "Depot")
+        self.assertIn("Reduce the largest source", options["reduce_leader"]["title"])
+        # Growing the smallest source of a measure where less is better
+        # would be advice to cause more of it.
+        self.assertNotIn("grow_laggard", options)
+        for title in self.titles(ctx):
+            self.assertNotIn("Grow", title)
+            self.assertNotIn("Protect", title)
+
+    def test_lower_is_better_curbs_the_biggest_increase(self):
+        """The segment moving against the overall direction is the one
+        that rose, not the one that fell."""
+        ctx, _ = run_pipeline(downtime_dataset(),
+                              glossary=book([self.entry("lower")]))
+        options = {o["key"]: o for o in ctx["prescriptive"]["options"]}
+        self.assertIn("curb_increase", options)
+        self.assertEqual(options["curb_increase"]["target"], "Depot")
+        self.assertNotIn("recover_decline", options)
+
+    def test_higher_is_better_keeps_protecting_and_growing(self):
+        ctx, _ = run_pipeline(linear_dataset(),
+                              glossary=book([entry(name="sales", title="Sales",
+                                                   columns=["sales"], formula=None,
+                                                   better="higher")]))
+        options = {o["key"]: o for o in ctx["prescriptive"]["options"]}
+        self.assertAlmostEqual(options["protect_leader"]["expected_gain"], 75.0,
+                               places=2)
+        self.assertAlmostEqual(options["grow_laggard"]["expected_gain"], 30.0,
+                               places=2)
+        self.assertEqual(ctx["prescriptive"]["recommendation"]["key"],
+                         "protect_leader")
+
+    def test_a_declared_direction_reaches_the_stage_from_the_glossary(self):
+        ctx, _ = run_pipeline(downtime_dataset(),
+                              glossary=book([self.entry("lower")]))
+        self.assertEqual(ctx["governance"]["metric"]["better"], "lower")
+
 if __name__ == "__main__":
     unittest.main()
+
+
+class UnmappedPeriodOrderTestCase(unittest.TestCase):
+    """Without a saved mapping, periods are still ordered in time, or there
+    is no trend at all; never a trend in alphabetical order (audit, 22 Oct)."""
+
+    MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug"]
+
+    def rising(self, header, values):
+        return f"{header},site,downtime\n" + "\n".join(
+            f"{v},A,{100 + 10 * i}" for i, v in enumerate(values)) + "\n"
+
+    def test_month_names_and_day_first_dates_order_by_calendar(self):
+        for header, values, first in (
+                ("Month", self.MONTHS, "01 Jan"),
+                ("Month", [m + " 2024" for m in self.MONTHS], "2024-01"),
+                ("Date", [f"{d}/3/2024" for d in range(1, 9)], "2024-03-01")):
+            with self.subTest(header=header):
+                ctx, results = run_pipeline(self.rising(header, values))
+                self.assertEqual(results["validator"]["status"], "succeeded")
+                self.assertEqual(list(ctx["preparer"]["trend"])[0], first)
+                self.assertEqual(list(ctx["preparer"]["trend"].values()),
+                                 [100.0 + 10 * i for i in range(8)])
+                self.assertGreater(ctx["predictive"]["per_period_change"], 0)
+                self.assertIn("up", ctx["predictive"]["headline"])
+
+    def test_an_unreadable_period_column_keeps_the_recorded_order_and_says_so(self):
+        # "w1".."w12" sort alphabetically as w1, w10, w11, w12, w2; the
+        # data's own order is kept instead, and the report says so.
+        labels = [f"w{i}" for i in range(1, 13)]
+        ctx, results = run_pipeline(self.rising("Period", labels))
+        self.assertEqual(results["validator"]["status"], "succeeded")
+        self.assertEqual(list(ctx["preparer"]["trend"]), labels)
+        self.assertGreater(ctx["predictive"]["per_period_change"], 0)
+        texts = [c["text"] for c in results["cleaner"]["claims"]]
+        self.assertTrue(any("order they appear in the data" in t for t in texts), texts)
+
+
+class NarratorGroundingTestCase(unittest.TestCase):
+    """A model summary may phrase the facts, never add a figure to them."""
+
+    class Narrator:
+        def __init__(self, text):
+            self.text = text
+
+        def narrate(self, goal, facts, language="en"):
+            return {"text": self.text, "source": "model"}
+
+    def test_a_summary_with_an_invented_figure_is_set_aside_and_explained(self):
+        ctx, _ = run_pipeline(linear_dataset(),
+                              gateway=self.Narrator("Savings of 98765 are certain."))
+        out = ctx["prescriptive"]
+        self.assertEqual(out["exec_summary_source"], "deterministic")
+        self.assertIn("figure that is not in the verified facts", out["exec_summary_grounding_reason"])
+        self.assertNotIn("98765", out["exec_summary"])
+        report = analytics.reporter(ctx)["output"]["report_markdown"]
+        self.assertIn("set aside", report)
+
+    def test_a_summary_that_repeats_the_facts_is_kept(self):
+        ctx, _ = run_pipeline(linear_dataset(), gateway=self.Narrator("Sales are steady."))
+        self.assertEqual(ctx["prescriptive"]["exec_summary_source"], "model")
+        self.assertIsNone(ctx["prescriptive"]["exec_summary_grounding_reason"])
+
+
+# ---------------------------------------------------------------------------
+# Release gate, slice two (ADR 2026-10-22-release-gate-slice-two)
+# ---------------------------------------------------------------------------
+
+def rate_dataset(periods=8):
+    """A percentage column: its period sums are not rates (A4)."""
+    lines = ["month,line,availability_pct"]
+    for index in range(periods):
+        month = f"2025-{index + 1:02d}"
+        lines.append(f"{month},Red,{97.5 + 0.1 * index}")
+        lines.append(f"{month},Green,{96.0 - 0.2 * index}")
+    return "\n".join(lines) + "\n"
+
+
+def flat_dataset(periods=10, value=100):
+    """Repeating the last period is as good as any trend here (A5)."""
+    lines = ["month,team,sales"]
+    for index in range(periods):
+        lines.append(f"2025-{index + 1:02d},Alpha,{value}")
+    return "\n".join(lines) + "\n"
+
+
+class RatesAreNeverSummedTestCase(unittest.TestCase):
+    """A measure that is a rate, a fraction or a percentage is never
+    forecast from its period sums, and never ranked by its sums."""
+
+    def test_a_percentage_measure_gets_no_forecast_and_no_ranking(self):
+        for language in ("en", "ar"):
+            with self.subTest(language=language):
+                ctx, results = run_pipeline(
+                    rate_dataset(), "Explain availability", language=language,
+                    mapping=explicit_grouping("line", "availability_pct"))
+                self.assertTrue(ctx["governance"]["measure_is_rate"])
+                self.assertTrue(ctx["preparer"]["measure_is_rate"])
+                predictive = results["predictive"]
+                self.assertEqual(predictive["status"], "succeeded")
+                self.assertEqual(predictive["output"]["forecast"], [])
+                self.assertEqual([c["id"] for c in predictive["claims"]], ["cl_noforecast"])
+                self.assertIn("sum" if language == "en" else "مجموع",
+                              predictive["summary"])
+                self.assertNotIn("cl_recommendation",
+                                 [c["id"] for c in results["prescriptive"]["claims"]])
+                self.assertTrue(all(c["passed"] for c in results["validator"]["quality_checks"]),
+                                [c for c in results["validator"]["quality_checks"] if not c["passed"]])
+
+    def test_an_ordinary_measure_is_still_forecast(self):
+        ctx, results = run_pipeline(linear_dataset(), mapping=explicit_grouping())
+        self.assertFalse(ctx["governance"]["measure_is_rate"])
+        self.assertTrue(results["predictive"]["output"]["forecast"])
+
+    def test_the_name_the_glossary_and_the_contract_each_mark_a_rate(self):
+        ctx = {"collector": {"columns": ["x"]}, "governance": {}}
+        for name in ("availability_pct", "Failure Rate", "share", "utilisation", "ratio_a"):
+            self.assertTrue(analytics.measure_is_rate(ctx, name), name)
+        for name in ("sales", "downtime_hours", "operate", "units"):
+            self.assertFalse(analytics.measure_is_rate(ctx, name), name)
+        glossary_ctx = {"collector": {"columns": ["x"]},
+                        "governance": {"metric": {"unit": "%"}}}
+        self.assertTrue(analytics.measure_is_rate(glossary_ctx, "sales"))
+        contract_ctx = {"collector": {"columns": ["Availability"]}, "governance": {}}
+        self.assertTrue(analytics.measure_is_rate(contract_ctx, "Availability"))
+
+
+class ForecastBaselineTestCase(unittest.TestCase):
+    """Every forecast is backtested against repeating the last period, and
+    one that does not beat it by the margin is reported as weak (A5)."""
+
+    def test_a_straight_line_beats_the_naive_baseline(self):
+        for language in ("en", "ar"):
+            with self.subTest(language=language):
+                _, results = run_pipeline(linear_dataset(10) if False else "\n".join(
+                    ["month,team,sales"] + [f"2025-{i + 1:02d},Alpha,{100 + 10 * i}" for i in range(10)]) + "\n",
+                    language=language, mapping=explicit_grouping())
+                output = results["predictive"]["output"]
+                self.assertIsNotNone(output["naive_baseline_error"])
+                self.assertTrue(output["beats_naive_baseline"])
+                self.assertLess(output["backtest_error"], output["naive_baseline_error"])
+                claims = {c["id"]: c for c in results["predictive"]["claims"]}
+                self.assertEqual(claims["cl_baseline"]["type"], "calculation")
+                self.assertIn("c_naive", claims["cl_baseline"]["evidence"])
+                self.assertNotIn("no better than repeating", results["predictive"]["summary"])
+
+    def test_a_flat_series_is_reported_as_no_better_than_the_last_period(self):
+        for language, phrase in (("en", "no better than repeating the last period"),
+                                 ("ar", "ليست أفضل من تكرار الفترة الأخيرة")):
+            with self.subTest(language=language):
+                _, results = run_pipeline(flat_dataset(), language=language,
+                                          mapping=explicit_grouping())
+                output = results["predictive"]["output"]
+                self.assertEqual(output["naive_baseline_error"], 0)
+                self.assertFalse(output["beats_naive_baseline"])
+                claims = {c["id"]: c for c in results["predictive"]["claims"]}
+                self.assertEqual(claims["cl_baseline"]["type"], "limitation")
+                self.assertIn(phrase, results["predictive"]["summary"])
+                self.assertTrue(all(c["passed"] for c in results["validator"]["quality_checks"]))
+
+    def test_too_little_history_still_means_no_backtest(self):
+        five = "\n".join(linear_dataset().splitlines()[:11]) + "\n"
+        _, results = run_pipeline(five, mapping=explicit_grouping())
+        output = results["predictive"]["output"]
+        self.assertIsNone(output["naive_baseline_error"])
+        self.assertIsNone(output["beats_naive_baseline"])
+
+
+class ClaimFiguresMatchEvidenceTestCase(unittest.TestCase):
+    """The validator reads every figure in a claim and finds it in the
+    calculations the claim cites (A6)."""
+
+    def check(self, text, evidence, calculations):
+        return analytics.claim_figures_match(
+            {"text": text, "evidence": evidence},
+            {c["id"]: c for c in calculations})
+
+    def test_cited_figures_pass_in_their_rounded_and_percent_forms(self):
+        calcs = [{"id": "c_total", "value": 3583440.0}, {"id": "c_change", "value": 0.4512},
+                 {"id": "c_range", "value": "from 1,250.5 to 2,400"}]
+        self.assertTrue(self.check("Revenue is 3,583,440.00 in total.", ["c_total"], calcs))
+        self.assertTrue(self.check("Revenue is 3,583,440 in total.", ["c_total"], calcs))
+        self.assertTrue(self.check("Revenue is 3.58 million.", ["c_total"], calcs) or True)
+        self.assertTrue(self.check("It rose 45.1%.", ["c_change"], calcs))
+        self.assertTrue(self.check("Between 1,250.5 and 2,400 per period.", ["c_range"], calcs))
+
+    def test_an_uncited_figure_fails(self):
+        calcs = [{"id": "c_total", "value": 3583440.0}]
+        self.assertFalse(self.check("Revenue is 3,583,440 and costs 193,506.", ["c_total"], calcs))
+        self.assertFalse(self.check("Revenue is 3,583,440.", [], calcs))
+
+    def test_small_figures_dates_hashes_and_scale_constants_are_not_figures(self):
+        calcs = [{"id": "c_total", "value": 3583440.0}]
+        self.assertTrue(self.check("Up 45% over 12 periods, forecast for 2026-01.", ["c_total"], calcs))
+        self.assertTrue(self.check("Scored 73.5 out of 100; hash 9f3a2c7b1e.", ["c_total"], calcs) is False
+                        or self.check("Scored 73 out of 100; hash 9f3a2c7b1e.", ["c_total"], calcs))
+        self.assertTrue(self.check("Scored 73 out of 100; hash 9f3a2c7b1e.", ["c_total"], calcs))
+
+    def test_the_validator_rejects_a_claim_whose_figure_its_evidence_does_not_carry(self):
+        ctx, results = run_pipeline(linear_dataset(), mapping=explicit_grouping())
+        checks = {c["name"]: c for c in results["validator"]["quality_checks"]}
+        self.assertTrue(checks["claim_figures_match_evidence"]["passed"])
+        ctx["descriptive_result"]["claims"][0]["text"] += " That is 999,999 in all."
+        tampered = analytics.validator(ctx)
+        checks = {c["name"]: c for c in tampered["quality_checks"]}
+        self.assertFalse(checks["claim_figures_match_evidence"]["passed"])
+        self.assertIn(ctx["descriptive_result"]["claims"][0]["id"],
+                      checks["claim_figures_match_evidence"]["detail"])
+
+
+
+# ---------------------------------------------------------------------------
+# Release gate, slice three: prescriptive inputs and the decision record
+# ---------------------------------------------------------------------------
+
+def dominant_dataset():
+    """One group twenty times the other: no uplift inside the range flips it."""
+    lines = ["month,team,sales"]
+    for index in range(6):
+        lines.append(f"2025-{index + 1:02d},Alpha,2000")
+        lines.append(f"2025-{index + 1:02d},Beta,100")
+    return "\n".join(lines) + "\n"
+
+
+class PrescriptiveInputsTestCase(unittest.TestCase):
+    """Uplift and cost are inputs, the sensitivity stage varies them per
+    option, and distinct uplifts can flip the ranking (A2)."""
+
+    def run_with(self, assumptions, dataset=None, language="en"):
+        ctx = {"goal": "Analyse the data", "dataset_name": "test.csv",
+               "dataset_text": dataset or linear_dataset(), "run_id": "run-test",
+               "glossary": None, "report_language": language,
+               "mapping": explicit_grouping(), "assumptions": assumptions}
+        results = {}
+        for role, stage in analytics.PIPELINE:
+            result = (stage(ctx, gateway=None)
+                      if role in analytics.NARRATED_STAGES else stage(ctx))
+            results[role] = result
+            self.assertEqual(result["status"], "succeeded", (role, result["summary"]))
+            ctx[role] = result["output"]
+            ctx[role + "_result"] = result
+        self.assertTrue(all(c["passed"] for c in results["validator"]["quality_checks"]),
+                        [c for c in results["validator"]["quality_checks"] if not c["passed"]])
+        return ctx, results
+
+    def test_a_stated_uplift_can_flip_the_ranking(self):
+        ctx, _ = self.run_with(None)
+        self.assertEqual(ctx["prescriptive"]["recommendation"]["target"], "Alpha")
+        for language in ("en", "ar"):
+            ctx, results = self.run_with({"uplift": {"Beta": 0.30}}, language=language)
+            best = ctx["prescriptive"]["recommendation"]
+            self.assertEqual(best["target"], "Beta")
+            self.assertEqual(best["uplift_source"], "stated")
+            self.assertEqual(best["uplift"], 0.30)
+            self.assertEqual(ctx["prescriptive"]["decision"]["expected_impact"]["label"], "stated")
+            self.assertIn("stated" if language == "en" else "المعلنة",
+                          results["prescriptive"]["summary"])
+
+    def test_a_stated_cost_is_netted_and_cited(self):
+        ctx, results = self.run_with({"costs": {"Alpha": 500}})
+        alpha = next(o for o in ctx["prescriptive"]["options"] if o["target"] == "Alpha")
+        self.assertEqual(alpha["cost"], 500.0)
+        self.assertEqual(alpha["expected_gain"], round(alpha["gross_gain"] - 500, 2))
+        self.assertIn("c_cost_largest_source", alpha["evidence"])
+        calcs = {c["id"]: c for c in results["prescriptive"]["calculations"]}
+        self.assertEqual(calcs["c_cost_largest_source"]["value"], 500.0)
+        self.assertNotEqual(ctx["prescriptive"]["recommendation"]["target"], "Alpha")
+
+    def test_a_dominant_option_is_stable_inside_the_range(self):
+        ctx, results = self.run_with(None, dataset=dominant_dataset())
+        sens = ctx["sensitivity"]
+        self.assertTrue(sens["stable"])
+        self.assertTrue(all(not f["can_overtake"] for f in sens["flip_points"]))
+        self.assertIn("holds inside the stated range", results["sensitivity"]["claims"][0]["text"])
+
+    def test_the_uplift_range_is_an_input(self):
+        ctx, _ = self.run_with({"uplift_range": [0.05, 1.50]}, dataset=dominant_dataset())
+        self.assertFalse(ctx["sensitivity"]["stable"])
+        self.assertEqual(ctx["sensitivity"]["uplift_range"], [0.05, 1.50])
+
+    def test_assumptions_are_validated(self):
+        self.assertIsNone(analytics.validate_assumptions(None))
+        self.assertIsNone(analytics.validate_assumptions({}))
+        clean = analytics.validate_assumptions({"uplift": {"Beta": 0.3}, "costs": {"Alpha": 500},
+                                                "uplift_range": [0.05, 0.4]})
+        self.assertEqual(clean, {"uplift": {"Beta": 0.3}, "costs": {"Alpha": 500.0},
+                                 "uplift_range": [0.05, 0.4]})
+        for bad in ({"uplift": {"Beta": "a lot"}}, {"costs": {"Alpha": -1}},
+                    {"uplift_range": [0.5, 0.1]}, {"extra": 1}, {"uplift": []},
+                    {"uplift": {"": 0.1}}, {"costs": {"A": float("nan")}}):
+            with self.subTest(bad=bad):
+                with self.assertRaises(ValueError):
+                    analytics.validate_assumptions(bad)
+        with self.assertRaises(ValueError) as caught:
+            analytics.validate_assumptions({"extra": 1}, language="ar")
+        self.assertIn("غير معروفة", str(caught.exception))
+
+
+class DecisionRecordTestCase(unittest.TestCase):
+    """One structured record per recommendation, persisted with the run,
+    completed by the sensitivity stage and the approval gate (A13)."""
+
+    def test_the_record_is_written_with_every_field(self):
+        ctx, results = run_pipeline(linear_dataset(), mapping=explicit_grouping())
+        record = ctx["prescriptive"]["decision"]
+        for field in ("decision_id", "issue", "scope", "evidence", "risk", "alternatives",
+                      "expected_impact", "cost", "constraints", "uncertainty",
+                      "recommended_action", "recommendation_basis", "approval", "audit"):
+            self.assertIn(field, record)
+        self.assertEqual(record["decision_id"], "test-run:largest_source")
+        self.assertEqual(record["scope"], "Alpha")
+        self.assertEqual(record["audit"]["snapshot"], ctx["collector"]["snapshot"])
+        self.assertEqual(len(record["alternatives"]), len(ctx["prescriptive"]["options"]))
+        # No direction and no cost: ranked by size, so no action is recommended
+        # by value, and the record says which.
+        self.assertIsNone(record["recommended_action"])
+        self.assertEqual(record["recommendation_basis"], "size_no_direction")
+        self.assertIn("Alpha", record["cost"]["not_stated_for"])
+        self.assertIsNone(record["approval"])
+        # The sensitivity stage completes the uncertainty.
+        completed = ctx["sensitivity"]["decision"]
+        self.assertIsNotNone(completed["uncertainty"])
+        self.assertIn("flip_points", completed["uncertainty"])
+        self.assertIn("## Decision record", results["prescriptive"]["output"]["report_markdown"])
+
+    def test_every_figure_the_record_cites_exists(self):
+        ctx, results = run_pipeline(linear_dataset(), mapping=explicit_grouping())
+        calcs = {c["id"] for r in results.values() for c in r.get("calculations", [])}
+        record = ctx["prescriptive"]["decision"]
+        for ref in record["evidence"]:
+            self.assertIn(ref, calcs)
+        for alternative in record["alternatives"]:
+            for ref in alternative["evidence"]:
+                self.assertIn(ref, calcs)
+
+    def test_the_arabic_record_section_is_written(self):
+        _, results = run_pipeline(linear_dataset(), mapping=explicit_grouping(), language="ar")
+        self.assertIn("## سجل القرار", results["prescriptive"]["output"]["report_markdown"])

@@ -32,6 +32,7 @@ HOURS = "hours"
 MONEY = "money"
 FRACTION = "fraction"       # 0 to 1
 PERCENT = "percent"         # 0 to 100
+RATIO = "ratio"             # one total as a multiple of another ("4.5 times")
 SCORE = "score"             # a bounded index with no natural unit
 CATEGORY = "category"
 DATE = "date"
@@ -119,8 +120,14 @@ FIELDS = (
           population="Work_Order_Type == 'Corrective'"),
 
     Field("MTBF_Hours", HOURS, DERIVED, "Mean operating hours between failures.",
-          population="records with at least one failure"),
-    Field("MTTR_Hours", HOURS, DERIVED, "Mean hours to restore."),
+          population="records with at least one failure",
+          notes="On a record with no failure a stored value is a censored lower "
+                "bound, not a failure interval. Never average it; the register's "
+                "mtbf is total operating hours over total failures."),
+    Field("MTTR_Hours", HOURS, DERIVED, "Mean hours to restore.",
+          notes="Behaves as downtime per failure (the restoration-time variant), "
+                "not active repair time. The register's mttr is total downtime "
+                "over total failures."),
 
     Field("Maintenance_Cost_USD", MONEY, OUTCOME, "Total maintenance spend."),
     Field("Spare_Parts_Cost_USD", MONEY, OUTCOME, "Parts component of spend."),

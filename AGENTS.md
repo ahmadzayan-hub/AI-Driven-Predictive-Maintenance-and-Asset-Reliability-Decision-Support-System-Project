@@ -17,7 +17,7 @@ Instructions for any coding agent working in this repository: Codex, Copilot, Cu
 - **No production deploy and no pull request** without the owner's explicit permission.
 - **End each session by merging to `main`.** Standing permission, given 18 October, because the team and the course instructors read the repository there. Fetch first, integrate anything `main` gained, then merge keeping both parents. Never force. The procedure is step 6 of the `session-end` skill.
 - **No invented evidence.** Do not report a test count, score, screenshot, URL or benchmark that nothing actually produced.
-- **The repository is public.** Course files, registration numbers and other people's personal data never go in it.
+- **The repository is temporarily private**, with owner approval on 20 October 2026 to contain historical exposure. Course files, registration numbers and other people's personal data still never go in it. Making it public again requires explicit owner approval after historical-data remediation.
 - **No weak authentication.** Do not build a custom password system; identity comes from a managed provider (ADR 0002).
 
 ## How work is done here

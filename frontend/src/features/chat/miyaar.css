@@ -1,13 +1,7 @@
 /* Miyaar visual layer (ADR 0054). Values come from shared semantic tokens. */
-.shell { background: var(--workspace-bg); }
 .shell__header { min-height: 72px; padding-inline: var(--space-5); background: var(--surface-glass); backdrop-filter: blur(12px); }
-.brand__name { font-size: var(--text-m); }
 .brand__mark { background: transparent; }
-.sidebar { width: 224px; background: var(--surface-glass); padding-block: var(--space-5); }
 .sidebar__footer .miyaar-mobile-help { display: none; }
-.sidebar__nav { gap: var(--space-5); }
-.sidebar__label { font-weight: 500; font-size: .6875rem; }
-.navbtn { font-size: var(--text-s); border-radius: var(--radius-s); }
 .navbtn[aria-current='page'] { box-shadow: inset 0 0 20px var(--accent-haze); }
 .miyaar-sidebar { display: flex; align-items: center; gap: var(--space-3); text-align: start; margin-block-end: var(--space-6); padding: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-m); }
 .miyaar-sidebar:hover { border-color: var(--accent); }
@@ -16,15 +10,9 @@
 .miyaar-mark { display: inline-flex; inline-size: 36px; block-size: 36px; flex-shrink: 0; border-radius: 50%; color: var(--accent); background: var(--accent-soft); }
 .miyaar-mark svg { inline-size: 100%; block-size: 100%; }
 .miyaar-mark--large { inline-size: 64px; block-size: 64px; margin-block-end: var(--space-5); box-shadow: 0 0 30px var(--accent-haze); }
-.rail { inline-size: 248px; background: var(--surface-glass); padding: var(--space-5); }
-.rail__title { color: var(--text-muted); }
 .rail__section { padding: var(--space-2) 0; }
-.rail__row { padding-block: var(--space-2); }
-.rail__row dd { font-family: var(--font-sans); }
-.searchbtn { background: var(--surface-sunken); border-color: var(--border-strong); border-radius: var(--radius-s); max-width: 440px; }
 .card, .kpi, .finding-card, .decision-actions { background: var(--panel-fill); }
 .card, .kpi { border-radius: var(--radius-l); }
-.panel__title { letter-spacing: var(--tracking-tight); }
 .btn:active:not(:disabled), .composer__send:active:not(:disabled) { transform: translateY(1px); }
 .btn--primary { box-shadow: 0 3px 16px var(--accent-haze); }
 .miyaar-toolbar { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-4) var(--space-5); border-block-end: 1px solid var(--border); background: var(--surface-glass); }

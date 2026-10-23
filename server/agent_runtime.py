@@ -20,7 +20,8 @@ be called, with JSON schemas, and `tools.call(name, arguments)` calls
 it. `context` is a dict: `language` ("en" or "ar"), `notes` (verified
 sentences and settings — never a dataset row), `thread_id` (the session
 id, for a runtime that keeps a thread), and `ask(system, user,
-max_tokens=None)`, the model gateway, so the runtime's model is the one
+max_tokens=None)`, plus optional `ask_json(system, user, max_tokens=None,
+schema=None)`, the model gateway, so the runtime's model is the one
 the deployment configured and every key stays server-side. The return
 value is the runtime's closing text — or `None`, having called nothing,
 to decline, in which case the sentence is answered the ordinary way

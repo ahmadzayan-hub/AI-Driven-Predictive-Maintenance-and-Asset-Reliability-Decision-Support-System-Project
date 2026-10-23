@@ -901,13 +901,555 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Blocked, and not worked around: the report PDF cannot be rebuilt here.** `build_report.py` reads `report_rev37.md`, which is nowhere in the tree while the source on disk is `report_draft.md`; it reads the dataset from `/root/.claude/uploads/…` unconditionally for Figure 1; and `make_report.sh` hardcodes a Linux frontend path while `print_report.mjs` hardcodes `/opt/pw-browsers/chromium`. `pypdf` and `markdown` are now installed and Chromium and ffmpeg are present, so the Python side is not the obstacle. **I did not repoint the script at `report_draft.md`:** if the shipped PDF was built from a revision absent from the repo, rebuilding from the draft would silently change more than the one naming line. That needs the owner's answer first.
 - **Open / next:** the `.pbix` is still unbuilt and must use the same wording, or the naming line becomes false again. The deck shows the composite without naming it. The capstone is due 22 October.
 
+## 2026-10-20 · `37b830b6` · main
+
+**Goal:** write a test; the owner chose the dashboard conformance work as its subject.
+
+- **Done:** `fe660f0` pins four chart conventions in `frontend/src/tests/charts.test.tsx` (renamed from `.ts`, because the components have to be rendered to be checked): a value scale that keeps zero on bars, line and histogram; one value scale per chart, counted as axis lines per direction; a mark coloured by its datum rather than its row; and a table per chart, read off `DashboardView.tsx` itself, where seven figures carry seven charts and seven tables.
+- **Verified:** each test was watched failing against a deliberate violation - a truncated scale, an index palette, a second axis down the trailing edge, a chart outside a `Figure` - and the source restored after each. The colour test **passed its mutation on the first attempt**: reversing three items leaves the middle row where it was and the parity of the ends unchanged, so an index palette survived it. It now compares a chart with the same chart filtered, where every entity changes row, and fails as it should. Full frontend suite **244 of 244 across 33 files, twice**, and `tsc --noEmit` clean. The Python suite, Playwright and the brain check were not run before this entry.
+- **Decisions:** no ADR - no behaviour changed, and the tests state the conventions the code already followed. The tests went into the existing chart file rather than a new one for a measured reason: as a **34th** test file they made 5, 19 and 14 *unrelated* tests fail across three runs, every one a `findBy` query at its 5 s timeout, against 232 of 232 on two baselines without the file. A jsdom environment costs about 27 s to construct on this machine. `Memory.md` records it beside the existing load-dependent flakes.
+- **Open / next:** the remaining conformance work is still remaining, and this session's tests do not close it. Entity-stable colour is trivially satisfied while every series uses the one accent token; the single-scale check is per chart component, not across the two figures a trend page draws; message-first analytical captions and independent domain acceptance remain outside it.
+- **Blockers:** none. The pre-merge gate reported `D frontend/src/tests/charts.test.ts`, which is this session's own rename and not content missing from `main`; `origin/main` was 0 commits ahead, so nothing could be dropped.
+
+**Later in the same session: the owner uploaded the Power BI file and asked for the project to be updated.**
+
+- **Done:** read the `.pbix` instead of taking it on trust. `roles/02-rashed-bi-dashboard/Group_9226_Team_3_Dashboard.pbix` is 8 pages, 204 visuals and 86 distinct field/measure references, with a 2.6 MB PDF render beside it. The board, `Memory.md` and the capstone brain note now say so, and the two-track plan no longer lists the `.pbix` as an unassigned human task.
+- **Verified:** the naming line holds - **zero** occurrences of "asset health index" in the report definition. "Asset condition index" does not appear either; the fields are `Condition_Score` and `Condition_Band`, which follows the owner's choice of condition over health without carrying the report's phrase. **No figure in the dashboard was checked against the KPI register, and none can be here:** the file holds no `DataModel` and is a thin report on a live Power BI Service connection to a workspace named *Test Workspace*.
+- **Found, for the owner:** the `.pbix` and its PDF are **tracked** in Git, at paths `.gitignore` names (`/roles/`, `Group_9226_*`) to keep course material out - ignore rules do not apply to a path already added, and `4750852` added these. The file also carries a Microsoft Purview **Confidential** label applied 2026-10-20T17:34:05Z. The repository has been private since 20 October, which bounds the exposure rather than ending it. Nothing was untracked and no history was touched: that is the owner's decision.
+- **Open / next:** decide whether to untrack the two files (`git rm --cached`, keeping them on disk) or leave them; if the dashboard's figures are to be claimed anywhere, they need checking against the KPI register by someone with access to that workspace.
+## 2026-10-20 · `1eb4cedb` · main
+
+**Goal:** validate and assess the project end to end, then fix what the review found.
+
+- **Done:** the capstone dataset went through the governed pipeline here for the first time - 5,000 rows, 60 columns, the `maintenance` profile, uploaded through the API - and it exposed two defects, both fixed in `79501e9` with dated decisions and tests watched failing first. **The recommendation was sign-inverted:** with the measure mapped to `Downtime_Hours` and the breakdown to `Asset_Class`, the stage recommended *protecting* the asset class losing the most hours, because it took the largest group as the thing to protect and the smallest as the thing to grow - sound for revenue, backwards for downtime, cost, failures and overdue work. A glossary entry may now declare [`better` as `higher` or `lower`](docs/adr/2026-10-20-which-way-is-better-is-declared.md); declared lower, the stage reduces the largest source, curbs the biggest increase and does not offer to grow the smallest; undeclared, it names size with no verb and says in a bilingual limitation claim that the options are ranked by the size of the change rather than its benefit. **The validator rejected correct arithmetic:** rounded group totals against a flat one-cent tolerance fell 0.22 short of 40,161 across 5,000 groups, so a run that reconciled was rejected with the reporter and the publish stage skipped. [That record](docs/adr/2026-10-20-rounding-is-not-a-reconciliation-failure.md) keeps the independent half of the fix - the validator recomputes the group totals from the rows and checks each published figure within half a cent, which also catches a group the rows do not support when the sum still adds up.
+- **Merged the parallel session's repairs** (`1dd73ae`, `390f4c6`) at `088e6f6`, fetching first. One conflict, in the validator, resolved by keeping both halves: their fix removes the rounding at its source in the preparer, which is the better place for it, and is credited in the record. Their work covers tenancy, detected personal data reaching the narrator, atomic admission, worker limits and model cohorts, and does not touch the direction defect; this session's does not touch theirs.
+- **Verified** in the project venv on the merged tree: **183 Python tests** across `test_analytics` (78), `test_metrics` (32), `test_stages`, `test_maintenance` and `test_docs`, all passing, 9 of them new; `test_joins` 46 passing with 10 skipped for want of PostgreSQL; brain check strict-clean at 27 notes. Live, the run that was rejected reaches `awaiting_approval` with 41 claims and the check reads 40,161.27 against 40,161.27 with a largest per-group difference of 0.0000; the mapped run reaches `awaiting_approval` with 47 claims. Nothing was approved or published and the dataset was deleted from the local runtime afterwards. Earlier in the session, before the merge: full Python suite **1,335 tests, 0 failures, 137 skipped** under system Python, frontend **244 of 244 in 34 files** only when the three load-flaked files were rerun alone, type check, build and interface budget clean, `npm audit` 0, agent evaluation at its floors. **The full suite was not completed on the merged tree:** one run was stopped as redundant and the `scripts/verify.py` run that replaced it was stopped by the harness when the machine ran short of memory. Counts and the omissions are in `README.md#testing`.
+- **Decisions:** direction is declared beside a definition or not at all. Inferring it from column names was rejected in the record - it is wrong on `Availability_Pct`, `First_Time_Fix_Rate` and `Preventive_Maintenance_Ratio`, and it would put a guess inside a recommendation. A reconciliation tolerance that grows with the group count was also rejected, measured: at 5,000 groups it allowed ±25.01.
+- **Measured, not fixed: the dataset cannot carry a failure prediction.** Under `(Asset_Class, Asset_ID)` there are 900 entities and **each appears on exactly one date**; `Asset_ID` alone repeats across the five classes, which is what makes 180 ids over 36 months look longitudinal. So no next-period target exists, and `Failure_Probability`, `Condition_Risk_Score` and `Asset_Health_Index` arrive pre-computed, so modelling them is circular. The maintenance risk stages are cross-sectional screening and say so.
+- **Then the breakdown, continued after the parallel session landed its own fix for it** ([decision](docs/adr/2026-10-20-who-chose-the-breakdown.md)). Their `ede59b1` closed the selection defect - automatic grouping now skips identifier-like, date-like and detected-personal columns and requires a repeated category within a display limit - and measured here on the capstone file it reaches `Asset_Class` with 5 groups where detection had produced 5,000 groups of one row. The gap left was in the output: nothing told a reader that the product, not a person, chose the column that defines the leading group its recommendation acts on. Every unmapped run now carries one bilingual limitation claim naming the product as the chooser, the choice as column order, and the other candidates by name - 14 of them on that file - or, with no candidate, that the report has no breakdown and why. A mapped or declared breakdown carries neither. 5 new tests, each watched failing first; `test_analytics` is 89. **This session's own two fixes for the same defects were withdrawn** rather than merged: detection by measured repetition and date parsing (12 tests, worked, but lands on `Quarter` rather than `Asset_Class` and never considered personal data) and honouring a `breakdown` declared without joins (their refusal keeps ADR 0030's scope, and the reason to honour it - that saving a mapping starves the domain models - was removed by their own measure/dimension independence fix). The reversions and the reasons are in the record, not only here.
+- **Verified, in the project venv:** the **full Python suite on what shipped - 1,418 tests, 0 failures, 0 errors, 142 skipped** for want of a local PostgreSQL. It ran twice: 1,403 tests green on this session's own breakdown work before that was withdrawn, then 1,418 green on the integrated tree. Either way these are the first completed full-suite runs on the merged tree, closing the gap the verification above had to leave open. Also `test_analytics` 89, with `test_report_language`, `test_model_privacy_boundary` and `test_breakdown_contract`, 128 together and all passing, and the brain check strict-clean at 27 notes. No frontend file changed in this session's work. Playwright, the Miyaar suites, PostgreSQL and `pip-audit` were not run here; the parallel session's combined-source Linux CI at `fadc18d` is the authority for those.
+- **Open / next:** of this session's findings, the breakdown selection, the silent single-dataset `breakdown`, the missing Content-Security-Policy and the floating Python dependencies were all closed on 20 October - the last two by the parallel session's `ede59b1`. What remains is `server/analytics.py`, now about 4,150 lines, where all of today's defects lived and which still needs staged extraction behind tested contracts. The domain risk models also read whatever the presentation mapping leaves them - the same models scored 85% and 59% unmapped and 56% and 52% mapped - so a mapping chosen for a headline halves them.
+- **Blockers, both the owner's:** five historical branch tips still publish the course dataset and a readiness file holding about fifty registration-number-shaped values on a public repository, and `main` has no branch protection - the parallel session's assessment reaches the same gate. And the built report and deck exist nowhere under the user profile, only as shortcuts: `private/` holds `knowledge/` alone, the capstone folder and both October plans are absent, the upload is due 21 October, and `build_report.py` still cannot rebuild the PDF here.
+
+
+## 2026-10-20 · `360-review` · main
+
+**Goal:** assess the project from all sides and solve confirmed defects on main.
+
+- **Done:** `1dd73ae` repairs cross-owner published-note access, detected personal data in model handoffs, quota/task concurrency and partial creation, worker configuration, unequal model cohorts, weak-model advice, numeric reconciliation, bilingual and UI/session defects, and validation omissions. `ede59b1` adds domain-model input and chronology isolation, conservative automatic grouping, explicit rejection of unsupported single-dataset breakdown, application/static-shell CSP and a hashed cross-platform Python lock. The assessment records evidence, tradeoffs and the remaining release gates.
+- **Integration:** preserved incoming chart work through `390f4c6` and incoming declared-direction/independent-reconciliation work from `2de5d25` through `b402def`. Ordinary commits and merges preserve history. No pull request, branch deletion, history rewriting or production deployment occurred.
+- **Verified:** final combined-source Linux CI `39446235305` passed at `fadc18d`, as did fast budget `39446235314`. This includes the corrected privacy and browser fixtures, full Python with PostgreSQL required, frontend unit and both browser suites, build, audits and budget. Exact counts/skips, post-build checks, successful CSP checks, failed Windows attempts and isolated PostgreSQL evidence are kept in README.md#testing. Reproduction scripts and detailed logs stay outside the public repository. Only synthetic inputs were used for this review's execution; protected historical file contents were not downloaded. Final reporting changes leave the tested application, configuration and test source unchanged.
+- **Decisions:** dated ADRs document tenant ownership, detected-personal-data boundaries, atomic operations and their long-transaction tradeoff, fair model comparisons, worker policy, explicit production approval, validation preflight, domain typing/source dates, grouping heuristics, the existing join-only breakdown contract, browser resource policies and locked dependencies. Windows resource-sensitive failures remain visible; assertion deadlines were not raised to hide them.
+- **Review outcome:** measured gate history `66.7% → 66.7% → 66.7%`: all six automated gates pass, three owner gates remain open, none accepted. The bounded review stopped after two rounds without a score increase. This measures checklist completion, not product quality. The assessment and external scorecard retain the owners, limits and supporting evidence.
+- **Open / next:** the repository owner must decide containment of historical exposed files; the service owner must accept an approved hosted release, branch/release governance, restore and operational behavior; the domain owner must supply independent maintenance evidence and decision acceptance. Real-device/assisted-use validation and the project's own license remain owner work. No owner gate was accepted on another person's behalf.
+- **Blockers:** published-history containment is expressly reserved to the owner, with branch deletion and history rewriting prohibited by AGENTS.md. The GitHub integration lacks administration access to the branch-protection endpoint. Main remains unprotected in read-only metadata, and production metadata still identifies the older `42e53d00` deployment. These observations do not authorize changing repository visibility or deploying.
+
+
+## 2026-10-20 · `privacy-containment` · main
+
+**Goal:** perform the next approved step after the corrective review: temporarily make the repository private while retaining collaborators.
+
+- **Done:** changed repository visibility to private after the owner's explicit follow-up to the concrete approval question. Added the dated containment decision and updated operating guidance; personal/course data still must not enter new commits. No invitations, branch protection, branches, history or production deployment were changed.
+- **Verified:** authenticated metadata reports private visibility; all four access entries (owner plus three collaborators) and all 17 branch tips were preserved during conversion. Anonymous repository web and API requests returned 404. There were no forks, Pages site, stars or watchers at conversion. Existing Git authentication can still fetch main. Detailed access snapshots and the authorization record remain outside the repository.
+- **Decisions:** this closes immediate access containment only. Historical material remains accessible to authorized collaborators, and external copies cannot be recalled. Re-publication requires reviewed remediation and explicit owner approval. Existing Git authentication provided administrator access; credentials were held only in process memory and never printed or saved.
+- **Open / next:** service-owner approval and hosted acceptance of the corrected release, followed by independent maintenance-domain validation. Branch/release governance remains part of service acceptance. The tested application, test files and deployment configuration remain unchanged from the successful combined CI source `fadc18d`.
+- **Blockers:** none for the approved visibility change. The two remaining acceptance gates still require their owners; containment does not authorize a production deployment or acceptance on their behalf.
+- **Review outcome:** rounds four and five measured 77.8% each, following the original three rounds at 66.7%. Seven gates pass, none are accepted exceptions, and hosted-release/domain acceptance remain open. The loop reached its five-round bound. This is checklist completion, not a product-quality rating.
+
+## 2026-10-20 · `agent-collaboration` · main
+
+**Goal:** study and implement professional, restrained animation and a combined view of agent workflow communication and interaction.
+
+- **Done:** `16d779b`, integrated at `4aaa295`, adds a lazy collaboration panel to Runs: Hermes/workflow groups, observed handoff highlights, stage order, summaries, current evidence, bounded activity and independent pause/resume of the view. Added English/Arabic, reduced-motion and background/interruption handling. Recorded the design study and dated decision. Preserved incoming team work through `b1e0c83`, including breakdown provenance and the team's documentation.
+- **Verified:** complete frontend unit, native contract, browser/accessibility, typecheck/build, brain and documentation/verifier/release-policy checks are recorded with their measured counts in README.md#testing. Browser screenshots exposed reversed RTL ratios; both diagram and sidebar numbers now use explicit LTR isolation. Combined-source CI and its fast-budget job were refused before any test step because of GitHub account billing/spending limits.
+- **Decisions:** show observed states and workflow order because the server has no message transcript or complete stage event stream. No extra polling, backend change or dependency. The lazy panel increases only the aggregate CSS budget; initial-load, JavaScript and font ceilings remain unchanged. Owner preference is preserved in Memory and the brain.
+- **Open / next:** the account owner must resolve the GitHub Actions billing/spending-limit restriction before hosted CI can run. A future actual communication transcript needs a tenant-scoped durable event contract. Hosted-release and independent domain acceptance remain owner gates.
+- **Blockers:** GitHub Actions jobs do not start under the current account restriction. This does not prevent local source validation. No production deployment or pull request was requested or performed.
+
+## 2026-10-20 ? `brain-expansion` ? main
+
+**Goal:** review the uploaded Obsidian graph, increase its meaningful points and open the project vault.
+
+- **Done:** `5c33582` adds 18 source-backed notes, reorganizes Home by purpose, connects each addition to related concepts, refreshes stale pipeline/mapping facts and documents graph controls. Launched the registered project brain vault and fast-forwarded its clean main checkout to the expansion; the running app title and saved layout identify Graph view. Preserved the user's display preferences. Also corrected workflow-boundary language attributes in the collaboration inspector and their regression assertions.
+- **Verified:** strict brain validation, complete Home coverage and non-Home incoming relationships for every addition. Full local Python validation includes required PostgreSQL; frontend and browser results are recorded only in README.md#testing. The complete main browser sweep exposed a partial Pause selector collision on both viewports. This entry includes exact selectors in the dataset-reuse and pause/cancel tests; the focused rerun passes, as does the complete Miyaar suite. No application code, assertion or deadline changed for this repair. Archived failure evidence and restored only regenerated baseline captures.
+- **Decisions:** knowledge edges are reviewed relationships, not live agent messages. The graph expansion records existing capabilities and explicit boundaries; it does not claim 18 new software features.
+- **Open / next:** actual message inspection needs a durable tenant-scoped event contract. Hosted-release and independent domain acceptance remain open.
+- **Blockers:** GitHub Actions remains blocked before execution by the account billing/spending-limit restriction.
+
+## 2026-10-20 · `d9e3f889` · claude/tender-clarke-m4uwgq
+
+**Goal:** keep the agents active in a loop until their tasks finish, and connect them to tools for continuous updates that improve their knowledge and confusion matrices.
+
+- **Done:** found that half existed (the worker already loops runs to the approval gate and survives failures; `evaluate_agents.py` already computes every confusion matrix) and that what was missing was a record, a comparison, a schedule and a tool. Added `server/agent_learning.py` (ledger, comparison, work order, bounded `AgentLoop`, proposal queue, worker `Steward`), `scripts/agent_loop.py`, a read-only `agent_scorecard` action reachable by agent runtimes and MCP in English and Arabic, the worker hook `AGENTIC_OS_EVAL_INTERVAL_SECONDS`, the dated decision and documentation updates.
+- **Verified:** `scripts/verify.py --quick`: 1461 Python tests (155 skipped), 262 frontend tests, brain check, type check and native logic all passed, after installing the missing Python and npm dependencies (the first run without them failed 4 and errored 10, all missing packages). 44 new tests in `tests/test_agent_learning.py`; the privacy regression test was watched failing without its fix. The loop and CLI ran on the real suites: state `done`, exit 0, and `needs_person`, exit 2, with a queued proposal.
+- **Decisions:** the loop never edits a rule, a floor or a holdout case, and never shows an improver a held-out sentence, because fitting to the holdout already cost causal wording its independence. Acceptance of a proposed case names a person and goes to dev only. `standards.json` is excluded from proposals until normalised. No live-chat or mapping-correction harvesting: tenant and personal data need their own decision.
+- **Defect found by the build:** the first scorecard reply was withheld by the project's privacy guard; a 16-digit recall float and an ISO timestamp read as phone numbers. Fixed by rounding and a spelled-out month.
+- **Open / next:** a source of genuinely new labelled cases (consented, redacted, tenant-scoped); the causal floor (68%) is stale against a holdout that was fitted to, which is the owner's call to raise; harder reviewer memos; wiring a model-backed runtime as an improver once a key or local model exists. E2E tests were not run: no frontend or API route changed.
+- **Blockers:** none. Not merged to `main`: this session's instructions name the working branch only, so the standing `main` permission in CLAUDE.md was not exercised without the owner saying so.
+
+## 2026-10-20 · `d9e3f889` · claude/tender-clarke-m4uwgq (continued)
+
+**Goal:** draft the consent and redaction decision for new labelled cases.
+
+- **Done:** merged the measurement loop to `main` (`d56578b`) on the owner's instruction, then drafted `docs/adr/2026-10-20-labelled-cases-from-real-use.md` as **Proposed**: sources of labels, what the code stores and erases today, four options, a recommendation, the consent, redaction and tenancy rules for the conditional option, and questions for counsel. No code changed.
+- **Verified:** `verify.py --quick` passed after the merge (1462 Python tests, 262 frontend). The draft's claims about storage, erasure and the detector were read from the code. The legal summary comes from secondary commentary only and is marked unverified.
+- **Decisions:** none taken; the owner chooses. Recommendation: synthetic blind cases now, per-item contribution only after a measured mismatch and a pilot customer's written agreement.
+- **Open / next:** owner's choice; counsel on the UAE personal data law and on whether a government customer may allow this at all.
+
+## 2026-10-21 ? `react-animation-study` ? main
+
+**Goal:** compare React-based platform animation and agent-connection approaches, then recommend a concrete design.
+
+- **Done:** researched official React, React Flow, Motion and browser documentation; inspected current source through `827a584`; produced `docs/design/REACT_AGENT_CONNECTIONS_STUDY.md` with the stack comparison, shared adapter design, motion catalogue, relation semantics and staged acceptance. Added a reproducible isolated benchmark, pinned dependency lock, exact results and actual synthetic screenshots.
+- **Verified:** production-mode builds and desktop Chromium smoke scenarios for the experiment, with exact counts in README.md#testing. Native and React Flow captures visually inspected. No production source or dependency changed, so the full platform suites were not rerun; future explorer mobile/RTL, screen-reader, authorization integration and large-graph performance remain unverified.
+- **Decisions:** keep React/SVG/CSS as the compact default; use React Flow for a separately justified optional explorer; add Motion only for demonstrated animation complexity. Lazy loading protects first render but does not erase total bundle cost. Visual workflow edges do not establish actual agent communication. No behavior ADR was added because this is a study and an isolated experiment, not a production behavior or dependency change.
+- **Open / next:** implement a pure typed graph adapter and richer native stage connections first; measure an optional explorer against an explicit device workload and payload budget before integrating it. Real message history requires a durable authorized event contract.
+- **Blockers:** none for the study. Existing hosted/domain acceptance gates and the previously observed GitHub billing restriction were not resolved or revalidated here.
+
+## 2026-10-21 · `run-timeout-fix` · main
+
+**Goal:** fix the Arabic server-timeout error and run the platform with agent animations.
+
+- **Done:** corrected the run transport deadline that aborted a valid local narration step. Run detail, advance and controls allow the bounded model window plus response overhead. Rebuilt and restarted only the owned local platform process; preserved its data. Resumed the interrupted Arabic sample and ran a fresh sample from the first stage. Both reached the publication approval gate without another timeout or manual retry after the repair. Left Edge open on the agent connection panel; local screenshots and runtime logs remain outside Git.
+- **Verified:** regressions failed before the fix and passed afterwards; API/scheduler checks, TypeScript/build, bundle budget, docs/verifier/release-policy checks, strict brain validation and whitespace checks passed. Exact counts and scope are in README.md#testing. The full platform suites were not rerun for this transport-only change.
+- **Decisions:** `docs/adr/2026-10-21-run-request-timeout.md` preserves the short generic deadline, bounded failures, single scheduler, no automatic POST replay and the human publication gate.
+- **Open / next:** hosted function limits and multiple queued model requests are separate execution constraints. The existing hosted/domain acceptance gates remain open; this was a local repair and no deployment.
+- **Blockers:** none for this repair. The previously observed CI account restriction was not revalidated in this session.
+
+## 2026-10-21 · `saas-competitive-review` · main
+
+**Goal:** research trusted sources, compare the platform with operating commercial SaaS products, and identify its strengths and gaps.
+
+- **Done:** added `docs/assessments/2026-10-21-saas-competitive-benchmark.md` (`304fa99`), grounded in source baseline `4b193f0`, official MaintainX, Fiix, Augury and IBM Maximo documentation, named customer deployments, NIST and Google SRE guidance. The assessment separates implemented capability, partial foundations and unverified field operation; ranks pilot gaps; proposes acceptance evidence and measurement definitions. Updated the project board and linked brain note. A private Sources receipt was rendered outside the repository. Integrated incoming main through `8d41121`, preserving both session-log appends and reviewing its agent-evaluation changes in an assessment addendum.
+- **Verified:** documentation checks and strict brain validation passed; exact counts and the study's boundaries are in README.md#testing. Source claims were checked against implementation and dated verification records. The full application suites and live competitor products were not tested in this documentation-only session.
+- **Decisions:** recommended a bilingual reliability decision-support layer connected to an existing CMMS, with customer validation before adopting the positioning. Agents, evidence and human approval are not presented as unique: Augury documents similar capabilities. No aggregate readiness score or customer ROI is asserted. No behavior, production dependency or deployment changed, so no behavior ADR was required.
+- **Open / next:** choose one customer workflow and source system; verify hosted completion and tenant isolation; connect recommendation to maintenance action and outcome; evaluate predictions prospectively before claiming operational accuracy or savings.
+- **Blockers:** none for the assessment. Web retrieval could not inspect the hosted platform, which does not establish an outage; hosted and domain acceptance remain open. Historical CI and release-governance observations were not revalidated.
+## 2026-10-20 · `d9e3f889` · claude/tender-clarke-m4uwgq (option D)
+
+**Goal:** go with D now, C conditional.
+
+- **Done:** accepted the decision (status updated in `docs/adr/2026-10-20-labelled-cases-from-real-use.md`). Ran option D: three independent agents wrote blind sets from the definitions alone; each was scored once against the unchanged rules, then stored as `blind_v6` (intent 48, jargon 40, causal 40). No rule, floor or holdout was changed.
+- **Verified:** blind_v6 scores: intent 68.5% macro recall, jargon 85% recall at 100% precision, causal 45% recall at 69% precision. A new test found two intent sentences already present in earlier splits; I removed them and rescored instead of weakening the test. `tests/test_evals.py` passes (30 tests).
+- **Decisions:** blind_v6 is stored under its own key, not `holdout`, so existing floors and scores are unaffected. The rules are not fixed against it: that would make it dev data.
+- **Open / next:** fix the causal lint (11 of 20 real causal claims missed, 4 of 20 non-causal flagged) after moving blind_v6 into dev, then judge on a new blind set. Counsel on the UAE law only matters if option C is ever opened.
+
+## 2026-10-20 · `d9e3f889` · claude/tender-clarke-m4uwgq (fix and judge)
+
+**Goal:** fix the causal lint and the intent misses.
+
+- **Done:** moved `blind_v6` into dev for intent (48) and causal (37) and said so in every case; fixed the rules by family, not by sentence (`scripts/claims_lint.py`, `assistant.py`); had fresh independent agents write `blind_v7` (intent 57 after removing 3 duplicates, causal 50) and scored old against new rules on the same sentences.
+- **Verified:** causal wording on blind_v7: recall 28% to 60%, precision 70% to 88%. Intent: 32 to 35 of 57 correct, within noise. Dev 100% on both; no new false alarm on any stored set; one extra flag on the project's own 23 documents was a false alarm and led to dropping bare "behind". The save_history rule was run end to end (the preference flips, nothing is deleted).
+- **Decisions:** three causal blind_v6 cases were removed as contested labels rather than fixed (they contradict the lint's own contract); recorded so it can be reversed. blind_v7 was not used to change any rule. Floors not raised.
+- **Open / next:** intent needs a model behind the rules or a far larger set; causal lint still misses 10 of 25 on blind_v7. Floor decision is the owner's.
+
+## 2026-10-20 · `d9e3f889` · claude/tender-clarke-m4uwgq (floor, model suite, merge)
+
+**Goal:** "yes all": merge to `main`, raise the intent floor, put a model behind the rules.
+
+- **Done:** raised the intent holdout floor from 0.71 to 0.76 (holdout is 76.7%, floors round down to the whole per cent). Found that the model-first path already exists (ADR 0019: a configured model decides first, the rules decide when it is absent or its answer is invalid), so built the missing part, its measurement: an opt-in `intent_model` suite and `--split` in `scripts/evaluate_agents.py`. It reports "not available" without a provider, and the default run, the floors and the agent loop skip it. Merged to `main`.
+- **Verified:** the suite runs end to end through the real `Assistant.understand` with a scripted provider (valid answer, invalid answer falling back to the rules, a required argument missing). It has not been run against a real model: no provider or key is configured here, and the session's own API endpoint is not the product's to use.
+- **Decisions:** the model suite is opt-in because it sends every case to a provider. No claim is made about how a model would score.
+- **Open / next:** configure a provider (a rotated key or a local Ollama model) and run `python scripts/evaluate_agents.py --suite intent_model --split blind_v7` to get the real number; compare it with the rules' 61% on that set.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (KPI register)
+
+**Goal:** add the corrected pooled KPI definitions to the KPI register, with tests.
+
+- **Done:** found that the register's own `availability` was operating over planned hours (utilisation), against the dataset's field, the dashboard and the standards family, and that MTBF, MTTR and SLA attainment were absent. Changed `availability`; added `utilisation`, `availability_inherent`, `mtbf`, `mttr`, `overdue_rate`, `sla_attainment`; retitled `overdue_share`. New mechanisms: `Kpi(complement=True)` and a `Count` term. Contract notes on `MTBF_Hours`/`MTTR_Hours`. Dated decision amending ADR 0049, bilingual handoff table, known limitations, brain, README validation entry.
+- **Verified:** `verify.py --quick`: 1485 Python tests (153 skipped), 270 frontend tests, brain and type checks passed. 12 of 12 Playwright cases for `executive` and `metric-colors` passed on a fresh build (desktop and phone, English and Arabic). The 14 new tests failed before the implementation (4 failures and 15 errors in the first run). Outside the repo, the register reproduced the corrected workbook and dashboard on the private 5,000-row dataset; that data stayed in the git-ignored `private/` folder.
+- **Decisions:** reversed ADR 0049's availability choice in a new dated record, not by editing the old one. The SLA performance score is deliberately not in the register. Hours-based and replacement-value measures are not offered: no stand-ins.
+- **Open / next:** stored target policies on `availability` are not migrated; a held-out review of the standards wording once the standards texts are available; the full Playwright suite and PostgreSQL were not run.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (colourful dashboards)
+
+**Goal:** colourful dashboards, less text, a simpler interface on desktop and phone.
+
+- **Done:** KPI families in the register (`Kpi(family=...)`); family-coloured groups, bands and meters on the executive overview; shared notes behind one fold; "no target" reasons moved into evidence; filters fold until active; compact hero; phone layout; coloured Overview tiles and findings. ADR, design study, MASTER rule 9, UI plan budget. Corrected "15 measures" to 14 with an erratum.
+- **Verified:** `verify.py` all 8 steps (1,487 Python, 153 skipped; 271 frontend); full Playwright 126 passed, 4 skipped. Before/after measured on the same fictional run against a build of `efb6eb1`.
+- **Decisions:** the contrast check misread `color(srgb …)` as 0–255 channels; fixed the parser (true ratio 5.87:1) rather than dropping the colour. CSS budget raised to 23.5 KB. Native apps out of scope (PWA).
+- **Open / next:** navigation and the Runs, Datasets and Assets views; a budget audit; reader testing with maintenance managers; MTBF unit wrap.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (navigation, Runs, Assets)
+
+**Goal:** size audit, then the same treatment for Runs and Assets, then a simpler navigation; the MTBF unit wrap; the reader test; native apps.
+
+- **Done:** audit (source map of the main bundle, unused-string and dead-CSS scans, exact gzip bytes); removed 18 unused keys per language; merged eleven duplicate declarations from `miyaar.css` into `app.css`; `--violet`/`--magenta` tokens. Sidebar in three task groups with colour, no headings; phone bar changed. Runs steps and folded notes; Assets family tiles. Non-breaking space for units. ADR, reading-test protocol with a native-apps note, study update.
+- **Verified:** `verify.py` all 8 steps (1,487 Python, 153 skipped; 273 frontend). Full Playwright 127 passed, 5 skipped; the desktop-only sidebar test run separately. New unit tests each watched failing on the old code. Before/after counts from the same fictional runs against a build of `a7897cc`.
+- **Decisions:** reverted a CSS split that grew the total; did not lean on the budget check's rounding (10,046 bytes printed as 10.0 KB); removed text rather than raise a limit. Native packages not built: no Android SDK here, iOS needs macOS; recommended only after the reading test and a customer ask.
+- **Open / next:** run the reading test; Datasets, Memory and Activity; Assets on a phone still needs scrolling to the first KPI.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (Datasets, Memory, Activity)
+
+**Goal:** the same colourful, low-text treatment on Datasets, Memory and Activity.
+
+- **Done:** hued tiles generalised into `kpi.css`; Datasets tiles, folded limits, wrapping rows; Memory category hues, hidden keys, subtitle and footer removed; Activity health help only on a fault, meter hues, two notes removed. Five strings per language removed, two added. ADR and study update.
+- **Verified:** `verify.py` all 8 steps (1,487 Python, 153 skipped; 275 frontend). Full Playwright 127 passed, 5 skipped. New unit tests each watched failing on the old views. Before/after from the same fictional data against a build of `fe27c2c`. Three fictional memory entries used for captures were deleted afterwards; `data/memory.json` is back to empty.
+- **Decisions:** paid for every added rule with a removal; the Activity privacy statement stays. A background Playwright run started outside `frontend/` picked up unit-test files; re-run with an explicit config.
+- **Open / next:** CSS total 7 bytes from its limit; reading test; phone Assets.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (Assets on a phone)
+
+**Goal:** "Next perform": the open item that needed no decision from the owner, the first Assets KPI below the fold on a phone.
+
+- **Done:** measures moved before the screening notes; phone context boxes in two rows; a dead selector guard and an orphaned margin removed to pay for it. Test for the order, watched failing on the old view.
+- **Verified:** `verify.py` all 8 steps (275 frontend); Playwright overview, responsive, a11y, arabic 22 passed, 4 skipped; a direct 320/375 px overflow check in English and Arabic against a maintenance run, which the e2e server does not have.
+- **Open / next:** server-side Arabic population labels; Arabic-Indic digits in Assets; CSS budget decision (1 byte left); reading test.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (Arabic labels and digits)
+
+**Goal:** fix the two Arabic faults on Assets: English population names and Arabic-Indic digits.
+
+- **Done:** `POPULATION_AR` in the register, enforced at `Kpi` definition; `population_label` from the `/kpis` and executive endpoints, `population` kept as the code; the export map now reads the register (it lacked "records with a failure"); Assets and the dashboard evidence show the label; Assets formats with `ar-u-nu-latn`. ADR.
+- **Verified:** `verify.py` all 8 steps (1,489 Python, 153 skipped; 276 frontend); Playwright executive, metric-colors, dashboard, arabic, a11y 32 passed. Five new tests each watched failing first. Live check on the fictional run: zero Arabic-Indic digits and zero English population names in the Arabic tiles.
+- **Decisions:** kept `population` as the English code because exports and policies match on it. A `pgrep -f` on a pattern in my own command killed the shell (exit 144), as Memory warns; the server was restarted cleanly.
+- **Open / next:** CSS budget decision (1 byte left); reading test.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (validation, budget, reading-test kit, merge)
+
+**Goal:** the owner's list: merge to main, raise the style budget, run the reading test, re-run the full browser suite, test against PostgreSQL.
+
+- **Done:** PostgreSQL 16 started and provisioned per Memory; CSS limits raised (10 → 10.5 KB first load, 23.5 → 25 KB total) with an ADR; the budget check now compares exact bytes (test watched failing first); facilitator kit for the reading test; merged to `main`.
+- **Verified:** `REQUIRE_PG=1 verify.py` all 8 steps (1,490 Python, 19 skipped, all optional extras; 276 frontend). Full Playwright 127 passed, 5 skipped.
+- **Decisions:** raised only the CSS limits, the binding ones; JavaScript unchanged. The reading test was not run and no result is claimed: it needs real maintenance managers.
+- **Open / next:** schedule the reading test; the room in the CSS budget is finite.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (targets held on redefinition)
+
+**Goal:** "Perform next": the open correctness item, availability targets saved before the measure was redefined.
+
+- **Done:** `Kpi(definition=)` with availability at 2; optional, validated `definition` stamp on rules (absent = 1, stored form and revision unchanged); `target_outdated` assessment in English and Arabic; the editor stamps only the rule it saves and only above 1; the reason shows on the dashboard card and Assets tile. ADR; known limitation and register ADR updated.
+- **Verified:** `REQUIRE_PG=1 verify.py` all 8 steps (1,493 Python, 19 optional-extra skips; 277 frontend). Playwright executive, metric-colors, dashboard 20 passed. New Python, API and frontend tests each watched failing.
+- **Decisions:** hold, never rewrite. The metric-colors spec first failed because it seeded an unstamped availability target and the editor sent a redundant `definition: 1`; fixed the editor to stamp only redefined measures and the seed to carry definition 2.
+- **Open / next:** reading test; native apps decision.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (reviewer memo D, full browser run)
+
+**Goal:** "Perform next": the next board item that needs no decision, harder reviewer memos (Next 4).
+
+- **Done:** memo D written blind by an independent agent (30 paragraphs, 14 defects, 10 decoys); figures checked by hand and by script, committed (`fb29838`) before any review. Ran the figures auditor and analytics reviewer (named subagents) and the Tier 0 checker; saved runs; summary regenerated; README, AGENT_TEAM §6 and the board updated.
+- **Verified:** reviewers 100% lane recall, 0 false alarms on D; checker 83%, 1 false alarm (P08). Full Playwright on the targets change: 127 passed, 5 skipped.
+- **Decisions:** did not tune the checker on D, to keep D held out for it. Did not keep hardening D until something failed. The auditor's saved run has condensed evidence lines, marked in the file; ids and categories are exact.
+- **Open / next:** checker fixes from fresh examples; domain-judgement memos; reading test; native decision.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (checker fixes, memo E, merge)
+
+**Goal:** fix the checker's two bugs on fresh examples; write a maintenance-judgement memo; merge.
+
+- **Done:** the two D false alarms had one cause (a fall computes negative while prose writes its size); the checker now takes a change's direction from the sentence and measures a fall against the larger figure, and knows "reduction", "declined", "fewer". Memo E then exposed a third defect, any currency but "$" unreadable; fixed for €, £ and AED in both scripts. Memo E written blind, every figure and label checked by hand, committed (`e6baf85`) before review; new category `domain_method` in the analytics lane with no earlier score changed. Both reviewers and the checker run on E.
+- **Verified:** new tests on fresh sentences watched failing first; A to D checker scores unchanged or better (D false alarm gone); E: analytics 83% lane recall, 78% domain_method, 0 false alarms; auditor 1 false alarm (P08, a decoy); integrity test covers D and E.
+- **Decisions:** labels unchanged after results, including P08 where the auditor's point is arguable. Did not fix percentage-point slips in this round.
+- **Open / next:** repeat E runs; a prompt change on criticality judged on E; reading test; native decision.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (repeat runs, reviewer check 7, percentage points)
+
+**Goal:** a second run of both reviewers on memo E; a change to the analytics reviewer on safety-critical items and maintenance strategy, judged on E; the checker's percentage-points gap.
+
+- **Done:** repeat runs saved (reviewer 92%, auditor 1 false alarm again). v3 instructions (check 7 and `domain_method`) compared with v2 in controlled runs on E and on A to D for regressions; adopted in `.claude/agents/analytics-expert-reviewer.md`. Checker reads percentage points (v5, re-scored on A to E). ADR, AGENT_TEAM §6, evals README, board, summary.
+- **Verified:** E ctl-v3 12/12 detected, 8/9 domain_method, 0 false alarms; ctl-v2 10/12 (missed P09, P18). A to D unchanged (B 80% as on every run). Checker D 83% → 100%, A, B, C, E unchanged. Points test watched failing first.
+- **Decisions:** labels unchanged (P16 stays `domain_method` though every run calls it overclaim). E declared dev for check 7. One controlled run per version, stated as such.
+- **Open / next:** memo F, blind, to measure check 7; reading test and native decision remain with the owner.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (held-out memo F, checker coverage)
+
+**Goal:** "Perform next": measure check 7 on a fresh blind memo.
+
+- **Done:** memo F written by an independent agent blind to the reviewer's instructions and memo E; every figure rechecked (Poisson by script); two format fixes before commit (a bracketed cross-reference, "33 kV" in the register); committed `576b249` before review. Runs: analytics ctl-v2, ctl-v3, named (v3 confirmed loaded by its list of checks), figures auditor, checker. Checker coverage fixed for clock times and values inside longer numbers (found by the auditor on F), test on fresh sentences watched failing first.
+- **Verified:** F: v3 12/12, 9/9 domain_method, 0 false alarms (both runs); v2 11/12; auditor 1 false alarm (P15); checker 0 findings, 0 false alarms. Checker v6 scores identical to v5 on A to F.
+- **Decisions:** labels unchanged; reported that most of v2's lane gap is the missing category label.
+- **Open / next:** repeat runs on F; number words in coverage; reading test and native decision with the owner.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (repeat runs on memo F)
+
+**Goal:** repeat runs on memo F to firm up the score; update docs, verify, merge.
+
+- **Done:** two more runs of the loaded analytics reviewer, one more controlled run of v3 and of v2, one more figures-auditor run (the same one false alarm, P15; team 100% recall, 92% precision). Runs saved, summary regenerated, ADR, AGENT_TEAM, README and the board updated with combined figures.
+- **Verified:** v3, 5 runs: 12/12, 9/9 domain_method, 0 false alarms each. v2, 2 runs: 11/12 each, P16 missed both times, 0 false alarms.
+- **Decisions:** stated that five runs on one memo is still one memo. The first `verify.py` run failed one Python test while the auditor agent was also running; not captured, did not recur in the full suite alone or in a clean `verify.py` (1,497 tests, 19 optional-extra skips, all 8 steps passed).
+- **Open / next:** a second held-out maintenance memo; number words in coverage; the auditor's run-to-failure false alarm.
+
+## 2026-10-21 — Visible performance status — `performance-status-presentation`
+- **Done:** shared outlined badges and a five-state legend across executive, asset, overview, dashboard and operations KPIs; prospective validation retains neutral unassessed/absent distinctions. Existing numeric values and target rules are preserved; phone summaries stack and both languages have explicit labels.
+- **Verified:** the complete local verifier and focused performance/operations browser scenarios passed. Actual counts and conditional skips are recorded in README.md#testing. The live Arabic operations page displayed the new legend and neutral count badges.
+- **Decisions:** the dated performance-status presentation ADR records the component and non-inferred assessment semantics.
+- **Open / next:** concurrent main changes are being integrated and verified in a separate checkout. Existing screenshot edits and the untracked availability-review ADR are preserved. No production deployment.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (platform run, KPI alignment with Power BI, demo mode started)
+
+**Goal:** run the platform on the latest update; remove sign-in for now; correct availability and align KPIs with the Power BI file.
+
+- **Done:** ran `main` locally on a fictional 240-record fleet and shared screenshots. Sign-in: offered three routes; the owner chose a view-only demo mode; the server side (demo identity, refusal next to a real provider, seeded fictional run, 11 tests) is written and stashed, the interface is not. KPIs: the operating / planned "availability" the owner saw is the pre-correction register still live on the 2 October hosted build. Read the report's Method page from its PDF (the .pbix is a thin live-connection report with no DAX); 9 of 12 definitions matched; MTTR (owner's choice), first-time fix and repeat repair aligned as definition 2; four measures added; KPI numbers no longer break across lines. ADR.
+- **Verified:** `verify.py` with PostgreSQL all 8 steps (1,499 Python, 19 skips; 277 frontend); full Playwright 127 passed, 5 skipped; screenshots at 1440 and 390 px in English and Arabic show no broken number.
+- **Decisions:** MTTR follows the report though the earlier population was closer to EN 13306, stated on the card. Did not deploy: production needs the owner's explicit approval.
+- **Open / next:** redeploy the hosted site; finish demo mode (interface); the report file is course material in the repository (history rewrite needs the owner).
+
+## 2026-10-21 ? Integrated performance design ? `performance-status-presentation`
+
+**Goal:** apply the owner's performance color meanings with a text status on each value.
+
+- **Done:** integrated design commit `d586a41` and the existing operations work with main through `c696f91`, preserving the newer KPI definitions, family layout, target-review protection and manager navigation. Operations has a distinct sidebar icon and remains in the phone drawer. Original screenshot edits and the untracked availability-review document have verified local backups.
+- **Verified:** complete integrated verifier, affected backend checks after the final KPI updates, build/budget and focused bilingual desktop/phone browser scenarios; actual counts and the one canceled report download that passed on isolated rerun are in README.md#testing. Preview evidence is saved outside the repository using fictional browser fixtures.
+- **Decisions:** only the aggregate CSS allowance grows for the shared badge/legend treatment, as recorded in the presentation ADR. No default targets or inferred performance verdicts are introduced.
+- **Open / next:** the hosted pilot and deployment remain separate; browser downloads showed one transient cancellation in this Windows run. Local source synchronization and runtime refresh complete the handoff.
+- **Blockers:** none for this presentation change.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (Obsidian view, brain checker rule)
+
+**Goal:** merge and commit; open the brain in Obsidian; then add the checker rule for links that leave the vault.
+
+- **Done:** merged a concurrent `main` (operations, workers, performance status) with a merge commit, conflict only in the board; committed the demo-mode server half with its ADR. Ran the official Obsidian desktop build on a virtual display against a copy of `brain/`: 47 notes, 397 links, one unresolved, a relative link from `Weighted KPIs` to `docs/adr/`. Fixed that note (also "fifteen measures") and added three decisions to the Decision log. `brain_check.py` now reports a Markdown file link that leaves the vault or names no file; the note schema says so.
+- **Verified:** Obsidian after the fix: 398 links, none unresolved. New checker test watched failing first; the new checker flags the pre-fix brain (`e84a35d`) with exactly that link. `verify.py --quick` with PostgreSQL: 1,600 Python, 294 frontend.
+- **Decisions:** web links, mail links, anchors and in-vault files stay allowed; links inside code are ignored, as for wikilinks.
+- **Open / next:** redeploy the hosted site (owner approval); demo-mode interface.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (capstone Power BI check and three-way reconciliation)
+
+**Goal:** check the team's `.pbix` against the dashboard brief; then reconcile dashboard, report and deck so they tell one story.
+
+- **Done:** read the `.pbix` model directly (pbixray plus its metadata database): 4 active many-to-one relationships, 89 measures, embedded data, 4 synced slicer groups, a drill-through page. Fixed drill-through from the Risk exception queue in a byte-checked v2 copy (only one report JSON changed; data model identical). Recomputed every printed KPI and model metric from the 5,000 embedded records. With the report, deck and notes supplied, ran the figures checker three ways and recomputed each specific deck figure. All course files, the register and the briefing are in git-ignored `private/capstone/`.
+- **Verified:** dashboard KPIs, AUC 0.727 (interval 0.696 to 0.759), baseline 0.612, lift 2.50, watchlist 1,418 and 43.6% of loss all reproduce; report has 33 of 36 register figures; deck numbers all traced; notes cover all 15 slides.
+- **Decisions:** reported the earlier model-story conflict as resolved, since the submitted files no longer carry 0.746. Did not edit the report or deck; gave replacement text.
+- **Open / next:** the team corrects report §6.6 and submits the v2 `.pbix` after a Desktop click-test; hosted redeploy and the demo-mode interface remain.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (sign-in page removed: demo interface)
+
+**Goal:** remove the sign-in page of the SaaS application (owner request), completing demo mode.
+
+- **Done:** demo interface: closed local session, no sign-in, no server session; Workspace, Memory, Preferences and session buttons hidden; Overview and Assets offer no start buttons; header reads "View-only demo" in English and Arabic. ADR, Vercel guide (how to turn it on) and known limitations updated. Found and fixed a collision on `main`: two memory specs from a concurrent session looked for keys the Memory view no longer shows; the key is now a `data-key` attribute.
+- **Verified:** store and Overview tests watched failing first; browser run against a demo server on a fresh database at 1440 and 390 px, English and Arabic: no sign-in, no failed request, no page error, `#/chat` redirected. `verify.py` with PostgreSQL all 8 steps; full Playwright 127 passed, 5 skipped, 4 failed (pre-existing, shown on the previous commit), then those specs 8 of 8 after the fix.
+- **Decisions:** deeper write controls stay and get the server's refusal, recorded as a known limitation. Not deployed: turning demo mode on in the hosted project needs the owner's approval.
+- **Open / next:** owner approval to switch the hosted site to demo mode and redeploy; the report's §6.6 and the v2 `.pbix` click-test are with the team.
+
+## 2026-10-21 · `runtime21` · codex/workspace-model-activation-2026-10-21
+
+**Goal:** make workspace conversation use a working model, evaluate the agents and installed models, and test analysis, assets and approvals.
+
+- **Done:** added the explicit Vercel AI Gateway adapter, server-only rotating OIDC credentials, exact model routing and structured LangGraph decisions (`46017cf`). Integrated the concurrent demo interface and memory selector fix (`670759e`), then preserved the concurrent production-release record. Merged at `a92a8ad`, rebuilt and restarted the owned local API/worker with user data and edited screenshots preserved. An unavailable runtime model now reports failure without a second inference attempt. Read-only help/status shortcuts avoid model latency. The long Operations test has a realistic individual budget with all assertions retained.
+- **Verified:** backend, installed framework contracts, agent scorecards, synthetic bilingual live replies, component checks and desktop/phone workflow checks. Exact results, timings and failures are in README.md#testing. The complete frontend suite was interrupted under resource pressure and is not claimed as passing. No real maintenance approval was executed.
+- **Decisions:** keep direct Qwen Instruct as the local default. Smaller weights failed bilingual quality; keeping multiple models resident exhausted spare memory. LangGraph answered general questions but a live requested tool sequence produced no tool calls, so automatic planning remains opt-in and unaccepted for this model. Approval gates remain human-controlled.
+- **Open / next:** the owner adds a payment card in Vercel AI Gateway, then repeat hosted synthetic acceptance before any production release. Production still needs explicit release approval. Validate a stronger model's live tool selection before enabling a planner by default.
+- **Blockers:** AI Gateway rejected the synthetic Preview request with a payment-card requirement. Kimi cloud returned a payment-required status. This activation work did not change production model configuration. Preview-only diagnostic build commits are retained on their own branch and are absent from the integration tree. The concurrent production deployment recorded below is preserved; its health still reports the deterministic provider.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (production deploy)
+
+- **Done:** with the owner's approval ("deploy all", "redeploy now") deployed `main` at `dcde343` to Vercel production, project `asset-reliability-team3-saas` (`dpl_85JXfesWXYTtGij8QwYbaLWxpw6H`, Ready). The KPI register corrections and the demo interface are now in the production build.
+- **Verified:** the deployment lists as Ready on target production; the production domain's `/api/auth/config` returns `{"mode":"local","flows":[]}`. The preview of the same commit runs Supabase sign-in, so the sign-in variables are preview-only.
+- **Blocked:** adding `AGENTIC_OS_DEMO=1` was refused by Vercel (403, the connected account cannot create production environment variables; listing them is refused too). No Vercel CLI in the container. Production therefore runs `local` mode (single owner, writable) rather than the view-only demo.
+- **Next:** the project owner adds `AGENTIC_OS_DEMO=1` (Production) in Vercel and redeploys; then check `/api/auth/config` reads `demo`. Whether the production domain is public under Standard Protection is still unconfirmed from here.
+## 2026-10-21 · `advisory21` · codex/executive-advisory-2026-10-21
+
+**Goal:** Replace the generic executive evidence brief with maintenance decision support in an Executive Analytics Advisory Group voice, using the assigned source pack and preserving the master.
+
+- **Done:** Bilingual decision recommendation, five-domain scorecard, proposed accountable roles, predictive-readiness limits and explicit source roles in the dashboard brief and HTML/Word exports. Private source review produced concise English/Arabic PDFs and editable papers, separate evidence appendices, a byte-identical analytical copy, source hashes, transformation log and instructor-review issue register.
+- **Verified:** Focused backend, document-direction, frontend, transport, browser/accessibility, typecheck, build, documentation and strict brain checks; actual outcomes are in README.md#testing. Private workbook data cells matched the assigned CSV and supplied KPI figures were independently reproduced. Source hashes remained unchanged.
+- **Decisions:** The full maintenance product title replaces the generic export title. Numerical reconciliation does not approve business definitions or prospective prediction. An arbitrary run cannot inherit certification from a separate private review. ADR: `docs/adr/2026-10-21-executive-analytics-advisory.md`.
+- **Open / next:** Instructors must resolve the documented source-definition and entity-grain questions before scenario/source changes. No instructor contact, model training, intervention approval or production deployment was performed. Independent forward validation and a costed intervention case remain prerequisites to predictive rollout.
+
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq ("Run not found" on the hosted site)
+
+- **Done:** found the cause of "Run not found" in production: no `DATABASE_URL`, so each Vercel instance keeps its own SQLite file. Reproduced with two app instances (404 separate SQLite, 200 shared PostgreSQL). The demo now seeds under fixed ids, so it works across instances without a database (`e39104e`, ADR addendum). Deployed `e39104e` to production (`dpl_DEboSayKE6DLaRqLkSrhH71GAiYv`, Ready).
+- **Verified:** `verify.py --e2e`, all 10 steps: 1,609 Python tests (21 skipped) on the run started before the fix, then 1,611 (21 skipped) on the final code; 296 frontend tests; Playwright 131 passed, 5 skipped; Miyaar 12 passed; budget JS total 203.0/205 KB. Agent evaluations: all 9 agents at or above their floors. Production `/api/health` reports the deterministic provider (no model configured) and `/api/auth/config` reports `local`.
+- **Blocked:** production still has neither `AGENTIC_OS_DEMO=1` nor `DATABASE_URL`, so "Run not found" persists there; the connected Vercel account cannot set production variables. No model key in production.
+- **Next:** the owner adds `AGENTIC_OS_DEMO=1` (view-only) or `DATABASE_URL` (writable) for Production, plus `ANTHROPIC_API_KEY` or `GROQ_API_KEY` for model text; then redeploy and test live. The owner shared a sign-in password in chat; advised changing it; it was not used or stored.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (hosted demo live; OpenAI provider)
+
+- **Done:** unconfigured Vercel deployments (no `DATABASE_URL`, no sign-in provider) now start the view-only demo (`5ded3c1`); OpenAI provider after Claude with one failover between hosted providers (`04f0632`, [decision](docs/adr/2026-10-21-openai-provider-and-failover.md)). Production deployed at `04f0632` (`dpl_EpNYVb7RNtNYiX6AZ3t7fixLWRNU`).
+- **Verified live:** `/api/auth/config` reads `demo`; `/api/runs` lists `5fe5d44a8391`; the run (all 24 stages succeeded, publish awaiting approval) and its executive briefing return 200 across requests, so "Run not found" is gone. Quick verify before each deploy: 1,617 then 1,624 Python tests (21 skipped), 297 frontend tests, typecheck, brain check. One Python failure in one run did not reproduce on rerun (logged as unexplained).
+- **Open:** no model key in production (`deterministic`); the owner adds `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` + `OPENAI_MODEL` in Vercel (Production). A writable hosted site needs `DATABASE_URL`. Animated-interface prompt drafted for Stitch; implementing it needs a CSS budget decision (25.4 of 25.5 KB used).
+
+## 2026-10-22 · `ad7e9eca` · main (connected workspace implementation)
+
+**Goal:** implement the animated SaaS design with agent connections and run it locally.
+
+- **Done:** connected Hermes map, one-shot observed handoffs, bounded zoom and fit, stage navigation and evidence inspection; overview actions; asset registry coverage, search and recorded-history dialog (`77efe87`). English/Arabic and responsive motion behavior are implemented. Concurrent main changes through `3e27482` are preserved. The existing local API and background worker are healthy and serve the rebuilt interface at `http://localhost:8000`.
+- **Verified:** the required verifier passed all checks except one new animation-end unit assertion; the corrected test dispatches the event React registers in jsdom and freezes the fallback timer. The subsequent complete frontend rerun, final type check, affected workflow browser checks, focused concurrent-backend checks, documentation and strict brain checks passed. Counts, conditional skips, bundle allocation and review score history are recorded in README.md#testing. A read-only source review found an old-event replay defect, fixed with consumption tracking and suppression/cleanup regression coverage; the reviewer confirmed the fix. No review finding was waived.
+- **Decisions:** keep React/SVG/CSS and semantic tokens, with no new animation dependency; animate observed updates and retain independent pause-view controls. The dated connected-workspace ADR records the lazy-view capacity increase and unchanged first-load limits. The review harness initially needed its evidence label and socket permission corrected; those failures remain recorded in the private review history.
+- **Open / next:** a hosted release requires separate owner approval. Live CMMS acceptance and independent predictive-model validation remain outside this interface change. The recorded connections are workflow observations, not an agent-message transport.
+- **Blockers:** none for the implemented interface and local launch.
+
+## 2026-10-22 · `ad7e9eca` · main (account-limit interruption recovery)
+
+**Goal:** resolve the quoted account-limit and unfinished-delivery warning and make future recovery independent of an active coding-agent session.
+
+- **Done:** current Codex account status permits ordinary work. A fresh GitHub fetch and ancestry checks prove `21dae21` and `77efe87` are included in remote main at `6523160`; the quoted pending-push warning is superseded. Added checkpoint verification, guarded terminal publishing and handoff guidance (`56a96ca`), with matching operating-memory and brain updates.
+- **Verified:** local API health and background-worker readiness, remote ancestry, documentation checks, PowerShell example syntax, strict brain and whitespace checks. Exact check results are in README.md#testing. Application code was unchanged, so application suites were not repeated.
+- **Decisions:** distinguish Codex allowance, model API usage, GitHub permission and application readiness. Terminal Git recovery requires its own valid access but makes no model request. Do not claim a repository change removes an account allowance, and do not bypass approval controls.
+- **Open / next:** future interruptions require a fresh account-status and commit check; account limits remain under the provider's control. No billing, plan, production configuration or approval policy was changed.
+- **Blockers:** none for the referenced delivery; an unlimited Codex allowance cannot be established by repository work.
+
+## 2026-10-21 · `d9e3f889` · claude/tender-clarke-m4uwgq (model roles live in code; production redeploy)
+
+- **Done:** model roles (Hermes on a language model, agents on Ollama, Claude and OpenAI consultants; `3e27482`, [decision](docs/adr/2026-10-21-model-roles-hermes-agents-consultants.md)); Supabase MCP project config and agent skills; capstone appendix in the git-ignored `private/capstone/deliverables/`. Production deployed at `3e27482` (`dpl_2Zqj9eseoXoUUJfv7wo94LnQ6DAV`).
+- **Verified live:** `/api/health` reports `model_roles` with Hermes on rules and no roles configured; the demo run `5fe5d44a8391` and its executive briefing return 200. Before merge: 1,633 Python tests (21 skipped), 297 frontend tests, typecheck, brain check.
+- **Open:** production has no model keys or reachable Ollama, so the roles are inactive there; agent notes are not shown in the interface yet.
+
+## 2026-10-22 · `d9e3f889` · claude/tender-clarke-m4uwgq (review of ten unmerged branches)
+
+- **Done:** production deployed at `0ea1498` (`dpl_H2yu72EVAx7on9mqPhPAL7ew5puX`; full verify 8/8: 1,633 Python, 318 frontend; live check: demo mode, demo run listed). Reviewed the ten remote branches not merged into main by content, not commit id (every commit reads as unique because the work was re-committed or squashed).
+- **Finding:** nothing to merge. Rail asset manager, maintenance profile, Supabase hardening, bounded serverless events, CSS budget and identity/evidence work are on main (ADR 0047 took the engine code; records renumbered to 0045, 0046, 0048, 0052, 0053; 98 to 100% of their added lines present). Voice companion merged as PR #9 (`4c5f0f6`) and was later rewritten by `d4237e4` and `edcc847`; its missing lines are the replaced code. `chore/team3-contribution-folders`, `governance/team3-codeowners` and the `first commit` / `Add files via upload` parts of `rail-asset-manager` carry the course material and teammates' personal data that ADR 0047 refused and `.gitignore` blocks; CODEOWNERS maps personal handles to `/roles/`, which no longer exists. `codex/workspace-model-probe-2026-10-21` is a preview-only probe, not meant for main.
+- **Next:** the owner may delete the ten stale branches on GitHub; sessions do not delete branches.
+
+## 2026-10-22 · `d9e3f889` · claude/tender-clarke-m4uwgq (demo hides write controls)
+
+- **Done:** `ReadOnlyContext` hides write controls in the view-only demo: dataset add and analyse, the new-analysis form, pause/resume/cancel, approve/reject (a bilingual note instead), mapping save/clear, the dashboard's "Analyse maintenance data" link; Operations leaves the demo navigation. Read controls stay (executive brief is built in the browser, refresh, export, drill-downs, "Pause live view"). ADR addendum in the demo-mode record.
+- **Verified:** full verify 8/8 after one rerun: 319 frontend tests (1 new), typecheck, build, budget JS 208.4/210 KB; Python 1,633 passed on rerun, one unexplained failure in the first run (second such today, not reproduced). Browser on the demo build: none of the write controls present, `#/operations` redirects to Overview, no page errors or failed requests.
+
+## 2026-10-22 · `d9e3f889` · claude/tender-clarke-m4uwgq (every agent and model path tested; intermittent failure fixed)
+
+- **Tested:** all 9 measured agents at or above their floors (weakest: intent holdout 77%, router holdout 83%, unchanged); a full maintenance run, 24 of 24 stages, validator passed, with no model and again with Hermes, Ollama agents and Claude/OpenAI consultants on stand-in models (plan, 17 agent notes, both consultants, brief); model-layer suites (gateway 31, routing 24, orchestration 9, assistant 67, agent runtime 29, privacy boundary 9, local runtime 17; llmrouter 5 skipped as optional). Live model calls not possible: OpenAI, Groq, Hugging Face and Ollama hosts blocked by this session's network policy; no Claude key.
+- **Fixed:** the intermittent Python failure (3 in 40 runs of an agent-runtime test): random hex ids with long digit runs read as phone or account numbers, so the privacy guard refused the model in about one conversation in seventy. Ids are now redrawn when they hold 8+ consecutive digits ([decision](docs/adr/2026-10-22-generated-ids-never-look-personal.md)); 200 of 200 repeats pass; full verify 8/8 first time (1,635 Python, 319 frontend).
+
+## 2026-10-22 · `d9e3f889` · claude/tender-clarke-m4uwgq (hosted open-source models; model status)
+
+- **Done:** hosted Ollama endpoints supported (`OLLAMA_HOST` + `OLLAMA_API_KEY`), and only a loopback host counts as local ([decision](docs/adr/2026-10-22-hosted-open-source-models.md)); Groq documented as the no-change route for hosted open-source models. Model status page published as a private artifact.
+- **Verified:** quick verify 6/6 (1,639 Python with 4 new, 319 frontend). Live health after the owner's redeploy (`dpl_ARdVXBqSxWtmsCCV8krhHXLov7W4`): still `deterministic`, Hermes on rules, no roles, no problems listed, so the model keys did not reach the Production environment.
+- **Next:** owner confirms the keys are saved for Production; then redeploy and read the health check.
+
+## 2026-10-22 · `d9e3f889` · claude/tender-clarke-m4uwgq (free open-source models and the task map)
+
+- **Done:** researched free hosted open-source model tiers (Groq, OpenRouter, Ollama Cloud, NVIDIA NIM, Mistral, Cerebras; dated third-party sources, to confirm on each provider's page). Added OpenRouter, NVIDIA, Mistral and Cerebras on the chat-completions contract, and `AGENTIC_OS_TASK_MODELS` mapping a provider to narration, chat, hermes, agents and consultants; `/api/health` returns `model_map` ([decision](docs/adr/2026-10-22-free-open-models-and-task-map.md), [reference](docs/FREE_OPEN_MODELS.md) with a recommended free map and daily capacity).
+- **Verified:** 1,644 Python tests (21 skipped; 5 new) after restarting PostgreSQL, 319 frontend, typecheck, brain check. No live provider call: hosts unreachable from the container.
+- **Open:** the owner adds keys and the map in Vercel (Production); earlier model keys never reached Production.
+
+## 2026-10-22 · `d9e3f889` · claude/tender-clarke-m4uwgq (a model per role)
+
+- **Done:** every task map entry and role variable accepts `provider:model`, so one local Ollama serves Hermes (`ollama:hermes3`) and the agents (`ollama:qwen3`) while Claude and OpenAI consult ([decision](docs/adr/2026-10-22-a-model-per-role.md)). The gateway answers from a copy with that model; the shared gateway never changes. Laptop setup for both models kept loaded is in `docs/FREE_OPEN_MODELS.md`.
+- **Verified:** quick verify 6/6 (1,649 Python with 5 new, 21 skipped; 319 frontend; typecheck; brain check). No live model: none installed or reachable in this container.
+- **Open:** the owner runs it on the laptop and reads `model_map` in `/api/health`; production cannot reach a laptop's Ollama.
+
+## 2026-10-22 · `d9e3f889` · claude/tender-clarke-m4uwgq (built-in Hermes, agents and consultants)
+
+- **Done:** a role with no model is played by the built-in writer: Hermes' plan (fixed order, guarding stages), each agent's note (its own verified claims), one consultant (standard approval question, then risk rules triggered by the findings, quoting them) and Hermes' brief, in English and Arabic, with no digit of their own and the same grounding guard ([decision](docs/adr/2026-10-22-built-in-roles.md)). The report's caution says "built-in rules, no language model". `AGENTIC_OS_BUILT_IN_ROLES=0` restores the old behaviour; `/api/health` shows `built_in_fallback`.
+- **Verified:** quick verify 6/6 (1,654 Python with 5 new, 21 skipped; 319 frontend; typecheck; brain check).
+- **Next:** deploy to production (owner asked for the roles there) and confirm the demo report carries the section.
+
+## 2026-10-22 · `d9e3f889` · claude/tender-clarke-m4uwgq (platform assessment, audit fixes, Command Centre)
+
+- **Done:** four read-only audits (backend and security, analytics and model validation, interface and bilingual UX, agents and quality gates) consolidated into [the assessment](docs/audits/SAAS_PLATFORM_ASSESSMENT.md): 74 findings with evidence, severity, correction and validation method. Five blockers reproduced and fixed with tests ([decision](docs/adr/2026-10-22-audit-fixes-period-order-grounding-privacy-identity.md)): unmapped periods sorted as text (a rising series read "down 4%"); model summaries not grounded; model roles outside the privacy boundary; Vercel with a database and no sign-in ran everyone as owner; session trimming across tenants. The Overview is now the Executive Command Centre, every tile from the existing executive brief ([decision](docs/adr/2026-10-22-executive-command-centre.md)); counts are counts; demo hides connector and policy writes; "See all analyses" opens the list. Nine programme documents under `docs/audits`, `architecture`, `design`, `agents`, `analytics`, `voice`, `qa`, `implementation`, each honest about status.
+- **Verified:** full verify 8/8 (1,662 Python, 323 frontend, build, budget under the recorded 214 / 29.5 KB allocation); `evaluate_agents --check` 9/9; Overview and accessibility browser specs on the installed Chromium; the Command Centre rendered on a demo server in English and Arabic.
+- **Decided:** no navigation rebuild to the brief's six groups; no product rename, no multi-agent change, no external voice project without the review the brief itself requires. Open owner decisions listed in the roadmap.
+- **Next:** pull request from this branch, not merged to `main` until the gates and a reviewer; then the Android request.
+
+## 2026-10-22 · `d9e3f889` · claude/tender-clarke-m4uwgq (Android app, first release)
+
+- **Done:** `apps/android`: a pure-Kotlin `core` (API client over a Transport seam, brief models, the decision mapping shared with the web Command Centre with browser-identical rounding, a local vector memory with an HNSW index and snapshots) and a Compose `app` (Hilt, Room, DataStore, OkHttp; Command Centre, Analyses with upload and stage-by-stage advance, Approvals that require the report to be read, Presentation with HTML and Word sharing, Memory, Assistant, Settings; English and Arabic). `scripts/build-apk.sh`. [Decision](docs/adr/2026-10-22-android-app-first-release.md); `apps/android/README.md`.
+- **Verified:** `./gradlew :core:test` 14 of 14 on the JVM (HNSW recall ≥ 0.9 against brute force on 1,500 vectors; the live demo brief parses). The `app` module is authored, not compiled: `dl.google.com` (Android SDK and Google Maven) is denied by the environment's network policy. Reported as such, never as built.
+- **Next:** allow `dl.google.com` in the environment and run `scripts/build-apk.sh` here, or build in Android Studio; then an on-device check of upload, approval and sharing.
+
+## 2026-10-22 · `d9e3f889` · claude/tender-clarke-m4uwgq (release gate, slice one)
+
+- **Done:** the prescriptive gain is labelled illustrative at an assumed 10% in both languages (A3); the router no longer sends GPT names to Groq and the evaluation labels them OpenAI (G7); `GET /api/runs?state=` lists every run in a state up to 1,000 and the Approvals inbox uses it (U1); every loading placeholder carries hidden text for screen readers (U9); both workflows run with `contents: read` (B15). [Decision](docs/adr/2026-10-22-release-gate-slice-one.md).
+- **Verified:** affected Python suites green; `evaluate_agents --check` 9 of 9 (router holdout 89% macro recall against a recorded 0.88 floor: the old 0.90 counted two mislabelled cases); frontend typecheck, 323 unit tests, build, budget unchanged; Overview and accessibility browser specs 13 passed, 3 skipped.
+- **Decided:** not to tune the router to its two holdout misses.
+
+## 2026-10-22 · `d9e3f889` · claude/tender-clarke-m4uwgq (release gate, slice two)
+
+- **Done:** a rate measure is never summed, trended or ranked (A4); every forecast is backtested against repeating the last period and a trend within 5% of it is reported as weak, in both languages (A5); the validator finds every figure a claim states among the values it cites (A6), which exposed nine claims stating uncited numbers, each now cites a calculation; Approve needs the exact report opened and confirmed read (U3); a sign-in provider requires a JWT audience and issuer, derived from `SUPABASE_URL` when unset (B7). [Decision](docs/adr/2026-10-22-release-gate-slice-two.md). Assessment, roadmap, predictive validation record and known limitations updated.
+- **Verified:** full verifier 8 of 8 with PostgreSQL (1,674 Python tests, 21 skipped; 326 frontend tests; build and budget); Runs, Workspace, Overview and accessibility browser specs 24 passed, 4 skipped; dataset sweep in English and Arabic with zero failed validator checks.
+- **Decided:** the forecast is still shown when weak, with the weak wording, rather than withheld; seasonal-naive baselines and residual intervals stay P2.
+- **Next:** remaining P1: A2, A13, B4, B5, B10, G1, G4, U13; owner decisions A8, U4, U12. PR #17 carries both slices; not merged until the gates and a reviewer.
+
+## 2026-10-22 · `d9e3f889` · claude/tender-clarke-m4uwgq (release gate, slice three)
+
+- **Done:** the remaining P1 items in one slice, four subagents in parallel on disjoint files and the lead on the analytics: uplift and cost as run inputs with per-option sensitivity and flip points (A2); a decision record per recommendation, completed by the sensitivity stage and the approval gate, publishing refused without it (A13); a signalling failure always escalates and the condition threshold is named as a convention (A8); currency in the mapping or "currency not stated" (U4); landing on the Command Centre with Approvals in the phone bar (U12); per-session locking, transactional restore and JSON request logging (B4, B5, B10); blind-set floors with a new blind standards set that the lint scores 0% on (G1); a model call ledger in health (G4); demo, Assets and Approvals in the browser suite with a third Playwright server (U13). [Decision](docs/adr/2026-10-22-release-gate-slice-three.md). Assessment P1 list closed; roadmap, framework, validation report, known limitations updated.
+- **Verified:** full verifier 8 of 8 with PostgreSQL (1,712 Python tests, 21 skipped; 336 frontend tests; build and budget); `evaluate_agents --check` 9 of 9; the whole Playwright suite: full run **132 passed, 5 failed, 5 skipped** of 142; the five failures were spec locators that matched the Command Centre pane the app now lands on, fixed in the specs, after which those five specs ran **32 passed, 0 failed**.
+- **Decided:** the three owner decisions were taken under the owner's "merge all and deliver the rest" instruction and are reversible; the standards lint is left at 0% blind recall rather than tuned; `recommended_action` in the record is filled only with a declared direction and stated costs.
+- **Found:** the committed auth and CSP browser specs had failed since slice two's B7 change (token without audience and issuer); fixed on the test side. GitHub-hosted CI assigns no runner on this account (jobs end in two seconds), so the local verifier is the gate.
+- **Merged with main:** main had moved (Arabic rendered reports, `6f7b032`); seven files conflicted and were resolved keeping both sides (the A1 period-order fix over main's older preparer; main's `report-theme` on the approval preview with the read gate; both budget allocations, recorded as 216 KB scripts and 30.5 KB CSS in the slice-three record). Main's Arabic display tables gained the labels, methods and check name the two slices added; the unmapped period detection gained the Arabic column names main relied on. Verifier 8 of 8 after the merge (1,721 Python tests, 21 skipped; 346 frontend tests); merge-affected browser specs: **50 passed, 2 failed, 4 skipped** of 56 (runs, workspace, Arabic, accessibility, intake, executive, onboarding, demo, overview); the two failures were the workspace spec reading the approval preview as a `pre` element that main's rendered report replaced, fixed in the spec, after which the workspace spec ran **5 passed, 1 skipped**.
+- **Next:** interface inputs for uplift and cost; the standards lint rewrite; per-tenant model budgets; seasonal-naive forecast baseline (P2).
+
+## 2026-10-22 · `ad7e9eca` · main (Arabic reports and selected local runtime)
+
+**Goal:** render the full Arabic analysis, recommendations, tables and charts in the house style, then run from the owner's selected home checkout.
+
+- **Done:** explicit per-run report language; semantic, bounded report rendering in section, comprehensive and approval previews; Arabic built-in calculation and check descriptions; numerically identical Arabic-labelled fictional data; scoped generated house palette and RTL tables (`a2d4e4b`). Preserved concurrent main changes through `1d2d008` in merge `5b0e410`, then fast-forwarded the working checkout. Restarted only the owned port-8000 launcher from the home checkout with its worker. A new Arabic sample reached the human approval gate; rendered recommendations, full-report headings and chart tables were inspected in the running application. Private screenshots were saved outside Git.
+- **Verified:** feature-tree Python suite and all non-frontend verifier steps passed. The initial frontend gate failed to start one Windows worker; its completed tests passed. The integrated home checkout's complete frontend rerun passed, alongside the focused merged-backend checks and production build/budget. Real desktop and phone browser journeys passed. Actual counts and scope are in README.md#testing. The initial review-gate round recorded 50%; its startup failure was resolved by the separate full frontend rerun, and no later aggregate gate score is claimed. Reviewer agents hit account usage limits before a final independent pass; the parent verified and fixed the chart-language and bounded-parser findings directly.
+- **Decisions:** report language is fixed at creation; existing artifacts and audit values remain unchanged. Customer identifiers and unknown plugin metadata remain traceable original text. Follow the owner's selected runtime directory, whose local database is separate from the former workspace database. See `docs/adr/2026-10-22-arabic-rendered-analysis-reports.md`.
+- **Open / next:** the owner can review and publish the new Arabic sample. Regenerate an older English analysis in Arabic when needed; do not rewrite its approved artifact. Hosted release and live maintenance-system integration remain separate work.
+- **Blockers:** no local runtime blocker remains. Account-provider quotas cannot be overridden by repository changes; the unfinished independent reviewer pass was not presented as complete.
+
+
+## 2026-10-22 · `ad7e9eca` · main (local model-role activation)
+
+**Goal:** apply the owner's Qwen/Hermes task map and select available cloud consultant models.
+
+- **Done:** confirmed installed local model tags, prepared the git-ignored `private/run-local-agents.ps1` without credentials, and restarted only the owned local launcher from the selected home checkout. The profile passes `--model qwen3:latest` so the launcher's smaller default cannot override the requested base model. Live health reports Hermes on `ollama:hermes3`, agents on `ollama:qwen3`, and Ollama for narration/chat. It preserves the requested cloud consultant map while honestly reporting the missing providers.
+- **Verified:** the private PowerShell profile parsed successfully; direct local gateway probes returned text from Qwen and, after a separate warmup, Hermes. Hermes' first cold probe exceeded the configured inference deadline. These short probes establish connectivity, not report quality or a full multi-model analysis. The restarted API is healthy and the existing Arabic sample remains at its human approval gate. No application code or dataset was changed.
+- **Decisions:** selected `claude-haiku-4-5-20251001` and `gpt-4.1-mini` as compatible consultant defaults, retaining an explicitly configured model override. Their official model pages were checked; account availability was not tested without keys. Placeholder values are never used as API keys. The private profile inherits keys from the starting shell and does not save them. Existing per-role ADR applies; no new engine behavior was introduced.
+- **Open / next:** add real Anthropic/OpenAI API keys locally and restart the profile to activate cloud consultants. Assess latency and Arabic quality on a representative new run; cold model loading on this laptop can exceed the inference window. The built-in consultant fallback stays labelled until provider calls are possible.
+- **Blockers:** cloud API credentials are absent; no cloud inference was claimed or billed in this session.
+
+## 2026-10-22 · `ad7e9eca` · main (actual chat fallback repair)
+
+**Goal:** fix the owner's screenshot showing programmed replies instead of an LLM response.
+
+- **Done:** reproduced the failure through the real session-message endpoint, retained private evidence, and changed the ignored persistent launch profile from generic Qwen to the already installed instruction-only Qwen3 4B tag for the base model and agent notes. Retained a private backup of the requested profile, stopped only the identified owned launcher tree, unloaded its old model, and restarted from the owner's chosen home checkout. No application source, dependency, dataset or approval was changed.
+- **Verified:** the same greeting returned a genuine model reply; the browser then showed actual Ollama responses to an Arabic maintenance question and a contextual follow-up. The current chat is left open and a private screenshot was saved. Documentation tests and the strict brain check passed. Exact measured latency, checks, initial failure and wording limits are recorded in README.md#testing. No fallback was counted as a model success.
+- **Decisions:** keep the tested instruction-only tag rather than the larger generic alias on this CPU laptop. Existing local-runtime and per-role decisions apply; this is a deployment configuration repair. Model metadata alone is not end-to-end acceptance, and the successful follow-up does not validate maintenance advice.
+- **Open / next:** validate Hermes plus specialist notes on a representative full analysis before claiming all role combinations work. Loading or longer conversations can still approach the bounded deadline under memory pressure; no universal latency guarantee is claimed.
+- **Blockers:** real Anthropic/OpenAI API keys remain absent, so cloud consultants still use their labelled built-in fallback. Local chat now returns model responses.
+
+## 2026-10-22 · `d9e3f889` · claude/tender-clarke-m4uwgq (hosted CI back to green)
+
+- **Found:** the "no runner assigned" failures (every job ending in two seconds, run 384 and earlier) were an account-level condition that lifted on its own around 18:58 UTC; from then on jobs ran. The real failure on the merged main (run 395) was the `npm audit --audit-level=high` gate: vite 8.2.1 carried a high advisory and the vitest mocker two moderate ones. The Python step passed on the hosted runner (so slice three runs on Python 3.11).
+- **Done:** vite pinned to ^8.2.4 (resolves 8.3.5) and vitest to ^4.1.12; the lock regenerated with npm 11 because npm 10.9.4's resolver crashes on this dependency set (`Cannot read properties of null (reading 'edgesOut')`), then proven installable by the stock npm 10 `npm ci` that CI uses. The Miyaar browser suite, which CI also runs, opened `/` expecting the assistant; it now opens `#/assistant` (U12).
+- **Verified:** `npm audit --audit-level=high` 0 vulnerabilities; typecheck; 346 unit tests; build; budget 215.4 / 216 KB scripts; the whole Playwright suite 137 passed, 5 skipped, 0 failed; the Miyaar suite 12 passed.
+- **Next:** watch the hosted run on main; the actions still target Node 20 and will need their next releases before GitHub drops it.
+
+## 2026-10-22 · `ad7e9eca` · main (background roles and all-Qwen local runtime)
+
+**Goal:** complete live model-role verification after chat recovery and apply the owner's explicit selection of Qwen for all local roles.
+
+- **Done:** a real background run exposed missing `ModelRoles` in `build_worker`; connected it to the production engine, bounded explicit non-reasoning local briefings, and covered actual worker construction with regressions (`dd41cdb`). Integrated concurrent main at `7912f6e`, preserving its restricted built-in privacy writer and adding the current privacy-stage output/persisted evidence guards (`d177390`, integration `03a485b`). The owner's selected home checkout runs the persistent, ignored all-Qwen profile; its prior Hermes profile and a database backup remain private. No cloud key, additional model, public deployment or publication approval was added.
+- **Verified:** completed real Arabic samples produced a Qwen plan, specialist notes, narration and orchestrator brief. Their omitted consultant was diagnosed through a real response: numbered list labels failed the unchanged numeric guard. A qualitative consultant prompt then returned an accepted Arabic review. Focused backend and frontend checks, both local builds, the existing interface budget and brain check passed; counts, sample timings and the stopped full frontend attempt are recorded only in README.md#testing. The full Python/PostgreSQL/Playwright suites were not rerun. Private probe outputs and browser screenshots remain outside Git.
+- **Decisions:** after full Hermes planning calls exceeded the deadline even in isolation, the owner explicitly chose Qwen3 4B Instruct for chat, narration, orchestration, specialist notes and a local consultant. These are separate prompts over one model, not independent providers. Requests remain bounded; unsafe or ungrounded text never becomes a successful model note. The qualitative consultant prompt avoids list numbering without relaxing evidence validation. See `docs/adr/2026-10-22-worker-model-role-parity.md`.
+- **Open / next:** domain quality and latency under real maintenance workloads still need acceptance. A pause request during an earlier model stage failed under SQLite contention; responsive pause/cancel under model load remains unverified after integration. Existing artifacts are retained unchanged, and publication remains a human decision.
+- **Blockers:** cloud credentials are not required for the selected local-only profile. CPU inference and competing processes can still exhaust the bounded deadline; no universal response-time guarantee is claimed.
+- **Final live acceptance:** the integrated runtime's new Arabic fictional sample `157729f82b7b` reached human approval with a Qwen plan, specialist notes, accepted consultant review and orchestrator closing brief. The evidence and timings are recorded in README.md#testing. Earlier samples remain unchanged; the final one was not published.
+
+## 2026-10-22 · `d9e3f889` · claude/tender-clarke-m4uwgq (hosted CI, second pass)
+
+- **Found:** with the audit gate cleared, the run on main was cancelled by the job's 20-minute limit: the browser install alone took 12 minutes on a slow hosted runner. The run after the Motion Studio merge completed and showed 136 of 137 browser tests passing; the one failure is a 1 px sideways overflow in the Arabic demo approval inbox on the phone project, which does not reproduce here (this container has no Arabic font beyond DejaVu), so it is a hosted-font layout difference.
+- **Done:** job timeout 45 minutes; the Playwright browser cached by Playwright version; the four pinned actions moved to their Node 24 releases (checkout 5.1.0, setup-node 7.1.0, setup-python 7.1.0, upload-artifact 7.0.2) with cache 4.3.0, all by commit; the Arabic demo overflow assertion now names the overflowing elements so the next hosted run says what to fix. Main (Motion Studio) merged in without conflict.
+- **Verified:** workflow files parse; typecheck; demo spec 6 of 6 locally (3 of 3 on the phone project after the change).
+- **Follow-up on the same PR:** the Motion Studio merge put the measured script total at 216.3 KB, so the allocation is 218 KB (verify.py, UI_PLAN.md, the slice-three record). The owner's README redesign on main (`b860190`) opens with a hero image and a bilingual heading, which failed the product identity test on main and on the PR; the test now requires the full product name in the README's opening section instead of on line 1, with no README change. Python suite with PostgreSQL: 1726 tests, 1 failure before, OK after.
+
+
+## 2026-10-22 · `d9e3f889` · claude/tender-clarke-m4uwgq (decision inputs in the interface)
+
+- **Found:** slice three made uplift and cost inputs and wrote a decision record, but nothing in the interface collected the inputs or showed the record; every hosted run kept the assumed 10% and the approver never saw who decided what on which inputs.
+- **Done:** the Analytics form has "Improvement and cost (optional)": a group as the data spells it, an improvement in percent and a cost per row, plus the explored range (sent only when changed from 5% to 20%); the API client sends `assumptions`. The run view shows a decision record card under the approval: recommendation and basis, scope, expected impact with the record's stated or illustrative label, every option with its improvement (stated or assumed), cost (or not stated) and net gain, the flip point for a close call, and the gate (awaiting, or who decided and when; `approved_once` reads as approved). English and Arabic strings ship with the Runs chunk. Script allocation 220 KB (measured 219.4). [Decision](docs/adr/2026-10-22-decision-inputs-interface.md); roadmap, known limitations, UI plan and the slice-three record updated.
+- **Verified:** quick verify with PostgreSQL 6 of 6 (1726 Python tests, 21 skipped; 353 frontend unit tests, 4 new); build and budget; Playwright `decision` 2 of 2 and the five specs that cover the Analytics form 24 of 24.
+- **Decided:** the range travels only when it differs from the default, so a run that states nothing carries nothing; the card computes no figure of its own.
+- **Also on PR #21:** the hosted Arabic demo overflow was named by the new assertion: the skip link, pushed 9999 px past the inline start, landed 10,000 px to the right of the right-to-left page. It is now hidden by clipping and restored on focus (`3516746`); demo, accessibility, keyboard, Arabic and workspace specs pass on desktop and phone. The next hosted run named the rest: the phone header's fixed controls in Arabic ran 1 px past the viewport with the runner's font, so the header clips sideways overflow and the status badge may shrink.
+- **Merged:** PR #21 (CI second pass plus this slice) into main as `37fce5e` after hosted CI went green on `5c5d0a0`: 1726 Python tests (25 skipped), 40 unit files, Playwright 139 passed and 5 skipped, Miyaar 12 passed, budget passed; the browser cache is now saved for later runs.
+- **Open / next:** the standards lint scores 0% on its blind set; P2 items in the roadmap.
+
+## 2026-10-23 · `d9e3f889` · claude/tender-clarke-m4uwgq (P2 slice one)
+
+- **Found:** with the P1 list closed, the open P2 findings that make hosted runs honest and safe under failure were A9 (a noise target called useful one time in fourteen), A10 (a silent random split under five periods), A12 (a half-filled last month read as a drop), B8 (the launcher open to the LAN by default), B14 (a retried POST made a second run) and G10 (a hung custom stage or runtime hung the run).
+- **Done:** a one-sided 95% Wilson lower bound on balanced accuracy, required above chance, recorded on the card and cited by the claim in both languages; the split carries its reason and a dated maintenance target without a chronological hold-out is not scored; forecast and anomaly leave an incomplete last period out and say so; `scripts/serve.py` binds to loopback with `--lan` as the opt-in; `Idempotency-Key` on `POST /api/runs` with a unique index per owner and a 200 replay; `server/deadline.py` gives custom stages and agent runtimes wall-clock limits from `AGENTIC_OS_STAGE_TIMEOUT` and `AGENTIC_OS_RUNTIME_TIMEOUT`. [Decision](docs/adr/2026-10-23-p2-slice-one.md); assessment rows, roadmap, known limitations, model validation and dataset analytics docs updated.
+- **Verified:** quick verify with PostgreSQL 6 of 6: 1745 Python tests (19 new), 21 skipped; 353 frontend unit tests; docs tests.
+- **Decided:** without any date column the every-fifth split stays allowed and declared, since there is no drift to hide; the rest of B14 (one error envelope, OpenAPI behind auth) stays open.
+- **Open / next:** brain maintenance is due; the standards lint blind score; the remaining P2 list in the roadmap.
+
+**Goal:** study the maintenance project, redesign its GitHub page and add original generated images.
+
+- **Done:** studied current instructions, product charter, Miyaar and maintenance specifications, source tree and recorded verification. Reworked README with a product journey, clear setup, a screenshot tour, bilingual context and expandable technical/history sections. Generated original motor/bearing and inspection artwork, encoded compact WebPs and created lossless copies of existing synthetic-session screenshots. Added provenance; visibility, application behavior and runtime dependencies are unchanged.
+- **Verified:** documentation destinations/anchors, descriptive image alternatives, Markdown structure, image decoding and exact screenshot-pixel equality. Existing feature/developer text, Testing commands and dated verification history are retained. Two scoped read-only reviews completed; their Arabic language-context finding was fixed and confirmed. Review checks are scoped to documentation and assets; application tests were not rerun.
+- **Decisions:** preserve the formal product identity and existing technical anchors, retain test counts in README, and distinguish generated concept artwork from real interface captures and fictional fixtures. The image tool exposed no model identifier, so no exact image-model version is asserted.
+- **Open / next:** existing CI and UI Budget Fast failures on the studied main revision require a separate application investigation. The sandbox blocked local Chromium startup at Crashpad setsockopt, so no successful browser-preview run is claimed.
+
 ## 2026-10-23 · `93dbc76b` · ccr-cbf95846-40h8or
 
 **Goal:** close the dashboard conformance item on the board.
 
-- **Audited every chart first, and three of the four items were already met.** Every dashboard `Figure` requires a table, and the run report and maintenance charts carry their own. No chart has a second value axis. Colour is the single accent, or fixed per condition in the maintenance donut, so nothing depends on data order. The board listed these as open; they were not, so they are recorded as met rather than rebuilt.
+- **Audited every chart first, and three of the four items were already met.** Every chart carries its table, no chart has a second axis, and colour never depends on data order. Merging `main` showed that `fe660f0` had already put all four rules under test on 20 October, which this branch was cut before; the board here was stale, not the code.
 - **Axis integrity was the real gap** ([decision](docs/adr/2026-10-23-chart-axes-state-their-scale.md)). The run report line chart drew its baseline at the bottom of the band, which is the minimum, not zero, so a negative value moved the apparent zero. It also had no scale labels. The dashboard line and scatter plots labelled only their maximum, and the histogram had no count at all. One `valueScale` helper in `frontend/src/shared/charts.ts` now draws zero at zero, and every line, histogram and scatter labels both ends of its scale.
+- **Merged `main`: 169 commits.** The conflicts were `RunsView.tsx` (main now renders the report chart in the report's language, so the new labels use `formatNumberIn`), the chart tests (main folded them into one `.tsx` file and measured that a 34th test file made the suite flaky, so mine went into that file), and this log.
 - **Nine new tests, four of the five render tests watched failing on the old code.** The flat-series test passes either way by design, because it guards against a duplicate label. The run report chart is covered through the shared scale only, since it is internal to `RunsView.tsx`.
-- **Verified:** `scripts/verify.py`, all 6 steps: 1335 Python tests, 145 skipped (no PostgreSQL in this container); 241 frontend unit tests; type check; build; budget js first load 98.4 of 100 KB, css first load 10.0 of 10 KB. End-to-end not rerun.
-- **Note:** CSS first load is at its 10 KB limit, so the next interface change must trim before adding styles.
+- **Verified after merging `main`:** `scripts/verify.py`, all 8 steps: 1745 Python tests, 165 skipped (no PostgreSQL in this container); 362 frontend unit tests; type check; native run logic; build; budget js first load 98.6 of 100 KB, js total 219.6 of 220 KB, css first load 10.0 of 10.5 KB, css total 30.5 of 30.5 KB. End-to-end not rerun.
+- **Note:** total JS is 0.4 KB under its limit and total CSS is at it, so the next interface change must trim before it adds.
 - **Open / next:** message-first chart captions; independent domain and manager acceptance; brain maintenance is due.

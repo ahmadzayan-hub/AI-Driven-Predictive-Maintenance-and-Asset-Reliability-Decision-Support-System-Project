@@ -1,10 +1,16 @@
 import '../../shared/styles/analytics.css'
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import './report-theme.css'
+import './report-document.css'
+import { ReportDocument } from './ReportDocument'
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useReadOnly } from '../../shared/readOnly'
 import { useSessionDraft } from '../../shared/useSessionDraft'
-import { useI18n } from '../../i18n'
+import { formatNumberIn, translate } from '../../i18n'
+import type { Locale } from '../../i18n'
 import { api, ApiError, MAX_UPLOAD_BYTES, UPLOAD_ACCEPT } from '../../shared/api'
 import { usePack } from '../../i18n/pack'
 import { intakeMessages } from '../datasets/intakeMessages'
+import { decisionMessages } from './messages'
 import { WorkbookSheetPicker } from '../datasets/WorkbookSheetPicker'
 import { MappingPanel } from '../datasets/MappingPanel'
 import { barGeometry, valueScale } from '../../shared/charts'
@@ -15,6 +21,7 @@ import type {
   DatasetSummary,
   JoinSpec,
   Pipelines,
+  RunAssumptions,
   RunDetail,
   RunSummary,
   RunTask,
@@ -22,12 +29,16 @@ import type {
 } from '../../shared/types'
 
 import { ApprovalCard } from './ApprovalCard'
+import { DecisionInputs } from './DecisionInputs'
+import { DecisionRecordCard } from './DecisionRecordCard'
 import { EvidencePanel } from './EvidencePanel'
 import { JoinBuilder } from './JoinBuilder'
 import { ModelCards } from './ModelCards'
 import { PlanPreview, RunTimeline } from './RunTimeline'
 import { runStore, useRun } from './runStore'
 import { UploadPreview } from '../datasets/UploadPreview'
+
+const AgentCollaboration = lazy(() => import('./AgentCollaboration'))
 
 const ACTIVE_STATES = ['queued', 'running']
 
@@ -70,9 +81,9 @@ function BarChart({ chart }: { chart: ChartSpec }) {
   )
 }
 
-function LineChart({ chart }: { chart: ChartSpec }) {
-  const { t, formatNumber } = useI18n()
+function LineChart({ chart, language }: { chart: ChartSpec; language: Locale }) {
   const scale = valueScale(chart.values, 6, 48)
+  const compact = (value: number) => formatNumberIn(language, value, { notation: 'compact' })
   const xy = chart.values.map((value, index) => ({
     x: (index / Math.max(chart.values.length - 1, 1)) * 90 + 8,
     y: scale.y(value),
@@ -107,17 +118,17 @@ function LineChart({ chart }: { chart: ChartSpec }) {
             strokeDasharray="1 1"
           />
           <text x={boundaryX + 1} y="7" fontSize="3.2" fill="var(--text-faint)">
-            {t('runs.forecast')}
+            {translate('runs.forecast', undefined, language)}
           </text>
         </>
       ) : null}
       <line x1="8" y1={scale.zero} x2="100" y2={scale.zero} stroke="var(--border-strong)" strokeWidth="0.5" />
       <text x="7" y={scale.y(scale.max) + 1} fontSize="3" textAnchor="end" fill="var(--text-faint)">
-        {formatNumber(scale.max, { notation: 'compact' })}
+        {compact(scale.max)}
       </text>
       {scale.min !== scale.max ? (
         <text x="7" y={scale.y(scale.min) + 1} fontSize="3" textAnchor="end" fill="var(--text-faint)">
-          {formatNumber(scale.min, { notation: 'compact' })}
+          {compact(scale.min)}
         </text>
       ) : null}
       <text x="8" y="56" fontSize="3.4" fill="var(--text-faint)">
@@ -169,16 +180,18 @@ const PROFILE_LABELS: Record<string, 'runs.profileModels' | 'runs.profileMainten
   maintenance: 'runs.profileMaintenance',
 }
 
-function stageTitles(pipelines: Pipelines, profile: string): string[] {
+function stageTitles(pipelines: Pipelines, profile: string, locale: string): string[] {
   const roles = profile ? (pipelines.profiles[profile] ?? []) : pipelines.default
   return roles.map((role) => {
     const stage = pipelines.stages.find((s) => s.role === role)
-    return stage ? stage.title.split(' — ')[0] : role
+    return stage ? ((locale === 'ar' && stage.title_ar) || stage.title).split(' — ')[0] : role
   })
 }
 
 export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRunSelected, onOpenDashboard, draftScope = 'session' }: RunsViewProps) {
+  const readOnly = useReadOnly()
   const { t, plural, isRtl, locale, formatNumber, formatDate, formatTime } = usePack(intakeMessages)
+  const { t: tDecision } = usePack(decisionMessages)
   const visible = useRef(true)
   useLayoutEffect(() => { visible.current = true; return () => { visible.current = false } }, [])
   const [runs, setRuns] = useState<RunSummary[]>([])
@@ -192,7 +205,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
     onRunSelected?.(detail?.id ?? null)
   }, [onRunSelected])
   const [evidenceTask, setEvidenceTask] = useState<RunTask | null>(null)
-  const fullReportRef = useRef<HTMLPreElement | null>(null)
+  const fullReportRef = useRef<HTMLDivElement | null>(null)
   const closeEvidence = useCallback(() => setEvidenceTask(null), [])
   const starting = useRef(false)
   // Where the data comes from (ADR 0024). A stored dataset and an
@@ -205,6 +218,8 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
   const suggestedGoal = preset?.kind === 'stored' ? t('runs.goalStored', { name: preset.name }) : preset?.kind === 'upload' ? t('intake.goal') : t('runs.goalDefault')
   const questionContext = preset?.kind === 'stored' ? preset.id : preset?.kind ?? 'sample'
   const [goal, setGoal] = useSessionDraft(`${draftScope}:analysis-question:${questionContext}`, () => suggestedGoal)
+  const [chosenLanguage, setChosenLanguage] = useState<'en' | 'ar' | null>(null)
+  const reportLanguage = chosenLanguage ?? locale
   // The goal the form last wrote itself. A goal the person typed is
   // never replaced when they pick another dataset.
   const autoGoal = useRef(suggestedGoal)
@@ -231,6 +246,9 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
   const [downloading, setDownloading] = useState(false)
   const [joins, setJoins] = useState<JoinSpec[]>([])
   const [breakdown, setBreakdown] = useState('')
+  // The decision inputs the run states (slice three, A2): undefined when
+  // nothing is stated, null while the form cannot be read as numbers.
+  const [assumptions, setAssumptions] = useState<RunAssumptions | null | undefined>(undefined)
   const changeJoins = useCallback((next: JoinSpec[], nextBreakdown: string) => {
     setJoins(next)
     setBreakdown(nextBreakdown)
@@ -334,6 +352,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
       return
     }
     if (!goal.trim()) return
+    if (assumptions === null) { setErrorMessage(tDecision('decision.invalid')); return }
     starting.current = true
     setBusy(true)
     setErrorMessage(null)
@@ -345,11 +364,12 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
         pasted ? csvDraft : undefined,
         pasted ? t('runs.pastedName') : undefined,
         profile || undefined,
-        // The report is written in the reader's language, and stays in it:
+        // The report is written in the chosen language, and stays in it:
         // switching the interface later does not rewrite an approved artifact.
-        locale,
+        reportLanguage,
         datasetId,
         datasetId && joins.length ? { joins, breakdown } : undefined,
+        assumptions ?? undefined,
       )
       setRun(detail)
       void refreshList()
@@ -431,7 +451,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
 
   if (selectedId && !run) {
     return <section className="panel" aria-label={t('runs.detailAria')}><div className="panel__inner">
-      {errorMessage ? <p role="alert" className="statusline statusline--error" dir="auto">{errorMessage}</p> : <div role="status" aria-label={t('cockpit.loading')} className="card"><div className="skeleton skeleton--title" /><div className="skeleton skeleton--line" /></div>}
+      {errorMessage ? <p role="alert" className="statusline statusline--error" dir="auto">{errorMessage}</p> : <div role="status" aria-label={t('cockpit.loading')} className="card"><span className="visually-hidden">{t('cockpit.loading')}</span><div className="skeleton skeleton--title" /><div className="skeleton skeleton--line" /></div>}
       <div className="dialog__actions"><button type="button" className="btn btn--ghost" onClick={() => void runStore.retry(selectedId)}>{t('common.tryAgain')}</button><button type="button" className="btn btn--ghost" onClick={() => setRun(null)}>{t('runs.all')}</button></div>
     </div></section>
   }
@@ -443,13 +463,14 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
           <div className="panel__header">
             <div>
               <h2 className="panel__title">{t('runs.title')}</h2>
-              <p className="panel__desc">{t('runs.desc')}</p>
             </div>
           </div>
 
-          <div className="card">
+          {readOnly ? null : <div className="card">
             <form onSubmit={createRun}>
-              <p className="panel__note">{t('intake.workflow')}</p>
+              <ol className="run-steps">
+                {(['intake.step1', 'intake.step2', 'intake.step3', 'intake.step4'] as const).map((key) => <li key={key}>{t(key)}</li>)}
+              </ol>
               <div className="field">
                 <label className="field__label" htmlFor="run-goal">
                   {t('runs.goal')}
@@ -463,6 +484,16 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                   onChange={(event) => setGoal(event.target.value)}
                   disabled={busy}
                 />
+              </div>
+              <div className="field">
+                <label className="field__label" htmlFor="run-language">{t('intake.reportLanguage')}</label>
+                <select id="run-language" className="field__select" value={reportLanguage}
+                  aria-describedby="run-language-help" disabled={busy}
+                  onChange={(event) => setChosenLanguage(event.target.value === 'ar' ? 'ar' : 'en')}>
+                  <option value="ar" lang="ar">العربية</option>
+                  <option value="en" lang="en">English</option>
+                </select>
+                <p className="field__help" id="run-language-help">{t('intake.reportLanguageHelp')}</p>
               </div>
               <div className="field">
                 <span className="field__label" id="dataset-label">
@@ -606,8 +637,8 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                   </label>
                   <span className="field__help">
                     {t('runs.profileHelp')}{' '}
-                    {stageTitles(pipelines, profile).length > 0
-                      ? t('runs.profileStages', { list: stageTitles(pipelines, profile).join(', ') })
+                    {stageTitles(pipelines, profile, locale).length > 0
+                      ? t('runs.profileStages', { list: stageTitles(pipelines, profile, locale).join(', ') })
                       : t('runs.profileNone')}
                   </span>
                   <select
@@ -644,9 +675,13 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                   onChange={changeJoins}
                 />
               ) : null}
+              <DecisionInputs disabled={busy} onChange={setAssumptions} />
               <PlanPreview pipelines={pipelines} profile={profile} joined={joins.length > 0} />
-              <p className="panel__note">{t('intake.models')}</p>
-              <p className="panel__note">{t('intake.limits')}</p>
+              <details className="run-more">
+                <summary>{t('intake.more')}</summary>
+                <p className="panel__note">{t('intake.models')}</p>
+                <p className="panel__note">{t('intake.limits')}</p>
+              </details>
               <div className="field">
                 <button type="submit" className="btn btn--primary" disabled={busy || uploading !== null || !goal.trim() || (source === 'stored' && !storedId) || (source === 'upload' && !uploaded && !csvDraft.trim())}>
                   {busy ? <span className="spinner" aria-hidden="true" /> : <Icon name="sparkle" size={16} />}
@@ -662,7 +697,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
             >
               {errorMessage ?? ''}
             </p>
-          </div>
+          </div>}
 
           {runs.length > 0 ? (
             <div className="card">
@@ -726,7 +761,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
             </div>
             <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
               {run.report?.published_path ? <button type="button" className="btn btn--primary" onClick={() => { fullReportRef.current?.focus(); fullReportRef.current?.scrollIntoView({ block: 'center' }) }}>{t('cockpit.readPublished')}</button> : null}
-              {ACTIVE_STATES.includes(run.state) ? (
+              {ACTIVE_STATES.includes(run.state) && !readOnly ? (
                 <>
                   <button
                     type="button"
@@ -767,13 +802,17 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
           </div>
 
           <p className="cockpit__continuity"><Icon name="shield" size={14} />{t('cockpit.keepOpen')}</p>
+          {reportLang !== locale ? <p className="report-language-note">{t('intake.reportLanguageFixed', { language: languageLabel(t, reportLang) })}</p> : null}
           <p className="visually-hidden" role="status" aria-live="polite">{(() => {
             const event = [...snapshot.events].reverse().find((item) => item.kind === 'stage.changed')
             const task = run.tasks.find((item) => item.id === event?.subject)
             return task ? `${task.title}: ${stateLabel(t, task.state)}` : stateLabel(t, run.state)
           })()}</p>
           <ApprovalCard detail={run} onDecision={(detail) => { setRun(detail); void refreshList() }} />
-          {run.reports.length ? <section className="finding-grid" aria-label={t('overview.findings')}>
+          {run.decision ? <DecisionRecordCard decision={run.decision} language={reportLang} /> : null}
+          <Suspense fallback={null}><AgentCollaboration key={run.id} run={run} events={snapshot.events}
+            interrupted={snapshot.interrupted} pipelines={pipelines} onEvidence={setEvidenceTask} /></Suspense>
+          {run.reports.length ? <section className="finding-grid report-theme" aria-label={t('overview.findings')}>
             {run.reports.filter((section) => ['descriptive', 'diagnostic', 'predictive', 'prescriptive'].includes(section.type)).map((section) => {
               const task = run.tasks.find((item) => item.role === section.type)
               return <article className="finding-card" key={section.type}>
@@ -787,25 +826,25 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
           {run.tasks.find((task) => task.role === 'validator')?.quality_checks.length ? <div className="assurance-strip"><Icon name="shield" size={16} /><span>{t('cockpit.checks')}: {run.tasks.find((task) => task.role === 'validator')!.quality_checks.every((check) => check.passed) ? t('cockpit.passed') : t('cockpit.notPassed')}</span><span>{run.report?.published_path ? t('cockpit.published') : t('cockpit.unpublished')}</span></div> : null}
 
           {run.charts.length > 0 ? (
-            <div className="card">
-              <h3 className="card__title">{t('runs.charts')}</h3>
+            <div className="card report-theme report-sheet" lang={reportLang}>
+              <h3 className="card__title" lang={locale}>{t('runs.charts')}</h3>
               {/* A chart's axis runs left to right in either language;
                   the labels come from the data and are shown as written. */}
               {run.charts.map((chart) => (
-                <figure key={chart.id} className="runchart" dir="ltr">
+                <figure key={chart.id} className="runchart" dir="ltr" lang={reportLang}>
                   <figcaption className="field__label" dir="auto">
                     {chart.title}
                   </figcaption>
-                  {chart.type === 'bar' ? <BarChart chart={chart} /> : <LineChart chart={chart} />}
+                  {chart.type === 'bar' ? <BarChart chart={chart} /> : <LineChart chart={chart} language={reportLang} />}
                   {/* The same numbers as a table: nobody has to read a
                       value off a bar, and a screen reader gets every one. */}
-                  <details className="runchart__data" dir={isRtl ? 'rtl' : 'ltr'}>
-                    <summary>{t('runs.chartData')}</summary>
+                  <details className="runchart__data" dir={reportDir}>
+                    <summary lang={locale} dir={isRtl ? 'rtl' : 'ltr'}>{t('runs.chartData')}</summary>
                     <table className="datatable">
                       <thead>
                         <tr>
-                          <th scope="col">{t('runs.chartLabel')}</th>
-                          <th scope="col">{t('runs.chartValue')}</th>
+                          <th scope="col">{translate('runs.chartLabel', undefined, reportLang)}</th>
+                          <th scope="col">{translate('runs.chartValue', undefined, reportLang)}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -814,7 +853,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                             <th scope="row" dir="auto">
                               {label}
                               {chart.forecast_from !== undefined && index >= chart.forecast_from
-                                ? ` (${t('runs.forecast')})`
+                                ? ` (${translate('runs.forecast', undefined, reportLang)})`
                                 : ''}
                             </th>
                             <td>{formatNumber(chart.values[index])}</td>
@@ -831,7 +870,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
           <ModelCards models={run.models ?? []} language={reportLang} />
 
           {run.reports.length ? (
-            <div className="card">
+            <div className="card report-theme report-sheet">
               <h3 className="card__title">{t('runs.reports')}</h3>
               <div
                 className="reporttabs"
@@ -870,32 +909,19 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                     aria-labelledby={`reporttab-${section.type}`}
                   >
                     {section.headline ? (
-                      <p className="reporthead" dir="auto">
+                      <p className="reporthead" dir={reportDir} lang={reportLang}>
                         {section.headline}
                       </p>
                     ) : null}
-                    {/* The <pre> is what scrolls, so the tab stop belongs
-                        here rather than on the panel around it. The block
-                        carries the report's own language, which is the
-                        run's, not the interface's (ADR 0022), so a screen
-                        reader and the bidi algorithm read it correctly. */}
-                    <pre
-                      className="runreport"
-                      tabIndex={0}
-                      role="region"
-                      lang={reportLang}
-                      dir={reportDir}
-                      aria-label={t('runs.reportText', { type: typeLabel(t, section.type, section.title) })}
-                    >
-                      {section.content}
-                    </pre>
+                    <ReportDocument content={section.content} language={reportLang}
+                      label={t('runs.reportText', { type: typeLabel(t, section.type, section.title) })} />
                   </div>
                 ))}
             </div>
           ) : null}
 
           {run.report ? (
-            <div className="card">
+            <div className="card report-theme report-sheet">
               <h3 className="card__title">
                 {t('runs.comprehensive', { version: run.report.version })}
                 {run.report.published_path ? t('runs.published') : ''}
@@ -905,17 +931,8 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                   <Icon name="check" size={14} /> <span dir="ltr">{run.report.published_path}</span>
                 </p>
               ) : null}
-              <pre
-                ref={fullReportRef}
-                className="runreport runreport--full"
-                tabIndex={0}
-                role="region"
-                lang={reportLang}
-                dir={reportDir}
-                aria-label={t('runs.comprehensiveText')}
-              >
-                {run.report.content}
-              </pre>
+              <ReportDocument ref={fullReportRef} className="runreport--full" content={run.report.content}
+                language={reportLang} label={t('runs.comprehensiveText')} />
             </div>
           ) : null}
 

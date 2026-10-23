@@ -66,7 +66,7 @@ test.describe('Arabic interface', () => {
     })
     page.on('pageerror', (error) => consoleErrors.push(String(error)))
 
-    await page.goto('/')
+    await page.goto('/#/assistant')
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl')
     await expect(page.locator('html')).toHaveAttribute('lang', 'ar')
     await expect(page.getByRole('status').filter({ hasText: 'جاهز' })).toBeVisible()
@@ -86,17 +86,21 @@ test.describe('Arabic interface', () => {
     expect(consoleErrors).toEqual([])
   })
 
-  test('every view is translated and passes WCAG 2.2 AA', async ({ page }) => {
-    await page.goto('/')
+  test('every view is translated and passes WCAG 2.2 AA', async ({ page }, testInfo) => {
+    // This full-language journey audits each view, completes a pipeline and
+    // cleans up memory. Preserve those checks beyond the default test budget.
+    test.setTimeout(120_000)
+    const memoryText = `قهوة في الثامنة — ${testInfo.project.name}`
+    await page.goto('/#/assistant')
     await sendArabic(page, 'مرحبا')
     await lastAgentBubble(page).waitFor()
     await expectNoViolations(page, 'chat view (ar)')
 
     await openArabicTab(page, /^الذاكرة/)
     await expect(page.getByRole('heading', { name: 'الذاكرة المحفوظة' })).toBeVisible()
-    await page.getByLabel('معلومة لحفظها').fill('قهوة في الثامنة')
+    await page.getByLabel('معلومة لحفظها').fill(memoryText)
     await page.getByRole('button', { name: 'إضافة إلى الذاكرة' }).click()
-    await expect(page.getByText('قهوة في الثامنة')).toBeVisible()
+    await expect(page.getByText(memoryText, { exact: true })).toBeVisible()
     await expectNoViolations(page, 'memory view (ar)')
 
     await openArabicTab(page, /^التفضيلات/)
@@ -109,6 +113,7 @@ test.describe('Arabic interface', () => {
 
     await openArabicTab(page, /^التحليلات/)
     await expect(page.getByRole('heading', { name: 'عمليات التحليل' })).toBeVisible()
+    await expect(page.getByLabel('لغة التقرير', { exact: true })).toHaveValue('ar')
     await expectNoViolations(page, 'runs view (ar)')
     await page.getByRole('button', { name: 'بدء التحليل' }).click()
     await expect(page.getByRole('region', { name: 'موافقة مطلوبة' })).toBeVisible({
@@ -117,14 +122,40 @@ test.describe('Arabic interface', () => {
     // A run started in Arabic writes its reports in Arabic (ADR 0022), and
     // the blocks say so, so a screen reader and the bidi algorithm read
     // them as Arabic rather than as English.
-    const sectionReport = page.locator('pre.runreport').first()
+    const sectionReport = page.getByRole('tabpanel').locator('.runreport.report-document')
     await expect(sectionReport).toHaveAttribute('lang', 'ar')
     await expect(sectionReport).toHaveAttribute('dir', 'rtl')
-    await expect(sectionReport).toContainText('التحليل الوصفي: ماذا حدث؟')
-    const fullReport = page.locator('pre.runreport--full')
+    await expect(sectionReport.getByRole('heading', { name: 'التحليل الوصفي: ماذا حدث؟', exact: true })).toBeVisible()
+    const fullReport = page.locator('.runreport--full.report-document')
     await expect(fullReport).toHaveAttribute('lang', 'ar')
-    await expect(fullReport).toContainText('# تقرير تحليل الأعمال')
-    await expect(fullReport).toContainText('both_languages_cite_the_same_figures')
+    await expect(fullReport).toHaveAttribute('dir', 'rtl')
+    await expect(fullReport.getByRole('heading', { name: 'تقرير تحليل الأعمال: بيانات مبيعات تجريبية', exact: true })).toBeVisible()
+    await expect(fullReport.getByRole('heading', { name: 'الملخص التنفيذي', exact: true })).toBeVisible()
+    const metrics = fullReport.getByRole('table', { name: 'المؤشرات الرئيسية', exact: true })
+    await expect(metrics.getByRole('columnheader')).toHaveText(['المؤشر', 'القيمة', 'الطريقة'])
+    await expect(metrics.getByRole('cell', { name: 'إجمالي الإيرادات', exact: true })).toBeVisible()
+    // Identifiers and calculated values remain the evidence record's exact text.
+    const forecast = metrics.getByRole('row').filter({ has: page.getByRole('cell', { name: 'التوقع للفترة 2026-01', exact: true }) })
+    await expect(forecast.getByRole('cell', { name: '361505.45', exact: true })).toBeVisible()
+    await expect(fullReport.locator('pre')).toHaveCount(0)
+    await expect(fullReport).not.toContainText('# تقرير تحليل الأعمال')
+    await expect(fullReport).not.toContainText('| المؤشر | القيمة | الطريقة |')
+    await expect(fullReport).not.toContainText('**الهدف:**')
+    await expect(fullReport).toContainText('تطابق الأرقام بين اللغتين')
+    const unusual = metrics.getByRole('row').filter({ has: page.getByRole('cell', { name: 'الصفوف غير المعتادة', exact: true }) })
+    await expect(unusual.getByRole('cell')).toHaveCount(3)
+    await expect(unusual).toContainText('|القيمة - المتوسط|')
+    const regionChart = page.getByRole('figure').filter({
+      has: page.getByText('إجمالي الإيرادات حسب المنطقة', { exact: true }),
+    })
+    await expect(regionChart.getByRole('img', { name: 'مخطط أعمدة لإجمالي الإيرادات لكل المنطقة، من الأكبر إلى الأصغر.', exact: true })).toBeVisible()
+    await expect(regionChart.locator('svg text').filter({ hasText: /^الشمال$/ })).toBeVisible()
+    await expect(regionChart.locator('svg text').filter({ hasText: /^الجنوب$/ })).toBeVisible()
+    await regionChart.getByText('اعرض الأرقام', { exact: true }).click()
+    const regionData = regionChart.getByRole('table')
+    await expect(regionData.getByRole('columnheader')).toHaveText(['العنصر', 'القيمة'])
+    await expect(regionData.getByRole('rowheader', { name: 'الشمال', exact: true })).toBeVisible()
+    await expect(regionData.getByRole('rowheader', { name: 'الجنوب', exact: true })).toBeVisible()
     await expectNoViolations(page, 'runs view with approval, charts and reports (ar)')
     expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
 
@@ -144,7 +175,7 @@ test.describe('Arabic interface', () => {
   test('switching language from the header changes the interface and the agent together', async ({
     page,
   }) => {
-    await page.goto('/')
+    await page.goto('/#/assistant')
     await expect(arabicComposer(page)).toBeVisible()
 
     // The control is labelled in the other language, so it is findable

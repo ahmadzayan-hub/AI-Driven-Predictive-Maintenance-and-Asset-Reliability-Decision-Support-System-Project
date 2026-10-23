@@ -19,7 +19,7 @@ from server.speech import LocalSpeech, MODEL_FILES, MAX_BYTES, SpeechError, _dec
 try:
     from fastapi.testclient import TestClient
     from server.app import create_app
-    from server.auth import issue_local_test_token
+    from tests.support import scoped_token as issue_local_test_token
     from tests.support import closing
     API_AVAILABLE = True
 except ImportError:
@@ -172,7 +172,8 @@ class SpeechApiTest(unittest.TestCase):
                                       "vault_dir": str(root / "vault")}), encoding="utf-8")
         self.secret = "speech-tests-only-not-a-credential"
         self.app = closing(self, create_app(config, env={
-            "AGENTIC_OS_JWT_SECRET": self.secret, "AGENTIC_OS_DEFAULT_ROLE": "viewer"}))
+            "AGENTIC_OS_JWT_SECRET": self.secret, "SUPABASE_URL": "https://test.supabase.invalid",
+            "AGENTIC_OS_DEFAULT_ROLE": "viewer"}))
         self.client = TestClient(self.app, raise_server_exceptions=False)
         self.owner = self.headers("alice", "analyst")
         response = self.client.post("/api/sessions", headers=self.owner)

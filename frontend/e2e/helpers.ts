@@ -1,3 +1,4 @@
+import { expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
 /** Skip the first-run onboarding dialog for tests that don't cover it. */
@@ -26,7 +27,9 @@ export async function openTab(page: Page, name: RegExp) {
 /** Wait until the view's chunk has arrived (ADR 0028), so a check reads
  *  the view and not its loading skeleton. */
 export async function viewLoaded(page: Page) {
-  await page.locator('.viewload').waitFor({ state: 'detached' })
+  // Two panes can be loading at once (the Command Centre the app lands on
+  // and the view just opened), so wait for every placeholder, not one.
+  await expect(page.locator('.viewload')).toHaveCount(0)
 }
 
 /** Click a sidebar quick action (New session / Clear history / End session),
@@ -50,4 +53,10 @@ export async function sendMessage(page: Page, text: string) {
 
 export function lastAgentBubble(page: Page) {
   return page.locator('.msg--agent .msg__bubble').last()
+}
+
+/** Phones fold the dashboard filters away until asked; desktop shows them open. */
+export async function openFilters(page: Page) {
+  const fold = page.locator('.dash-filters > details')
+  if (!(await fold.evaluate((element) => (element as HTMLDetailsElement).open))) await fold.locator('summary').first().click()
 }

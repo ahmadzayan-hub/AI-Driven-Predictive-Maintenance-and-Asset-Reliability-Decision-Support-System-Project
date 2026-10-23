@@ -55,12 +55,11 @@ PROVIDER_ALIASES = {
     "sonnet": "anthropic",
     "haiku": "anthropic",
     "opus": "anthropic",
+    "openai": "openai",
+    "chatgpt": "openai",
     "groq": "groq",
     "gpt-oss": "groq",
     "mixtral": "groq",
-    "gpt": "groq",
-    "gpt-4": "groq",
-    "gpt-4o": "groq",
     "deterministic": "deterministic",
     "template": "deterministic",
     "none": "deterministic",
@@ -79,12 +78,21 @@ def provider_for(model_name, available):
         return None
     lowered = str(model_name).strip().lower()
     reachable = {entry["provider"] for entry in available}
+    # An explicitly configured gateway model wins before broad family aliases.
+    for entry in available:
+        if str(entry.get("model") or "").lower() == lowered:
+            return entry["provider"]
     # Naming conventions say more than a family name (ADR 0027). A tag after
     # a colon ("qwen3:8b", "gpt-oss:20b") is how Ollama names a local model;
     # a "provider/" prefix or a "-versatile" tier is a hosted name, and the
     # hosted endpoint this application reaches is Groq's.
     if ":" in lowered and "/" not in lowered and "ollama" in reachable:
         return "ollama"
+    # "gpt-4o", "gpt-5" and the like are OpenAI's own names; "gpt-oss" is
+    # an open-weight model Groq hosts.
+    if (lowered.startswith(("gpt-", "chatgpt")) and "gpt-oss" not in lowered
+            and "openai" in reachable):
+        return "openai"
     if (("/" in lowered and not lowered.startswith(("anthropic/", "claude")))
             or lowered.endswith("-versatile")) and "groq" in reachable:
         return "groq"

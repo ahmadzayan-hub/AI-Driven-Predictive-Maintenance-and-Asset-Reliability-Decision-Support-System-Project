@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { useReadOnly } from '../../shared/readOnly'
 import { useI18n } from '../../i18n'
+import '../../shared/styles/kpi.css'
 import { api, ApiError, MAX_UPLOAD_BYTES, UPLOAD_ACCEPT } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
 import { formatBytes } from '../../shared/format'
@@ -21,6 +23,7 @@ interface DatasetsViewProps {
  *  the server, so analysing one again sends nothing: the run refers to
  *  the stored copy by its id. */
 export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
+  const readOnly = useReadOnly()
   const { t, plural, locale, formatNumber, formatDate } = useI18n()
   const [datasets, setDatasets] = useState<DatasetSummary[] | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
@@ -115,9 +118,8 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
         <div className="panel__header">
           <div>
             <h2 className="panel__title">{t('datasets.title')}</h2>
-            <p className="panel__desc">{t('datasets.desc')}</p>
           </div>
-          <button
+          {readOnly ? null : <button
             type="button"
             className="btn btn--primary"
             disabled={uploading !== null}
@@ -125,7 +127,7 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
           >
             {uploading ? <span className="spinner" aria-hidden="true" /> : <Icon name="plus" size={16} />}
             {t('datasets.add')}
-          </button>
+          </button>}
           {/* Opened by the button above, which is what keyboard and
               screen-reader users reach; the input itself stays out of
               the tab order. */}
@@ -141,7 +143,10 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
             }}
           />
         </div>
-        <p className="panel__note">{t('runs.fileHelp')}</p>
+        <details className="run-more">
+          <summary>{t('datasets.limits')}</summary>
+          <p className="panel__note">{t('runs.fileHelp')}</p>
+        </details>
         <div role="status" aria-live="polite">
           {uploading ? (
             <p className="statusline">{t('datasets.uploading', { name: uploading })}</p>
@@ -176,14 +181,18 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
         {outcome && sourceFile.current && <WorkbookSheetPicker result={outcome} onSelect={(sheet) => { if (sourceFile.current) void addFile(sourceFile.current, sheet) }} />}
 
         {usage ? (
-          <p className="panel__note">
-            {t('datasets.usage', {
-              used: formatNumber(usage.datasets.used),
-              limit: formatNumber(usage.datasets.limit),
-              bytes: formatBytes(usage.dataset_bytes.used, formatNumber),
-              bytesLimit: formatBytes(usage.dataset_bytes.limit, formatNumber),
-            })}
-          </p>
+          <dl className="kpis">
+            <div className="kpi" data-hue="teal">
+              <dt className="kpi__label">{t('usage.datasets')}</dt>
+              <dd className="kpi__value">{formatNumber(usage.datasets.used)}</dd>
+              <dd className="kpi__sub">{t('overview.ofLimit', { limit: formatNumber(usage.datasets.limit) })}</dd>
+            </div>
+            <div className="kpi" data-hue="violet">
+              <dt className="kpi__label">{t('usage.storage')}</dt>
+              <dd className="kpi__value">{formatBytes(usage.dataset_bytes.used, formatNumber)}</dd>
+              <dd className="kpi__sub">{t('overview.ofLimit', { limit: formatBytes(usage.dataset_bytes.limit, formatNumber) })}</dd>
+            </div>
+          </dl>
         ) : null}
 
         {mapping ? (
@@ -208,7 +217,7 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
             </button>
           </div>
         ) : !datasets ? (
-          <div className="card" role="status" aria-label={t('datasets.loading')}>
+          <div className="card" role="status" aria-label={t('datasets.loading')}><span className="visually-hidden">{t('datasets.loading')}</span>
             <div className="skeleton skeleton--line" />
             <div className="skeleton skeleton--line" />
             <div className="skeleton skeleton--line skeleton--short" />
@@ -281,14 +290,14 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
                     >
                       {t('mapping.open')}
                     </button>
-                    <button
+                    {readOnly ? null : <button
                       type="button"
                       className="btn btn--ghost dataset__action"
                       aria-label={t('datasets.analyseAria', { name: dataset.name })}
                       onClick={() => onAnalyse(dataset)}
                     >
                       {t('datasets.analyse')}
-                    </button>
+                    </button>}
                   </span>
                 </li>
               ))}
@@ -301,7 +310,8 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
           </div>
         )}
 
-        <ConnectorsPanel />
+        {/* Live sources are written through the connector API: not in the demo. */}
+        {readOnly ? null : <ConnectorsPanel />}
       </div>
     </section>
   )

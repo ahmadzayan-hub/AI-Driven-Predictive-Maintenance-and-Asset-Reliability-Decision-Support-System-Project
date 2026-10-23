@@ -1,3 +1,4 @@
+import { ReadOnlyContext } from '../shared/readOnly'
 import { Activity, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { MiyaarMark } from '../shared/components/MiyaarMark'
@@ -21,6 +22,7 @@ import {
   HelpDialog,
   MemoryView,
   Onboarding,
+  OperationsView,
   OverviewView,
   PreferencesView,
   prefetchWhenIdle,
@@ -41,45 +43,56 @@ interface NavItem {
   id: Tab
   label: MessageKey
   icon: IconName
+  /** A shorter name for the phone bar, where a long one wraps. */
+  short?: MessageKey
 }
 
-// The sidebar groups the views by what a person is doing (ADR 0023):
-// analysing data, or working with the assistant. Preferences stand apart.
-const NAV_GROUPS: Array<{ id: string; label: MessageKey | null; items: NavItem[] }> = [
+// The sidebar groups the views by what a person is doing (ADR 0023, and the
+// 21 October navigation decision): deciding, preparing the data, and working
+// with the assistant. Each group has one colour and no heading; every view
+// keeps its own icon.
+const NAV_GROUPS: Array<{ id: string; items: NavItem[] }> = [
   {
-    id: 'analyse',
-    label: 'nav.analyse',
+    id: 'decide',
     items: [
+      { id: 'operations', label: 'nav.operations', icon: 'check' },
       { id: 'overview', label: 'nav.overview', icon: 'dashboard' },
-      { id: 'assets', label: 'nav.assets', icon: 'activity' },
-      { id: 'datasets', label: 'nav.datasets', icon: 'database' },
-      { id: 'runs', label: 'nav.runs', icon: 'sparkle' },
-      { id: 'dashboard', label: 'nav.dashboard', icon: 'dashboard' },
+      { id: 'assets', label: 'nav.assets', icon: 'activity', short: 'nav.assetsShort' },
+      { id: 'dashboard', label: 'nav.dashboard', icon: 'chart' },
       { id: 'approvals', label: 'nav.approvals', icon: 'shield' },
     ],
   },
   {
-    id: 'work',
-    label: 'nav.workWith',
+    id: 'prepare',
     items: [
-      { id: 'chat', label: 'nav.workspace', icon: 'chat' },
-      { id: 'memory', label: 'nav.memory', icon: 'memory' },
-      { id: 'activity', label: 'nav.activity', icon: 'activity' },
+      { id: 'datasets', label: 'nav.datasets', icon: 'database' },
+      { id: 'runs', label: 'nav.runs', icon: 'sparkle' },
     ],
   },
   {
-    id: 'settings',
-    label: null,
-    items: [{ id: 'preferences', label: 'nav.preferences', icon: 'settings' }],
+    id: 'assist',
+    items: [
+      { id: 'chat', label: 'nav.workspace', icon: 'chat' },
+      { id: 'memory', label: 'nav.memory', icon: 'memory' },
+      { id: 'activity', label: 'nav.activity', icon: 'clock' },
+      { id: 'preferences', label: 'nav.preferences', icon: 'settings' },
+    ],
   },
 ]
 
 const ALL_ITEMS = NAV_GROUPS.flatMap((group) => group.items)
+// Views the view-only demo leaves out: those that live on a chat session,
+// which the demo does not have, and Operations, which is administration.
+const NEEDS_SESSION: ReadonlySet<Tab> = new Set<Tab>(['chat', 'memory', 'preferences', 'operations'])
+const DEMO_GROUPS = NAV_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => !NEEDS_SESSION.has(item.id)) }))
 
-// A phone's bottom bar holds at most five places. Four views and "More",
-// which opens the drawer holding the rest.
-const BAR_TABS: Tab[] = ['overview', 'datasets', 'runs', 'chat']
+// A phone's bottom bar holds at most five places: the four a manager opens
+// most, and "More", which opens the drawer holding the rest. Approvals is
+// on the bar because publishing waits for a person; Dashboards stays in
+// the drawer under More.
+const BAR_TABS: Tab[] = ['overview', 'assets', 'approvals', 'chat']
 const BAR_ITEMS = BAR_TABS.map((id) => ALL_ITEMS.find((item) => item.id === id)!)
+const DEMO_BAR_ITEMS = BAR_ITEMS.map((item) => item.id === 'chat' ? ALL_ITEMS.find((other) => other.id === 'runs')! : item)
 
 const ONBOARDING_KEY = 'aos-onboarded'
 
@@ -87,11 +100,13 @@ export function App() {
   const store = useStore()
   const { t, locale } = useI18n()
   const { isDark, toggleTheme } = useTheme()
-  // The session opens on the assistant: it greets a newcomer and is where
-  // a returning reader types. The Overview is one click away.
+  // The session opens on the Command Centre: a returning manager lands on
+  // the decision, and a newcomer sees the onboarding dialog first and then
+  // the same view. The assistant is one tap away. An explicit address
+  // still opens the view it names.
   const [route, navigate] = useHashRoute()
   const tab = route.tab
-  const [visited, setVisited] = useState<Tab[]>(['chat'])
+  const [visited, setVisited] = useState<Tab[]>(['overview'])
   useEffect(() => { setVisited((previous) => previous.includes(tab) ? previous : [...previous, tab]) }, [tab])
   // Which run the Runs view opens, and what its form starts with. Only one
   // of the two is set at a time, so the view never has to choose.
@@ -122,6 +137,10 @@ export function App() {
   useLayoutEffect(() => {
     runStore.reset()
   }, [store.session?.session_id, store.identity?.principal.subject, store.identity?.principal.role])
+
+  const demo = store.demo
+  // The demo opens on the Overview and never shows a view that needs a session.
+  useEffect(() => { if (demo && NEEDS_SESSION.has(tab)) navigate({ tab: 'overview' }) }, [demo, tab, navigate])
 
   useEffect(() => {
     if (tab === 'chat' && pendingCommand) { composerRef.current?.insert(pendingCommand); setPendingCommand(null) }
@@ -307,7 +326,7 @@ export function App() {
             </p>
           </div>
         ) : (
-          <div className="boot" role="status" aria-label={t('boot.startingAria')}>
+          <div className="boot" role="status" aria-label={t('boot.startingAria')}><span className="visually-hidden">{t('boot.startingAria')}</span>
             <div className="skeleton skeleton--orb" />
             <div className="skeleton skeleton--title" />
             <div className="skeleton skeleton--line" />
@@ -324,19 +343,19 @@ export function App() {
   const userName = typeof rawName === 'string' && rawName.trim() ? rawName.trim() : null
 
   function pane(id: Tab, content: ReactNode) {
+    if (demo && NEEDS_SESSION.has(id)) return null
     if (tab !== id && !visited.includes(id)) return null
     return <Activity key={id} mode={tab === id ? 'visible' : 'hidden'}><ViewBoundary><Suspense fallback={<ViewLoading />}>{content}</Suspense></ViewBoundary></Activity>
   }
 
   const sidebar = (
     <div className="sidebar">
-      <button type="button" className="miyaar-sidebar" onClick={() => go('chat')}>
+      {demo ? null : <button type="button" className="miyaar-sidebar" onClick={() => go('chat')}>
         <MiyaarMark /><span><strong>{t('assistant.name')}</strong><small>{t('miyaar.workspace')}</small></span>
-      </button>
+      </button>}
       <nav className="sidebar__nav" aria-label={t('nav.main')}>
-        {NAV_GROUPS.map((group) => (
-          <div key={group.id} className="sidebar__group">
-            {group.label ? <p className="sidebar__label">{t(group.label)}</p> : null}
+        {(demo ? DEMO_GROUPS : NAV_GROUPS).map((group) => (
+          <div key={group.id} className="sidebar__group" data-group={group.id}>
             {group.items.map((item) => (
               <button
                 key={item.id}
@@ -360,6 +379,7 @@ export function App() {
           onClick={() => { setDrawerOpen(false); setHelpOpen(true) }}>
           <Icon name="help" size={16} />{t('help.aria')}
         </button>
+        {demo ? null : <>
         <button
           type="button"
           className="btn btn--ghost"
@@ -383,17 +403,18 @@ export function App() {
           <Icon name="power" size={16} />
           {t('session.end')}
         </button>
+        </>}
         <div className="sidebar__identity">
           <span className="sidebar__avatar" aria-hidden="true">
             {(store.identity?.principal.email || userName || 'A').charAt(0).toUpperCase()}
           </span>
           <span className="sidebar__who">
-            <span dir="auto">{store.identity?.principal.email || userName || t('session.roleLocal')}</span>
+            <span dir="auto">{demo ? t('demo.visitor') : store.identity?.principal.email || userName || t('session.roleLocal')}</span>
             <span className="sidebar__meta">
-              v{session.version} · {store.identity?.principal.role ?? t('session.roleLocal')}
+              {session.version ? `v${session.version} · ` : ''}{store.identity?.principal.role ?? t('session.roleLocal')}
             </span>
           </span>
-          {store.identity ? (
+          {store.identity && !demo ? (
             <button
               type="button"
               className="iconbtn"
@@ -448,7 +469,7 @@ export function App() {
           </button>
         </div>
         <div className="header__spacer" />
-        <StatusBadge status={status} />
+        {demo ? <span className="badge badge--ready" title={t('demo.note')}><span className="badge__dot" aria-hidden="true" />{t('demo.badge')}</span> : <StatusBadge status={status} />}
         <div className="header__actions">
           {languageButton}
           <button
@@ -495,12 +516,15 @@ export function App() {
         ) : null}
 
         <main className="main" id="workspace-main" inert={drawerOpen} tabIndex={-1} key={`${session.session_id}:${store.identity?.principal.subject ?? 'local'}:${store.identity?.principal.role ?? 'local'}`}>
+          <ReadOnlyContext.Provider value={demo}>
+          {pane('operations', <OperationsView onOpenRun={openRun} />)}
           {pane('overview', (
-            <OverviewView onOpenRun={openRun} onStart={startAnalysis} onApprovals={() => go('approvals')} onOpenDashboard={() => go('dashboard')} />
+            <OverviewView onOpenRun={openRun} onStart={startAnalysis} canStart={!demo} onApprovals={() => go('approvals')}
+              onOpenDashboard={(id) => (id ? openDashboard(id) : go('dashboard'))} onSeeAll={() => go('runs')} />
           ))}
           {pane('assets', (
             <AssetIntelligenceView onOpenRun={openRun}
-              onUpload={() => startAnalysis({ kind: 'upload', profile: 'maintenance' })} />
+              onUpload={demo ? undefined : () => startAnalysis({ kind: 'upload', profile: 'maintenance' })} />
           ))}
           {pane('datasets', (
             <DatasetsView
@@ -582,9 +606,10 @@ export function App() {
             />
           ))}
         {pane('approvals', <ApprovalsView onOpenRun={openRun} />)}
+          </ReadOnlyContext.Provider>
         </main>
 
-        {tab === 'chat' ? (
+        {tab === 'chat' && !demo ? (
           <aside className="rail" aria-label={t('rail.aria')}>
             <div className="rail__section">
               <MiyaarMark large />
@@ -630,7 +655,7 @@ export function App() {
       </div>
 
       <nav className="tabbar" aria-label={t('nav.primary')}>
-        {BAR_ITEMS.map((item) => (
+        {(demo ? DEMO_BAR_ITEMS : BAR_ITEMS).map((item) => (
           <button
             key={item.id}
             type="button"
@@ -639,12 +664,12 @@ export function App() {
             onClick={() => go(item.id)}
           >
             <Icon name={item.icon} size={20} />
-            <span>{t(item.label)}</span>
+            <span>{t(item.short ?? item.label)}</span>
           </button>
         ))}
         <button
           type="button"
-          className={`tabbar__btn ${BAR_TABS.includes(tab) ? '' : 'tabbar__btn--holding'}`}
+          className={`tabbar__btn ${(demo ? DEMO_BAR_ITEMS : BAR_ITEMS).some((item) => item.id === tab) ? '' : 'tabbar__btn--holding'}`}
           aria-haspopup="dialog"
           aria-expanded={drawerOpen}
           onClick={(event) => openDrawer(event.currentTarget)}
@@ -674,7 +699,7 @@ export function App() {
           </Suspense>
         </ViewBoundary>
       ) : null}
-      {showOnboarding ? (
+      {showOnboarding && !demo ? (
         <ViewBoundary fallback={null}>
           <Suspense fallback={null}>
             <Onboarding onDismiss={dismissOnboarding} />

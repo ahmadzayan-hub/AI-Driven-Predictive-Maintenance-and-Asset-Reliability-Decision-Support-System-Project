@@ -28,11 +28,14 @@ import json
 import sys
 import time
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 
+from server import agent_learning
 from server.connectors import Connectors
 from server.model_gateway import ModelGateway
+from server.orchestration import ModelRoles
+from server.quota import load_limits
 from server.routing import RoutedGateway, build_router
 from server.stages import load_stages
 from server.runs import RunEngine, _stamp, _utcnow, resolve_vault_dir
@@ -41,9 +44,40 @@ from server.storage import open_store
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 RUNNABLE_STATES = ("queued", "running")
 DEFAULT_LEASE_SECONDS = 30
-# The pipeline is eleven tasks; a bounded loop cannot spin forever if an
-# unexpected state ever leaves a run runnable with nothing to do.
+# A bounded loop cannot spin forever if an unexpected state ever leaves a
+# run runnable with nothing to do, including when custom stages are enabled.
 MAX_STEPS_PER_CLAIM = 64
+HEARTBEAT_STALE_SECONDS = 120
+
+
+def worker_status(store, mode="client", clock=_utcnow,
+                  stale_seconds=HEARTBEAT_STALE_SECONDS):
+    """Recent database activity, not a promise that a process is alive.
+
+    Heartbeats bracket bounded stages, so the threshold exceeds the model
+    timeout. A stalled or terminated process eventually becomes unready.
+    No worker identifier, owner, goal or source configuration is exposed.
+    """
+    observed = []
+    now = clock()
+    for row in store.list_worker_heartbeats():
+        try:
+            seen = datetime.fromisoformat(row["seen_at"])
+            age = (now - seen).total_seconds()
+        except (ValueError, TypeError, KeyError):
+            continue
+        # A badly skewed clock must not make a dead worker ready forever.
+        if age < -5:
+            continue
+        observed.append((max(0, age), row))
+    latest = min(observed, key=lambda item: item[0]) if observed else None
+    recent = any(age <= stale_seconds and row["state"] in
+                 ("idle", "running", "refreshing", "evaluating")
+                 for age, row in observed)
+    return {"mode": mode, "ready": mode == "client" or recent,
+            "last_seen_at": latest[1]["seen_at"] if latest else None,
+            "heartbeat_age_seconds": round(latest[0], 1) if latest else None,
+            "stale_after_seconds": stale_seconds}
 
 
 def read_config(config_path=None):
@@ -58,14 +92,19 @@ def read_config(config_path=None):
 
 class RunWorker:
     def __init__(self, engine, store, worker_id=None,
-                 lease_seconds=DEFAULT_LEASE_SECONDS, clock=_utcnow, connectors=None):
+                 lease_seconds=DEFAULT_LEASE_SECONDS, clock=_utcnow, connectors=None,
+                 steward=None):
         self.engine = engine
         self.store = store
         self.worker_id = worker_id or f"worker-{uuid.uuid4().hex[:8]}"
+        if lease_seconds < 1:
+            raise ValueError("Worker lease must be at least one second.")
         self.lease_seconds = lease_seconds
         self.clock = clock
         # Live sources (ADR 0034); None leaves them to "Refresh now".
         self.connectors = connectors
+        # Periodic agent measurement (docs/adr/2026-10-20-agent-measurement-loop.md); None leaves it to the CLI.
+        self.steward = steward
 
     def _expiry(self):
         return _stamp(self.clock() + timedelta(seconds=self.lease_seconds))
@@ -74,16 +113,21 @@ class RunWorker:
         return self.store.claim_run(self.worker_id, _stamp(self.clock()),
                                     self._expiry())
 
+    def heartbeat(self, state="idle"):
+        self.store.upsert_worker_heartbeat(self.worker_id, _stamp(self.clock()), state)
+
     def step(self):
         """Claim one run and advance it until a human is needed or it ends.
 
         Returns the run id worked on, or None when nothing was runnable.
         """
+        self.heartbeat()
         run_id = self.claim()
         if run_id is None:
             return None
         try:
             for _ in range(MAX_STEPS_PER_CLAIM):
+                self.heartbeat("running")
                 try:
                     run = self.engine.advance(run_id, lease_owner=self.worker_id)
                 except ValueError:
@@ -103,6 +147,7 @@ class RunWorker:
                     return run_id
         finally:
             self.store.release_lease(run_id, self.worker_id)
+            self.heartbeat()
         return run_id
 
     def refresh_due(self):
@@ -110,7 +155,11 @@ class RunWorker:
         or None when none was due."""
         if self.connectors is None:
             return None
-        return self.connectors.step(self.worker_id)
+        self.heartbeat("refreshing")
+        try:
+            return self.connectors.step(self.worker_id)
+        finally:
+            self.heartbeat()
 
     def run_forever(self, poll_seconds=1.0, stop=None, sleep=time.sleep):
         """Work until `stop` (a threading.Event) is set.
@@ -120,21 +169,34 @@ class RunWorker:
         failure is reported on stderr and the loop continues. A failing
         source is the same: its refresh records the failure and waits.
         """
-        while stop is None or not stop.is_set():
-            try:
-                worked = self.step()
-            except Exception as error:  # one bad run, not a dead worker
-                print(f"{self.worker_id}: run failed: {error!r}",
-                      file=sys.stderr, flush=True)
-                worked = None
-            try:
-                refreshed = self.refresh_due()
-            except Exception as error:  # one bad source, not a dead worker
-                print(f"{self.worker_id}: refresh failed: {error!r}",
-                      file=sys.stderr, flush=True)
-                refreshed = None
-            if worked is None and refreshed is None:
-                sleep(poll_seconds)
+        if not 0 < poll_seconds <= 60:
+            raise ValueError("Worker polling must be greater than zero and at most 60 seconds.")
+        try:
+            while stop is None or not stop.is_set():
+                try:
+                    worked = self.step()
+                except Exception as error:  # one bad run, not a dead worker
+                    print(f"Worker run failed ({type(error).__name__}).",
+                          file=sys.stderr, flush=True)
+                    worked = None
+                try:
+                    refreshed = self.refresh_due()
+                except Exception as error:  # never log upstream exception contents
+                    print(f"Worker refresh failed ({type(error).__name__}).",
+                          file=sys.stderr, flush=True)
+                    refreshed = None
+                try:
+                    if self.steward is not None:
+                        self.heartbeat("evaluating")
+                        self.steward.tick()
+                        self.heartbeat()
+                except Exception as error:
+                    print(f"Worker evaluation failed ({type(error).__name__}).",
+                          file=sys.stderr, flush=True)
+                if worked is None and refreshed is None:
+                    sleep(poll_seconds)
+        finally:
+            self.heartbeat("stopped")
 
 
 def build_worker(env=None, config_path=None, **kwargs):
@@ -142,12 +204,15 @@ def build_worker(env=None, config_path=None, **kwargs):
     import os
 
     env = os.environ if env is None else env
-    config = read_config(config_path)
+    config = read_config(config_path or env.get("AGENTIC_OS_CONFIG"))
     store = open_store(
         env.get("DATABASE_URL") or config.get("database_url"),
         config.get("database_file") or PROJECT_ROOT / "data" / "agentic.db",
     )
-    gateway = ModelGateway()
+    gateway = ModelGateway(env)
+    # Like the API, roles use the plain gateway so each named provider/model
+    # remains explicit even when a separate router selects report narration.
+    model_roles = ModelRoles(gateway, env)
     # The worker narrates the same reports the API does, so it routes the
     # same way; a run advanced in the background must not be narrated by a
     # different model than one advanced in a browser.
@@ -163,10 +228,16 @@ def build_worker(env=None, config_path=None, **kwargs):
     stage_registry, stage_problems = load_stages(env, config)
     for stage_problem in stage_problems:
         print(stage_problem, file=sys.stderr, flush=True)
-    engine = RunEngine(store, resolve_vault_dir(config=config),
-                       gateway, stages=stage_registry,
-                       profiles=config.get("profiles") or {})
-    return RunWorker(engine, store, connectors=Connectors(engine, env=env), **kwargs)
+    engine = RunEngine(store, resolve_vault_dir(env=env, config=config),
+                       gateway, limits=load_limits(env), stages=stage_registry,
+                       profiles=config.get("profiles") or {}, execution_mode="worker",
+                       roles=model_roles if model_roles.active else None)
+    interval = agent_learning.interval_from(env)
+    steward = agent_learning.Steward(
+        interval, ledger=agent_learning.Ledger(agent_learning.ledger_path(env))) \
+        if interval else None
+    return RunWorker(engine, store, connectors=Connectors(engine, env=env),
+                     steward=steward, **kwargs)
 
 
 def main(argv=None):
@@ -181,16 +252,24 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     worker = build_worker(config_path=args.config, lease_seconds=args.lease)
-    if args.once:
-        run_id = worker.step()
-        connector_id = worker.refresh_due()
-        print(json.dumps({"worker": worker.worker_id, "run": run_id,
-                          "connector": connector_id}))
-        return 0
-    print(json.dumps({"worker": worker.worker_id, "polling_seconds": args.poll}),
-          flush=True)
     try:
-        worker.run_forever(poll_seconds=args.poll)
-    except KeyboardInterrupt:
-        pass
+        if args.once:
+            run_id = worker.step()
+            connector_id = worker.refresh_due()
+            print(json.dumps({"worker": worker.worker_id, "run": run_id,
+                              "connector": connector_id}))
+            return 0
+        print(json.dumps({"worker": worker.worker_id, "polling_seconds": args.poll}),
+              flush=True)
+        try:
+            worker.run_forever(poll_seconds=args.poll)
+        except KeyboardInterrupt:
+            pass
+    finally:
+        # A one-shot worker is known to have stopped; do not advertise it
+        # as ready for the full freshness window after the process exits.
+        try:
+            worker.heartbeat("stopped")
+        finally:
+            worker.store.close()
     return 0

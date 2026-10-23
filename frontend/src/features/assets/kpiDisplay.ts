@@ -23,17 +23,20 @@ export function needsDisclosure(measure: KpiMeasure): boolean {
 /** The figure, on its own scale, or null when there is nothing to print. */
 export function formatValue(measure: KpiMeasure, locale: 'en' | 'ar' = 'en'): string | null {
   if (measure.value === null || !Number.isFinite(measure.value)) return null
-  const tag = locale === 'ar' ? 'ar-EG' : 'en-GB'
+  // Western digits in Arabic too, as everywhere else (ADR 0018).
+  const tag = locale === 'ar' ? 'ar-u-nu-latn' : 'en-GB'
   const digits = measure.scale === 'money' ? 2 : 1
   const number = measure.value.toLocaleString(tag, {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   })
   if (measure.scale === 'percent') return `${number}%`
+  if (measure.scale === 'ratio') return `${number}×`
   return number
 }
 
-/** True when numerator ÷ records reproduces the printed value, which is the
+/** True when numerator ÷ denominator (×100 for percent) reproduces the value,
+ *  which is the
  *  property that lets a reader check a card by hand. A measure that fails it
  *  is not rendered as auditable. */
 export function isAuditable(measure: KpiMeasure): boolean {

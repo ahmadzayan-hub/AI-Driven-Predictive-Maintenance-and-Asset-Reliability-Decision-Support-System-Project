@@ -11,9 +11,9 @@ Two sources, each taken from the most truthful place available:
   integrity hash and licence npm recorded for every package. It is the
   exact set `npm ci` installs, which is what the build consumes.
 * **Python** from the installed distributions (`importlib.metadata`),
-  narrowed to the closure `requirements.txt` actually reaches. Reading
-  versions from the installed packages matters because requirements.txt
-  states ranges and an SBOM has to state facts; narrowing to the closure
+  narrowed to the closure `requirements.in` actually requests. Reading
+  versions from installed packages records what this build consumed,
+  while requirements.txt locks the intended environment; narrowing to the closure
   matters because a developer's container also carries system packages
   this application has never heard of. This is why the file is generated
   per build rather than committed — a committed SBOM describes the
@@ -33,7 +33,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 LOCKFILE = ROOT / "frontend" / "package-lock.json"
-REQUIREMENTS = ROOT / "requirements.txt"
+REQUIREMENTS = ROOT / "requirements.in"
 
 # Licences that place conditions on distributing a work that includes
 # them. Their presence is not a verdict — it is a question for whoever
@@ -64,7 +64,7 @@ def _classify(licence):
 
 
 def direct_python_requirements():
-    """What requirements.txt asks for: {name: {extras}}.
+    """What requirements.in asks for: {name: {extras}}.
 
     `pyjwt[crypto]` and `pyjwt` install different trees, so the extras
     are part of the question, not decoration.
@@ -89,7 +89,7 @@ def _normalise(name):
 
 
 def python_closure(direct):
-    """The packages requirements.txt actually pulls in, transitively.
+    """The packages requirements.in actually pulls in, transitively.
 
     Listing everything installed would describe the machine rather than
     the project: a developer's container carries system packages
@@ -97,7 +97,7 @@ def python_closure(direct):
     and an SBOM naming them is worse than useless — it sends whoever
     reads it chasing dependencies that are not there.
 
-    Extras are honoured where requirements.txt asked for them, because
+    Extras are honoured where requirements.in asked for them, because
     `uvicorn[standard]` and plain `uvicorn` install different trees.
     """
     from importlib import metadata

@@ -25,6 +25,8 @@ import statistics
 from server import joins as joining
 from server import mapping as colmap
 from server import metrics as glossary
+from server import orchestration
+from server import report_display
 from server import sequential
 
 MAX_ROWS = 50_000
@@ -34,18 +36,24 @@ MAX_ROWS = 50_000
 MAX_DATASET_BYTES = 10_000_000
 
 
-def sample_dataset():
-    """Deterministic bundled sales dataset (72 rows)."""
+def sample_dataset(language="en"):
+    """Bundled fictional sales data; language changes labels, never values."""
     months = ["2025-%02d" % m for m in range(1, 13)]
     base = {"Hardware": 42000, "Software": 61000, "Services": 23000}
-    lines = ["month,region,category,revenue,units"]
+    arabic = language == "ar"
+    labels = {"North": "الشمال", "South": "الجنوب", "Hardware": "الأجهزة",
+              "Software": "البرمجيات", "Services": "الخدمات"}
+    lines = ["الشهر,المنطقة,الفئة,الإيرادات,الوحدات" if arabic else
+             "month,region,category,revenue,units"]
     for mi, month in enumerate(months):
         for region, offset in (("North", 1.08), ("South", 0.92)):
             for category, base_rev in base.items():
                 seasonal = 1.0 + 0.03 * mi + (0.12 if mi in (10, 11) else 0.0)
                 revenue = round(base_rev * seasonal * offset, 2)
                 units = int(revenue / (95 if category != "Services" else 240))
-                lines.append(f"{month},{region},{category},{revenue},{units}")
+                region_label = labels[region] if arabic else region
+                category_label = labels[category] if arabic else category
+                lines.append(f"{month},{region_label},{category_label},{revenue},{units}")
     return "\n".join(lines) + "\n"
 
 
@@ -144,6 +152,74 @@ def figures(text):
     found = (token.lstrip("+-−").rstrip(",").replace(",", "")
              for token in _FIGURE.findall(text or ""))
     return sorted(token for token in found if token not in ("1", "2"))
+
+
+# A figure to check: not a date ("2026-01"), not a hash ("6607b5e5"), not
+# part of an identifier; those are labels, never figures from a calculation.
+_CLAIM_FIGURE = re.compile(r"(?<![\w.])[-+−]?\d[\d,]*(?:\.\d+)?%?(?![\w-])")
+
+
+# Scale constants a claim may state without citing them ("out of 100").
+SCALE_CONSTANTS = (100.0, 1000.0)
+
+
+def _cited_values(calc_value):
+    """Every number a reader could legitimately read off one calculation,
+    including the figures inside a text value such as a range."""
+    if isinstance(calc_value, bool):
+        return []
+    if isinstance(calc_value, str):
+        numbers = []
+        for token in _CLAIM_FIGURE.findall(calc_value):
+            try:
+                numbers.append(float(token.lstrip("+-−").rstrip("%").replace(",", "")))
+            except ValueError:
+                continue
+        return [v for n in numbers for v in _cited_values(n)]
+    if not isinstance(calc_value, (int, float)) or not math.isfinite(calc_value):
+        return []
+    return [calc_value * scale for scale in (1, 100, 1000, 0.01, 0.001)]
+
+
+def _figure_matches(figure, candidates):
+    """Signs are read by the wording ("down", "minus"), so magnitudes are
+    compared."""
+    figure = abs(figure)
+    for value in (abs(v) for v in candidates):
+        for digits in range(0, 5):
+            if round(value, digits) == round(figure, digits) and abs(value - figure) <= 0.5 * 10 ** -digits + 1e-9:
+                return True
+        if value and abs(value - figure) / abs(value) <= 0.005:
+            return True
+    return False
+
+
+def claim_figures_match(claim, calculations):
+    """True when every figure of three or more significant digits in the
+    claim's text matches a value it cites, under a rounding or a percent
+    or per-thousand scaling. Small figures (counts under 100) are not
+    checked: they are too often periods, ranks and thresholds."""
+    cited = []
+    for ref in claim.get("evidence", []):
+        calc = calculations.get(ref)
+        if calc is not None:
+            cited += _cited_values(calc.get("value"))
+    for token in _CLAIM_FIGURE.findall(claim.get("text") or ""):
+        raw = token.lstrip("+-−").rstrip("%").replace(",", "")
+        if not raw or raw.count(".") > 1:
+            continue
+        digits = raw.replace(".", "").lstrip("0")
+        if len(digits) < 3:
+            continue
+        try:
+            figure = float(raw)
+        except ValueError:
+            continue
+        if figure in SCALE_CONSTANTS:
+            continue
+        if not _figure_matches(figure, cited):
+            return False
+    return True
 
 
 def _result(status, summary, output=None, claims=None, calculations=None, checks=None):
@@ -308,10 +384,10 @@ SECTION_TITLES_AR = {
     "Prescriptive": ("التحليل التوجيهي", "ماذا ينبغي أن أفعل؟"),
 }
 
-# Said once under every calculation table in an Arabic report, because the
-# table is deliberately left as the evidence record wrote it.
-AR_METHODS_NOTE = ("*تبقى أسماء الأرقام وطرق حسابها بصيغتها الأصلية، لأنها "
-                   "المعرّفات التي تستند إليها كل جملة في التقرير.*")
+# Display text is translated; the evidence and approved artifacts are unchanged.
+AR_METHODS_NOTE = ("*تُعرض أسماء العمليات الحسابية وطرقها المدمجة بالعربية، مع "
+                   "بقاء الأرقام ومعرّفات الأدلة والسجل الأصلي دون تغيير. تبقى "
+                   "أسماء أعمدة البيانات وقيمها والنصوص غير المعروفة كما وردت.*")
 
 
 def _section_report(title, question, ctx, body_lines, calculations, headline=None):
@@ -338,7 +414,8 @@ def _section_report(title, question, ctx, body_lines, calculations, headline=Non
                            "## كيف حُسب كل رقم"),
                   _say(ctx, "| Figure | Value | Method |", "| الرقم | القيمة | الطريقة |"),
                   "| --- | --- | --- |"]
-        lines += [f"| {c['name']} | {c['value']} | {c['method']} |" for c in calculations]
+        lines += [report_display.calculation_row(c, report_language(ctx))
+                  for c in calculations]
         if report_language(ctx) == "ar":
             lines += ["", AR_METHODS_NOTE]
     return "\n".join(lines)
@@ -481,6 +558,34 @@ def profiler(ctx):
     )
 
 
+DATE_LIKE_NAMES = ("month", "date", "period", "week", "year",
+                   "الشهر", "التاريخ", "الفترة", "الأسبوع", "السنة")
+
+
+def _date_like_column(columns):
+    return next((c for c in columns if c.lower() in DATE_LIKE_NAMES), None)
+
+
+def _period_labels_unmapped(values):
+    """(labels, grain, order) for an unmapped period column, or (None, None,
+    None) when it does not read. Dates go through the mapping parser; bare
+    month names ("Jan", "March") are ordered by calendar under a numbered
+    label that keeps the name."""
+    filled = [v for v in values if v not in (None, "")]
+    if not filled:
+        return None, None, None
+    labels, grain, order = colmap.period_labels(values)
+    readable = sum(1 for v, l in zip(values, labels) if v not in (None, "") and l)
+    if readable >= colmap.SUGGEST_SHARE * len(filled):
+        return [l if v not in (None, "") else None for v, l in zip(values, labels)], grain, order
+    months = {str(v).strip().lower() for v in filled}
+    if months and months <= set(colmap.MONTHS):
+        out = [None if v in (None, "") else
+               f"{colmap.MONTHS[str(v).strip().lower()]:02d} {str(v).strip()}" for v in values]
+        return out, "month", None
+    return None, None, None
+
+
 def cleaner(ctx):
     rows = ctx["collector"]["rows"]
     numeric_columns = ctx["profiler"]["numeric_columns"]
@@ -493,7 +598,8 @@ def cleaner(ctx):
     to_number = colmap.parse_number if mapping else _to_number
     before = len(rows)
     cleaned, seen, dropped_empty, dropped_dupes, coercion_failures = [], set(), 0, 0, 0
-    for row in rows:
+    source_indices = []
+    for source_index, row in enumerate(rows):
         stripped = {k: (str(v).strip() if v is not None else "") for k, v in row.items() if k}
         if not any(stripped.values()):
             dropped_empty += 1
@@ -509,6 +615,7 @@ def cleaner(ctx):
                 coercion_failures += 1
             stripped[col] = number
         cleaned.append(stripped)
+        source_indices.append(source_index)
     after = len(cleaned)
     calcs = [
         {"id": "c_rows_before", "name": "rows_before", "value": before, "method": "count"},
@@ -525,6 +632,39 @@ def cleaner(ctx):
     dates = {"date_col": None, "date_grain": None, "date_order": None,
              "dates_unreadable": 0, "dates_missing": 0}
     date_col = colmap.date_of(mapping, ctx["collector"]["columns"]) if mapping else None
+    if not mapping:
+        # An unmapped run finds its period column by name, as the preparer
+        # always did; it is now labelled here too, so that "January 2024",
+        # "1/2/2024" or "Jan" order by calendar rather than alphabet. A
+        # column that does not read as periods gives no trend at all,
+        # rather than one in a wrong order (audit finding, 22 October).
+        named = _date_like_column(ctx["collector"]["columns"])
+        if named:
+            labels, grain, order = _period_labels_unmapped(
+                [row.get(named) for row in cleaned])
+            if labels is None:
+                # Labels such as "w1" or "P3" are kept in the order the
+                # data lists them, which is the order a reader can check;
+                # alphabetical order ("w1, w10, w2") is never used.
+                calcs.append({"id": "c_dates_unread", "name": "dates_not_read",
+                              "value": sum(1 for row in cleaned if row.get(named)),
+                              "method": f"{named} values that do not read as dates "
+                                        "or month names; periods kept in the order "
+                                        "recorded"})
+                claims.append(_claim(
+                    ctx, "cl_dates_unread", "limitation",
+                    f"The {named} column does not read as dates, so its periods are "
+                    "kept in the order they appear in the data. Check that order "
+                    "before reading any trend or forecast as a sequence in time.",
+                    f"لا يُقرأ عمود {named} تواريخ، فتُحفظ فتراته بالترتيب الذي "
+                    "تظهر به في البيانات. تحقق من هذا الترتيب قبل قراءة أي اتجاه "
+                    "أو توقع على أنه تسلسل زمني.",
+                    ["c_dates_unread"]))
+                dates.update(date_col=named, date_grain=None, date_order="as-recorded")
+            else:
+                for row, label in zip(cleaned, labels):
+                    row[named] = label
+                dates.update(date_col=named, date_grain=grain, date_order=order)
     if date_col:
         # Each date becomes a sortable period label at the mapping's grain,
         # so every later stage orders time by time, not alphabetically. A
@@ -560,7 +700,8 @@ def cleaner(ctx):
              f"(حُذف {dropped_empty} فارغ و{dropped_dupes} مكرر، وعُدّت "
              f"{coercion_failures} قيمة غير رقمية فارغة). يُذكر كل صف محذوف "
              "ولا يُخفى."),
-        output={"rows": cleaned, "rows_before": before, "rows_after": after,
+        output={"rows": cleaned, "source_indices": source_indices,
+                "rows_before": before, "rows_after": after,
                 "dropped": before - after, **dates},
         calculations=calcs,
         claims=claims,
@@ -601,8 +742,25 @@ def _merge_tables(ctx):
         joined.append({**item, "table": table})
         for finding in personal_data_findings(table.columns, table.screened):
             screens.append({**finding, "dataset": item["name"]})
-    merged = joining.merge(ctx["collector"]["columns"], clean["rows"],
+    # Keep a row's source position through left/inner joins without trusting
+    # an asset/record identifier or putting an internal field in the table.
+    source_indices = clean.get("source_indices")
+    marker = object()
+    source_rows = ([{**row, marker: index} for row, index in
+                    zip(clean["rows"], source_indices)]
+                   if source_indices is not None else clean["rows"])
+    merged = joining.merge(ctx["collector"]["columns"], source_rows,
                            ctx["profiler"]["numeric_columns"], joined, date)
+    if source_indices is not None:
+        merged["source_indices"] = [row.pop(marker) for row in merged["rows"]]
+    ignored = {column for column, role in (ctx.get("mapping") or {}).get("roles", {}).items()
+               if role == "ignore"}
+    for item, record in zip(joined, merged["joins"]):
+        for column, role in (item.get("mapping") or {}).get("roles", {}).items():
+            renamed = record["renamed"].get(column, column)
+            if role == "ignore" and renamed in record["added_columns"]:
+                ignored.add(renamed)
+    merged["ignored_columns"] = sorted(ignored)
     problem = joining.breakdown_problem(ctx.get("join_breakdown"), merged["columns"],
                                         merged["numeric_columns"])
     if problem:
@@ -724,6 +882,8 @@ def merge(ctx):
         "succeeded", summary,
         output={"rows": merged["rows"], "columns": merged["columns"],
                 "numeric_columns": merged["numeric_columns"],
+                "source_indices": merged.get("source_indices"),
+                "ignored_columns": merged["ignored_columns"],
                 "rows_before": rows_before, "rows_after": rows_after,
                 "joins": merged["joins"], "breakdown": ctx.get("join_breakdown"),
                 "snapshots": [r["snapshot"] for r in merged["joins"]],
@@ -779,6 +939,30 @@ MEASURE_SOURCES_AR = {
     "first numeric column": "أول عمود رقمي",
     "the owner's column mapping": "ربط الأعمدة الذي حفظه المالك",
 }
+
+
+RATE_NAME = re.compile(r"(pct|percent|%|\brate\b|ratio|share|availability|utili[sz]ation)", re.I)
+
+
+def measure_is_rate(ctx, measure):
+    """True when the chosen measure is a rate, a fraction or a percentage:
+    the maintenance contract says so for its columns, the glossary says so
+    with a % unit, and otherwise the column's own name does. A sum of rates
+    is not a rate (assessment finding A4)."""
+    if not measure:
+        return False
+    try:
+        from server.maintenance import contract
+        fields, _ = contract.resolve(ctx["collector"]["columns"])
+        field = fields.get(measure)
+        if field is not None and getattr(field, "scale", None) in (contract.FRACTION, contract.PERCENT):
+            return True
+    except Exception:
+        pass
+    metric = (ctx.get("governance") or {}).get("metric") or {}
+    if str(metric.get("unit") or "").strip() == "%":
+        return True
+    return bool(RATE_NAME.search(str(measure)))
 
 
 def governance(ctx):
@@ -1032,6 +1216,7 @@ def governance(ctx):
     return _result(
         "succeeded", summary,
         output={"measure": measure, "source": source,
+                "measure_is_rate": measure_is_rate({**ctx, "governance": {"metric": metric}}, measure),
                 "metric": metric, "certified": bool(metric and metric["certified"]),
                 "owner": metric["owner"] if metric else None,
                 "glossary_configured": bool(metrics),
@@ -1039,6 +1224,37 @@ def governance(ctx):
                 "also_defined": others,
                 "notes_markdown": "\n".join(lines)},
         calculations=calcs, claims=claims, checks=checks)
+
+
+AUTO_GROUP_LIMIT = 200
+
+
+def _automatic_groups(columns, numeric_columns, date_col, rows):
+    """Every column that could group these rows, in the file's own order.
+
+    The preparer takes the first and names the rest in a claim, so a reader
+    learns that this product chose the breakdown and what it chose among.
+    """
+    candidates = []
+    for column in columns:
+        if (column in numeric_columns or column == date_col
+                or colmap._named_like_an_id(column) or colmap._named_like_a_date(column)):
+            continue
+        filled = [str(row.get(column) or "").strip() for row in rows
+                  if str(row.get(column) or "").strip()]
+        distinct = len(set(filled))
+        if 2 <= distinct <= AUTO_GROUP_LIMIT and distinct <= len(filled) / 2:
+            candidates.append(column)
+    # The detector accepts text, while joined/cleaned rows can contain numbers.
+    screened = [{c: str(row.get(c) or "") for c in candidates} for row in rows[:2000]]
+    personal = {finding["column"] for finding in personal_data_findings(candidates, screened)}
+    return [c for c in candidates if c not in personal]
+
+
+def _automatic_group(columns, numeric_columns, date_col, rows):
+    """Choose a repeated category, never an implicit record/person identifier."""
+    return next(iter(_automatic_groups(columns, numeric_columns, date_col, rows)),
+                None)
 
 
 def preparer(ctx):
@@ -1055,10 +1271,11 @@ def preparer(ctx):
         date_col = ctx["cleaner"].get("date_col")
         group_col = mapping.get("dimension")
     else:
-        date_col = next((c for c in columns if c.lower() in
-                         ("month", "date", "period", "week", "year")), None)
-        group_col = next((c for c in columns
-                          if c not in numeric_columns and c != date_col), None)
+        # The cleaner labelled the period column, or found none it could read.
+        date_col = ctx["cleaner"].get("date_col")
+        could_group = _automatic_groups(columns, numeric_columns,
+                                        date_col or _date_like_column(columns), rows)
+        group_col = could_group[0] if could_group else None
     # A breakdown chosen for a joined run wins: it is usually why the
     # lookup was joined at all (ADR 0030).
     breakdown = (ctx.get("merge") or {}).get("breakdown")
@@ -1071,20 +1288,77 @@ def preparer(ctx):
         for row in rows:
             value = row.get(measure)
             if value is not None:
-                groups[row[group_col]] = groups.get(row[group_col], 0.0) + value
+                groups.setdefault(row[group_col], []).append(value)
                 group_counts[row[group_col]] = group_counts.get(row[group_col], 0) + 1
+        groups = {key: math.fsum(values) for key, values in groups.items()}
     trend, trend_counts = {}, {}
     if date_col:
         for row in rows:
             value = row.get(measure)
-            if value is not None and not (mapping and row[date_col] is None):
-                trend[row[date_col]] = trend.get(row[date_col], 0.0) + value
+            if value is not None and row.get(date_col) is not None:
+                trend.setdefault(row[date_col], []).append(value)
                 trend_counts[row[date_col]] = trend_counts.get(row[date_col], 0) + 1
-        trend = dict(sorted(trend.items()))
+        ordered = (trend.items() if ctx["cleaner"].get("date_order") == "as-recorded"
+                   else sorted(trend.items()))
+        trend = {key: math.fsum(values) for key, values in ordered}
         trend_counts = {k: trend_counts[k] for k in trend}
-    total = round(sum(r[measure] for r in rows if r.get(measure) is not None), 2)
+    # Evidence retains source precision. Independently rounding each group
+    # accumulates into a false reconciliation failure (and changes ratios).
+    # Round only when formatting a figure for a reader.
+    total = math.fsum(r[measure] for r in rows if r.get(measure) is not None)
     grain = ctx["cleaner"].get("date_grain") if mapping else None
     grain_ar = {"day": "اليوم", "month": "الشهر", "quarter": "الربع", "year": "السنة"}
+    calcs = [{"id": "c_total", "name": f"total_{measure}", "value": total,
+              "method": f"sum({measure}) over cleaned rows"}]
+    claims = [_claim(ctx, "cl_total", "calculation",
+                     f"Total {measure} is {total:,.2f}.",
+                     f"إجمالي {measure} هو {total:,.2f}.",
+                     ["c_total"])]
+    if not mapping and not breakdown:
+        # Nobody chose this breakdown. The decision above is a display
+        # heuristic, and a reader who is not told that reads the leading
+        # group as a finding about the business rather than about the file.
+        calcs.append({"id": "c_breakdown_candidates",
+                      "name": "columns_that_could_group", "value": len(could_group),
+                      "method": "repeated non-numeric columns within the display "
+                                "limit, excluding identifier-like, date-like and "
+                                "personal columns"})
+        others = could_group[1:]
+        if group_col:
+            claims.append(_claim(
+                ctx, "cl_breakdown_detected", "limitation",
+                f"Nothing in this dataset declares what to compare, so “{group_col}” "
+                f"was chosen by this product: of the {len(could_group)} columns that "
+                "could group these rows it is the first in the file's own column "
+                "order."
+                + (f" {', '.join(others)} could have been used instead, and a report "
+                   "on any of them would answer a different question with the same "
+                   "figures." if others else "")
+                + " A saved column mapping names the breakdown rather than leaving "
+                "it to column order.",
+                f"لا شيء في هذه البيانات يُعلن ما يُقارن، لذا اختار هذا "
+                f"المنتج «{group_col}»: فهو الأول في ترتيب أعمدة الملف "
+                f"من بين {_ar_n(len(could_group), 'column')} تصلح لتجميع هذه الصفوف."
+                + (f" وكان يمكن استخدام {'، '.join(others)} بدلاً منه، وأي "
+                   "تقرير عنها يجيب سؤالاً مختلفاً بالأرقام نفسها." if others else "")
+                + " وربط الأعمدة المحفوظ يسمّي عمود التقسيم بدل تركه "
+                "لترتيب الأعمدة.",
+                ["c_breakdown_candidates"]))
+        else:
+            claims.append(_claim(
+                ctx, "cl_breakdown_none", "limitation",
+                "No column in this dataset can group it for comparison: every "
+                "non-numeric column identifies records, holds dates, reads as "
+                "personal data, or has too many distinct values to compare. This "
+                "report has no breakdown, so it describes the whole population "
+                "and no segment of it. A saved column mapping names a breakdown.",
+                "لا يوجد عمود في هذه البيانات يصلح لتجميعها للمقارنة: "
+                "فكل عمود غير رقمي يُعرّف السجلات، أو يحمل تواريخ، "
+                "أو يُقرأ بيانات شخصية، أو تتعدد قيمه أكثر مما تصلح "
+                "معه المقارنة. لذا لا يحمل هذا التقرير تقسيماً، فهو يصف "
+                "المجتمع كله ولا يصف أي شريحة منه. وربط الأعمدة المحفوظ "
+                "يسمّي عمود التقسيم.",
+                ["c_breakdown_candidates"]))
     return _result(
         "succeeded",
         _say(ctx,
@@ -1100,17 +1374,13 @@ def preparer(ctx):
              + (" (ربط الأعمدة)" if mapping else "") + "."),
         output={"measure": measure, "group_col": group_col, "date_col": date_col,
                 "date_grain": grain,
-                "groups": {k: round(v, 2) for k, v in groups.items()},
+                "measure_is_rate": bool(ctx["governance"].get("measure_is_rate")),
+                "groups": groups,
                 "group_counts": group_counts,
-                "trend": {k: round(v, 2) for k, v in trend.items()},
+                "trend": trend,
                 "trend_counts": trend_counts,
                 "total": total},
-        calculations=[{"id": "c_total", "name": f"total_{measure}", "value": total,
-                       "method": f"sum({measure}) over cleaned rows"}],
-        claims=[_claim(ctx, "cl_total", "calculation",
-                       f"Total {measure} is {total:,.2f}.",
-                       f"إجمالي {measure} هو {total:,.2f}.",
-                       ["c_total"])],
+        calculations=calcs, claims=claims,
     )
 
 
@@ -1141,6 +1411,8 @@ def descriptive(ctx):
          "method": "sample standard deviation"},
         {"id": "c_unusual", "name": "unusual_rows", "value": unusual,
          "method": "count(|x - mean| > 2 × spread)"},
+        {"id": "c_records", "name": "records_with_a_value", "value": len(values),
+         "method": f"count of rows with a value in {measure}"},
     ]
     claims = [
         _claim(ctx, "cl_typical", "calculation",
@@ -1155,7 +1427,7 @@ def descriptive(ctx):
             "typical value and are worth checking individually.",
             f"{unusual} من أصل {_ar_n(len(values), 'record')} بعيدة عن القيمة "
             "النموذجية، وتستحق الفحص كلٌّ على حدة.",
-            ["c_unusual"]))
+            ["c_unusual", "c_records"]))
 
     change = None
     series = list(prep["trend"].values())
@@ -1293,18 +1565,18 @@ def diagnostic(ctx):
             value = row.get(measure)
             if value is None or row.get(date_col) not in (first, last):
                 continue
-            slot = by_group.setdefault(row[group_col], {"first": 0.0, "last": 0.0})
-            slot["first" if row[date_col] == first else "last"] += value
+            slot = by_group.setdefault(row[group_col], {"first": [], "last": []})
+            slot["first" if row[date_col] == first else "last"].append(value)
         total_change = prep["trend"][last] - prep["trend"][first]
         for name, slot in by_group.items():
-            delta = slot["last"] - slot["first"]
+            delta = math.fsum(slot["last"]) - math.fsum(slot["first"])
             contributions.append({
-                "group": name, "change": round(delta, 2),
+                "group": name, "change": delta,
                 "share_of_change": round(delta / total_change, 4) if total_change else None,
             })
         contributions.sort(key=lambda c: -abs(c["change"]))
         calcs.append({"id": "c_totalchange", "name": "total_change",
-                      "value": round(total_change, 2),
+                      "value": total_change,
                       "method": f"{measure} in {last} − {measure} in {first}"})
         for index, item in enumerate(contributions[:5]):
             calcs.append({"id": f"c_contrib_{index}",
@@ -1313,6 +1585,11 @@ def diagnostic(ctx):
                           "method": f"{measure} for “{item['group']}” in {last} minus {first}"})
         if contributions and total_change:
             driver = contributions[0]
+            # The share the claim states is a calculation of its own (A6).
+            calcs.append({"id": "c_share_0", "name": f"share_of_change_{driver['group']}",
+                          "value": driver["share_of_change"],
+                          "method": "change from the group / total change; may exceed 1 "
+                                    "when other groups moved the other way"})
             claims.append(_claim(
                 ctx, "cl_driver", "finding",
                 f"Most of the movement comes from “{driver['group']}”: it accounts "
@@ -1323,7 +1600,7 @@ def diagnostic(ctx):
                 f"{abs(driver['share_of_change']):.0%} من التغير الكلي البالغ "
                 f"{total_change:,.2f}. وهذا يحدد أين وقع التغير، لا ما الذي "
                 "سبّبه.",
-                ["c_totalchange", "c_contrib_0"]))
+                ["c_totalchange", "c_contrib_0", "c_share_0"]))
         # Against the overall direction means the opposite sign to the total
         # change: a group that fell while the total fell moved with it.
         against = [c for c in contributions if c["change"] * total_change < 0]
@@ -1669,6 +1946,17 @@ def _observational(ctx, values, measure):
     if sizing:
         first = sizing[1] if len(sizing) > 1 else sizing[0]
         index = DETECTABLE_LIFTS.index(first["lift"])
+        assumption_en = (
+            "Planning assumes independent observations, comparable variation in "
+            "the two groups and random assignment. The observed variability is "
+            "a planning estimate, not a guarantee for a future test.")
+        assumption_ar = (
+            "يفترض التخطيط مشاهدات مستقلة وتبايناً متقارباً بين المجموعتين "
+            "وتوزيعاً عشوائياً. التباين المرصود تقدير للتخطيط وليس ضماناً "
+            "لاختبار مستقبلي.")
+        claims.append(_claim(ctx, "cl_exp_planning", "assumption",
+                             assumption_en, assumption_ar, ["c_exp_spread"]))
+        lines += ["", _say(ctx, assumption_en, assumption_ar)]
         claims.append(_claim(
             ctx, "cl_exp_design", "recommendation",
             f"To prove a {first['lift']:.0%} change in {measure}, run a "
@@ -2356,6 +2644,14 @@ def privacy(ctx):
     calcs = [{"id": "c_pii_columns", "name": "columns_with_personal_data",
               "value": len(findings),
               "method": "columns matching a personal-data name or value pattern"}]
+    # Each row count the warning states is a calculation of its own (A6).
+    pii_counts = [
+        {"id": f"c_pii_rows_{index}_{position}", "name": f"{hit['kind']}_rows",
+         "value": hit["rows"],
+         "method": f"rows of {finding['column']} whose value looks like a {hit['kind']}"}
+        for index, finding in enumerate(findings[:3])
+        for position, hit in enumerate(finding["by_value"])]
+    calcs += pii_counts
     claims = []
     if findings:
         # The Arabic list mirrors the English one term for term, including
@@ -2382,7 +2678,7 @@ def privacy(ctx):
             f"يبدو أن هذه البيانات تحتوي على بيانات شخصية في "
             f"{len(findings)} من الأعمدة: {summary_ar}. النشر يكتب التقرير في "
             "المخزن، فتحقق من أنه مسموح بخروجه من هنا.",
-            ["c_pii_columns"]))
+            ["c_pii_columns"] + [c["id"] for c in pii_counts]))
     else:
         claims.append(_claim(
             ctx, "cl_pii_clear", "fact",
@@ -2491,8 +2787,48 @@ def segments(ctx):
              if len(shares) > 3 else
              f"الأكبر بين شرائح {group_col} وعددها {len(shares)} يستحوذ على "
              f"{shares[0]['share']:.0%} من {measure}، فالنشاط {spread_ar}."),
-            ["c_seg_pareto", "c_seg_hhi"])],
+            ["c_seg_count", "c_seg_pareto", "c_seg_hhi"])],
     )
+
+
+
+def _complete_periods(prep):
+    """The trend's periods with a trailing incomplete one left out.
+
+    A last period holding fewer records than UNEVEN_PERIODS of the busiest
+    earlier period is read as still filling (a partial month), not as a
+    drop: the forecast and the anomaly check leave it out and say so
+    (assessment A12). Returns labels, values and what was dropped."""
+    labels = list(prep["trend"])
+    series = list(prep["trend"].values())
+    counts = prep.get("trend_counts") or {}
+    dropped = None
+    if len(labels) >= 3 and all(label in counts for label in labels):
+        last = labels[-1]
+        most = max(counts[label] for label in labels[:-1])
+        if counts[last] < UNEVEN_PERIODS * most:
+            dropped = {"period": last, "records": counts[last], "most": most}
+            labels, series = labels[:-1], series[:-1]
+    return labels, series, dropped
+
+
+def _incomplete_period_claim(ctx, claim_id, dropped, what_en, what_ar):
+    return _claim(
+        ctx, claim_id, "limitation",
+        f"The last period, {dropped['period']}, holds {dropped['records']:,} record(s) against "
+        f"up to {dropped['most']:,} in earlier periods, so it was treated as incomplete and "
+        f"left out of {what_en}.",
+        f"تضم الفترة الأخيرة، {dropped['period']}، {dropped['records']:,} من السجلات مقابل "
+        f"{dropped['most']:,} على الأكثر في الفترات السابقة، فعُدّت غير مكتملة واستُبعدت من "
+        f"{what_ar}.",
+        ["c_incomplete_period"])
+
+
+def _incomplete_period_calc(dropped):
+    return {"id": "c_incomplete_period", "name": "incomplete_last_period_records",
+            "value": dropped["records"],
+            "method": f"records in {dropped['period']}, under {UNEVEN_PERIODS:.0%} of the busiest "
+                      f"earlier period ({dropped['most']})"}
 
 
 def anomaly(ctx):
@@ -2504,8 +2840,7 @@ def anomaly(ctx):
     that a period is unusual *given the trend*.
     """
     prep = ctx["preparer"]
-    labels = list(prep["trend"].keys())
-    series = list(prep["trend"].values())
+    labels, series, dropped = _complete_periods(prep)
     if len(series) < 4:
         return _result(
             "succeeded",
@@ -2538,6 +2873,8 @@ def anomaly(ctx):
     calcs = [{"id": "c_anom_spread", "name": "typical_gap_from_trend",
               "value": round(spread, 2),
               "method": "standard deviation of the gaps between actual and trend"}]
+    if dropped:
+        calcs.append(_incomplete_period_calc(dropped))
     for index, item in enumerate(anomalies[:5]):
         calcs.append({"id": f"c_anom_{index}", "name": f"gap_{item['period']}",
                       "value": item["gap"],
@@ -2564,6 +2901,9 @@ def anomaly(ctx):
             "out as unusual.",
             "كل الفترات قريبة من النمط العام، ولا شيء يبرز على أنه غير اعتيادي.",
             ["c_anom_spread"]))
+    if dropped:
+        claims.append(_incomplete_period_claim(ctx, "cl_anom_incomplete", dropped,
+                                               "the check", "الفحص"))
     return _result(
         "succeeded",
         _say(ctx,
@@ -2601,67 +2941,127 @@ def sensitivity(ctx):
                            "مع أقل من خيارين لا يوجد ترتيب يمكن اختبار حساسيته.",
                            ["c_sens_none"])])
 
-    # Every option is scored as base_value × uplift, so the ranking is
-    # scale-invariant in the uplift — the honest way to say that is to
-    # show it rather than assert it.
+    # Each option's improvement may sit anywhere in the uplift range,
+    # independently of the others (A2). The ranking is stable only when the
+    # winner at the low end of the range still beats every other option at
+    # the high end; otherwise the flip point says how much better the other
+    # option would have to do. The three uniform scenarios are kept because
+    # they show the other truth: with one uplift for everyone the order is
+    # scale-invariant.
+    inputs = ctx["prescriptive"].get("assumptions") or decision_inputs(ctx)
+    low, high = inputs["uplift_range"]
     winner = options[0]
     runner_up = options[1]
     scenarios = []
-    for uplift in (0.05, PLANNING_UPLIFT, 0.20):
+    for uplift in (low, PLANNING_UPLIFT, high):
         scored = sorted(
             ({"key": o["key"], "title": o["title"],
-              "gain": round(o["base_value"] * uplift, 2)} for o in options),
+              "gain": round(o["base_value"] * uplift - (o.get("cost") or 0.0), 2)}
+             for o in options),
             key=lambda o: -o["gain"])
         scenarios.append({"uplift": uplift, "winner": scored[0]["key"],
                           "gain": scored[0]["gain"]})
-    stable = len({s["winner"] for s in scenarios}) == 1
+    uniform_stable = len({s["winner"] for s in scenarios}) == 1
+
+    def net(option, uplift):
+        if option["key"] == "hold_course":
+            return 0.0
+        return option["base_value"] * uplift - (option.get("cost") or 0.0)
+
+    winner_low_uplift = winner["uplift"] if winner.get("uplift_source") == "stated" else low
+    winner_low = net(winner, winner_low_uplift)
+    flips = []
+    for other in options[1:]:
+        other_high = net(other, other["uplift"] if other.get("uplift_source") == "stated" else high)
+        flip_at = None
+        if other["base_value"] and other["key"] != "hold_course":
+            # The uplift at which this option ties the winner when the
+            # winner only reaches the low end of its range (or its stated
+            # uplift): the same comparison the stability rule makes.
+            flip_at = round(max(0.0, winner_low + (other.get("cost") or 0.0))
+                            / other["base_value"], 4)
+        flips.append({"key": other["key"], "title": other["title"],
+                      "title_ar": other.get("title_ar"), "target": other["target"],
+                      "target_ar": other.get("target_ar"),
+                      "flip_at_uplift": flip_at,
+                      "inside_range": flip_at is not None and low <= flip_at <= high,
+                      "can_overtake": other_high >= winner_low})
+    stable = not any(f["can_overtake"] for f in flips)
+    first_flip = next((f for f in flips if f["can_overtake"]), None)
 
     break_even = None
     if runner_up["base_value"]:
-        # How much better the runner-up's uplift would have to be for it
-        # to win, holding the leader's assumption fixed.
         break_even = round(winner["base_value"] / runner_up["base_value"], 3)
 
-    calcs = [{"id": "c_sens_stable", "name": "winner_unchanged_across_scenarios",
+    calcs = [{"id": "c_sens_stable", "name": "winner_unchanged_within_ranges",
               "value": 1 if stable else 0,
-              "method": "recommended option compared at 5%, 10% and 20% uplift"}]
+              "method": f"winner at the low end of the uplift range ({low:.0%}) against every "
+                        f"other option at the high end ({high:.0%}), costs as stated"},
+             {"id": "c_sens_uniform", "name": "winner_unchanged_uniform_uplift",
+              "value": 1 if uniform_stable else 0,
+              "method": f"recommended option compared at {low:.0%}, {PLANNING_UPLIFT:.0%} and "
+                        f"{high:.0%} uplift applied to every option alike"}]
+    for flip in flips:
+        if flip["flip_at_uplift"] is not None:
+            calcs.append({"id": f"c_flip_{flip['key']}", "name": f"flip_uplift_{flip['key']}",
+                          "value": flip["flip_at_uplift"],
+                          "method": f"(winner's gain at the low end of its range + cost of "
+                                    f"“{flip['target']}”) ÷ current value of “{flip['target']}”"})
     if break_even is not None:
         calcs.append({"id": "c_sens_breakeven", "name": "break_even_ratio",
                       "value": break_even,
                       "method": f"“{winner['target']}” current value ÷ "
                                 f"“{runner_up['target']}” current value"})
+    flip_evidence = [f"c_flip_{first_flip['key']}"] if first_flip and first_flip["flip_at_uplift"] is not None else []
     claims = [_claim(
         ctx, "cl_sens", "finding",
-        (f"The recommendation does not depend on the size of the improvement "
-         f"assumed: “{winner['title']}” wins at 5%, 10% and 20% alike."
+        (f"The recommendation holds inside the stated range: “{winner['title']}” at a "
+         f"{low:.0%} improvement still beats every other option at {high:.0%}."
          if stable else
-         "The recommendation changes with the size of the improvement assumed, "
-         "so it should be treated as a close call rather than a conclusion.")
+         f"The recommendation can change inside the stated range: “{first_flip['title']}” "
+         f"overtakes it"
+         + (f" at an improvement of {first_flip['flip_at_uplift']:.0%} if “{winner['target']}” "
+            f"reaches only {winner_low_uplift:.0%}"
+            if first_flip["flip_at_uplift"] is not None else "")
+         + ", so treat the ranking as a close call rather than a conclusion.")
         + (f" It would take a {break_even:.1f}× better result in "
            f"“{runner_up['target']}” than in “{winner['target']}” to change the answer."
            if break_even else ""),
-        (f"لا تعتمد التوصية على حجم التحسن المفترض: "
-         f"«{winner.get('title_ar', winner['title'])}» يتصدر عند "
-         "5% و10% و20% على حد سواء."
+        (f"تصمد التوصية داخل النطاق المعلن: «{winner.get('title_ar', winner['title'])}» عند "
+         f"تحسن {low:.0%} ما زال يتفوق على كل خيار آخر عند {high:.0%}."
          if stable else
-         "تتغير التوصية بتغير حجم التحسن المفترض، فينبغي التعامل معها بوصفها قراراً "
-         "متقارباً لا نتيجة محسومة.")
+         f"قد تتغير التوصية داخل النطاق المعلن: «{first_flip.get('title_ar') or first_flip['title']}» "
+         "يتجاوزها"
+         + (f" عند تحسن بنسبة {first_flip['flip_at_uplift']:.0%} إذا لم يحقق "
+            f"«{winner.get('target_ar', winner['target'])}» سوى {winner_low_uplift:.0%}"
+            if first_flip["flip_at_uplift"] is not None else "")
+         + "، فتعامل مع الترتيب بوصفه قراراً متقارباً لا نتيجة محسومة.")
         + (f" ولتغيير الجواب يلزم أن تكون النتيجة في "
            f"«{runner_up.get('target_ar', runner_up['target'])}» أفضل بمقدار "
            f"{break_even:.1f}× مما هي في «{winner.get('target_ar', winner['target'])}»."
            if break_even else ""),
-        ["c_sens_stable"] + (["c_sens_breakeven"] if break_even else []))]
+        ["c_sens_stable"] + flip_evidence + (["c_sens_breakeven"] if break_even else []))]
+    decision = dict(ctx["prescriptive"].get("decision") or {})
+    if decision:
+        decision["uncertainty"] = {
+            "stable_within_ranges": stable, "uplift_range": [low, high],
+            "flip_points": [{k: f[k] for k in ("key", "target", "flip_at_uplift",
+                                                "inside_range", "can_overtake")}
+                            for f in flips],
+            "break_even_ratio": break_even}
     return _result(
         "succeeded",
         _say(ctx,
-             ("The recommendation holds across every improvement assumption tested."
+             ("The recommendation holds across the stated range of improvement."
               if stable else
               "The recommendation depends on the improvement assumed — treat it as a "
               "close call."),
-             ("تصمد التوصية أمام كل افتراضات التحسن التي اختُبرت."
+             ("تصمد التوصية عبر نطاق التحسن المعلن."
               if stable else
               "تعتمد التوصية على التحسن المفترض، فتعامل معها بوصفها قراراً متقارباً.")),
-        output={"stable": stable, "scenarios": scenarios, "break_even": break_even},
+        output={"stable": stable, "uniform_stable": uniform_stable, "scenarios": scenarios,
+                "break_even": break_even, "flip_points": flips,
+                "uplift_range": [low, high], "decision": decision or None},
         calculations=calcs, claims=claims,
     )
 
@@ -2840,6 +3240,9 @@ def visuals(ctx):
 MIN_PERIODS_TO_FORECAST = 4
 MIN_PERIODS_TO_BACKTEST = 6
 FORECAST_HORIZON = 3
+# The trend must beat "repeat the last period" by this much, relative, or
+# it is weak: the same margin the model stages use (server/modelling.py).
+WEAK_MARGIN = 0.05
 
 
 def predictive(ctx):
@@ -2853,9 +3256,35 @@ def predictive(ctx):
     """
     prep = ctx["preparer"]
     measure, date_col = prep["measure"], prep["date_col"]
-    labels = list(prep["trend"].keys())
-    series = list(prep["trend"].values())
+    labels, series, dropped = _complete_periods(prep)
     calcs, claims = [], []
+    if dropped:
+        calcs.append(_incomplete_period_calc(dropped))
+        claims.append(_incomplete_period_claim(ctx, "cl_forecast_incomplete", dropped,
+                                               "the trend and its backtest",
+                                               "الاتجاه واختباره"))
+
+    if prep.get("measure_is_rate"):
+        reason_en = (f"{measure} is a rate. Its period totals are sums of per-record "
+                     "rates, which are not rates, so no trend is extended from them; "
+                     "a governed KPI from the register is the figure to forecast.")
+        reason_ar = (f"{measure} معدل. ومجاميعه حسب الفترة هي مجاميع لمعدلات كل سجل، "
+                     "وليست معدلات، فلا يُمدّ منها اتجاه؛ والمؤشر المنضبط من السجل هو "
+                     "ما يُتوقَّع.")
+        reason = _say(ctx, reason_en, reason_ar)
+        calcs.append({"id": "c_rate", "name": "measure_is_rate", "value": 1,
+                      "method": "rate, fraction or percentage by contract, glossary unit or name"})
+        claims.append(_claim(ctx, "cl_noforecast", "limitation",
+                             f"No forecast was produced. {reason_en}",
+                             f"لم يُنتَج أي توقع. {reason_ar}", ["c_rate"]))
+        headline = _say(ctx, "No forecast: a sum of rates is not a rate.",
+                        "لا توقع: مجموع المعدلات ليس معدلاً.")
+        return _result("succeeded", headline,
+                       output={"headline": headline, "forecast": [], "reason": reason,
+                               "report_markdown": _section_report(
+                                   "Predictive", "What will happen?", ctx, [reason], calcs,
+                                   headline=headline)},
+                       calculations=calcs, claims=claims)
 
     if len(series) < MIN_PERIODS_TO_FORECAST:
         reason_en = (f"Only {len(series)} period(s) of history are available; at least "
@@ -2893,15 +3322,26 @@ def predictive(ctx):
     forecast_labels = _next_labels(labels, horizon)
     predictions = [round(intercept + slope * (len(series) + i), 2) for i in range(horizon)]
 
-    # Backtest: refit on all but the last few periods and score the gap.
+    # Backtest, rolling origin: each of the last `holdout` periods is
+    # predicted from the periods before it only, by the trend and by the
+    # naive baseline "repeat the last period". A trend that does not beat
+    # the baseline by WEAK_MARGIN is reported as weak (assessment A5).
     holdout = min(3, max(1, len(series) // 4))
-    error = None
+    error = naive_error = None
+    beats_naive = None
     if len(series) >= MIN_PERIODS_TO_BACKTEST:
-        train, test = series[:-holdout], series[-holdout:]
-        t_slope, t_intercept, _ = _linear_fit(train)
-        errors = [abs((t_intercept + t_slope * (len(train) + i)) - actual) / abs(actual)
-                  for i, actual in enumerate(test) if actual]
-        error = round(statistics.fmean(errors), 4) if errors else None
+        trend_errors, naive_errors = [], []
+        for origin in range(len(series) - holdout, len(series)):
+            train, actual = series[:origin], series[origin]
+            if not actual:
+                continue
+            t_slope, t_intercept, _ = _linear_fit(train)
+            trend_errors.append(abs((t_intercept + t_slope * len(train)) - actual) / abs(actual))
+            naive_errors.append(abs(train[-1] - actual) / abs(actual))
+        if trend_errors:
+            error = round(statistics.fmean(trend_errors), 4)
+            naive_error = round(statistics.fmean(naive_errors), 4)
+            beats_naive = error < naive_error * (1 - WEAK_MARGIN)
 
     calcs += [
         {"id": "c_slope", "name": "per_period_change", "value": round(slope, 2),
@@ -2917,11 +3357,17 @@ def predictive(ctx):
     if error is not None:
         calcs.append({"id": "c_backtest", "name": "backtest_error", "value": error,
                       "method": f"average absolute percentage error over the last "
-                                f"{holdout} period(s), predicted from earlier ones only"})
+                                f"{holdout} period(s), each predicted from earlier ones only"})
+        calcs.append({"id": "c_naive", "name": "naive_baseline_error", "value": naive_error,
+                      "method": f"the same backtest for repeating the previous period's value"})
 
     band_en = band_ar = ""
     if error is not None:
         low, high = predictions[0] * (1 - error), predictions[0] * (1 + error)
+        calcs += [{"id": "c_band_low", "name": "band_low", "value": round(low, 2),
+                   "method": "first forecast × (1 − backtest error)"},
+                  {"id": "c_band_high", "name": "band_high", "value": round(high, 2),
+                   "method": "first forecast × (1 + backtest error)"}]
         band_en = f" In backtesting this method was off by about {error:.1%}, so treat it as " \
                   f"roughly {low:,.0f}–{high:,.0f}."
         band_ar = (f" وعند اختبارها على بيانات سابقة أخطأت هذه الطريقة بنحو {error:.1%}، "
@@ -2935,7 +3381,7 @@ def predictive(ctx):
         f"{_period_label(ctx, forecast_labels[0])} سيكون نحو "
         f"{predictions[0]:,.2f}.{band_ar} "
         "ويفترض هذا ألا يتغير شيء في طريقة عمل النشاط.",
-        ["c_forecast_0"] + (["c_backtest"] if error is not None else [])))
+        ["c_forecast_0"] + (["c_backtest", "c_band_low", "c_band_high"] if error is not None else [])))
     claims.append(_claim(
         ctx, "cl_fit", "calculation",
         f"The trend line explains {explained:.0%} of the period-to-period "
@@ -2943,6 +3389,19 @@ def predictive(ctx):
         f"يفسّر خط الاتجاه {explained:.0%} من تحرك {measure} من فترة إلى أخرى، "
         "والباقي تباين لا يلتقطه.",
         ["c_explained"]))
+    if error is not None:
+        claims.append(_claim(
+            ctx, "cl_baseline", "calculation" if beats_naive else "limitation",
+            (f"Repeating the previous period would have been off by {naive_error:.1%} on "
+             f"the same test; the trend line, off by {error:.1%}, "
+             + ("beats that baseline." if beats_naive else
+                "does not beat it, so the forecast is weak: treat it as no better than "
+                "the last period.")),
+            (f"تكرار قيمة الفترة السابقة كان سيخطئ بنسبة {naive_error:.1%} في الاختبار "
+             f"نفسه؛ وخط الاتجاه، بخطأ {error:.1%}، "
+             + ("يتفوق على هذا الأساس." if beats_naive else
+                "لا يتفوق عليه، فالتوقع ضعيف: اعتبره ليس أفضل من الفترة الأخيرة.")),
+            ["c_backtest", "c_naive"]))
     if error is None:
         claims.append(_claim(
             ctx, "cl_nobacktest", "limitation",
@@ -3003,7 +3462,7 @@ def predictive(ctx):
                f"{abs(expected_move):.0%} عن آخر فترة"
                if expected_move is not None else "")
             + (f". وقد أخطأت هذه الطريقة بنحو {error:.0%} عند اختبارها على بيانات "
-               "سابقة."
+               "سابقة" + ("" if beats_naive else "، وليست أفضل من تكرار الفترة الأخيرة") + "."
                if error is not None else
                ". ولم تُختبر الدقة بعد على بيانات سابقة."))
     else:
@@ -3012,7 +3471,7 @@ def predictive(ctx):
             + (f", {'up' if expected_move >= 0 else 'down'} {abs(expected_move):.0%} "
                "on the latest period" if expected_move is not None else "")
             + (f" — this method has been off by about {error:.0%} when tested on past "
-               "data."
+               "data" + ("" if beats_naive else ", no better than repeating the last period") + "."
                if error is not None else " — accuracy not yet tested against past data."))
     return _result(
         "succeeded", headline,
@@ -3021,6 +3480,7 @@ def predictive(ctx):
                              for label, value in zip(forecast_labels, predictions)],
                 "per_period_change": round(slope, 2), "explained": round(explained, 4),
                 "backtest_error": error,
+                "naive_baseline_error": naive_error, "beats_naive_baseline": beats_naive,
                 "report_markdown": _section_report("Predictive", "What will happen?",
                                                    ctx, lines, calcs,
                                                    headline=headline)},
@@ -3032,6 +3492,64 @@ def predictive(ctx):
 # ranking reflects where the leverage is — not a claim about how easy any
 # option is. That assumption is printed next to the recommendation.
 PLANNING_UPLIFT = 0.10
+# The range an improvement is allowed to take, per option and independently,
+# when the sensitivity stage asks whether the ranking can flip (A2).
+UPLIFT_RANGE = (0.05, 0.20)
+MAX_ASSUMPTION_KEYS = 50
+
+
+def validate_assumptions(assumptions, language="en"):
+    """The decision inputs a run may carry (assessment A2, A13): an
+    uplift per target, a cost per target, and the uplift range the
+    sensitivity stage explores. Returns the clean dict, or raises
+    ValueError with the reason in the report's language. Keys are target
+    names as the data spells them; nothing here is a model input."""
+    if assumptions in (None, {}):
+        return None
+    if not isinstance(assumptions, dict):
+        raise ValueError("assumptions must be an object" if language != "ar"
+                         else "يجب أن تكون الافتراضات كائناً")
+    unknown = sorted(set(assumptions) - {"uplift", "costs", "uplift_range"})
+    if unknown:
+        raise ValueError((f"unknown assumption fields: {', '.join(unknown)}")
+                         if language != "ar" else
+                         f"حقول افتراضات غير معروفة: {', '.join(unknown)}")
+    clean = {}
+    for field, low, high in (("uplift", 0.0, 10.0), ("costs", 0.0, 1e15)):
+        table = assumptions.get(field)
+        table = {} if table is None else table
+        if not isinstance(table, dict) or len(table) > MAX_ASSUMPTION_KEYS:
+            raise ValueError(f"{field} must map at most {MAX_ASSUMPTION_KEYS} targets to numbers")
+        out = {}
+        for key, value in table.items():
+            if not isinstance(key, str) or not key.strip() or len(key) > 200:
+                raise ValueError(f"{field}: target names must be short text")
+            if isinstance(value, bool) or not isinstance(value, (int, float)) \
+                    or not math.isfinite(value) or not low <= value <= high:
+                raise ValueError(f"{field}: “{key}” must be a number between {low:g} and {high:g}")
+            out[key.strip()] = float(value)
+        if out:
+            clean[field] = out
+    rng = assumptions.get("uplift_range")
+    if rng is not None:
+        ok = (isinstance(rng, (list, tuple)) and len(rng) == 2
+              and all(isinstance(v, (int, float)) and not isinstance(v, bool)
+                      and math.isfinite(v) for v in rng)
+              and 0 <= rng[0] < rng[1] <= 10)
+        if not ok:
+            raise ValueError("uplift_range must be two numbers, low then high, between 0 and 10")
+        clean["uplift_range"] = [float(rng[0]), float(rng[1])]
+    return clean or None
+
+
+def decision_inputs(ctx):
+    """What the run stated: per-target uplifts, per-target costs and the
+    uplift range; defaults where it stated nothing."""
+    stated = ctx.get("assumptions") or {}
+    rng = stated.get("uplift_range") or list(UPLIFT_RANGE)
+    return {"uplift": dict(stated.get("uplift") or {}),
+            "costs": dict(stated.get("costs") or {}),
+            "uplift_range": [float(rng[0]), float(rng[1])]}
 
 
 def prescriptive(ctx, gateway=None):
@@ -3044,66 +3562,181 @@ def prescriptive(ctx, gateway=None):
     prep, desc, diag, pred = (ctx["preparer"], ctx["descriptive"],
                               ctx["diagnostic"], ctx["predictive"])
     measure, group_col = prep["measure"], prep["group_col"]
-    groups = prep["groups"]
+    # A group's "total" of a rate is a sum of per-record rates: not a lever
+    # to act on (A4). The options then come from the trend alone, if any.
+    groups = {} if prep.get("measure_is_rate") else prep["groups"]
     calcs, claims, options = [], [], []
 
     arabic = report_language(ctx) == "ar"
+    # Uplift and cost are inputs where the run stated them (A2, A13); the
+    # assumed uniform uplift is the fallback, and every option says which.
+    inputs = decision_inputs(ctx)
 
     def add_option(key, title, target, base_value, rationale, evidence,
                    gain=None, method=None):
         """`title`, `target` and `rationale` are (English, Arabic) pairs. The
         English is what the audited claims and the calculation method cite;
         the Arabic is what an Arabic report shows."""
-        gain = round(base_value * PLANNING_UPLIFT, 2) if gain is None else gain
+        uplift = inputs["uplift"].get(target[0])
+        stated = uplift is not None
+        uplift = PLANNING_UPLIFT if uplift is None else uplift
+        cost = inputs["costs"].get(target[0])
+        if gain is None:
+            gross = round(base_value * uplift, 2)
+            gain = round(gross - (cost or 0.0), 2)
+            method = method or (f"{uplift:.0%} ({'stated' if stated else 'assumed'}) of "
+                                f"{target[0]}'s current {measure} ({base_value:,.2f})"
+                                + (f" minus its stated cost {cost:,.2f}" if cost is not None else ""))
+        else:
+            gross = gain
         calcs.append({"id": f"c_option_{key}", "name": f"expected_gain_{key}",
-                      "value": gain,
-                      "method": method or (f"{PLANNING_UPLIFT:.0%} of {target[0]}'s "
-                                           f"current {measure} ({base_value:,.2f})")})
+                      "value": gain, "method": method})
+        if cost is not None:
+            calcs.append({"id": f"c_cost_{key}", "name": f"cost_{key}", "value": round(cost, 2),
+                          "method": f"cost of {target[0]} as stated in the run's assumptions"})
         option = {"key": key, "title": title[0], "target": target[0],
                   "base_value": round(base_value, 2), "expected_gain": gain,
+                  "gross_gain": gross, "uplift": uplift,
+                  "uplift_source": "stated" if stated else "assumed",
+                  "cost": None if cost is None else round(cost, 2),
                   "rationale": rationale[0],
-                  "evidence": evidence + [f"c_option_{key}"]}
+                  "evidence": evidence + [f"c_option_{key}"]
+                  + ([f"c_cost_{key}"] if cost is not None else [])}
         if arabic:
             option.update(title_ar=title[1], target_ar=target[1],
                           rationale_ar=rationale[1])
         options.append(option)
 
+    # Whether a bigger number is better is declared beside the metric's
+    # definition (server/metrics.DIRECTIONS) or not at all. Undeclared,
+    # this stage ranks options by the size of the change they would make
+    # and calls none of them an improvement: "protect the leading site"
+    # on hours of downtime is advice to keep the worst problem, phrased
+    # as a recommendation.
+    better = ((ctx.get("governance") or {}).get("metric") or {}).get("better")
+    calcs.append({"id": "c_direction", "name": "measure_direction_declared",
+                  "value": 1 if better else 0,
+                  "method": f"glossary entry for {measure} declares "
+                            "better: higher or lower"})
     if groups:
         leader = max(groups, key=groups.get)
-        add_option("protect_leader",
-                   (f"Protect the leading {group_col}: “{leader}”",
-                    f"حماية الأكبر ضمن {group_col}: «{leader}»"),
-                   (leader, leader), groups[leader],
-                   (f"It is the largest single source of {measure}, so a given "
-                    "percentage improvement is worth more here than anywhere else — "
-                    "and so is a given percentage loss.",
-                    f"هو أكبر مصدر منفرد لـ {measure}، فأي تحسن بنسبة معينة يساوي هنا "
-                    "أكثر مما يساويه في أي مكان آخر، وكذلك أي خسارة بالنسبة نفسها."),
-                   ["c_topshare"] if desc.get("top_share") is not None else [])
+        evidence = ["c_topshare"] if desc.get("top_share") is not None else []
+        if better == "lower":
+            add_option("reduce_leader",
+                       (f"Reduce the largest source of {measure}: “{leader}”",
+                        f"تقليل أكبر مصدر لـ {measure}: «{leader}»"),
+                       (leader, leader), groups[leader],
+                       (f"It is the largest single source of {measure}, and less of "
+                        "it is better, so a given percentage reduction is worth "
+                        "more here than anywhere else.",
+                        f"هو أكبر مصدر منفرد لـ {measure}، وكلما قلّ كان أفضل، "
+                        "فأي انخفاض بنسبة معينة يساوي هنا أكثر مما يساويه في أي "
+                        "مكان آخر."),
+                       evidence)
+        elif better == "higher":
+            add_option("protect_leader",
+                       (f"Protect the leading {group_col}: “{leader}”",
+                        f"حماية الأكبر ضمن {group_col}: «{leader}»"),
+                       (leader, leader), groups[leader],
+                       (f"It is the largest single source of {measure}, so a given "
+                        "percentage improvement is worth more here than anywhere "
+                        "else — and so is a given percentage loss.",
+                        f"هو أكبر مصدر منفرد لـ {measure}، فأي تحسن بنسبة معينة "
+                        "يساوي هنا أكثر مما يساويه في أي مكان آخر، وكذلك أي خسارة "
+                        "بالنسبة نفسها."),
+                       evidence)
+        else:
+            add_option("largest_source",
+                       (f"Act on the largest source of {measure}: “{leader}”",
+                        f"التعامل مع أكبر مصدر لـ {measure}: «{leader}»"),
+                       (leader, leader), groups[leader],
+                       (f"It is the largest single source of {measure}, so a given "
+                        "percentage change moves the total more here than anywhere "
+                        "else. Whether that change should be up or down is not "
+                        "declared for this measure.",
+                        f"هو أكبر مصدر منفرد لـ {measure}، فأي تغير بنسبة معينة "
+                        "يحرك الإجمالي هنا أكثر من أي مكان آخر. وما إذا كان "
+                        "المطلوب زيادته أم خفضه غير معلن لهذا المقياس."),
+                       evidence)
         laggard = min(groups, key=groups.get)
-        if laggard != leader:
-            add_option("grow_laggard",
-                       (f"Grow the smallest {group_col}: “{laggard}”",
-                        f"تنمية الأصغر ضمن {group_col}: «{laggard}»"),
-                       (laggard, laggard), groups[laggard],
-                       ("Smallest current contribution, so the same percentage "
-                        "improvement moves the total least — but it reduces "
-                        "dependence on the leader.",
-                        "أصغر مساهمة حالية، فالتحسن بالنسبة نفسها يحرك الإجمالي "
-                        "أقل من غيره، لكنه يقلل الاعتماد على الأكبر."),
-                       [])
-    declining = [c for c in diag.get("contributions", []) if c["change"] < 0]
-    if declining:
-        worst = min(declining, key=lambda c: c["change"])
-        add_option("recover_decline",
-                   (f"Reverse the decline in “{worst['group']}”",
-                    f"عكس التراجع في «{worst['group']}»"),
-                   (worst["group"], worst["group"]), abs(worst["change"]),
-                   (f"This segment moved {worst['change']:,.2f} against the overall "
-                    "direction; recovering part of that is a defined, bounded target.",
-                    f"تحركت هذه الشريحة بمقدار {worst['change']:,.2f} عكس الاتجاه "
-                    "العام، واسترداد جزء من ذلك هدف محدد ومحدود."),
-                   ["c_totalchange"])
+        # Growing the smallest source of a measure where less is better
+        # would be advice to cause more of it, so it is not offered.
+        if laggard != leader and better != "lower":
+            if better == "higher":
+                add_option("grow_laggard",
+                           (f"Grow the smallest {group_col}: “{laggard}”",
+                            f"تنمية الأصغر ضمن {group_col}: «{laggard}»"),
+                           (laggard, laggard), groups[laggard],
+                           ("Smallest current contribution, so the same percentage "
+                            "improvement moves the total least — but it reduces "
+                            "dependence on the leader.",
+                            "أصغر مساهمة حالية، فالتحسن بالنسبة نفسها يحرك "
+                            "الإجمالي أقل من غيره، لكنه يقلل الاعتماد على الأكبر."),
+                           [])
+            else:
+                add_option("smallest_source",
+                           (f"Act on the smallest source of {measure}: "
+                            f"“{laggard}”",
+                            f"التعامل مع أصغر مصدر لـ {measure}: «{laggard}»"),
+                           (laggard, laggard), groups[laggard],
+                           ("Smallest current contribution, so the same percentage "
+                            "change moves the total least — and it reduces how "
+                            "much the total depends on one group.",
+                            "أصغر مساهمة حالية، فالتغير بالنسبة نفسها يحرك "
+                            "الإجمالي أقل من غيره، وهو يقلل اعتماد الإجمالي "
+                            "على مجموعة واحدة."),
+                           [])
+    # A group's change in a rate is a change in a sum of rates (A4): no
+    # option is built on it either.
+    contributions = [] if prep.get("measure_is_rate") else diag.get("contributions", [])
+    if better == "lower":
+        # The segment moving against the desired direction is the one that
+        # rose, not the one that fell.
+        rising = [c for c in contributions if c["change"] > 0]
+        if rising:
+            worst = max(rising, key=lambda c: c["change"])
+            add_option("curb_increase",
+                       (f"Curb the increase in “{worst['group']}”",
+                        f"كبح الزيادة في «{worst['group']}»"),
+                       (worst["group"], worst["group"]), abs(worst["change"]),
+                       (f"This segment added {worst['change']:,.2f} to {measure}, "
+                        "where less is better; holding part of that back is a "
+                        "defined, bounded target.",
+                        f"أضافت هذه الشريحة {worst['change']:,.2f} إلى {measure}، "
+                        "وهو مقياس كلما قلّ كان أفضل، وكبح جزء من تلك "
+                        "الزيادة هدف محدد ومحدود."),
+                       ["c_totalchange"])
+    else:
+        declining = [c for c in contributions if c["change"] < 0]
+        if declining:
+            worst = min(declining, key=lambda c: c["change"])
+            if better == "higher":
+                add_option("recover_decline",
+                           (f"Reverse the decline in “{worst['group']}”",
+                            f"عكس التراجع في «{worst['group']}»"),
+                           (worst["group"], worst["group"]), abs(worst["change"]),
+                           (f"This segment moved {worst['change']:,.2f} against the "
+                            "overall direction; recovering part of that is a "
+                            "defined, bounded target.",
+                            f"تحركت هذه الشريحة بمقدار {worst['change']:,.2f} عكس "
+                            "الاتجاه العام، واسترداد جزء من ذلك هدف محدد "
+                            "ومحدود."),
+                           ["c_totalchange"])
+            else:
+                add_option("largest_movement",
+                           (f"Act on the largest movement against the overall "
+                            f"direction: “{worst['group']}”",
+                            f"التعامل مع أكبر تحرك عكس الاتجاه العام: "
+                            f"«{worst['group']}»"),
+                           (worst["group"], worst["group"]), abs(worst["change"]),
+                           (f"This segment moved {worst['change']:,.2f} against the "
+                            "overall direction, which makes it the largest single "
+                            "movement to look into. Which direction is better is "
+                            "not declared for this measure.",
+                            f"تحركت هذه الشريحة بمقدار {worst['change']:,.2f} عكس "
+                            "الاتجاه العام، وهو أكبر تحرك منفرد يستحق الفحص. "
+                            "والاتجاه الأفضل غير معلن لهذا المقياس."),
+                           ["c_totalchange"])
 
     forecast = pred.get("forecast") or []
     if forecast:
@@ -3156,21 +3789,32 @@ def prescriptive(ctx, gateway=None):
     best = options[0]
     runner_up = options[1] if len(options) > 1 else None
     margin = (best["expected_gain"] - runner_up["expected_gain"]) if runner_up else None
+    if margin is not None:
+        calcs.append({"id": "c_margin", "name": "margin_over_next_option", "value": round(margin, 2),
+                      "method": "best option's expected gain minus the next option's"})
 
+    anything_stated = any(o["uplift_source"] == "stated" or o["cost"] is not None
+                          for o in options)
     claims.append(_claim(
         ctx, "cl_recommendation", "recommendation",
-        f"Recommended action: {best['title']}. On the same {PLANNING_UPLIFT:.0%} "
-        f"improvement applied to every option, it is worth {best['expected_gain']:,.2f} "
-        f"in {measure}" +
+        f"Recommended action: {best['title']}. "
+        + (f"On the uplifts and costs stated for this run, it is worth "
+           f"{best['expected_gain']:,.2f} net in {measure}"
+           if anything_stated else
+           f"On the same assumed {PLANNING_UPLIFT:.0%} improvement applied to every "
+           f"option, it is worth an illustrative {best['expected_gain']:,.2f} in {measure}") +
         (f", ahead of the next option by {margin:,.2f}." if margin else ".") +
         " This is a recommendation under a stated assumption, not an observed "
         "outcome.",
-        f"الإجراء الموصى به: {shown(best, 'title')}. عند تطبيق التحسن نفسه بنسبة "
-        f"{PLANNING_UPLIFT:.0%} على كل خيار، تبلغ قيمته {best['expected_gain']:,.2f} "
-        f"في {measure}" +
+        f"الإجراء الموصى به: {shown(best, 'title')}. "
+        + (f"وفق نسب التحسن والتكاليف المعلنة لهذا التحليل، تبلغ قيمته الصافية "
+           f"{best['expected_gain']:,.2f} في {measure}"
+           if anything_stated else
+           f"عند تطبيق التحسن المفترض نفسه بنسبة {PLANNING_UPLIFT:.0%} على كل خيار، "
+           f"تبلغ قيمته التوضيحية {best['expected_gain']:,.2f} في {measure}") +
         (f"، متقدماً على الخيار التالي بمقدار {margin:,.2f}." if margin else ".") +
         " وهذه توصية قائمة على افتراض معلن، لا نتيجة مشاهدة.",
-        best["evidence"]))
+        best["evidence"] + (["c_margin"] if margin is not None else [])))
     claims.append(_claim(
         ctx, "cl_assumption", "assumption",
         f"Every option is scored with the same {PLANNING_UPLIFT:.0%} improvement "
@@ -3181,6 +3825,21 @@ def prescriptive(ctx, gateway=None):
         "لذلك يبيّن الترتيب أين يكون الأثر الأكبر، لا أي الخيارات أسهل تحقيقاً؛ "
         "فهذا الحكم يحتاج إلى بيانات تكلفة وجدوى لا تتضمنها هذه البيانات.",
         [f"c_option_{best['key']}"]))
+    if better is None:
+        # Said once, where the recommendation is: a ranking by size that
+        # reads like a ranking by benefit is the defect this guards.
+        claims.append(_claim(
+            ctx, "cl_direction", "limitation",
+            f"No glossary entry declares whether a higher or lower {measure} is "
+            "better, so these options are ranked by the size of the change they "
+            "would make, not by the benefit of making it. Declaring that direction "
+            "beside the definition is what turns a ranking by size into a ranking "
+            "by improvement.",
+            f"لا يُعلن أي تعريف في المعجم ما إذا كان ارتفاع {measure} أفضل أم "
+            "انخفاضه، فتُرتَّب هذه الخيارات بحجم التغير الذي تُحدثه لا بالفائدة منه. "
+            "وإعلان ذلك الاتجاه بجانب التعريف هو ما يحوّل الترتيب بالحجم إلى ترتيب "
+            "بالتحسن.",
+            ["c_direction"]))
 
     if arabic:
         facts = [f"إجمالي {measure} هو {prep['total']:,.2f}."]
@@ -3203,12 +3862,30 @@ def prescriptive(ctx, gateway=None):
             facts.append(f"Next period is forecast at {forecast[0]['value']:,.2f}.")
         facts.append(f"The recommended action is: {best['title']}.")
     goal = ctx.get("goal", "the analysis")
-    if not gateway:
+    from server.model_privacy import blocks_model, notice
+    private = blocks_model(privacy=ctx.get("privacy"), merged=ctx.get("merge"),
+                           texts=[goal, *facts])
+    if private:
+        # Aggregated sentences can still contain a raw identifying group
+        # label. Neither a provider nor a router receives those sentences.
+        narration = {"text": " ".join(facts), "source": "deterministic",
+                     "privacy_reason": notice(report_language(ctx))}
+    elif not gateway:
         narration = {"text": " ".join(facts), "source": "deterministic"}
-    elif arabic:
-        narration = gateway.narrate(goal, facts, language="ar")
     else:
-        narration = gateway.narrate(goal, facts)
+        narration = gateway.narrate(goal, facts, language="ar" if arabic else "en")
+        if (narration.get("source") == "model"
+                and orchestration.grounded(narration.get("text"), facts) is None):
+            # The model added a figure that is not in the facts, or said
+            # nothing. The summary is then the facts themselves, and the
+            # report says so (audit finding, 22 October).
+            narration = {"text": " ".join(facts), "source": "deterministic",
+                         "grounding_reason": _say(
+                             ctx, "The model's summary was set aside because it stated "
+                                  "a figure that is not in the verified facts; the "
+                                  "summary above is the facts themselves.",
+                             "استُبعد ملخص النموذج لأنه ذكر رقماً ليس في الحقائق المتحقق "
+                             "منها؛ والملخص أعلاه هو الحقائق نفسها.")}
 
     if arabic:
         lines = ["| الخيار | الهدف | المكسب المتوقع | السبب |", "| --- | --- | --- | --- |"]
@@ -3242,18 +3919,94 @@ def prescriptive(ctx, gateway=None):
                            f"{closeness:.0%} من قيمة الخيار الأول."
                            + (" وهذا تقارب يجعل التكلفة والجدوى هما الحكم، لا هذا "
                               "الترتيب.*" if closeness < 0.20 else "*"))]
+    # The decision record (A13): one structured object per recommendation,
+    # persisted with the run, completed by the sensitivity stage (its
+    # uncertainty) and by the approval gate (its approver). No stage
+    # approves anything.
+    low, high = inputs["uplift_range"]
+    costed = [o for o in options if o["cost"] is not None or o["key"] == "hold_course"]
+    all_costed = len(costed) == len(options)
+    if better and all_costed:
+        basis, basis_text = "value", ("ranked by net value: direction declared and every cost stated",
+                                      "مرتب حسب القيمة الصافية: الاتجاه معلن وكل التكاليف محددة")
+    elif not better:
+        basis, basis_text = "size_no_direction", ("ranked by size of change: no direction declared for the measure",
+                                                  "مرتب حسب حجم التغير: لم يُعلن اتجاه للمقياس")
+    else:
+        basis, basis_text = "size_no_cost", ("ranked by size of change: cost not stated for every option",
+                                             "مرتب حسب حجم التغير: التكلفة غير محددة لكل الخيارات")
+    decision = {
+        "decision_id": f"{ctx.get('run_id', 'run')}:{best['key']}",
+        "issue": (diag.get("headline") or desc.get("headline") or ""),
+        "scope": best["target"],
+        "evidence": best["evidence"] + (["c_margin"] if margin is not None else []),
+        "risk": {"measure": measure, "observed": best["base_value"],
+                 "basis": "current total of the target in the data; not a probability"},
+        "alternatives": [{key: o[key] for key in ("key", "title", "target", "base_value",
+                                                  "uplift", "uplift_source", "cost",
+                                                  "expected_gain", "evidence")}
+                         for o in options],
+        "expected_impact": {"low": round(best["base_value"] * low - (best["cost"] or 0.0), 2),
+                            "high": round(best["base_value"] * high - (best["cost"] or 0.0), 2),
+                            "uplift_range": [low, high],
+                            "label": "stated" if best["uplift_source"] == "stated" else "illustrative"},
+        "cost": {"stated_for": [o["target"] for o in options if o["cost"] is not None],
+                 "not_stated_for": [o["target"] for o in options
+                                    if o["cost"] is None and o["key"] != "hold_course"]},
+        "constraints": [],
+        "uncertainty": None,
+        "recommended_action": best["title"] if basis == "value" else None,
+        "recommendation_basis": basis,
+        "approval": None,
+        "audit": {"run_id": ctx.get("run_id"), "snapshot": ctx["collector"].get("snapshot"),
+                  "report_language": report_language(ctx)},
+    }
+    if arabic:
+        lines += ["", "## سجل القرار", "",
+                  f"- **المعرّف:** {decision['decision_id']}",
+                  f"- **النطاق:** {shown(best, 'target')}",
+                  f"- **الأساس:** {basis_text[1]}",
+                  f"- **الأثر المتوقع:** من {decision['expected_impact']['low']:,.2f} إلى "
+                  f"{decision['expected_impact']['high']:,.2f} في {measure} ضمن نطاق تحسن "
+                  f"{low:.0%} إلى {high:.0%}",
+                  f"- **التكلفة:** " + ("محددة لكل الخيارات" if all_costed else
+                                        "غير محددة لـ " + "، ".join(decision['cost']['not_stated_for'])),
+                  "- **القيود:** لم تُسجَّل؛ يضيفها المالك قبل الاعتماد",
+                  "- **الاعتماد:** تكتبه بوابة الاعتماد، لا أي مرحلة"]
+    else:
+        lines += ["", "## Decision record", "",
+                  f"- **Id:** {decision['decision_id']}",
+                  f"- **Scope:** {best['target']}",
+                  f"- **Basis:** {basis_text[0]}",
+                  f"- **Expected impact:** {decision['expected_impact']['low']:,.2f} to "
+                  f"{decision['expected_impact']['high']:,.2f} in {measure} across an uplift range "
+                  f"of {low:.0%} to {high:.0%}",
+                  "- **Cost:** " + ("stated for every option" if all_costed else
+                                    "not stated for " + ", ".join(decision['cost']['not_stated_for'])),
+                  "- **Constraints:** none recorded; the owner adds them before approval",
+                  "- **Approval:** written by the approval gate, never by a stage"]
+
     headline = _say(ctx,
                     f"We recommend: {best['title']}. It is worth about "
-                    f"{best['expected_gain']:,.0f} in {measure} — more than any other "
-                    f"option we compared.",
+                    f"{best['expected_gain']:,.0f} in {measure}, "
+                    + ("on the uplifts and costs stated for this run"
+                       if anything_stated else
+                       f"illustrative at an assumed {PLANNING_UPLIFT:.0%} change")
+                    + " — more than any other option we compared.",
                     f"نوصي بـ: {shown(best, 'title')}. وقيمته نحو "
-                    f"{best['expected_gain']:,.0f} في {measure}، وهي أكبر من أي خيار "
-                    "آخر قارنّاه.")
+                    f"{best['expected_gain']:,.0f} في {measure}، "
+                    + ("وفق نسب التحسن والتكاليف المعلنة لهذا التحليل"
+                       if anything_stated else
+                       f"قيمةً توضيحية عند تغيّر مفترض بنسبة {PLANNING_UPLIFT:.0%}")
+                    + "، وهي أكبر من أي خيار آخر قارنّاه.")
     return _result(
         "succeeded", headline,
         output={"headline": headline, "options": options, "recommendation": best,
+                "decision": decision, "assumptions": inputs,
                 "exec_summary": narration["text"],
                 "exec_summary_source": narration["source"],
+                "exec_summary_privacy_reason": narration.get("privacy_reason"),
+                "exec_summary_grounding_reason": narration.get("grounding_reason"),
                 # Who chose the narrator, when something did. The report
                 # already names which model wrote the summary; why that
                 # one belongs beside it (ADR 0017).
@@ -3271,10 +4024,33 @@ def validator(ctx):
     prep = ctx["preparer"]
     checks = []
     if prep["groups"]:
-        reconciled = abs(sum(prep["groups"].values()) - prep["total"]) < 0.01
+        # Recomputed here from the rows rather than added up from the
+        # preparer's own figures: an independent sum reaching the same
+        # total is what this check is for, and it also catches a published
+        # group figure the rows do not support in a breakdown whose sum
+        # still adds up. The per-group rounding that used to make this
+        # check fail on a wide breakdown was removed at its source in the
+        # preparer, so the tolerances here stay fixed - a cent on the sum,
+        # half a cent on any one group - rather than growing with the data.
+        measure, group_col = prep["measure"], prep["group_col"]
+        collected = {}
+        for row in _rows(ctx):
+            value = row.get(measure)
+            if value is not None:
+                collected.setdefault(row[group_col], []).append(value)
+        recomputed = {key: math.fsum(values) for key, values in collected.items()}
+        summed_groups = math.fsum(recomputed.values())
+        drift = max((abs(value - prep["groups"].get(key, 0.0))
+                     for key, value in recomputed.items()), default=0.0)
+        reconciled = (set(recomputed) == set(prep["groups"])
+                      and drift <= 0.005
+                      and abs(summed_groups - prep["total"]) < 0.01)
         checks.append({"name": "group_totals_reconcile", "passed": reconciled,
-                       "detail": f"Σ(groups)={sum(prep['groups'].values()):,.2f} vs "
-                                 f"total={prep['total']:,.2f}"})
+                       "detail": f"Σ(groups)={summed_groups:,.2f} vs "
+                                 f"total={prep['total']:,.2f}; recomputed "
+                                 f"{len(recomputed)} group total(s), largest "
+                                 f"difference from the published figure "
+                                 f"{drift:.4f}"})
     clean = ctx["cleaner"]
     checks.append({"name": "row_accounting",
                    "passed": clean["rows_after"] + clean["dropped"] == clean["rows_before"],
@@ -3315,6 +4091,21 @@ def validator(ctx):
                   for cl in ctx.get(stage + "_result", {}).get("claims", [])]
     unsupported = [cl["id"] for cl in all_claims
                    if not set(cl.get("evidence", [])) <= all_calc_ids]
+    # A claim may cite a calculation and still state a different number
+    # (assessment A6). Every figure of three or more significant digits in a
+    # claim must match a cited calculation's value, allowing the roundings
+    # and the percent and per-thousand scalings the stages write.
+    by_id = {c["id"]: c for stage in evidence_stages(ctx)
+             for c in ctx.get(stage + "_result", {}).get("calculations", [])}
+    mismatched = [cl["id"] for cl in all_claims
+                  if set(cl.get("evidence", [])) <= all_calc_ids
+                  and not claim_figures_match(cl, by_id)]
+    checks.append({"name": "claim_figures_match_evidence", "passed": not mismatched,
+                   "detail": (_say(ctx, "Every figure in a claim is a figure it cites.",
+                                   "كل رقم في استنتاج هو رقم يستشهد به.")
+                              if not mismatched else
+                              _say(ctx, "Claims whose figures are not in their evidence: ",
+                                   "استنتاجات أرقامها ليست في أدلتها: ") + ", ".join(mismatched))})
     checks.append({"name": "every_claim_has_evidence", "passed": not unsupported,
                    "detail": (_say(ctx, "All claims trace to calculations.",
                                    "كل الاستنتاجات تعود إلى عمليات حسابية.")
@@ -3339,7 +4130,7 @@ def validator(ctx):
         total_change = next(
             (c["value"] for c in ctx["diagnostic_result"]["calculations"]
              if c["id"] == "c_totalchange"), None)
-        summed = sum(item["change"] for item in contributions)
+        summed = math.fsum(item["change"] for item in contributions)
         reconciled = total_change is not None and abs(summed - total_change) < 0.01
         checks.append({"name": "change_decomposition_reconciles", "passed": reconciled,
                        "detail": f"Σ(segment changes)={summed:,.2f} vs "
@@ -3680,6 +4471,11 @@ def reporter(ctx):
             source=NARRATOR_AR.get(source, source) if arabic else source,
             routing=_routing_note(ctx["prescriptive"].get("exec_summary_routing"),
                                   source, language)),
+        *([ctx["prescriptive"]["exec_summary_privacy_reason"]]
+          if ctx["prescriptive"].get("exec_summary_privacy_reason") else []),
+        *([ctx["prescriptive"]["exec_summary_grounding_reason"]]
+          if ctx["prescriptive"].get("exec_summary_grounding_reason") else []),
+        *orchestration.report_section(ctx.get("orchestration"), language),
         "",
         text["questions"],
         text["questions_head"],
@@ -3720,7 +4516,8 @@ def reporter(ctx):
               "", text["metrics_head"], "| --- | --- | --- |"]
     for stage in evidence_stages(ctx):
         for calc in ctx.get(stage + "_result", {}).get("calculations", []):
-            lines.append(f"| {calc['name']} | {calc['value']} | {calc['method']} |")
+            lines.append(report_display.calculation_row(
+                calc, language, builtin=stage in EVIDENCE_STAGES))
     if arabic:
         lines += ["", AR_METHODS_NOTE]
 
@@ -3754,11 +4551,13 @@ def reporter(ctx):
                              f"{', '.join(claim['evidence'])} | {claim['status']} |")
     lines += ["", text["charts"]]
     for chart in ctx["visuals"]["charts"]:
-        lines.append(f"- **{chart['title']}** ({chart['type']}): {chart['alt']}")
+        kind = report_display.chart_type(chart["type"], language)
+        lines.append(f"- **{chart['title']}** ({kind}): {chart['alt']}")
     lines += ["", text["validation"], ctx["validator_result"]["summary"]]
     for check in ctx["validator_result"]["quality_checks"]:
         verdict = text["pass"] if check["passed"] else text["fail"]
-        lines.append(f"- {verdict}: {check['name']}: {check['detail']}"
+        caption, detail = report_display.check(check, language)
+        lines.append(f"- {verdict}: {caption}: {detail}"
                      if arabic else
                      f"- {verdict} — {check['name']}: {check['detail']}")
     lines += ["", text["limits"]]

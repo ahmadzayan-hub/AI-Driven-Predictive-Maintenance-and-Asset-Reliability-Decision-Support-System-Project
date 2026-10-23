@@ -3,6 +3,7 @@ import { appendEvents, snapshotEvents } from '../features/runs/runEvents'
 import { planRoles, roleBand } from '../features/runs/pipeline'
 import { reportCalculations } from '../features/runs/evidence'
 import { runFixture } from './run-fixture'
+import { collaborationEvents, finishedTasks, focusTask, groupState, handoffDirection, isWorking } from '../features/runs/collaboration'
 
 describe('observations of durable run snapshots', () => {
   it('does not invent stage-start events between observed snapshots', () => {
@@ -36,6 +37,50 @@ describe('observations of durable run snapshots', () => {
     const event = snapshotEvents(null, runFixture())[0]
     expect(appendEvents([], [event, event])).toHaveLength(1)
     expect(appendEvents([], Array.from({ length: 130 }, (_, i) => ({ ...event, id: String(i) })))).toHaveLength(120)
+  })
+})
+
+describe('collaboration state is observed, not simulated', () => {
+  const task = runFixture().tasks[0]
+  it('prioritises failure and review, while counting all terminal outcomes as finished', () => {
+    const tasks = ['succeeded', 'skipped', 'cancelled', 'pending', 'running', 'awaiting_approval', 'failed']
+      .map((state) => ({ ...task, id: state, state }))
+    expect(focusTask(tasks)?.state).toBe('failed')
+    expect(groupState(tasks)).toBe('failed')
+    expect(focusTask(tasks.slice(0, -1))?.state).toBe('awaiting_approval')
+    expect(finishedTasks(tasks)).toBe(4)
+    expect(groupState(tasks.slice(0, 3))).toBe('cancelled')
+    expect(groupState([{ ...task, state: 'future_state' }])).toBe('future_state')
+    expect(focusTask([])).toBeUndefined()
+    expect(finishedTasks([])).toBe(0)
+  })
+  it('never animates queued, paused, disconnected, or terminal analyses as working', () => {
+    const running = runFixture({ state: 'running', tasks: [{ ...task, state: 'running' }] })
+    expect(isWorking(running, false)).toBe(true)
+    expect(isWorking(running, true)).toBe(false)
+    expect(isWorking({ ...running, paused: true }, false)).toBe(false)
+    for (const state of ['queued', 'awaiting_approval', 'completed', 'partially_completed', 'failed', 'cancelled'] as const) {
+      expect(isWorking({ ...running, state }, false)).toBe(false)
+    }
+    expect(isWorking(runFixture({ state: 'running' }), false)).toBe(false)
+  })
+  it('rejects another run and missing stages without modifying retained timestamps', () => {
+    const run = runFixture({ tasks: [{ ...task, state: 'succeeded' }] })
+    const valid = snapshotEvents(null, run)
+    const stage = valid.find((event) => event.kind === 'stage.changed')!
+    expect(collaborationEvents(run, [...valid, { ...stage, runId: 'another' }, { ...stage, subject: 'missing' }])).toEqual(valid)
+  })
+  it('only gives observed starts and returned outcomes a directional signal', () => {
+    const base = snapshotEvents(null, runFixture())[0]
+    expect(handoffDirection()).toBeNull()
+    expect(handoffDirection(base)).toBeNull()
+    for (const state of ['pending', 'unknown']) {
+      expect(handoffDirection({ ...base, kind: 'stage.changed', state })).toBeNull()
+    }
+    expect(handoffDirection({ ...base, kind: 'stage.changed', state: 'running' })).toBe('outbound')
+    for (const state of ['succeeded', 'failed', 'skipped', 'cancelled', 'awaiting_approval']) {
+      expect(handoffDirection({ ...base, kind: 'stage.changed', state })).toBe('inbound')
+    }
   })
 })
 

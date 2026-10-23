@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Motion Studio — evidence-led video drafts</title>
+<link rel="stylesheet" href="./studio.css"></head>
+<body><header><h1 id="brand">Motion Studio</h1><p id="subtitle">Editable motion graphics draft • local data only • no automatic publishing</p></header>
+<main><section class="panel" aria-label="Project controls">
+<label for="lang">Language / اللغة</label><select id="lang"><option value="ar">العربية — RTL</option><option value="en">English</option></select>
+<label for="format">Format / المقاس</label><select id="format"><option value="wide">16:9 — 1280×720</option><option value="vertical">9:16 — 720×1280</option></select>
+<label for="headline">Headline / العنوان</label><input id="headline" maxlength="110" value="Asset Reliability AI — evidence before action">
+<label for="detail">Message / الرسالة</label><textarea id="detail" maxlength="320">From source data to tested predictions and reviewed decisions.</textarea>
+<label for="cta">Call to action / الخاتمة</label><input id="cta" maxlength="110" value="Explore the evidence.">
+<label for="narration">Voice-over / التعليق الصوتي (optional)</label><input id="narration" type="file" accept="audio/*">
+<label for="duration">Duration without audio / المدة بدون صوت (seconds)</label><input id="duration" type="number" min="3" max="180" value="15">
+<div class="toolbar"><button id="play">▶ Preview / معاينة</button><button class="secondary" id="stop">■ Stop</button><button id="record">● Export WebM</button></div>
+<div class="toolbar"><button class="secondary" id="save">Save JSON / حفظ</button><button class="secondary" id="load">Open JSON / فتح</button><input id="project" type="file" accept=".json,application/json" hidden></div>
+<label for="evidenceFile">Trusted application evidence pack / ملف أدلة من المنصة</label>
+<input id="evidenceFile" type="file" accept=".json,application/json">
+<div class="toolbar"><button id="exportEvidence" class="secondary">Export reviewed-source manifest / تصدير ملف الأدلة</button></div>
+<p class="help">Source references are imported from an authenticated platform workspace. Editing wording does not revalidate the new text. Export remains a draft requiring human review.</p>
+
+<label for="seek">Timeline / الخط الزمني</label><input id="seek" type="range" min="0" max="15" value="0" step=".05">
+<p class="help"><span id="clock">00:00 / 00:15</span> · 30fps canvas rendering · audio file stays in your browser</p>
+<div class="notice" id="status" role="status">Illustrative draft. No verified KPI, official RTA logo or operational footage is embedded.</div>
+<p class="help">This is an independent static editing MVP. Browser capture exports a genuine WebM file where supported, not MP4. For H.264/AAC MP4, use the documented local FFmpeg conversion or the separately approved render service.</p>
+</section>
+<section class="panel" aria-label="Video preview"><canvas id="screen" width="1280" height="720" aria-label="Preview of the motion graphics timeline"></canvas>
+<h2>Scene structure / المشاهد</h2>
+<p class="help">Hook (0–25%) → Evidence-led explanation (25–75%) → One next step (75–100%). Each scene remains aligned to the voice-over duration if a file is supplied.</p>
+<audio id="audio" preload="metadata" hidden></audio></section></main>
+<script src="./studio.js" defer></script></body></html>

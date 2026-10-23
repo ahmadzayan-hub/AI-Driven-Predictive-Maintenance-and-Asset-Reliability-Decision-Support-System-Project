@@ -112,6 +112,14 @@ class RaisingRuntime(ScriptedRuntime):
         raise RuntimeError("boom")
 
 
+class SleepingRuntime(ScriptedRuntime):
+    def run(self, message, tools, context):
+        super().run(message, tools, context)
+        import time
+        time.sleep(3.0)
+        return "too late"
+
+
 class NoRun:
     pass
 
@@ -299,6 +307,18 @@ class AssistantRuntimeTestCase(unittest.TestCase):
         self.assertEqual([s["tool"] for s in outcome["steps"]], ["remember"])
         self.assertEqual(self.session.agent.memory, {"memory_1": "coffee at 8"},
                          "what ran before the failure happened, and is on record")
+
+    def test_a_runtime_that_hangs_is_abandoned_and_the_rules_answer(self):
+        # G10: the wall-clock limit comes from the environment.
+        import os
+        os.environ["AGENTIC_OS_RUNTIME_TIMEOUT"] = "0.2"
+        self.addCleanup(os.environ.pop, "AGENTIC_OS_RUNTIME_TIMEOUT", None)
+        runtime = SleepingRuntime([("remember", {"information": "coffee at 8"})])
+        outcome = self.say(self.with_runtime(runtime), "do a few things for me")
+        self.assertEqual(outcome["source"], "rules")
+        self.assertIn("did not answer within 0.2 s", outcome["why"])
+        self.assertIn("rules answered instead", outcome["why"])
+        self.assertEqual([s["tool"] for s in outcome["steps"]], ["remember"])
 
     def test_a_runtime_cannot_delete_even_when_it_tries(self):
         self.session.agent.process_input("remember coffee at 8")

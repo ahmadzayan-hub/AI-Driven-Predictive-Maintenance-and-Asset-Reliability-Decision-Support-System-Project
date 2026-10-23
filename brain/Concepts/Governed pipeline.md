@@ -1,16 +1,16 @@
 ---
 type: concept
 aliases: [Specialist pipeline, Analytics pipeline]
-tags: [architecture]
+tags: [architecture, agents]
 status: active
-updated: 2026-10-16
+updated: 2026-10-20
 review_every_days: 30
-sources: [server/analytics.py, docs/AGENT_CATALOG.md, docs/adr/0009-hermes-and-the-specialist-roster.md]
+sources: [server/analytics.py, server/datasets.py, server/joins.py, docs/AGENT_CATALOG.md, docs/PROJECT_CHARTER.md, docs/adr/0009-hermes-and-the-specialist-roster.md]
 ---
 
 # Governed pipeline
 
-How [[Agentic OS]] analyses a dataset: twenty-one specialist stages in a fixed order, each computing something no other stage computes. The [[Hermes orchestrator]] sequences them, and the [[Approval gate]] closes the run.
+How [[Agentic OS]] analyses a dataset: specialist stages in a defined order, each contributing a distinct result. The [[Hermes orchestrator]] sequences them, and the [[Approval gate]] closes the run.
 
 ## The stages, in order
 
@@ -28,9 +28,11 @@ How [[Agentic OS]] analyses a dataset: twenty-one specialist stages in a fixed o
 
 ## Limits
 
-One CSV dataset per run, with a single measure, group and date. These are the gaps in the [[Analytics OS roadmap]].
+Runs accept the supported upload formats and can combine datasets through declared [[Dataset joins]]. The selected measure, breakdown and dates govern the report view; domain models have their own input contracts. A completed run does not establish future-failure prediction or independent maintenance-domain acceptance. The [[Analytics OS roadmap]] separates implemented features from those remaining acceptance gates.
 
 ## Related
 
 - [[Custom stages]]: how a domain stage joins the same audit.
 - [[Decision log]]: decisions 0007, 0009, 0010 and 0011 shaped the pipeline.
+- [[Data quality contracts]]: defines the input assumptions each stage must check.
+- [[Evidence and claims]]: connects computed results to statements a reviewer can inspect.

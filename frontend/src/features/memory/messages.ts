@@ -4,7 +4,6 @@ export const memoryMessages = definePack(
 {
   'memory.aria': 'Memory',
   'memory.title': 'Saved memory',
-  'memory.desc': 'Review and control what the agent remembers.',
   'memory.inputLabel': 'Information to remember',
   'memory.placeholder': 'e.g. My preferred language is English',
   'memory.category': 'Category',
@@ -26,7 +25,6 @@ export const memoryMessages = definePack(
   'memory.clearHistoryHelp': 'Removes this session’s history. Memory is kept.',
   'memory.deleteAll': 'Delete all memory',
   'memory.deleteAllHelp': 'Permanently removes everything saved.',
-  'memory.destructive': 'Destructive actions always require confirmation.',
   'memory.forgetTitle': 'Forget {key}?',
   'memory.forgetMessage': '“{text}” will be permanently removed. This cannot be undone.',
   'memory.forgetConfirm': 'Forget it',
@@ -37,7 +35,6 @@ export const memoryMessages = definePack(
 {
   'memory.aria': 'الذاكرة',
   'memory.title': 'الذاكرة المحفوظة',
-  'memory.desc': 'راجع ما يتذكره الوكيل وتحكّم فيه.',
   'memory.inputLabel': 'معلومة لحفظها',
   'memory.placeholder': 'مثال: لغتي المفضلة هي العربية',
   'memory.category': 'الفئة',
@@ -59,7 +56,6 @@ export const memoryMessages = definePack(
   'memory.clearHistoryHelp': 'يحذف سجل هذه الجلسة. تبقى الذاكرة.',
   'memory.deleteAll': 'حذف كل الذاكرة',
   'memory.deleteAllHelp': 'يحذف كل ما هو محفوظ نهائيًا.',
-  'memory.destructive': 'الإجراءات الحذفية تتطلب تأكيدًا دائمًا.',
   'memory.forgetTitle': 'هل تريد نسيان {key}؟',
   'memory.forgetMessage': 'سيُحذف «{text}» نهائيًا. لا يمكن التراجع عن هذا.',
   'memory.forgetConfirm': 'انسَه',

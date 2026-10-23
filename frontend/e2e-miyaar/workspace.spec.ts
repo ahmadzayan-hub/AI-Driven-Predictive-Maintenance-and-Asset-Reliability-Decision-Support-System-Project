@@ -28,7 +28,8 @@ async function boot(page: Page, locale: 'en' | 'ar' = 'en', theme = 'dark') {
     else if(path === '/api/pipelines') body = { profiles: [], stages: [] }
     await route.fulfill({ json: body })
   })
-  await page.goto('/')
+  // The app lands on the Command Centre (U12); the Miyaar workspace is the assistant.
+  await page.goto('/#/assistant')
   await expect(page.locator('.miyaar-hero')).toBeVisible()
   return state
 }

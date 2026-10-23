@@ -10,6 +10,10 @@ Two providers behind one interface:
   shared secret (HS256) or a JWKS endpoint (RS256/ES256). No password
   handling, no credential storage, no homemade auth.
 
+- DemoIdentity — the public demo (AGENTIC_OS_DEMO=1). No sign-in; every
+  visitor is one shared principal that can only read, and what it reads is
+  fictional data the server generated (server/demo.py).
+
 Fail-closed rule: when the deployment declares production
 (AGENTIC_OS_ENV=production) or demands auth (AGENTIC_OS_REQUIRE_AUTH=1)
 and no provider is configured, app startup raises instead of silently
@@ -108,6 +112,21 @@ class LocalIdentity:
 
     def authenticate(self, authorization_header):
         return LOCAL_PRINCIPAL
+
+
+# The demo's one principal. "viewer" carries read only, so every write
+# endpoint answers 403 through the same permission check as any viewer.
+DEMO_PRINCIPAL = Principal(subject="demo-showcase", role="viewer", provider="demo")
+
+
+class DemoIdentity:
+    mode = "demo"
+    requires_token = False
+
+    def authenticate(self, authorization_header):
+        # A token sent to the demo grants nothing: there is no one to
+        # sign in as, so it is ignored rather than verified.
+        return DEMO_PRINCIPAL
 
 
 class JwtIdentity:
@@ -234,8 +253,8 @@ def public_auth_config(identity, env=None):
     The publishable ("anon") key is designed to be public; the JWT
     secret, service-role key and database URL are never included."""
     env = os.environ if env is None else env
-    if identity.mode == "local":
-        return {"mode": "local", "flows": []}
+    if identity.mode in ("local", "demo"):
+        return {"mode": identity.mode, "flows": []}
     provider_url = (env.get("SUPABASE_URL") or "").rstrip("/")
     publishable_key = (
         env.get("SUPABASE_PUBLISHABLE_KEY") or env.get("SUPABASE_ANON_KEY") or ""
@@ -278,12 +297,32 @@ def build_identity(env=None):
     env = os.environ if env is None else env
     secret = env.get("AGENTIC_OS_JWT_SECRET") or env.get("SUPABASE_JWT_SECRET")
     jwks_url = env.get("AGENTIC_OS_JWKS_URL")
+    if env.get("AGENTIC_OS_DEMO") == "1":
+        # Both at once is a mistake either way round: a demo would hide the
+        # sign-in a real deployment needs, or real accounts would sit
+        # behind a public demo. Refuse rather than guess.
+        if secret or jwks_url:
+            raise AuthNotConfigured(
+                "AGENTIC_OS_DEMO=1 and a sign-in provider are both set. A demo "
+                "has no accounts; remove one of them.")
+        return DemoIdentity()
     if secret or jwks_url:
+        # A token minted for another application in the same project would
+        # otherwise verify here (assessment finding B7). Supabase deployments
+        # derive both from SUPABASE_URL; anything else states them.
+        supabase_url = (env.get("SUPABASE_URL") or "").rstrip("/")
+        audience = env.get("AGENTIC_OS_JWT_AUDIENCE") or ("authenticated" if supabase_url else None)
+        issuer = env.get("AGENTIC_OS_JWT_ISSUER") or (supabase_url + "/auth/v1" if supabase_url else None)
+        if not audience or not issuer:
+            raise AuthNotConfigured(
+                "A sign-in provider needs AGENTIC_OS_JWT_AUDIENCE and "
+                "AGENTIC_OS_JWT_ISSUER (or SUPABASE_URL, from which both are "
+                "derived); a token for another application must not verify here.")
         return JwtIdentity(
             secret=secret,
             jwks_url=jwks_url,
-            audience=env.get("AGENTIC_OS_JWT_AUDIENCE"),
-            issuer=env.get("AGENTIC_OS_JWT_ISSUER"),
+            audience=audience,
+            issuer=issuer,
             default_role=env.get("AGENTIC_OS_DEFAULT_ROLE", DEFAULT_ROLE),
             role_assignments=parse_role_assignments(
                 env.get("AGENTIC_OS_ROLE_ASSIGNMENTS")),
@@ -291,6 +330,22 @@ def build_identity(env=None):
                 c.strip() for c in env["AGENTIC_OS_ROLE_CLAIM"].split(",") if c.strip())
             if env.get("AGENTIC_OS_ROLE_CLAIM") else ROLE_CLAIMS,
         )
+    # On Vercel with no shared database each instance keeps its own SQLite
+    # file, so a writable single-owner site loses runs between requests
+    # ("Run not found"). The view-only demo is the one mode that works
+    # there unconfigured. AGENTIC_OS_DEMO=0 opts out.
+    if (env.get("VERCEL") == "1" and not env.get("DATABASE_URL")
+            and env.get("AGENTIC_OS_DEMO") != "0"):
+        return DemoIdentity()
+    if env.get("VERCEL") == "1" and env.get("DATABASE_URL"):
+        # A shared database on a public host with no sign-in would make
+        # every visitor the owner of every tenant's data. Refuse (audit
+        # finding, 22 October); AGENTIC_OS_DEMO=1 is the explicit opt-in
+        # for a view-only showcase on a shared database.
+        raise AuthNotConfigured(
+            "A hosted deployment with DATABASE_URL needs a sign-in provider: "
+            "set AGENTIC_OS_JWT_SECRET (or SUPABASE_JWT_SECRET) or "
+            "AGENTIC_OS_JWKS_URL, or AGENTIC_OS_DEMO=1 for a view-only demo.")
     production = env.get("AGENTIC_OS_ENV", "").lower() == "production"
     if production or env.get("AGENTIC_OS_REQUIRE_AUTH") == "1":
         raise AuthNotConfigured(

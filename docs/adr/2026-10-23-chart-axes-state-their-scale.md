@@ -8,16 +8,11 @@
 
 ## Problem
 
-The board listed four conformance items for the charts: axis integrity, a
-single axis, entity-stable colour and a table per chart. A code audit of every
-chart (`frontend/src/features/dashboard/charts.tsx`, the run report charts in
-`RunsView.tsx` and the maintenance preview) found three of the four already
-met. Every dashboard `Figure` requires a `table`, and the run report and
-maintenance charts carry their own numbers tables. No chart has a second value
-axis. Colour is the single accent, or fixed per condition in the maintenance
-donut, so no colour depends on the order data arrives in.
-
-Axis integrity was not met, in two ways:
+`fe660f0` (20 October) put the four dashboard chart conventions under test:
+a value scale that keeps zero, one scale per chart, colour from the datum, and
+a table per chart. Those tests cover the dashboard charts in
+`frontend/src/features/dashboard/charts.tsx`. They left two gaps in axis
+integrity:
 
 1. **The run report line chart drew its baseline at a fixed position, not at
    zero.** The scale ran from `min(values, 0)` and the axis line sat at the
@@ -43,11 +38,15 @@ Axis integrity was not met, in two ways:
 
 ## Consequences
 
-- Nine new tests guard it, four on the scale and five on rendering (`frontend/src/features/dashboard/charts.test.tsx`
-  and `frontend/src/tests/charts.test.ts`). Four of the five render tests were
-  run against the previous chart code and failed, so they test the change and
-  not the harness. The run report chart is covered through the shared scale,
-  not by its own render test, because it is internal to `RunsView.tsx`.
+- Nine new tests guard it, four on the scale and five on rendering, in the
+  existing `frontend/src/tests/charts.test.tsx`. They were not added as a new
+  file, because `fe660f0` measured that a 34th test file made unrelated
+  `findBy` queries time out. Four of the five render tests were run against the
+  previous chart code and failed, so they test the change and not the harness.
+  The run report chart is covered through the shared scale, not by its own
+  render test, because it is internal to `RunsView.tsx`.
+- The run report labels use `formatNumberIn(locale, …)`, so they follow the
+  report's language rather than the interface's, as its other text does.
 - The run report line chart's plot area moves 6 units in from the start edge to
   make room for its labels. Axes still read left to right in both languages.
 - Out of scope and still open on the board: message-first analytical captions,

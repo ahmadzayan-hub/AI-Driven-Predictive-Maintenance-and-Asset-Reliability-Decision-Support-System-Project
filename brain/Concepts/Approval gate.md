@@ -1,9 +1,9 @@
 ---
 type: concept
 aliases: [Approval-gated publishing]
-tags: [governance]
+tags: [governance, agents]
 status: active
-updated: 2026-10-16
+updated: 2026-10-20
 review_every_days: 60
 sources: [docs/OBSIDIAN_INTEGRATION.md, server/runs.py]
 ---
@@ -21,3 +21,5 @@ The gate is the product's version of a rule in [[Soul]]: people approve conseque
 - [[Governed pipeline]]: the gate is its final task.
 - [[Hermes orchestrator]]: it holds the gate.
 - [[Agent runtimes and MCP]]: no tool, framework or editor agent can approve on a person's behalf.
+- [[Managed identity]]: establishes who may approve a run.
+- [[Tenant isolation]]: keeps published notes within their run owner boundary.

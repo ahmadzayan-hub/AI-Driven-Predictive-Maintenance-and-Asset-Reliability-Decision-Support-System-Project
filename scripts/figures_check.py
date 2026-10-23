@@ -39,6 +39,8 @@ import zipfile
 from html import unescape
 from pathlib import Path
 
+# "06:00" is a time of day, not two figures.
+CLOCK = re.compile(r"(?<![\d.,:])\d{1,2}:\d{2}(?![\d:])")
 NUMBER = re.compile(r"(?<![\w.])[-+−]?\$?\d[\d,]*(?:\.\d+)?%?(?:\s?(?:thousand|million|billion|bn|[MBk]))?(?![\w])")
 # A figure run into the word before it, as text extraction does to table
 # cells ("Reactive7988.1 y"). Only forms that cannot be part of a name count:
@@ -106,6 +108,17 @@ def read_text(path):
 ARABIC_FIGURES = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹٬٫٪", "01234567890123456789,.%")
 # An amount in brackets is a negative, as accounts write it: "(1,200)" is -1,200.
 ACCOUNTING_NEGATIVE = re.compile(r"\((\$?\d{1,3}(?:,\d{3})+(?:\.\d+)?|\$\d+(?:\.\d+)?)\)")
+# Money in any currency is read the way "$" is: "€1,150", "£2,750", "AED 96,000",
+# "48,500 AED" and "د.إ 380" all become "$…". Only "$" was read before benchmark E.
+CURRENCY_BEFORE = re.compile(r"(?:€|£|\bAED\s?|د\.إ\s?)(?=\d)")
+CURRENCY_AFTER = re.compile(r"(?<![\w.$])(\d[\d,]*(?:\.\d+)?)\s?(?:AED\b|د\.إ)")
+
+
+def money(text):
+    """Every currency written as "$", so amounts compare by value and unit."""
+    return CURRENCY_BEFORE.sub("$", CURRENCY_AFTER.sub(r"$\1", text))
+
+
 # A figure the text calls approximate may be rounded further than its digits show.
 APPROXIMATE = re.compile(r"(?:\b(?:about|around|roughly|approximately|nearly|almost|some|close to)|~|≈|"
                          r"حوالي|حوالى|نحو|قرابة)\s*(\$?\d[\d,]*(?:\.\d+)?%?(?:\s?(?:thousand|million|billion|bn|[MBk]))?)(?![\w])",
@@ -116,7 +129,7 @@ def normalise(text):
     """One line of text with plain spaces, minus signs and Western digits, as the checks read it."""
     # Time stamps such as "[10.0–15.5 s]" in a clip transcript are not figures.
     text = re.sub(r"\[\d+(?:\.\d+)?\s?[–-]\s?\d+(?:\.\d+)?\s?s\]", " ", text)
-    text = text.translate(ARABIC_FIGURES)
+    text = money(text.translate(ARABIC_FIGURES))
     text = ACCOUNTING_NEGATIVE.sub(r"-\1", text)
     return " ".join(text.replace("\u00a0", " ").replace("−", "-").split())
 
@@ -192,8 +205,10 @@ def variants(value):
 def found_in(text, value, numbers=None):
     """How a register value appears in a text: an exact form, or a written
     figure that is the same number rounded or abbreviated."""
+    text = CLOCK.sub(" ", text)
     for form in variants(value):
-        if re.search(r"(?<![\d.,])" + re.escape(form) + r"(?![\d])", text):
+        # Not "5" inside "5.2", nor "1,656" inside "1,656.2".
+        if re.search(r"(?<![\d.,])" + re.escape(form) + r"(?![\d]|[.,]\d)", text):
             return form
     target = value_of(value)
     if target is None:
@@ -284,6 +299,7 @@ def calculations_in(text):
 def numbers_in(text, keep_small=False):
     """Figures in a text, leaving out small counts and years."""
     seen = set()
+    text = CLOCK.sub(" ", text)
     matches = list(NUMBER.finditer(text))
     glued = list(GLUED.finditer(text))
     # A glued figure replaces any shorter number found inside it.
@@ -318,21 +334,37 @@ def sourced_by(token, pool):
 CUES = {
     "ratio": re.compile(r"\b(each|per|every|average|averages|mean|apiece)\b|لكل|متوسط", re.I),
     "change": re.compile(r"\b(growth|grew|grow|grows|rise|rose|risen|up|down|fell|fall|gain|drop|dropped|change|"
-                         r"increase[sd]?|decrease[sd]?)\b|نمو|ارتفع|انخفض|زيادة", re.I),
+                         r"increase[sd]?|decrease[sd]?|declined?|reduction|reduced|fewer)\b|نمو|ارتفع|انخفض|تراجع|زيادة", re.I),
     "share": re.compile(r"\b(share|of all|proportion|percent of)\b|نسبة|حصة", re.I),
 }
+# Which way a change went decides its base: a fall is measured against the
+# larger, earlier figure and a rise against the smaller. Prose writes the size
+# of a fall ("a fall of 12.0%"), so the direction comes from the words.
+FALL = re.compile(r"\b(fell|falls?|fallen|drop(s|ped)?|down|declin(e|ed|es|ing)|decreas(e|ed|es|ing)|"
+                  r"reduc(tion|ed)|fewer|lower)\b|انخفض|تراجع", re.I)
+RISE = re.compile(r"\b(rose|rises?|risen|gr[eo]w(s|th)?|grown|up|gain(s|ed)?|increas(e|ed|es|ing)|more|higher)\b|ارتفع|زيادة|نمو", re.I)
 # "That is growth of 13.4%": the figures are in the sentence before.
 BACK_REFERENCE = re.compile(r"^(that|this|it|these|those|which)\b|^(هذا|هذه|وهذا|وهذه)", re.I)
 SENTENCES = re.compile(r"(?<=[.!?؟])\s+")
 # A figure this close to a derivation of its sentence's own inputs is a slip
 # in that derivation, not an unrelated number (chosen on benchmark A, ADR 0027).
 SLIP_FACTOR = 2.0
+# "A decline of 3.4 percentage points": the gap between two percentages,
+# never their relative change.
+POINTS = r"\s*(?:percentage[ -]points?|points?|pp\b|نقطة مئوية|نقاط مئوية)"
 MAX_SENTENCE, MAX_FIGURES = 300, 6
 
 
-def _derivations(a, b):
+def _derivations(a, b, direction=None):
+    low, high = sorted((a, b))
+    if direction == "fall" and high:
+        change = [(high - low) / high, (low - high) / high, high - low, low - high]
+    elif direction == "rise" and low:
+        change = [(high - low) / low, high - low]
+    else:
+        change = [x for x in (a / b - 1 if b else None, b / a - 1 if a else None, a - b, b - a) if x is not None]
     return {"ratio": [x for x in (a / b if b else None, b / a if a else None) if x is not None],
-            "change": [x for x in (a / b - 1 if b else None, b / a - 1 if a else None, a - b, b - a) if x is not None],
+            "change": change,
             "share": [x for x in (a / b if b else None, b / a if a else None) if x is not None],
             "other": [a * b, a + b]}
 
@@ -382,7 +414,21 @@ def implied(token, sentence, previous, pool, register):
              if _words(re.sub(r"\(.*?\)", " ", r["label"])) and _words(re.sub(r"\(.*?\)", " ", r["label"])) <= words]
     inputs = _distinct(explicit + named)
     pairs = [(a, b) for i, a in enumerate(inputs) for b in inputs[i + 1:]]
-    if any(_close(token, c) for a, b in pairs for cs in _derivations(a, b).values() for c in cs):
+    falls, rises = bool(FALL.search(sentence)), bool(RISE.search(sentence))
+    direction = "fall" if falls and not rises else "rise" if rises and not falls else None
+    percents = _distinct([value_of(t) for t in numbers_in(sentence)
+                          if t != token and unit_of(t) == "%" and sourced_by(t, pool)])
+    if len(percents) >= 2 and re.search(re.escape(token) + POINTS, sentence, re.I):
+        gaps = [abs(a - b) for i, a in enumerate(percents) for b in percents[i + 1:]]
+        if any(_close(token, g) for g in gaps):
+            return "derived"
+        # The relative change written as points is the classic slip.
+        relative = [abs(a - b) / base * 100 for i, a in enumerate(percents) for b in percents[i + 1:]
+                    for base in (a, b) if base]
+        if any(_close(token, r) for r in relative):
+            return ("wrong", min(gaps, key=lambda g: abs(g - value_of(token))))
+        return None
+    if any(_close(token, c) for a, b in pairs for cs in _derivations(a, b, direction).values() for c in cs):
         return "derived"
     explicit = _distinct(explicit)
     families = [name for name, cue in CUES.items() if cue.search(sentence)]
@@ -390,7 +436,7 @@ def implied(token, sentence, previous, pool, register):
         return None
     written = value_of(token)
     candidates = [_as_written(token, c) for i, a in enumerate(explicit) for b in explicit[i + 1:]
-                  for f in families for c in _derivations(a, b)[f]]
+                  for f in families for c in _derivations(a, b, direction)[f]]
     candidates = [c for c in candidates if c and (c > 0) == (written > 0)]
     if not candidates or not written:
         return None
@@ -408,6 +454,7 @@ def load_register(path, value_column, label_columns):
 
 
 def check(register, docs, references=(), sourcing_only=False):
+    register = [{**r, "value": money(str(r["value"]).strip())} for r in register]
     texts = {str(d): read_text(d) for d in docs}
     combined = " ".join(texts.values())
     written = numbers_in(combined, keep_small=True)

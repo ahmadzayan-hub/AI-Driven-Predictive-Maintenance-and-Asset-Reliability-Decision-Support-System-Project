@@ -15,6 +15,13 @@ Check, and cite the place for each problem:
 4. **Causal language:** "drives", "causes" and "because" need a design that supports cause. Otherwise the claim must say association.
 5. **Scope and limits:** synthetic or sampled data, excluded records, unstable identifiers. Each limit is stated where its claim is made.
 6. **Recommendations:** each one traces to a finding with a figure. An illustrative saving is labelled as illustrative.
+7. **Maintenance and reliability method,** where the analysis is about assets. The figures can all be right and the method still wrong:
+   - **Availability** is on the basis it names: inherent counts corrective downtime only; operational or achieved counts planned work too. A figure that mixes them is a defect.
+   - **MTBF and failure rates** use the whole exposure: the running time of units that did not fail counts. Rates across fleets or assets are compared on exposure (per km, per operating hour, per cycle), not per unit, when usage differs.
+   - **Failure pattern decides the policy:** early failures after installation or overhaul are infant mortality (fix quality, burn-in), not wear-out; a rate that rises with age is wear-out (age-based replacement or condition monitoring), not a constant rate. An MTBF does not set an inspection interval for a wear-out mode.
+   - **Measures are judged on their own definition:** PM compliance within the scheduled window and tolerance, not "done some time in the year"; a target on the median is tested on the median; first-time fix links repeat visits; condition monitoring is judged by faults caught before functional failure and the warning time (P-F interval), not by alarm counts.
+   - **Strategy follows the consequence of failure, not the price of the part.** Run-to-failure is acceptable only where a failure has no safety, environmental or operational consequence (or is covered by redundancy). An item whose failure affects braking, signalling, fire, doors or other safety functions is safety-critical and needs a preventive or condition-based task, however cheap it is to replace. Check every run-to-failure decision for this.
+   - **Spares and backlog** are sized on lead-time demand, criticality and the cost of the asset out of service (spares), and on labour hours against crew capacity (backlog), not on averages or counts alone.
 
 ## What is a finding
 
@@ -31,6 +38,7 @@ Give each finding the one category that fits the conclusion the sentence draws (
 | `denominator` | computes a rate or average on the wrong base: the mean of each unit's own rate presented against or instead of the pooled ratio, or a share of the wrong total |
 | `arithmetic` | presents a figure as derived from others (growth, a ratio, a per-unit figure, a share, a difference) and computes it wrongly |
 | `unsourced_figure` | uses a number that is neither in the register nor computable from it, with no source given |
+| `domain_method` | applies a reliability or maintenance method wrongly (check 7) even though its figures are sourced and its sums hold |
 
 A sentence that does both, such as "this store's sales rose after its refit, so every refit will", is an **overclaim**: the conclusion is the generalisation. Reserve `causal_claim` for sentences whose conclusion is the cause itself.
 

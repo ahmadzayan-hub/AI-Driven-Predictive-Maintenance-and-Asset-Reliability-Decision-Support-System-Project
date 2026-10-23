@@ -1,4 +1,4 @@
-import { test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import { lastAgentBubble, openTab, sendMessage, skipOnboarding } from './helpers'
 
 // Captures the final interface for the documentation. Runs last in file
@@ -9,8 +9,11 @@ import { lastAgentBubble, openTab, sendMessage, skipOnboarding } from './helpers
 test.use({ contextOptions: { reducedMotion: 'reduce' } })
 
 test('capture interface screenshots', async ({ page }, testInfo) => {
+  // Desktop captures both languages and completes two real analyses. Give
+  // the whole capture sequence time without extending its individual waits.
+  test.setTimeout(testInfo.project.name === 'desktop' ? 90_000 : 30_000)
   await skipOnboarding(page)
-  await page.goto('/')
+  await page.goto('/#/assistant')
   const shot = (name: string) =>
     page.screenshot({ path: `../docs/screenshots/${testInfo.project.name}-${name}.png` })
   // A view is ready to capture once its skeletons have been replaced.
@@ -60,8 +63,13 @@ test('capture interface screenshots', async ({ page }, testInfo) => {
     // A report keeps the language its run was started in, so the Arabic
     // screenshot starts an Arabic run (ADR 0022).
     await page.getByRole('button', { name: 'كل التحليلات' }).click()
+    await expect(page.getByLabel('لغة التقرير', { exact: true })).toHaveValue('ar')
     await page.getByRole('button', { name: 'بدء التحليل' }).click()
-    await page.locator('pre.runreport--full[lang="ar"]').waitFor({ timeout: 20_000 })
+    const arabicReport = page.locator('.runreport--full.report-document[lang="ar"]')
+    await arabicReport.waitFor({ timeout: 20_000 })
+    await expect(arabicReport.getByRole('heading', { name: 'تقرير تحليل الأعمال: بيانات مبيعات تجريبية', exact: true })).toBeVisible()
+    await expect(arabicReport.getByRole('table', { name: 'المؤشرات الرئيسية', exact: true })).toBeVisible()
+    await expect(arabicReport.locator('pre')).toHaveCount(0)
     await page.getByRole('region', { name: 'موافقة مطلوبة' }).waitFor()
     await shot('runs-arabic-dark')
 
@@ -74,7 +82,7 @@ test('capture interface screenshots', async ({ page }, testInfo) => {
     // The Overview and Datasets views (ADR 0023), in Arabic and English.
     // The latest findings come from the Arabic run, and stay Arabic in
     // the English interface: a report keeps its language.
-    await page.getByRole('button', { name: /^نظرة عامة/ }).first().click()
+    await page.getByRole('button', { name: /^مركز القيادة/ }).first().click()
     await settled()
     await shot('overview-arabic-light')
     await page.getByRole('button', { name: 'تغيير اللغة' }).click()
@@ -89,7 +97,7 @@ test('capture interface screenshots', async ({ page }, testInfo) => {
     await theme('dark')
     await shot('datasets-dark')
   } else {
-    await openTab(page, /^Overview/)
+    await openTab(page, /^Command Centre/)
     await settled()
     await shot('overview-dark')
   }

@@ -35,12 +35,12 @@ test('a registered custom stage runs under the same gate, chosen by profile', as
 
   // Its own tab, named by its title, answering its own question.
   await page.getByRole('tab', { name: /Target Attainment Agent/ }).click()
-  await expect(page.getByRole('tabpanel')).toContainText('Did we hit the target?')
+  await expect(page.getByRole('tabpanel').getByRole('heading', { name: /Did we hit the target\?/ })).toBeVisible()
   await expect(page.getByRole('tabpanel')).toContainText('of the target')
 
   // And the comprehensive report — the thing that gets approved — carries it.
-  const full = page.locator('pre.runreport--full')
-  await expect(full).toContainText('## Custom stages')
+  const full = page.locator('.runreport--full.report-document')
+  await expect(full.getByRole('heading', { name: 'Custom stages', exact: true })).toBeVisible()
   await expect(full).toContainText('Target Attainment Agent')
-  await expect(full).toContainText('target_attainment.c_attainment')
+  await expect(full.getByRole('cell', { name: /target_attainment\.c_attainment/ }).first()).toBeVisible()
 })

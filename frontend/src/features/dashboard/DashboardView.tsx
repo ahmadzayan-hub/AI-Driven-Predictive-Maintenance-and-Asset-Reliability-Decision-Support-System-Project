@@ -7,8 +7,10 @@ import '../../shared/styles/analytics.css'
  *  and every choice live in the address, so a filtered page survives a
  *  reload and can be shared with someone who can open the run. */
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useReadOnly } from '../../shared/readOnly'
 import { useI18n } from '../../i18n'
 import { usePack } from '../../i18n/pack'
+import { PerformanceLegend, PerformanceValue, performanceTone } from '../../shared/components/PerformanceValue'
 import { dashMessages, type DashKey } from './messages'
 import { LiveFollow } from '../live/LiveFollow'
 import { api, ApiError } from '../../shared/api'
@@ -54,6 +56,7 @@ export function DashboardView({ runId, page, query, onNavigate, onOpenRun }: Das
 }
 
 function RunPicker({ onPick }: { onPick: (id: string) => void }) {
+  const readOnly = useReadOnly()
   const { t } = usePack(dashMessages)
   const [runs, setRuns] = useState<RunSummary[] | null>(null)
   const [failed, setFailed] = useState(false)
@@ -78,13 +81,13 @@ function RunPicker({ onPick }: { onPick: (id: string) => void }) {
             <h2 className="panel__title" id="dash-title">{t('dash.title')}</h2>
             <p className="panel__desc">{t('dash.pick')}</p>
           </div>
-          <a className="btn btn--primary" href="#/runs?source=upload&profile=maintenance"><Icon name="plus" size={16} />{t('dash.uploadMaintenance')}</a>
+          {readOnly ? null : <a className="btn btn--primary" href="#/runs?source=upload&profile=maintenance"><Icon name="plus" size={16} />{t('dash.uploadMaintenance')}</a>}
         </div>
         <div className="card">
           {failed ? (
             <><p role="alert" className="statusline statusline--error">{t('dash.failed')}</p><button type="button" className="btn btn--ghost" onClick={() => setRevision((v) => v + 1)}>{t('dash.retry')}</button></>
           ) : runs === null ? (
-            <div role="status" aria-label={t('dash.loading')} className="skeleton skeleton--line" />
+            <div role="status" aria-label={t('dash.loading')} className="skeleton skeleton--line"><span className="visually-hidden">{t('dash.loading')}</span></div>
           ) : runs.length === 0 ? (
             <p className="card__empty">{t('dash.none')}</p>
           ) : (
@@ -205,7 +208,7 @@ function Dashboard({ runId, page, query, onNavigate, onOpenRun }: {
     return (
       <section className="panel" aria-label={t('dash.title')}>
         <div className="panel__inner panel__inner--wide">
-          <div role="status" aria-label={t('dash.loading')} className="card">
+          <div role="status" aria-label={t('dash.loading')} className="card"><span className="visually-hidden">{t('dash.loading')}</span>
             <div className="skeleton skeleton--title" />
             <div className="skeleton skeleton--line" />
           </div>
@@ -219,7 +222,7 @@ function Dashboard({ runId, page, query, onNavigate, onOpenRun }: {
   return (
     <section className="panel" aria-labelledby="dash-title">
       <div className="panel__inner panel__inner--wide">
-        <div className="panel__header">
+        <div className="panel__header dash-header">
           <div>
             <p className="eyebrow">{t('dash.title')}</p>
             <h2 className="panel__title" id="dash-title" dir="auto">{run.data?.goal ?? runId}</h2>
@@ -294,6 +297,9 @@ function FilterBar({ fields, roles, state, setState }: {
   const listed = roles.texts.filter((field) => field.values && field.values.length > 1)
   const periods = fields.find((field) => field.name === roles.date)?.values?.filter(Boolean) ?? []
   const count = filterCount(state)
+  // Phones open on the figures: the filters fold away unless one is active.
+  // Folded until a filter is active, so the figures lead on every screen.
+  const [open, setOpen] = useState(count > 0)
 
   function toggle(column: string, value: string, on: boolean) {
     const values = new Set(state.filters[column] ?? [])
@@ -306,8 +312,9 @@ function FilterBar({ fields, roles, state, setState }: {
 
   return (
     <section className="card dash-filters" aria-labelledby="dash-filters-title">
+      <details open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary><h3 className="card__title" id="dash-filters-title">{t('dash.filters')}{count ? <span className="dash-filters__count">{formatNumber(count)}</span> : null}</h3></summary>
       <div className="dash-filters__head">
-        <h3 className="card__title" id="dash-filters-title">{t('dash.filters')}</h3>
         {count ? (
           <button type="button" className="btn btn--subtle" onClick={() => setState({ ...EMPTY, by: state.by, per: state.per, vs: state.vs })}>
             {t('dash.clear', { n: formatNumber(count) })}
@@ -365,6 +372,7 @@ function FilterBar({ fields, roles, state, setState }: {
           </p>
         ) : null}
       </div>
+      </details>
     </section>
   )
 }
@@ -375,7 +383,14 @@ function Problem({ message }: { message: string | null }) {
 
 function Loading() {
   const { t } = usePack(dashMessages)
-  return <div role="status" aria-label={t('dash.loading')} className="skeleton skeleton--line" />
+  return <div role="status" aria-label={t('dash.loading')} className="skeleton skeleton--line"><span className="visually-hidden">{t('dash.loading')}</span></div>
+}
+
+function TrendCoverage({ answer }: { answer: QueryAnswer | null }) {
+  const { t, formatNumber } = usePack(dashMessages)
+  return answer?.truncated ? <p className="field__help" role="status">{t('dash.trendTruncated', {
+    shown: formatNumber(answer.groups.length), total: formatNumber(answer.group_count),
+  })}</p> : null
 }
 
 /** A group table: label, values, records, and the way to its rows. */
@@ -437,10 +452,11 @@ function OverviewPage({ runId, roles, state, filters, setState }: PageProps) {
   return (
     <>
       <Problem message={totals.error ?? top.error ?? trend.error} />
+      <PerformanceLegend />
       <div className="kpis dash-kpis">
-        <div className="kpi"><span className="kpi__label">{t('dash.kpi.records')}</span><span className="kpi__value">{number(values[0])}</span></div>
-        <div className="kpi"><span className="kpi__label" dir="auto">{t('dash.kpi.total', { measure: m })}</span><span className="kpi__value">{number(total)}</span></div>
-        <div className="kpi"><span className="kpi__label" dir="auto">{t('dash.kpi.perRecord', { measure: m })}</span><span className="kpi__value">{number(values[2])}</span></div>
+        <div className="kpi"><span className="kpi__label">{t('dash.kpi.records')}</span><span className="kpi__value"><PerformanceValue tone={performanceTone(values[0])}><bdi>{number(values[0])}</bdi></PerformanceValue></span></div>
+        <div className="kpi"><span className="kpi__label" dir="auto">{t('dash.kpi.total', { measure: m })}</span><span className="kpi__value"><PerformanceValue tone={performanceTone(total)}><bdi>{number(total)}</bdi></PerformanceValue></span></div>
+        <div className="kpi"><span className="kpi__label" dir="auto">{t('dash.kpi.perRecord', { measure: m })}</span><span className="kpi__value"><PerformanceValue tone={performanceTone(values[2])}><bdi>{number(values[2])}</bdi></PerformanceValue></span></div>
         {leader && roles.breakdown ? (
           <div className="kpi">
             <span className="kpi__label" dir="auto">{t('dash.kpi.largest', { breakdown: roles.breakdown })}</span>
@@ -465,6 +481,7 @@ function OverviewPage({ runId, roles, state, filters, setState }: PageProps) {
                   }))} />}
               />
             )}
+            <TrendCoverage answer={trend.data} />
           </div>
         ) : null}
         {roles.breakdown ? (
@@ -556,6 +573,7 @@ function TrendPage({ runId, roles, state, filters, setState }: PageProps) {
   return (
     <>
       <Problem message={answer.error} />
+      <TrendCoverage answer={answer.data} />
       {answer.loading ? <Loading /> : (
         <div className="dash-grid">
           <div className="card">

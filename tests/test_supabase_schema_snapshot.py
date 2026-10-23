@@ -23,6 +23,7 @@ ADDITIVE = {
     "datasets": {"source_format": "TEXT", "row_count": "INTEGER",
                  "column_count": "INTEGER", "mapping_json": "TEXT",
                  "mapping_updated_at": "TEXT"},
+    "connectors": {"credential_id": "TEXT"},
 }
 
 
@@ -48,6 +49,21 @@ class SupabaseSchemaSnapshotTest(unittest.TestCase):
             for col, typ in columns.items():
                 with self.subTest(table=table, column=col):
                     self.assertRegex(matches[0], rf"\b{col}\s+{typ}\b")
+
+    def test_base_columns_keys_and_relationships_match_store(self):
+        # A table-name-only mirror can omit a field, weaken nullability or
+        # drop a tenant uniqueness constraint while appearing complete.
+        # Compare normalized DDL after removing explicitly migrated fields.
+        normalize = lambda value: re.sub(r"\s+", "", value).lower()
+        for statement in SCHEMA_STATEMENTS:
+            table = re.search(r"CREATE TABLE IF NOT EXISTS (\w+)", statement).group(1)
+            expected = statement.split("(", 1)[1].rsplit(")", 1)[0]
+            actual = re.search(rf"CREATE TABLE IF NOT EXISTS {table}\s*\((.*?)\);",
+                               self.sql, flags=re.DOTALL).group(1)
+            for column, kind in ADDITIVE.get(table, {}).items():
+                actual = re.sub(rf",\s*\b{column}\s+{kind}\b", "", actual)
+            with self.subTest(table=table):
+                self.assertEqual(normalize(actual), normalize(expected))
 
     def test_all_tables_are_inaccessible_to_direct_public_api(self):
         for table in TABLES:

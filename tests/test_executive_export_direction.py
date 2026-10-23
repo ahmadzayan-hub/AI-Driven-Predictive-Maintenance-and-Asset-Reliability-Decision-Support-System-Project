@@ -90,7 +90,7 @@ class ExecutiveExportDirectionTests(unittest.TestCase):
     def test_arabic_titles_labels_and_table_order_remain_explicitly_rtl(self):
         method = "(95.5) الجاهزية مقارنة بالهدف Availability_Pct"
         root = document("ar", [method])
-        for value in ("موجز الأدلة التنفيذي", "بيانات الموجز", "الطريقة", method):
+        for value in ("موجز قرارات الصيانة وموثوقية الأصول", "بيانات الموجز", "الطريقة", method):
             with self.subTest(value=value):
                 self.assertEqual(paragraph_with(root, value).find("w:pPr/w:bidi", NS).get(W + "val"), "1")
         self.assertTrue(all(table.find("w:tblPr/w:bidiVisual", NS).get(W + "val") == "1"
@@ -111,7 +111,7 @@ class ExecutiveExportDirectionTests(unittest.TestCase):
         method = "القياس الفعلي قبل التقريب 95.5"
         root = document("en", [method])
         self.assertEqual(paragraph_with(root, method).find("w:pPr/w:bidi", NS).get(W + "val"), "1")
-        self.assertEqual(paragraph_with(root, "Executive evidence brief").find("w:pPr/w:bidi", NS).get(W + "val"), "0")
+        self.assertEqual(paragraph_with(root, "Maintenance and asset reliability decision brief").find("w:pPr/w:bidi", NS).get(W + "val"), "0")
         self.assertTrue(all(table.find("w:tblPr/w:bidiVisual", NS).get(W + "val") == "0"
                             for table in root.findall(".//w:tbl", NS)))
         self.assertEqual(root.find("w:body/w:sectPr/w:bidi", NS).get(W + "val"), "0")

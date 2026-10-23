@@ -147,6 +147,22 @@ class BrainCheckTestCase(unittest.TestCase):
         report = brain_check.check(self.brain, TODAY)
         self.assertFalse([b for b in report["broken_links"] if b["note"] == "Code"])
 
+    def test_a_file_link_must_stay_inside_the_vault(self):
+        # Obsidian resolves a Markdown link only within the vault, so a path
+        # out of it is a dead link in the graph; on 21 October one such link
+        # to docs/adr passed this check and showed as unresolved there.
+        (self.brain / "Attachments").mkdir()
+        (self.brain / "Attachments" / "chart.png").write_bytes(b"x")
+        note(self.brain / "Files.md",
+             "[out](../../docs/adr/decision.md) and [gone](Attachments/none.png).\n"
+             "Fine: [web](https://example.com/a) [mail](mailto:a@example.com) "
+             "[here](#section) [chart](Attachments/chart.png) [spaced](<Beta Note.md>)\n"
+             "`[code](../../x.md)`\n\n[[Home]] [[Alpha]]\n")
+        report = brain_check.check(self.brain, TODAY)
+        self.assertEqual([b for b in report["broken_links"] if b["note"] == "Files"],
+                         [{"note": "Files", "link": "../../docs/adr/decision.md (outside the vault)", "file": True},
+                          {"note": "Files", "link": "Attachments/none.png (no such file)", "file": True}])
+
     def test_maintenance_is_due_until_today_is_logged(self):
         self.assertTrue(self.report["maintenance_due"])
         note(self.brain / "_meta" / "Maintenance log.md",

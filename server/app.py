@@ -9,7 +9,9 @@ The command-line application (python main.py) is unaffected by this module.
 """
 
 import asyncio
+import hashlib
 import json
+import logging
 import os
 import re
 import threading
@@ -17,8 +19,9 @@ import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlsplit
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
@@ -42,21 +45,96 @@ from server.maintenance import performance
 from server.assistant import Assistant
 from server.connectors import Busy, ConnectorError, Connectors, TooSoon
 from server.model_gateway import ModelGateway
+from server.orchestration import ModelRoles
 from server.routing import RoutedGateway, build_router
 from server.stages import describe, load_stages
 from server.runs import (RunEngine, TableNotReady, dataset_summary,
                          resolve_vault_dir)
-from server.auth import AuthError, build_identity, public_auth_config
+from server import demo
+from server.auth import DEMO_PRINCIPAL, AuthError, build_identity, public_auth_config
 from server.quota import QuotaExceeded, load_limits
 from server.quota import usage as quota_usage
 from server.rate_limit import WRITE_METHODS, RateLimiter
 from server.storage import DbMemoryBackend, PostgresStore, open_store
+from server.worker import worker_status
+from server.operations_api import install_operations_api
+from server.reliability_api import install_reliability_api
+from server.pilot import install_pilot_api
 from server.speech import LocalSpeech, SpeechError, MAX_BYTES as MAX_AUDIO_BYTES, content_format
 from utils import load_config
+
+# The only inline script is the fixed prepaint theme/language bootstrap in
+# frontend/index.html. Pin its exact bytes, never authorize arbitrary inline JS.
+PREPAINT_SCRIPT_HASH = "sha256-VPW7AEpPmugLy0qUATyKc9v5mNJnHZkoos20wLQ3uVI="
+API_CONTENT_POLICY = (
+    "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
+)
+
+
+def _browser_origin(value):
+    """One configured HTTP(S) origin, never credentials or CSP syntax."""
+    if not value or any(ord(c) < 33 or c in ";'\"<>" for c in value):
+        return None
+    try:
+        parts = urlsplit(value)
+        if parts.scheme not in ("http", "https") or not parts.hostname:
+            return None
+        if parts.username is not None or parts.password is not None:
+            return None
+        host = parts.hostname.encode("idna").decode("ascii")
+        if not re.fullmatch(r"[A-Za-z0-9.:-]+", host):
+            return None
+        host = f"[{host}]" if ":" in host else host
+        port = f":{parts.port}" if parts.port else ""
+        return f"{parts.scheme}://{host}{port}"
+    except (ValueError, UnicodeError):
+        return None
+
+
+def application_content_policy(env):
+    """Built shell policy; provider and optional API origins are operator-set.
+
+    Inline styles are retained for React chart positioning and blob report
+    previews, which inherit the opener's policy. Scripts never get that grant.
+    The local model and speech services are contacted only by the server.
+    """
+    origins = sorted({origin for name in ("SUPABASE_URL", "VITE_API_BASE")
+                      if (origin := _browser_origin(env.get(name, "")))})
+    connect = " ".join(["'self'", *origins])
+    return ("default-src 'none'; "
+            f"script-src 'self' '{PREPAINT_SCRIPT_HASH}'; script-src-attr 'none'; "
+            "style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; "
+            f"connect-src {connect}; media-src 'self' blob:; "
+            "worker-src 'self'; manifest-src 'self'; frame-src 'none'; "
+            "object-src 'none'; base-uri 'none'; form-action 'self'; "
+            "frame-ancestors 'none'")
+
 
 MAX_SESSIONS = 32
 MAX_TEXT_LENGTH = 4000
 PREFERENCE_KEY_PATTERN = re.compile(r"^[a-z][a-z0-9_]{0,39}$")
+# One JSON line per request (assessment finding B10). An incoming id is
+# honoured only when it is short and safe to print; the subject is a
+# hash prefix, never the raw subject, and never the token.
+REQUEST_LOG = logging.getLogger("agentic_os.requests")
+REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,64}$")
+# Per-session locks are dropped once this many sessions have been seen,
+# keeping only the ones a request is holding at that moment.
+MAX_SESSION_LOCKS = 4096
+
+
+def request_id_for(header):
+    """The caller's X-Request-ID when it is printable and bounded,
+    otherwise a fresh one."""
+    if header and REQUEST_ID_PATTERN.match(header):
+        return header
+    return uuid.uuid4().hex
+
+
+def subject_hash(subject):
+    """A 12-hex-character SHA-256 prefix: enough to group one caller's
+    requests in a log, never enough to recover who they are."""
+    return hashlib.sha256(str(subject).encode("utf-8")).hexdigest()[:12]
 
 # Presentation metadata for the Agent's command surface, used by the UI for
 # quick actions and the command palette. Behaviour lives in agent.py only.
@@ -222,6 +300,13 @@ class RunIn(BaseModel):
     # breakdown from the merged table (ADR 0030).
     joins: list[JoinIn] | None = Field(default=None, max_length=joining.MAX_JOINS)
     breakdown: str | None = Field(default=None, max_length=200)
+    # Decision inputs: an uplift per target, a cost per target and the
+    # uplift range the sensitivity stage explores (slice three, A2, A13).
+    # Validated in full by analytics.validate_assumptions.
+    assumptions: dict | None = None
+    # A caller's key for this creation; the Idempotency-Key header wins
+    # when both are given (B14).
+    idempotency_key: str | None = Field(default=None, max_length=200)
 
 
 class MappingIn(BaseModel):
@@ -232,6 +317,9 @@ class MappingIn(BaseModel):
     dimension: str | None = Field(default=None, max_length=200)
     date_order: str = Field(default="auto", max_length=20)
     grain: str = Field(default="auto", max_length=20)
+    # The currency of the money columns, an ISO 4217 code; absent means
+    # not stated (slice three, U4). Checked by server.mapping.
+    currency: str | None = Field(default=None, max_length=8)
 
 
 class QueryIn(BaseModel):
@@ -267,6 +355,7 @@ class ConnectorIn(BaseModel):
     every_minutes: int | None = None
     language: str = Field(default="en", pattern="^(en|ar)$")
     profile: str | None = Field(default=None, max_length=64)
+    credential_id: str | None = Field(default=None, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
 
 
 class ConnectorUpdateIn(BaseModel):
@@ -318,9 +407,31 @@ def create_app(config_path=None, env=None, dist_dir=None):
         openapi_url=None,
     )
 
+    # Protects the in-memory state the store does not: the read-modify-
+    # write of a session row and, in local mode, the memory file. Model
+    # calls and pipeline stages run outside it (assessment finding B4):
+    # the engine's durable mutations are serialised by store.atomic().
     lock = threading.Lock()
+    app.state.request_lock = lock  # observed by tests, never taken by them
+    # One lock per conversation, so two messages to the same session are
+    # answered in turn while other sessions, and every read, go on.
+    session_locks = {}
+
+    def session_lock_for(session_id):
+        with lock:
+            if session_id not in session_locks and len(session_locks) >= MAX_SESSION_LOCKS:
+                for stale in [k for k, v in session_locks.items() if not v.locked()]:
+                    del session_locks[stale]
+            return session_locks.setdefault(session_id, threading.Lock())
 
     gateway = ModelGateway()
+    # The unwrapped gateway keeps the model call ledger (finding G4);
+    # a router wraps it without replacing it.
+    base_gateway = gateway
+    # Which model plays Hermes, the agents and the consultants (ADR
+    # 2026-10-21 model roles). Built on the plain gateway, which can be
+    # asked for a named provider; nothing configured means no model role.
+    model_roles = ModelRoles(gateway, os.environ if env is None else env)
     # Optional: something that chooses which model narrates each report
     # (ADR 0017). Absent — the default, and always in tests and CI — this
     # wraps nothing and changes nothing.
@@ -346,9 +457,15 @@ def create_app(config_path=None, env=None, dist_dir=None):
         limits=limits,
         stages=stage_registry,
         profiles=config.get("profiles") or {},
+        execution_mode=(os.environ if env is None else env).get("AGENTIC_OS_RUN_EXECUTION", "client"),
+        roles=model_roles if model_roles.active else None,
     )
     app.state.engine = engine
     app.state.store = store
+    # The public demo reads one fictional analysis that no visitor could
+    # have made, so the server makes it (server/demo.py). Once per store.
+    if identity.mode == "demo":
+        demo.seed(engine, DEMO_PRINCIPAL.subject)
     # Free text in the chat goes here; slash commands go to the Agent.
     # An agent runtime (ADR 0021) is optional and, like the router and
     # the stages, a load failure is reported rather than raised.
@@ -394,7 +511,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         CORSMiddleware,
         allow_origins=allowed_origins,
         allow_methods=["GET", "POST", "PUT", "DELETE"],
-        allow_headers=["Content-Type"],
+        allow_headers=["Content-Type", "Authorization"],
     )
 
     environ = os.environ if env is None else env
@@ -454,16 +571,22 @@ def create_app(config_path=None, env=None, dist_dir=None):
             return response
         return await call_next(request)
 
-    @app.middleware("http")
-    async def security_headers(request: Request, call_next):
-        response = await call_next(request)
+    shell_content_policy = application_content_policy(environ)
+
+    def apply_security_headers(response, path):
+        # Export routes already set a more restrictive document-specific CSP.
+        # JSON/errors cannot load subresources; shell/SW responses retain only
+        # the resources this interface actually uses.
+        api_response = (path == "/api" or path.startswith("/api/")
+                        or response.headers.get("Content-Type", "").startswith("application/json"))
+        response.headers.setdefault("Content-Security-Policy",
+                                    API_CONTENT_POLICY if api_response else shell_content_policy)
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("Referrer-Policy", "same-origin")
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault(
             "Permissions-Policy", "camera=(), microphone=(self), geolocation=()"
         )
-        path = request.url.path
         if path.startswith("/api/"):
             # Session, memory, and export payloads are private.
             response.headers.setdefault("Cache-Control", "no-store")
@@ -473,15 +596,59 @@ def create_app(config_path=None, env=None, dist_dir=None):
             response.headers.setdefault("Cache-Control", REVALIDATE)
         return response
 
+    @app.middleware("http")
+    async def security_headers(request: Request, call_next):
+        return apply_security_headers(await call_next(request), request.url.path)
+
+    def log_subject(request):
+        """The hashed token subject when a bearer token authenticates,
+        otherwise "anonymous". The token itself is never logged."""
+        header = request.headers.get("authorization")
+        if not header:
+            return "anonymous"
+        try:
+            return subject_hash(identity.authenticate(header).subject)
+        except AuthError:
+            return "anonymous"
+
+    def log_request(request, status, started):
+        REQUEST_LOG.info(json.dumps({
+            "request_id": request.state.request_id,
+            "method": request.method,
+            "path": request.url.path,
+            "status": status,
+            "duration_ms": round((time.monotonic() - started) * 1000, 1),
+            "subject": log_subject(request),
+        }, separators=(",", ":")))
+
+    @app.middleware("http")
+    async def request_log(request: Request, call_next):
+        """Every request gets an id, echoed back, and one JSON log line:
+        id, method, path without the query string, status, duration and
+        a hashed subject. No token, body, query string or raw subject."""
+        request.state.request_id = request_id_for(request.headers.get("x-request-id"))
+        started = time.monotonic()
+        try:
+            response = await call_next(request)
+        except Exception:
+            # The generic handler answers with 500 outside this middleware.
+            log_request(request, 500, started)
+            raise
+        response.headers["X-Request-ID"] = request.state.request_id
+        log_request(request, response.status_code, started)
+        return response
+
     app.add_middleware(InterfaceGZip)
 
     @app.exception_handler(Exception)
     async def handle_unexpected_error(request: Request, exc: Exception):
         # Never leak stack traces or internal details to the browser.
-        return JSONResponse(
+        request_id = getattr(request.state, "request_id", None)
+        return apply_security_headers(JSONResponse(
             status_code=500,
             content={"detail": "Something went wrong on the server. Please try again."},
-        )
+            headers={"X-Request-ID": request_id} if request_id else None,
+        ), request.url.path)
 
     # ------------------------------------------------------------------
     # Identity and authorization
@@ -505,6 +672,10 @@ def create_app(config_path=None, env=None, dist_dir=None):
     def owns(principal, owner):
         """Objects belong to their creator; admins may act across owners."""
         return owner == principal.subject or principal.can("admin")
+
+    install_operations_api(app, store, current_principal)
+    install_reliability_api(app, store, current_principal)
+    install_pilot_api(app, store, engine, current_principal, identity.mode)
 
     @app.get("/api/auth/config")
     def auth_config():
@@ -551,12 +722,18 @@ def create_app(config_path=None, env=None, dist_dir=None):
             "agent_name": config.get("agent_name", "Agentic OS"),
             "version": str(config.get("version", "1.0.0")),
             "model_provider": gateway.status(),
+            "model_roles": model_roles.status(),
+            "model_map": model_roles.model_map(),
             # A misconfigured router is the operator's to fix, and they
             # will not find it unless something says so.
             "router_problem": app.state.router_problem,
             "stage_problems": app.state.stage_problems,
             "agent_runtime": app.state.runtime_name,
             "runtime_problem": app.state.runtime_problem,
+            "execution": worker_status(store, engine.execution_mode),
+            # Model calls this process has made: totals per provider,
+            # never prompts or replies (finding G4).
+            "model_calls": base_gateway.ledger(),
         }
 
     @app.post("/api/sessions", status_code=201)
@@ -568,7 +745,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
             if body is not None and body.language:
                 session.agent.set_preference("language", body.language)
             save_session(session)
-            store.trim_sessions(MAX_SESSIONS)
+            store.trim_sessions(MAX_SESSIONS, principal.subject)
             return session.snapshot()
 
     @app.get("/api/sessions/{session_id}")
@@ -646,31 +823,37 @@ def create_app(config_path=None, env=None, dist_dir=None):
         text = message.text.strip()
         if not text:
             raise HTTPException(status_code=422, detail="Message text is empty.")
-        with lock:
-            session = get_session(session_id, principal)
-            if session.ended:
-                raise HTTPException(
-                    status_code=409,
-                    detail="This session has ended. Start a new session to continue.",
-                )
-            session.add_entry("user", text)
-            if text.startswith("/"):
-                # A command is exact and deterministic; it does not need
-                # understanding.
-                entry = session.add_entry("agent", session.agent.process_input(text),
-                                          source="command", action="command")
-            else:
+        # The session lock orders this conversation's turns; the global
+        # lock covers only the load and the save, so the assistant's
+        # model call holds up nobody else (finding B4).
+        with session_lock_for(session_id):
+            with lock:
+                session = get_session(session_id, principal)
+                if session.ended:
+                    raise HTTPException(
+                        status_code=409,
+                        detail="This session has ended. Start a new session to continue.",
+                    )
+                session.add_entry("user", text)
+                if text.startswith("/"):
+                    # A command is exact and deterministic; it does not need
+                    # understanding.
+                    entry = session.add_entry("agent", session.agent.process_input(text),
+                                              source="command", action="command")
+                    if text.split()[0].lower() == "/exit":
+                        session.ended = True
+                    save_session(session)
+                    return {"reply": entry, "state": session.snapshot()}
                 session.agent.record_request(text)
-                outcome = assistant.handle(text, session)
+            outcome = assistant.handle(text, session)
+            with lock:
                 entry = session.add_entry(
                     "agent", outcome["text"], source=outcome.get("source"),
                     provider=outcome.get("provider"), action=outcome.get("action"),
                     result=outcome.get("result"), pending=outcome.get("pending"),
                     steps=outcome.get("steps"), why=outcome.get("why"))
-            if text.split()[0].lower() == "/exit":
-                session.ended = True
-            save_session(session)
-            return {"reply": entry, "state": session.snapshot()}
+                save_session(session)
+                return {"reply": entry, "state": session.snapshot()}
 
     @app.delete("/api/sessions/{session_id}/history")
     def clear_history(session_id: str, principal=Depends(requires("write"))):
@@ -773,12 +956,14 @@ def create_app(config_path=None, env=None, dist_dir=None):
     @app.get("/api/vault")
     def list_vault_notes(principal=Depends(requires("read"))):
         with lock:
-            return {"notes": store.list_notes()}
+            owner = None if principal.can("admin") else principal.subject
+            return {"notes": store.list_notes(owner=owner)}
 
     @app.get("/api/vault/note")
     def get_vault_note(path: str, principal=Depends(requires("read"))):
         with lock:
-            note = store.get_note(path)
+            owner = None if principal.can("admin") else principal.subject
+            note = store.get_note(path, owner=owner)
             if note is None:
                 raise HTTPException(status_code=404, detail="Note not found.")
             return note
@@ -825,18 +1010,28 @@ def create_app(config_path=None, env=None, dist_dir=None):
             raise HTTPException(status_code=409, detail=str(error))
 
     @app.post("/api/runs", status_code=201)
-    def create_run(run: RunIn, principal=Depends(requires("write"))):
+    def create_run(run: RunIn, response: Response, principal=Depends(requires("write")),
+                   idempotency_key: str | None = Header(default=None, alias="Idempotency-Key",
+                                                        max_length=200)):
+        # A retried POST with the same Idempotency-Key (header, or the
+        # body's idempotency_key) returns the run already made, as 200
+        # rather than 201, instead of creating a second one (B14).
         with lock:
             try:
-                return engine.create_run(run.goal, run.dataset_text,
-                                         run.dataset_name,
-                                         owner=principal.subject,
-                                         dataset_id=run.dataset_id,
-                                         profile=run.profile,
-                                         language=run.language,
-                                         joins=([j.model_dump() for j in run.joins]
-                                                if run.joins else None),
-                                         breakdown=run.breakdown)
+                detail = engine.create_run(run.goal, run.dataset_text,
+                                           run.dataset_name,
+                                           owner=principal.subject,
+                                           dataset_id=run.dataset_id,
+                                           profile=run.profile,
+                                           language=run.language,
+                                           joins=([j.model_dump() for j in run.joins]
+                                                  if run.joins else None),
+                                           breakdown=run.breakdown,
+                                           assumptions=run.assumptions,
+                                           idempotency_key=idempotency_key or run.idempotency_key)
+                if detail.get("idempotent_replay"):
+                    response.status_code = 200
+                return detail
             except KeyError:
                 raise HTTPException(status_code=404, detail='Dataset not found.')
             except joining.JoinError as error:
@@ -973,10 +1168,11 @@ def create_app(config_path=None, env=None, dist_dir=None):
                 raise HTTPException(status_code=404, detail="Dataset not found.")
 
     @app.get("/api/runs")
-    def list_runs(principal=Depends(requires("read"))):
+    def list_runs(state: str | None = Query(default=None, pattern="^[a-z_]{1,40}$"),
+                  principal=Depends(requires("read"))):
         with lock:
             owner = None if principal.can("admin") else principal.subject
-            return {"runs": engine.list_runs(owner=owner)}
+            return {"runs": engine.list_runs(owner=owner, state=state)}
 
     @app.get("/api/runs/{run_id}")
     def get_run(run_id: str, principal=Depends(requires("read"))):
@@ -985,8 +1181,13 @@ def create_app(config_path=None, env=None, dist_dir=None):
 
     @app.post("/api/runs/{run_id}/advance")
     def advance_run(run_id: str, principal=Depends(requires("write"))):
-        with lock:
-            return _run_or_404(lambda: engine.advance(run_id), principal, run_id)
+        if engine.execution_mode == "worker":
+            detail = _run_or_404(lambda: engine.advance(run_id), principal, run_id)
+            return JSONResponse(detail, status_code=202)
+        # A stage may call a model for most of a minute. The engine holds
+        # store.atomic("run:...") for the run it advances, so the global
+        # lock is not needed here and would stall every tenant (finding B4).
+        return _run_or_404(lambda: engine.advance(run_id), principal, run_id)
 
     @app.post("/api/runs/{run_id}/pause")
     def pause_run(run_id: str, principal=Depends(requires("write"))):
@@ -1131,6 +1332,8 @@ def create_app(config_path=None, env=None, dist_dir=None):
             if arabic and measure.get("title_ar"):
                 measure["title"] = measure["title_ar"]
             measure.pop("title_ar", None)
+            # `population` stays the code; the label is what a reader sees.
+            measure["population_label"] = measure.pop("population_ar") if arabic else measure["population"]
             measure["assessment"] = performance.assessment(measure, selected_policy["rules"], language)
             measures.append(measure)
         return {
@@ -1217,7 +1420,8 @@ def create_app(config_path=None, env=None, dist_dir=None):
     def decide_approval(run_id: str, approval_id: str, decision: ApprovalIn, principal=Depends(requires("approve"))):
         with lock:
             return _run_or_404(
-                lambda: engine.decide_approval(run_id, approval_id, decision.decision),
+                lambda: engine.decide_approval(run_id, approval_id, decision.decision,
+                                                       approver=principal.subject),
                 principal, run_id,
             )
 
@@ -1242,7 +1446,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
                 return connectors.create(
                     principal.subject, body.name, body.url, body.goal, language=body.language,
                     format=body.format, sheet=body.sheet, every_minutes=body.every_minutes,
-                    profile=body.profile)
+                    profile=body.profile, credential_id=body.credential_id)
             except ConnectorError as error:
                 raise HTTPException(status_code=error.status, detail=error.message(language))
             except ValueError as error:  # an unknown pipeline profile

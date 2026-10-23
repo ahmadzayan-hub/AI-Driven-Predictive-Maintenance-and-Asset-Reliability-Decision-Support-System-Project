@@ -30,10 +30,11 @@ not re-opened here; choosing a threshold after seeing a holdout result is
 how an honest evaluation becomes a flattering one.
 """
 
+import math
 import statistics
 from collections import Counter, defaultdict
 
-from .. import analytics, modelling
+from .. import analytics, mapping, modelling
 from . import contract
 
 # Fewest labelled records, per side of the split, before a target is
@@ -63,9 +64,69 @@ def _corrective(row):
 
 def _num(value):
     try:
-        return float(value)
-    except (TypeError, ValueError):
+        number = mapping.parse_number(value)
+        return number if number is not None and math.isfinite(number) else None
+    except (TypeError, ValueError, OverflowError):
         return None
+
+
+def _model_table(ctx):
+    """Domain types and source chronology are independent of chart roles/grain.
+
+    Source positions identify retained rows after cleaning/joins, without
+    assuming Record_ID is unique. Legacy stage contexts fall back to their
+    existing cleaned values. Nothing here changes the analysis table.
+    """
+    table = ctx.get("merge") or ctx["cleaner"]
+    columns = analytics._columns(ctx)
+    fields, _ = contract.resolve(columns)
+    raw = (ctx.get("collector") or {}).get("rows") or []
+    primary = set((ctx.get("collector") or {}).get("columns") or [])
+    indices = table.get("source_indices")
+    retained = analytics._rows(ctx)
+    source_available = (isinstance(indices, list) and len(indices) == len(retained)
+                        and all(isinstance(i, int) and 0 <= i < len(raw) for i in indices))
+    rows = []
+    for position, row in enumerate(retained):
+        source = raw[indices[position]] if source_available else {}
+        rows.append({c: (source.get(c) if source_available and c in primary else row.get(c))
+                     for c in columns})
+    ignored = {c for c, role in (ctx.get("mapping") or {}).get("roles", {}).items()
+               if role == "ignore"}
+    ignored.update((ctx.get("merge") or {}).get("ignored_columns") or [])
+    categories = [c for c, field in fields.items()
+                  if field.scale == contract.CATEGORY and field.timing == contract.BEFORE]
+    screened = [{c: str(row.get(c) or "") for c in categories} for row in rows[:2000]]
+    personal = {f["column"] for f in analytics.personal_data_findings(categories, screened)}
+    usable, excluded = contract.model_inputs(columns)
+    for column in columns:
+        if column in ignored:
+            excluded[column] = "explicitly ignored by the saved column mapping"
+        elif column in personal:
+            excluded[column] = "detected personal data is not a model input"
+        elif column in fields and fields[column].scale == contract.DATE:
+            excluded[column] = "used for chronological evaluation, not as a categorical input"
+    usable = [c for c in usable if c not in excluded]
+    active_columns = [c for c in columns if c not in ignored and c not in personal]
+    numeric = {c for c, field in fields.items()
+               if field.scale in (contract.COUNT, contract.HOURS, contract.MONEY,
+                                  contract.FRACTION, contract.PERCENT, contract.SCORE)}
+    for row in rows:
+        for column in active_columns:
+            row[column] = (_num(row.get(column)) if column in numeric
+                           else str(row.get(column) or "").strip())
+    date = next((c for c, field in fields.items()
+                 if field.scale == contract.DATE and c in active_columns), None)
+    if date:
+        periods, _, ambiguous = mapping.read_dates(
+            [row.get(date) for row in rows], (ctx.get("mapping") or {}).get("date_order", "auto"))
+        if ambiguous:
+            # An unresolved day/month order cannot establish chronology.
+            date = None
+        else:
+            for row, period in zip(rows, periods):
+                row[date] = period.label(period.precision) if period else None
+    return rows, active_columns, usable, excluded, numeric, date
 
 
 class Target:
@@ -140,6 +201,31 @@ TARGETS = (
 )
 
 
+def _wilson_lower(hits, n, z=1.645):
+    """Lower bound of a one-sided 95% Wilson interval for a hit rate."""
+    if n <= 0:
+        return 0.0
+    p = hits / n
+    denominator = 1 + z * z / n
+    centre = p + z * z / (2 * n)
+    margin = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n))
+    return max(0.0, (centre - margin) / denominator)
+
+
+def _balanced_accuracy_lower_bound(truth, predicted, z=1.645):
+    """A conservative balanced accuracy: the mean of each class's lower
+    Wilson bound on its hit rate. With a few dozen held-out records a point
+    score can sit well above chance on noise alone; the bound cannot
+    (assessment A9)."""
+    classes = sorted(set(truth), key=str)
+    bounds = []
+    for cls in classes:
+        n = sum(1 for t in truth if t == cls)
+        hits = sum(1 for t, p in zip(truth, predicted) if t == cls and p == cls)
+        bounds.append(_wilson_lower(hits, n, z))
+    return sum(bounds) / len(bounds) if bounds else 0.0
+
+
 def _balanced_accuracy(truth, predicted):
     """Average of each class's hit rate, so a common class cannot carry it."""
     per_class = defaultdict(lambda: [0, 0])
@@ -189,37 +275,36 @@ class MaintenanceRisk:
         self.targets = tuple(targets) if targets else TARGETS
 
     def run(self, ctx):
-        rows = analytics._rows(ctx)
-        columns = analytics._columns(ctx)
-        date = (ctx.get("preparer") or {}).get("date_col") \
-            or (ctx.get("cleaner") or {}).get("date_col")
-        usable, excluded = contract.model_inputs(columns)
+        rows, columns, usable, excluded, numeric, date = _model_table(ctx)
 
         calculations = [
             modelling._calc(self.role, "c_inputs_usable", "model_inputs_usable",
                             len(usable),
-                            "columns knowable before the decision, from the "
-                            "maintenance contract's timing field"),
+                            "known-before contract fields, excluding ignored, "
+                            "personal and date fields; domain numeric scales"),
             modelling._calc(self.role, "c_inputs_excluded", "model_inputs_excluded",
                             len(excluded),
                             "columns excluded as outcomes, derived from outcomes, "
-                            "identifiers, or of unestablished timing"),
+                            "identifiers, dates, ignored/personal fields, or of "
+                            "unestablished timing"),
         ]
         claims = [modelling._claim(
             ctx, self.role, "cl_inputs", "assumption",
             f"Only the {len(usable)} columns knowable before the work are offered "
             f"to these models; {len(excluded)} are withheld as outcomes, "
-            f"derivations of outcomes, identifiers or of unestablished timing. "
+            f"derivations of outcomes, identifiers, dates, ignored/personal fields "
+            f"or of unestablished timing. "
             f"This is what keeps a score honest rather than flattering.",
             f"تُعرض على هذه النماذج الأعمدة الـ{len(usable)} المعروفة قبل تنفيذ "
             f"العمل فقط، ويُحجب {len(excluded)} عموداً لأنها نتائج أو مشتقات منها "
-            f"أو مُعرِّفات أو غير محددة التوقيت. هذا ما يجعل النتيجة صادقة لا مُجمِّلة.",
+            f"أو مُعرِّفات أو تواريخ أو حقول مستبعدة أو شخصية أو غير محددة التوقيت. "
+            f"هذا ما يجعل النتيجة صادقة لا مُجمِّلة.",
             ["c_inputs_usable", "c_inputs_excluded"])]
 
         cards, checks, verdicts = [], [], []
         for target in self.targets:
             card, target_claims, target_calcs, check = self._evaluate(
-                ctx, target, rows, columns, usable, date)
+                ctx, target, rows, columns, usable, date, numeric)
             cards.append(card)
             claims += target_claims
             calculations += target_calcs
@@ -236,6 +321,7 @@ class MaintenanceRisk:
             "output": {
                 "models": cards,
                 "model_inputs_usable": usable,
+                "model_inputs_excluded": dict(excluded),
                 "headline": summary,
                 "question": self.question,
                 "report_markdown": self._report(ctx, verdicts, usable, excluded),
@@ -243,7 +329,7 @@ class MaintenanceRisk:
         }
 
     # -- one target -----------------------------------------------------
-    def _evaluate(self, ctx, target, rows, columns, usable, date):
+    def _evaluate(self, ctx, target, rows, columns, usable, date, numeric):
         prefix, key = self.role, target.key
         missing = [c for c in target.needs if c not in columns]
         if missing:
@@ -262,6 +348,17 @@ class MaintenanceRisk:
         population_rows = [row for row, _ in pairs]
         labels_by_id = {id(row): label for row, label in pairs}
         train_idx, test_idx, split = modelling._split(population_rows, date)
+        if date and split["kind"] != "time":
+            # Asset history drifts: a random split lets the model see the
+            # future it is scored on and reads as better than it is. With
+            # a date but too few periods for a chronological hold-out there
+            # is no honest score; without any date, the every-fifth split
+            # is the only one and the card declares it (assessment A10).
+            return self._unsupported(
+                ctx, target,
+                f"no chronological hold-out is possible ({split.get('reason')}), "
+                "and a maintenance model scored on a random split of asset "
+                "history reads as better than it is", f"c_{key}")
         train_rows = [population_rows[i] for i in train_idx]
         test_rows = [population_rows[i] for i in test_idx]
         train_labels = [labels_by_id[id(r)] for r in train_rows]
@@ -271,17 +368,18 @@ class MaintenanceRisk:
                 or len(set(train_labels)) < 2 or len(set(test_labels)) < 2):
             return self._unsupported(
                 ctx, target,
-                f"the chronological split leaves {len(train_rows)} training and "
+                f"the evaluation split leaves {len(train_rows)} training and "
                 f"{len(test_rows)} held-out records, or a single class on one "
                 f"side, so the result would not be measurable", f"c_{key}")
 
-        numeric = set(analytics._numeric(ctx))
         numbers = [c for c in usable if c in numeric]
         texts = []
         for column in usable:
             if column in numeric:
                 continue
-            levels = Counter(str(r.get(column) or "") for r in population_rows)
+            # The held-out records must not decide which inputs are admitted
+            # or which categorical levels the model learns.
+            levels = Counter(str(r.get(column) or "") for r in train_rows)
             if 2 <= len(levels) <= modelling.MAX_LEVELS:
                 texts.append((column, [l for l, _ in levels.most_common()]))
             if len(texts) == modelling.MAX_TEXT_INPUTS:
@@ -293,24 +391,36 @@ class MaintenanceRisk:
                 "so there is nothing honest to predict from", f"c_{key}")
 
         names, vector = modelling._vectoriser(numbers, texts)
-        train_vectors = [v for v in (vector(r) for r in train_rows) if v is not None]
-        kept_labels = [l for r, l in zip(train_rows, train_labels) if vector(r) is not None]
-        test_pairs = [(vector(r), l) for r, l in zip(test_rows, test_labels)]
-        test_pairs = [(v, l) for v, l in test_pairs if v is not None]
-        if len(train_vectors) < MIN_TRAIN or len(test_pairs) < MIN_TEST:
+        train_cohort = [(r, label, vector(r))
+                        for r, label in zip(train_rows, train_labels)]
+        test_cohort = [(r, label, vector(r))
+                       for r, label in zip(test_rows, test_labels)]
+        train_cohort = [(r, label, v) for r, label, v in train_cohort if v is not None]
+        test_cohort = [(r, label, v) for r, label, v in test_cohort if v is not None]
+        if len(train_cohort) < MIN_TRAIN or len(test_cohort) < MIN_TEST:
             return self._unsupported(
                 ctx, target, "too few records carry every input to fit", f"c_{key}")
+        train_vectors = [v for _, _, v in train_cohort]
+        kept_labels = [label for _, label, _ in train_cohort]
+        truth = [label for _, label, _ in test_cohort]
+        if len(set(kept_labels)) < 2 or len(set(truth)) < 2:
+            return self._unsupported(
+                ctx, target,
+                "records carrying every input have only one class on the "
+                "training or held-out side, so balanced accuracy cannot "
+                "evaluate both outcomes", f"c_{key}")
 
         scale = modelling._scaler(train_vectors)
         model = modelling.fit_naive_bayes([scale(v) for v in train_vectors], kept_labels)
-        truth = [l for _, l in test_pairs]
-        predicted = [modelling.predict_naive_bayes(model, scale(v)) for v, _ in test_pairs]
+        predicted = [modelling.predict_naive_bayes(model, scale(v))
+                     for _, _, v in test_cohort]
         model_score = _balanced_accuracy(truth, predicted)
 
         common = Counter(kept_labels).most_common(1)[0][0]
         majority_score = _balanced_accuracy(truth, [common] * len(truth))
         rule_column, rule_score = _grouping_rules(
-            train_rows, train_labels, test_rows, test_labels,
+            [r for r, _, _ in train_cohort], kept_labels,
+            [r for r, _, _ in test_cohort], truth,
             [c for c in usable if c not in numeric])
         baseline_score = max(majority_score, rule_score)
         baseline_name = (f"commonest label by {rule_column}"
@@ -324,22 +434,31 @@ class MaintenanceRisk:
         # accuracy, so clearing it by 5% can still mean a near coin flip.
         # A model is only called useful when it is also clearly better
         # than chance in absolute terms.
-        above_chance = model_score >= CHANCE + CHANCE_MARGIN
+        # Three tests. The lower confidence bound must also clear chance:
+        # on 50 held-out records a point score of 0.62 can be noise, and a
+        # verdict that recommends intervention must not rest on it (A9).
+        lower_bound = _balanced_accuracy_lower_bound(truth, predicted)
+        above_chance = model_score >= CHANCE + CHANCE_MARGIN and lower_bound > CHANCE
         verdict = "useful" if (beats and above_chance) else "weak"
 
         card = modelling._card(
             "maintenance_risk", f"{key}: {target.question}", names,
-            len(train_vectors), len(test_pairs), split, "balanced accuracy",
+            len(train_vectors), len(test_cohort), split, "balanced accuracy",
             round(model_score, 4), round(baseline_score, 4), baseline_name,
             round(improvement, 4), beats,
             {"verdict": verdict, "decision": target.decision,
              "beats_baseline_margin": beats, "clearly_above_chance": above_chance,
+             "balanced_accuracy_lower_bound": round(lower_bound, 4),
+             "held_out_records": len(test_cohort),
+             "held_out_positives": sum(1 for t in truth if t),
              "horizon": target.horizon,
              "positive_rate_held_out": round(
                  sum(1 for t in truth if t) / len(truth), 4),
              "baseline_majority": round(majority_score, 4),
              "baseline_best_rule": round(rule_score, 4),
-             "baseline_rule_column": rule_column})
+             "baseline_rule_column": rule_column,
+             "train_records_unmeasured": len(train_rows) - len(train_cohort),
+             "test_records_unmeasured": len(test_rows) - len(test_cohort)})
 
         defining = [c for c in target.defines_label
                     if any(c == name or name.startswith(f"{c} =") for name in names)]
@@ -347,7 +466,7 @@ class MaintenanceRisk:
             modelling._calc(prefix, f"c_{key}_model", f"{key}_balanced_accuracy",
                             round(model_score, 4),
                             f"average of each class's hit rate on the held-out "
-                            f"records ({len(test_pairs)} of them)"),
+                            f"records ({len(test_cohort)} of them)"),
             modelling._calc(prefix, f"c_{key}_baseline", f"{key}_baseline",
                             round(baseline_score, 4),
                             f"strongest of the majority class "
@@ -358,35 +477,50 @@ class MaintenanceRisk:
                             round(improvement, 4),
                             "(model - baseline) / baseline on the same held-out "
                             "records"),
+            modelling._calc(prefix, f"c_{key}_held_out", f"{key}_held_out_records",
+                            len(test_cohort),
+                            "held-out records with a formed label, scored by "
+                            "the model and the baseline alike"),
+            modelling._calc(prefix, f"c_{key}_lower_bound", f"{key}_balanced_accuracy_lower_bound",
+                            round(lower_bound, 4),
+                            "mean over the two classes of the one-sided 95% Wilson "
+                            "lower bound on each class's hit rate"),
         ]
-        if beats:
+        if verdict == "useful":
             claim = modelling._claim(
                 ctx, prefix, f"cl_{key}", "calculation",
                 f"{target.question} Balanced accuracy {model_score:.0%} against "
                 f"{baseline_score:.0%} for the {baseline_name}, an improvement of "
-                f"{improvement:.0%} on {len(test_pairs)} held-out records. "
+                f"{improvement:.0%} on {len(test_cohort)} held-out records. "
                 f"{target.decision}",
                 f"{target.question_ar} دقة متوازنة {model_score:.0%} مقابل "
                 f"{baseline_score:.0%} لخط الأساس، بتحسن {improvement:.0%} على "
-                f"سجلات محجوزة. {target.decision_ar}",
-                [f"c_{key}_model", f"c_{key}_baseline", f"c_{key}_improvement"])
+                f"{len(test_cohort)} سجلات محجوزة. {target.decision_ar}",
+                [f"c_{key}_model", f"c_{key}_baseline", f"c_{key}_improvement",
+                 f"c_{key}_held_out", f"c_{key}_lower_bound"])
         else:
             claim = modelling._claim(
                 ctx, prefix, f"cl_{key}", "limitation",
                 f"{target.question} The model reaches {model_score:.0%} balanced "
                 f"accuracy against {baseline_score:.0%} for the {baseline_name} "
-                f"on {len(test_pairs)} held-out records — an improvement of "
+                f"on {len(test_cohort)} held-out records — an improvement of "
                 f"{improvement:.0%}. "
                 f"It should not be used to decide."
                 + ("" if beats else " The margin over the baseline is short of 5%.")
                 + ("" if above_chance else
-                   f" It is also within {CHANCE_MARGIN:.0%} of a coin flip in "
-                   f"absolute terms, and a majority-class baseline scores "
-                   f"{CHANCE:.0%} under this metric by construction."),
+                   f" Its lower confidence bound is {lower_bound:.0%}, so it is not "
+                   f"clearly above a coin flip in absolute terms, and a majority-class "
+                   f"baseline scores {CHANCE:.0%} under this metric by construction."),
                 f"{target.question_ar} يبلغ النموذج {model_score:.0%} دقة متوازنة "
-                f"مقابل {baseline_score:.0%} لخط الأساس، بتحسن {improvement:.0%} "
-                f"فقط وهو دون 5% المطلوبة، فلا ينبغي استخدامه في القرار.",
-                [f"c_{key}_model", f"c_{key}_baseline", f"c_{key}_improvement"])
+                f"مقابل {baseline_score:.0%} لخط الأساس على {len(test_cohort)} "
+                f"سجلات محجوزة، بتحسن {improvement:.0%}. فلا ينبغي استخدامه في القرار."
+                + ("" if beats else " هامش التحسن على خط الأساس أقل من 5%.")
+                + ("" if above_chance else
+                   f" وحدّه الأدنى بثقة {lower_bound:.0%}، فليس أعلى بوضوح من التخمين "
+                   f"العشوائي بالقيمة المطلقة، ويسجل خط أساس الفئة الأكثر شيوعاً "
+                   f"{CHANCE:.0%} بحكم تعريف هذا المقياس."),
+                [f"c_{key}_model", f"c_{key}_baseline", f"c_{key}_improvement",
+                 f"c_{key}_held_out", f"c_{key}_lower_bound"])
         claims = [claim]
         if defining:
             claims.append(modelling._claim(
@@ -457,10 +591,17 @@ class MaintenanceRisk:
                 if parts else "No targets were evaluated.")
 
     def _report(self, ctx, verdicts, usable, excluded):
-        lines = [f"# {self.title.split(' — ')[0]} — {self.question}", "",
-                 f"**Inputs:** {len(usable)} columns knowable before the decision; "
-                 f"{len(excluded)} withheld by the maintenance contract.", "",
-                 "| Target | Decision it supports | Verdict | Model | Baseline |",
+        def say(en, ar):
+            return modelling._say(ctx, en, ar)
+
+        lines = [say(f"# {self.title.split(' — ')[0]} — {self.question}",
+                     f"# {self.title_ar}"), "",
+                 say(f"**Inputs:** {len(usable)} columns knowable before the decision; "
+                     f"{len(excluded)} withheld by the maintenance contract.",
+                     f"**المدخلات:** {len(usable)} أعمدة معروفة قبل القرار؛ "
+                     f"حُجب {len(excluded)} بموجب عقد الصيانة."), "",
+                 say("| Target | Decision supported by this result | Verdict | Model | Baseline |",
+                     "| الهدف | القرار المدعوم بهذه النتيجة | التقييم | النموذج | خط الأساس |"),
                  "| --- | --- | --- | --- | --- |"]
         for target, card in verdicts:
             details = card.get("details", {})
@@ -469,10 +610,25 @@ class MaintenanceRisk:
             model = f"{metric.get('model'):.3f}" if metric.get("model") is not None else "—"
             baseline = (f"{metric.get('baseline'):.3f} ({metric.get('baseline_name')})"
                         if metric.get("baseline") is not None else "—")
-            lines.append(f"| {target.question} | {target.decision} | {verdict} | "
+            decision = (say(target.decision, target.decision_ar) if verdict == "useful"
+                        else say("No decision is supported by this model.",
+                                 "لا يدعم هذا النموذج اتخاذ قرار."))
+            verdict_text = say(verdict, {
+                "useful": "يجتاز حدود التقييم", "weak": "ضعيف",
+                "not_supported": "غير مدعوم",
+            }.get(verdict, verdict))
+            lines.append(f"| {say(target.question, target.question_ar)} | "
+                         f"{decision} | {verdict_text} | "
                          f"{model} | {baseline} |")
-        lines += ["", "A model counts as useful only when it improves on the "
-                      "stronger of the majority class and the best known-before "
-                      "grouping rule by at least 5% (ADR 0033). A weak model is "
-                      "reported as weak rather than dropped."]
+        lines += ["", say(
+            "A model counts as useful only when it improves on the stronger of "
+            "the majority class and the best known-before grouping rule by at "
+            "least 5% and reaches at least 55% balanced accuracy (ADR 0040). "
+            "The model and baselines use the same measured training and held-out "
+            "records. A weak model supports no intervention decision.",
+            "يُعد النموذج مفيداً فقط إذا تحسن بنسبة 5% على الأقل على الأقوى من "
+            "خط أساس الفئة الأكثر شيوعاً وأفضل قاعدة تجميع معروفة قبل القرار، "
+            "وبلغ دقة متوازنة قدرها 55% على الأقل (ADR 0040). يستخدم النموذج "
+            "وخطوط الأساس سجلات التدريب والاختبار المقاسة نفسها. ولا يدعم "
+            "النموذج الضعيف قرار التدخل.")]
         return "\n".join(lines)

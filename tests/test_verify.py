@@ -84,6 +84,14 @@ class BudgetTests(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("over: js first load", summary)
 
+    def test_a_few_bytes_over_fails_even_when_it_rounds_to_the_limit(self):
+        # 10,046 bytes of first-load CSS once printed as "10.0 of 10 KB" and
+        # passed. The check compares exact bytes; only the summary rounds.
+        ok, summary = verify.check_budget(self.build(20_000, 120_040))
+        self.assertFalse(ok, summary)
+        self.assertIn("over: fonts", summary)
+        self.assertTrue(verify.check_budget(self.build(20_000, 120_000))[0])
+
     def test_a_chunk_loaded_on_demand_is_not_first_load(self):
         light = verify.measure_budget(self.build(20_000, 50_000))
         sizes = verify.measure_budget(self.build(20_000, 50_000, chunk_bytes=40_000))
@@ -135,6 +143,25 @@ class StepTests(unittest.TestCase):
         self.assertIn("Python tests", quick)
         self.assertNotIn("Production build", quick)
         self.assertNotIn("End-to-end tests", quick)
+        self.assertNotIn("Miyaar browser tests", quick)
+
+    def test_broken_server_dependencies_fail_before_api_tests_can_silently_skip(self):
+        step = next(s for s in verify.steps() if s.name == "Server dependencies")
+        with tempfile.TemporaryDirectory() as directory:
+            Path(directory, "fastapi.py").write_text(
+                'raise ImportError("synthetic broken server dependency")\n',
+                encoding="utf-8")
+            step.cwd = Path(directory)
+            ok, _, output, _ = verify.run(step)
+        self.assertFalse(ok)
+        self.assertIn("synthetic broken server dependency", output)
+        python_tests = next(s for s in verify.steps() if s.name == "Python tests")
+        self.assertIn("Server dependencies", python_tests.needs)
+
+    def test_e2e_includes_both_ci_browser_suites_and_native_logic(self):
+        names = self.names("e2e")
+        for name in ("End-to-end tests", "Miyaar browser tests", "Native run logic"):
+            self.assertIn(name, names)
 
     def test_the_default_runs_what_ci_runs_without_a_browser(self):
         full = self.names("full")

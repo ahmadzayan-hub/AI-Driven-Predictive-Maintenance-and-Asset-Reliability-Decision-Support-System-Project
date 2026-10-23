@@ -3,7 +3,7 @@ type: project
 aliases: [Analytics roadmap, Dashboard roadmap]
 tags: [project, roadmap]
 status: active
-updated: 2026-10-17
+updated: 2026-10-20
 review_every_days: 14
 sources: [project-progress.md, server/analytics.py, server/runs.py, server/joins.py, server/query.py, server/modelling.py, server/connectors.py, server/live.py, frontend/src/app/App.tsx, docs/UI_PLAN.md]
 ---
@@ -44,3 +44,5 @@ Each step keeps the [[Governed pipeline]] and the [[Approval gate]], and each ne
 
 - [[Team 3 Capstone]]: a real multi-page dashboard brief that shows what users will expect.
 - [[Soul]]: no feature is presented as shipped before its tests pass.
+- [[Live data]]: tracks source versions and owner-scoped update behavior.
+- [[Backup and restore]]: covers recovery beyond feature delivery.

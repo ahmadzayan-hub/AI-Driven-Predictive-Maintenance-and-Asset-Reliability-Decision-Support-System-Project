@@ -1,4 +1,7 @@
 data/memory.json
+# Agent measurements and proposed cases (docs/adr/2026-10-20-agent-measurement-loop.md): runtime records, not source.
+data/eval-ledger.jsonl
+data/eval-proposals.jsonl
 # The database plus the -wal/-shm sidecars WAL mode creates alongside it.
 data/agentic.db*
 # A relative `database_file` resolves against the working directory, so a
@@ -76,3 +79,12 @@ frontend/e2e/.tmp/
 frontend/playwright-report/
 frontend/test-results/
 frontend/test-results-preview/
+
+# Android app build state (apps/android)
+apps/android/.gradle/
+apps/android/.kotlin/
+apps/android/build/
+apps/android/*/build/
+apps/android/local.properties
+apps/android/.idea/
+apps/android/*.iml

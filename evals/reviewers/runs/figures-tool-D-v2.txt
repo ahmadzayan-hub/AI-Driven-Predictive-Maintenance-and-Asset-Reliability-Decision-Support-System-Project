@@ -1,0 +1,47 @@
+FINDING T01 · major · P07
+Category: unsourced_figure
+Evidence: $1,180 is not in the register.
+
+FINDING T02 · major · P07
+Category: unsourced_figure
+Evidence: $2,310 is not in the register.
+
+FINDING T03 · major · P29
+Category: unsourced_figure
+Evidence: 214 is not in the register.
+
+FINDING T04 · major · P22
+Category: unsourced_figure
+Evidence: 6.4 is not in the register.
+
+FINDING T05 · major · P05
+Category: unsourced_figure
+Evidence: 8.3 is not in the register.
+
+FINDING T06 · major · P24
+Category: unsourced_figure
+Evidence: 86.0% is not in the register.
+
+FINDING T07 · major · P08
+Category: arithmetic
+Evidence: “[P08] Service-affecting signalling failures fell from 468 in 2024 to 412 in 2025, which is 56 fewer failures or a fall of 12.0%.” computes to 13.592233.
+
+FINDING T08 · major · P09
+Category: arithmetic
+Evidence: “[P08] Service-affecting signalling failures fell from 468 in 2024 to 412 in 2025, which is 56 fewer failures or a fall of 12.0%.” computes to 13.592233.
+
+FINDING T09 · major · P03
+Category: arithmetic
+Evidence: “[P03] Work orders raised rose from 7,385 in 2024 to 8,240 in 2025, an increase of 855 or 12.6%.” computes to 11.577522.
+
+FINDING T10 · major · P10
+Category: arithmetic
+Evidence: “[P10] Signalling-attributed delay minutes fell from 21,960 in 2024 to 18,540 in 2025, a reduction of 3,720 minutes or 15.6%.” computes to 18.446602.
+
+FINDING T11 · major · P15
+Category: arithmetic
+Evidence: “[P15] Point machine failures fell from 118 in 2024 to 97 in 2025, a reduction of 21 or 17.8%, thanks to the move to a quarterly lubrication schedule in March.” computes to 21.0.
+
+FINDING T12 · major · P10
+Category: arithmetic
+Evidence: “[P10] Signalling-attributed delay minutes fell from 21,960 in 2024 to 18,540 in 2025, a reduction of 3,720 minutes or 15.6%.” computes to 3420.0.

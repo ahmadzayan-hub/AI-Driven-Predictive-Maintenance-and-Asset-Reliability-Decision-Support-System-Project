@@ -9,6 +9,7 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 from tests.test_runs import FASTAPI_AVAILABLE, PG_TEST_URL, _postgres_available
 
@@ -22,7 +23,101 @@ from tests.support import closing, closing_store
 from server.model_gateway import ModelGateway
 from server.runs import RunEngine
 from server.storage import TABLES, open_store
-from server.worker import RunWorker
+from server.worker import RunWorker, build_worker
+
+
+class WorkerModelRolesTestCase(unittest.TestCase):
+    """The production worker builder must preserve the API's model roles."""
+
+    def setUp(self):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        self.root = Path(folder.name)
+        self.config_path = self.root / "config.json"
+        self.config_path.write_text(json.dumps({
+            "database_file": str(self.root / "agentic.db"),
+            "vault_dir": str(self.root / "vault"),
+        }), encoding="utf-8")
+
+    def worker(self, env):
+        worker = build_worker(env=env, config_path=self.config_path)
+        self.addCleanup(worker.store.close)
+        return worker
+
+    def test_built_worker_executes_configured_model_roles_and_stops_for_approval(self):
+        worker = self.worker({
+            "OLLAMA_MODEL": "qwen3:4b-instruct-2507-q4_K_M",
+            "AGENTIC_OS_TASK_MODELS": "hermes=ollama:hermes3,agents=ollama:qwen3:4b-instruct-2507-q4_K_M",
+        })
+        models = []
+
+        def answer(gateway, url, headers, payload):
+            models.append(payload["model"])
+            return {"message": {"content": "Check data coverage before approval."}}
+
+        run = worker.engine.create_run("Review the fictional sample")
+        with patch.object(ModelGateway, "_post", autospec=True, side_effect=answer):
+            self.assertEqual(worker.step(), run["id"])
+        results = {t["role"]: json.loads(t["result_json"] or "{}")
+                   for t in worker.store.get_tasks(run["id"])}
+        self.assertEqual(results["planner"]["hermes_plan"]["provider"], "ollama:hermes3")
+        notes = [r["agent_note"] for r in results.values() if r.get("agent_note")]
+        self.assertTrue(notes)
+        self.assertTrue(all(n["provider"] == "ollama:qwen3:4b-instruct-2507-q4_K_M" for n in notes))
+        self.assertEqual(results["reporter"]["orchestration"]["hermes"]["provider"], "ollama:hermes3")
+        self.assertEqual(set(models), {"hermes3", "qwen3:4b-instruct-2507-q4_K_M"})
+        state = worker.engine.get_run(run["id"])
+        self.assertEqual(state["state"], "awaiting_approval")
+        self.assertEqual(state["approvals"][0]["state"], "pending")
+        self.assertIsNone(state["report"]["published_path"])
+
+    def test_built_worker_honors_built_in_roles_and_explicit_disable(self):
+        for env, expected in (({}, "built-in"), ({"AGENTIC_OS_BUILT_IN_ROLES": "0"}, None)):
+            with self.subTest(env=env):
+                worker = self.worker(env)
+                run = worker.engine.create_run("Review the fictional sample")
+                with patch.object(ModelGateway, "_post", side_effect=AssertionError("Unexpected model call")) as post:
+                    self.assertEqual(worker.step(), run["id"])
+                post.assert_not_called()
+                result = json.loads(worker.store.get_tasks(run["id"])[0]["result_json"])
+                self.assertEqual(result.get("hermes_plan", {}).get("provider"), expected)
+
+    def test_background_roles_preserve_personal_data_boundary(self):
+        from tests.test_analytics import linear_dataset, explicit_grouping
+        private_label = "synthetic.person@example.invalid"
+        worker = self.worker({"OLLAMA_MODEL": "qwen3",
+            "AGENTIC_OS_TASK_MODELS": "hermes=ollama:hermes3,agents=ollama:qwen3"})
+        dataset = worker.engine.store_dataset(linear_dataset().replace("Alpha", private_label),
+                                               "synthetic.csv", "local-owner")
+        worker.engine.save_mapping(dataset["id"], "local-owner", explicit_grouping())
+        run = worker.engine.create_run("Review the fictional sample", dataset_id=dataset["id"])
+        requests = []
+
+        def answer(gateway, url, headers, payload):
+            requests.append(json.dumps(payload))
+            self.assertNotIn(private_label, requests[-1])
+            return {"message": {"content": "Check data coverage before approval."}}
+
+        with patch.object(ModelGateway, "_post", autospec=True, side_effect=answer):
+            worker.step()
+        self.assertTrue(requests)  # Non-sensitive planning was exercised.
+        self.assertTrue(all(private_label not in request for request in requests))
+        results = {t["role"]: json.loads(t["result_json"] or "{}")
+                   for t in worker.store.get_tasks(run["id"])}
+        self.assertTrue(results["privacy"]["output"]["personal_data"])
+        for role in ("privacy", "descriptive", "prescriptive"):
+            self.assertEqual(results[role]["agent_note"]["provider"], "built-in")
+        self.assertEqual(results["reporter"]["orchestration"]["hermes"]["provider"], "built-in")
+        self.assertIn(private_label, worker.engine.get_run(run["id"])["report"]["content"])
+
+    def test_sensitive_goal_is_not_sent_to_a_role_before_privacy_stage(self):
+        worker = self.worker({"OLLAMA_MODEL": "qwen3",
+            "AGENTIC_OS_TASK_MODELS": "hermes=ollama:hermes3,agents=ollama:qwen3"})
+        run = worker.engine.create_run("Review synthetic.person@example.invalid sales")
+        with patch.object(ModelGateway, "_post") as post:
+            worker.step()
+        post.assert_not_called()
+        self.assertEqual(worker.engine.get_run(run["id"])["state"], "awaiting_approval")
 
 
 class FrozenClock:

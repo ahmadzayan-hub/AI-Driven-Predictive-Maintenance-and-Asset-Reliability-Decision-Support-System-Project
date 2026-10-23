@@ -62,7 +62,7 @@ class BannerTestCase(unittest.TestCase):
         self.assertNotIn("192.168.1.20", text)
         self.assertNotIn("On your phone", text)
         self.assertNotIn("login", text)
-        self.assertIn("--local-only", text)
+        self.assertIn("--lan", text)
 
     def test_without_an_address_it_says_so_instead_of_inventing_one(self):
         text = serve.banner(8000, False, None)
@@ -80,11 +80,18 @@ class ArgumentTestCase(unittest.TestCase):
     """`main` itself is not called — it blocks inside uvicorn.run. Its
     parser is, because the flag names are the documented interface."""
 
-    def test_the_defaults_serve_the_network_on_port_8000(self):
+    def test_the_defaults_serve_this_computer_only_on_port_8000(self):
+        # Loopback by default (assessment B8): local mode has no login.
         args = serve.build_parser().parse_args([])
         self.assertEqual(args.port, 8000)
+        self.assertFalse(args.lan)
         self.assertFalse(args.local_only)
         self.assertFalse(args.reload)
+
+    def test_lan_is_an_explicit_opt_in_and_local_only_wins_over_it(self):
+        self.assertTrue(serve.build_parser().parse_args(["--lan"]).lan)
+        args = serve.build_parser().parse_args(["--lan", "--local-only"])
+        self.assertTrue(args.local_only or not args.lan)
 
     def test_the_documented_flags_are_accepted(self):
         args = serve.build_parser().parse_args(

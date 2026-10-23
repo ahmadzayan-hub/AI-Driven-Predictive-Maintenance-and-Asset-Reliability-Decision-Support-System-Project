@@ -7,6 +7,7 @@ test('analytics run: goal to approved, published, evidence-backed report', async
   await openTab(page, /^Analytics/)
 
   await expect(page.getByLabel('Goal')).toHaveValue(/sample sales dataset/)
+  await expect(page.getByLabel('Report language', { exact: true })).toHaveValue('en')
   await page.getByRole('button', { name: 'Start run' }).click()
 
   // The pipeline advances stage by stage until the approval gate.
@@ -24,8 +25,9 @@ test('analytics run: goal to approved, published, evidence-backed report', async
     page.locator('.runtasks').getByText('All validation checks passed', { exact: false }),
   ).toBeVisible()
   await expect(page.locator('.runchart__svg')).toHaveCount(4)
-  await expect(page.locator('.runreport--full')).toContainText('Every claim in this report')
-  await expect(page.locator('.runreport--full')).toContainText('verified')
+  const fullReport = page.locator('.runreport--full.report-document')
+  await expect(fullReport.getByRole('heading', { name: 'Every claim in this report', exact: true })).toBeVisible()
+  await expect(fullReport.getByRole('cell', { name: 'verified', exact: true }).first()).toBeVisible()
   // Started from the English interface, so written and marked in English.
   await expect(page.locator('.runreport--full')).toHaveAttribute('lang', 'en')
   await expect(page.locator('.runreport--full')).toHaveAttribute('dir', 'ltr')
@@ -43,6 +45,8 @@ test('analytics run: goal to approved, published, evidence-backed report', async
   await expect(page.locator('html')).toHaveAttribute('lang', 'en')
 
   // Approve: the report is published to the Obsidian-compatible vault.
+  await approval.getByText('Review the exact report').click()
+  await approval.getByLabel('I have read this exact report').check()
   await approval.getByRole('button', { name: 'Approve and publish' }).click()
   await expect(page.getByText('published to the vault', { exact: false })).toBeVisible()
   await expect(page.getByText('state: completed')).toBeVisible()
@@ -56,13 +60,13 @@ test('an analytics run can be paused and then cancelled', async ({ page }) => {
 
   // Pause first so the pipeline stops advancing; cancelling is then a
   // deterministic decision rather than a race against the next stage.
-  await page.getByRole('button', { name: 'Pause' }).click()
-  await expect(page.getByRole('button', { name: 'Resume' })).toBeVisible()
+  await page.getByRole('button', { name: 'Pause', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Resume', exact: true })).toBeVisible()
 
   await page.getByRole('button', { name: 'Cancel', exact: true }).click()
   await expect(page.getByText('state: cancelled')).toBeVisible()
   // A cancelled run is terminal: no further stages may run.
-  await expect(page.getByRole('button', { name: 'Resume' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Resume', exact: true })).toHaveCount(0)
 })
 
 test('a CSV file can be uploaded and is analyzed', async ({ page }) => {
@@ -87,7 +91,12 @@ test('a CSV file can be uploaded and is analyzed', async ({ page }) => {
     timeout: 40_000,
   })
   // Figures come from the uploaded file, not the bundled sample.
-  await expect(page.locator('.runreport--full')).toContainText('total_sales | 400.0')
-  await expect(page.locator('.runreport--full')).toContainText('quarterly-sales.csv')
+  const report = page.locator('.runreport--full.report-document')
+  const total = report.getByRole('table', { name: 'Key metrics', exact: true }).getByRole('row')
+    .filter({ has: page.getByRole('cell', { name: 'total_sales', exact: true }) })
+  await expect(total.getByRole('cell')).toHaveCount(3)
+  await expect(total.getByRole('cell', { name: '400.0', exact: true })).toBeVisible()
+  await expect(report.getByRole('heading', { name: /Business Analytics Report.*quarterly-sales\.csv/ })).toBeVisible()
+  await expect(report).not.toContainText('total_sales | 400.0')
 })
 

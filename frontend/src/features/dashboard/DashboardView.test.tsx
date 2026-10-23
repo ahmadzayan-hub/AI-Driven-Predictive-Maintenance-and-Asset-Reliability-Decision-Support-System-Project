@@ -4,6 +4,10 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { applyLocale } from '../../i18n'
 import { api, ApiError } from '../../shared/api'
 import { DashboardView } from './DashboardView'
+import type { ReactNode } from 'react'
+import { dashMessages } from './messages'
+
+vi.mock('./ExecutiveOverview', () => ({ ExecutiveOverview: ({ children }: { children: ReactNode }) => <>{children}</> }))
 
 vi.mock('../../shared/api', async (original) => {
   const actual = await original<typeof import('../../shared/api')>()
@@ -42,3 +46,24 @@ it('offers maintenance intake and retries a failed analysis picker rather than r
   await user.click(await screen.findByRole('button', { name: /Synthetic maintenance analysis/ }))
   expect(onNavigate).toHaveBeenCalledWith({ tab: 'dashboard', runId: 'r2' })
 })
+
+it.each(['overview', 'trend'])('discloses omitted later periods on the %s page in both languages', async (page) => {
+  vi.mocked(api.tableFields).mockResolvedValue({ records: 1001, fields: [
+    { name: 'day', type: 'text', role: 'date', filled: 1001, records: 1001 },
+    { name: 'cost', type: 'number', role: 'analysed', filled: 1001, records: 1001 },
+  ] })
+  vi.mocked(api.queryTable).mockImplementation(async (_id, spec) => ({
+    // Exercise the server's truncation contract with a small returned page.
+    // Backend query tests own the row limit; this check owns the EN/AR notice.
+    groups: spec.group_by?.length ? Array.from({ length: 3 }, (_, index) => ({ keys: [`period-${index}`], values: [1, 1, 1], records: 1 })) : [],
+    group_by: [], measures: [], group_count: spec.group_by?.length ? 1001 : 1,
+    truncated: Boolean(spec.group_by?.length), records: 1001, matched_records: 1001,
+  }))
+  for (const locale of ['en', 'ar'] as const) {
+    applyLocale(locale)
+    const view = render(<DashboardView runId="r1" page={page} query="" onNavigate={vi.fn()} onOpenRun={vi.fn()} />)
+    const expected = dashMessages[locale]['dash.trendTruncated'].replace('{shown}', '3').replace('{total}', '1,001')
+    expect(await screen.findByText(expected)).toBeVisible()
+    view.unmount()
+  }
+}, 15000)

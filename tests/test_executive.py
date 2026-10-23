@@ -64,6 +64,25 @@ class ExecutiveTests(unittest.TestCase):
         revised["result"]["claims"][0]["text"] = "A revised stored observation over the same records."
         self.assertNotEqual(first["snapshot_id"], self.brief(tasks=[revised])["snapshot_id"])
 
+    def test_the_brief_carries_the_mapped_currency_and_never_invents_one(self):
+        # No mapping, a mapping without a currency, and one saved before the
+        # field existed all say "not stated"; only the owner's code is carried.
+        self.assertIsNone(self.brief()["currency"])
+        unstated = {**run(), "mapping_json": json.dumps({"roles": {}, "measure": "Downtime_Hours",
+                                                         "dimension": None, "date_order": "auto",
+                                                         "grain": "auto", "currency": None})}
+        self.assertIsNone(self.agent.brief(table(), unstated, (), None, "en")["currency"])
+        old = {**run(), "mapping_json": json.dumps({"roles": {}, "measure": "Downtime_Hours"})}
+        self.assertIsNone(self.agent.brief(table(), old, (), None, "en")["currency"])
+        self.assertIsNone(self.agent.brief(table(), {**run(), "mapping_json": "{not json"}, (), None, "en")["currency"])
+        mapped = {**run(), "mapping_json": json.dumps({"roles": {}, "measure": "Downtime_Hours",
+                                                       "currency": "AED"})}
+        stated = self.agent.brief(table(), mapped, (), None, "en")
+        self.assertEqual(stated["currency"], "AED")
+        self.assertEqual(self.agent.brief(table(), mapped, (), None, "ar")["currency"], "AED")
+        # The currency is part of the snapshot, so an export cannot outlive a change to it.
+        self.assertNotEqual(stated["snapshot_id"], self.brief()["snapshot_id"])
+
     def test_filters_reuse_query_semantics_and_kpis_keep_population_and_missing_counts(self):
         filters = [{"column": "Site", "op": "in", "values": ["North"]}]
         snapshot = copy.deepcopy(filters)
@@ -74,7 +93,10 @@ class ExecutiveTests(unittest.TestCase):
         self.assertEqual(measures["downtime_per_record"]["records"], 1)
         self.assertEqual(measures["downtime_per_record"]["records_unmeasured"], 1)
         self.assertEqual(measures["first_time_fix"]["value"], 70.)
-        self.assertEqual(measures["availability"]["value"], 85.)
+        # One of the two North records has no downtime reading, so availability is
+        # measured on the other alone: 1 - 10 / 100. It is not read as zero downtime.
+        self.assertEqual(measures["availability"]["value"], 90.)
+        self.assertEqual((measures["availability"]["records"], measures["availability"]["records_unmeasured"]), (1, 1))
         self.assertEqual(filters, snapshot)
         self.assertEqual(table().rows, ROWS)
         self.assertEqual(result["source"], "engine")
@@ -135,6 +157,10 @@ class ExecutiveTests(unittest.TestCase):
             self.assertEqual(item["value"], en[item["key"]]["value"])
             self.assertNotEqual(item["title"], en[item["key"]]["title"])
             self.assertNotIn("title_ar", item)
+            # The population is shown in Arabic; its code stays for exports.
+            self.assertEqual(item["population"], en[item["key"]]["population"])
+            self.assertRegex(item["population_label"], "[\u0600-\u06FF]")
+            self.assertNotIn("population_ar", item)
 
     def test_response_is_bounded_and_every_reference_resolves(self):
         claims = [{"id": f"g.cl_{i}", "type": "fact", "status": "verified", "text": "Measured.",
@@ -220,7 +246,7 @@ class ExecutiveTests(unittest.TestCase):
 try:
     from fastapi.testclient import TestClient
     from server.app import create_app
-    from server.auth import issue_local_test_token
+    from tests.support import scoped_token as issue_local_test_token
     FASTAPI_AVAILABLE = True
 except ImportError:
     FASTAPI_AVAILABLE = False
@@ -239,7 +265,7 @@ class ExecutiveApiTests(unittest.TestCase):
             "memory_file": str(root / "m.json"), "vault_dir": str(root / "vault"),
             "stages": ["server.maintenance.targets.MaintenanceRisk"],
             "profiles": {"default": [], "maintenance": ["maintenance_risk"]}}), encoding="utf-8")
-        self.app = create_app(config, env={"AGENTIC_OS_ENV": "production", "AGENTIC_OS_JWT_SECRET": SECRET})
+        self.app = create_app(config, env={"AGENTIC_OS_ENV": "production", "AGENTIC_OS_JWT_SECRET": SECRET, "SUPABASE_URL": "https://test.supabase.invalid"})
         self.client = TestClient(closing(self, self.app), raise_server_exceptions=False)
 
     def auth(self, owner="alice", role="analyst"):

@@ -41,7 +41,7 @@
 }
 
 .finding__text {
-  font-size: var(--text-m);
+  font-size: var(--text-s);
   color: var(--text);
   overflow-wrap: anywhere;
 }
@@ -102,11 +102,14 @@
 
 /* Action-first Executive Command Centre: content before decoration. */
 .decision-actions {
+  position: relative;
+  isolation: isolate;
   margin: var(--space-4) 0 var(--space-5);
   padding: var(--space-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-l);
-  background: var(--panel-fill);
+  background: var(--hero-fill);
+  overflow: hidden;
 }
 .decision-actions__eyebrow {
   color: var(--accent);
@@ -117,10 +120,26 @@
   font-size: var(--text-xl);
   margin-top: var(--space-1);
 }
+.decision-actions__intro { position: relative; z-index: 1; max-width: 80%; }
+.decision-actions__motif {
+  position: absolute;
+  inset-inline-end: var(--space-4);
+  inset-block-start: var(--space-2);
+  width: 220px;
+  height: 100px;
+  opacity: .24;
+  pointer-events: none;
+  color: var(--accent);
+}
+.decision-actions__motif path { fill: none; stroke: currentColor; stroke-width: 1; }
+.decision-actions__motif circle { fill: var(--surface); stroke: currentColor; stroke-width: 2; }
+[dir='rtl'] .decision-actions__motif { transform: scaleX(-1); }
 .decision-actions__intro p { margin-top: var(--space-2); color: var(--text-muted); font-size: var(--text-s); }
 .decision-actions__grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  position: relative;
+  z-index: 1;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--space-3);
   margin-top: var(--space-4);
 }
@@ -133,12 +152,65 @@
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-m);
   background: var(--bg);
+  transition: transform var(--motion-fast), border-color var(--motion-fast), background var(--motion-fast);
 }
-.decision-actions__grid button:hover { border-color: var(--accent); background: var(--accent-soft); }
+.decision-actions__grid button:hover,
+.decision-actions__grid button:focus-visible { border-color: var(--accent); background: var(--accent-soft); transform: translateY(-2px); }
 .decision-actions__grid svg { flex-shrink: 0; color: var(--accent); }
 .decision-actions__grid strong { display: block; font-size: var(--text-s); }
 .decision-actions__grid small { display: block; margin-top: 5px; color: var(--text-muted); line-height: 1.5; }
 @media (max-width: 780px) {
+  .decision-actions { padding: var(--space-4); }
+  .decision-actions__intro { max-width: none; }
+  .decision-actions__motif { display: none; }
   .decision-actions__grid { grid-template-columns: 1fr; }
   .decision-actions__grid button { min-height: 64px; }
 }
+@media (prefers-reduced-motion: reduce) {
+  .decision-actions__grid button { transition: none; transform: none; }
+}
+[data-motion='reduce'] .decision-actions__grid button { transition: none; transform: none; }
+
+/* Colour names a category, never a verdict; amber still marks "needs a person". */
+.finding { --hue: var(--accent); border-inline-start-color: var(--hue); }
+.finding[data-type=diagnostic] { --hue: var(--violet); }
+.finding[data-type=predictive] { --hue: var(--magenta); }
+.finding__type { color: var(--hue); }
+.finding[data-type=experiment], .finding[data-type=prescriptive] { --hue: var(--text-muted); }
+
+/* The Command Centre: the latest analysis's decision brief on one screen.
+   Every figure is the server's; colour names a verdict only where the
+   server gave one. */
+.command { margin-block: var(--space-4); }
+.command--pending { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
+.command--pending .skeleton { display: inline-block; width: 120px; margin-inline-end: var(--space-2); vertical-align: middle; }
+.command__hero {
+  display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: center;
+  border-inline-start: 3px solid var(--accent);
+}
+.command__hero-body { flex: 1 1 320px; min-width: 0; }
+.command__eyebrow { color: var(--accent); font-size: var(--text-xs); font-weight: 600; letter-spacing: var(--tracking-label); }
+.command__headline { font-size: var(--text-l); font-weight: 600; margin-top: var(--space-1); overflow-wrap: anywhere; }
+.command__meta, .command__owner { color: var(--text-muted); font-size: var(--text-s); margin-top: var(--space-2); }
+.command__grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-4); margin-top: var(--space-4);
+}
+.command__grid > .card { margin: 0; }
+.command__count { font-size: var(--text-xs); font-weight: 600; color: var(--accent); margin-inline-start: var(--space-2); }
+.command__list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.command__list li { display: flex; gap: var(--space-3); font-size: var(--text-s); }
+.command__list p { color: var(--text-muted); margin-top: 2px; overflow-wrap: anywhere; }
+.command__n { flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: var(--text-xs); font-weight: 700; color: var(--accent); background: var(--accent-soft); }
+.command__kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--space-3); }
+.command__kpis dt { font-size: var(--text-xs); color: var(--text-muted); overflow-wrap: anywhere; }
+.command__kpis dd { font-size: var(--text-m); font-weight: 600; margin-top: 2px; }
+.command__models, .command__questions { list-style: none; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); font-size: var(--text-s); }
+.command__models li { display: flex; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.command__questions li { padding-inline-start: var(--space-3); border-inline-start: 2px solid var(--border-strong); }
+.command__action { font-size: var(--text-s); overflow-wrap: anywhere; }
+.command__boundary, .command__caution { display: flex; gap: var(--space-2); align-items: center; font-size: var(--text-xs); color: var(--text-muted); margin-top: var(--space-3); }
+.command__caution { color: var(--highlight); font-weight: 600; }
+.command__limits { margin-top: var(--space-3); font-size: var(--text-s); }
+.command__limits summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+.command__limits ul { margin-top: var(--space-2); padding-inline-start: var(--space-4); color: var(--text-muted); display: flex; flex-direction: column; gap: var(--space-1); }

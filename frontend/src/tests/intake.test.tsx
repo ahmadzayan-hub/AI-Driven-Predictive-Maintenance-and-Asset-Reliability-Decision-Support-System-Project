@@ -26,6 +26,62 @@ afterEach(() => {
 })
 
 describe('real data intake', () => {
+  it.each([
+    { ui: 'en', report: 'ar', label: 'Report language', start: 'Start run' },
+    { ui: 'ar', report: 'en', label: 'لغة التقرير', start: 'بدء التحليل' },
+  ] as const)('requests a $report report independently of the $ui interface', async ({ ui, report, label, start }) => {
+    applyLocale(ui)
+    const user = userEvent.setup()
+    render(<RunsView preset={{ kind: 'upload' }} />)
+    const language = screen.getByRole('combobox', { name: label })
+    expect(language).toHaveValue(ui)
+    const csv = 'plant,cost\nNorth,320\nSouth,180'
+    fireEvent.change(screen.getByRole('textbox', { name: /CSV/ }), { target: { value: csv } })
+    await user.selectOptions(language, report)
+    expect(document.documentElement.lang).toBe(ui)
+    await user.click(screen.getByRole('button', { name: start }))
+    await waitFor(() => expect(api.createRun).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(api.createRun).mock.calls[0][4]).toBe(report)
+    expect(vi.mocked(api.createRun).mock.calls[0][1]).toBe(csv)
+    expect(language).toHaveValue(report)
+    expect(screen.getByRole('textbox', { name: /CSV/ })).toHaveValue(csv)
+    expect(document.documentElement.lang).toBe(ui)
+  })
+
+  it('follows the interface language until an explicit report language is chosen', async () => {
+    const user = userEvent.setup()
+    render(<RunsView />)
+    expect(screen.getByRole('combobox', { name: 'Report language' })).toHaveValue('en')
+    act(() => applyLocale('ar'))
+    const language = screen.getByRole('combobox', { name: 'لغة التقرير' })
+    expect(language).toHaveValue('ar')
+    await user.selectOptions(language, 'en')
+    act(() => applyLocale('en'))
+    act(() => applyLocale('ar'))
+    expect(screen.getByRole('combobox', { name: 'لغة التقرير' })).toHaveValue('en')
+  })
+
+  it('shows the run as four steps and folds the file limits and model notes', async () => {
+    render(<RunsView preset={{ kind: 'upload' }} />)
+    const steps = document.querySelector('.run-steps')!
+    expect([...steps.querySelectorAll('li')].map((item) => item.textContent)).toEqual(['Upload', 'Check columns', 'Run the agents', 'Approve and explore'])
+    expect(screen.queryByText(/A goal becomes a governed pipeline/)).not.toBeInTheDocument()
+    const limits = screen.getByText(/Supported tabular files/)
+    expect(limits.closest('details')).not.toHaveAttribute('open')
+    expect(limits).not.toBeVisible()
+    expect(screen.getByText('Files, limits and models')).toBeVisible()
+  })
+
+  it('uses Arabic custom stage names in the profile help and execution plan', async () => {
+    applyLocale('ar')
+    vi.mocked(api.pipelines).mockResolvedValue({
+      stages: [{ role: 'rail_asset_manager', title: 'English railway title', title_ar: 'وكيل أصول السكك', after: 'cleaner', question: null, can_fail_run: false }],
+      profiles: { maintenance: ['rail_asset_manager'] }, default: [], problems: [],
+    })
+    render(<RunsView preset={{ kind: 'upload', profile: 'maintenance' }} />)
+    await waitFor(() => expect(screen.getAllByText(/وكيل أصول السكك/)).toHaveLength(2))
+    expect(screen.queryByText(/English railway title/)).not.toBeInTheDocument()
+  })
   it('blocks empty upload and stored submissions instead of running sample data', async () => {
     const user = userEvent.setup()
     render(<RunsView preset={{ kind: 'upload' }} />)
@@ -56,7 +112,7 @@ describe('real data intake', () => {
     await user.click(start)
     await waitFor(() => expect(api.createRun).toHaveBeenCalledTimes(1))
     expect(vi.mocked(api.createRun).mock.calls[0]).toEqual([
-      'Analyse equipment.xlsx and produce a business report', undefined, undefined, undefined, 'en', 'equipment1', undefined,
+      'Analyse equipment.xlsx and produce a business report', undefined, undefined, undefined, 'en', 'equipment1', undefined, undefined,
     ])
   })
 

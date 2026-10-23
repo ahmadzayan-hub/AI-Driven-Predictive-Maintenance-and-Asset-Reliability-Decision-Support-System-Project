@@ -1,0 +1,51 @@
+Note: evidence lines condensed by the orchestrator; paragraph ids, severities and categories are exactly as the reviewer gave them.
+
+FINDING F01 · major · P03
+Category: domain_method
+Evidence: Inherent label but planned hours subtracted; 98.5%.
+
+FINDING F02 · blocker · P04
+Category: domain_method
+Evidence: MTBF ignores 156 surviving motors; 69,630 h.
+
+FINDING F03 · major · P06
+Category: domain_method
+Evidence: Wear-out pattern; half-MTBF fixed interval.
+
+FINDING F04 · major · P07
+Category: domain_method
+Evidence: Post-overhaul cluster is infant mortality, not wear-out.
+
+FINDING F05 · major · P09
+Category: domain_method
+Evidence: PM compliance counted at any time in the year.
+
+FINDING F06 · major · P12
+Category: domain_method
+Evidence: Mean tested against a median target.
+
+FINDING F07 · major · P16
+Category: overclaim
+Evidence: Alarm count rise is not faults caught.
+
+FINDING F08 · blocker · P18
+Category: domain_method
+Evidence: Braking contactor is safety-critical; run-to-failure on cost.
+
+FINDING F09 · blocker · P21
+Category: domain_method
+Evidence: Spares cut on average demand, not lead-time demand and criticality.
+
+FINDING F10 · blocker · P23
+Category: causal_claim
+Evidence: Routine 'cut' faults, before-and-after only.
+
+FINDING F11 · major · P24
+Category: denominator
+Evidence: Share of corrective orders called share of workload; 4.2%.
+
+FINDING F12 · blocker · P25
+Category: overclaim
+Evidence: One year's margin taken as assured for concession.
+
+TOTAL: 12 findings

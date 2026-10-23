@@ -123,7 +123,7 @@ def score(bench, text, categories=None):
 # What each reviewer is responsible for. The team is scored on every category.
 LANES = {"figures-tool": ["unsourced_figure", "arithmetic"],
          "figures-auditor": ["unsourced_figure", "arithmetic"],
-         "analytics-expert-reviewer": ["causal_claim", "denominator", "overclaim"]}
+         "analytics-expert-reviewer": ["causal_claim", "denominator", "overclaim", "domain_method"]}
 RUN = re.compile(r"^(?P<agent>%s)-(?P<bench>[A-Z])-(?P<tag>[\w-]+)\.txt$" % "|".join(LANES))
 REVIEWERS = Path(__file__).resolve().parent.parent / "evals" / "reviewers"
 

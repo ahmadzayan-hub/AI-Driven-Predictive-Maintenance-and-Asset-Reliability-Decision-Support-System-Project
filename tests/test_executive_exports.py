@@ -11,7 +11,7 @@ from zipfile import ZipFile
 
 from server.executive import ExecutiveDashboardAgent, MAX_FILTER_CHARS
 from server.executive_export import (render_html, render_docx, attachment_name, W,
-                                     DOCX_MIME)
+                                     CONTENT_POLICY, DOCX_MIME)
 from tests import test_executive as fixtures
 
 
@@ -88,7 +88,7 @@ class ExecutiveDocumentTests(unittest.TestCase):
             kpi = property_table(tables, "Evidence ID", "executive.kpi.first_time_fix")
             self.assertEqual(kpi["Numerator"], "14")
             self.assertEqual(kpi["Denominator"], "20")
-            self.assertEqual(kpi["Population"], "corrective records")
+            self.assertEqual(kpi["Population"], "all records")
             self.assertEqual(kpi["Measured records"], "2")
             self.assertEqual(kpi["Excluded records"], "0")
             self.assertEqual(kpi["Unmeasured records"], "0")
@@ -220,8 +220,8 @@ class ExecutiveDocumentTests(unittest.TestCase):
             self.assertIn("بانتظار الاعتماد", state)
             self.assertIn("awaiting_approval", state)
             kpi = property_table(tables, "معرّف الدليل", "executive.kpi.first_time_fix")
-            self.assertIn("سجلات الصيانة التصحيحية", kpi["مجموعة القياس"])
-            self.assertIn("corrective records", kpi["مجموعة القياس"])
+            self.assertIn("جميع السجلات", kpi["مجموعة القياس"])
+            self.assertIn("all records", kpi["مجموعة القياس"])
             self.assertIn("استبعاد", kpi["سياسة القيم المفقودة"])
             self.assertIn("نسبة مئوية", kpi["مقياس القيمة"])
         brief["run"]["state"] = "custom_operator_state"
@@ -263,7 +263,7 @@ class ExecutiveExportApiTests(unittest.TestCase):
         for response in (html, word):
             self.assertEqual(response.headers["cache-control"], "no-store")
             self.assertEqual(response.headers["x-content-type-options"], "nosniff")
-            self.assertIn("default-src 'none'", response.headers["content-security-policy"])
+            self.assertEqual(response.headers["content-security-policy"], CONTENT_POLICY)
         properties = property_table(HtmlDocument(html.text).tables, "Selected records", "2")
         self.assertEqual(properties["Total records"], "3")
         self.assertTrue(word.content.startswith(b"PK\x03\x04"))

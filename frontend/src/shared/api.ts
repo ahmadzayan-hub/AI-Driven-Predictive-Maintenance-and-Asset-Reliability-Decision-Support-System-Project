@@ -1,8 +1,12 @@
 import { translate } from '../i18n'
-import type { AuthConfig, ColumnMapping, DatasetDetail, DatasetSummary, ExportPayload, IdentityInfo, JoinPreview, JoinSpec, KpiPolicy, MappingProblem, Pipelines, QueryAnswer, QuerySpec, RecordsPage, RecordsSpec, RunDetail, RunExecutive, RunKpis, RunSummary, SessionState, TableField, TableFilter, TranscriptEntry, UploadResult, Usage } from './types'
+import type { AuthConfig, ColumnMapping, DatasetDetail, DatasetSummary, ExportPayload, IdentityInfo, JoinPreview, JoinSpec,
+  KpiPolicy, MappingProblem, Pipelines, QueryAnswer, QuerySpec, RecordsPage, RecordsSpec, RunAssumptions, RunDetail, RunExecutive, RunKpis, RunSummary, SessionState, TableField, TableFilter, TranscriptEntry, UploadResult, Usage } from './types'
 
 export const API_BASE = import.meta.env.VITE_API_BASE ?? ''
 const REQUEST_TIMEOUT_MS = 10_000
+// Run reads/controls may wait behind a serialized stage. Local narration is
+// bounded to 60 seconds; allow its response and commit to reach the browser.
+const RUN_REQUEST_TIMEOUT_MS = 90_000
 // A 4 MB file on a slow connection, then read on the server.
 const UPLOAD_TIMEOUT_MS = 60_000
 
@@ -42,6 +46,14 @@ function readDetail(body: unknown): { message: string | null; problems: MappingP
 }
 
 export const TOKEN_KEY = 'aos-token'
+export const AUTH_EXPIRED_EVENT = 'aos-auth-expired'
+
+/** A delayed refusal for an old credential must not log out a new identity. */
+function notifyUnauthorized(status: number, sentHeaders: Record<string, string>) {
+  if (status === 401 && sentHeaders.Authorization && sentHeaders.Authorization === authHeaders().Authorization) {
+    window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT))
+  }
+}
 
 export function storeToken(token: string | null) {
   try {
@@ -83,15 +95,12 @@ export async function request<T>(
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   let response: Response
   const { headers, ...rest } = init
+  const sentHeaders = { 'Content-Type': 'application/json', ...authHeaders(), ...(headers as Record<string, string> | undefined) }
   try {
     response = await fetch(`${API_BASE}${path}`, {
       ...rest,
       // A caller's headers add to these; the token is never dropped.
-      headers: {
-        'Content-Type': 'application/json',
-        ...authHeaders(),
-        ...(headers as Record<string, string> | undefined),
-      },
+      headers: sentHeaders,
       signal: controller.signal,
     })
   } catch (error) {
@@ -116,6 +125,7 @@ export async function request<T>(
   }
 
   if (!response.ok) {
+    notifyUnauthorized(response.status, sentHeaders)
     const { message, problems } = readDetail(body)
     throw new ApiError(
       message ?? translate('api.failed', { status: response.status }),
@@ -227,6 +237,9 @@ export const api = {
     /** Other stored datasets joined onto this one, and a breakdown from
      *  the merged table (ADR 0030). The server checks the merge first. */
     merge?: { joins: JoinSpec[]; breakdown?: string | null },
+    /** The decision inputs the run states (slice three, A2); the server
+     *  validates them before anything is written. */
+    assumptions?: RunAssumptions | null,
   ) =>
     request<RunDetail>(
       '/api/runs',
@@ -241,6 +254,7 @@ export const api = {
           language,
           joins: merge?.joins.length ? merge.joins : null,
           breakdown: merge?.joins.length ? (merge.breakdown || null) : null,
+          assumptions: assumptions ?? null,
         }),
       },
       merge?.joins.length ? UPLOAD_TIMEOUT_MS : REQUEST_TIMEOUT_MS,
@@ -281,6 +295,7 @@ export const api = {
           dimension: mapping.dimension,
           date_order: mapping.date_order,
           grain: mapping.grain,
+          currency: mapping.currency ?? null,
         }),
       },
       UPLOAD_TIMEOUT_MS,
@@ -293,9 +308,9 @@ export const api = {
       UPLOAD_TIMEOUT_MS,
     ),
   pipelines: () => request<Pipelines>('/api/pipelines'),
-  listRuns: () => request<{ runs: RunSummary[] }>('/api/runs'),
+  listRuns: (state?: string) => request<{ runs: RunSummary[] }>(state ? `/api/runs?state=${encodeURIComponent(state)}` : '/api/runs'),
   usage: () => request<Usage>('/api/usage'),
-  getRun: (id: string) => request<RunDetail>(`/api/runs/${id}`),
+  getRun: (id: string) => request<RunDetail>(`/api/runs/${id}`, {}, RUN_REQUEST_TIMEOUT_MS),
   /** The maintenance KPI register computed on a run's cleaned table
    *  (ADR 0049). 409 until the run has finished cleaning. */
   runKpis: (id: string, language: 'en' | 'ar' = 'en') =>
@@ -315,12 +330,14 @@ export const api = {
     if (signal?.aborted) cancel()
     else signal?.addEventListener('abort', cancel, { once: true })
     const timer = setTimeout(cancel, UPLOAD_TIMEOUT_MS)
+    const sentHeaders = authHeaders()
     try {
       const params = new URLSearchParams({ language, format, filters: JSON.stringify(filters), expected_updated_at: expectedUpdatedAt, expected_snapshot_id: expectedSnapshotId })
       const response = await fetch(`${API_BASE}/api/runs/${encodeURIComponent(id)}/executive/export?${params}`, {
-        headers: authHeaders(), signal: controller.signal,
+        headers: sentHeaders, signal: controller.signal,
       })
       if (!response.ok) {
+        notifyUnauthorized(response.status, sentHeaders)
         let message: string | null = null
         try { message = readDetail(await response.json()).message } catch { /* use the status below */ }
         throw new ApiError(message ?? translate('api.failed', { status: response.status }), response.status)
@@ -341,10 +358,10 @@ export const api = {
       signal?.removeEventListener('abort', cancel)
     }
   },
-  advanceRun: (id: string) => request<RunDetail>(`/api/runs/${id}/advance`, { method: 'POST' }),
-  pauseRun: (id: string) => request<RunDetail>(`/api/runs/${id}/pause`, { method: 'POST' }),
-  resumeRun: (id: string) => request<RunDetail>(`/api/runs/${id}/resume`, { method: 'POST' }),
-  cancelRun: (id: string) => request<RunDetail>(`/api/runs/${id}/cancel`, { method: 'POST' }),
+  advanceRun: (id: string) => request<RunDetail>(`/api/runs/${id}/advance`, { method: 'POST' }, RUN_REQUEST_TIMEOUT_MS),
+  pauseRun: (id: string) => request<RunDetail>(`/api/runs/${id}/pause`, { method: 'POST' }, RUN_REQUEST_TIMEOUT_MS),
+  resumeRun: (id: string) => request<RunDetail>(`/api/runs/${id}/resume`, { method: 'POST' }, RUN_REQUEST_TIMEOUT_MS),
+  cancelRun: (id: string) => request<RunDetail>(`/api/runs/${id}/cancel`, { method: 'POST' }, RUN_REQUEST_TIMEOUT_MS),
   /** A run's cleaned table (ADR 0031): fields, totals by group, rows. */
   tableFields: (id: string, language: 'en' | 'ar' = 'en') =>
     request<{ fields: TableField[]; records: number }>(
@@ -365,14 +382,16 @@ export const api = {
    *  plain link could not send, then handed to the browser to save. */
   downloadTable: async (id: string, language: 'en' | 'ar' = 'en') => {
     let response: Response
+    const sentHeaders = authHeaders()
     try {
       response = await fetch(`${API_BASE}/api/runs/${encodeURIComponent(id)}/data.csv?language=${language}`, {
-        headers: authHeaders(),
+        headers: sentHeaders,
       })
     } catch {
       throw new ApiError(translate('api.unreachable'), 0, true)
     }
     if (!response.ok) {
+      notifyUnauthorized(response.status, sentHeaders)
       let message: string | null = null
       try {
         message = readDetail(await response.json()).message
@@ -390,5 +409,5 @@ export const api = {
     request<RunDetail>(`/api/runs/${id}/approvals/${approvalId}`, {
       method: 'POST',
       body: JSON.stringify({ decision }),
-    }),
+    }, RUN_REQUEST_TIMEOUT_MS),
 }

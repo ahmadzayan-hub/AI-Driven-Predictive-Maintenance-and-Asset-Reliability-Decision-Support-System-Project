@@ -1,9 +1,9 @@
 ---
 type: operation
 aliases: [Session loop, Operating loop]
-tags: [operating]
+tags: [operating, operations]
 status: active
-updated: 2026-10-19
+updated: 2026-10-22
 review_every_days: 30
 sources: [.claude/settings.json, .claude/hooks/session_start.py, .claude/hooks/stop_gate.py, .claude/hooks/session_end.py, docs/PLAYBOOK.md, AGENTS.md, scripts/verify.py, docs/GITHUB_SYNC.md]
 ---
@@ -26,6 +26,13 @@ Every working session on [[Agentic OS]] runs the same loop, so nothing learnt is
 
 Codex and similar tools read `AGENTS.md`, which points them to `CLAUDE.md` and repeats the rules they must not miss. They run no hooks, so they verify with the same script and log by hand.
 
+After an interrupted session, check the recorded commit against freshly fetched
+remote history before replaying or claiming that a push is pending. The terminal
+recovery procedure in `docs/GITHUB_SYNC.md` uses Git without a model session.
+Account allowances, GitHub permissions and application readiness are separate
+checks; project code does not remove account limits. Preserve the commit and
+remaining step in the handoff, with the evidence required by [[Soul]].
+
 ## Why hooks and skills both
 
 Hooks are deterministic and cheap: they record facts and remind. Skills need judgement: they decide what is durable, what is stale and what to link. Neither edits code, and neither pushes.
@@ -35,3 +42,5 @@ Hooks are deterministic and cheap: they record facts and remind. Skills need jud
 - [[Identity]]: the builder agent's operating loop.
 - [[Team collaboration]]: the same files keep teammates in sync.
 - [[Maintenance log]]: what daily brain care changed.
+- [[Release acceptance]]: separates completing a session from authorizing a hosted release.
+- [[Verification and budgets]]: records the checks needed before reporting success.

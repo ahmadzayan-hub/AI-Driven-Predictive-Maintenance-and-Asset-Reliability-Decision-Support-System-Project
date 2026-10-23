@@ -9,6 +9,16 @@ from math import isfinite
 
 ROLE_TAG = "TEAM3_RAIL_ASSET_MANAGER"
 CRITICALITIES = {"Low": 1, "Medium": 2, "High": 3, "Critical": 4}
+# The condition score below which a High or Critical asset goes to
+# engineering review. A screening convention set by the owner on 22
+# October 2026 (assessment finding A8), not a figure from a standard; it
+# is reported beside every screening so a reader sees the rule applied.
+CONDITION_REVIEW_THRESHOLD = 60.0
+# Asset classes that carry a safety function: any recorded failure on one
+# of them escalates to engineering review whatever its criticality label,
+# because a failure on a safety function is never routine (A8).
+SAFETY_CLASSES = ("signalling", "signaling", "interlocking", "train control",
+                  "level crossing", "train protection")
 REQUIRED = ("Industry_Context", "Asset_Class", "Asset_ID", "Criticality",
             "Condition_Score", "Failure_Count", "Downtime_Hours",
             "Maintenance_Cost_USD", "Production_Loss_USD")
@@ -44,6 +54,16 @@ def assess_observation(row):
     downtime = _number(row, "Downtime_Hours")
     maintenance = _number(row, "Maintenance_Cost_USD")
     loss = _number(row, "Production_Loss_USD")
+    asset_class = str(row["Asset_Class"]).strip().lower()
+    safety = any(term in asset_class for term in SAFETY_CLASSES)
+    if safety and failures > 0:
+        screening, reason = "engineering_review", "failure_on_safety_function"
+    elif category in ("Critical", "High") and failures > 0:
+        screening, reason = "engineering_review", "failure_on_high_criticality"
+    elif category in ("Critical", "High") and condition < CONDITION_REVIEW_THRESHOLD:
+        screening, reason = "engineering_review", "condition_below_threshold"
+    else:
+        screening, reason = "routine_review", "no_trigger"
     return {
         "role_tag": ROLE_TAG,
         "analytic_key": "|".join(str(row[k]).strip() for k in
@@ -57,8 +77,10 @@ def assess_observation(row):
         "maintenance_cost_usd": maintenance,
         "production_loss_usd": loss,
         "observed_economic_exposure_usd": maintenance + loss,
-        "screening": ("engineering_review" if category in ("Critical", "High")
-                      and (failures > 0 or condition < 60) else "routine_review"),
+        "screening": screening,
+        "screening_reason": reason,
+        "condition_review_threshold": CONDITION_REVIEW_THRESHOLD,
+        "safety_function": safety,
         "prediction_status": "NOT_EVALUATED",
         "obsolescence_status": "INSUFFICIENT_OEM_EVIDENCE",
         "replacement_case_status": "INCOMPLETE_LIFECYCLE_COST_DATA",

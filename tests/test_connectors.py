@@ -31,7 +31,7 @@ if FASTAPI_AVAILABLE:
 
     from server.app import create_app
 
-from server.auth import issue_local_test_token
+from tests.support import scoped_token as issue_local_test_token
 
 SECRET = "connector-test-secret-not-used-anywhere-else"
 
@@ -573,7 +573,7 @@ class ConnectorApiTestCase(unittest.TestCase):
                                     "memory_file": str(root / "m.json"),
                                     "vault_dir": str(root / "v")}), encoding="utf-8")
         self.app = closing(self, create_app(path, env={
-            "AGENTIC_OS_JWT_SECRET": SECRET, "AGENTIC_OS_ENV": "production",
+            "AGENTIC_OS_JWT_SECRET": SECRET, "SUPABASE_URL": "https://test.supabase.invalid", "AGENTIC_OS_ENV": "production",
             "AGENTIC_OS_CONNECTOR_FIXTURES": str(fixtures),
             "AGENTIC_OS_CONNECTOR_COOLDOWN": "0"}))
         self.client = TestClient(self.app, raise_server_exceptions=False)

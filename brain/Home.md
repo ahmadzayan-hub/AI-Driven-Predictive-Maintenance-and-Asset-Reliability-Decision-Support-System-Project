@@ -3,7 +3,7 @@ type: index
 aliases: [Brain home, Map of content]
 tags: [core]
 status: active
-updated: 2026-10-16
+updated: 2026-10-21
 review_every_days: 30
 sources: [CLAUDE.md, docs/PLAYBOOK.md]
 ---
@@ -24,26 +24,54 @@ The second brain of [[Agentic OS]]: what the project knows, who it serves and ho
 - [[Analytics OS roadmap]]: from one-dataset reports to a multi-dataset, live analytics OS.
 - [[Team 3 Capstone]]: the course deliverables that use the same methods.
 
-## Concepts
+## Agents and evidence
 
-- [[Governed pipeline]], run by the [[Hermes orchestrator]] and closed by the [[Approval gate]]
-- [[Weighted KPIs]], the measurement rule behind every headline number
-- [[Model gateway]], [[Custom stages]] and [[Agent runtimes and MCP]], the three extension seams
-- [[Second brain]], how this vault itself is kept
-- [[Design system]], how the interface looks and behaves, and where its rules come from
-- [[House style]], how the agents' outputs look: dashboards, clips, reports and decks
-- [[Column mapping]], how the owner says what each column of a dataset is
-- [[Agent evaluation]], how often each agent is right: confusion matrices, recall floors and blind holdouts
+- [[Governed pipeline]]: specialist analysis sequenced by the [[Hermes orchestrator]].
+- [[Run lifecycle]]: durable progress, cancellation and recovery.
+- [[Agent collaboration]]: observed handoffs, clear statuses and expandable stage details.
+- [[Evidence and claims]]: the calculations behind each statement.
+- [[Approval gate]]: the human decision before publishing.
+- [[Model gateway]]: provider routing and fallback.
+- [[Custom stages]] and [[Agent runtimes and MCP]]: extension contracts.
+- [[Knowledge retrieval]]: cited reference material kept outside this curated vault.
+- [[Agent evaluation]]: labelled checks and recall floors.
 
-## Data
+## Data and maintenance
 
-- [[Sample sales data]], bundled with the app
-- [[Team 3 maintenance dataset]], the capstone's course file, kept out of the repository
+- [[Data quality contracts]]: grain, units, completeness and input timing.
+- [[Column mapping]]: the owner's choices for measures, dimensions and dates.
+- [[Dataset joins]]: declared relationships and their population effects.
+- [[Live data]]: new source versions and owner-scoped updates.
+- [[Weighted KPIs]]: measurement rules behind headline figures.
+- [[Model validation]]: comparable cohorts, leakage controls and model limits.
+- [[Maintenance decision support]]: what maintenance evidence can support.
+- [[Sample sales data]]: the bundled demonstration dataset.
+- [[Team 3 maintenance dataset]]: the private course dataset and its limitations.
 
-## Operating
+## Identity and privacy
 
-- [[Session lifecycle]]: how every working session starts and ends
-- [[Team collaboration]]: how teammates join and contribute
-- [[Agent team]]: the specialist subagents, their model tiers and the review loop that validates deliverables
-- [[Decision log]]: every architecture decision, one line each
-- [[Note schema]] and [[Maintenance log]]: the rules for notes and the record of upkeep
+- [[Managed identity]]: authentication and server-enforced permissions.
+- [[Tenant isolation]]: ownership of runs, datasets and published notes.
+- [[Model privacy]]: the boundary around model-bound facts and labels.
+
+## Interface and reports
+
+- [[Design system]]: the interface's visual and interaction rules.
+- [[Accessible motion]]: finite animation, reduced motion and keyboard access.
+- [[Scoped dashboards]]: filtered figures and whole-run model context.
+- [[Business report exports]]: portable evidence with its scope preserved.
+- [[House style]]: the agents' reports, decks and other outputs.
+
+## Operations and knowledge
+
+- [[Session lifecycle]]: how working sessions start and end.
+- [[Team collaboration]]: how teammates contribute.
+- [[Agent team]]: the development specialists and review loop.
+- [[Release acceptance]]: verification and the remaining approval gates.
+- [[Backup and restore]]: recovery boundaries and restore drills.
+- [[Verification and budgets]]: checks that support a delivery claim.
+- [[Second brain]]: how this vault is curated and explored.
+- [[Decision log]]: architecture decisions and their reasons.
+- [[Note schema]] and [[Maintenance log]]: note rules and the record of upkeep.
+
+- [[Maintenance pilot]]: authorized work, source integration and prospective validation gates.

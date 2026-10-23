@@ -1,0 +1,169 @@
+Check,Expected
+Review year,2025
+Comparison year,2024
+Stations,31
+Escalators,186
+Lifts,142
+Platform screen door sets,"1,488"
+Platforms with screen doors,62
+Door sets per platform,24
+Traction rectifiers,36
+Traction substations,18
+Tunnel ventilation fans,96
+Drainage pumps,74
+Drainage sumps,37
+Point machines,412
+Track circuits,"1,150"
+UPS systems,64
+Labour rate per hour,AED 300
+Escalator service window (hours per day),20
+Service hours per escalator,"7,300"
+Escalator fleet service unit-hours,"1,357,800"
+Escalator downtime in service window (hours),"25,800"
+Escalator unplanned downtime (hours),"19,604"
+Escalator planned downtime in service window (hours),"6,196"
+Escalator availability,98.1%
+Depot rectifier reliability,0.98
+Depot DC circuit breaker reliability,0.96
+Depot feeder cable reliability,0.99
+Depot section supply reliability (as stated),97.7%
+Depot section supply reliability [correct method],93.1%
+Depot section reliability target,97.0%
+Lift failures 2025,338
+Lift mean time to repair (hours),2.4
+Lift downtime (as stated hours),811.2
+Lift fleet service unit-hours,"1,036,600"
+Lift availability (as stated),99.92%
+Lift mean response time (hours),1.6
+Lift mean spares waiting time (hours),0.9
+Lift mean restoration time (hours) [correct method],4.9
+Lift downtime (hours) [correct method],"1,656.2"
+Lift availability [correct method],99.84%
+Lift restoration promise (hours),3
+Escalator mean time to restore (hours),5.2
+Escalator response time (hours),1.4
+Escalator diagnosis and repair time (hours),2.9
+Escalator waiting for parts (hours),0.9
+Unplanned escalator failures,"3,770"
+UPS discharge test hours per system,6
+UPS labour hours released,384
+UPS saving,"AED 115,200"
+Drainage pump unavailability,2.0%
+Both pumps unavailable (as stated),0.04%
+Shared level controller availability,99.5%
+Sump pumping unavailability including shared controller [correct method],0.54%
+Rectifier unavailability,0.3%
+Both rectifiers unavailable,0.0009%
+Gearbox vibration survey interval before (weeks),4
+Gearbox surveys per year before,13
+Gearbox P-F interval (weeks),8
+Gearbox vibration survey interval after (weeks),13
+Gearbox surveys per year after,4
+Surveys saved per escalator,9
+Hours per gearbox survey,0.5
+Gearbox labour hours saved,837
+Gearbox saving,"AED 251,100"
+Gearbox survey interval no longer than half P-F (weeks) [correct method],4
+Point machine P-F interval (weeks),6
+Point machine reviews saved per machine,26
+Hours per point machine review,0.25
+Point machine labour hours saved,"2,678"
+Point machine saving,"AED 803,400"
+Step roller failures,126
+Step roller Weibull shape,3.4
+Step roller characteristic life (running hours),"38,000"
+Lift door board failures,44
+Lift door board Weibull shape,0.7
+Lift door board characteristic life (hours),"61,000"
+Lift door board early failures,31
+Lift door board early failure share,70.5%
+Early failure window (hours),"2,000"
+Backlog before (labour hours),"18,300"
+Weekly labour capacity (hours),"3,000"
+Backlog before (weeks),6.1
+Backlog target (weeks),4
+Backlog after (labour hours),"11,400"
+Backlog after (weeks),3.8
+Deferred work (labour hours),"6,900"
+Open PSD obstruction-detection sensor defects,214
+Decorative LED fittings,"2,480"
+Decorative lighting scheduled maintenance cost,"AED 186,000"
+Decorative lighting replacements per year,310
+Cost per fitting,AED 95
+Fitting cost,"AED 29,450"
+Replacement labour hours,155
+Replacement labour cost,"AED 46,500"
+Run-to-failure annual cost,"AED 75,950"
+Decorative lighting saving,"AED 110,050"
+Condition-monitoring budget 2026,"AED 3,600,000"
+Escalator corrective cost,"AED 9,400,000"
+Lift corrective cost,"AED 6,100,000"
+PSD corrective cost,"AED 4,800,000"
+Tunnel ventilation corrective cost,"AED 2,300,000"
+Track circuit corrective cost,"AED 1,150,000"
+Total corrective cost of five classes,"AED 23,750,000"
+Point machine operating hours,"3,609,120"
+Point machine failures,10
+Point machine MTBF (hours),"360,912"
+Point machine MTBF (years),41.2
+Point machine renewal horizon before (years),25
+Point machine renewal horizon after (years),40
+Point machine unit renewal cost,"AED 150,000"
+Point machine renewals deferred,"AED 61,800,000"
+Lift failures 2024,412
+Lift failure reduction,18.0%
+Contract extension (years),3
+Drainage pump failures,22
+Drainage pump failure rate (as stated),59.5%
+Drainage pump failure rate [correct method],29.7%
+Pump failure benchmark,35%
+Renewed track circuit sections,6
+Renewed sections failures 2024,14
+Months since renewal,5
+Track circuit unit renewal cost,"AED 38,000"
+Track circuit renewal total,"AED 43,700,000"
+Interchange stations,5
+Interchange escalators,48
+Interchange escalator failures,"1,210"
+Interchange failures per unit,25.2
+Other escalators,138
+Other escalator failures,"2,560"
+Other failures per unit,18.6
+Interchange running hours,"336,000"
+Other running hours,"552,000"
+Interchange failures per 1000 running hours,3.60
+Other failures per 1000 running hours,4.64
+PM tolerance,10%
+PM work orders scheduled,"14,620"
+PM completed within tolerance,"13,080"
+PM compliance,89.5%
+PM completed in year,"14,150"
+PM compliance any time in year,96.8%
+PSD controller failures,93
+PSD controller lead time (weeks),10
+Expected lead-time demand,17.9
+PSD controller stock level,25
+Service level target,95%
+Achieved Poisson service level,95.8%
+Lift median restoration target (hours),3.5
+Lift median restoration 2025 (hours),3.1
+Condition-monitoring alarms,312
+Confirmed defects,198
+Alarm confirmation rate,63.5%
+Monitored functional failures,41
+Failures preceded by alarm,29
+Detection rate,70.7%
+Total maintenance spend,"AED 148,600,000"
+Preventive spend,"AED 71,300,000"
+Corrective spend,"AED 52,900,000"
+Renewal spend,"AED 24,400,000"
+Engineering hours window,01:00 to 05:00
+Rectifiers per substation,2
+Feeder voltage (kV),33
+Plan year,2026
+Failure history start year,2023
+Weibull shape threshold,1
+Rate basis (running hours),"1,000"
+Review year end,31 December 2025
+Renewal start,August 2025
+Lift contractor start,1 April 2025

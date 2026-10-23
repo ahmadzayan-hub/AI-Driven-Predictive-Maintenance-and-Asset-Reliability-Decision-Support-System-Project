@@ -147,6 +147,76 @@ class RunEngineTestCase(unittest.TestCase):
         self.assertEqual(again.status_code, 409)
         self.assertEqual(len(list((self.vault / "Reports").glob("*.md"))), 1)
 
+    def test_a_retried_post_with_the_same_idempotency_key_makes_one_run(self):
+        # B14: the header wins over the body; the replay is a 200, not a 201.
+        body = {"goal": "Analyze the sample sales dataset", "idempotency_key": "body-key"}
+        first = self.client.post("/api/runs", json=body, headers={"Idempotency-Key": "k-9"})
+        self.assertEqual(first.status_code, 201)
+        again = self.client.post("/api/runs", json=body, headers={"Idempotency-Key": "k-9"})
+        self.assertEqual(again.status_code, 200)
+        self.assertEqual(again.json()["id"], first.json()["id"])
+        self.assertTrue(again.json()["idempotent_replay"])
+        by_body = self.client.post("/api/runs", json=body)
+        self.assertEqual(by_body.status_code, 201)
+        self.assertNotEqual(by_body.json()["id"], first.json()["id"])
+        self.assertEqual(self.client.post("/api/runs", json=body).status_code, 200)
+        self.assertEqual(len(self.client.get("/api/runs").json()["runs"]), 2)
+
+    def test_the_decision_record_travels_with_the_run_and_the_gate_completes_it(self):
+        # Assumptions are inputs (A2); the record is persisted and completed
+        # by the approval, never by a stage (A13).
+        response = self.client.post("/api/runs", json={
+            "goal": "Analyze the sample sales dataset",
+            "assumptions": {"costs": {"North": 1000}, "uplift": {"South": 0.15}}})
+        self.assertEqual(response.status_code, 201)
+        run = self.advance_until(response.json()["id"], {"awaiting_approval"})
+        self.assertEqual(run["state"], "awaiting_approval")
+        self.assertEqual(run["assumptions"], {"costs": {"North": 1000.0},
+                                              "uplift": {"South": 0.15}})
+        record = run["decision"]
+        self.assertIsNotNone(record)
+        self.assertTrue(record["decision_id"].startswith(run["id"] + ":"))
+        self.assertIsNotNone(record["uncertainty"])
+        self.assertIsNone(record["approval"])
+        south = next(a for a in record["alternatives"] if a["target"] == "South")
+        self.assertEqual(south["uplift_source"], "stated")
+        north = next(a for a in record["alternatives"] if a["target"] == "North")
+        self.assertEqual(north["cost"], 1000.0)
+        approval_id = run["approvals"][0]["id"]
+        decided = self.client.post(f"/api/runs/{run['id']}/approvals/{approval_id}",
+                                   json={"decision": "approve"}).json()
+        self.assertEqual(decided["state"], "completed")
+        self.assertEqual(decided["decision"]["approval"]["state"], "approved_once")
+        self.assertIsNotNone(decided["decision"]["approval"]["decided_at"])
+        self.assertEqual(decided["decision"]["approval"]["decided_by"],
+                         decided["approvals"][0]["decided_by"])
+
+    def test_bad_assumptions_are_refused_before_anything_is_written(self):
+        response = self.client.post("/api/runs", json={
+            "goal": "Analyze the sample sales dataset",
+            "assumptions": {"uplift": {"North": "a lot"}}})
+        self.assertIn(response.status_code, (400, 422))
+        self.assertEqual(self.client.get("/api/runs").json()["runs"], [])
+
+    def test_publishing_is_refused_without_a_decision_record(self):
+        run = self.advance_until(self.create_run()["id"], {"awaiting_approval"})
+        engine = self.client.app.state.engine
+        # A stored run from before the record existed: strip it from both
+        # stages' results.
+        for task in engine.store.get_tasks(run["id"]):
+            if task["role"] in ("prescriptive", "sensitivity") and task["result_json"]:
+                result = json.loads(task["result_json"])
+                result["output"].pop("decision", None)
+                engine.store.update("tasks", task["id"],
+                                    {"result_json": json.dumps(result)})
+        self.assertIsNone(self.client.get(f"/api/runs/{run['id']}").json()["decision"])
+        approval_id = run["approvals"][0]["id"]
+        refused = self.client.post(f"/api/runs/{run['id']}/approvals/{approval_id}",
+                                   json={"decision": "approve"})
+        self.assertEqual(refused.status_code, 409)
+        self.assertIn("decision record", refused.json()["detail"])
+        self.assertEqual(list((self.vault / "Reports").glob("*.md")), [])
+
     def test_run_survives_restart(self):
         run = self.create_run()
         for _ in range(4):
@@ -362,6 +432,26 @@ class VaultDirResolutionTests(unittest.TestCase):
         )
         self.assertEqual(engine.vault_dir, self.root / "elsewhere")
 
+
+
+class GeneratedIdsTestCase(unittest.TestCase):
+    """An id the platform makes must never read as a person's number: the
+    assistant puts the latest run's id in its notes, and the privacy guard
+    then refused the model about once in seventy conversations."""
+
+    def test_no_generated_id_trips_the_personal_data_detector(self):
+        from server.runs import random_id
+        ids = [random_id() for _ in range(5000)]
+        tripped = [i for i in ids if analytics.personal_data_findings(
+            ["note"], [{"note": f"Latest analysis {i} (completed)"}])]
+        self.assertEqual(tripped, [])
+        self.assertTrue(all(len(i) == 12 for i in ids))
+
+    def test_the_rule_rejects_the_ids_that_used_to_trip_it(self):
+        from server.runs import personal_looking
+        for value in ("28560517940e", "284737311597", "2608480559ef"):
+            self.assertTrue(personal_looking(value), value)
+        self.assertFalse(personal_looking("5fe5d44a8391"))
 
 if __name__ == "__main__":
     unittest.main()

@@ -14,7 +14,7 @@ from xml.etree import ElementTree as ET
 from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
 
 from server.maintenance import performance
-from server.maintenance.kpis import REGISTER
+from server.maintenance.kpis import POPULATION_AR, REGISTER
 
 
 HTML_MIME = "text/html"
@@ -113,11 +113,12 @@ def report_sections(brief):
         "percent": ("Percent, 0–100", "نسبة مئوية، من 0 إلى 100"),
         "fraction": ("Fraction, 0–1", "نسبة كسرية، من 0 إلى 1"),
         "hours": ("Hours", "ساعات"), "money": ("Monetary units", "وحدات نقدية"),
+        "ratio": ("Times (one total over another)", "مرات (مجموع على مجموع)"),
         "count": ("Count", "عدد"), "score": ("Score", "درجة"),
         "category": ("Category", "فئة"), "date": ("Date", "تاريخ"), "identifier": ("Identifier", "معرّف"),
     }
-    populations = {"all records": ("all records", "جميع السجلات"),
-                   "corrective records": ("corrective records", "سجلات الصيانة التصحيحية")}
+    # One list of population names, kept by the register itself.
+    populations = {code: (code, arabic) for code, arabic in POPULATION_AR.items()}
     policies = {"exclude": ("Exclude unmeasured records", "استبعاد السجلات غير المقاسة"),
                 "zero": ("Treat missing values as measured zero", "اعتبار القيم المفقودة أصفاراً مقاسة")}
     run, scope = brief["run"], brief["scope"]
@@ -155,7 +156,30 @@ def report_sections(brief):
     summary = Section(tr("Executive summary", "الملخص التنفيذي"), [brief["headline"],
         tr("This document supports qualified human review. Exporting does not approve or publish the run.",
            "يدعم هذا المستند المراجعة البشرية المؤهلة. لا يعني التصدير اعتماد التشغيل أو نشره.")])
-    summary.paragraphs.extend(brief["readiness"]["limitations"])
+    limitations = Section(tr("Decision boundaries and unresolved issues", "حدود القرار والمسائل غير المحسومة"), brief["readiness"]["limitations"])
+    advisory = brief.get("advisory")
+    decision_sections = []
+    if advisory:
+        summary.paragraphs = [advisory["role"], advisory["subtitle"], advisory["recommendation"], brief["headline"], summary.paragraphs[-1]]
+        scorecard = Section(tr("Maintenance and reliability scorecard", "بطاقة أداء الصيانة والموثوقية"))
+        scorecard.tables.append(Table((tr("Decision area", "مجال القرار"), tr("Observed measure", "المؤشر المرصود"), tr("Value / status", "القيمة / الحالة"), tr("Management implication", "الدلالة الإدارية")), [
+            (item["title"], item["measure"] + "\n" + labelled(item["scale"], scales),
+             StatusText(value(item["value"]) + " — " + status_label(item["status"], brief["language"]), item["status"]),
+             item["implication"] + "\n" + item["reason"] + "\n" + refs(item)) for item in advisory["domains"]], (15, 23, 20, 42)))
+        decisions = Section(tr("Decisions requested and accountable roles", "القرارات المطلوبة والأدوار المسؤولة"), [tr(
+            "These are proposed review responsibilities, not assignments or approved interventions.",
+            "هذه مسؤوليات مراجعة مقترحة وليست تكليفات أو تدخلات معتمدة.")])
+        if advisory["decisions"]:
+            decisions.tables.append(Table((tr("Recommended decision", "القرار المقترح"), tr("Proposed accountable role / gate", "الدور المسؤول المقترح / شرط القرار")), [
+                (item["title"] + "\n" + item["action"] + "\n" + refs(item), item["owner"] + "\n" + item["gate"]) for item in advisory["decisions"]]))
+        if not decisions.tables:
+            decisions.paragraphs.append(tr("No evidence-linked intervention priority is available in this scope.", "لا تتوفر أولوية تدخل مرتبطة بالأدلة ضمن هذا النطاق."))
+        prediction = Section(tr("Predictive maintenance readiness", "جاهزية الصيانة التنبؤية"), [advisory["prediction"]])
+        sources = Section(tr("Analytical basis and source reconciliation", "الأساس التحليلي ومطابقة المصادر"), [advisory["new_findings"]])
+        sources.tables.append(Table((tr("Required source", "المصدر المطلوب"), tr("Verification status", "حالة التحقق")), [
+            (item["title"], status_label(item["status"], brief["language"]) + " — " + item["detail"]) for item in advisory["sources"]]))
+        sources.paragraphs.extend([advisory["preservation"], advisory["escalation"]])
+        decision_sections = [scorecard, decisions, prediction, sources]
     targets = Section(tr("Configured display targets", "أهداف العرض المحددة"), [tr(
         "Colours compare measured values with targets configured for this run: green means good, blue okay, red needs attention. Grey means no target or unavailable evidence. Configured targets are not approved standards or engineering authorizations.",
         "تقارن الألوان القيم المقاسة بأهداف محددة لهذا التشغيل: الأخضر جيد، والأزرق مقبول، والأحمر يحتاج إلى متابعة. يعني الرمادي عدم تحديد هدف أو عدم توفر الأدلة. الأهداف المحددة ليست معايير معتمدة أو تفويضات هندسية.")])
@@ -272,7 +296,8 @@ def report_sections(brief):
         tr("Value", "القيمة"), tr("Method", "الطريقة")), [(
             item["id"], item["label"] + "\n" + (tr("Selected scope", "النطاق المحدد") if item["scope"] == "filtered" else tr("Whole run", "التشغيل الكامل")),
             value(item["value"]), item["method"]) for item in brief["evidence"]], (22, 22, 20, 36)))
-    return tr("Executive evidence brief", "موجز الأدلة التنفيذي"), [metadata, selected, summary, targets, kpis, priorities, questions, findings, models, evidence]
+    title = advisory["title"] if advisory else tr("Maintenance and asset reliability decision brief", "موجز قرارات الصيانة وموثوقية الأصول")
+    return title, [summary, *decision_sections, selected, metadata, questions, limitations, targets, kpis, priorities, findings, models, evidence]
 
 
 STYLE = """

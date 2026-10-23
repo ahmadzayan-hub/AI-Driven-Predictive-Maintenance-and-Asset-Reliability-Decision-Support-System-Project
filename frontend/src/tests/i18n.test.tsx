@@ -23,6 +23,7 @@ import { memoryMessages } from '../features/memory/messages'
 import { prefsMessages } from '../features/preferences/messages'
 import { activityMessages } from '../features/activity/messages'
 import { voiceMessages } from '../features/chat/voiceMessages'
+import { commandMessages } from '../features/overview/commandMessages'
 import { StatusBadge } from '../shared/components/StatusBadge'
 
 afterEach(() => {
@@ -31,6 +32,15 @@ afterEach(() => {
 })
 
 describe('the dictionaries', () => {
+  it('translates fixed report labels without changing the interface language', () => {
+    applyLocale('en')
+    expect(translate('runs.chartLabel', undefined, 'ar')).toBe('العنصر')
+    expect(translate('runs.forecast', undefined, 'ar')).toBe(ar['runs.forecast'])
+    expect(currentLocale()).toBe('en')
+    applyLocale('ar')
+    expect(translate('runs.chartValue', undefined, 'en')).toBe('Value')
+    expect(currentLocale()).toBe('ar')
+  })
   it('cover the same keys in both languages', () => {
     // The type system enforces this at compile time; this keeps it true
     // at runtime too, where a stray `as` cast could hide a gap.
@@ -176,7 +186,7 @@ describe('useI18n', () => {
 // rules: the same keys and placeholders in both languages, none blank or
 // left in English, and no key that the main dictionary also defines.
 describe('message packs', () => {
-  const packs = { dashMessages, executiveMessages, joinMessages, modelMessages, liveMessages, maintenanceMessages, intakeMessages, assetMessages, memoryMessages, prefsMessages, activityMessages, voiceMessages }
+  const packs = { dashMessages, executiveMessages, joinMessages, modelMessages, liveMessages, maintenanceMessages, intakeMessages, assetMessages, memoryMessages, prefsMessages, activityMessages, voiceMessages, commandMessages }
   const names = (text: string) => (text.match(/\{\w+\}/g) ?? []).sort()
 
   for (const [name, pack] of Object.entries(packs)) {

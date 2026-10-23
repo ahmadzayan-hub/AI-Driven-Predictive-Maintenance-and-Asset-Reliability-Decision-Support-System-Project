@@ -37,6 +37,10 @@
   border-bottom-color: var(--accent-solid);
 }
 
+.dash-filters summary { cursor: pointer; list-style-position: inside; }
+.dash-filters summary h3 { display: inline-flex; gap: var(--space-2); margin: 0; }
+.dash-filters__count { padding-inline: var(--space-2); border-radius: 99px; background: var(--accent-soft); color: var(--accent); font: 500 var(--text-s) var(--font-mono); }
+
 .dash-filters__head,
 .dash-controls {
   display: flex;
@@ -179,4 +183,16 @@
   min-height: 32px;
   white-space: nowrap;
   font-family: var(--font-sans);
+}
+
+/* Phones: one scrolling row of pages and a two-column filter strip, so the
+   first screen reaches the figures instead of the controls. */
+@media (max-width: 767px) {
+  .dash-pages ul { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .dash-pages__link { white-space: nowrap; }
+  .dash-filters__grid, .dash-range { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dash-filters { padding: var(--space-3); }
+  .dash-header .eyebrow, .dash-header .panel__desc { display: none; }
+  .dash-header .panel__title { font-size: var(--text-l); }
+  .dash-actions .btn { min-height: 40px; padding-inline: var(--space-3); font-size: var(--text-s); }
 }

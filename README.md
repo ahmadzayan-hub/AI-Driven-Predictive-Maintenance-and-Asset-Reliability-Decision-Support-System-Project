@@ -1,41 +1,160 @@
-# AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project
+![Conceptual industrial motor, precision bearing and condition sensor in navy and blue](docs/media/reliability-hero.webp)
 
-A maintenance and asset reliability decision-support product being developed
-as software as a service, powered by **Agentic OS**, its governed analytics
-engine. The web workspace supports data preparation, analysis, model evaluation,
-dashboards and human approval of reports. The original command-line assistant
-remains available.
+# Asset Reliability · موثوقية الأصول
 
-The product name describes the development direction. Asset-specific prediction,
-commercial service readiness and operational savings require separate evidence.
-See the [project charter and delivery roadmap](docs/PROJECT_CHARTER.md) for the
-current scope, reusable capabilities and remaining work.
+**Turn maintenance data into findings, inspect the evidence, and review the next decision.**
 
-**Maintenance UI preview:** run `npm --prefix frontend run dev` and open
-`http://localhost:5173/?design=maintenance` for the interactive executive overview,
-equipment, review, cost and model-evidence screens in English or Arabic. It uses
-clearly labelled fictional data and requires no backend. See the
-[maintenance design specification](docs/design/MAINTENANCE_UI_SPEC.md).
+AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System
+SaaS Project combines a bilingual workspace with governed analytics. **Miyaar / معيار**
+is the assistant, **Hermes** coordinates the specialists, and **Agentic OS** is the engine.
 
-**Analyze your dataset:** start the Python server and open
-`http://127.0.0.1:8000/#/runs?source=upload`, or use **Upload & analyze your data**
-in the preview. Upload a tabular file, review its columns, then start the
-agents and open the computed report/dashboard. See the
-[upload guide](docs/DATASET_ANALYTICS.md) for setup, workbook sheets, supported
-formats, limits and background processing.
+Python · FastAPI · React · TypeScript · English / العربية
 
-In this project, "operating system" means an intelligent assistant
-environment — not a replacement for Windows, macOS, or Linux.
+[Get started](#get-started) · [Product tour](#product-tour) · [Capabilities](#capabilities) ·
+[Project guide](#project-guide) · [Testing](#testing)
 
-![Agentic OS — workspace, dark theme](docs/screenshots/desktop-hero-dark.png)
+*The hero above is original AI-generated concept artwork. Product screenshots below
+are actual interface renders with labelled synthetic data. [Image provenance](docs/design/README_ASSETS.md).*
 
-![Agentic OS — the same workspace in Arabic, right-to-left](docs/screenshots/desktop-chat-arabic-dark.png)
+## What this workspace helps you do
 
-![Agentic OS — the Overview: key figures, the latest findings and the approval queue](docs/screenshots/desktop-overview-light.png)
+- **Find what needs attention.** Explore downtime, maintenance cost and asset observations within a defined dataset and period.
+- **Understand the finding.** Follow the analysis, inspect calculations, compare models with baselines, and read the limitations.
+- **Make the decision.** Review the exact report before approving publication; preserve its evidence for the next conversation.
 
-[Editable Figma designs](https://www.figma.com/design/nLdKZ5cVOtRMTWEvhCJSEK) ·
-[UI specification and API mapping](docs/design/AGENTIC_UI_SPEC.md) ·
-[Current verification and platform scope](docs/design/VALIDATION.md)
+**Ask → Select data → Follow the analysis → Inspect evidence → Review → Approve → Publish**
+
+The product is under active development. Prediction quality, operational savings
+and hosted service readiness require their own evidence. Current scope and
+acceptance gates are recorded in the [project charter](docs/PROJECT_CHARTER.md)
+and [known limitations](docs/KNOWN_LIMITATIONS.md).
+
+## Product tour
+
+### Miyaar: a workspace for the question and its context
+
+![Miyaar desktop workspace with industrial welcome illustration, task actions and session context](docs/media/miyaar-workspace.webp)
+
+*Actual Chromium render with a synthetic test session. Model replies, dictation
+and read-aloud depend on the configured runtime and browser support.*
+
+<details>
+<summary><strong>Explore the maintenance overview and Arabic phone layout</strong></summary>
+
+### Maintenance executive overview
+
+![Maintenance design preview with availability, downtime, cost, equipment conditions and review priorities](docs/media/maintenance-overview.webp)
+
+*Interactive design preview using fictional equipment, costs and conditions.
+These figures are not results from an uploaded dataset or a live telemetry feed.*
+
+### Arabic, right to left, on a phone
+
+<p align="center">
+  <img src="docs/screenshots/maintenance/phone-ar-dark.png" width="300" alt="Arabic maintenance design preview on a phone, with right-to-left navigation and fictional sample indicators">
+</p>
+
+*Actual preview render with fictional fixtures. See the
+[maintenance UI specification](docs/design/MAINTENANCE_UI_SPEC.md) and
+[Miyaar handoff](docs/design/MIYAAR_UI_HANDOFF.md) for interactions and evidence.*
+
+</details>
+
+## Get started
+
+Use Python 3.10+ and a compatible Node.js release; see
+[system requirements](#system-requirements). Clone into a short folder name.
+The repository currently requires authorized GitHub access.
+
+```bash
+git clone https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project.git asset-reliability
+cd asset-reliability
+python -m venv .venv
+
+# Linux / macOS
+source .venv/bin/activate
+# Windows PowerShell: .\.venv\Scripts\Activate.ps1
+
+python -m pip install --require-hashes -r requirements.txt
+npm --prefix frontend ci
+npm --prefix frontend run build
+python scripts/serve.py            # this computer only; add --lan for a phone on the same Wi-Fi
+```
+
+Open **<http://127.0.0.1:8000>**. The server hosts the interface and API.
+The deterministic analysis path needs no model-provider credentials.
+
+| Your goal | Start here |
+| --- | --- |
+| Analyze a file | Open `http://127.0.0.1:8000/#/runs?source=upload`; review columns, mapping and the business question before starting. |
+| Explore the fictional maintenance preview | Open `http://127.0.0.1:8000/?design=maintenance`; its sample review marks are local and do not dispatch work. |
+| Use local chat and optional voice | Follow the bilingual [local AI setup](docs/LOCAL_AI_SETUP.md); microphone text becomes an editable draft. |
+| Continue analysis after closing the browser | Run the [background worker](#background-worker-optional) with the same configuration; it still stops for approval. |
+
+For file formats, workbook sheets, limits and the complete analysis journey,
+use the [dataset guide](docs/DATASET_ANALYTICS.md). Uploading a file does not
+establish that its data supports a prediction or a causal conclusion.
+
+## Capabilities
+
+| Area | Available in the repository | Where to go deeper |
+| --- | --- | --- |
+| Data preparation | Tabular uploads, stored datasets, column roles, explicit joins and cleaned-data access | [Dataset guide](docs/DATASET_ANALYTICS.md) |
+| Governed analysis | Specialist stages, observed progress, pause/recovery, calculations and validation | [Agent catalog](docs/AGENT_CATALOG.md) |
+| Maintenance and models | Domain contracts, diagnostics and model evaluation against baselines | [Product scope](docs/PROJECT_CHARTER.md) |
+| Decisions and reports | Filtered dashboards, asset evidence, report review and approval-bound publication | [Executive workspace](docs/design/EXECUTIVE_DASHBOARD_HANDOFF.md) |
+| Conversation | Miyaar, memory, preferences and optional local models or voice | [Workspace handoff](docs/design/MIYAAR_UI_HANDOFF.md) |
+| Language and access | English/Arabic RTL, light/dark themes and responsive browser/PWA surfaces | [User guide](user_guide.md) |
+
+## Evidence before action
+
+![Conceptual condition sensor on a bearing assembly beside a closed navy review notebook](docs/media/evidence-review.webp)
+
+*Original AI-generated editorial image: a measurement and a person's review.
+It does not document a real asset, sensor connection or customer installation.*
+
+Figures come from server calculations. Models must be assessed against suitable
+baselines, and weak or unavailable results stay visible. Source records do not
+go to a language model; optional narration uses verified findings.
+
+Review the exact report and its limitations before approving publication.
+Exporting a brief, marking a preview record reviewed, and approving a report
+are distinct actions. The interface does not establish savings, failure
+probabilities or commercial readiness by displaying a score.
+
+## Project guide
+
+| Read this | For |
+| --- | --- |
+| [Project charter and roadmap](docs/PROJECT_CHARTER.md) | Product decisions, current capabilities and acceptance gates |
+| [Dataset analytics](docs/DATASET_ANALYTICS.md) | Real uploads, mapping, joins and background execution |
+| [User guide](user_guide.md) | Everyday workspace and command-line use |
+| [Local AI setup](docs/LOCAL_AI_SETUP.md) | Optional local models, voice and runtime checks |
+| [Architecture](#architecture) and [developer reference](#developer-reference) | Engine, API, configuration and operational commands |
+| [Testing](#testing) and [GitHub checks](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions) | Dated verification results and current workflow status |
+| [Known limitations](docs/KNOWN_LIMITATIONS.md) | Remaining domain, device, privacy and hosted-operation work |
+| [Contributing](CONTRIBUTING.md) | Collaboration, setup and repository rules |
+
+<div dir="rtl" lang="ar">
+
+## البدء بالعربية
+
+**موثوقية الأصول** مساحة عمل لتحليل بيانات الصيانة ومراجعة الأدلة قبل اتخاذ القرار.
+المساعد **معيار** يربط السؤال بالبيانات، وينسّق **هيرميس** مراحل التحليل.
+يمكنك رفع ملفك، ومراجعة الأعمدة والنتائج والقيود، ثم الموافقة على نشر التقرير المحدد.
+واجهة الصيانة التجريبية تستخدم بيانات خيالية، ولا تمثّل مراقبة مباشرة للمعدات.
+
+[دليل رفع البيانات والتحليل](docs/DATASET_ANALYTICS.md#البدء-بالعربية) ·
+[إعداد الذكاء الاصطناعي المحلي](docs/LOCAL_AI_SETUP.md) ·
+[دليل الاستخدام](user_guide.md)
+
+</div>
+
+
+## Developer reference
+
+<details>
+<summary><strong>Capabilities, architecture, installation and local runtime</strong></summary>
 
 ## Main Features
 
@@ -85,7 +204,9 @@ environment — not a replacement for Windows, macOS, or Linux.
   page in both languages (ADR 0032)
 - **Consistent performance colors** — red for bad, blue for okay and green
   for good, with visible English/Arabic status words in dashboards and business
-  reports. Per-analysis targets support higher/lower-is-better and nested
+  reports. Shared outlined status badges and a five-state legend also cover
+  overview, asset and operations metrics; counts without targets remain neutral.
+  Per-analysis targets support higher/lower-is-better and nested
   ranges with a source reference, optimistic saves and durable history.
   Unassessed or unavailable measurements stay neutral; target edits do not
   approve or publish. See the [operating guide](docs/design/EXECUTIVE_DASHBOARD_HANDOFF.md)
@@ -317,7 +438,8 @@ and returns fresh state snapshots.
 - Node.js 20.19+ or 22+ and npm (web interface only)
 - No API keys, no external services, no credentials required. Optional
   narration by a local Ollama model (`OLLAMA_MODEL=qwen3:4b`, no key), Claude
-  (`ANTHROPIC_API_KEY`), or Groq (`GROQ_API_KEY`) — all server-side, see
+  (`ANTHROPIC_API_KEY`), OpenAI (`OPENAI_API_KEY` + `OPENAI_MODEL`) or Groq
+  (`GROQ_API_KEY`), with one failover between hosted providers — all server-side, see
   `.env.example`
 
 ## Installation
@@ -325,12 +447,18 @@ and returns fresh state snapshots.
 ```bash
 # The repository's name is long; give the clone a short folder on Windows.
 git clone https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project.git agentic-os
-cd agentic-os-final-project
+cd agentic-os
 
 # Web interface dependencies
-pip install -r requirements.txt
-cd frontend && npm install && npm run build && cd ..
+pip install --require-hashes -r requirements.txt
+cd frontend && npm ci && npm run build && cd ..
 ```
+
+`requirements.in` declares Python dependency ranges; `requirements.txt` locks
+the full server dependency tree with platform markers and artifact hashes.
+Use the generation command at its top for reviewed updates. Optional agent
+and voice integrations remain separate. See the
+[dependency decision](docs/adr/2026-10-20-python-dependencies-are-locked.md).
 
 ## Running the Application
 
@@ -345,7 +473,7 @@ built frontend. The launcher also prints an address for **a phone on the
 same Wi-Fi** (`http://192.168.x.x:8000`) — with the consequence stated,
 because binding to the network is a real decision: local mode has no
 login, so anyone on that network can read and change the saved memory.
-Use `--local-only` on a network you do not trust, and `--port 9000` if
+The server binds to this computer alone unless you add `--lan`; use `--port 9000` if
 8000 is taken.
 
 "Add to Home screen" needs HTTPS on most phones, so the *installable* app
@@ -385,6 +513,8 @@ key. Microphone text stays an editable draft. See the bilingual
 [setup guide](docs/LOCAL_AI_SETUP.md) for prerequisites, installed skills,
 hardware expectations, hosted configuration and acceptance limits.
 
+</details>
+
 ## Testing
 
 ```bash
@@ -410,11 +540,829 @@ cd frontend && npx playwright test
 # Type checking
 cd frontend && npm run typecheck
 
-# All of the above in one run, plus the brain check and the interface
-# budget, printing the real counts (--quick skips the build; --e2e adds
-# Playwright)
+# Server-dependency preflight, Python, brain, typecheck, frontend units,
+# native contracts, build and budget. --quick skips build/budget;
+# --e2e adds both the main and Miyaar Playwright suites.
 python scripts/verify.py
 ```
+
+### P2 slice one: verdict bounds, declared splits, incomplete periods, loopback, idempotency, timeouts — 23 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-23-p2-slice-one.md)): a
+useful maintenance-risk verdict needs its Wilson lower bound above chance
+(A9); the train and test split carries the reason it is not chronological
+and dated asset data without one is not scored (A10); a partial last period
+is left out of the forecast and the anomaly check and declared (A12); the
+launcher binds to loopback unless `--lan` is given (B8); `POST /api/runs`
+honours an `Idempotency-Key` (B14, in part); custom stages and agent
+runtimes have wall-clock limits (G10). `REQUIRE_PG=1 python scripts/verify.py
+--quick` against PostgreSQL 16: **1,745 Python tests reported, 21 skipped**
+(optional extras only; 19 new), brain check (46 notes), type check, **353
+frontend unit tests**. No interface code changed, so the build, budget and
+browser suites were not re-run.
+
+### Decision inputs in the interface — 22 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-22-decision-inputs-interface.md)):
+the Analytics form collects an improvement and a cost per group and the
+explored range; the run view shows the decision record. `REQUIRE_PG=1
+python scripts/verify.py --quick` against PostgreSQL 16: **1,726 Python
+tests reported, 21 skipped** (optional extras only), brain check (46 notes),
+type check, **353 frontend unit tests**; build and budget passed separately
+(scripts 219.4 of 220 KB in total, first load 98.6 of 100 KB, CSS 30.4 of
+30.5 KB in total). Playwright `decision` **2 passed** (desktop and phone),
+and `runs`, `a11y`, `arabic`, `intake` and `keyboard` **24 passed** after the
+form changed. Hosted CI on the pull request (merged as `37fce5e`), after the
+skip link and phone header fixes: **1,726 Python tests, 25 skipped**, 40 unit
+test files, the full Playwright suite **139 passed, 5 skipped** on desktop and
+phone, the Miyaar suite **12 passed**, budget passed, and the Playwright
+browser cache saved for the next run.
+
+### Repository presentation — 22 October 2026
+
+Documentation destination/anchor checks, Markdown parsing, image decoding and
+lossless screenshot comparisons pass. The existing feature reference, developer
+commands and dated verification history are preserved. Two scoped source reviews
+completed; the Arabic heading and links now share the RTL language container.
+Local Chromium could not launch because the command sandbox rejected a Crashpad
+socket operation. Application tests were not rerun for this documentation-only
+change; the studied main revision's CI and UI Budget Fast runs were failing.
+See [image provenance and validation scope](docs/design/README_ASSETS.md).
+
+Current workflow status can differ from a dated local observation. See the
+[GitHub checks](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions)
+and expand the history for the exact scope, failures, skips and environment.
+
+<details>
+<summary><strong>Dated verification history and acceptance limits</strong></summary>
+
+### Platform assessment, audit fixes and the Command Centre — 22 October 2026
+
+Four code-grounded audits ([assessment](docs/audits/SAAS_PLATFORM_ASSESSMENT.md)),
+five blockers fixed with tests ([decision](docs/adr/2026-10-22-audit-fixes-period-order-grounding-privacy-identity.md)),
+and the Executive Command Centre on the Overview
+([decision](docs/adr/2026-10-22-executive-command-centre.md)). Results, with
+what was not verified, are in [docs/qa/END_TO_END_VALIDATION.md](docs/qa/END_TO_END_VALIDATION.md).
+
+- Full verifier **8 of 8**: **1,662 Python tests, 21 skipped** (optional extras);
+  **323 frontend tests**; typecheck; production build; budget JS 98.0 / 100 KB
+  first load, 211.7 / 214 KB total, CSS 28.7 / 29.5 KB total.
+- `scripts/evaluate_agents.py --check`: 9 of 9 agents at or above floor.
+- Browser: Overview spec **9 passed, 3 skipped**; accessibility spec **4 passed**
+  (WCAG 2.2 AA scan with the Command Centre), desktop and mobile.
+- Not verified: live model providers; the remaining 25 Playwright specs
+  (last full run 21 October); hosted load behaviour.
+- Slice one of the release gate ([decision](docs/adr/2026-10-22-release-gate-slice-one.md)):
+  full verifier **8 of 8** (**1,663 Python tests, 21 skipped**); `evaluate_agents --check` 9 of 9 with the router floor
+  recorded at 0.88 after relabelling; **323 frontend tests**; Overview and
+  accessibility specs **13 passed, 3 skipped**.
+- Slice two of the release gate ([decision](docs/adr/2026-10-22-release-gate-slice-two.md)):
+  full verifier **8 of 8** (**1,674 Python tests, 21 skipped** with PostgreSQL;
+  **326 frontend tests**; budget JS 98.1 / 100 KB first load, 211.9 / 214 KB
+  total, CSS 28.7 / 29.5 KB total); Runs, Workspace, Overview and accessibility
+  specs **24 passed, 4 skipped** (approve through the read gate by mouse and
+  keyboard); the dataset sweep in both languages under the new figure check.
+- Slice three of the release gate ([decision](docs/adr/2026-10-22-release-gate-slice-three.md)):
+  full verifier **8 of 8** (**1,712 Python tests, 21 skipped** with PostgreSQL;
+  **336 frontend tests**; budget JS 98.5 / 100 KB first load, 213.0 / 214 KB
+  total, CSS 28.7 / 29.5 KB total); `evaluate_agents --check` 9 of 9 with the
+  new blind floors (standards blind set 0% recall, recorded, not tuned);
+  the whole Playwright suite with the demo server: full run **132 passed, 5 failed, 5 skipped** of 142; the five failures were spec locators that matched the Command Centre pane the app now lands on, fixed in the specs, after which those five specs ran **32 passed, 0 failed**.
+- After merging main's Arabic rendered reports of the same day into the
+  branch: full verifier **8 of 8** (**1,721 Python tests, 21 skipped** with
+  PostgreSQL; **346 frontend tests**; budget JS 98.5 / 100 KB first load,
+  215.2 / 216 KB total under the combined allocation, CSS 30.0 / 30.5 KB
+  total); the merge-affected browser specs: **50 passed, 2 failed, 4 skipped** of 56 (runs, workspace, Arabic, accessibility, intake, executive, onboarding, demo, overview); the two failures were the workspace spec reading the approval preview as a `pre` element that main's rendered report replaced, fixed in the spec, after which the workspace spec ran **5 passed, 1 skipped**.
+
+### Background model roles and the all-Qwen profile — 22 October 2026
+
+The production worker omitted `ModelRoles` even though API health advertised
+them. A real fictional sample reached approval with no plan, agent note or
+consultation. The worker now receives the same role configuration as the API.
+Regression coverage checks the production builder, distinct model tags,
+restricted personal-data handling, built-in/disabled roles and human approval.
+See the [decision](docs/adr/2026-10-22-worker-model-role-parity.md).
+
+The owner explicitly chose the installed `qwen3:4b-instruct-2507-q4_K_M` for
+every local role after Hermes3 exceeded the inference deadline on full planning
+requests, including an isolated low-memory attempt. The ignored persistent
+launch profile pins chat, narration, orchestrator, specialists and a consultant
+to this one model. Distinct role prompts are not independent provider reviews.
+No cloud key, subscription, model installation or production deployment was added.
+
+The first complete all-Qwen sample (`97fac30833d7`) took 392.75 seconds to reach
+human approval: all 21 calculation stages succeeded, with an actual model plan,
+15 accepted specialist notes, model narration and a Qwen closing brief. Its
+consultant note was absent. A separate real probe returned a numbered list;
+the numeric grounding guard correctly rejected unsupported list labels.
+Local briefings now request an unnumbered paragraph within 45 words and a
+240-token ceiling. A further completed sample (`d4ed25208c24`, 386.18 seconds)
+again produced the plan, 15 notes and brief but no accepted consultant. Its
+numbered reply led to a qualitative consultant prompt without figures or
+enumeration, which passed a direct real-model probe in 22.81 seconds.
+The grounding guard is unchanged. Some optional notes can still be
+omitted when a model fails or its output fails grounding. Existing artifacts
+are not rewritten, and completed stages alone do not prove model success.
+
+Final live acceptance on the integrated runtime: Arabic sample `157729f82b7b`
+reached human approval in **307.94 seconds**, with **21 succeeded stages**,
+an accepted Qwen plan, **16 actual Qwen specialist notes**, an accepted Qwen
+consultant review and Qwen orchestrator closing brief. The report labels both
+review authors with `ollama:qwen3:4b-instruct-2507-q4_K_M`. It remains unpublished.
+This is execution acceptance on fictional sales data, not maintenance-domain
+validation or a response-time guarantee.
+
+After integrating main at `7912f6e`, the focused worker, orchestration, gateway,
+privacy, durable execution, worker limits, routing and documentation checks
+reported **163 tests, 17 optional skips, zero failures**. Type checking and the
+production build passed in both local checkouts. The rebuilt interface passed
+its existing allocation: **98.5 KB initial / 215.2 KB total JavaScript**,
+**10.0 KB initial / 30.0 KB total CSS**, **19.1 KB largest lazy chunk** and
+**119.4 KB fonts**. The full Python, PostgreSQL and Playwright suites were not
+rerun for this repair. After the final consultant wording change, all **22**
+orchestration/worker-role checks passed. Focused frontend verification passed
+**25 tests in 3 files** for run state, run events and approval controls. The
+initial full frontend attempt was stopped without a result under memory
+pressure; the focused rerun ran after unloading the idle model, which the
+launcher subsequently prewarmed again. No full frontend pass is claimed.
+
+### Local chat recovery — 22 October 2026
+
+The owner's selected local checkout reproduced the screenshot's failure with
+`qwen3:latest`: an actual `HI` message returned `source=rules` after 61.57 seconds.
+The gateway reported an invalid/unavailable intent without distinguishing a
+timeout from malformed output. At inspection the CPU model occupied about 5.9 GB
+and less than 1 GB of physical memory was free; this is evidence of resource
+pressure, not proof of the exact internal Ollama failure.
+
+The private startup profile now explicitly selects the already installed
+`qwen3:4b-instruct-2507-q4_K_M` for the base model and agent notes. After an owned
+server restart and model prewarm, the same API greeting returned an Arabic
+`source=model`, `provider=ollama` reply in 52.60 seconds. In the running React UI,
+an Arabic maintenance question and a contextual follow-up both showed actual
+Ollama model badges without the programmed-fallback banner. These are observed
+acceptance cases, not a general reliability or latency guarantee. The follow-up
+overstated the separation between preventive maintenance and sensor evidence;
+domain wording still needs review before operational use.
+
+The launch profile is private, persistent and contains no API credentials.
+Hermes orchestration and cloud consultants were not newly validated in this
+repair; cloud keys remain absent. No application code, dependency, dataset or
+approval state was changed. Full regression suites were not rerun for this
+configuration-only repair. All 11 documentation tests passed, and the strict brain checker found no
+broken links, missing fields or sources.
+
+### Arabic rendered analysis reports — 22 October 2026
+
+New runs expose a report-language selector. Arabic analysis output now renders
+as semantic headings, paragraphs, lists and tables in the scoped house palette.
+Built-in calculation descriptions and checks are translated for display; the
+Arabic fictional sample translates source labels while preserving all numeric
+cells. Existing artifacts retain their original language and audit values.
+See the [decision and boundaries](docs/adr/2026-10-22-arabic-rendered-analysis-reports.md).
+
+- The feature-tree verifier reported **1,642 Python tests, 161 optional skips**;
+  dependency, brain, type, native-contract, build and bundle checks passed.
+  Its frontend run passed **310 tests in 35 files**, but failed overall because
+  the OperationsView worker did not start on this Windows machine. This is not
+  recorded as a fully passing verifier. The complete frontend rerun in the
+  integrated home checkout subsequently passed **329 of 329 tests in 36 files**
+  with exit code zero; no assertions or deadlines were weakened.
+- The real backend browser journeys passed **20 of 20** cases for Arabic,
+  intake, runs and custom stages across desktop and phone. They verify rendered
+  Arabic headings, calculation tables, formula pipes, chart labels/data tables,
+  accessibility and the approval workflow.
+- After merging concurrent main changes, the focused language, sample, house
+  style, gateway, orchestration, run and demo checks reported **169 tests,
+  16 optional skips**. The integrated production build and type check passed:
+  JavaScript **98.0 KB initial / 210.7 KB total**, CSS **10.0 KB initial / 29.6 KB
+  total**, largest lazy chunk **18.9 KB**, fonts **119.4 KB**. The explicit total
+  allocation is **212 KB JavaScript / 30.5 KB CSS**; initial-load limits did not change.
+- A live Arabic sample in the owner's chosen home checkout reached the human
+  approval gate. Its section report, full report, chart labels and chart data
+  table were inspected in the running platform. Screenshots remain local.
+  The live sample was not published and no production deployment was made.
+- A synthetic renderer check on repeated unmatched delimiters retained the
+  complete text after replacing repeated suffix scans with cached boundaries.
+  This checks a pathological input, not a general browser performance score.
+
+### Connected agent workspace and asset inspection — 22 October 2026
+
+The requested design is implemented in the real workspace: a connected Hermes
+map with zoom, fit, one-shot observed handoffs and stage inspection; overview
+actions; registry coverage, asset search and an evidence-linked history dialog.
+The [decision record](docs/adr/2026-10-21-connected-agent-workspace.md) records
+responsive behavior, reduced motion and the explicit lazy-view budget allocation.
+
+- Backend verification reported **1,624 tests, 161 environment-dependent skips**.
+  TypeScript and the production build passed.
+  After integrating concurrent model-role changes from main, focused orchestration,
+  run-engine, demo and documentation checks reported **73 tests, 16 skips**.
+- Changed-workflow browser checks passed: **17 passed, 3 device-specific skips**
+  across collaboration, operations and overview. They cover English/Arabic,
+  phone/desktop, both themes, reduced motion, unchanged-event replay prevention,
+  keyboard/focus restoration, asset evidence and accessibility checks.
+- Strict brain checks passed. The production bundle passed its recorded allocation:
+  JavaScript **97.9 KB initial / 208.3 KB total**, CSS **10.0 KB initial / 28.2 KB total**,
+  largest lazy JavaScript chunk **18.9 KB**, fonts **119.4 KB**.
+  The integrated verifier initially failed one animation-end unit assertion caused
+  by React/jsdom's event-name detection. Its seven other steps passed. The test-only
+  correction passed the targeted file and the complete frontend rerun:
+  **318 of 318 tests in 36 files passed**. The final type check also passed.
+- The three scoped review gates finished at **100%**, with recorded rounds
+  **33.3% → 66.7% → 100%**. The first round exposed an evidence-reader label
+  mismatch and sandbox-denied health request; the second awaited the full unit
+  rerun. Those gate issues were corrected without weakening product assertions.
+  No findings were waived. This is a score for these checks, not overall SaaS readiness.
+- Local API and worker readiness were confirmed at `http://localhost:8000`.
+  This verification does not establish hosted acceptance, external CMMS
+  synchronization or predictive model validity.
+
+### Interrupted-session delivery recovery — 22 October 2026
+
+A fresh fetch proved that maintenance commit `21dae21` and interface commit
+`77efe87` are already included in remote main. The local API reported healthy
+and its background worker ready. The [recovery runbook](docs/GITHUB_SYNC.md)
+documents checkpoint checks and guarded terminal delivery without a model session.
+Documentation checks passed: **11 tests**; all **3 PowerShell examples** passed
+syntax parsing; strict brain and whitespace checks passed. This update changes
+operating guidance only, so application suites were not repeated. It does not
+remove account allowances or change approval policy.
+
+### Executive Analytics Advisory Group — 21 October 2026
+
+The maintenance brief now leads with recommendations, five-domain exposure,
+proposed accountable roles, predictive-readiness limits and source governance.
+The full product title replaces “Executive evidence brief”. Source-specific
+course reconciliation and generated papers remain private, outside Git.
+
+- Focused backend and HTML/Word direction contracts: **45 passed**; with
+  documentation contracts, **56 passed**. Strict brain check: **46 notes**,
+  **0 issues**. After integrating the concurrent deterministic demo-ID fix,
+  the executive, document, docs and demo suites passed together: **69 tests**.
+- Executive UI and transport tests: **30 passed**.
+- Desktop/mobile executive journeys: **8 passed**, including English/Arabic
+  exports, accessibility, filters, drill-through, print and stale snapshots.
+- Typecheck and production build passed. Interface budget: initial JS **97.9 / 100 KB**,
+  total JS **203.4 / 205 KB**, largest chunk **18.9 / 30 KB**, initial CSS
+  **10.0 / 10.5 KB**, total CSS **25.4 / 25.5 KB**, fonts **119.4 / 120 KB**.
+- Private supplied-pack verification reproduced **15 / 15** executive KPI
+  figures and matched the workbook's data cells against the **5,000-record** CSV.
+  This verifies numerical reproduction, not business-rule acceptance or a
+  predictive model. Source hashes remained unchanged. The concise English and
+  Arabic PDFs each contain **3 pages**, with separate technical appendices.
+
+The full repository verifier and production deployment were not run for this
+scoped report change. Instructor resolution of the documented business-rule
+issues and independent forward model validation remain open.
+
+### Workspace model activation — 21 October 2026
+
+Open conversation now has an optional Vercel AI Gateway adapter with an explicit
+model and deployment OIDC/server key. LangGraph uses structured decisions and
+does not retry an unavailable model through the ordinary assistant path. Exact
+read-only help/status shortcuts avoid inference. See the
+[activation decision](docs/adr/2026-10-21-workspace-model-activation.md).
+
+The backend verifier reported **1,608 tests, 161 skipped**; PostgreSQL and
+optional extras were not installed in that interpreter. The final focused
+suite using the full local agent environment passed **156 tests**, including
+LangGraph and Pydantic AI framework contracts. All **9 agent evaluators** met
+their configured floors; that is not perfect accuracy: intent holdout accuracy
+was **77%**, router **83%**, and jargon **96%**. The first focused browser run
+passed **10 cases** and exposed **2 outdated memory-key selectors**; the fixed
+chat journeys then passed on both desktop and mobile (**2 cases**).
+
+The complete verifier was stopped during frontend testing under memory
+pressure; it did **not** pass all steps in this session. Final integrated
+checks are recorded below. An Operations component journey twice exceeded its
+five-second test budget while typing several forms and verifying authorization,
+start and completion; its budget is now ten seconds with the same assertions.
+
+After integrating concurrent main through `dcde343`, all **29 focused frontend
+tests** passed (Operations, Overview and chat store, one thread worker), as did
+type checking, the production build, **5 native-run checks**, and the strict
+brain check (**46 notes, 0 issues**). The interface budget passed: **97.9 KB**
+initial JavaScript, **203.0 KB** total JavaScript, **18.5 KB** largest chunk,
+**10.0 KB** initial CSS, **25.4 KB** total CSS, **119.4 KB** fonts. Broad frontend
+runs were stopped under resource pressure; the entire frontend suite is not
+claimed as passing in this session.
+The final integrated browser run passed **12 of 12** cases for chat, runtime
+handoff, model cards and asset-to-authorized-work journeys on desktop and phone,
+including Arabic; **11 documentation checks** also passed.
+
+Live synthetic checks found the smaller `qwen2.5:1.5b` repeated Arabic guidance
+and chose irrelevant tools; it was not selected. A 32-token connectivity probe
+got exact READY replies from Gemma, Qwen 1.5B and Qwen 4B Instruct; base/custom
+thinking Qwen and GPT-OSS cloud did not produce the requested final answer
+within that tiny budget. Kimi cloud returned **HTTP 402**. These are connectivity
+observations, not model-quality certification. The active instruction model
+remains `qwen3:4b-instruct-2507-q4_K_M`.
+
+An earlier real English LangGraph reply took **31.45 seconds**. Loading multiple
+local models during broader checks caused memory pressure: English/Arabic chat
+took **94.57 / 79.38 seconds**, including runtime failure followed by model
+fallback. Unused models were unloaded, and the duplicate-call failure was fixed.
+Read-only status/help replies measured **0.03 / 0.04 seconds**. This machine has
+not demonstrated a reliable fast-response service level for open conversation.
+
+With the extra models unloaded and the instruction model prewarmed, new English
+and Arabic conceptual questions returned real model replies in **23.27 / 12.64
+seconds**. The same questions through LangGraph returned real runtime replies
+in **49.35 / 48.29 seconds**. The direct model therefore remains the local default;
+the slower framework is available through explicit configuration.
+A live two-tool request returned a promise of action with **no tool steps** in
+**39.08 seconds**. That local model/runtime combination is therefore not accepted
+as an automatic workspace planner. Framework tests verify execution and guards
+with scripted models; they do not certify live model tool selection.
+
+The local workspace was rebuilt and restarted on `a92a8ad`, preserving all
+**8 analyses**, including **3 awaiting approval**, and all **29 user-modified
+screenshots** plus the untracked availability-review note. API/frontend health
+and worker readiness passed with no stage/runtime load problems. In the running
+workspace, status replied in **1.02 seconds**, and fresh English/Arabic questions
+returned `source=model`, `action=chat` in **15.66 / 20.69 seconds**. An earlier
+conceptual follow-up after a status request incorrectly selected Help
+(**27.81 seconds**); that failure is retained in the local acceptance record.
+Intent reliability and maintenance-domain quality are not certified by these
+bounded probes. Direct Qwen remains active; LangGraph is not enabled by default.
+
+Vercel production was found using the deterministic provider. Preview selected
+`google/gemini-2.5-flash-lite`, but both synthetic live checks returned **HTTP
+403**: AI Gateway requires a valid payment card before serving requests. The
+diagnostic build is isolated on `codex/workspace-model-probe-2026-10-21`; its
+live build hook is absent from the integration tree. This activation work did
+not change production model configuration. Concurrent production release
+`dcde343` is recorded in the deployment guide; a fresh health check still found
+the deterministic provider. Billing activation and release of the model
+support remain owner steps.
+
+### Visible performance status — 21 October 2026
+
+Shared outlined badges and a wrapping legend show bad in red, okay in blue,
+good in green, and both not assessed and unavailable in neutral colors, with
+English and Arabic text beside each performance value. Counts without targets
+remain unassessed. [Presentation decision](docs/adr/2026-10-21-performance-status-presentation.md).
+
+Against main at `e91f0db`, the complete integrated verifier passed all **8 steps**: **1,586 Python tests
+reported, 159 skipped**, **294 frontend tests passed**, brain check (**46 notes,
+0 issues**), type checking, native run logic, production build and interface
+budget. PostgreSQL and optional Python extras were not exercised here.
+Measured gzip sizes: initial JavaScript **97.4 KB**, aggregate JavaScript
+**202.3 KB**, largest deferred chunk **18.4 KB**, initial CSS **10.0 KB**,
+aggregate CSS **25.4 KB**; bundled fonts **119.4 KB**.
+
+Focused browser coverage across performance colors, operations, overview and
+dashboard: **24 passed, 3 viewport-specific skips, 1 navigation assertion
+failed** on the first integration run. The sidebar expectation and duplicate
+operations icon were corrected; the targeted sidebar/phone-bar rerun passed
+**2, with 2 viewport-specific skips**. All **25 applicable distinct cases**
+therefore pass, including English/Arabic, desktop/mobile, contrast and
+accessibility checks. The full browser suite was not rerun. Before integration,
+the local version also passed the full verifier (**1,560 Python tests reported,
+159 skipped; 287 frontend tests**) and **8 focused browser scenarios**.
+
+After integrating the later KPI-definition updates through `c696f91`, the
+**126 affected Python tests reported 7 skips**, with no failures. The rebuilt
+interface and budget pass (largest deferred chunk now **18.5 KB**). The
+executive/performance browser run passed **11 of 12**; the Arabic mobile
+report download was canceled once, then its isolated rerun **passed** without
+a code change. All **12 distinct scenarios** pass. This transient download
+failure remains recorded rather than being counted as a clean first run.
+
+### Sign-in page removed: view-only demo interface — 21 October 2026
+
+With `AGENTIC_OS_DEMO=1` the app shows no sign-in and opens on Overview
+([decision](docs/adr/2026-10-21-view-only-demo-mode.md)).
+`REQUIRE_PG=1 python scripts/verify.py` against PostgreSQL 16: **1,600 Python
+tests reported, 19 skipped** (optional extras only), **296 frontend tests
+passed**, all 8 steps passed. Full Playwright, desktop and phone: **127 passed,
+5 skipped, 4 failed**; the 4 failures (assistant and journey memory steps)
+also failed on the commit before this change: two concurrent changes collided
+(the specs found a memory note by its key on screen; the Memory view had
+stopped showing keys). Fixed by keeping the key as a `data-key` attribute;
+those two specs then **8 of 8 passed** on desktop and phone.
+
+### KPI register aligned with the Power BI report — 21 October 2026
+
+MTTR, first-time fix and repeat repair now follow the report's Method page,
+and four of its measures were added (18 in the register;
+[decision](docs/adr/2026-10-21-kpi-register-aligned-with-power-bi.md)).
+`REQUIRE_PG=1 python scripts/verify.py` against PostgreSQL 16: **1,499 Python
+tests reported, 19 skipped** (optional extras only), **277 frontend tests
+passed**, all 8 steps passed. Full Playwright, desktop and phone:
+**127 passed, 5 skipped**.
+
+### Held-out memo F — 21 October 2026
+
+`python scripts/score_review.py --summary`: on memo F (blind, 9 new kinds of
+method error, 3 controls, 11 decoys) the analytics reviewer with check 7
+scored **100% lane recall, no false alarm in each of 5 runs** (3 as the
+loaded subagent, 2 controlled); the v2 instructions **found 11 of 12 in
+both of their 2 runs**, missing the same paragraph. The
+figures auditor raised **one false alarm in each of its 2 runs** (the same
+correct run-to-failure paragraph); team **100% recall, 92% precision**. Checker v6 (clock times and
+longer numbers no longer count as found) leaves every benchmark score
+unchanged. `REQUIRE_PG=1 python scripts/verify.py` against PostgreSQL 16:
+**1,497 Python tests reported, 19 skipped** (optional extras only), **277
+frontend tests passed**, all 8 steps passed.
+
+### Reviewer check 7 and percentage points — 21 October 2026
+
+`python scripts/score_review.py --summary`: repeat runs on memo E, analytics
+reviewer **92% lane recall**, figures auditor the same **one false alarm**.
+Controlled runs on E with the new maintenance-method check: **12 of 12**
+planted paragraphs found (v2: 10 of 12), **8 of 9** `domain_method` in
+category, **no false alarm**; A to D unchanged. Checker v5 reads percentage
+points: memo D **83% → 100%**, A, B, C and E unchanged. E is now dev data
+for the new check. `REQUIRE_PG=1 python scripts/verify.py` against
+PostgreSQL 16: **1,496 Python tests reported, 19 skipped** (optional extras
+only), **277 frontend tests passed**, all 8 steps passed.
+
+### Checker fixes and maintenance-judgement benchmark E — 21 October 2026
+
+`python scripts/score_review.py --summary`: on memo E (9 method errors, 3
+controls, 11 decoys) the analytics reviewer scored **83% lane recall, 78% on
+`domain_method`, no false alarm**; the figures auditor raised **one false
+alarm** on a decoy outside its lane; team **83% recall, 92% precision**. The
+figures checker (v4: a fall measured against the larger figure; any
+currency read as money) keeps A to D unchanged or better, with memo D's
+false alarm gone. `REQUIRE_PG=1 python scripts/verify.py` against PostgreSQL
+16: **1,495 Python tests reported, 19 skipped** (optional extras only),
+**277 frontend unit tests**, build and budget passed. The browser suite was
+not re-run: no interface code changed.
+
+### Reviewer benchmark D and full browser run — 21 October 2026
+
+The full Playwright suite on the targets change passed **127, with 5
+skipped**. Reviewer benchmark D (30 paragraphs, 14 planted defects, 10
+decoys, written blind): figures auditor and analytics reviewer **100% lane
+recall, 0 false alarms**; the Tier 0 checker **83% lane recall, 1 false
+alarm** (`python scripts/score_review.py --summary`).
+
+### Targets held when a measure is redefined — 21 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-21-targets-held-when-a-measure-is-redefined.md)).
+`REQUIRE_PG=1 python scripts/verify.py` against PostgreSQL 16: **1,493 Python
+tests reported, 19 skipped** (optional extras only), brain check (45 notes),
+type check, **277 frontend unit tests**, build and budget passed. Playwright
+`executive`, `metric-colors` and `dashboard`: **20 passed** after the
+`metric-colors` seed was stamped with availability's current definition. The
+full browser suite was not re-run for this change.
+
+### Full validation with PostgreSQL; CSS budget raised — 21 October 2026
+
+[Budget decision](docs/adr/2026-10-21-css-budget-raised-and-exact.md).
+`REQUIRE_PG=1 PG_TEST_URL=postgresql://dev@127.0.0.1:5432/agentic_test python scripts/verify.py`
+against PostgreSQL 16.15: **1,490 Python tests reported, 19 skipped** (all
+optional extras not installed here: langgraph 7, llmrouter 5, pydantic-ai 3,
+voice decoder 2, private knowledge collection 2; no database test skipped),
+brain check (45 notes), type check, **276 frontend unit tests**, build and
+budget passed (CSS first load 10.0 of 10.5 KB, CSS total 23.5 of 25 KB, now
+compared in exact bytes). The full Playwright suite passed **127, with 5
+skipped**, desktop and phone, English and Arabic.
+
+### Arabic population labels and digits — 21 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-21-arabic-population-labels-and-digits.md)).
+`python scripts/verify.py`: **1,489 Python tests reported, 153 skipped**,
+brain check (45 notes), type check, **276 frontend unit tests**, build and
+budget passed. Playwright `executive`, `metric-colors`, `dashboard`,
+`arabic` and `a11y`: **32 passed**. The full suite and PostgreSQL were not run
+for this change.
+
+### Assets on a phone — 21 October 2026
+
+Layout change ([addendum](docs/adr/2026-10-21-simplified-navigation-runs-and-assets.md#addendum-2026-10-21-assets-on-a-phone)).
+`python scripts/verify.py`: **1,487 Python tests reported, 153 skipped**,
+**275 frontend unit tests**, build and budget passed (CSS total 23,499 of
+23,500 bytes). Playwright `overview`, `responsive`, `a11y` and `arabic`:
+**22 passed, 4 skipped**. The full suite and PostgreSQL were not run for this
+change.
+
+### Datasets, Memory and Activity — 21 October 2026
+
+Interface change ([decision](docs/adr/2026-10-21-datasets-memory-activity-treatment.md)).
+`python scripts/verify.py`: **1,487 Python tests reported, 153 skipped**, brain
+check (45 notes), type check, **275 frontend unit tests**, production build and
+interface budget passed (JS total 183.2 of 185 KB; CSS total 23,493 of 23,500
+bytes; CSS first load 9,984 of 10,000 bytes). The full Playwright suite passed
+**127, with 5 skipped**, desktop and phone, English and Arabic. PostgreSQL was
+not run.
+
+### Simpler navigation, Runs and Assets — 21 October 2026
+
+Interface change after a size audit ([decision](docs/adr/2026-10-21-simplified-navigation-runs-and-assets.md)).
+`python scripts/verify.py`: **1,487 Python tests reported, 153 skipped**, brain
+check (45 notes), type check, **273 frontend unit tests**, production build and
+interface budget passed (JS total 183.6 of 185 KB; CSS total 23,449 of 23,500
+bytes; CSS first load 9,989 of 10,000 bytes). The full Playwright suite passed
+**127, with 5 skipped**, desktop and phone, English and Arabic; the new sidebar
+test was confirmed on desktop separately. PostgreSQL was not run.
+
+### Colourful KPI-first dashboard — 21 October 2026
+
+Interface change ([decision](docs/adr/2026-10-21-colourful-kpi-first-dashboard.md),
+[study](docs/design/2026-10-21-colourful-minimal-dashboard-study.md)).
+`python scripts/verify.py`: **1,487 Python tests reported, 153 skipped**, brain
+check (45 notes), type check, **271 frontend unit tests**, production build and
+interface budget passed (CSS total 23.3 of 23.5 KB, JS total 184.8 of 185 KB).
+The full Playwright suite passed **126, with 4 skipped**, desktop and phone,
+English and Arabic, against a fresh build. PostgreSQL was not run.
+
+### KPI register: availability and pooled reliability measures — 21 October 2026
+
+Source-only change ([decision](docs/adr/2026-10-21-register-availability-and-pooled-reliability-measures.md)).
+`python scripts/verify.py --quick` on this change: **1,485 Python tests reported,
+153 skipped**, brain check (45 notes), type check, and **270 frontend unit tests**
+passed. The two Playwright specs that pinned the old availability figure,
+`executive` and `metric-colors`, passed **12 of 12** (desktop and phone, English
+and Arabic) against a fresh production build. The full Playwright suite and
+PostgreSQL were not run for this change. Checked outside the repository
+against the private 5,000-row course dataset: the register reproduces the
+corrected workbook and the Power BI report's printed figures.
+
+### Commercial SaaS assessment — 21 October 2026
+
+The [competitive assessment](docs/assessments/2026-10-21-saas-competitive-benchmark.md)
+compares source baseline `4b193f0` with official product documentation and named
+customer evidence. This session changes documentation only. Documentation checks
+passed **11 / 11**; strict brain validation passed with **45 notes** and no broken
+links, missing sources or other reported issues. The full application suites,
+hosted acceptance, competitor hands-on tests and customer outcome measurements
+were not run for this study. Prior software results below retain their dates
+and scope; they do not establish commercial or predictive effectiveness.
+
+### Local run timeout correction — 21 October 2026
+
+The [decision](docs/adr/2026-10-21-run-request-timeout.md) fixes a ten-second
+browser deadline cutting off a bounded sixty-second local model step. Run detail,
+advance and controls now allow ninety seconds, while health retains its short
+deadline. Failed POSTs are not automatically replayed.
+
+- The new regressions reproduced **7 failures** before the fix; the focused API
+  and scheduler suites then passed **26 / 26** tests.
+- TypeScript checking and the production build passed. Bundle limits passed:
+  initial JS **98.5 / 100 KB**, total JS **184.5 / 185 KB**, largest lazy JS
+  **18.1 / 30 KB**, initial CSS **10.0 / 10 KB**, total CSS **22.7 / 23 KB**,
+  fonts **119.4 / 120 KB**.
+- Restarted the local Ollama-backed platform and resumed the interrupted Arabic
+  sample to the approval gate. A fresh Arabic sample also reached that gate:
+  **21 successful stages** each, with no timeout shown and no manual retry after
+  the repair. Publication was left for the owner to approve.
+- Documentation, verifier and release-policy checks passed **33 / 33**; strict
+  brain validation and whitespace checks passed.
+- The full Python, frontend and automated browser suites were not rerun for
+  this transport-only change. No production deployment was performed.
+
+### React animation technology study ? 21 October 2026
+
+The [study](docs/design/REACT_AGENT_CONNECTIONS_STUDY.md) compares the existing
+React/SVG approach with React Flow and Motion. Its isolated, reproducible
+experiment completed **4 / 4 production-mode builds** and **4 / 4 desktop
+Chromium smoke scenarios** at 1440?900, covering rendering, node selection,
+synthetic handoffs, pause controls, reduced-motion CSS and absence of page errors.
+Strict brain validation and **33 / 33** documentation/verifier/release-policy
+checks passed. Local study links and the experiment lock checksum were checked.
+Measured asset sizes, pinned dependencies and actual synthetic captures are in
+[the experiment record](docs/design/experiments/README.md).
+
+This is a study, not a shipped explorer. No production frontend source or
+dependency changed. Full platform suites were not rerun for this documentation
+and isolated-experiment change. Mobile/RTL, assistive-technology, large-graph and
+integrated-load acceptance for a future React Flow view are **not tested**.
+
+### Agent collaboration and restrained motion — 20 October 2026
+
+The Runs workspace now presents **Agents working together**: Hermes, workflow
+groups, observed handoffs, stage inspection, current evidence and recent activity.
+Pause live view holds the panel while analysis continues. English/Arabic,
+system/app reduced motion and keyboard controls are included. The
+[study](docs/design/AGENT_COLLABORATION_MOTION.md) and
+[decision](docs/adr/2026-10-20-observed-agent-collaboration.md) explain the
+distinction between observed workflow connections and actual message transcripts.
+
+- Complete local Python suite with required PostgreSQL: **1,418 run, 1,397 passed,
+  21 skipped**. Both database adapters were included; the temporary test
+  container was removed afterward.
+- Complete local frontend unit suite: **262 / 262 across 34 files**.
+  The focused subset also passed **21 / 21**; the final language-attribute
+  follow-up passed **6 / 6** component checks. TypeScript,
+  production build, strict brain check, **5 native contracts** and **33 Python
+  documentation/verifier/release-policy tests** passed.
+- Initial targeted browser run: **9 passed, 1 viewport-specific skip**, covering
+  the new panel and the real pipeline's approval/evidence flow. Final targeted
+  rerun: **4 / 4 passed**, including RTL count isolation in both the diagram and
+  sidebar, expanded mobile inspection and the existing evidence dialog.
+  Actual synthetic captures: [desktop](docs/screenshots/agent-collaboration-desktop-ar.png)
+  and [320 px phone](docs/screenshots/agent-collaboration-mobile-ar.png).
+- Complete local main browser run: **124 passed, 4 skipped, 2 failed**. Both
+  failures were the same legacy partial `Pause` selector matching the new
+  `Pause live view` control on desktop and phone. Exact run-control selectors
+  repaired the ambiguity; the targeted desktop/phone rerun passed **6 / 6**,
+  covering dataset reuse, pausing/cancelling analysis and independently pausing
+  the live view. The complete suite was not repeated after this test-only fix.
+  Miyaar's complete browser suite passed **12 / 12**.
+  The main suite used local port 8133 because an unrelated service held 8123;
+  auth remained on 8124. No assertion, deadline or application behavior changed.
+  Failure traces and regenerated baseline captures were archived outside Git,
+  and existing baseline images were restored.
+- Final measured budget: initial JS **98.5 / 100 KB**, total JS **184.5 / 185 KB**,
+  largest lazy chunk **18.1 / 30 KB**, initial CSS **10.0 / 10 KB**, total CSS
+  **22.7 / 23 KB**, fonts **119.4 / 120 KB**. The dated decision increases only
+  total CSS by 1 KB; no dependency or extra polling was introduced.
+- Feature source `16d779b`, integrated at `4aaa295`, preserves incoming main
+  through `b1e0c83`. [CI](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39480501990)
+  and [UI Budget Fast](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39480501976)
+  did **not start**: GitHub reported failed account payments or an insufficient
+  spending limit. Both jobs have no test steps. This is an infrastructure block,
+  not a passing CI result. Local checks above are independently measured;
+  older CI results below do not verify this feature. Production was not deployed.
+
+### Corrective project review — 20 October 2026
+
+Implementation `1dd73ae`, integrated with the incoming chart tests at `390f4c6`.
+The [assessment](docs/assessments/2026-10-20-project-review.md) records the
+reproduced defects, corrections, limits and owner acceptance gates.
+
+- **Final combined-source validation at `fadc18d`:**
+  [Linux CI passed](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39446235305),
+  as did the [fast interface budget](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39446235314).
+  Python reported **1,413 tests: 1,390 passed, 23 skipped**, with PostgreSQL
+  required. Frontend unit tests were **255 / 255 across 34 files**; native
+  contracts **5 / 5**; main desktop/mobile browser and accessibility tests
+  **122 passed, 4 skipped**; Miyaar **12 / 12**. No browser failures or retries
+  were reported. The browser skips are viewport/project-specific cases exercised
+  in the other project. Python skips cover optional integrations, the absent
+  private knowledge collection, and two checks run before a frontend build
+  exists; both build-dependent checks subsequently passed locally against the
+  built application. TypeScript, production build, strict brain check,
+  dependency audits, SBOM/license check and the existing interface ceilings
+  passed. Linux SBOM: **305 components (277 npm, 28 Python)**. This supersedes
+  the earlier combined-source failure below; it does not claim live provider,
+  real-device or hosted-production acceptance.
+- [Full Linux CI on the integrated source](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39436782344)
+  **passed**, including required PostgreSQL, the complete frontend unit suite,
+  native contracts, strict brain check, build, main desktop/mobile browser and
+  accessibility checks, Miyaar bilingual/voice checks, audits and license gate.
+  [Fast UI budget](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39436782305)
+  also passed.
+- Full local Python execution: **1,377 reported, 23 skipped, 1,354 passed**,
+  with PostgreSQL 17 required and no failures. The separate atomic-admission,
+  worker, quota and crash-recovery selection ran **78 tests with no skips**.
+  Optional integrations remain conditional; this is not evidence that their
+  live providers or devices were exercised.
+- Windows validation used Python **3.11.16** and Node **24.22.0**. The initial
+  concurrent frontend run reported **228 passed / 15 failed**. With one worker
+  and the incoming chart tests, it reported **248 passed / 7 failed**:
+  five deadline failures and two subsequent assertion failures. TypeScript,
+  native contracts, strict brain checks, the production build and the budget
+  passed. **No full Windows frontend success is claimed.** The main local
+  browser sweep was interrupted after timeout failures in accessibility,
+  Arabic, dashboard and join scenarios; the complete Linux browser suites
+  passed. Original logs and traces were retained outside published source.
+  A later four-file selection reported **34 passed / 5 failed**. Reducing the
+  dashboard notice fixture from 1,000 returned groups to three, while checking
+  the exact EN/AR notice and the true total, then passed **4 / 4** dashboard
+  tests. Backend query tests retain responsibility for the actual row limit.
+  That test-only follow-up at `a11fc98` left application source unchanged;
+  later integration and corrections require their own combined-source checks.
+- Measured budget: initial JS **98.5 / 100 KB**, total JS **180.3 / 185 KB**,
+  largest chunk **18.1 / 30 KB**, initial CSS **10.0 / 10 KB**, total CSS
+  **21.2 / 22 KB**, fonts **119.4 / 120 KB**. Existing ceilings are unchanged.
+- Fresh dependency audits reported **zero vulnerabilities** across the npm
+  tree and all **27 exact installed Python versions**, including FastAPI
+  **0.152.0**. The separate unpinned-resolution audit also passed but resolved
+  FastAPI **0.153.0**; it is not substituted for the installed-version check.
+  The SBOM
+  recorded **304 components** and the license gate found no shipped dependency
+  with a strong-copyleft license. These are point-in-time checks.
+- Synthetic agent evaluations met their existing floors. Intent holdout macro
+  recall remains **72%**; the current causal cases are development-informed,
+  and the separate adversarial probe remains a documented limitation.
+- Vercel production remains on the older `42e53d00` deployment. Main-branch
+  automatic deployment is disabled; no production release was performed.
+  (Superseded 21 October: `dcde343` deployed to production with the owner's
+  approval; see `docs/VERCEL_DEPLOYMENT.md`.)
+  On the owner's subsequent approval, the repository became temporarily
+  private; collaborator permissions and branch tips were preserved, and
+  anonymous web/API requests returned 404. Historical remediation before
+  re-publication, hosted acceptance, independent maintenance evidence and
+  real-device acceptance remain open.
+  The visibility follow-up passed **12 documentation/release-policy tests**,
+  the strict brain check and patch hygiene. Application code, tests and
+  deployment configuration remain unchanged from `fadc18d`; the full suite
+  was not rerun locally for this settings/documentation action.
+
+Follow-up source `ede59b1`, after preserving the incoming direction and
+independent-reconciliation changes through `b402def`:
+
+- Mapping and maintenance regressions: **114 passed**. Additional join,
+  mapping, maintenance, governance and modelling checks: **183 reported,
+  162 passed, 21 PostgreSQL skips**, with PostgreSQL deliberately disabled
+  for that local selection. These selections overlap and are not added.
+- Single-dataset request contract: **5 focused tests passed**, including
+  existing joined and Arabic validation cases.
+- Browser-policy/API/export checks: **50 passed**; the final bare `/api`
+  static-policy correction passed its **1 focused regression**.
+- Locked-dependency/SBOM/documentation checks: **39 passed**. A fresh
+  hash-checked environment installed all **27 Windows server packages**,
+  passed dependency consistency, and imported required server integrations.
+  All **28 universal locked versions**, including Linux-only uvloop, reported
+  **zero vulnerabilities**; the exact hashed-requirements CI audit command
+  also passed. Optional voice/agent environments remain outside this lock.
+- Production frontend build passed with the enforced browser policy.
+  The local browser selection reported **14 passed / 10 failed**: all
+  **6 new CSP checks passed** across desktop/mobile, two existing desktop
+  sign-in checks timed out, and eight executive checks exposed old fixtures
+  sending the newly rejected single-dataset option. Logs and traces are retained.
+  These focused results do not establish a full Windows pass.
+- The first combined [CI run on `ede59b1`](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39444761573)
+  reported **1,412 Python tests, 23 skips and 3 failures**. All failures were
+  privacy fixtures assuming automatic grouping would retain personal labels.
+  Fixtures now explicitly request that grouping, preserving the original
+  human-report and blocked-model assertions; the **9 privacy tests pass**,
+  including a new check of the safer automatic default.
+- Executive and performance-color fixtures now upload and save their intended
+  mapping. **4 exact-fixture API probes passed**, across both report languages;
+  TypeScript passed. The **12 Miyaar browser checks passed** with the static
+  CSP. The CSP suite also passed **8 tests**, and standard-library-only
+  discovery correctly skipped those **8 optional API tests**.
+  The corrected executive/performance-color browser rerun could not start:
+  Playwright's configured web-server startup timed out before any test ran.
+  That attempt supplies no browser pass or assertion result; its log is retained.
+
+### Who chose the breakdown — 20 October 2026
+
+Session `1eb4cedb`, continued after the parallel session's automatic-grouping
+and breakdown-refusal work landed. One dated decision:
+[the report says who chose the breakdown](docs/adr/2026-10-20-who-chose-the-breakdown.md).
+
+Run here in the project venv:
+
+- **The full Python suite on what shipped: 1,418 tests, 0 failures, 0 errors,
+  142 skipped** for want of a local PostgreSQL and other absent services
+  (`python -m unittest discover tests`, 202 s).
+- The same suite ran earlier on this session's own breakdown implementation,
+  before it was withdrawn: **1,403 tests, 0 failures, 144 skipped**, 186 s.
+  Between the two runs this session's work was replaced by the parallel
+  session's and the claim above was added. Either way these are the first
+  completed full-suite runs on the merged tree, closing the gap the entry
+  below had to leave open.
+- After the integration: `tests.test_analytics` **89 tests**, 5 of them new,
+  with `tests.test_report_language`, `tests.test_model_privacy_boundary` and
+  `tests.test_breakdown_contract` — **128 together, all passing**.
+  `scripts/brain_check.py --strict`: **27 notes, 0 broken links, 0 stale, 0
+  orphans.**
+- Each of the 5 new tests was watched failing against the unchanged tree
+  first: 5 errors, because neither claim nor its calculation existed.
+- The real stages over the capstone file (5,000 rows, 60 columns, unmapped,
+  read from disk; nothing stored, approved or published): the breakdown is
+  **`Asset_Class`, 5 groups**, where detection used to produce 5,000 groups of
+  one row; `group_totals_reconcile` passes on the 5 recomputed group totals at
+  `Σ(groups)=40,161.27 vs total=40,161.27`; and the report carries, in English
+  and Arabic, that this product chose `Asset_Class` as the first of **14**
+  candidate columns in the file's own column order, naming the other thirteen.
+
+**Not run, so not claimed:** the frontend suite, type check and build — no
+frontend file changed in this work; Playwright, the Miyaar suites, PostgreSQL
+and `pip-audit`. The parallel session's combined-source Linux CI at `fadc18d`
+is the authority for those.
+
+### Measure-direction and reconciliation validation — 20 October 2026
+
+Session `1eb4cedb`, commit `79501e9` merged with the parallel session's work at
+`088e6f6`. Two dated decisions:
+[which way is better is declared](docs/adr/2026-10-20-which-way-is-better-is-declared.md)
+and
+[rounding is not a reconciliation failure](docs/adr/2026-10-20-rounding-is-not-a-reconciliation-failure.md).
+
+Run here in the project venv on the merged tree:
+
+- **183 Python tests** across `tests.test_analytics` (78 of them),
+  `tests.test_metrics` (32), `tests.test_stages`, `tests.test_maintenance` and
+  `tests.test_docs`, **all passing**, 9 of them new; `tests.test_joins` **46
+  passing with 10 skipped** for want of a local PostgreSQL.
+- `scripts/brain_check.py --strict`: **27 notes, 0 broken links, 0 stale, 0
+  duplicate candidates, 0 unlinked mentions, 0 orphans.**
+- Live through the API against the 5,000-row maintenance dataset: the unmapped
+  run that the validator used to reject now reaches `awaiting_approval` with 41
+  claims, the reconciliation check reading
+  `Σ(groups)=40,161.27 vs total=40,161.27; recomputed 5000 group total(s),
+  largest difference from the published figure 0.0000`. The same dataset with a
+  saved column mapping reaches `awaiting_approval` with 47 claims. Neither was
+  approved or published, and the dataset was removed from the local runtime
+  afterwards.
+
+**Not run on the merged tree, so not claimed:** the full Python suite — one run
+was stopped as redundant and the `scripts/verify.py` run that replaced it was
+stopped by the harness when the machine ran short of memory; the frontend unit
+suite, type check and build, which were measured before the merge and not after
+it (**244 tests in 34 files, 241 passing**, the 3 failures the `findBy`
+load flake recorded in `Memory.md`, all 3 passing when run alone; type check and
+build clean; interface budget inside every ceiling); Playwright, the Miyaar
+suites, PostgreSQL, `pip-audit` and anything hosted. CI on the merged commit is
+the authority for what was not run here.
 
 ### Performance-color validation — 20 October 2026
 
@@ -725,15 +1673,28 @@ skipped (checked at 584 tests; the 32 that ADR 0022 added and the 30
 operating-system tests need neither and run everywhere). Of the 53
 dataset tests (ADR 0024), one needs openpyxl, which is not a dependency.
 
+</details>
+
+<details>
+<summary><strong>Worker, model providers, extensions, operations and security</strong></summary>
+
 ## Background worker (optional)
 
-Runs advance while the Runs view is open. To advance them with no browser
-open, run a worker:
+In the default client mode, runs advance while the Runs view is open.
+For explicit background execution, set `AGENTIC_OS_RUN_EXECUTION=worker`
+on the API and run a supervised worker with the same database, vault and
+model configuration:
 
 ```bash
 python scripts/worker.py          # poll for work until Ctrl-C
 python scripts/worker.py --once   # advance one run and refresh one due source, then exit
 ```
+
+The local profile starts both processes with
+`python scripts/local_runtime.py start --worker`. In worker mode the browser
+polls persisted state, and the advance endpoint returns promptly without
+executing a model in the request. `/api/health` exposes worker heartbeat
+freshness; a missing or stale worker requires operator attention.
 
 The same worker refreshes live sources whose refresh is due (ADR 0034),
 under the same kind of lease, so two workers never fetch one source.
@@ -741,10 +1702,19 @@ under the same kind of lease, so two workers never fetch one source.
 The worker claims a run with a database lease, advances it one task at a
 time, and releases the lease when the run needs a human or ends. It never
 decides an approval — it stops at the gate like any other caller. A
-worker that crashes stops renewing its lease, and the next worker (or an
-open browser) picks the run up from its durable state — including the
+worker that crashes stops renewing its lease, and the next worker picks
+the run up from its durable state — including the
 stage the crash interrupted, which is re-run rather than skipped. Details
-and trade-offs: `docs/adr/0006-durable-execution.md`.
+and trade-offs: `docs/adr/0006-durable-execution.md` and the
+[explicit execution decision](docs/adr/2026-10-21-durable-worker-and-source-credentials.md).
+Browser-driven recovery remains available only in client mode.
+
+The bilingual `#/operations` workspace adds organization/site/asset records,
+separately authorized maintenance work and prospective model/baseline validation.
+Use the [pilot runbook](docs/PILOT_RUNBOOK.md) for the recommended read-only
+MaintainX integration and its acceptance requirements. The
+[remediation record](docs/assessments/2026-10-21-saas-remediation.md) distinguishes
+implemented controls from still-unverified hosted and customer outcomes.
 
 ## Choosing the narrator (optional)
 
@@ -923,12 +1893,13 @@ tag or loses its comment.
 
 The bill of materials is generated on every CI run and kept as an
 artifact. It covers both ecosystems — npm from the lock file with
-integrity hashes, Python from the closure `requirements.txt` actually
+integrity hashes, Python from the installed closure `requirements.in` actually
 reaches — and needs no network, because an SBOM you cannot read during an
-incident is not worth having. Current composition: **302 components (275
-npm, 27 pypi); 286 permissive, 16 weak-copyleft, none strong**, of which
-exactly one copyleft package ships (`psycopg2-binary`, LGPL with
-exceptions) and is named in the build output every time. Details:
+incident is not worth having. The current measured composition is recorded
+under [Testing](#testing). The shipped `psycopg2-binary` package carries LGPL
+with exceptions and is named in the build output. Audit tooling uses a separate
+environment; server installs consume the hash-checked `requirements.txt` lock.
+Details:
 `docs/adr/0013-supply-chain.md`.
 
 ## Backup and restore
@@ -988,8 +1959,9 @@ See `user_guide.md` for the full command reference.
 - Memory is stored as plain text in `data/memory.json` on your own
   computer; nothing is sent to any external service. Remove entries from
   the Memory panel, with `/forget`, or by deleting the file.
-- The repository contains no secrets; `.env.example` documents the few
-  optional environment variables (all with safe defaults).
+- Keep credentials out of commits and use `.env.example` for placeholders.
+  The repository remains temporarily private under the documented containment
+  decision; visibility and historical remediation require owner review.
 - The API validates input lengths and shapes, restricts CORS, hides stack
   traces, and requires confirmation in the UI before destructive actions.
 
@@ -1015,7 +1987,7 @@ See `user_guide.md` for the full command reference.
 - Persist preference changes back to `config.json` on request
 - Streamed responses and a pluggable AI-model backend
 - A scheduled off-site backup job (see ADR 0005 for why it is not a
-  workflow in this public repository)
+  workflow in the project repository)
 - Named memory keys (e.g. `/remember birthday = 1 May`)
 
 ## Working on it with Claude Code
@@ -1047,12 +2019,16 @@ described in [docs/PLAYBOOK.md](docs/PLAYBOOK.md):
     Deterministic scripts and free local models (`scripts/consult.py`)
     come before Claude.
 
+</details>
+
 ## Contributing
 
 Team members start with [CONTRIBUTING.md](CONTRIBUTING.md). It covers
 getting access, ways to help without writing code, local setup, the
-branch and pull-request flow, and the rules for a public repository: no
-secrets, no personal data, no force-push.
+branch and pull-request flow, and the repository's continuing rules: no
+secrets, no personal data, no force-push. The repository is temporarily private
+under the [20 October containment decision](docs/adr/2026-10-20-temporary-private-containment.md);
+the owner must approve access for any additional team member or instructor.
 
 ## Project Information
 

@@ -1,0 +1,91 @@
+Note: evidence lines condensed by the orchestrator; paragraph ids, severities and categories are exactly as the reviewer gave them.
+
+FINDING F01 · major · P04
+Category: arithmetic
+Evidence: Series product 93.1%, not 97.7%.
+
+FINDING F02 · blocker · P04
+Category: arithmetic
+Evidence: 93.1% absent from the memo.
+
+FINDING F03 · major · P04
+Category: overclaim
+Evidence: No-investment conclusion rests on 97.7%.
+
+FINDING F04 · major · P05
+Category: arithmetic
+Evidence: Restoration 4.9 h; 1,656.2 h; 99.84%.
+
+FINDING F05 · blocker · P05
+Category: arithmetic
+Evidence: 4.9 absent.
+
+FINDING F06 · blocker · P05
+Category: arithmetic
+Evidence: 1,656.2 absent.
+
+FINDING F07 · blocker · P05
+Category: arithmetic
+Evidence: 99.84% absent.
+
+FINDING F08 · major · P05
+Category: overclaim
+Evidence: 3-hour promise below median 3.1 h.
+
+FINDING F09 · major · P07
+Category: overclaim
+Evidence: Alarm log does not measure capacity.
+
+FINDING F10 · major · P08
+Category: arithmetic
+Evidence: Shared controller: 0.54%.
+
+FINDING F11 · blocker · P08
+Category: arithmetic
+Evidence: 0.54% absent.
+
+FINDING F12 · major · P08
+Category: overclaim
+Evidence: 'Negligible' contradicted by 0.5% controller term.
+
+FINDING F13 · major · P10
+Category: arithmetic
+Evidence: 13-week interval longer than 8-week P-F; saving is zero.
+
+FINDING F14 · major · P12
+Category: overclaim
+Evidence: Shape 3.4 is wear-out; inference reversed.
+
+FINDING F15 · major · P14
+Category: overclaim
+Evidence: Target met by reclassifying deferred work.
+
+FINDING F16 · minor · P15
+Category: overclaim
+Evidence: 'No safety or operational consequence' unsourced.
+
+FINDING F17 · major · P17
+Category: overclaim
+Evidence: MTBF from 10 failures is not service life.
+
+FINDING F18 · major · P18
+Category: causal_claim
+Evidence: Contractor attribution, part-year, no control.
+
+FINDING F19 · major · P19
+Category: arithmetic
+Evidence: Per pump: 22 / 74 = 29.7%.
+
+FINDING F20 · blocker · P19
+Category: arithmetic
+Evidence: 29.7% absent.
+
+FINDING F21 · major · P19
+Category: denominator
+Evidence: Benchmark comparison rests on the sump denominator.
+
+FINDING F22 · major · P20
+Category: causal_claim
+Evidence: Five months, six sections; elimination not shown.
+
+TOTAL: 22 findings

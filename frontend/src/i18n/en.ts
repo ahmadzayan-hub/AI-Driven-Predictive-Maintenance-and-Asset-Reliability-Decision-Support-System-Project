@@ -63,10 +63,11 @@ export const en = {
   "voice.playing": "Reading aloud",
   "voice.playbackLimit": "Reading the first 1,800 characters.",
   "composer.offline": "Connection unavailable · your draft is kept",
+  "nav.operations": "Operations",
   "nav.assets": "Asset Intelligence",
   'decision.eyebrow': 'Your next decision',
   'decision.heading': 'Decision Intelligence Command Centre',
-  'decision.subtitle': 'Go directly to the evidence, analysis or pending approval. No invented operational indicators.',
+  'decision.subtitle': 'Follow the evidence from analysis to a decision. Open a workflow, explore findings or review a report.',
   'decision.upload': 'Analyze a dataset',
   'decision.uploadHelp': 'Import, validate and run governed analytics',
   'decision.dashboard': 'Explore a dashboard',
@@ -95,8 +96,6 @@ export const en = {
   // Agentic workspace, approvals and installable app.
   "shell.skipMain": "Skip to workspace content",
   "nav.approvals": "Approvals",
-  "view.loading": "Loading workspace",
-  "view.failed": "This view could not be displayed. Your session is still available.",
   "cockpit.workspace": "Analysis workspace",
   "cockpit.humanDecision": "Waiting for your decision",
   "cockpit.approvalIntro": "Review this report and its destination before publishing.",
@@ -196,11 +195,10 @@ export const en = {
   'nav.memory': 'Memory',
   'nav.activity': 'Activity',
   'nav.preferences': 'Preferences',
-  "nav.analyse": "Intelligence",
-  "nav.workWith": "Your workspace",
-  'nav.overview': 'Overview',
+  'nav.overview': 'Command Centre',
   'nav.datasets': 'Datasets',
   'nav.more': 'More',
+  'nav.assetsShort': 'Assets',
   'session.new': 'New session',
   'session.end': 'End session',
   'session.signOut': 'Sign out',
@@ -226,7 +224,6 @@ export const en = {
 
   // Context rail
   'rail.aria': 'Session overview',
-  'rail.context': 'Session context',
   'rail.agent': 'Agent',
   'rail.messages': 'Messages',
   'rail.memoryEntries': 'Memory entries',
@@ -264,21 +261,8 @@ export const en = {
 
   // Conversation
   'chat.aria': 'Conversation',
-  'greeting.morning': 'Good morning',
-  'greeting.afternoon': 'Good afternoon',
-  'greeting.evening': 'Good evening',
-  'greeting.withName': '{period}, {name}',
-  'chat.question': 'What would you like to accomplish?',
-  'suggestion.analyse': 'Analyse the sample sales data',
-  'suggestion.analyse.insert': 'Analyse the sample sales data and tell me what changed',
-  'suggestion.remember': 'Remember something',
-  'suggestion.remember.insert': 'Remember that ',
-  'suggestion.explain': 'Explain the latest report',
-  'suggestion.explain.insert': 'Explain the latest report',
   'suggestion.help': 'What can you do?',
   'suggestion.help.insert': 'What can you do?',
-  'chat.hint':
-    'Write in plain language, or use commands beginning with {slash} — browse them any time with {shortcut}.',
   "chat.typing": "Miyaar is preparing a response",
   "chat.failed": "A reply could not be confirmed. Your draft is kept. Check the conversation before retrying.",
   'chat.retry': 'Retry',
@@ -350,8 +334,6 @@ export const en = {
   'usage.storage': 'Storage used',
   'usage.of': '{used} of {limit}',
   'usage.resets': 'Resets at midnight UTC. {n} left.',
-  'usage.rerun': 'Re-running a stored dataset costs nothing.',
-  'usage.dedupe': 'Uploading the same file twice stores it once.',
   'usage.notMeasured': 'Not measured: {list}.',
 
   // Activity events (the store records a code; the screen translates it)
@@ -395,8 +377,6 @@ export const en = {
   // Analytics runs
   'runs.aria': 'Runs',
   'runs.title': 'Analytics runs',
-  'runs.desc':
-    'A goal becomes a governed pipeline of specialist agents — planning, data profiling, cleaning, analysis, visualization, validation, and reporting — with every claim traced to a calculation and publishing gated by your approval.',
   'runs.goal': 'Goal',
   'runs.goalDefault': 'Analyze the sample sales dataset and produce a business report',
   'runs.dataset': 'Dataset',
@@ -423,8 +403,6 @@ export const en = {
   'runs.profileMaintenance': 'Maintenance (governed)',
   'runs.start': 'Start run',
   'runs.previous': 'Previous runs',
-  'runs.slowing': 'Slowing down to stay within the request limit…',
-  'runs.advanceFailed': 'Advance failed.',
   'runs.startFailed': 'Could not start the run.',
   'runs.riskHigh': 'high',
   'runs.actionFailed': 'The action failed.',
@@ -481,8 +459,8 @@ export const en = {
   'question.prescriptive': 'What should I do?',
 
   // Overview
-  'overview.aria': 'Overview',
-  'overview.title': 'Overview',
+  'overview.aria': 'Command Centre',
+  'overview.title': 'Command Centre',
   'overview.evidenceHeading': 'Agent evidence for the latest analysis',
   'overview.evidenceStages': '{done} of {total} analysis stages completed',
   'overview.evidenceMissing': 'No analysis with findings available',
@@ -490,7 +468,7 @@ export const en = {
   'overview.evidencePassed': 'Run-level evidence checks passed',
   'overview.evidencePending': 'Validation incomplete or needs review',
   'overview.evidenceScope': 'This checks the recorded calculations and evidence in one run. It does not certify AI model accuracy, safety or live operations.',
-  'overview.desc': 'What your analyses found, what is waiting for you, and what you have stored.',
+  'overview.desc': 'The latest decision brief, the figures behind it, what is waiting for you, and what you have stored.',
   'overview.start': 'Start an analysis',
   'overview.loading': 'Loading the overview',
   'overview.failed': 'The overview could not be loaded.',
@@ -519,12 +497,10 @@ export const en = {
   // Datasets
   'datasets.aria': 'Datasets',
   'datasets.title': 'Datasets',
-  'datasets.desc':
-    'Every dataset you have added or analysed, stored once. Add CSV, Excel or JSON files, then analyse any of them without sending it again.',
   'datasets.add': 'Add a dataset',
   'datasets.loading': 'Loading your datasets',
   'datasets.failed': 'Your datasets could not be loaded.',
-  'datasets.usage': '{used} of {limit} datasets · {bytes} of {bytesLimit} used',
+  'datasets.limits': 'Files and limits',
   'datasets.listTitle': 'Stored datasets',
   'datasets.added': 'added {date}',
   'datasets.fingerprint': 'fingerprint {hash}',
@@ -566,6 +542,9 @@ export const en = {
   'mapping.noMeasure': 'Map a column as a measure first',
   'mapping.dimension': 'Breakdown',
   'mapping.noDimension': 'No breakdown',
+  'mapping.currency': 'Currency of money columns',
+  'mapping.currencyHelp': 'A three-letter code such as AED or USD. Leave it empty when the data does not say: money is then labelled "currency not stated", and nothing guesses it for you.',
+  'mapping.currencyInvalid': 'Enter a three-letter currency code such as AED or USD, or leave it empty.',
   'mapping.dateOrder': 'Dates are written',
   'mapping.grain': 'Sum dates by',
   'mapping.save': 'Save mapping',
@@ -598,6 +577,9 @@ export const en = {
 
   // Sign-in
   'signin.aria': 'Sign in',
+  'demo.badge': 'View-only demo',
+  'demo.visitor': 'Demo visitor',
+  'demo.note': 'A view-only demo on fictional data. There is no sign-in, and nothing can be uploaded, changed or approved here.',
   'signin.title': 'Sign in to Asset Reliability',
   'signin.desc':
     'This deployment requires an account. Your credentials go directly to the identity provider — this app never sees them.',
@@ -612,9 +594,9 @@ export const en = {
   'signin.enterEmail': 'Enter your email address first.',
   'signin.checkEmail': 'Check {email} for a sign-in link.',
   'signin.linkFailed': 'Could not send the link.',
-  'view.reload': 'Reload this view',
   'cockpit.lastObserved': 'Last checked {time}',
   'cockpit.exactReport': 'Review the exact report',
+  'cockpit.readReport': 'I have read this exact report',
   'cockpit.previewIncludesEvidence': 'This is the report returned for this approval. Its calculations, references and limitations are included below.',
   'cockpit.reportUnavailable': 'The report is unavailable. Publishing stays disabled; reopen the analysis to recover it.',
   'install.failed': 'The installation prompt could not open. Use your browser’s installation menu instead.',

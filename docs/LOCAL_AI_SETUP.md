@@ -58,7 +58,68 @@ Use a local SQLite configuration and a shell without hosted `DATABASE_URL` or `A
 
 </div>
 
+## Recovering programmed chat replies / معالجة الردود المبرمجة
+
+A healthy API or a configured provider does not prove that the model answered.
+Check the source badge on a fresh general conversation message. If it says
+programmed rules, verify the model used by the running server, its exact installed
+tag, and available memory. On the tested CPU laptop, the generic `qwen3:latest`
+tag failed the full chat request; the instruction-only tag below restored actual
+model replies. Do not increase the timeout or erase conversation history merely
+to hide the fallback.
+
+```powershell
+.\.venv\Scripts\python.exe scripts/local_runtime.py start --worker --port 8000 --model qwen3:4b-instruct-2507-q4_K_M
+```
+
+Run this only after stopping the existing owned server. If a private role profile
+is used, keep the base model and the `agents=ollama:...` override consistent with
+the tested tag; start that profile instead of a second server. Credentials must
+remain in the server environment. Selecting Claude or OpenAI does not activate
+them without real API credentials. See [measured acceptance](../README.md#testing).
+
+<div dir="rtl">
+
+سلامة الخادم وظهور اسم النموذج في الإعدادات لا يثبتان وصول رد منه. تحقّق من مصدر
+رد جديد في المحادثة. إذا ظهر «قواعد مبرمجة»، افحص اسم النموذج الفعلي ووسمه المثبّت
+والذاكرة المتاحة. أعادت نسخة Qwen3 المخصّصة للتعليمات أعلاه الردود الفعلية في
+الاختبار المحلي. أوقف الخادم الذي شغّلته قبل إعادة تشغيله، واستخدم ملف الأدوار
+الخاص إن كان موجودًا بدل تشغيل خادم ثانٍ. تحتاج نماذج Claude وOpenAI مفاتيح حقيقية
+في بيئة الخادم؛ لا تضعها في المستودع أو المحادثة.
+
+</div>
+
 ## Installed components / المكونات المثبتة
+
+The owner-selected local profile now uses Qwen3 4B Instruct for every local role:
+chat, narration, orchestration, specialist notes and consultant review. A single
+model stays loaded. The roles use distinct prompts, not independent providers.
+The worker receives the same model-role configuration as the API (see the
+[worker decision](adr/2026-10-22-worker-model-role-parity.md)). Hosted consultants
+can be selected separately when their server credentials are available.
+
+```powershell
+$env:OLLAMA_MODEL = 'qwen3:4b-instruct-2507-q4_K_M'
+$env:OLLAMA_THINK = '0'
+$env:AGENTIC_OS_TASK_MODELS = 'narration=ollama,chat=ollama,hermes=ollama,agents=ollama,consultants=ollama'
+.\.venv\Scripts\python.exe scripts/local_runtime.py start --worker --port 8000 --model $env:OLLAMA_MODEL
+```
+
+Explicit `AGENTIC_OS_HERMES_MODEL`, `AGENTIC_OS_AGENT_MODEL` and
+`AGENTIC_OS_CONSULTANTS` overrides take precedence over the map; align any existing
+ones with the intended selection. The owner's ignored `private/run-local-agents.ps1`
+already pins these overrides. Start it after stopping the existing owned server.
+Do not start another server on the same port.
+
+<div dir="rtl">
+
+اختار المالك Qwen3 4B Instruct لجميع الأدوار المحلية: المحادثة والسرد والتنسيق
+وملاحظات الوكلاء والمراجعة الاستشارية. تبقى نسخة واحدة من النموذج في الذاكرة،
+وتستخدم الأدوار تعليمات مختلفة للنموذج نفسه. يتلقّى العامل الخلفي إعدادات الأدوار
+كما يتلقّاها الخادم. حُفظ الاختيار في ملف التشغيل الخاص؛ يظل النشر مشروطًا بموافقة
+بشرية، ويمكن اختيار الاستشاريين السحابيين لاحقًا عند توفر مفاتيحهم في بيئة الخادم.
+
+</div>
 
 | Component / المكوّن | Status / الحالة |
 | --- | --- |
@@ -107,6 +168,43 @@ The official `SYSTRAN/faster-whisper` source was cloned at release `v1.2.1` into
 Actual Chrome recording from a public test-audio fixture reached local Whisper and filled this editable draft without sending a chat message. This capture uses a fake audio source, not a physical microphone. / وصل تسجيل Chrome من ملف صوت اختبار عام إلى Whisper المحلي وظهر في مسودة قابلة للتعديل دون إرسال رسالة؛ مصدر الصوت ملف اختبار، وليس ميكروفونًا حقيقيًا.
 
 ![Actual local Whisper transcript in the Miyaar composer](screenshots/miyaar-local-whisper-preview.png)
+
+## Workspace agent activation / تفعيل وكيل مساحة العمل
+
+The model and an agent framework are separate settings. A configured local
+model can answer open conversation on its own. To test the optional LangGraph
+loop, add this to a private local configuration selected by `AGENTIC_OS_CONFIG`:
+
+```json
+"agent_runtime": {
+  "path": "examples.runtimes.langgraph_runtime.LangGraphRuntime",
+  "options": {"max_steps": 3, "max_tokens": 220}
+}
+```
+
+Keep the existing data paths and other configuration fields. Use one planner
+for a message. Pydantic AI remains an alternative, not a second planner running
+alongside LangGraph. The same tools, privacy checks and human approval gates
+apply. Exact help/status shortcuts answer without model latency. Check the
+reply's actual source, not just the configured provider in health.
+
+Keep only the selected inference model loaded on a memory-constrained machine.
+The installation checks found that smaller weights were faster to load but
+failed bilingual reply/tool-selection quality. Loading several models together
+caused memory pressure and timeouts. README records measured results, including
+failed probes; there is no guaranteed fast-response service level.
+
+<div dir="rtl">
+
+إعداد النموذج منفصل عن إطار الوكيل؛ يستطيع النموذج المحلي الرد على المحادثة
+المفتوحة مباشرة. يمكن اختبار LangGraph بإضافة الإعداد أعلاه إلى ملف محلي خاص،
+مع الحفاظ على مسارات البيانات الحالية. استخدم مخططًا واحدًا لكل رسالة؛ يبقى
+Pydantic AI بديلًا. تبقى الأدوات وضوابط الخصوصية والموافقات البشرية كما هي.
+تجيب اختصارات المساعدة وحالة التحليل مباشرة. تحقّق من مصدر الرد الفعلي، لا من
+وجود اسم النموذج في فحص الصحة فقط. أبقِ النموذج المختار وحده محمّلًا عند محدودية
+الذاكرة؛ لا يضمن تثبيت نموذج أصغر جودة ردوده أو سرعة جميع الطلبات.
+
+</div>
 
 ## Cloud setup and acceptance / إعداد السحابة والتحقق
 

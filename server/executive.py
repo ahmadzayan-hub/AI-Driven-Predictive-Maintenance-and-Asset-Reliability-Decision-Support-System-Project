@@ -9,7 +9,9 @@ import hashlib
 import json
 import math
 
+from server import mapping as colmap
 from server import query
+from server.executive_advisory import advisory
 from server.maintenance import contract, kpis, performance
 from server.runs import model_cards
 
@@ -67,6 +69,22 @@ def parse_filters(encoded):
              if k in {"column", "op", "value", "values"}} for item in filters]
 
 
+def currency_of(run):
+    """The currency the owner stated in the dataset's column mapping, as the
+    run kept it (ADR 0025), or None when the run has no mapping or the
+    mapping names none. The brief carries it so that readers see money
+    figures as "AED 1,250,000" rather than a figure with no unit, and the
+    interface needs no second request. Nothing here guesses a currency."""
+    raw = run.get("mapping_json")
+    if not raw:
+        return None
+    try:
+        mapping = json.loads(raw) if isinstance(raw, str) else raw
+    except ValueError:
+        return None
+    return colmap.currency_of(mapping)
+
+
 class ExecutiveDashboardAgent:
     """Deterministic decision support. Existing permissions remain the API's job."""
 
@@ -90,6 +108,9 @@ class ExecutiveDashboardAgent:
             item = dict(result)
             item["title"] = result["title_ar"] if language == "ar" else result["title"]
             item.pop("title_ar", None)
+            # `population` stays the code the export matches on; the label is shown.
+            item["population_label"] = result["population_ar"] if language == "ar" else result["population"]
+            item.pop("population_ar", None)
             item["assessment"] = performance.assessment(item, selected_policy["rules"], language)
             measures.append(item)
         evidence, priorities, questions, drilldowns = [], [], [], []
@@ -238,7 +259,9 @@ class ExecutiveDashboardAgent:
                 if (claim.get("status") != "verified" or claim.get("type") == "forecast"
                         or not refs or len(refs) > 12 or any(ref not in calculations for ref in refs)):
                     continue
-                if len(findings) >= MAX_FINDINGS or len(evidence) + len(set(refs) - evidence_ids) > MAX_EVIDENCE:
+                # Reserve the five advisory-domain calculations and a possible
+                # failed-check count before stored findings fill the register.
+                if len(findings) >= MAX_FINDINGS or len(evidence) + len(set(refs) - evidence_ids) > MAX_EVIDENCE - 6:
                     omitted = True
                     continue
                 for ref in refs:
@@ -301,6 +324,7 @@ class ExecutiveDashboardAgent:
                                     "لم يكتمل التشغيل بنجاح؛ وهذا ملخص للأدلة الجزئية."))
         limitations.append(_say(language, "Observed maintenance records do not establish future asset failure, remaining useful life, physical asset identity, or causal savings. Actions require qualified human review.",
                                 "لا تثبت سجلات الصيانة المرصودة الأعطال المستقبلية أو العمر المتبقي أو هوية الأصل الفعلية أو الوفورات السببية. تتطلب الإجراءات مراجعة بشرية مؤهلة."))
+        decision_advisory = advisory(table, selected, measures, priorities, models, language, add_evidence)
         status = "empty" if not selected else "limited" if len(limitations) > 1 else "ready"
         headline = (_say(language, "No cleaned records match the selected scope.", "لا توجد سجلات منظفة تطابق النطاق المحدد.")
                     if not selected else _say(language,
@@ -308,13 +332,14 @@ class ExecutiveDashboardAgent:
                         f"يتضمن النطاق {len(selected)} سجلاً؛ ويتاح {len(measures)} مؤشراً منضبطاً للمراجعة."))
         brief = {"run": {"id": run["id"], "dataset_name": run.get("dataset_name", ""),
                         "state": run.get("state"), "updated_at": run.get("updated_at")},
-                "language": language, "source": "engine", "scope": {"records": len(selected),
+                "language": language, "source": "engine", "currency": currency_of(run),
+                "scope": {"records": len(selected),
                 "total_records": len(table.rows), "filters": filters}, "headline": headline,
                 "readiness": {"status": status, "limitations": limitations},
                 "kpis": {"measures": measures, "unavailable": unavailable},
                 "priorities": priorities, "questions": questions, "findings": findings,
                 "models": models, "evidence": evidence, "drilldowns": drilldowns,
-                "kpi_policy": copy.deepcopy(selected_policy)}
+                "kpi_policy": copy.deepcopy(selected_policy), "advisory": decision_advisory}
         # Task results may change without advancing the run row's timestamp.
         # Bind downloads to every fact in the prepared response, including its
         # language, filters, metadata and evidence, without trusting client data.

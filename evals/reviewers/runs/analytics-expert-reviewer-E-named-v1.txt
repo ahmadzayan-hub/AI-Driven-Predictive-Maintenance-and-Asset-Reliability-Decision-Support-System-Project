@@ -1,0 +1,58 @@
+FINDING F01 · major · P03
+Category: domain_method
+Evidence: The paragraph says HVAC availability is inherent, which the fleet standard defines as corrective downtime only. It then subtracts the 2,480 h of planned maintenance as well (5,600 h in total) and gets 97.4%. Register: (214,620 − 3,120) / 214,620 = 98.5%, marked as the correct method.
+Fix: Report 98.5% and drop the planned hours. If planned maintenance is to be counted, label the figure operational and do not call it inherent.
+
+FINDING F02 · blocker · P04
+Category: domain_method
+Evidence: The MTBF of 3,200 h divides the running hours of the 12 failed motors only (38,400 / 12) and leaves out the 156 surviving motors. Those 156 ran 156 × 5,110 = 797,160 h. Register: (38,400 + 797,160) / 12 = 69,630 h. Motors are therefore not the lowest MTBF component. The pantograph MTBF in P05 is computed the right way, with the surviving units' hours included, and is 24,500 h. The budget recommendation rests on the wrong figure.
+Fix: Use 69,630 h, re-rank the components, and withdraw the "first call on the budget" recommendation until the ranking is redone.
+
+FINDING F03 · major · P06
+Category: domain_method
+Evidence: Failures rise with belt age: 4 below 400,000 cycles, 9 between 400,000 and 800,000, and 21 above 800,000. That is a wear-out pattern. The constant-rate assumption and an inspection interval of half the MTBF (300,000 cycles) do not fit it. A mean of 600,000 cycles hides the fact that most failures come late. The memo's own age bands do not support the constant-rate basis.
+Fix: Describe the pattern as wear-out. Set the inspection or replacement age from the age-banded failure data, using age-based replacement before roughly 400,000 to 800,000 cycles. Do not use an MTBF-based interval.
+
+FINDING F04 · major · P07
+Category: domain_method
+Evidence: 9 failures in the first 6 weeks after overhaul, against 3 in the following 40 weeks, is a rate of 1.5 per week early and about 0.075 per week later. That is infant mortality after overhaul, caused by workmanship or reassembly. It is not wear-out. Shortening the overhaul interval from 8 years to 6 would add more overhauls, and so more early-failure clusters, without addressing the cause. P08 reads the same pattern correctly for the door controllers.
+Fix: Read the cluster as early-life. Propose overhaul quality checks and a post-overhaul burn-in or run-in. Leave the interval unchanged.
+
+FINDING F05 · major · P09
+Category: domain_method
+Evidence: Compliance counts an order as compliant if it was closed at any point in the year. A preventive-maintenance order closed months late counts as on time. The 97.0% (1,804 / 1,860) is closure within the year, not timely completion. P10 uses a tolerance window and gets 94.2%. On a comparable on-time basis the tram figure could be below the 95.0% target.
+Fix: Measure compliance as closed within the due date plus a tolerance, as in P10. Report 97.0% only as "closed by year end", and do not compare it with the 95.0% target.
+
+FINDING F06 · major · P12
+Category: domain_method
+Evidence: The contract target of 4.0 h is set on the median repair time. The memo compares it with the mean of 5.6 h, a tail-inflated figure (9 repairs over 40 h), and reports a miss of 1.6 h. The traction median is not given in the register, so the miss is unsupported. P13 judges HVAC correctly on the median.
+Fix: Compare the traction median repair time with the 4.0 h target. State the mean separately. Remove the "missed by 1.6 hours" claim until the median is available.
+
+FINDING F07 · blocker · P16
+Category: overclaim
+Evidence: Alarms rose from 96 to 214 (2.2 times) after the threshold was lowered. A lower threshold raises the alarm count by construction. The memo gives no check that the extra alarms are true developing faults, such as confirmed defects, false-alarm rate or missed-failure rate. The memo recommends the same change on the gearbox sensors on this basis.
+Fix: Validate the extra alarms against inspection findings and failures, and show the false-alarm rate. Hold the gearbox recommendation until then.
+
+FINDING F08 · major · P21
+Category: domain_method
+Evidence: Spares were cut from 3 to 1 on average annual demand of 0.5 a year alone. The paragraph itself notes a 40-week lead time and that a tram cannot run with a failed inverter. Lead-time demand is 0.5 × 40 / 52 = 0.38. A failure also keeps the tram out of service for up to 40 weeks. The decision ignores criticality and lead time. The €168,000 saving is set against that exposure with no cost of downtime. P22 handles the HVAC compressor spares correctly.
+Fix: Size the spares on lead-time demand and the cost of a tram out of service, and keep the saving as illustrative. At minimum, restore the stock level until that analysis is done.
+
+FINDING F09 · blocker · P23
+Category: causal_claim
+Evidence: Door faults fell from 610 to 546 (−64, −10.5%, matches the register) "following" the lubrication routine. The memo then says the routine "cut" faults and will be extended to the controller cabinets. This is a before/after comparison with no control group, no exposure adjustment and no allowance for year-to-year variation. Kilometres for 2024 are not given. The routine started in March, so the 2025 figure also includes months before it.
+Fix: Say the fall is associated with the routine. Compare lubricated and unlubricated trams, or use per-kilometre rates by period. Present the extension as a trial.
+
+FINDING F10 · major · P24
+Category: denominator
+Evidence: 188 / 2,350 = 8.0% is HVAC's share of corrective work orders only. The paragraph calls it a share of the depots' maintenance workload. Register: all work orders = 2,350 + 1,860 + 240 = 4,450, and 188 / 4,450 = 4.2%.
+Fix: Say "8.0% of corrective work orders", or report 4.2% as the share of all work orders.
+
+FINDING F11 · major · P25
+Category: overclaim
+Evidence: Availability of 96.3% against a floor of 96.0% is a margin of 0.3 percentage points for one year. The memo concludes it is "assured for the remaining years of the concession". There is no trend, no variance, and no forecast. The count of unplanned downtime hours is also at risk from the issues above, for example the motor MTBF.
+Fix: State that 2025 met the floor by 0.3 points, and do not forecast future years without a trend and a margin analysis.
+
+Notes: I checked these paragraphs and found no defect: P01, P02, P05, P08, P10, P11, P13, P14, P15, P17, P18, P19, P20, P22 and P26. The figures I recomputed match the register: the P14 rates of 12.6 and 9.7 per 100,000 km, the P15 backlog of 4.8 weeks, and the P22 Poisson probability of 95.9%.
+
+TOTAL: 11 findings

@@ -1,16 +1,20 @@
 ---
 type: concept
 aliases: [KPI register, Ratio of sums]
-tags: [measurement]
+tags: [measurement, data]
 status: active
-updated: 2026-10-18
+updated: 2026-10-21
 review_every_days: 60
-sources: [server/metrics.py, server/maintenance/kpis.py, project-progress.md, docs/adr/0026-uneven-periods-are-read-per-record.md, docs/adr/0042-an-unmeasured-cell-is-not-a-zero.md, docs/AGENT_TEAM.md]
+sources: [server/metrics.py, server/maintenance/kpis.py, project-progress.md, docs/adr/0026-uneven-periods-are-read-per-record.md, docs/adr/0042-an-unmeasured-cell-is-not-a-zero.md, docs/AGENT_TEAM.md, docs/adr/2026-10-21-register-availability-and-pooled-reliability-measures.md, docs/adr/2026-10-21-kpi-register-aligned-with-power-bi.md]
 ---
 
 # Weighted KPIs
 
 Every rate is computed as a summed numerator over a summed denominator, never as an average of row rates. Averaging rows gives a small record the same weight as a large one, and it averages placeholders as if they were measurements.
+
+## What the register holds (21 October 2026)
+
+Eighteen measures, each a ratio of sums over a declared population (decisions `2026-10-21-register-availability-and-pooled-reliability-measures` and `2026-10-21-kpi-register-aligned-with-power-bi` in the [[Decision log]]). Availability is `1 - downtime / planned` (96.96% on the course data). The register used to publish operating over planned under that name; that is **utilisation** (79.39%), now its own entry. MTBF is pooled with no-failure records counted as exposure, MTTR is downtime per failure, and SLA attainment is the share of records that met target. The sentence below about the register's values being right was true of the numbers, not yet of the register, which lacked MTBF and SLA until this change. Later the same day the register was aligned with the team's Power BI Method page: MTTR is all downtime over all failures (the owner's choice, which overstates restoration where planned downtime is recorded), first-time fix and repeat repair sum over every record, and four report measures were added (downtime per 1,000 planned hours, failures per record, loss per record, loss to maintenance ratio). Each redefined measure carries definition 2, so a target saved earlier waits for review. Hours-based planned maintenance, wrench time, PM compliance, backlog in weeks and cost as a share of replacement value stay out until the fields exist.
 
 ## The example, corrected
 
@@ -40,3 +44,5 @@ The metric glossary (`metrics.json`) gives each metric a definition, an owner an
 - [[Team 3 Capstone]]: where the register was first written.
 - [[Analytics OS roadmap]]: dashboard measures must follow the same rule.
 - [[Agent team]]: the review that corrected this note.
+- [[Maintenance decision support]]: applies the measurement rules to maintenance decisions.
+- [[Scoped dashboards]]: keeps the selected population attached to each displayed KPI.

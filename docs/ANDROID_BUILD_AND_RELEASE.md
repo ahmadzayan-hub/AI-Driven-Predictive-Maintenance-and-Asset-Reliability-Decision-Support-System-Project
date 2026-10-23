@@ -15,7 +15,20 @@ On Android (Chrome): open the app → menu → **Add to Home screen /
 Install app**. It launches standalone with the Agentic OS icon and splash
 colors.
 
-## Native Android (Capacitor) — documented path, not shipped
+## Native Android (Kotlin, Jetpack Compose): authored 22 October 2026
+
+`apps/android` holds a Kotlin and Compose app over the platform API: upload,
+analyse, the Command Centre, approvals, a presentation view with report
+sharing, and a local vector memory. Its pure-Kotlin `core` module is built
+and tested on the JVM in this repository (14 tests); the Android `app`
+module is authored and waits for a machine with the Android SDK, or for
+`dl.google.com` to be allowed in the cloud environment, to compile and
+produce the APK (`scripts/build-apk.sh`). The decision and its honesty
+boundary are in
+[the Android record](adr/2026-10-22-android-app-first-release.md); the
+screens and build steps are in [apps/android/README.md](../apps/android/README.md).
+
+## Capacitor wrapper (earlier documented path, superseded)
 
 A real `apps/android` Capacitor project requires the Android SDK and
 Gradle to build and an emulator/device to test. Neither exists in the

@@ -3,14 +3,14 @@ type: concept
 aliases: [RTA style, rta-style, Print variant]
 tags: [design, output]
 status: active
-updated: 2026-10-17
+updated: 2026-10-22
 review_every_days: 30
-sources: [.claude/skills/rta-style/SKILL.md, .claude/skills/rta-style/tokens.json, Memory.md, docs/adr/0027-agents-are-measured.md]
+sources: [.claude/skills/rta-style/SKILL.md, .claude/skills/rta-style/tokens.json, Memory.md, docs/adr/0027-agents-are-measured.md, docs/adr/2026-10-22-arabic-rendered-analysis-reports.md]
 ---
 
 # House style
 
-The look of what the agents make: dashboards, clips, evaluation reports, and the capstone report and deck. It comes from the [[User]]'s own executive-dashboard work. It is not the app's interface, which follows the [[Design system]].
+The look of what the agents make: dashboards, clips, evaluation reports, and the capstone report and deck. It comes from the [[User]]'s own executive-dashboard work. Analysis report surfaces inside the app also use this style; the surrounding interface follows the [[Design system]].
 
 ## Facts
 
@@ -27,6 +27,11 @@ The look of what the agents make: dashboards, clips, evaluation reports, and the
 - **Applied at build time.** `restyle.py` recolours HTML by role and checks each text colour against its real background, and no words change. The capstone files were restyled this way, and the review gates were unchanged afterwards.
 
 ## Related
+
+The 22 October report decision adds scoped screen tokens generated from the same
+source, semantic Arabic writing and calculation tables inside [[Agentic OS]].
+The report uses its own language and direction; [[Approval gate]] still binds to
+the original artifact. Font fallbacks remain available without another download.
 
 - [[Home]]
 - [[User]]: whose look it is, and who chose the typeface.

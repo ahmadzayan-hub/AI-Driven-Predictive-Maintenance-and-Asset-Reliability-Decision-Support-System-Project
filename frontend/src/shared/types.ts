@@ -85,7 +85,7 @@ export interface ActivityEvent {
 export type ConnectionStatus = 'ready' | 'working' | 'offline' | 'error' | 'ended'
 
 export interface AuthConfig {
-  mode: 'local' | 'jwt'
+  mode: 'local' | 'jwt' | 'demo'
   provider?: string
   provider_url: string
   publishable_key: string
@@ -132,6 +132,56 @@ export interface RunApproval {
   state: string
   created_at: string
   decided_at: string | null
+  /** Who decided, as the approval row records it (slice three, A13). */
+  decided_by?: string | null
+}
+
+/** The decision inputs a run may state (slice three, A2): an uplift per
+ *  target as a fraction, a cost per target in the measure's units, and the
+ *  uplift range the sensitivity stage explores. Keys are target names as
+ *  the data spells them. The server validates every field. */
+export interface RunAssumptions {
+  uplift?: Record<string, number>
+  costs?: Record<string, number>
+  uplift_range?: [number, number]
+}
+
+/** One option the prescriptive stage compared, with the inputs it used. */
+export interface DecisionOption {
+  key: string
+  title: string
+  target: string
+  base_value: number
+  uplift: number
+  uplift_source: 'stated' | 'assumed'
+  cost: number | null
+  expected_gain: number
+  evidence: string[]
+}
+
+/** The run's decision record (slice three, A13): written by the
+ *  prescriptive stage, given its uncertainty by the sensitivity stage and
+ *  completed by the approval gate. Its text is the audited English. */
+export interface DecisionRecord {
+  decision_id: string
+  issue: string
+  scope: string
+  evidence: string[]
+  risk: { measure: string; observed: number; basis: string }
+  alternatives: DecisionOption[]
+  expected_impact: { low: number; high: number; uplift_range: [number, number]; label: 'stated' | 'illustrative' }
+  cost: { stated_for: string[]; not_stated_for: string[] }
+  constraints: string[]
+  uncertainty: {
+    stable_within_ranges: boolean
+    uplift_range: [number, number]
+    flip_points: Array<{ key: string; target: string; flip_at_uplift: number | null; inside_range: boolean; can_overtake: boolean }>
+    break_even_ratio: number | null
+  } | null
+  recommended_action: string | null
+  recommendation_basis: 'value' | 'size_no_direction' | 'size_no_cost'
+  approval: { state: string; decided_at: string | null; decided_by: string | null } | null
+  audit: { run_id: string; snapshot: string | null; report_language: 'en' | 'ar' }
 }
 
 export interface ChartSpec {
@@ -147,6 +197,7 @@ export interface ChartSpec {
 }
 
 export interface RunDetail {
+  execution?: { mode: 'client' | 'worker'; poll_after_ms: number }
   id: string
   goal: string
   dataset_name: string
@@ -178,6 +229,10 @@ export interface RunDetail {
   /** Other datasets joined onto this one (ADR 0030); empty for one dataset. */
   joins?: Array<Pick<JoinSpec, 'dataset_id' | 'keys' | 'how'> & { alias: string }>
   breakdown?: string | null
+  /** The decision inputs the run stated, if any (slice three, A2). */
+  assumptions?: RunAssumptions | null
+  /** The decision record, once the prescriptive stage has run (A13). */
+  decision?: DecisionRecord | null
   report: {
     id: string
     name: string
@@ -228,6 +283,9 @@ export interface ColumnMapping {
   date_order: DateOrder
   grain: Grain
   version?: number
+  /** The ISO 4217 code of money columns, as the owner stated it; null or
+   *  absent means not stated, and the interface says so. Never guessed. */
+  currency?: string | null
 }
 
 /** What the server read in one column, and the role it suggests. */
@@ -262,7 +320,7 @@ export interface DatasetDetail {
  *  column; a join's problems also say which join (ADR 0030). */
 export interface MappingProblem {
   field:
-    | 'roles' | 'measure' | 'dimension' | 'date_order' | 'grain'
+    | 'roles' | 'measure' | 'dimension' | 'date_order' | 'grain' | 'currency'
     | 'joins' | 'keys' | 'how' | 'alias' | 'breakdown' | 'dataset'
   column: string | null
   message: string
@@ -334,6 +392,7 @@ export interface Pipelines {
   stages: Array<{
     role: string
     title: string
+    title_ar?: string | null
     after: string
     question: string | null
     can_fail_run: boolean
@@ -465,8 +524,8 @@ export interface UnsupportedModelCard extends ModelCardBase {
 export type ModelCard = FittedModelCard | UnsupportedModelCard
 
 /** One controlled maintenance measure, as `GET /api/runs/{id}/kpis`
- *  returns it (ADR 0049). The counts are not decoration: `records` is what
- *  the figure was computed on, so numerator ÷ records reproduces `value`,
+ *  returns it (ADR 0049). The counts are not decoration: `records` counts
+ *  measured rows; numerator ÷ denominator (×100 for percent) gives `value`,
  *  and `records_unmeasured` says how much of the population had no reading.
  *  ADR 0042 is explicit that a card hiding it re-creates the defect it
  *  fixed, so anything rendering these must show it when it is non-zero. */
@@ -479,10 +538,16 @@ export interface KpiMeasure {
   denominator: number
   formula: string
   population: string
+  /** The population in the reader's language; `population` stays the code. */
+  population_label?: string
+  /** Raised when the measure's meaning changes; targets carry the one they were set for. */
+  definition?: number
   records: number
   records_excluded: number
   records_unmeasured: number
   missing_policy: string
+  /** Dashboard group: reliability, execution, cost or other. Never a verdict. */
+  family?: string
   undefined_reason: string | null
   edge_cases: string
   assessment?: KpiAssessment
@@ -499,6 +564,8 @@ export interface KpiRule {
   good_max?: number
   okay_min?: number
   okay_max?: number
+  /** The definition of the measure this target was set for; absent means 1. */
+  definition?: number
 }
 
 export interface KpiPolicy { revision: string; rules: Record<string, KpiRule> }
@@ -524,10 +591,21 @@ export interface RunKpis {
 /** An executive brief is calculated server-side for this exact filter scope.
  * Stored findings and model evaluations retain their whole-run population. */
 export interface RunExecutive {
+  advisory?: {
+    title: string; subtitle: string; role: string; recommendation: string; prediction: string
+    domains: Array<{ id: string; title: string; measure: string; value: number | null; scale: string; status: KpiAssessment['status']; reason: string; records: number; unmeasured: number; implication: string; evidence_refs: string[] }>
+    decisions: Array<{ id: string; title: string; action: string; owner: string; gate: string; evidence_refs: string[] }>
+    sources: Array<{ id: string; title: string; status: KpiAssessment['status']; detail: string }>
+    new_findings: string; preservation: string; escalation: string
+  }
   snapshot_id?: string
   run: { id: string; dataset_name: string; state: string; updated_at?: string | null }
   language: 'en' | 'ar'
   source: 'engine'
+  /** The currency the dataset's column mapping states for money measures,
+   *  or null when there is no mapping or it states none: the figures are
+   *  then labelled "currency not stated" rather than given a default. */
+  currency?: string | null
   scope: { records: number; total_records: number; filters: TableFilter[] }
   headline: string
   readiness: { status: 'ready' | 'limited' | 'empty'; limitations: string[] }

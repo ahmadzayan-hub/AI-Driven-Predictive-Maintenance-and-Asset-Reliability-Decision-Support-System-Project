@@ -22,7 +22,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 CAUSAL = [
-    re.compile(r"\b(drives?|drove|driven|driving)\b", re.I),
+    # "Drive the train to the shed" operates a vehicle; it claims nothing.
+    re.compile(r"\b(drives?|drove|driven|driving)\b(?!\s+(?:the |a |an |this |that |each |our |their )?(?:\w+\s+)?"
+               r"(?:train|tram|car|vehicle|bus|truck|locomotive|metro|shuttle|loco|engine|trolley|unit|set)s?\b)"
+               r"(?!\s+(?:to|into|along|past|through|down|over|on|off|out|back|home)\b)", re.I),
     re.compile(r"\b(caus(e|es|ed|ing))\b", re.I),
     re.compile(r"\b(lead|leads|led|leading) to\b", re.I),
     re.compile(r"\b(result|results|resulted|resulting) in\b", re.I),
@@ -32,8 +35,20 @@ CAUSAL = [
     re.compile(r"\b(doubles?|doubled|triples?|tripled)\b(?!\s+the\b)", re.I),
     # Arabic puts the subject between the verb and its "إلى": "أدى نقص المخزون إلى".
     re.compile(r"(أدى|أدت|يؤدي|تؤدي|أدّى|أدّت)\s+(?:\S+\s+){0,7}(إلى|الى)|بسبب|تسبب|تسبّب|يسبب|يسبّب"),
-    re.compile(r"\b(contribut(es|ed|ing)|produc(es|ed)|trigger(s|ed)|is responsible for|are responsible for)\b", re.I),
+    re.compile(r"\b(contribut(es|ed|ing)|produc(es|ed)|trigger(s|ed)|spark(s|ed)|set(s)? off)\b", re.I),
+    # Attribution: "was responsible for", "is to blame for", "the reason for". A bare
+    # "behind" is left out: "the record was behind the tree" reports a lag.
+    re.compile(r"\b(is|are|was|were|been|being)\s+(?:\w+ly\s+)?(responsible for|to blame for|"
+               r"the (?:reason|source|root cause|origin|driver|culprit) (?:for|of|behind))\b", re.I),
+    # Phrasal and nominal forms: "brought about", "gave rise to", "as a result of", "stems from".
+    re.compile(r"\b(brought|bring|brings|bringing) about\b|\b(give|gives|gave|given|giving) rise to\b|"
+               r"\bas a (result|consequence) of\b|\bin consequence of\b|\b(consequence|upshot) of\b|"
+               r"\bstem(s|med|ming)? from\b|\bthanks to\b|\battributable to\b|\battributed to\b", re.I),
     re.compile(r"(ساهم|ساهمت|يساهم|تساهم|أسهم|أسهمت)\s+(?:\S+\s+){0,4}في|ينتج عن|نتج عن|نتيجة ل"),
+    # "نتج عطل الإشارة عن تسرب", "ناتج عن", "ناجماً عن": the origin may follow other words.
+    re.compile(r"(نتج|نتجت|ينتج|تنتج|ناتج|ناتجة|ناتجا|ناتجاً|ناجم|ناجمة|ناجما|ناجماً|نجم|نجمت|ينجم|تنجم)\s+(?:\S+\s+){0,6}?عن\b"),
+    # Attribution of blame or origin: "هو المسؤول عن", "السبب في", "السبب وراء".
+    re.compile(r"(المسؤول|المسؤولة|المسئول|المسئولة|المتسبب|المتسببة)\s+(?:\S+\s+){0,2}?(عن|في)\b|السبب\s+(في|وراء|الرئيسي|الأساسي)"),
     # A transitive effect verb: "the discount increased orders" claims an
     # effect; "orders increased 15%" or "increased by 15%" only reports a change.
     re.compile(r"\b(increase[sd]?|reduce[sd]?|decrease[sd]?|boost(s|ed)?|raise[sd]?|lower(s|ed)?|"
@@ -51,7 +66,8 @@ CAUSAL = [
     re.compile(r"(يعود|تعود|يرجع|ترجع|يُعزى|تُعزى|يعزى|تعزى)\s+(?:\S+\s+){0,7}(إلى|الى)"),
     # "جاء نتيجة تحديث النظام": a result attributed to a thing. The older rule
     # had only "نتيجة ل"; the noun may follow directly or after "عن".
-    re.compile(r"نتيجة\s+(?!(لذلك|لهذا|ذلك|هذا)\b)(?:ل|عن\s+)?\S+"),
+    re.compile(r"نتيجة\s+(?!(لذلك|لهذا|ذلك|هذا)\b)(?!(الاختبار|اختبار|الفحص|فحص|التحليل|القياس|قياس|الاستطلاع|الاقتراع|الامتحان|المباراة|"
+               r"الفحوصات|الاختبارات|المعايرة|القراءة|الحساب|التدقيق)\b)(?:ل|عن\s+)?\S+"),
     # The Arabic counterpart of the English "pushes X up".
     re.compile(r"(يدفع|تدفع|دفع|دفعت)\s+(?:\S+\s+){0,5}(إلى|الى)\s+"
                r"(الأعلى|الاعلى|الأسفل|الاسفل|الارتفاع|الانخفاض|التراجع|الصعود|الهبوط)"),

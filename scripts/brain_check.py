@@ -26,6 +26,7 @@ import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+from urllib.parse import unquote
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_BRAIN = ROOT / "brain"
@@ -42,6 +43,10 @@ MAINTENANCE_LOG = Path("_meta") / "Maintenance log.md"
 DUPLICATE_RATIO = 0.88
 
 WIKILINK = re.compile(r"\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|[^\]]*)?\]\]")
+# A Markdown link or image to a file: [text](path) or [text](<path with spaces>).
+FILE_LINK = re.compile(r"\[[^\]]*\]\(\s*(<[^>]+>|[^)\s]+)")
+# Anything with a scheme (https:, mailto:) or only an anchor is not a file.
+NOT_A_FILE = re.compile(r"^(?:[a-z][a-z0-9+.-]*:|#)", re.I)
 FENCE = re.compile(r"```.*?```", re.S)
 INLINE_CODE = re.compile(r"`[^`\n]*`")
 DATE_HEADING = re.compile(r"^##\s+(\d{4}-\d{2}-\d{2})\b", re.M)
@@ -54,6 +59,7 @@ class Note:
     meta: dict
     body: str
     links: list = field(default_factory=list)
+    files: list = field(default_factory=list)   # Markdown links to files
 
     @property
     def names(self) -> list:
@@ -112,9 +118,12 @@ def load(brain: Path) -> list:
             continue
         meta, body = parse_frontmatter(path.read_text(encoding="utf-8"))
         rel = path.relative_to(brain).with_suffix("").as_posix()
-        links = [m.strip() for m in WIKILINK.findall(visible_text(body))]
+        visible = visible_text(body)
+        links = [m.strip() for m in WIKILINK.findall(visible)]
+        files = [m.strip("<>").strip() for m in FILE_LINK.findall(visible)]
+        files = [f for f in files if not NOT_A_FILE.match(f)]
         notes.append(Note(rel=rel, title=path.stem, meta=meta, body=body,
-                          links=links))
+                          links=links, files=files))
     return notes
 
 
@@ -179,6 +188,15 @@ def check(brain: Path = DEFAULT_BRAIN, today: dt.date | None = None) -> dict:
                 broken.append({"note": note.rel, "link": target})
             elif found.rel != note.rel:
                 inbound[found.rel].add(note.rel)
+        # Obsidian resolves a file link only inside the vault, so a path out
+        # of it is as dead in the graph as a missing note.
+        root = brain.resolve()
+        for target in note.files:
+            path = ((brain / note.rel).parent / unquote(target.split("#")[0])).resolve()
+            if not path.is_relative_to(root):
+                broken.append({"note": note.rel, "link": f"{target} (outside the vault)", "file": True})
+            elif not path.exists():
+                broken.append({"note": note.rel, "link": f"{target} (no such file)", "file": True})
 
     missing, bad_dates, stale = [], [], []
     for note in notes:
@@ -295,7 +313,7 @@ def readable(report: dict) -> str:
     lines = [summary_line(report), ""]
     sections = [
         ("Broken links", report["broken_links"],
-         lambda x: f"{x['note']} → [[{x['link']}]]"),
+         lambda x: f"{x['note']} → " + (x['link'] if x.get("file") else f"[[{x['link']}]]")),
         ("Missing frontmatter", report["missing_fields"],
          lambda x: f"{x['note']}: {', '.join(x['fields'])}"),
         ("Unreadable dates", report["bad_dates"],

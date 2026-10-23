@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { api, ApiError } from '../shared/api'
+import { api, ApiError, AUTH_EXPIRED_EVENT } from '../shared/api'
 
 function mockFetchOnce(response: Partial<Response> & { json?: () => Promise<unknown> }) {
   const impl = {
@@ -12,10 +12,88 @@ function mockFetchOnce(response: Partial<Response> & { json?: () => Promise<unkn
 }
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.unstubAllGlobals()
+  localStorage.removeItem('aos-token')
 })
 
 describe('api client', () => {
+  function delayedRunResponse(delay: number) {
+    vi.useFakeTimers()
+    vi.stubGlobal('fetch', vi.fn((_url: string, init?: RequestInit) => new Promise<Response>((resolve, reject) => {
+      const timer = setTimeout(() => resolve({ ok: true, json: async () => ({ id: 'r1' }) } as Response), delay)
+      init?.signal?.addEventListener('abort', () => {
+        clearTimeout(timer)
+        reject(new DOMException('Aborted', 'AbortError'))
+      }, { once: true })
+    })))
+  }
+
+  it.each([
+    ['advance', () => api.advanceRun('r1')],
+    ['read', () => api.getRun('r1')],
+    ['pause', () => api.pauseRun('r1')],
+    ['resume', () => api.resumeRun('r1')],
+    ['cancel', () => api.cancelRun('r1')],
+    ['approval', () => api.decideApproval('r1', 'a1', 'approve')],
+  ] as const)('keeps a run %s request alive through a bounded model step and response overhead', async (_name, operation) => {
+    delayedRunResponse(65_000)
+    const result = operation().then((value) => value, (error: unknown) => error)
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(vi.mocked(fetch).mock.calls[0][1]?.signal?.aborted).toBe(false)
+    await vi.advanceTimersByTimeAsync(55_000)
+    expect(await result).toMatchObject({ id: 'r1' })
+    expect(fetch).toHaveBeenCalledOnce()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('still bounds an unresponsive run step without replaying its POST', async () => {
+    delayedRunResponse(91_000)
+    const result = expect(api.advanceRun('r1')).rejects.toMatchObject({ name: 'ApiError', message: expect.stringMatching(/too long/) })
+    await vi.advanceTimersByTimeAsync(89_999)
+    expect(vi.mocked(fetch).mock.calls[0][1]?.signal?.aborted).toBe(false)
+    await vi.advanceTimersByTimeAsync(1)
+    await result
+    expect(fetch).toHaveBeenCalledOnce()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('retains the short timeout for health requests', async () => {
+    delayedRunResponse(11_000)
+    const result = expect(api.health()).rejects.toMatchObject({ name: 'ApiError', message: expect.stringMatching(/too long/) })
+    await vi.advanceTimersByTimeAsync(10_000)
+    await result
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it.each(['mapping', 'csv', 'executive'])('signals an expired credential from the %s transport', async (kind) => {
+    localStorage.setItem('aos-token', 'expired-token')
+    mockFetchOnce({ ok: false, status: 401, json: async () => ({ detail: 'Expired' }) })
+    const expired = vi.fn()
+    window.addEventListener(AUTH_EXPIRED_EVENT, expired)
+    try {
+      const operation = kind === 'mapping' ? api.getDataset('r1')
+        : kind === 'csv' ? api.downloadTable('r1')
+          : api.downloadExecutive('r1', 'en', [], 'stamp', 'snapshot', 'html')
+      await expect(operation).rejects.toMatchObject({ status: 401 })
+      expect(expired).toHaveBeenCalledOnce()
+    } finally { window.removeEventListener(AUTH_EXPIRED_EVENT, expired) }
+  })
+  it('does not expire a new login when an older credential receives a delayed 401', async () => {
+    localStorage.setItem('aos-token', 'old-token')
+    let finish!: (response: Partial<Response>) => void
+    vi.stubGlobal('fetch', vi.fn(() => new Promise((resolve) => { finish = resolve })))
+    const expired = vi.fn()
+    window.addEventListener(AUTH_EXPIRED_EVENT, expired)
+    try {
+      const operation = api.listDatasets()
+      localStorage.setItem('aos-token', 'new-token')
+      finish({ ok: false, status: 401, json: async () => ({ detail: 'Expired old token' }) })
+      await expect(operation).rejects.toMatchObject({ status: 401 })
+      expect(expired).not.toHaveBeenCalled()
+      expect(localStorage.getItem('aos-token')).toBe('new-token')
+    } finally { window.removeEventListener(AUTH_EXPIRED_EVENT, expired) }
+  })
   it('uses an owned run policy route, exact optimistic revision and the authenticated transport', async () => {
     localStorage.setItem('aos-token', 'tok')
     const policy = { revision: 'a'.repeat(64), rules: {} }
@@ -80,6 +158,7 @@ describe('api client', () => {
       language: 'ar',
       joins: null,
       breakdown: null,
+      assumptions: null,
     })
   })
 

@@ -25,6 +25,7 @@ Updated by `docs/adr/0054-miyaar-workspace-and-honest-voice.md` for the owner-ap
 6. **Cards** lift on hover only when the whole card is a link or button. Static cards do not move, and `cursor: pointer` goes only on things that act.
 7. **Restrained gradients, glow and glass are approved.** Use semantic surface tokens, subtle borders and bounded blur on the shell. Keep data readable; reserve animation for actual interaction states. The industrial motif is decorative and conveys no measured asset health.
 8. **Charts:** hand-drawn SVG with titles that state the finding. Negative bars are drawn from zero, forecasts are dashed after a labelled boundary, and every chart has a table of the same numbers.
+9. **Family colours name a group, never a verdict** ([decision](../../docs/adr/2026-10-21-colourful-kpi-first-dashboard.md)). Reliability is violet, work execution teal, cost magenta, other neutral; they colour bands, headings and meters. Red, blue and green stay reserved for assessed performance and always carry a text status. Figures lead; shared notes sit behind one disclosure.
 
 ---
 

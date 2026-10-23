@@ -3,10 +3,10 @@
 State is persisted through a storage adapter (SQLite locally, hosted
 PostgreSQL via DATABASE_URL — see server/storage.py) after every
 transition, so runs survive an application restart and can be resumed,
-cancelled, or approved later. Execution is client-stepped: each
-`advance()` call executes exactly one bounded task under a lock, which
-gives honest pause (stop advancing), cancel, and recovery semantics
-without a background worker.
+cancelled, or approved later. Client execution advances one bounded task
+per call. Configured worker execution keeps model work out of HTTP and
+uses a separate worker process; browser advances become snapshot reads.
+Both modes preserve the same pause, cancel and recovery semantics.
 
 The publish step writes the approved report into an Obsidian-compatible
 vault folder (markdown + provenance frontmatter + [[wikilinks]]) and is
@@ -25,7 +25,7 @@ from collections import OrderedDict
 from datetime import datetime, timezone
 from pathlib import Path
 
-from server import analytics, datasets, metrics, quota
+from server import analytics, datasets, deadline, metrics, quota, model_privacy
 from server import joins as joining
 from server import query
 from server import mapping as colmap
@@ -97,6 +97,24 @@ def dataset_summary(dataset):
     return summary
 
 
+# A run of digits this long is read by the personal-data detector as a phone
+# number (10+) or an account number (12+). Hex ids carry such runs about 1.5%
+# of the time, and an id in a model's notes then made the assistant refuse the
+# model as if a person's number were in it. Ids are drawn again instead.
+DIGIT_RUN = re.compile(r"\d{8,}")
+
+
+def personal_looking(value):
+    return bool(DIGIT_RUN.search(value))
+
+
+def random_id():
+    while True:
+        value = uuid.uuid4().hex[:12]
+        if not personal_looking(value):
+            return value
+
+
 def _now():
     return datetime.now(timezone.utc).isoformat()
 
@@ -128,14 +146,33 @@ def model_cards(result):
     return candidates[:12]
 
 
+# The longest idempotency key a run creation accepts (B14).
+MAX_IDEMPOTENCY_KEY = 200
+
 class RunEngine:
     def __init__(self, store, vault_dir, gateway, limits=None, glossary=None,
-                 stages=None, profiles=None):
+                 stages=None, profiles=None, execution_mode="client", roles=None,
+                 stage_timeout=None):
+        if execution_mode not in ("client", "worker"):
+            raise ValueError("AGENTIC_OS_RUN_EXECUTION must be client or worker.")
+        self.execution_mode = execution_mode
         self.store = store
+        # Every row id the engine makes comes from here. The public demo
+        # swaps in a seeded generator while it seeds, so each serverless
+        # instance builds its demo under the same ids (server/demo.py).
+        self.new_id = random_id
+        # Model roles (server/orchestration.py): None, the default, means
+        # every run is exactly the deterministic pipeline.
+        self.roles = roles
         # Custom stages (ADR 0020): role -> descriptor, in registration
         # order, and the named profiles that choose among them.
         self.stages = dict(stages or {})
         self.profiles = dict(profiles or {})
+        # A custom stage's wall-clock limit (assessment G10); None reads
+        # AGENTIC_OS_STAGE_TIMEOUT, seconds, default 120.
+        self.stage_timeout = (float(stage_timeout) if stage_timeout else
+                              deadline.seconds_from_env("AGENTIC_OS_STAGE_TIMEOUT",
+                                                        deadline.DEFAULT_STAGE_SECONDS))
         self.vault_dir = Path(vault_dir)
         self.gateway = gateway
         # None disables quota enforcement entirely (the CLI and tests that
@@ -184,6 +221,10 @@ class RunEngine:
                            (len(parsed.rows), len(parsed.columns)))
 
     def _store(self, text, name, owner, source_format, shape=None):
+        with self.store.atomic("owner:" + owner):
+            return self._store_atomic(text, name, owner, source_format, shape)
+
+    def _store_atomic(self, text, name, owner, source_format, shape=None):
         rows, columns = shape or datasets.counts(text)
         digest = hashlib.sha256(text.encode()).hexdigest()
         existing = self.store.find_dataset(digest, owner)
@@ -199,7 +240,7 @@ class RunEngine:
         if self.limits:
             quota.check_dataset(self.store, owner, self.limits,
                                 len(text.encode()))
-        dataset_id = uuid.uuid4().hex[:12]
+        dataset_id = self.new_id()
         self.store.insert("datasets", {
             "id": dataset_id, "sha256": digest, "name": name,
             "content": text, "byte_size": len(text.encode()),
@@ -334,12 +375,48 @@ class RunEngine:
 
     def create_run(self, goal, dataset_text=None, dataset_name=None,
                    owner="local-owner", dataset_id=None, profile=None,
-                   language="en", joins=None, breakdown=None):
+                   language="en", joins=None, breakdown=None, assumptions=None,
+                   idempotency_key=None):
+        """Create a run; with an idempotency key, return the run this owner
+        already created under it instead of a second one (assessment B14).
+        A replayed run carries `idempotent_replay: True`."""
+        if idempotency_key is not None:
+            idempotency_key = str(idempotency_key).strip()
+            if not idempotency_key or len(idempotency_key) > MAX_IDEMPOTENCY_KEY:
+                raise ValueError("An idempotency key is 1 to 200 characters.")
+        with self.store.atomic("owner:" + owner):
+            if idempotency_key:
+                existing = self.store.find_run_by_key(owner, idempotency_key)
+                if existing is not None:
+                    detail = self.get_run(existing["id"])
+                    detail["idempotent_replay"] = True
+                    return detail
+            return self._create_run_atomic(goal, dataset_text, dataset_name, owner,
+                                           dataset_id, profile, language, joins, breakdown,
+                                           assumptions, idempotency_key)
+
+    def _create_run_atomic(self, goal, dataset_text=None, dataset_name=None,
+                           owner="local-owner", dataset_id=None, profile=None,
+                           language="en", joins=None, breakdown=None, assumptions=None,
+                           idempotency_key=None):
         # An unknown profile, or a language reports are not written in, is
         # refused before anything is written.
         roles = self.roles_for(profile, joined=bool(joins))
         if language not in analytics.REPORT_LANGUAGES:
             raise ValueError(f"Reports are not written in “{language}”.")
+        # The decision inputs (uplift, cost, uplift range) are checked here,
+        # with every reason, and kept with the run (assessment A2, A13).
+        assumptions = analytics.validate_assumptions(assumptions, language)
+        if not joins and breakdown is not None and str(breakdown).strip():
+            # ADR 0030 defines this override only for a merged table.
+            # Refuse before admission rather than accept a grouping the
+            # preparer will never read. A single table uses its mapping.
+            raise ValueError(
+                "خيار التقسيم يتطلب مجموعة بيانات مدمجة واحدة على الأقل. "
+                "لمجموعة بيانات واحدة، اختر عمود التقسيم في تعيين الأعمدة المحفوظ."
+                if language == "ar" else
+                "The breakdown option requires at least one joined dataset. "
+                "For a single dataset, choose its breakdown in the saved column mapping.")
         joins_json = None
         joined_names = []
         if joins:
@@ -361,7 +438,7 @@ class RunEngine:
         # half-created rows behind.
         if self.limits:
             quota.check_run(self.store, owner, self.limits)
-        run_id = uuid.uuid4().hex[:12]
+        run_id = self.new_id()
         mapping_json = None
         if dataset_id:
             dataset = self._owned_dataset(dataset_id, owner)
@@ -369,9 +446,10 @@ class RunEngine:
             # mapping later never changes a run already made (ADR 0025).
             mapping_json = dataset.get("mapping_json")
         else:
-            text = dataset_text or analytics.sample_dataset()
+            text = dataset_text or analytics.sample_dataset(language)
             name = dataset_name or (
-                "uploaded dataset" if dataset_text else "sample sales dataset")
+                ("بيانات مرفوعة" if language == "ar" else "uploaded dataset") if dataset_text else
+                ("بيانات مبيعات تجريبية" if language == "ar" else "sample sales dataset"))
             dataset = self.store_dataset(text, name, owner,
                                          "csv" if dataset_text else "sample")
         now = _now()
@@ -386,7 +464,10 @@ class RunEngine:
             # Fixed for the run's life: the approval gate binds to the hash
             # of one artifact, written in one language (ADR 0022).
             "report_language": language,
-            "mapping_json": mapping_json, "joins_json": joins_json})
+            "mapping_json": mapping_json, "joins_json": joins_json,
+            "assumptions_json": (json.dumps(assumptions, ensure_ascii=False)
+                                 if assumptions else None),
+            "idempotency_key": idempotency_key or None})
         titles = analytics.ROLE_TITLES_AR if language == "ar" else analytics.ROLE_TITLES
         for idx, role in enumerate(roles):
             # A plugin may name itself in Arabic too (ADR 0033).
@@ -394,7 +475,7 @@ class RunEngine:
                      or (language == "ar" and getattr(self.stages[role], "title_ar", None))
                      or self.stages[role].title)
             self.store.insert("tasks", {
-                "id": uuid.uuid4().hex[:12], "run_id": run_id, "idx": idx,
+                "id": self.new_id(), "run_id": run_id, "idx": idx,
                 "role": role, "title": title,
                 "state": "pending", "summary": None, "result_json": None,
                 "updated_at": now})
@@ -425,7 +506,9 @@ class RunEngine:
                "glossary": self.glossary,
                "report_language": run.get("report_language") or "en",
                "mapping": (json.loads(run["mapping_json"])
-                           if run.get("mapping_json") else None)}
+                           if run.get("mapping_json") else None),
+               "assumptions": (json.loads(run["assumptions_json"])
+                               if run.get("assumptions_json") else None)}
         for task in tasks:
             if task["state"] == "succeeded" and task["result_json"]:
                 result = json.loads(task["result_json"])
@@ -468,12 +551,24 @@ class RunEngine:
         return self.store.get_tasks(run_id) if orphans else tasks
 
     def advance(self, run_id, lease_owner=None):
+        if self.execution_mode == "worker" and lease_owner is None:
+            # An HTTP request never does model work in worker mode. In
+            # particular, do not acquire the stage's write transaction: a
+            # separate worker may be holding it for a slow bounded stage.
+            # The queued run itself is the durable request, so repeated
+            # advance calls do not enqueue additional work.
+            return self.get_run(run_id)
+        with self.store.atomic("run:" + run_id):
+            return self._advance_atomic(run_id, lease_owner)
+
+    def _advance_atomic(self, run_id, lease_owner=None):
         """Execute exactly one bounded task; every transition is durable.
 
         If a background worker holds a live lease on this run, a client's
         advance is a no-op that simply returns the current state: the two
-        never execute the same task. When the worker dies its lease
-        expires and clients resume stepping the run themselves.
+        never execute the same task. In client mode, an expired lease
+        permits clients to resume. Worker mode leaves recovery to another
+        worker and never falls back to request-thread computation.
         """
         run = self._row(run_id)
         if run.get("paused"):
@@ -519,6 +614,8 @@ class RunEngine:
             ctx.update(self._merge_inputs(run))
         if custom is not None:
             return self._advance_custom(run_id, task, custom, ctx)
+        if task["role"] == "reporter":
+            ctx["orchestration"] = self._consult(run, ctx)
         try:
             result = (stage(ctx, gateway=self.gateway)
                       if task["role"] in analytics.NARRATED_STAGES else stage(ctx))
@@ -532,6 +629,9 @@ class RunEngine:
             self._set_run_state(run_id, "failed", error=result["summary"])
             return self.get_run(run_id)
 
+        self._annotate(run, task, tasks, result, ctx)
+        if ctx.get("orchestration"):
+            result["orchestration"] = ctx["orchestration"]
         self._set_task(task["id"], "succeeded", summary=result["summary"], result=result)
 
         if task["role"] == "validator" and not result["output"]["passed"]:
@@ -546,11 +646,64 @@ class RunEngine:
 
         if task["role"] == "reporter":
             self.store.insert("artifacts", {
-                "id": uuid.uuid4().hex[:12], "run_id": run_id,
+                "id": self.new_id(), "run_id": run_id,
                 "name": "analytics-report", "kind": "markdown", "version": 1,
                 "content": result["output"]["report_markdown"],
                 "published_path": None, "created_at": _now()})
         return self.get_run(run_id)
+
+    def _roles_for(self, run, ctx, texts):
+        """The roles a run may use. The same personal-data boundary the
+        narrator keeps (server/model_privacy.py) applies here: when the
+        run's privacy scan or the outgoing sentences carry personal data,
+        every model role is played by the built-in writer instead."""
+        roles = self.roles
+        if roles is None or roles.all_built_in:
+            return roles
+        if model_privacy.run_blocks_model(self.store, run["id"]) or model_privacy.blocks_model(
+                privacy=ctx.get("privacy"), merged=ctx.get("merge"),
+                texts=[run.get("goal") or "", *texts]):
+            return roles.restricted()
+        return roles
+
+    def _annotate(self, run, task, tasks, result, ctx):
+        """Model notes on a finished stage: Hermes' plan on the planner, the
+        agent's note on every stage with findings. Words only, grounded in
+        the stage's own verified claims; a model failure never fails a run."""
+        if self.roles is None:
+            return
+        language = run.get("report_language") or "en"
+        try:
+            facts = [claim.get("text") or "" for claim in result.get("claims", [])]
+            # Include the just-completed privacy/merge result before persistence.
+            current = {**ctx, task["role"]: result.get("output", {})}
+            roles = self._roles_for(run, current, facts + [t["title"] for t in tasks])
+            if roles is None:
+                return
+            if task["role"] == "planner":
+                plan = roles.plan(run["goal"], [t["title"] for t in tasks], language)
+                if plan:
+                    result["hermes_plan"] = plan
+            note = roles.agent_note(run["goal"], task["role"], result, language)
+            if note:
+                result["agent_note"] = note
+        except Exception:
+            pass
+
+    def _consult(self, run, ctx):
+        """The consultants and Hermes' brief, read by the reporter."""
+        if self.roles is None:
+            return None
+        facts = [claim["text"] for stage in analytics.evidence_stages(ctx)
+                 for claim in ctx.get(stage + "_result", {}).get("claims", [])
+                 if claim.get("text")]
+        try:
+            roles = self._roles_for(run, ctx, facts)
+            if roles is None:
+                return None
+            return roles.consult(run["goal"], facts, run.get("report_language") or "en")
+        except Exception:
+            return None
 
     def _advance_custom(self, run_id, task, descriptor, ctx):
         """Run a registered stage under the contract (ADR 0020).
@@ -567,8 +720,15 @@ class RunEngine:
         failed rather than silently lacking it.
         """
         try:
-            result = descriptor.run(copy.deepcopy(ctx))
+            result = deadline.call_with_deadline(descriptor.run, self.stage_timeout,
+                                                 copy.deepcopy(ctx))
             result = stage_registry.validate_result(task["role"], result)
+        except deadline.Timeout:
+            # The stage keeps running on its abandoned thread; its result,
+            # if it ever comes, is never recorded (G10).
+            message = (f"Custom stage “{task['role']}” timed out after "
+                       f"{self.stage_timeout:g} s and was abandoned.")
+            return self._custom_failed(run_id, task, descriptor, message)
         except Exception as error:
             message = f"Custom stage “{task['role']}” failed: {error}"
             return self._custom_failed(run_id, task, descriptor, message)
@@ -599,7 +759,7 @@ class RunEngine:
         if self.store.pending_approval(run_id) is None:
             content_hash = hashlib.sha256(artifact["content"].encode()).hexdigest()
             self.store.insert("approvals", {
-                "id": uuid.uuid4().hex[:12], "run_id": run_id,
+                "id": self.new_id(), "run_id": run_id,
                 "action": ("نشر تقرير التحليل في مخزن Obsidian" if arabic else
                            "Publish the analytics report to the Obsidian vault"),
                 "target": str(self.vault_dir / "Reports"), "risk": "high",
@@ -616,12 +776,44 @@ class RunEngine:
         self._set_run_state(run_id, "awaiting_approval")
         return self.get_run(run_id)
 
-    def decide_approval(self, run_id, approval_id, decision):
+    def decide_approval(self, run_id, approval_id, decision, approver=None):
+        with self.store.atomic("run:" + run_id):
+            return self._decide_approval_atomic(run_id, approval_id, decision, approver)
+
+    def _decision_record(self, tasks):
+        """The run's decision record, as the sensitivity stage completed it
+        or as the prescriptive stage wrote it; None when neither ran. The
+        record carries the recommendation claim's id when there is one."""
+        results = {}
+        for t in tasks:
+            if t["state"] == "succeeded" and t.get("result_json"):
+                results[t["role"]] = json.loads(t["result_json"])
+        for role in ("sensitivity", "prescriptive"):
+            record = (results.get(role) or {}).get("output", {}).get("decision")
+            if record:
+                return dict(record)
+        return None
+
+    def _recommends(self, tasks):
+        for t in tasks:
+            if t["role"] == "prescriptive" and t["state"] == "succeeded" and t.get("result_json"):
+                claims = json.loads(t["result_json"]).get("claims") or []
+                return any(c.get("id") == "cl_recommendation" for c in claims)
+        return False
+
+    def _decide_approval_atomic(self, run_id, approval_id, decision, approver=None):
         approval = self.store.get_approval(approval_id, run_id)
         if approval is None:
             raise KeyError(approval_id)
         if approval["state"] != "pending":
             raise ValueError(f"Approval already {approval['state']}.")
+        tasks = self.store.get_tasks(run_id)
+        if decision == "approve" and self._recommends(tasks) and not self._decision_record(tasks):
+            # A recommendation without its decision record cannot be
+            # published: there would be no audit trail from advice to
+            # action (assessment A13).
+            raise ValueError("The run recommends an action but carries no decision "
+                             "record; publishing is refused.")
         task = next(t for t in self.store.get_tasks(run_id)
                     if t["role"] == "publish")
         artifact = self.store.latest_artifact(run_id)
@@ -632,7 +824,8 @@ class RunEngine:
         if decision == "approve":
             path = self._publish(run_id, artifact)
             self.store.update("approvals", approval_id,
-                              {"state": "approved_once", "decided_at": _now()})
+                              {"state": "approved_once", "decided_at": _now(),
+                               "decided_by": approver})
             self.store.update("artifacts", artifact["id"],
                               {"published_path": str(path)})
             self._set_task(task["id"], "succeeded",
@@ -640,7 +833,8 @@ class RunEngine:
             self._set_run_state(run_id, "completed")
         else:
             self.store.update("approvals", approval_id,
-                              {"state": "rejected", "decided_at": _now()})
+                              {"state": "rejected", "decided_at": _now(),
+                               "decided_by": approver})
             self._set_task(task["id"], "skipped",
                            summary="Publishing rejected by the user; no note was written.")
             self._set_run_state(run_id, "completed")
@@ -681,6 +875,10 @@ class RunEngine:
         return note
 
     def set_paused(self, run_id, paused):
+        with self.store.atomic("run:" + run_id):
+            return self._set_paused_atomic(run_id, paused)
+
+    def _set_paused_atomic(self, run_id, paused):
         """Pause is durable, not a client-side toggle: a background worker
         must honour it too, or the button would stop meaning anything."""
         run = self._row(run_id)
@@ -691,6 +889,10 @@ class RunEngine:
         return self.get_run(run_id)
 
     def cancel(self, run_id):
+        with self.store.atomic("run:" + run_id):
+            return self._cancel_atomic(run_id)
+
+    def _cancel_atomic(self, run_id):
         self._set_run_state(run_id, "cancelled")
         for t in self.store.get_tasks(run_id):
             if t["state"] in ("pending", "awaiting_approval"):
@@ -775,8 +977,8 @@ class RunEngine:
             raise KeyError(run_id)
         return run
 
-    def list_runs(self, owner=None):
-        return self.store.list_runs(owner=owner)
+    def list_runs(self, owner=None, state=None):
+        return self.store.list_runs(owner=owner, state=state)
 
     def owner_of(self, run_id):
         return self._row(run_id).get("owner") or "local-owner"
@@ -824,15 +1026,23 @@ class RunEngine:
                       "version": artifact["version"], "content": artifact["content"],
                       "published_path": artifact["published_path"]}
         approvals = [
-            {key: a[key] for key in ("id", "action", "target", "risk", "impact",
-                                     "reversibility", "state", "created_at",
-                                     "decided_at")}
+            {key: a.get(key) for key in ("id", "action", "target", "risk", "impact",
+                                         "reversibility", "state", "created_at",
+                                         "decided_at", "decided_by")}
             for a in self.store.approvals_for_run(run_id)
         ]
+        # The decision record, completed by the gate: who decided, what and
+        # when, from the approval row itself (A13). No stage writes this part.
+        decision = self._decision_record(self.store.get_tasks(run_id))
+        if decision is not None:
+            gate = next((a for a in approvals if a["state"] != "pending"), None)
+            decision["approval"] = ({"state": gate["state"], "decided_at": gate["decided_at"],
+                                     "decided_by": gate.get("decided_by")} if gate else None)
         declared = json.loads(run.get("joins_json") or "{}")
         joins = [{key: item.get(key) for key in ("dataset_id", "alias", "how", "keys")}
                  for item in declared.get("joins") or []]
         return {"id": run["id"], "goal": run["goal"],
+                "execution": {"mode": self.execution_mode, "poll_after_ms": 2500},
                 "dataset_name": run["dataset_name"], "state": run["state"],
                 "joins": joins, "breakdown": declared.get("breakdown"),
                 "report_language": run.get("report_language") or "en",
@@ -840,6 +1050,8 @@ class RunEngine:
                 "updated_at": run["updated_at"], "tasks": tasks,
                 "paused": bool(run.get("paused")),
                 "approvals": approvals, "charts": charts, "report": report,
-                "reports": reports, "models": models,
+                "reports": reports, "models": models, "decision": decision,
+                "assumptions": (json.loads(run["assumptions_json"])
+                                if run.get("assumptions_json") else None),
                 # The live source a refresh made this run from (ADR 0034).
                 "connector_id": run.get("connector_id")}

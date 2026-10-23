@@ -9,13 +9,14 @@ import { composerInput, skipOnboarding } from './helpers'
 const AUTH_PORT = 8124
 const AUTH_BASE = `http://127.0.0.1:${AUTH_PORT}`
 
-// HS256 JWT — {"sub":"e2e-user","agentic_os_role":"analyst"} signed with
-// the test-only secret the auth server verifies against. Minted by
+// HS256 JWT — {"sub":"e2e-user","agentic_os_role":"analyst","aud":"authenticated",
+// "iss":"https://example.supabase.co/auth/v1"} signed with the test-only secret
+// the auth server verifies against (audience and issuer are required, finding B7). Minted by
 // server/auth.py's helper; not a credential for any real system.
 const TOKEN =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.' +
-  'eyJzdWIiOiJlMmUtdXNlciIsImV4cCI6Mjc4NjQwMTcwMywiYWdlbnRpY19vc19yb2xlIjoiYW5hbHlzdCJ9.' +
-  'J_dVri2xv87fsz8tl31lIpFa9mlPuStl3HBUnpMuFr0'
+  'eyJzdWIiOiJlMmUtdXNlciIsImV4cCI6Mjc5MjY5MTA0MywiYWdlbnRpY19vc19yb2xlIjoiYW5hbHlzdCIsImF1ZCI6ImF1dGhlbnRpY2F0ZWQiLCJpc3MiOiJodHRwczovL2V4YW1wbGUuc3VwYWJhc2UuY28vYXV0aC92MSJ9.' +
+  'RNyXg3ACSP23KpieEeYMf3Lqo2eECjse8OzSJ2D6Jvg'
 
 test.describe('managed authentication', () => {
   test.skip(
@@ -54,7 +55,8 @@ test.describe('managed authentication', () => {
     await page.addInitScript((token) => {
       localStorage.setItem('aos-token', token)
     }, TOKEN)
-    await page.goto(AUTH_BASE)
+    // A signed-in reader lands where the address says (finding U12).
+    await page.goto(`${AUTH_BASE}/#/assistant`)
 
     await expect(composerInput(page)).toBeVisible()
     // The signed-in principal and its role come from the server.
@@ -67,7 +69,7 @@ test.describe('managed authentication', () => {
     await page.addInitScript((token) => {
       localStorage.setItem('aos-token', token)
     }, TOKEN)
-    await page.goto(AUTH_BASE)
+    await page.goto(`${AUTH_BASE}/#/assistant`)
     await expect(composerInput(page)).toBeVisible()
 
     await revealIdentity(page)

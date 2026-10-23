@@ -2,6 +2,10 @@
    Color and operational semantics are independent of decorative effects. */
 
 :root {
+  /* Category hues: they name a group (a KPI family, a navigation group),
+     never a verdict. color-scheme is set per theme, so one value serves both. */
+  --violet: light-dark(#6d28d9, #c4b5fd);
+  --magenta: light-dark(#be185d, #f9a8d4);
   /* Light neutrals (slate). --border is decorative only; anything a person
      operates (inputs, segmented controls) uses --border-strong, >= 3:1. */
   --bg: #f8fafc;

@@ -1,0 +1,59 @@
+Note: evidence lines condensed by the orchestrator; paragraph ids, severities and categories are exactly as the reviewer gave them.
+
+FINDING F01 · blocker · P04
+Category: arithmetic
+Evidence: Series product 93.1%, not the mean 97.7%.
+
+FINDING F02 · blocker · P05
+Category: arithmetic
+Evidence: Restoration 4.9 h; downtime 1,656.2 h; 99.84%.
+
+FINDING F03 · major · P05
+Category: overclaim
+Evidence: 3-hour promise below median 3.1 h and mean 4.9 h.
+
+FINDING F04 · major · P07
+Category: overclaim
+Evidence: Alarm log cannot show capacity; discharge test needed.
+
+FINDING F05 · blocker · P08
+Category: overclaim
+Evidence: Shared controller: 0.54%, not negligible.
+
+FINDING F06 · major · P10
+Category: overclaim
+Evidence: 13-week survey longer than 8-week P-F interval.
+
+FINDING F07 · major · P12
+Category: overclaim
+Evidence: Shape 3.4 is wear-out; inference reversed.
+
+FINDING F08 · major · P14
+Category: overclaim
+Evidence: Backlog deferred, not reduced.
+
+FINDING F09 · major · P15
+Category: overclaim
+Evidence: 'No safety or operational consequence' unsupported.
+
+FINDING F10 · major · P16
+Category: denominator
+Evidence: Ranked on total cost, not cost per unit.
+
+FINDING F11 · blocker · P19
+Category: denominator
+Evidence: Per pump: 22 / 74 = 29.7%.
+
+FINDING F12 · major · P17
+Category: overclaim
+Evidence: MTBF is not service life.
+
+FINDING F13 · major · P18
+Category: causal_claim
+Evidence: Contractor attribution, no control.
+
+FINDING F14 · major · P20
+Category: overclaim
+Evidence: Five months, six sections; 'eliminates' unsupported.
+
+TOTAL: 14 findings

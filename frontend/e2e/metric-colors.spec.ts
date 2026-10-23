@@ -7,11 +7,12 @@ import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import type { RunDetail, RunExecutive } from '../src/shared/types'
-import { skipOnboarding } from './helpers'
+import { skipOnboarding, openFilters } from './helpers'
+import { storeMaintenanceDataset } from './maintenance-dataset'
 
 type Language = 'en' | 'ar'
 type Assessment = 'good' | 'okay' | 'bad' | 'unassessed' | 'unavailable'
-type Rule = { scale: string; source_ref: string } & (
+type Rule = { scale: string; source_ref: string; definition?: number } & (
   | { direction: 'higher' | 'lower'; good_at: number; okay_at: number }
   | { direction: 'range'; good_min: number; good_max: number; okay_min: number; okay_max: number }
 )
@@ -20,9 +21,11 @@ interface DocumentContents { text: string; tables: string[][][] }
 
 const SOURCE = 'Fictional QA acceptance bands v1; not operational targets.'
 const RULES: Record<string, Rule> = {
-  first_time_fix: { direction: 'higher', scale: 'percent', good_at: 80, okay_at: 60, source_ref: SOURCE },
-  repeat_repair: { direction: 'lower', scale: 'percent', good_at: 5, okay_at: 20, source_ref: SOURCE },
-  availability: { direction: 'higher', scale: 'percent', good_at: 95, okay_at: 80, source_ref: SOURCE },
+  // Redefined on 21 October to match the Power BI report (definition 2).
+  first_time_fix: { direction: 'higher', scale: 'percent', good_at: 80, okay_at: 60, source_ref: SOURCE, definition: 2 },
+  repeat_repair: { direction: 'lower', scale: 'percent', good_at: 5, okay_at: 20, source_ref: SOURCE, definition: 2 },
+  // Set for availability's current definition (2), so it judges the figure.
+  availability: { direction: 'higher', scale: 'percent', good_at: 95, okay_at: 80, source_ref: SOURCE, definition: 2 },
   downtime_per_record: { direction: 'range', scale: 'hours', good_min: 8, good_max: 12, okay_min: 4, okay_max: 16, source_ref: SOURCE },
 }
 const LABELS: Record<Language, Record<Assessment, string>> = {
@@ -42,9 +45,10 @@ const CSV = [
 test.use({ serviceWorkers: 'block', contextOptions: { reducedMotion: 'reduce' } })
 
 async function createRun(request: APIRequestContext, language: Language) {
+  const datasetId = await storeMaintenanceDataset(request, CSV, 'fictional-metric-colors.csv', language, false)
   const response = await request.post('/api/runs', { data: {
     goal: 'Assess fictional maintenance metrics against explicit QA targets',
-    dataset_text: CSV, dataset_name: 'fictional-metric-colors.csv', profile: 'default', language, breakdown: 'Site',
+    dataset_id: datasetId, profile: 'default', language,
   } })
   await expect(response).toBeOK()
   let run = await response.json() as RunDetail
@@ -126,7 +130,8 @@ async function expectFullScope(page: Page, language: Language) {
   await expect(page.locator('.exec-scope strong')).toHaveText('4')
   await expectMetric(page, 'first_time_fix', 'okay', /^75\s*%$/, language)
   await expectMetric(page, 'repeat_repair', 'bad', /^25\s*%$/, language)
-  await expectMetric(page, 'availability', 'okay', /^81\.25\s*%$/, language)
+  // 1 - (4 + 10 + 6 + 20) / 400: planned time not lost to downtime (was operating / planned, 81.25%).
+  await expectMetric(page, 'availability', 'okay', /^90\s*%$/, language)
   await expectMetric(page, 'downtime_per_record', 'good', language === 'ar' ? /^10\s*ساعة$/ : /^10\s*h$/, language)
   await expectMetric(page, 'preventive_share', 'unassessed', /^7\.69\s*%$/, language)
   await expectMetric(page, 'loss_per_downtime_hour', 'unavailable', language === 'ar' ? /^غير متاح\s*$/ : /^Not available\s*$/, language)
@@ -137,7 +142,9 @@ function contrast(first: string, second: string) {
     const channels = color.match(/[\d.]+/g)!.map(Number)
     expect(channels.length).toBeGreaterThanOrEqual(3)
     if (channels.length > 3) expect(channels[3], 'resolve translucent layers before asserting contrast').toBe(1)
-    const [red, green, blue] = channels.slice(0, 3).map((n) => n / 255)
+    // color-mix() resolves to color(srgb r g b) with channels from 0 to 1, not rgb() from 0 to 255.
+    const scale = color.startsWith('color(srgb') ? 1 : 255
+    const [red, green, blue] = channels.slice(0, 3).map((n) => n / scale)
       .map((n) => n <= .04045 ? n / 12.92 : ((n + .055) / 1.055) ** 2.4)
     return .2126 * red + .7152 * green + .0722 * blue
   }
@@ -189,6 +196,7 @@ async function openOverview(page: Page, id: string, language: Language) {
 }
 
 async function chooseNorth(page: Page) {
+  await openFilters(page)
   const filter = page.locator('details.dash-filter').filter({ has: page.locator('summary').filter({ hasText: /^Site:/ }) })
   await filter.locator('summary').click()
   const checkbox = filter.getByRole('checkbox', { name: 'North', exact: true })
@@ -247,7 +255,7 @@ function expectExportRequest(response: Response, snapshot: RunExecutive, format:
 }
 
 for (const language of ['en', 'ar'] as const) {
-  test(`explicit metric assessments retain values, evidence and readable colors (${language})`, async ({ page }) => {
+  test(`explicit metric assessments retain values, evidence and readable colors (${language})`, async ({ page }, info) => {
     test.setTimeout(110_000)
     await skipOnboarding(page)
     await page.addInitScript((locale) => {
@@ -266,6 +274,7 @@ for (const language of ['en', 'ar'] as const) {
     const policy = await saveFirstFixTarget(page, run.id, language, seeded)
     await expectFullScope(page, language)
     await expectAccessibleStatuses(page, language, 'light')
+    await page.screenshot({ path: info.outputPath(`performance-status-${language}-light.png`), fullPage: true })
 
     const address = page.url()
     await page.goto('/#/preferences')
@@ -275,6 +284,7 @@ for (const language of ['en', 'ar'] as const) {
     await expect(page.locator('html')).toHaveAttribute('dir', language === 'ar' ? 'rtl' : 'ltr')
     await expectFullScope(page, language)
     await expectAccessibleStatuses(page, language, 'dark')
+    await page.screenshot({ path: info.outputPath(`performance-status-${language}-dark.png`), fullPage: true })
 
     await chooseNorth(page)
     await expectMetric(page, 'first_time_fix', 'good', /^87\.5\s*%$/, language)
@@ -335,7 +345,7 @@ for (const language of ['en', 'ar'] as const) {
 
     await writePolicy(page.request, run.id, policy, {
       ...RULES,
-      first_time_fix: { direction: 'higher', scale: 'percent', good_at: 70, okay_at: 60, source_ref: `${SOURCE} Revision two.` },
+      first_time_fix: { direction: 'higher', scale: 'percent', good_at: 70, okay_at: 60, source_ref: `${SOURCE} Revision two.`, definition: 2 },
     })
     const changed = await readExecutive(page.request, run.id, language)
     expect(changed.snapshot_id).not.toBe(snapshot.snapshot_id)

@@ -44,6 +44,8 @@ LEASE_SECONDS = 120
 FIXTURE_HOST = "fixtures.invalid"
 FIXTURE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$")
 FORMATS = ("csv", "tsv", "xlsx", "json", "jsonl")
+CREDENTIAL_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
+SECRET_ENV_NAME = re.compile(r"^[A-Z][A-Z0-9_]{1,127}$")
 CHUNK = 16 * 1024
 # Query keys that carry a credential. Live sources store no secrets
 # (ADR 0034), so an address carrying one is refused rather than kept.
@@ -120,9 +122,9 @@ def _parts(url, env):
         names = ", ".join(sorted(set(secrets)))
         raise ConnectorError(
             f"The address carries what looks like a credential ({names}). Live sources "
-            "store no secrets: use an address that needs none.",
+            "store no secrets: use an operator-provided credential alias instead.",
             f"يحمل العنوان ما يبدو بيانات اعتماد ({names}). لا تحفظ المصادر الحية أسراراً: "
-            "استخدم عنواناً لا يحتاج إليها.")
+            "استخدم اسماً مستعاراً لبيانات الاعتماد يقدمه المشغّل بدلاً منها.")
     # Sent as ASCII: anything else is percent-encoded, as a browser would.
     safe = "/:@!$&'()*+,;=-._~%"
     path = quote(parts.path or "/", safe=safe) + (
@@ -152,6 +154,52 @@ def check_address(url, env=None, resolve=socket.getaddrinfo):
     return host, port, path, addresses[0]
 
 
+def credential_headers(url, credential_id, owner, env):
+    """Resolve an operator-managed alias only for its exact owner/origin.
+
+    The registry holds metadata and the name of a secret environment
+    variable. Neither the secret nor its environment-variable name is
+    persisted in a connector or returned in an API response. Read on every
+    request so rotation/revocation takes effect without editing records.
+    """
+    if credential_id is None:
+        return {}
+
+    def refused():
+        return ConnectorError(
+            "The configured source credential is unavailable for this owner and address. "
+            "Ask the operator to check its configuration.",
+            "بيانات اعتماد المصدر المهيأة غير متاحة لهذا المالك والعنوان. "
+            "اطلب من المشغّل التحقق من إعدادها.", status=422)
+
+    if not isinstance(credential_id, str) or not CREDENTIAL_ID.fullmatch(credential_id):
+        raise refused()
+    host, port, _ = _parts(url, env)
+    allowed = {value.strip().lower() for value in
+               (env.get("AGENTIC_OS_CONNECTOR_HOSTS") or "").split(",") if value.strip()}
+    try:
+        registry = json.loads(env.get("AGENTIC_OS_CONNECTOR_CREDENTIALS") or "{}")
+        config = registry.get(credential_id) if isinstance(registry, dict) else None
+    except (TypeError, ValueError):
+        raise refused() from None
+    if not isinstance(config, dict):
+        raise refused()
+    expected_port = config.get("port", 443)
+    header = config.get("header", "Authorization")
+    variable = config.get("token_env")
+    if (not owner or config.get("owner") != owner or config.get("host") != host
+            or host not in allowed or host == FIXTURE_HOST
+            or type(expected_port) is not int or expected_port != port
+            or header not in ("Authorization", "X-API-Key")
+            or not isinstance(variable, str) or not SECRET_ENV_NAME.fullmatch(variable)):
+        raise refused()
+    token = env.get(variable)
+    if (not isinstance(token, str) or not 1 <= len(token) <= 4096
+            or any(ord(character) <= 32 or ord(character) >= 127 for character in token)):
+        raise refused()
+    return {header: "Bearer " + token if header == "Authorization" else token}
+
+
 class _PinnedHTTPSConnection(http.client.HTTPSConnection):
     """Connect to the address that was checked, keeping the host name for
     TLS, so a second DNS answer cannot swap in a private address."""
@@ -178,20 +226,29 @@ def _too_slow(seconds):
 
 
 def fetch(url, env=None, resolve=socket.getaddrinfo, limit=None, timeout=TIMEOUT_SECONDS,
-          connection_class=_PinnedHTTPSConnection, clock=time.monotonic):
+          connection_class=_PinnedHTTPSConnection, clock=time.monotonic,
+          credential_id=None, owner=None):
     """The bytes at `url`, inside the fence. Raises ConnectorError."""
     env = os.environ if env is None else env
     limit = limit or reader.MAX_UPLOAD_BYTES
     deadline = clock() + timeout
     host, port, path, address = check_address(url, env, resolve)
+    authentication = credential_headers(url, credential_id, owner, env)
     if host == FIXTURE_HOST:
         return _fixture(path, env, limit)
     connection = connection_class(host, address, port, timeout)
     try:
         connection.request("GET", path, headers={"User-Agent": "AgenticOS-connector/1",
-                                                 "Accept": "*/*", "Accept-Encoding": "identity"})
+                                                 "Accept": "*/*", "Accept-Encoding": "identity",
+                                                 **authentication})
         response = connection.getresponse()
         if 300 <= response.status < 400:
+            if authentication:
+                # An upstream Location can reflect a token. Do not return
+                # or persist it, and never forward credentials elsewhere.
+                raise ConnectorError(
+                    "The authenticated source redirects. Configure its final address directly.",
+                    "يعيد المصدر الموثّق التوجيه. هيّئ عنوانه النهائي مباشرةً.")
             target = (response.getheader("Location") or "?")[:200]
             raise ConnectorError(
                 f"The source redirects to {target}. Use that address directly.",
@@ -256,7 +313,7 @@ def _fixture(path, env, limit):
 PUBLIC_FIELDS = ("id", "name", "url", "format", "sheet", "every_minutes", "goal", "language",
                  "profile", "enabled", "last_status", "last_error", "last_checked_at",
                  "last_dataset_id", "last_run_id", "next_due_at", "failures", "created_at",
-                 "updated_at")
+                 "updated_at", "credential_id")
 
 
 def summary(row):
@@ -298,7 +355,7 @@ class Connectors:
         self.engine = engine
         self.store = engine.store
         self.env = os.environ if env is None else env
-        self.fetcher = fetcher or (lambda url: fetch(url, self.env))
+        self.fetcher = fetcher
         self.clock = clock
         if cooldown is None:
             cooldown = int(self.env.get("AGENTIC_OS_CONNECTOR_COOLDOWN") or COOLDOWN_SECONDS)
@@ -315,8 +372,15 @@ class Connectors:
 
     # -- managing ------------------------------------------------------------
     def create(self, owner, name, url, goal, language="en", format=None, sheet=None,
-               every_minutes=None, profile=None):
+               every_minutes=None, profile=None, credential_id=None):
+        with self.store.atomic("connectors:" + owner):
+            return self._create_atomic(owner, name, url, goal, language, format, sheet,
+                                       every_minutes, profile, credential_id)
+
+    def _create_atomic(self, owner, name, url, goal, language, format, sheet,
+                       every_minutes, profile, credential_id):
         _parts(url, self.env)  # the form now; the address at every fetch
+        credential_headers(url, credential_id, owner, self.env)
         if format is not None and format not in FORMATS:
             raise ConnectorError(f"“{format}” is not a format a connector reads.",
                                  f"«{format}» ليس صيغة يقرؤها الموصل.")
@@ -332,6 +396,7 @@ class Connectors:
         connector_id = uuid.uuid4().hex[:12]
         self.store.insert("connectors", {
             "id": connector_id, "owner": owner, "name": name.strip(), "url": url.strip(),
+            "credential_id": credential_id,
             "format": format, "sheet": sheet, "every_minutes": every, "goal": goal.strip(),
             "language": language, "profile": profile, "enabled": 1, "failures": 0,
             "last_status": None, "last_error": None, "last_checked_at": None,
@@ -397,7 +462,13 @@ class Connectors:
         language = row.get("language") or "en"
         started = self.clock()
         try:
-            parsed = reader.read(self.fetcher(row["url"]), _filename(row), row.get("format"),
+            # Authenticated fetches always use the pinned HTTPS transport.
+            # The legacy injectable reader remains a public-source test seam.
+            content = (self.fetcher(row["url"])
+                       if self.fetcher is not None and not row.get("credential_id")
+                       else fetch(row["url"], self.env,
+                                  credential_id=row.get("credential_id"), owner=row["owner"]))
+            parsed = reader.read(content, _filename(row), row.get("format"),
                                  row.get("sheet"))
         except (ConnectorError, reader.DatasetError) as error:
             return _guarded(lock, lambda: self._failed(row, error.message(language), started))

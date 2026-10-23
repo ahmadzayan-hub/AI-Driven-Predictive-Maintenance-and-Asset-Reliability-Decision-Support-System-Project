@@ -7,7 +7,8 @@ import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import type { RunDetail, RunExecutive, TableFilter } from '../src/shared/types'
-import { skipOnboarding } from './helpers'
+import { skipOnboarding, openFilters } from './helpers'
+import { storeMaintenanceDataset } from './maintenance-dataset'
 
 // Fictional records only. The default profile deliberately has no modelling
 // stages: an executive brief must disclose that absence rather than score it.
@@ -24,10 +25,11 @@ const NORTH: TableFilter[] = [{ column: 'Site', op: 'in', values: ['North'] }]
 test.use({ serviceWorkers: 'block', contextOptions: { reducedMotion: 'reduce' } })
 
 async function maintenanceRun(request: APIRequestContext, language: 'en' | 'ar' = 'en') {
+  const datasetId = await storeMaintenanceDataset(request, CSV, 'executive-fictional.csv', language)
   const created = await request.post('/api/runs', {
     data: {
-      goal: 'Review fictional maintenance evidence', dataset_text: CSV,
-      dataset_name: 'executive-fictional.csv', profile: 'default', language, breakdown: 'Site',
+      goal: 'Review fictional maintenance evidence', dataset_id: datasetId,
+      profile: 'default', language,
     },
   })
   await expect(created).toBeOK()
@@ -53,13 +55,14 @@ async function executive(request: APIRequestContext, runId: string, filters: Tab
 
 async function openOverview(page: Page, runId: string, query = '', language: 'en' | 'ar' = 'en') {
   await page.goto(`/#/dashboard/${runId}/overview${query ? `?${query}` : ''}`)
-  await page.locator('.viewload').waitFor({ state: 'detached' })
+  await expect(page.locator('.viewload')).toHaveCount(0)
   await expect(page.getByRole('heading', {
     name: language === 'ar' ? 'النظرة التنفيذية' : 'Executive overview', exact: true,
   })).toBeVisible()
 }
 
 async function chooseNorth(page: Page) {
+  await openFilters(page)
   const filter = page.locator('details.dash-filter').filter({
     has: page.locator('summary').filter({ hasText: /^Site:/ }),
   })
@@ -166,18 +169,21 @@ function expectReportScope(document: DocumentContents, snapshot: RunExecutive) {
     [labels.updated, snapshot.run.updated_at], [labels.selected, '3'], [labels.total, '4'],
   ]) expect(rows).toContainEqual(row)
   expect(document.text).toContain(snapshot.headline)
+  expect(document.text).toContain(snapshot.advisory!.title)
+  expect(document.text).toContain(snapshot.advisory!.recommendation)
+  expect(document.text).toContain(snapshot.advisory!.preservation)
   expect(rows.some((row) => row.includes('Site') && row.some((cell) => cell.includes('North')))).toBe(true)
   const firstFix = snapshot.kpis.measures.find((measure) => measure.key === 'first_time_fix')!
   const scale = ar ? 'نسبة مئوية، من 0 إلى 100 (percent)' : 'Percent, 0–100 (percent)'
-  const population = ar ? `سجلات الصيانة التصحيحية (${firstFix.population})` : firstFix.population
-  expect(rows).toContainEqual([firstFix.title, '57.5', scale, '2'])
+  const population = ar ? `جميع السجلات (${firstFix.population})` : firstFix.population
+  expect(rows).toContainEqual([firstFix.title, '57.5', scale, '3'])
   const properties = document.tables.find((table) => table.some((row) =>
     row[0] === labels.formula && row[1] === firstFix.formula))
   expect(properties, 'the exported first-time-fix definition must retain its controlled population').toBeDefined()
   for (const row of [
     [labels.value, '57.5'], [labels.scale, scale],
     [labels.numerator, '23'], [labels.denominator, '40'], [labels.population, population],
-    [labels.measured, '2'], [labels.unmeasured, '0'], [labels.excluded, '1'],
+    [labels.measured, '3'], [labels.unmeasured, '0'], [labels.excluded, '0'],
   ]) expect(properties).toContainEqual(row)
   for (const question of snapshot.questions) expect(document.text).toContain(question.text)
   for (const evidence of snapshot.evidence) expect(document.text).toContain(evidence.id)
@@ -275,14 +281,20 @@ test('filtered executive measures, evidence and downloaded reports share the exa
   const expected = await executive(page.request, run.id, NORTH)
   expect(expected.scope).toEqual({ records: 3, total_records: 4, filters: NORTH })
   // These constants come from the fixture, independently of the endpoint:
-  // (8 + 15) / (10 + 30), excluding the preventive record, not a mean of rates.
+  // (8 + 15) / (10 + 30), not a mean of rates. Summed over every record, as
+  // the Power BI Method page defines it: the preventive record adds 0 to both.
   const firstTimeFix = expected.kpis.measures.find((m) => m.key === 'first_time_fix')
   expect(firstTimeFix).toMatchObject({
-    numerator: 23, denominator: 40, records: 2,
-    records_excluded: 1, records_unmeasured: 0, undefined_reason: null,
+    numerator: 23, denominator: 40, records: 3,
+    records_excluded: 0, records_unmeasured: 0, undefined_reason: null,
   })
   expect(firstTimeFix!.value).toBeCloseTo(57.5, 12)
+  // Availability is 1 - downtime / planned: downtime 4 + 10 + 6 = 20 over planned 300.
+  // It used to be operating / planned (265 / 300), which is utilisation.
   expect(expected.kpis.measures.find((m) => m.key === 'availability')).toMatchObject({
+    numerator: 20, denominator: 300, records: 3,
+  })
+  expect(expected.kpis.measures.find((m) => m.key === 'utilisation')).toMatchObject({
     numerator: 265, denominator: 300, records: 3,
   })
   expect(expected.kpis.measures.find((m) => m.key === 'downtime_per_record')).toMatchObject({
@@ -290,10 +302,10 @@ test('filtered executive measures, evidence and downloaded reports share the exa
   })
   const fix = page.locator('[data-source="kpi.first_time_fix"]')
   await expect(fix.locator('.exec-kpi-value .performance-value__number')).toHaveText('57.5 %')
-  await expect(fix.getByText('2 measured records', { exact: true })).toBeVisible()
+  await expect(fix.getByText('3 measured records', { exact: true })).toBeVisible()
   await fix.locator('summary').click()
   await expect(fix.locator('dd').first()).toContainText('23 / 40')
-  await expect(fix).toContainText('1 records outside this measure’s population')
+  await expect(fix).not.toContainText('outside this measure’s population')
 
   const priority = page.locator('.exec-priorities > li').filter({
     has: page.getByRole('heading', { name: 'Review overdue work', exact: true }),
@@ -325,6 +337,7 @@ test('filtered executive measures, evidence and downloaded reports share the exa
   expect(after.report?.published_path).toBeNull()
 
   // A prepared snapshot must disappear when the reader changes its scope.
+  await openFilters(page)
   await page.getByLabel('From', { exact: true }).selectOption('2026-03')
   await expect(page.locator('.exec-scope strong')).toHaveText('2')
   await expect(prepared).toHaveCount(0)
@@ -337,6 +350,7 @@ test('an executive priority preserves the period filter when drilling into recor
   await skipOnboarding(page)
   const run = await maintenanceRun(page.request)
   await openOverview(page, run.id)
+  await openFilters(page)
   await page.getByLabel('From', { exact: true }).selectOption('2026-03')
   await expect(page.locator('.dash-coverage')).toHaveText('Showing 3 of 4 records.')
   await expectScope(page, 3, 4)
@@ -359,7 +373,7 @@ test('an executive priority preserves the period filter when drilling into recor
 
   const address = page.url()
   await page.reload()
-  await page.locator('.viewload').waitFor({ state: 'detached' })
+  await expect(page.locator('.viewload')).toHaveCount(0)
   await expect(page).toHaveURL(address)
   await expect(page.locator('.dash-coverage')).toHaveText('Showing 1 of 4 records.')
   await expect(records).toContainText('MIYAAR-FICTIONAL-D')
@@ -391,7 +405,7 @@ test('Arabic RTL business reports and PDF print preview retain evidence in both 
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl')
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
   await expect(page.locator('.exec-overview')).toHaveAttribute('dir', 'rtl')
-  await expect(page.getByRole('heading', { name: 'وكيل معيار التنفيذي', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'المجموعة الاستشارية للتحليلات التنفيذية', exact: true })).toBeVisible()
   await expectScope(page, 3, 4, 'ar')
   const fix = page.locator('[data-source="kpi.first_time_fix"]')
   await expect(fix.getByRole('heading', { name: 'معدل الإصلاح من المرة الأولى' })).toBeVisible()

@@ -27,19 +27,56 @@ def rule(direction="higher", scale="percent", **limits):
             "source_ref": "Fictional QA display target, not a standard", **limits}
 
 
+def ftf_rule(*args, **limits):
+    """A first-time fix target reviewed for its current definition (2, since
+    the 21 October alignment with the Power BI Method page)."""
+    return {**rule(*args, **limits), "definition": 2}
+
+
 def measure(value, records=2, missing=0):
     return {"key": "first_time_fix", "value": value,
             "records": records, "records_unmeasured": missing}
 
 
 class AssessmentTests(unittest.TestCase):
+    def test_a_target_set_for_an_earlier_definition_gives_no_verdict_until_reviewed(self):
+        # Before 21 October "availability" meant operating over planned hours.
+        # A stored 95% target for it now judges a different quantity, so it
+        # must not colour the new figure; it asks for review instead.
+        availability = {"key": "availability", "value": 99.0, "records": 2, "records_unmeasured": 0}
+        legacy = {"availability": rule(good_at=95, okay_at=90)}
+        out = p.assessment(availability, p.policy(legacy)["rules"])
+        self.assertEqual((out["status"], out["reason_code"]), ("unassessed", "target_outdated"))
+        self.assertIn("earlier definition", out["reason"])
+        self.assertEqual(out["thresholds"], {"good_at": 95, "okay_at": 90})
+        arabic = p.assessment(availability, p.policy(legacy)["rules"], "ar")
+        self.assertRegex(arabic["reason"], "[\u0600-\u06FF]")
+        # Reviewed against the current definition, it judges again.
+        current = {"availability": {**rule(good_at=95, okay_at=90), "definition": 2}}
+        self.assertEqual(p.assessment(availability, p.policy(current)["rules"])["status"], "good")
+        # A measure whose meaning never changed is unaffected by a missing stamp.
+        unchanged = {**measure(80), "key": "preventive_share"}
+        self.assertEqual(p.assessment(unchanged, {"preventive_share": rule(good_at=75, okay_at=60)})["status"], "good")
+        # First-time fix was redefined the same day: an unstamped target waits too.
+        held = p.assessment(measure(80), {"first_time_fix": rule(good_at=75, okay_at=60)})
+        self.assertEqual(held["reason_code"], "target_outdated")
+
+    def test_a_definition_stamp_is_validated_and_a_legacy_policy_keeps_its_revision(self):
+        for bad in (0, 3, "2", True, 2.5):
+            with self.assertRaises(p.PolicyError, msg=repr(bad)):
+                p.policy({"availability": {**rule(good_at=95, okay_at=90), "definition": bad}})
+        legacy = {"availability": rule(good_at=95, okay_at=90)}
+        # A stored policy without stamps must load with the revision it was saved under.
+        self.assertNotIn("definition", p.policy(legacy)["rules"]["availability"])
+        self.assertEqual(p.policy(legacy)["revision"], p.digest(p.validate_rules(legacy)))
+
     def test_json_depth_is_bounded_before_decoding_but_quoted_brackets_are_data(self):
         with patch.object(p.json, "loads") as decoder:
             with self.assertRaises(p.PolicyError):
                 p.parse_json(b"[" * 1200 + b"0" + b"]" * 1200)
             decoder.assert_not_called()
         body = {"expected_revision": p.policy()["revision"], "rules": {
-            "first_time_fix": rule(good_at=80, okay_at=60)}}
+            "first_time_fix": ftf_rule(good_at=80, okay_at=60)}}
         body["rules"]["first_time_fix"]["source_ref"] = 'Fictional plan "[[[' + "[" * 80 + '"'
         self.assertEqual(p.parse_json(json.dumps(body).encode()), body)
 
@@ -47,19 +84,19 @@ class AssessmentTests(unittest.TestCase):
         return p.assessment(measure(value, **kwargs), {"first_time_fix": configured})
 
     def test_higher_lower_and_inclusive_range_boundaries_use_unrounded_values(self):
-        higher = p.validate_rules({"first_time_fix": rule(good_at=80, okay_at=60)})["first_time_fix"]
+        higher = p.validate_rules({"first_time_fix": ftf_rule(good_at=80, okay_at=60)})["first_time_fix"]
         self.assertEqual([self.assess(v, higher)["status"] for v in (80, 79.9999999, 60, 59.9999999)],
                          ["good", "okay", "okay", "bad"])
-        lower = p.validate_rules({"first_time_fix": rule("lower", good_at=10, okay_at=20)})["first_time_fix"]
+        lower = p.validate_rules({"first_time_fix": ftf_rule("lower", good_at=10, okay_at=20)})["first_time_fix"]
         self.assertEqual([self.assess(v, lower)["status"] for v in (10, 10.0000001, 20, 20.0000001)],
                          ["good", "okay", "okay", "bad"])
-        ranged = p.validate_rules({"first_time_fix": rule("range", good_min=40, good_max=60, okay_min=20, okay_max=80)})["first_time_fix"]
+        ranged = p.validate_rules({"first_time_fix": ftf_rule("range", good_min=40, good_max=60, okay_min=20, okay_max=80)})["first_time_fix"]
         self.assertEqual([self.assess(v, ranged)["status"] for v in (19.9, 20, 39.9, 40, 60, 60.1, 80, 80.1)],
                          ["bad", "okay", "okay", "good", "good", "okay", "okay", "bad"])
 
     def test_no_target_missing_and_partial_coverage_are_distinct(self):
         self.assertEqual(p.assessment(measure(99))["status"], "unassessed")
-        configured = rule(good_at=80, okay_at=60)
+        configured = ftf_rule(good_at=80, okay_at=60)
         for value in (None, float("nan"), float("inf"), True):
             self.assertEqual(self.assess(value, configured)["status"], "unavailable")
         self.assertEqual(self.assess(0, configured, records=0)["status"], "unavailable")
@@ -73,34 +110,34 @@ class AssessmentTests(unittest.TestCase):
     def test_policy_validation_has_no_defaults_or_universal_percent_clamp(self):
         self.assertEqual(p.policy()["rules"], {})
         self.assertEqual(p.policy()["revision"], p.policy({})["revision"])
-        configured = {"first_time_fix": rule(good_at=150, okay_at=-1)}
+        configured = {"first_time_fix": ftf_rule(good_at=150, okay_at=-1)}
         self.assertEqual(p.policy(configured)["rules"]["first_time_fix"]["good_at"], 150)
         snapshot = copy.deepcopy(configured)
         p.policy(configured)
         self.assertEqual(configured, snapshot)
         invalid = [
             {"unregistered": rule(good_at=80, okay_at=60)},
-            {"first_time_fix": rule(good_at=True, okay_at=60)},
-            {"first_time_fix": rule(good_at=float("nan"), okay_at=60)},
-            {"first_time_fix": rule(good_at=float("inf"), okay_at=60)},
-            {"first_time_fix": rule(good_at="80", okay_at=60)},
-            {"first_time_fix": rule(scale="fraction", good_at=80, okay_at=60)},
-            {"first_time_fix": rule(good_at=40, okay_at=60)},
-            {"first_time_fix": rule("lower", good_at=60, okay_at=40)},
-            {"first_time_fix": rule("range", good_min=10, good_max=60, okay_min=20, okay_max=80)},
-            {"first_time_fix": {**rule(good_at=80, okay_at=60), "source_ref": ""}},
-            {"first_time_fix": {**rule(good_at=80, okay_at=60), "source_ref": "x" * 241}},
-            {"first_time_fix": {**rule(good_at=80, okay_at=60), "extra": 1}},
+            {"first_time_fix": ftf_rule(good_at=True, okay_at=60)},
+            {"first_time_fix": ftf_rule(good_at=float("nan"), okay_at=60)},
+            {"first_time_fix": ftf_rule(good_at=float("inf"), okay_at=60)},
+            {"first_time_fix": ftf_rule(good_at="80", okay_at=60)},
+            {"first_time_fix": ftf_rule(scale="fraction", good_at=80, okay_at=60)},
+            {"first_time_fix": ftf_rule(good_at=40, okay_at=60)},
+            {"first_time_fix": ftf_rule("lower", good_at=60, okay_at=40)},
+            {"first_time_fix": ftf_rule("range", good_min=10, good_max=60, okay_min=20, okay_max=80)},
+            {"first_time_fix": {**ftf_rule(good_at=80, okay_at=60), "source_ref": ""}},
+            {"first_time_fix": {**ftf_rule(good_at=80, okay_at=60), "source_ref": "x" * 241}},
+            {"first_time_fix": {**ftf_rule(good_at=80, okay_at=60), "extra": 1}},
         ]
         for rules in invalid:
             with self.subTest(rules=str(rules)[:100]), self.assertRaises(p.PolicyError):
                 p.policy(rules)
 
     def test_revision_and_rule_id_include_source_and_thresholds_even_when_status_does_not_change(self):
-        a = {"first_time_fix": rule(good_at=80, okay_at=60)}
+        a = {"first_time_fix": ftf_rule(good_at=80, okay_at=60)}
         b = copy.deepcopy(a)
         b["first_time_fix"]["source_ref"] = "Another explicit QA source"
-        c = {"first_time_fix": rule(good_at=81, okay_at=60)}
+        c = {"first_time_fix": ftf_rule(good_at=81, okay_at=60)}
         revisions = {p.policy(r)["revision"] for r in (a, b, c)}
         self.assertEqual(len(revisions), 3)
         assessments = [p.assessment(measure(90), r) for r in (a, b, c)]
@@ -108,7 +145,7 @@ class AssessmentTests(unittest.TestCase):
         self.assertEqual(len({a["rule_id"] for a in assessments}), 3)
 
     def test_common_business_documents_show_status_reason_source_and_unavailable_policy(self):
-        selected = p.policy({"first_time_fix": rule(good_at=75, okay_at=65),
+        selected = p.policy({"first_time_fix": ftf_rule(good_at=75, okay_at=65),
             "loss_per_downtime_hour": rule("lower", scale="money", good_at=50, okay_at=100)})
         # Missing loss columns make the configured rule visible but uncomputable.
         table = fixtures.table()
@@ -154,7 +191,7 @@ class KpiPolicyApiTests(unittest.TestCase):
                   store.approvals_for_run(run["id"]), store.latest_artifact(run["id"]), store.list_notes())
         initial = self.get_policy(run).json()
         self.assertEqual(initial["rules"], {})
-        rules = {"first_time_fix": rule(good_at=75, okay_at=65)}
+        rules = {"first_time_fix": ftf_rule(good_at=75, okay_at=65)}
         saved = self.put_policy(run, initial, rules)
         self.assertEqual(saved.status_code, 200, saved.text)
         self.assertEqual(self.get_policy(run).json(), saved.json())
@@ -170,6 +207,25 @@ class KpiPolicyApiTests(unittest.TestCase):
         self.assertEqual(removed.status_code, 200)
         self.assertEqual(store.latest_kpi_policy(run["id"])["version"], 2)
 
+    def test_an_unstamped_availability_target_is_held_until_saved_for_the_current_definition(self):
+        run = self.make_run()
+        def availability():
+            body = self.client.get(f"/api/runs/{run['id']}/kpis", headers=self.auth()).json()
+            return next(m for m in body["measures"] if m["key"] == "availability")
+        self.assertEqual(availability()["definition"], 2)
+        initial = self.get_policy(run).json()
+        # What a policy saved before stamps existed looks like.
+        legacy = self.put_policy(run, initial, {"availability": rule(good_at=95, okay_at=90)})
+        self.assertEqual(legacy.status_code, 200, legacy.text)
+        self.assertEqual(availability()["assessment"]["reason_code"], "target_outdated")
+        self.assertEqual(self.put_policy(run, legacy.json(),
+            {"availability": {**rule(good_at=95, okay_at=90), "definition": 3}}).status_code, 422)
+        reviewed = self.put_policy(run, legacy.json(),
+            {"availability": {**rule(good_at=95, okay_at=90), "definition": 2}})
+        self.assertEqual(reviewed.status_code, 200, reviewed.text)
+        self.assertEqual(reviewed.json()["rules"]["availability"]["definition"], 2)
+        self.assertIn(availability()["assessment"]["status"], {"good", "okay", "bad"})
+
     def test_ownership_permissions_readiness_validation_and_lost_update(self):
         queued = self.make_run(finish=False)
         path = f"/api/runs/{queued['id']}/kpi-policy"
@@ -179,14 +235,14 @@ class KpiPolicyApiTests(unittest.TestCase):
         self.assertEqual(self.client.put(path, headers=self.auth(role="viewer"), json={}).status_code, 403)
         run = self.make_run()
         initial = self.get_policy(run).json()
-        rules = {"first_time_fix": rule(good_at=75, okay_at=65)}
+        rules = {"first_time_fix": ftf_rule(good_at=75, okay_at=65)}
         self.assertEqual(self.put_policy(run, initial, rules).status_code, 200)
         conflict = self.put_policy(run, initial, {}, language="ar")
         self.assertEqual(conflict.status_code, 409)
         self.assertIn("تغيرت", conflict.json()["detail"])
         self.assertEqual(self.put_policy(run, initial, rules, headers=self.auth("mallory")).status_code, 404)
         invalid = self.put_policy(run, self.get_policy(run).json(),
-            {"first_time_fix": rule(scale="fraction", good_at=80, okay_at=60)}, language="ar")
+            {"first_time_fix": ftf_rule(scale="fraction", good_at=80, okay_at=60)}, language="ar")
         self.assertEqual(invalid.status_code, 422)
         self.assertIn("مقياس", invalid.json()["detail"])
         oversized = self.client.put(f"/api/runs/{run['id']}/kpi-policy", headers=self.auth(),
@@ -199,7 +255,7 @@ class KpiPolicyApiTests(unittest.TestCase):
     def test_filtered_assessments_match_kpis_and_policy_change_invalidates_export_without_timestamp_change(self):
         run = self.make_run()
         initial = self.get_policy(run).json()
-        rules = {"first_time_fix": rule(good_at=75, okay_at=65)}
+        rules = {"first_time_fix": ftf_rule(good_at=75, okay_at=65)}
         saved = self.put_policy(run, initial, rules).json()
         base = f"/api/runs/{run['id']}"
         brief = self.client.get(base + "/executive", headers=self.auth()).json()
@@ -223,7 +279,7 @@ class KpiPolicyApiTests(unittest.TestCase):
     def test_history_is_in_backup_restore_and_erasure(self):
         run = self.make_run()
         initial = self.get_policy(run).json()
-        self.put_policy(run, initial, {"first_time_fix": rule(good_at=75, okay_at=65)})
+        self.put_policy(run, initial, {"first_time_fix": ftf_rule(good_at=75, okay_at=65)})
         store = self.app.state.store
         backup = create_backup(store)
         self.assertEqual(len(backup["tables"]["kpi_policies"]), 1)
@@ -249,7 +305,7 @@ class KpiPolicyApiTests(unittest.TestCase):
         def write(which):
             connection = SQLiteStore(primary.path)
             try:
-                chosen = p.policy({"first_time_fix": rule(good_at=80 + which, okay_at=60)})
+                chosen = p.policy({"first_time_fix": ftf_rule(good_at=80 + which, okay_at=60)})
                 gate.wait(timeout=10)
                 return connection.save_kpi_policy(uuid.uuid4().hex, run["id"], expected,
                     chosen["revision"], p.canonical(chosen["rules"]), "synthetic-writer",
@@ -288,7 +344,7 @@ class KpiPolicyPostgresTests(unittest.TestCase):
             "database_url": PG_TEST_URL, "memory_file": str(root / "m.json"),
             "vault_dir": str(root / "vault"), "stages": ["server.maintenance.targets.MaintenanceRisk"],
             "profiles": {"default": [], "maintenance": ["maintenance_risk"]}}), encoding="utf-8")
-        self.app = create_app(config, env={"AGENTIC_OS_ENV": "production", "AGENTIC_OS_JWT_SECRET": fixtures.SECRET})
+        self.app = create_app(config, env={"AGENTIC_OS_ENV": "production", "AGENTIC_OS_JWT_SECRET": fixtures.SECRET, "SUPABASE_URL": "https://test.supabase.invalid"})
         self.client = TestClient(closing(self, self.app), raise_server_exceptions=False)
         # LIFO: erase our rows before the registered store close and temp cleanup.
         self.addCleanup(lambda: erase(self.app.state.store, self.owner))
@@ -299,7 +355,7 @@ class KpiPolicyPostgresTests(unittest.TestCase):
     def test_real_postgres_api_noop_lost_update_history_and_backup_roundtrip(self):
         run = self.make_run()
         initial = self.get_policy(run).json()
-        rules = {"first_time_fix": rule(good_at=75, okay_at=65)}
+        rules = {"first_time_fix": ftf_rule(good_at=75, okay_at=65)}
         response = self.put_policy(run, initial, rules)
         self.assertEqual(response.status_code, 200, response.text)
         saved = response.json()
@@ -331,7 +387,7 @@ class KpiPolicyPostgresTests(unittest.TestCase):
         def write(which):
             connection = PostgresStore(PG_TEST_URL)
             try:
-                chosen = p.policy({"first_time_fix": rule(good_at=80 + which, okay_at=60)})
+                chosen = p.policy({"first_time_fix": ftf_rule(good_at=80 + which, okay_at=60)})
                 gate.wait(timeout=15)
                 return connection.save_kpi_policy(uuid.uuid4().hex, run["id"], expected,
                     chosen["revision"], p.canonical(chosen["rules"]), self.owner,
@@ -348,7 +404,7 @@ class KpiPolicyPostgresTests(unittest.TestCase):
         self.assertEqual(current["version"], 1)
         self.assertFalse(store.save_kpi_policy(uuid.uuid4().hex, run["id"], expected,
             current["revision"], current["rules_json"], self.owner, "2026-10-20T00:00:01+00:00", expected))
-        chosen = p.policy({"first_time_fix": rule(good_at=90, okay_at=70)})
+        chosen = p.policy({"first_time_fix": ftf_rule(good_at=90, okay_at=70)})
         execute = store._exec_rowcount
 
         def acknowledgement_lost(sql, params):

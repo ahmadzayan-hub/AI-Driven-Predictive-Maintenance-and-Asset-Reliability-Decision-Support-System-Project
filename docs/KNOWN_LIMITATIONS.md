@@ -3,7 +3,37 @@
 Honest boundaries of the current release. None of these are hidden behind
 placeholder controls — absent capabilities have no UI.
 
+## Maintenance pilot boundaries (21 October 2026)
+
+The Operations workspace, organization permissions, maintenance audit, worker
+execution and prospective validation ledger are implemented. Their local
+verification is recorded in [README](../README.md#testing). The
+[pilot runbook](PILOT_RUNBOOK.md) describes the proposed MaintainX integration
+for selected pumps/motors at one site. Its adapter reads assets/work orders
+into private snapshots and prepares reviewed initial asset imports; it does
+not yet reconcile bidirectional CMMS work orders or prove a live vendor contract.
+
+No account credential, hosted deployment acceptance, independent maintenance
+outcomes, customer purchase or service agreement has been supplied. Ledger
+scores describe adjudicated registered windows only. Pending outcomes,
+correlated asset windows, declared training cutoff and external evidence
+require explicit interpretation. Worker heartbeat is not an availability SLA.
+Offline technician execution and enterprise provisioning remain conditional.
+The two documented confidential course artifacts are untracked from future
+source trees; historical copies still require remediation before public release.
+
 ## Intelligence
+
+Local role acceptance is recorded in [README testing](../README.md#testing).
+The selected CPU profile shares one Qwen model across separate role prompts;
+it is not an independent multi-provider review. Optional notes are omitted when
+inference fails or grounding rejects the response. Successful numeric grounding
+does not certify the model's domain interpretation. Human review remains required.
+
+A live pause request during the earlier long-running SQLite model analysis
+returned a server error while the worker held its stage transaction; the analysis
+then completed. Responsive pause/cancel under model load remains unverified
+after the main integration. Do not infer it from idle API health.
 
 1. The chat understands and acts on plain language — save, recall,
    change a preference, start an analysis, report its status, explain a
@@ -40,11 +70,26 @@ placeholder controls — absent capabilities have no UI.
      regression, a classifier and a clustering are available as optional
      stages on the `models` profile (ADR 0033; see item 28). Fewer than 4 periods produces no
      forecast; fewer than 6 produces a forecast explicitly marked as
-     having unmeasured accuracy.
+     having unmeasured accuracy. With 6 or more, the trend is also
+     backtested against repeating the last period, and a trend that does
+     not beat that by 5% is reported as no better than it. A measure that
+     is a rate (by contract, glossary unit or name) gets no forecast at
+     all, because its period sums are not rates.
    - **Prescriptive** ranks options the dataset itself supplies, scoring
-     each with the same 10% improvement assumption. That ranks where the
-     leverage is; it is not an optimizer and knows nothing about cost,
-     capacity, or feasibility.
+     each with an assumed 10% improvement unless the run states an uplift
+     or a cost per target (API `assumptions`, collected by the Analytics
+     form under "Improvement and cost"). It is not an optimizer and knows nothing about
+     capacity or feasibility; it writes a decision record per
+     recommendation and the sensitivity stage says whether the ranking
+     survives independent uplift ranges. It also does not know which way is good
+     news unless the glossary says so: a metric entry may declare
+     `better` as `higher` or `lower`, and only then does the stage speak
+     of protecting and growing, or of reducing and curbing. With no
+     declaration it ranks options by the size of the change they would
+     make and says so in the report — the number is the same, the verb
+     is withheld. A measure where less is better and no glossary to say
+     so therefore gets no advice about direction from this product, which
+     is the honest state and not a silent default.
    - Comparison between recorded experiment groups reports a range and
      whether it includes no-change (ADR 0010, 0016). No test is applied
      anywhere else: the descriptive, diagnostic, predictive and
@@ -52,13 +97,18 @@ placeholder controls — absent capabilities have no UI.
      recommends when to stop a test — that is a decision about cost and
      risk, not a statistic.
 3. The optional narrator (Ollama, Anthropic, or Groq) only phrases
-   already-verified facts and never receives the dataset. The wire
+   already-verified facts and never receives the dataset. Detected personal
+   data in the main or joined datasets, or in outgoing fact text, now keeps
+   narration and related assistant/runtime handoffs deterministic (ADR
+   2026-10-20-personal-data-model-boundary). Reports explain that choice in
+   their language. This is pattern-based screening, not exhaustive detection
+   or anonymization; human-readable evidence remains unchanged. The wire
    contract for each provider is tested against a local HTTP server —
    including a reasoning model's `<think>` scratchpad, which is stripped
-   and never reaches a report — but **no live provider call has been made
-   from this environment** (its egress policy blocks `ollama.com`,
-   `registry.ollama.ai`, and the model APIs), so first use against a real
-   endpoint is unconfirmed. A local Ollama must be reachable from the
+   and never reaches a report. Bounded local Qwen acceptance is recorded in
+   [README testing](../README.md#testing); the 20 October corrective review
+   used synthetic provider probes and made no live model call. Hosted provider
+   acceptance remains unconfirmed. A local Ollama must be reachable from the
    machine running the server: a model on a laptop is invisible to a
    hosted deployment. Any failure falls
    back to the deterministic narrator, and the report always names which
@@ -87,21 +137,36 @@ placeholder controls — absent capabilities have no UI.
    lessons accumulate as vault run logs for human review. Permanent 100%
    accuracy cannot honestly be promised by any AI system; deterministic
    calculations are exact for the operations implemented.
+   The agents are measured on a schedule and the result is kept
+   (`scripts/agent_loop.py`, `AGENTIC_OS_EVAL_INTERVAL_SECONDS`, the
+   [dated decision](adr/2026-10-20-agent-measurement-loop.md)), but the loop
+   stops at `needs_person`: it never edits a rule, a floor or a holdout case.
+   `done` means no floor is broken and nothing regressed, not that an agent
+   is accurate.
 6. Every classifying agent is measured on labelled **synthetic** cases
    (ADR 0027), and the numbers are only as good as those cases. On the
-   newest blind holdout (v4, 17 October) the rules reach 72% macro recall
-   for chat intent, 92% recall for jargon and 69% for causal wording
-   (precision 92%). Hand-written rules generalise only so far: intent
+   intent holdout the rules reach 72% macro recall; jargon recall is 92%.
+   Causal wording originally reached 69% recall on v4 (precision 92%).
+   After fixes informed by that set, its measured recall and precision are
+   100%; it is no longer independent evidence. The newer adversarial
+   `probe_v5` reports only 6% recall and is not comparable with those sets
+   (ADR 0056). On a fresh independent set (`blind_v6`) causal wording first
+   scored 45% recall and 69% precision, against 100% on its holdout, which was
+   fitted to; intent scored 68.5% and jargon 85%. After the rules were fixed
+   against it, a second independent set (`blind_v7`) measured causal wording
+   at 60% recall and 88% precision (28% and 70% for the old rules on the same
+   sentences) and intent at 61% correct (56% before), a gain within noise (the
+   [decision](adr/2026-10-20-labelled-cases-from-real-use.md)). Hand-written rules generalise only so far: intent
    scored 80% on the previous blind set and 68% on this one before any
-   change, and a round of fixes from the earlier set lifted causal wording
-   by nothing here. A sentence the causal check passes may still claim a
+   change. A sentence the causal check passes may still claim a
    cause, and a chat sentence outside the vocabulary is answered as chat. The seeded reviewer memos were nearly too easy for the
    reviewer subagents: both scored at or near 100% with either prompt.
    So the prompt changes are justified on the dev memo, not proven on the
    held-out ones, and the subagents' run-to-run variation (zero to three
    false alarms on the same memo) is measured on one run per condition.
-   Local Ollama models and the hosted narrators are **not measured**: the
-   models could not be downloaded here, and no provider key was used. The
+   The local conversational smoke does not measure maintenance-domain
+   prediction or general narrator accuracy. Hosted narrators remain
+   unvalidated against an independently labelled task set. The
    figures checker cannot read a figure written in words ("one in five");
    the figures-auditor reads the text for those.
 
@@ -140,7 +205,7 @@ required local files. Both behaviors are covered by tests
    stating plainly: `python scripts/serve.py` binds to the local network
    so a phone can reach it, and because local mode has no login, every
    device on that network can read and change the saved memory. The
-   launcher prints this at start-up and `--local-only` opts out, but
+   launcher binds to this computer alone unless `--lan` is given, and prints the consequence when it is, but
    nothing enforces it — a laptop on café Wi-Fi is an open app.
 7. The metric glossary (ADR 0011) is a file, not a table: it is
    process-wide, so a hosted install cannot give each tenant its own,
@@ -182,10 +247,14 @@ required local files. Both behaviors are covered by tests
     Vercel login (the project has Standard Protection on), a full run and
     approval in a browser there, and whether `DATABASE_URL` is set —
     without it a deployment keeps per-instance storage that a cold start
-    wipes. No identity provider is configured, so the deployment is
-    single-owner with no login, like a laptop. See
-    docs/VERCEL_DEPLOYMENT.md for the exact state and the two things to
-    tidy by hand.
+    wipes. The historical deployment reported single-owner mode; current
+    identity and storage configuration were not established by the 20 October
+    metadata review. That review identifies older production commit `42e53d00`
+    and Vercel Authentication protection. Main-branch Git deployment is now
+    disabled; releasing a corrected commit requires explicit approval and
+    hosted acceptance. On 21 October `dcde343` was deployed to production
+    with approval; it runs in `local` mode until the owner adds
+    `AGENTIC_OS_DEMO=1` in Vercel. See `docs/VERCEL_DEPLOYMENT.md`.
 12. Android support is a verified installable PWA; a native Capacitor
     project is documented but not shipped (no Android SDK available to
     build or test one honestly).
@@ -219,9 +288,13 @@ required local files. Both behaviors are covered by tests
     database and must be backed up separately.
 16. Usage is bounded per owner (runs/day, dataset count, dataset bytes)
     but **no cost in currency is tracked**: there is no billing
-    relationship, model tokens are not counted, and serverless execution
-    time is not measured. `/api/usage` names those gaps rather than
-    hiding them. The daily window is calendar-based (midnight UTC), so a
+    relationship, model tokens are counted per process rather than per
+    tenant, and serverless execution time is not measured. `/api/usage`
+    names those gaps rather than hiding them. The gateway's in-process
+    ledger (`GET /api/health`, `model_calls`) records every provider
+    attempt with its latency and the token counts the provider reported,
+    never an estimate; it is lost on restart and summed across tenants,
+    so a per-tenant token budget is still out of scope. The daily window is calendar-based (midnight UTC), so a
     burst either side of midnight can exceed the intended daily rate.
 17. Datasets come from a file (CSV, TSV, Excel `.xlsx`, JSON or JSON
     Lines) or pasted CSV (ADR 0024): up to 4 MB as uploaded, the limit
@@ -237,7 +310,10 @@ required local files. Both behaviors are covered by tests
     DuckDB/Polars), so larger-than-memory datasets are out of scope, and
     a dataset cannot yet be deleted from the interface.
 18. Custom stages (ADR 0020) are **trusted Python in this process**, not
-    a sandbox: the contract catches a malformed result, a mis-cited
+    a sandbox. A stage that overruns `AGENTIC_OS_STAGE_TIMEOUT` (default
+    120 s) is abandoned on its thread and its task fails, which keeps a
+    hung stage from hanging a run but stops nothing it does meanwhile
+    (G10, 23 October): the contract catches a malformed result, a mis-cited
     claim or a mutated context, and a plugin that wants to misbehave
     can still import anything. The operator decides what to register.
     The registry is per process and read at start-up — no per-tenant
@@ -275,12 +351,29 @@ required local files. Both behaviors are covered by tests
     a changed file is new content, so it starts unmapped. Pasted CSV
     and the sample always use automatic detection. Unmapped data is
     still typed from column names, and its periods still sort as text.
+    Its breakdown is chosen by this product, not by a reader: the first
+    repeated non-numeric column in the file's own column order, with at
+    most 200 distinct values and at least two records per value on
+    average, excluding identifier-like, date-like and detected-personal
+    columns (dated decision
+    `2026-10-20-domain-models-and-automatic-grouping.md`). A file with
+    no such column gets a report with no breakdown at all. Either way a
+    bilingual limitation claim says the product chose it, names the
+    other columns that could have been used, or says why there is none
+    (dated decision `2026-10-20-who-chose-the-breakdown.md`); the
+    candidates are not ranked, because nothing here measures which
+    breakdown a reader wants. A run-level `breakdown` remains a
+    merged-table option only: declared without joins it is refused
+    rather than ignored, and a single dataset chooses its breakdown by
+    saving a column mapping (dated decision
+    `2026-10-20-reject-unsupported-single-dataset-breakdown.md`).
 22. Uneven periods are read per record (ADR 0026) only in the
     descriptive stage: its headline and a limitation claim give the
     per-record change when the quietest period holds under three
-    quarters of the busiest's records. The segment, diagnostic,
-    predictive and prescriptive stages still work on totals, so a
-    forecast follows the record count, and "protect the leading group"
+    quarters of the busiest's records. The predictive and anomaly
+    stages leave a partial last period out of the trend and say so
+    (A12, 23 October); the segment, diagnostic and prescriptive stages
+    still work on totals, so "protect the leading group"
     can name the group with the most records rather than the largest
     loss per record. The dashboards skill shows per-record charts beside
     the totals; the app's report does not yet.
@@ -342,9 +435,12 @@ required local files. Both behaviors are covered by tests
     now taken from the training rows alone (ADR 0041). Fewer than 30
     records, or fewer than three seasons for the seasonal forecast, is
     reported as a limitation and shows no card.
-29. Live sources (ADR 0034) fetch public files over https only: no
-    credentials, databases or APIs that need a key, and no proxy, so a
-    server that reaches the internet only through one cannot refresh.
+29. Live sources fetch HTTPS snapshots, with optional operator-held credential
+    aliases scoped to an owner and exact host/port (the 21 October durable-worker
+    decision). They do not offer a browser secret store, arbitrary database
+    connections or a proxy; a server that reaches the internet only through a
+    proxy cannot refresh. The dedicated read-only MaintainX adapter is described
+    in the pilot runbook and has not been exercised against a customer account.
     Each refresh is a whole snapshot of at most 4 MB; ten sources per
     account, and "Refresh now" once a minute per source. Addresses that
     carry a credential in their query are refused. The cap of five event
@@ -367,6 +463,32 @@ required local files. Both behaviors are covered by tests
     show that count, or it re-creates the defect one layer up. Whether a
     blank in a particular source means "none happened" is a question for
     that source's owner and is declared per KPI.
+
+31. The process-wide lock in `server/app.py` now covers only in-memory
+    session state; the assistant's model call and a run's pipeline stage
+    run outside it, so one slow model call no longer stalls every tenant
+    (assessment finding B4). On SQLite a stage's `store.atomic("run:...")`
+    transaction still serialises every store access for its duration,
+    model call included, because the store has one connection; only
+    PostgreSQL locks the one run. In local mode the memory file is
+    written by the assistant outside that lock, so two conversations
+    saving a memory at the same instant can lose one write; the memory
+    endpoints themselves are still serialised.
+32. Request logging (finding B10) is one JSON line per request on the
+    `agentic_os.requests` logger at INFO, with a request id (an incoming
+    `X-Request-ID` of up to 64 safe characters is honoured, otherwise one
+    is generated and echoed), method, path, status, duration and a
+    12-character SHA-256 prefix of the token subject or `anonymous`.
+    Nothing ships the lines anywhere: the handler is whatever the
+    process's Python logging is configured with, the id is not
+    propagated to the worker or to model providers, and bodies, query
+    strings, tokens and raw subjects are never logged.
+33. A restore (finding B5) validates every row of every table against
+    the live schema before any delete and runs the deletes and inserts in
+    one transaction on both SQLite and PostgreSQL, so a failure part-way
+    leaves the database as it was. The whole backup is still held in
+    memory, and a backup written by a build with more columns is refused
+    rather than trimmed.
 
 -   **A child interpreter can fail to start under full-suite load on
     Windows.** `tests/test_backup.test_a_destroyed_database_is_rebuilt_from_a_backup`
@@ -400,3 +522,44 @@ models, approve publication or prove a future-failure prediction. Missing
 evidence and unsupported targets stay visible. Claude dashboard skills are
 development instructions; hosted Artifact availability is account-dependent
 and was not activated by this implementation.
+
+## KPI register: what it cannot measure yet
+
+The register ([decision](adr/2026-10-21-register-availability-and-pooled-reliability-measures.md))
+holds 14 controlled measures, each a ratio of sums over a declared population.
+These common asset-management measures are **not** in it, because the exports
+this product reads do not carry the fields, and a stand-in would be a guess:
+
+- planned-maintenance percentage **in hours**, wrench time, PM compliance and
+  schedule compliance (need hours by work type, hands-on time, and
+  scheduled-versus-done counts);
+- backlog in crew-weeks (needs outstanding hours and weekly craft capacity;
+  the register's overdue rate is a count share and is named as one);
+- maintenance cost as a share of replacement value (needs replacement values
+  for a defined asset base).
+
+Three more limits on what the figures mean:
+
+- **Availability scope.** It is operational availability on planned time from
+  the downtime recorded. Where no preventive downtime is recorded it is not
+  technical availability, and logistic delay cannot be separated.
+- **MTBF assumes exposure.** The pooled MTBF and any interval around it assume
+  a constant failure rate and independent records. Records that are not unique
+  assets (the course data repeats every `Asset_ID` across all asset classes)
+  make per-asset reliability impossible.
+- **Stored targets are held, not migrated.** A target saved against
+  `availability` before 21 October 2026 was set against utilisation. It now
+  gives no verdict until someone saves it again in the target editor
+  ([decision](adr/2026-10-21-targets-held-when-a-measure-is-redefined.md));
+  it is never rewritten. The same holds for MTTR, first-time fix and repeat
+  repair, redefined the same day to match the team's Power BI report
+  ([decision](adr/2026-10-21-kpi-register-aligned-with-power-bi.md)).
+- **MTTR counts all downtime.** It follows the Power BI report: all recorded
+  downtime over all failures. Where planned downtime is recorded on records
+  with no failure, it overstates time to restore a failure.
+- **The view-only demo keeps some write controls.** With `AGENTIC_OS_DEMO=1`
+  there is no sign-in and the landing views hide their start buttons, but the
+  Analytics run form, adding a dataset, approving, saving a target and the
+  Operations administration still show theirs; using one gets the server's
+  refusal and writes nothing
+  ([decision](adr/2026-10-21-view-only-demo-mode.md)).

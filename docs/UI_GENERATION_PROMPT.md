@@ -169,7 +169,7 @@ question and writes its own report:
 | Descriptive | What happened? | "Revenue is up 45% over the period, at 3,583,440 in total. 'North' is the biggest region." |
 | Diagnostic | Why did it happen? | "The movement is concentrated in 'North', which accounts for 54% of the change. It moves closely with units, which is where to look first." |
 | Predictive | What will happen? | "We expect revenue of about 361,505 in 2026-01, down 1% on the latest period — this method has been off by about 6% when tested on past data." |
-| Prescriptive | What should I do? | "We recommend: Protect the leading region: 'North'. It is worth about 193,506 in revenue — more than any other option we compared." |
+| Prescriptive | What should I do? | "We recommend: Act on the largest source of revenue: 'North'. It is worth about 193,506 in revenue — more than any other option we compared." With a glossary declaring a higher revenue is better, the same option reads "Protect the leading region". |
 
 They form a ladder — each uses the one before it — and the design should
 make that progression legible rather than presenting four peers.

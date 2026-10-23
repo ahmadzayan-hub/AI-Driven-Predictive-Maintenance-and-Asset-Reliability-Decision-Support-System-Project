@@ -3,16 +3,18 @@ import { usePack } from '../../i18n/pack'
 import { assetMessages } from './messages'
 import { api, ApiError } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
-import { PerformanceValue, performanceTone } from '../../shared/components/PerformanceValue'
+import { stateLabel } from '../../shared/labels'
+import { PerformanceLegend, PerformanceValue, performanceTone } from '../../shared/components/PerformanceValue'
 import type { Pipelines } from '../../shared/types'
-import { findAssetEvidence } from './assetEvidence'
+import { loadAssetEvidence } from './assetEvidence'
 import type { AssetEvidence } from './assetEvidence'
 import { formatValue, needsDisclosure } from './kpiDisplay'
 import type { RunKpis } from '../../shared/types'
 import './assets.css'
 
 interface Props {
-  onUpload: () => void
+  /** Absent in the view-only demo, where nothing can be uploaded. */
+  onUpload?: () => void
   onOpenRun: (id: string) => void
 }
 
@@ -20,7 +22,8 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
   const { t, locale } = usePack(assetMessages)
   const [evidence, setEvidence] = useState<AssetEvidence | null>(null)
   const [pipelines, setPipelines] = useState<Pipelines | null>(null)
-  const [kpis, setKpis] = useState<RunKpis | null>(null)
+  const [kpiAnswer, setKpiAnswer] = useState<{ key: string; data: RunKpis } | null>(null)
+  const [searchCapped, setSearchCapped] = useState(false)
   const [busy, setBusy] = useState(true)
   const [error, setError] = useState('')
   const [reload, setReload] = useState(0)
@@ -29,17 +32,15 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
     let alive = true
     setBusy(true)
     setError('')
+    setEvidence(null)
     Promise.all([api.pipelines(), api.listRuns()])
       .then(async ([config, list]) => {
-        const candidates = [...list.runs]
-          .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
-          .slice(0, 8)
-        const details = await Promise.allSettled(candidates.map((run) => api.getRun(run.id)))
+        const result = await loadAssetEvidence(list.runs, api.getRun, () => !alive)
         if (!alive) return
         setPipelines(config)
-        setEvidence(findAssetEvidence(details.flatMap((item) =>
-          item.status === 'fulfilled' ? [item.value] : [])))
-        if (details.length && details.every((item) => item.status === 'rejected')) {
+        setSearchCapped(list.runs.length >= 50)
+        setEvidence(result.evidence)
+        if (result.incomplete) {
           setError(t('assets.unavailable'))
         }
       })
@@ -49,14 +50,16 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
   }, [reload, t])
 
   const runId = evidence?.run.id ?? null
+  const kpiKey = JSON.stringify([runId, evidence?.run.updated_at, locale])
+  const kpis = kpiAnswer?.key === kpiKey ? kpiAnswer.data : null
   useEffect(() => {
-    if (!runId) { setKpis(null); return }
+    if (!runId) return
     let alive = true
     api.runKpis(runId, locale === 'ar' ? 'ar' : 'en')
-      .then((result) => { if (alive) setKpis(result) })
-      .catch(() => { if (alive) setKpis(null) })
+      .then((result) => { if (alive) setKpiAnswer({ key: kpiKey, data: result }) })
+      .catch(() => { if (alive) setKpiAnswer(null) })
     return () => { alive = false }
-  }, [runId, locale])
+  }, [runId, locale, kpiKey])
 
   const enabled = Boolean(pipelines?.profiles.maintenance?.includes('rail_asset_manager'))
   return (
@@ -64,44 +67,75 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
       <div className="panel__inner panel__inner--wide asset-intelligence">
         <header className="asset-intelligence__header">
           <div>
-            <p className="asset-intelligence__eyebrow">{t('assets.kicker')}</p>
             <h2>{t('assets.title')}</h2>
             <p>{t('assets.description')}</p>
           </div>
-          <button type="button" className="btn btn--primary" onClick={onUpload}>
+          {onUpload ? <button type="button" className="btn btn--primary" onClick={onUpload}>
             <Icon name="plus" size={17}/>{t('assets.upload')}
-          </button>
+          </button> : null}
         </header>
-        <div className="asset-intelligence__capabilities">
-          {(['criticality', 'reliability', 'obsolescence'] as const).map((capability) => (
-            <div key={capability} className="asset-intelligence__capability">
-              <Icon name={capability === 'criticality' ? 'shield' : capability === 'reliability' ? 'activity' : 'clock'} size={21}/>
-              <h3>{t('assets.' + capability as 'assets.criticality' | 'assets.reliability' | 'assets.obsolescence')}</h3>
-              <p>{t('assets.' + capability + 'Sub' as 'assets.criticalitySub' | 'assets.reliabilitySub' | 'assets.obsolescenceSub')}</p>
-            </div>
-          ))}
-        </div>
         <div className="asset-intelligence__data">
           <div className="asset-intelligence__datahead">
             <h3>{t('assets.evidence')}</h3>
             <span>{busy ? t('assets.loading') : enabled ? t('assets.profile') : t('assets.profileMissing')}</span>
           </div>
           {error ? <div role="alert"><p>{error}</p><button type="button" className="btn btn--ghost" onClick={() => setReload((n) => n + 1)}>{t('assets.retry')}</button></div> : null}
+          {searchCapped ? <p className="panel__note">{t('assets.searchScope')}</p> : null}
           {!busy && !error && !evidence ? (
             <div className="asset-intelligence__blank">
               <Icon name="database" size={31}/>
               <h4>{t('assets.empty')}</h4>
               <p>{t('assets.emptyDetail')}</p>
-              <button type="button" className="btn btn--ghost" onClick={onUpload}>{t('assets.upload')}</button>
+              {onUpload ? <button type="button" className="btn btn--ghost" onClick={onUpload}>{t('assets.upload')}</button> : null}
             </div>
           ) : null}
           {!busy && evidence ? (
             <>
               <dl className="asset-intelligence__source">
                 <div><dt>{t('assets.dataset')}</dt><dd dir="auto">{evidence.run.dataset_name}</dd></div>
-                <div><dt>{t('assets.runState')}</dt><dd>{evidence.run.state}</dd></div>
-                <div><dt>{t('assets.stage')}</dt><dd>{evidence.screen.state}</dd></div>
+                <div><dt>{t('assets.runState')}</dt><dd>{stateLabel(t, evidence.run.state)}</dd></div>
+                <div><dt>{t('assets.stage')}</dt><dd>{stateLabel(t, evidence.screen.state)}</dd></div>
               </dl>
+              {/* Figures first; the screening and model notes that qualify the run follow. */}
+              {kpis && kpis.measures.length ? (
+                <div className="asset-intelligence__finding">
+                  <strong>{t('assets.kpiHeading')}</strong>
+                  <PerformanceLegend />
+                  <ul className="asset-intelligence__kpis">
+                    {kpis.measures.map((measure) => {
+                      const shown = formatValue(measure, locale === 'ar' ? 'ar' : 'en')
+                      const tone = performanceTone(measure.value, measure.assessment)
+                      // A reason explains a verdict; "no target" is said once, below.
+                      const verdict = tone === 'good' || tone === 'okay' || tone === 'bad'
+                        || measure.assessment?.reason_code === 'target_outdated'
+                      return (
+                        <li key={measure.key} data-family={measure.family ?? 'other'}>
+                          <span dir="auto">{measure.title}</span>
+                          <PerformanceValue tone={tone} reason={verdict ? measure.assessment?.reason : undefined}>{shown ?? t('assets.kpiUndefined')}</PerformanceValue>
+                          <small dir="auto">
+                            {measure.population_label ?? measure.population} · {t('assets.kpiRecords', { records: String(measure.records) })}
+                            {needsDisclosure(measure) ? ' · ' + (measure.value === null
+                              ? t('assets.kpiNoEvidence')
+                              : t('assets.kpiUnmeasured',
+                                  { unmeasured: String(measure.records_unmeasured) })) : ''}
+                          </small>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                  {Object.keys(kpis.unavailable).length ? (
+                    <p className="asset-intelligence__caution" dir="auto">
+                      {t('assets.kpiUnavailable',
+                         { measures: Object.keys(kpis.unavailable).join(', ') })}
+                    </p>
+                  ) : null}
+                  <details className="asset-intelligence__about">
+                    <summary>{t('assets.about')}</summary>
+                    {kpis.measures.some((measure) => performanceTone(measure.value, measure.assessment) === 'unassessed' && measure.assessment?.reason_code !== 'target_outdated') ? <p dir="auto">{t('assets.noTarget')}</p> : null}
+                    <p>{t('assets.kpiScope')}</p>
+                  </details>
+                </div>
+              ) : null}
               <div className="asset-intelligence__finding">
                 <strong>{t('assets.screening')}</strong>
                 <p dir="auto">{evidence.screen.summary || t('assets.notAvailable')}</p>
@@ -119,36 +153,6 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
                   </li>
                 ))}
               </ul>
-              {kpis && kpis.measures.length ? (
-                <div className="asset-intelligence__finding">
-                  <strong>{t('assets.kpiHeading')}</strong>
-                  <ul className="asset-intelligence__checks">
-                    {kpis.measures.map((measure) => {
-                      const shown = formatValue(measure, locale === 'ar' ? 'ar' : 'en')
-                      return (
-                        <li key={measure.key}>
-                          <PerformanceValue tone={performanceTone(measure.value, measure.assessment)} reason={measure.assessment?.reason}>{shown ?? t('assets.kpiUndefined')}</PerformanceValue>
-                          <span dir="auto">
-                            {measure.title} · {measure.population} ·{' '}
-                            {t('assets.kpiRecords', { records: String(measure.records) })}
-                            {needsDisclosure(measure) ? ' · ' + (measure.value === null
-                              ? t('assets.kpiNoEvidence')
-                              : t('assets.kpiUnmeasured',
-                                  { unmeasured: String(measure.records_unmeasured) })) : ''}
-                          </span>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                  {Object.keys(kpis.unavailable).length ? (
-                    <p className="asset-intelligence__caution" dir="auto">
-                      {t('assets.kpiUnavailable',
-                         { measures: Object.keys(kpis.unavailable).join(', ') })}
-                    </p>
-                  ) : null}
-                  <p className="asset-intelligence__caution">{t('assets.kpiScope')}</p>
-                </div>
-              ) : null}
               <button type="button" className="btn btn--primary" onClick={() => onOpenRun(evidence.run.id)}>
                 {t('assets.openRun')}
               </button>

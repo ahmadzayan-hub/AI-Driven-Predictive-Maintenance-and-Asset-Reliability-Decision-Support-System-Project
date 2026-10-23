@@ -29,6 +29,7 @@ The rules every note in the [[Second brain]] follows. `scripts/brain_check.py` c
 - The first sentence says what the thing is. Facts carry numbers, units and dates.
 - Every note links back to at least one of [[User]], [[Identity]] or [[Soul]], or to a note that does, and has at least two links out.
 - Link the first mention of another note's name. The checker reports unlinked mentions.
+- A Markdown link to a file must stay inside the vault. Obsidian cannot follow `[text](../../docs/…)` out of it, so the checker reports it as broken; cite a repository file in `sources`, or by its path in code.
 - Notes hold no secrets and no personal data about others. Private notes go in `brain/private/`, which Git ignores.
 - New notes start from `_templates/Note.md`.
 

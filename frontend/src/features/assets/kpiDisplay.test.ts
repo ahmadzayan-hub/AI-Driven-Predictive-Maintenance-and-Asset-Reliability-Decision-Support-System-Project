@@ -27,6 +27,11 @@ describe('a controlled measure, as a reader sees it', () => {
     expect(formatValue(measure({ scale: 'percent', value: 76.56 }))).toBe('76.6%')
   })
 
+  it('keeps Western digits in Arabic, as the rest of the interface does (ADR 0018)', () => {
+    expect(formatValue(measure({ scale: 'percent', value: 77.01 }), 'ar')).toBe('77.0%')
+    expect(formatValue(measure({ scale: 'money', value: 2410.41 }), 'ar')).toBe('2,410.41')
+  })
+
   it('gives money two decimals, because a cent is a figure someone checks', () => {
     expect(formatValue(measure({ scale: 'money', value: 2513.14 }))).toBe('2,513.14')
   })

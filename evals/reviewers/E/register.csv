@@ -1,0 +1,130 @@
+Check,Expected
+Review year,2025
+Prior year,2024
+Next maintenance plan year,2026
+Trams in fleet,42
+Depots,2
+Series A trams,28
+Series B trams,14
+"Tram-kilometres run, 2025 (km)","4,820,000"
+Series A tram-kilometres (km),"2,660,000"
+Series B tram-kilometres (km),"2,160,000"
+Series A + Series B tram-kilometres (km),"4,820,000"
+Timetabled service hours per tram,"5,110"
+"Scheduled service hours, fleet (42 x 5,110)","214,620"
+Unplanned downtime within scheduled service hours (h),"7,940"
+"Operational availability (214,620 - 7,940) / 214,620",96.3%
+HVAC corrective downtime (h),"3,120"
+HVAC planned filter and coil maintenance (h),"2,480"
+"HVAC corrective + planned hours (3,120 + 2,480)","5,600"
+"HVAC availability with planned maintenance counted as downtime (214,620 - 5,600) / 214,620",97.4%
+"HVAC inherent availability, corrective only (214,620 - 3,120) / 214,620 [correct method]",98.5%
+Traction motors in fleet (42 x 4),168
+Traction motors failed,12
+Running hours to failure of failed traction motors (h),"38,400"
+"Traction-motor MTBF over failed units only 38,400 / 12 (h)","3,200"
+Traction motors that did not fail (168 - 12),156
+"Running hours of non-failed traction motors (156 x 5,110)","797,160"
+"Traction-motor MTBF with censored running time (38,400 + 797,160) / 12 (h) [correct method]","69,630"
+Pantographs in fleet (42 x 2),84
+Pantographs failed,16
+Running hours to failure of failed pantographs (h),"44,520"
+Pantographs that did not fail (84 - 16),68
+"Running hours of non-failed pantographs (68 x 5,110)","347,480"
+"Pantograph MTBF (44,520 + 347,480) / 16 (h)","24,500"
+Door drive belts,336
+"Door cycles on drive belts, 2025","20,400,000"
+Door drive belt failures,34
+"Door drive belt MTBF 20,400,000 / 34 (cycles)","600,000"
+"Belt failures below 400,000 cycles of age",4
+"Belt failures 400,000 to 800,000 cycles",9
+"Belt failures above 800,000 cycles",21
+"Belt age band boundary, lower (cycles)","400,000"
+"Belt age band boundary, upper (cycles)","800,000"
+"Belt inspection interval, half MTBF 600,000 / 2 (cycles)","300,000"
+"Bogies returned from heavy overhaul, Q1 2025",20
+Post-overhaul bogie failures in first 6 weeks,9
+Early post-overhaul window (weeks),6
+Post-overhaul bogie failures in following 40 weeks,3
+Later post-overhaul window (weeks),40
+"Heavy-overhaul interval, current (years)",8
+"Heavy-overhaul interval, proposed (years)",6
+"Door-controller retrofit faults, 2025",15
+Door-controller faults within 30 days of fitting,11
+Early-life window for door controllers (days),30
+Share of door-controller faults within 30 days 11 / 15,73.3%
+"Tram PM work orders scheduled, 2025","1,860"
+Tram PM work orders closed by year end,"1,804"
+"Tram PM compliance, closed any time in year 1,804 / 1,860",97.0%
+PM compliance target,95.0%
+Depot cranes,6
+Depot equipment preventive tasks due,240
+Depot tasks done within tolerance,226
+PM tolerance on scheduled interval,±10%
+Depot PM compliance within tolerance 226 / 240,94.2%
+Depot tasks outside tolerance 240 - 226,14
+First-time-fix linking window (days),30
+"Corrective work orders, 2025","2,350"
+Corrective work orders fixed on first visit,"2,021"
+"First-time-fix rate 2,021 / 2,350",86.0%
+"Corrective work orders needing return visit 2,350 - 2,021",329
+"Traction repairs, 2025",386
+Traction mean time to repair (h),5.6
+Traction repairs over 40 hours,9
+Long-repair threshold (h),40
+"Contract median time-to-repair target, traction (h)",4.0
+Traction mean minus median target 5.6 - 4.0 (h),1.6
+HVAC median time to repair (h),3.2
+"Contract median time-to-repair target, HVAC (h)",3.5
+HVAC margin inside target 3.5 - 3.2 (h),0.3
+HVAC mean time to repair (h),4.9
+"Door faults, Series A, 2025",336
+"Door faults, Series B, 2025",210
+Door-fault exposure base (km),"100,000"
+Series A door faults per tram 336 / 28,12.0
+Series B door faults per tram 210 / 14,15.0
+"Series A door faults per 100,000 km 336 / 26.6",12.6
+"Series B door faults per 100,000 km 210 / 21.6",9.7
+Corrective backlog at year end (work orders),438
+Backlog labour content (h),"6,180"
+Crew hours a week available for backlog,"1,300"
+"Weeks to clear backlog 6,180 / 1,300",4.8
+Backlog ceiling (weeks),4
+"Bogie vibration alarms, 2024",96
+"Bogie vibration alarms, 2025",214
+Alarm ratio 214 / 96,2.2
+"Bearing defects found by axle-box monitoring, 2025",13
+Bearing defects flagged before functional failure,11
+Detection before functional failure 11 / 13,84.6%
+Median warning before failure (days),19
+Manual inspection cycle (days),14
+Track-brake contactor replacement cost (EUR),€310
+Contactor scheduled inspection cost per tram per year (EUR),"€1,150"
+LED panels per tram,24
+LED panels in fleet (42 x 24),"1,008"
+LED panel cost (EUR),€85
+Lighting circuits per tram,2
+Crane statutory examinations passed,6
+Crane defects noted and corrected,2
+"Traction inverter spares, before",3
+"Traction inverter spares, after",1
+Traction inverter average annual demand,0.5
+Traction inverter module unit cost (EUR),"€84,000"
+"Capital released (3 - 1) x 84,000 (EUR)","€168,000"
+Traction inverter lead time (weeks),40
+HVAC compressor spares held,2
+HVAC compressor average annual demand,1.5
+HVAC compressor lead time (weeks),26
+Expected compressor demand over lead time 1.5 x 26 / 52,0.75
+"Poisson probability of demand <= 2 over lead time, mean 0.75",95.9%
+Inverter expected lead-time demand 0.5 x 40 / 52 [context],0.38
+"Fleet door faults, 2024",610
+"Fleet door faults, 2025 (336 + 210)",546
+Door-fault reduction 610 - 546,64
+Door-fault reduction 64 / 610,10.5%
+"HVAC corrective work orders, 2025",188
+"HVAC share of corrective work orders 188 / 2,350",8.0%
+"All work orders, corrective + tram PM + depot PM (2,350 + 1,860 + 240)","4,450"
+"HVAC share of all work orders 188 / 4,450 [correct for 'maintenance workload' by count]",4.2%
+Contractual availability floor,96.0%
+Availability margin over floor 96.3% - 96.0% (percentage points),0.3

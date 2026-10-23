@@ -38,12 +38,15 @@ async function runSampleToApproval(page: Page) {
 test('the overview shows the figures, the latest findings and what waits for approval', async ({
   page,
 }) => {
+  // This combines a real run, navigation and axe. The retained Windows trace
+  // shows axe alone crossing the default deadline after the UI assertions pass.
+  test.setTimeout(90_000)
   await skipOnboarding(page)
   await page.goto('/')
   await runSampleToApproval(page)
 
-  await openTab(page, /^Overview/)
-  await expect(page.getByRole('heading', { name: 'Overview', level: 2 })).toBeVisible()
+  await openTab(page, /^Command Centre/)
+  await expect(page.getByRole('heading', { name: 'Command Centre', level: 2 })).toBeVisible()
   await expect(page.locator('.kpi')).toHaveCount(4)
   // A run is at the gate, so the one amber tile is lit.
   await expect(page.locator('.kpi--attention')).toContainText('Waiting for approval')
@@ -84,7 +87,8 @@ test('a stored dataset is analysed again by reference', async ({ page }) => {
   await page.getByRole('button', { name: 'Start run' }).click()
   await expect(page.locator('.cockpit__header .panel__desc')).toContainText('sample sales dataset')
   // Stop it here: what matters is which dataset it started from.
-  await page.getByRole('button', { name: 'Pause' }).click()
+  // Pause analysis, independently of the collaboration panel's "Pause live view".
+  await page.getByRole('button', { name: 'Pause', exact: true }).click()
   await page.getByRole('button', { name: 'Cancel', exact: true }).click()
   await expect(page.getByText('state: cancelled')).toBeVisible()
 
@@ -105,12 +109,22 @@ test('the phone bar holds five places and More opens the rest', async ({ page })
 
   const bar = page.getByRole('navigation', { name: 'Primary' })
   await expect(bar.getByRole('button')).toHaveCount(5)
-  await bar.getByRole('button', { name: 'Overview' }).click()
-  await expect(bar.getByRole('button', { name: 'Overview' })).toHaveAttribute('aria-current', 'page')
+  // The four places a manager opens most, with a short label that fits.
+  await expect(bar.getByRole('button')).toHaveText(['Command Centre', 'Assets', 'Approvals', 'Workspace', 'More'])
+  await bar.getByRole('button', { name: 'Command Centre' }).click()
+  await expect(bar.getByRole('button', { name: 'Command Centre' })).toHaveAttribute('aria-current', 'page')
 
   const more = bar.getByRole('button', { name: 'More' })
   await more.click()
   const drawer = page.getByRole('dialog', { name: 'Navigation' })
+  await expect(drawer).toBeVisible()
+  // Dashboards and Operations remain reachable through More with the manager navigation shortcuts.
+  await drawer.getByRole('button', { name: /^Operations/ }).click()
+  await expect(drawer).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Maintenance operations', level: 2 })).toBeVisible()
+  await expect(more).toBeFocused()
+
+  await more.click()
   await expect(drawer).toBeVisible()
   await drawer.getByRole('button', { name: /^Memory/ }).click()
   await expect(drawer).toHaveCount(0)
@@ -125,7 +139,7 @@ test('the new views do not scroll sideways at 320 px, in either language', async
   await page.goto('/')
   await page.setViewportSize({ width: 320, height: 640 })
 
-  for (const name of [/^Overview/, /^Datasets/, /^Analytics/]) {
+  for (const name of [/^Command Centre/, /^Datasets/, /^Analytics/]) {
     await openTab(page, name)
     await expect(page.locator('main .panel__title:visible')).toBeVisible()
     await expect(page.locator('main .skeleton:visible')).toHaveCount(0)
@@ -135,7 +149,7 @@ test('the new views do not scroll sideways at 320 px, in either language', async
   // Arabic labels are longer; the bar and the views must still fit.
   await page.getByRole('button', { name: 'Change language' }).click()
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl')
-  for (const name of [/^نظرة عامة/, /^مجموعات البيانات/]) {
+  for (const name of [/^مركز القيادة/, /^مجموعات البيانات/]) {
     const menu = page.getByRole('button', { name: 'فتح قائمة التنقل' })
     await menu.click()
     await page.getByRole('dialog').getByRole('button', { name }).click()
@@ -159,7 +173,7 @@ test.describe('a view that cannot load', () => {
     await page.route(/\/assets\/OverviewView-[^/]+\.js$/, (route) => route.abort())
     await page.goto('/')
 
-    await openTab(page, /^Overview/)
+    await openTab(page, /^Command Centre/)
     await expect(page.getByRole('alert')).toContainText('This view could not be shown')
     await expect(page.getByRole('button', { name: 'Reload the page' })).toBeVisible()
     await expectNoViolations(page, 'a view that could not load')
@@ -168,4 +182,20 @@ test.describe('a view that cannot load', () => {
     await expect(page.getByRole('heading', { name: 'Datasets', level: 2 })).toBeVisible()
     await expect(page.getByRole('alert')).toHaveCount(0)
   })
+})
+
+test('the sidebar groups views by task, with colour instead of headings', async ({ page }) => {
+  test.skip(test.info().project.name !== 'desktop', 'the sidebar is fixed on desktop only')
+  await skipOnboarding(page)
+  await page.goto('/')
+  const nav = page.getByRole('navigation', { name: 'Main' })
+  const groups = nav.locator('.sidebar__group')
+  await expect(groups).toHaveCount(3)
+  await expect(groups.nth(0).getByRole('button')).toHaveText(['Operations', 'Command Centre', 'Asset Intelligence', 'Dashboards', 'Approvals'])
+  await expect(groups.nth(1).getByRole('button')).toHaveText(['Datasets', 'Analytics'])
+  await expect(groups.nth(2).getByRole('button')).toHaveText([/^Workspace/, /^Memory/, 'Activity', 'Preferences'])
+  await expect(nav.locator('p, h2, h3')).toHaveCount(0)
+  // Each view keeps its own icon.
+  const icons = await nav.locator('.navbtn svg path').evaluateAll((paths) => paths.map((path) => path.getAttribute('d')))
+  expect(new Set(icons).size).toBe(icons.length)
 })
