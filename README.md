@@ -521,6 +521,24 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+**23 October 2026 · final main integration.** The
+[combined acceptance run](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39922112369)
+passes on `52389750`, retaining main through `6fec34b7`, including P2 safeguards
+and chart-scale fixes: **169 backend checks, 1 skipped** (hosted LibreOffice
+unavailable), **369 component checks**, **4 real-API RMD journeys**, **1 sidebar
+contract**, and **12 Miyaar checks**. TypeScript, production build and bundle
+budget pass. The integration preserves the actual requester's context across
+runtime deadline workers; the regression first failed permitted lookups and
+now verifies successive users and denied administrator substitution.
+
+The bounded local integration run passed **103 checks**. Separate local legacy
+TestClient attempts were blocked at the AnyIO portal, and **3 UDP probe checks**
+were blocked by sandbox socket permissions; these are not claimed as local
+passes. Hosted acceptance uses the normal HTTP server. The
+[aggregate CI run on this integrated source](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39922112323)
+has passed its Python/PostgreSQL step and is continuing the broader regression;
+the completed full-run record below applies to its stated earlier revision.
+
 **22–23 October 2026 · RMD evidence implementation (synthetic inputs).** The
 [full hosted CI rerun](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39873026849)
 passes on `29ab16d1`: **1,842 Python tests with PostgreSQL, 26 conditional skips**;
@@ -541,7 +559,7 @@ build. The focused hosted backend run executed **123 checks**, with **1 skipped*
 because LibreOffice is not installed on that runner. The full Python suite's
 PostgreSQL step also passed in hosted CI.
 
-The [final RMD acceptance run](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39873026926)
+The [final combined RMD acceptance run](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39922112369)
 passed **all 4 real-API browser journeys**: English and Arabic on desktop and
 phone, including import, mapping, calculations, evidence, knowledge, action
 export, reload, contextual assistant, keyboard approval and server-confirmed
@@ -551,15 +569,15 @@ captures are retained in that run's `rmd-synthetic-checks` artifact for seven da
 The phone journey exposed and verified a fix for the primary action being
 covered by bottom navigation.
 
-Measured gzip: JS first load **98.9 / 100 KB**, total **244.6 / 248 KB**, largest
-chunk **17.1 / 30 KB**; CSS first load **10.0 / 10.5 KB**, total **32.8 / 33.5 KB**;
+Measured gzip: JS first load **98.9 / 100 KB**, total **244.9 / 248 KB**, largest
+chunk **17.2 / 30 KB**; CSS first load **10.0 / 10.5 KB**, total **32.8 / 33.5 KB**;
 fonts **119.4 / 120 KB**. The RMD views are lazy loaded; the total allocation grew
 to accommodate them without increasing the first-load limits. These bundle
 checks do not measure production LCP/CLS/INP or manager comprehension. Automated
 accessibility checks do not establish complete WCAG conformance. The broader
 existing browser suite is recorded separately by the CI workflow. These sizes
-describe revision `29ab16d1`, which preserves main through `bfa00d79`,
-including decision inputs, decision records and CI/layout fixes.
+describe revision `52389750`, which preserves main through `6fec34b7`,
+including decision inputs/records, CI/layout fixes, P2 controls and chart scales.
 
 The [repository-wide run on that combined revision](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39870732034)
 executed **1,842 Python tests with PostgreSQL, 26 conditional skips, no failures**,

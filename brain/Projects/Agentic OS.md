@@ -3,7 +3,7 @@ type: project
 aliases: [Agentic OS project]
 tags: [project]
 status: active
-updated: 2026-10-22
+updated: 2026-10-23
 review_every_days: 14
 sources: [README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/RMD_EVIDENCE.md, docs/assessments/2026-10-20-project-review.md, docs/assessments/2026-10-21-saas-competitive-benchmark.md, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0024-the-dataset-api.md, docs/adr/0028-views-load-on-demand.md, scripts/verify.py, docs/adr/0058-executive-dashboard-agent-and-scoped-evidence.md]
 ---
@@ -29,6 +29,9 @@ The engine in this repository, described in [[Identity]]: a governed business-an
   Real API-backed desktop and phone journeys pass in English and Arabic through
   evidence review and keyboard approval to confirmed publication; manual
   comprehension and production performance remain separate acceptance work.
+  Integration retains main's run safeguards and chart scales. The requester
+  remains scoped across deadline workers; [[Knowledge retrieval]] describes
+  that authorization boundary and its regression evidence.
 
 - Workspace conversation has an explicit hosted [[Model gateway]] option and
   structured [[Agent runtimes and MCP|LangGraph decisions]]. Model failure is

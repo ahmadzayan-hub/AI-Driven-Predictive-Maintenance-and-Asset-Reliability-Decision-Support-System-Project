@@ -3,9 +3,9 @@ type: concept
 aliases: []
 tags: [agents]
 status: active
-updated: 2026-10-22
+updated: 2026-10-23
 review_every_days: 30
-sources: [server/knowledge.py, server/rmd_service.py, server/rmd_assistant.py, docs/RMD_EVIDENCE.md, docs/adr/0057-markdown-knowledge-collections.md, docs/adr/2026-10-20-personal-data-model-boundary.md, docs/adr/2026-10-22-rmd-evidence-and-insights.md]
+sources: [server/knowledge.py, server/rmd_service.py, server/rmd_assistant.py, server/deadline.py, docs/RMD_EVIDENCE.md, docs/adr/0057-markdown-knowledge-collections.md, docs/adr/2026-10-20-personal-data-model-boundary.md, docs/adr/2026-10-22-rmd-evidence-and-insights.md, docs/adr/2026-10-23-rmd-runtime-context.md]
 ---
 
 # Knowledge retrieval
@@ -28,6 +28,11 @@ store. Fresh personal or organization grants cover source metadata, clauses,
 downloads, exports and linked reports. [[Tenant isolation]] does not follow
 from authentication alone; a platform administrator does not inherit a
 collection grant.
+
+Runtime deadlines copy the caller's request context into their worker thread.
+The actual requester must survive that boundary; using the conversation creator
+as a substitute would weaken [[Tenant isolation]]. Permitted lookups and denied
+administrator substitution are tested across successive principals.
 
 The contextual assistant shows authorized reference excerpts live without
 retaining them in ordinary chat. Optional gateway use receives only fixed

@@ -134,6 +134,12 @@ light/dark overview renderings are covered. Evidence is in the README-linked
 acceptance runs, under the `rmd-synthetic-checks` artifact's
 `frontend/test-results` directory. All results below apply only to that scope.
 
+The final combined acceptance on `52389750` also passes after preserving main's
+P2 controls and chart scales through `6fec34b7`. Deadline workers retain the
+actual requester's context, as recorded in the
+[integration decision](adr/2026-10-23-rmd-runtime-context.md). Current run links,
+counts, measured bundle sizes and the separate aggregate-CI scope are in README.
+
 | ID | Priority | Screen/file location | Observed evidence | User consequence | Change or retained behavior | Test | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | UX-01 | P2 | App and RMD feature folder | Typed React components, shared Dialog/charts/tokens, lazy routes; independent pack/action reads and obsolete-read cancellation | Existing workflows and initial loading remain usable | Retain stack, direct imports and existing components; no new runtime dependency | Source inspection, typecheck and measured build | PASS, inspected scope |
