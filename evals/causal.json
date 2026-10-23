@@ -516,6 +516,251 @@
    "text": "كانت تكلفة قطع الغيار في المستودع الشمالي أعلى منها في الجنوبي.",
    "label": false,
    "source": "blind v6 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the unchanged rules before being stored; moved into dev on 2026-10-20 before the rules were fixed, so no longer independent"
+  },
+  {
+   "text": "The pantograph wear on unit 4412 led to repeated dewirements over the winter timetable.",
+   "label": true,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "Delays on the Northern line were brought about by a cracked rail joint at km 14.",
+   "label": true,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "The bearing seizure was responsible for the three-day outage of the bogie test rig.",
+   "label": true,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "Skipping the quarterly lubrication gave rise to the gearbox failures we saw in March.",
+   "label": true,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "Water ingress into the junction box triggered the signal fault at 02:10.",
+   "label": true,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "A backlog of unreleased spare parts has been driving up downtime costs across the depot.",
+   "label": true,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "The overrun on the work order stemmed from a missing torque wrench certificate.",
+   "label": true,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "Corrosion caused by poor drainage is the root of the recurring door actuator faults.",
+   "label": true,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "Following the incorrect firmware update, the brake controller failed, which resulted in the train being withdrawn.",
+   "label": true,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "Heat-damaged seals, the product of a faulty cooling fan, sent the compressor offline.",
+   "label": true,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "The spike in emergency callouts can be traced back to deferred inspections last quarter.",
+   "label": true,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "Having been starved of grease, the points machine locked up and held the whole shift.",
+   "label": true,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "Operator error at handover set off a chain of events that culminated in the derailment of the shunter.",
+   "label": true,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "Late delivery of wheelsets is what pushed the overhaul beyond budget.",
+   "label": true,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "A loose ballast shoulder bred the track geometry defects that now need tamping.",
+   "label": true,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "Vibration from the worn coupling is what ultimately killed the axle bearing.",
+   "label": true,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "نتج انقطاع الإشارة عن تلف كابل التغذية الرئيسي.",
+   "label": true,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "أدى تأخر وصول قطع الغيار إلى تمديد فترة توقف القطار ثلاثة أيام.",
+   "label": true,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "السبب في تعطل نظام الفرامل هو تآكل الوسادات بعد تجاوز فترة الاستبدال.",
+   "label": true,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "تسبب إهمال الفحص الدوري في تكرار أعطال محرك الأبواب.",
+   "label": true,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "ارتفاع تكاليف الصيانة ناجم عن كثرة أوامر العمل الطارئة هذا الربع.",
+   "label": true,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "إن تسرب الزيت هو ما دفع الفريق إلى إيقاف المحرك قبل موعده.",
+   "label": true,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "وقد أفضى سوء التسليم بين الورديات إلى تفويت الإنذار المبكر للعطل.",
+   "label": true,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "عزا المهندس توقف المضخة إلى ارتفاع درجة حرارة المحمل.",
+   "label": true,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "The driver will drive the train to the depot after the inspection is signed off.",
+   "label": false,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "The lead time for brake pads is currently eight weeks.",
+   "label": false,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "Shift lead Karim will run the handover briefing at 06:00.",
+   "label": false,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "The test result for the insulation check was within tolerance.",
+   "label": false,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "The next bogie inspection is due on 3 November.",
+   "label": false,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "We are behind schedule on the signalling upgrade by about two weeks.",
+   "label": false,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "Could a worn pantograph cause these dewirements? We have not yet tested that.",
+   "label": false,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "Assets with older wheelsets had higher failure counts, though this does not show that age causes failure.",
+   "label": false,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "Vibration readings and bearing temperature moved together over the last six months.",
+   "label": false,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "Records with deferred inspections were associated with higher callout rates.",
+   "label": false,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "We forecast downtime to rise by 5 percent next quarter if the fleet mix stays the same.",
+   "label": false,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "Please replace the filter at the next scheduled service and log the work order.",
+   "label": false,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "Nothing in the data suggests the firmware update was responsible for the faults.",
+   "label": false,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "Correlation between spare parts stock and downtime is strong, but we make no claim about cause.",
+   "label": false,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "As an exercise, reason through what would happen if the compressor tripped twice in one shift.",
+   "label": false,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "Total maintenance cost for the depot was 1.2 million for the year.",
+   "label": false,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "يقود السائق القطار إلى المحطة الرئيسية بعد انتهاء الفحص.",
+   "label": false,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "مهلة التوريد لقطع الغيار حالياً ستة أسابيع.",
+   "label": false,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "موعد استحقاق الفحص الدوري التالي هو الأسبوع القادم.",
+   "label": false,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "نتيجة اختبار العزل كانت ضمن الحدود المسموحة.",
+   "label": false,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "هل يمكن أن يكون تآكل المحمل هو سبب الأعطال؟ لم نختبر ذلك بعد.",
+   "label": false,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "السجلات التي تحمل أوامر عمل متأخرة ارتبطت بتكاليف أعلى، ولا يعني ذلك وجود علاقة سببية.",
+   "label": false,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "نتوقع ارتفاع ساعات التوقف بنسبة خمسة بالمئة في الربع القادم.",
+   "label": false,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "المشروع متأخر عن الجدول الزمني بأسبوعين.",
+   "label": false,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
+  },
+  {
+   "text": "يرجى استبدال المرشح خلال الصيانة المجدولة وتسجيل أمر العمل.",
+   "label": false,
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent"
   }
  ],
  "holdout": [
@@ -1096,256 +1341,11 @@
    "source": "adversarial probe v5, written with the round-6 patterns in view, choosing causal constructions the patterns do not name; NOT a blind holdout and not comparable with the holdout sets, which were written from the label definitions only"
   }
  ],
- "blind_v7": [
-  {
-   "text": "The pantograph wear on unit 4412 led to repeated dewirements over the winter timetable.",
-   "label": true,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "Delays on the Northern line were brought about by a cracked rail joint at km 14.",
-   "label": true,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "The bearing seizure was responsible for the three-day outage of the bogie test rig.",
-   "label": true,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "Skipping the quarterly lubrication gave rise to the gearbox failures we saw in March.",
-   "label": true,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "Water ingress into the junction box triggered the signal fault at 02:10.",
-   "label": true,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "A backlog of unreleased spare parts has been driving up downtime costs across the depot.",
-   "label": true,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "The overrun on the work order stemmed from a missing torque wrench certificate.",
-   "label": true,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "Corrosion caused by poor drainage is the root of the recurring door actuator faults.",
-   "label": true,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "Following the incorrect firmware update, the brake controller failed, which resulted in the train being withdrawn.",
-   "label": true,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "Heat-damaged seals, the product of a faulty cooling fan, sent the compressor offline.",
-   "label": true,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "The spike in emergency callouts can be traced back to deferred inspections last quarter.",
-   "label": true,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "Having been starved of grease, the points machine locked up and held the whole shift.",
-   "label": true,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "Operator error at handover set off a chain of events that culminated in the derailment of the shunter.",
-   "label": true,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "Late delivery of wheelsets is what pushed the overhaul beyond budget.",
-   "label": true,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
+ "contested": [
   {
    "text": "The fault in the traction motor accounts for the 40 percent rise in unplanned maintenance cost.",
    "label": true,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "A loose ballast shoulder bred the track geometry defects that now need tamping.",
-   "label": true,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "Vibration from the worn coupling is what ultimately killed the axle bearing.",
-   "label": true,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "نتج انقطاع الإشارة عن تلف كابل التغذية الرئيسي.",
-   "label": true,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "أدى تأخر وصول قطع الغيار إلى تمديد فترة توقف القطار ثلاثة أيام.",
-   "label": true,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "السبب في تعطل نظام الفرامل هو تآكل الوسادات بعد تجاوز فترة الاستبدال.",
-   "label": true,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "تسبب إهمال الفحص الدوري في تكرار أعطال محرك الأبواب.",
-   "label": true,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "ارتفاع تكاليف الصيانة ناجم عن كثرة أوامر العمل الطارئة هذا الربع.",
-   "label": true,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "إن تسرب الزيت هو ما دفع الفريق إلى إيقاف المحرك قبل موعده.",
-   "label": true,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "وقد أفضى سوء التسليم بين الورديات إلى تفويت الإنذار المبكر للعطل.",
-   "label": true,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "عزا المهندس توقف المضخة إلى ارتفاع درجة حرارة المحمل.",
-   "label": true,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "The driver will drive the train to the depot after the inspection is signed off.",
-   "label": false,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "The lead time for brake pads is currently eight weeks.",
-   "label": false,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "Shift lead Karim will run the handover briefing at 06:00.",
-   "label": false,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "The test result for the insulation check was within tolerance.",
-   "label": false,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "The next bogie inspection is due on 3 November.",
-   "label": false,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "We are behind schedule on the signalling upgrade by about two weeks.",
-   "label": false,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "Could a worn pantograph cause these dewirements? We have not yet tested that.",
-   "label": false,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "Assets with older wheelsets had higher failure counts, though this does not show that age causes failure.",
-   "label": false,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "Vibration readings and bearing temperature moved together over the last six months.",
-   "label": false,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "Records with deferred inspections were associated with higher callout rates.",
-   "label": false,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "We forecast downtime to rise by 5 percent next quarter if the fleet mix stays the same.",
-   "label": false,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "Please replace the filter at the next scheduled service and log the work order.",
-   "label": false,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "Nothing in the data suggests the firmware update was responsible for the faults.",
-   "label": false,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "Correlation between spare parts stock and downtime is strong, but we make no claim about cause.",
-   "label": false,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "As an exercise, reason through what would happen if the compressor tripped twice in one shift.",
-   "label": false,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "Total maintenance cost for the depot was 1.2 million for the year.",
-   "label": false,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "يقود السائق القطار إلى المحطة الرئيسية بعد انتهاء الفحص.",
-   "label": false,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "مهلة التوريد لقطع الغيار حالياً ستة أسابيع.",
-   "label": false,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "موعد استحقاق الفحص الدوري التالي هو الأسبوع القادم.",
-   "label": false,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "نتيجة اختبار العزل كانت ضمن الحدود المسموحة.",
-   "label": false,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "هل يمكن أن يكون تآكل المحمل هو سبب الأعطال؟ لم نختبر ذلك بعد.",
-   "label": false,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "السجلات التي تحمل أوامر عمل متأخرة ارتبطت بتكاليف أعلى، ولا يعني ذلك وجود علاقة سببية.",
-   "label": false,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "نتوقع ارتفاع ساعات التوقف بنسبة خمسة بالمئة في الربع القادم.",
-   "label": false,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "المشروع متأخر عن الجدول الزمني بأسبوعين.",
-   "label": false,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
-  },
-  {
-   "text": "يرجى استبدال المرشح خلال الصيانة المجدولة وتسجيل أمر العمل.",
-   "label": false,
-   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix"
+   "source": "blind v7 (2026-10-20): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on blind_v6; NOT used to fix any rule, so it can judge the next fix; moved into dev on 2026-10-23 before the rules were fixed against it, so no longer independent; taken out of dev on 2026-10-23 as a contested label: the lint's contract (scripts/claims_lint.py docstring) names \"accounts for\" as acceptable association wording, as on 2026-10-20 when an earlier \"accounts for\" case was removed. Kept here, unscored, so the decision can be reversed"
   }
  ]
 }

@@ -3,9 +3,9 @@ type: concept
 aliases: [Confusion matrix, Recall floors, Blind holdout, Reviewer benchmark]
 tags: [measurement, quality, agents]
 status: active
-updated: 2026-10-20
+updated: 2026-10-23
 review_every_days: 30
-sources: [docs/adr/0027-agents-are-measured.md, docs/adr/2026-10-20-agent-measurement-loop.md, server/agent_learning.py, scripts/agent_loop.py, scripts/evaluate_agents.py, scripts/score_review.py, evals/floors.json, evals/reviewers/README.md, evals/reviewers/summary.json]
+sources: [docs/adr/0027-agents-are-measured.md, docs/adr/2026-10-20-agent-measurement-loop.md, docs/adr/2026-10-23-blind-v7-into-dev-causal-and-intent-fix.md, server/agent_learning.py, scripts/agent_loop.py, scripts/evaluate_agents.py, scripts/score_review.py, evals/floors.json, evals/reviewers/README.md, evals/reviewers/summary.json]
 ---
 
 # Agent evaluation
@@ -35,6 +35,7 @@ How [[Agentic OS]] knows how often each of its agents is right: labelled synthet
     - It must count one quantity once, which the figures holdout showed.
 - **Measured on a schedule (2026-10-20):** `scripts/agent_loop.py` records every measurement in a ledger, compares it with the floors and the previous line, and stops at `done`, `needs_person`, `stalled` or `budget`. The worker repeats it when `AGENTIC_OS_EVAL_INTERVAL_SECONDS` is set, and the `agent_scorecard` tool lets a runtime or MCP client read it. It never edits a rule or a floor and never shows an improver a held-out sentence. New cases come through a queue that only a named person accepts, into dev only. `done` is not accuracy: intent is 72% on its holdout and still reports `done`.
 - **Fresh blind sets (2026-10-20):** independent agents wrote `blind_v6` (intent 48, jargon 40, causal 40). First scores: intent 68.5%, jargon 85%, causal wording 45% recall at 69% precision; the causal holdout's 100% had been fitted to. The intent and causal rules were then fixed against `blind_v6`, which moved into dev. A second set, `blind_v7`, judged the fix without being used for it: causal wording 28% to 60% recall and 70% to 88% precision on the same 50 sentences; intent 32 to 35 of 57 correct, a gain within noise. More patterns will not close the intent gap; a model behind the rules or a far larger set is the next step.
+- **blind_v7 into dev (2026-10-23):** both sets moved into dev and the rules were fixed against them as linguistic families (soft causal verbs, tracing, pseudo-clefts, Arabic أفضى and عزا, denials; chat shorthand and Gulf phrasings for intent). On those sentences causal went from 60% to 96% recall and 88% to 100% precision, intent from 61% to 100%; these are dev numbers, not blind. Intent holdout rose 77% to 83%. Causal and intent have no blind floor until `blind_v8` is added.
 - **Controlled comparison:** an edited subagent loads only in a new session. So prompt versions are compared by giving a general-purpose agent on the same model each version's instructions, and changing nothing else.
 
 ## Related

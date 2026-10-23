@@ -9,13 +9,13 @@ today; everything else is from the code it cites.
 
 | Suite | What it measures | Dev (floor) | Holdout (floor) | Blind (floor, since 22 October) |
 | --- | --- | --- | --- | --- |
-| intent | rules intent classifier, 10 labels | 274 cases, 100% (1.0) | 60 cases, 77% macro recall (0.76) | blind_v7, 57 cases, 61% macro recall (0.61) |
+| intent | rules intent classifier, 10 labels | 331 cases, 100% (1.0; includes blind_v7 since 23 October) | 60 cases, 83% macro recall (0.76) | none since 23 October: blind_v7 (61% before the fix) moved into dev, blind_v8 pending |
 | column_roles | column mapping suggestions | 64, 100% (1.0) | 33, 100% (1.0) | no blind set |
 | personal_data | privacy agent | 64, 100% (1.0) | 33, 100% (1.0) | no blind set |
 | router | provider from a model name | 23, 100% (1.0) | 12, 83% accuracy, 89% macro recall (0.88, after the GPT cases were relabelled OpenAI) | no blind set |
 | raw_guard | rows that must not reach a model | 13, 100% (1.0) | 7, 100% (1.0) | no blind set |
 | jargon | validator's jargon check | 68, 100% (1.0) | 24, 96% accuracy, 92% recall (0.91) | blind_v6, 40 cases, 85% recall, 100% precision (0.85) |
-| causal | causal wording lint | 106, 100% (1.0) | 32, 100% (0.68; read while the fixes were chosen, ADR 0056) | blind_v7, 50 cases, 60% recall, 88% precision (0.60); probe_v5 32 cases, 44% recall, adversarial and unfloored |
+| causal | causal wording lint | 155, 100% (1.0; includes blind_v7 since 23 October, one contested case set aside) | 32, 100% (0.68; read while the fixes were chosen, ADR 0056) | none since 23 October: blind_v7 (60% recall, 88% precision before the fix) moved into dev, blind_v8 pending; probe_v5 32 cases, 56% recall, adversarial and unfloored |
 | figures | figures checker | 19, 100% (1.0) | 11, 100% (1.0) | no blind set |
 | standards | standards lint | 36, 100% (1.0) | 24, 100% (0.9; written by the session that wrote the patterns, not blind) | blind_v1, 36 cases, 0% recall on the 19 refused sentences, all 17 compliant sentences left alone (0.0) |
 
@@ -67,7 +67,10 @@ Nothing in the lint was changed in response, by design: a fix chosen on
 Closed 22 October: floors on tuned sets (G1). The blind splits (causal and
 intent blind_v7, jargon blind_v6, the new standards blind_v1) now carry
 floors, the holdouts are described as what they are, and the script's
-docstring says which splits were read while fixing. The standards lint's 0%
+docstring says which splits were read while fixing. On 23 October causal and
+intent blind_v7 moved into dev to fix the rules against it, so those two
+suites have no blind split or blind floor until blind_v8 is added
+(`docs/adr/2026-10-23-blind-v7-into-dev-causal-and-intent-fix.md`). The standards lint's 0%
 blind recall is the open consequence and sits with item 1 below.
 
 1. The standards lint catches only the phrasings it names: 0% recall on

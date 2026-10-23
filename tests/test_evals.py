@@ -228,8 +228,7 @@ class RecallFixTests(unittest.TestCase):
             return {case["text"] for key, cases in data.items()
                     if key != skip and isinstance(cases, list)
                     for case in cases if isinstance(case, dict) and "text" in case}
-        for name, key, size in (("jargon", "blind_v6", 40), ("intent", "blind_v7", 57),
-                                ("causal", "blind_v7", 50), ("standards", "blind_v1", 36)):
+        for name, key, size in (("jargon", "blind_v6", 40), ("standards", "blind_v1", 36)):
             data = json.loads((ev.EVALS / f"{name}.json").read_text(encoding="utf-8"))
             if key not in data:
                 continue
@@ -248,10 +247,33 @@ class RecallFixTests(unittest.TestCase):
         for name, count in (("intent", 48), ("causal", 37)):
             data = json.loads((ev.EVALS / f"{name}.json").read_text(encoding="utf-8"))
             self.assertNotIn("blind_v6", data)
-            moved = [c for c in data["dev"] if "moved into dev" in c.get("source", "")]
+            moved = [c for c in data["dev"] if "moved into dev on 2026-10-20" in c.get("source", "")]
             self.assertEqual(len(moved), count, name)
             for case in moved:
                 self.assertIn("no longer independent", case["source"])
+
+    def test_blind_v7_cases_fixed_against_say_so_in_dev(self):
+        """intent and causal blind_v7 were used to fix the rules on 2026-10-23, so
+        those suites declare no blind split and carry no blind floor until the
+        next independent set is added. One causal case was set aside as a
+        contested label and is kept, unscored, under "contested"."""
+        floors = json.loads((ev.EVALS / "floors.json").read_text(encoding="utf-8"))
+        for name, in_dev, contested in (("intent", 57, 0), ("causal", 49, 1)):
+            with self.subTest(suite=name):
+                data = json.loads((ev.EVALS / f"{name}.json").read_text(encoding="utf-8"))
+                self.assertNotIn("blind_v7", data)
+                self.assertIsNone(ev.SUITES[name].get("blind"))
+                self.assertNotIn("blind", floors[name])
+                moved = [c for c in data["dev"] if "moved into dev on 2026-10-23" in c.get("source", "")]
+                self.assertEqual(len(moved), in_dev)
+                self.assertEqual(len(data.get("contested", [])), contested)
+                for case in moved + data.get("contested", []):
+                    self.assertIn("blind v7", case["source"])
+                    self.assertIn("no longer independent", case["source"])
+                dev_texts = {c["text"] for c in data["dev"]}
+                for case in data.get("contested", []):
+                    self.assertNotIn(case["text"], dev_texts)
+                    self.assertIn("contested label", case["source"])
 
     def test_the_causal_lint_catches_the_families_blind_v6_missed(self):
         """Attribution, phrasal and Arabic origin constructions (2026-10-20)."""
@@ -267,6 +289,42 @@ class RecallFixTests(unittest.TestCase):
                      "إن نقص التزييت هو المسؤول عن انهيار علبة التروس."):
             with self.subTest(text=text):
                 self.assertTrue(claims_lint.causal_phrases(text))
+
+    def test_the_causal_lint_catches_the_families_blind_v7_missed(self):
+        """Soft causal verbs, nominal origin, tracing, pseudo-clefts, a reason
+        clause, and the Arabic synonyms of "led to" and "attributed to"
+        (2026-10-23). Each sentence below is new, not a dev case."""
+        for text in ("Poor drainage spawned the mud pumping at the level crossing.",
+                     "Repeated overloads fostered fatigue cracking in the bogie frame.",
+                     "The bearing failure was the direct product of a missed lubrication round.",
+                     "Most door faults were traced back to a single batch of sensors.",
+                     "Water ingress is what finally ruined the junction box.",
+                     "Having been left uncovered, the cable drum corroded over the summer.",
+                     "أفضى ضعف التخطيط إلى تأخر أعمال الصيانة.",
+                     "أسفر انقطاع التيار عن توقف الخط ساعتين.",
+                     "يعزو التقرير ارتفاع الأعطال إلى قدم المعدات.",
+                     "نقص قطع الغيار هو ما جعل الإصلاح يتأخر."):
+            with self.subTest(text=text):
+                self.assertTrue(claims_lint.causal_phrases(text))
+
+    def test_the_causal_lint_keeps_denials_tracing_and_reports_negative(self):
+        """The forms that must stay negative beside the new rules: a denial, a
+        figure traced to its source, a person who cannot be traced, a cleft
+        that only reports, a product of numbers, and paying an amount."""
+        for text in ("Nothing in the logs suggests the new pads were responsible for the noise.",
+                     "There is no evidence that age drives the failures.",
+                     "We make no claim about cause in this section.",
+                     "Every figure can be traced back to its register.",
+                     "Once rewritten, a case cannot be traced to them.",
+                     "That is what happened on the night shift.",
+                     "That is what we measured.",
+                     "The product of the two rates is 0.4.",
+                     "The induced current stayed within limits.",
+                     "Bred in the depot, the team knows the fleet well.",
+                     "لا يوجد ما يشير إلى أن التحديث تسبب في الأعطال.",
+                     "دفع المقاول المبلغ إلى المورد."):
+            with self.subTest(text=text):
+                self.assertEqual(claims_lint.causal_phrases(text), [])
 
     def test_the_causal_lint_does_not_flag_vehicles_test_results_or_lags(self):
         """The false alarms found on the same set, and one found on the project's own docs."""
@@ -364,6 +422,43 @@ class RecallFixTests(unittest.TestCase):
                              ("التقرير بيقول إيه عن المصاريف؟", "explain_report")):
             with self.subTest(text=text):
                 self.assertEqual(assistant.understand(text)["action"], action)
+
+    def test_the_intent_families_blind_v7_missed(self):
+        """Chat shorthand, wanting-you and what-I-told-you phrasing in Arabic,
+        Gulf verbs of removing and cleaning, a started job, and named report
+        sections (2026-10-23). Each sentence below is new, not a dev case."""
+        import assistant
+        for text, action in (("wat can u do for me", "help"),
+                             ("شو اللي تقدر تسويه في بيانات الأعطال؟", "help"),
+                             ("don't let me forget the audit is on Sunday", "remember"),
+                             ("عايزك تفتكر إن المراجعة يوم الأحد", "remember"),
+                             ("وش قلت لك عن المورد؟", "recall"),
+                             ("do you still have that info about the pumps", "recall"),
+                             ("ditch the note about the old supplier", "forget"),
+                             ("شيل الملاحظة اللي عن المورد", "forget"),
+                             ("نظّف المحادثة كلها", "clear_history"),
+                             ("وقف تسجيل المحادثات من اليوم", "set_preference"),
+                             ("سوّ لي تحليل على بيانات الأبواب", "start_run"),
+                             ("is the analysis we kicked off this morning done", "run_status"),
+                             ("the run we started an hour ago, is it stuck?", "run_status"),
+                             ("quote the diagnostic section for me", "explain_report")):
+            with self.subTest(text=text):
+                self.assertEqual(assistant.understand(text)["action"], action)
+
+    def test_the_new_intent_rules_keep_ordinary_sentences_as_chat(self):
+        """Precision beside the new rules: a job interview, a sewing thread, a
+        line's trial operation, cleaning a train, and a weekend plan."""
+        import assistant
+        for text in ("did the job interview finish early",
+                     "reset the thread tension on the sewing machine",
+                     "ايش صار في التشغيل التجريبي للخط",
+                     "نظف القطار قبل الصباح",
+                     "I have no idea where to begin with my weekend"):
+            with self.subTest(text=text):
+                self.assertEqual(assistant.understand(text)["action"], "chat")
+        # Shorthand is read for the rule, but a note keeps the person's own words.
+        note = assistant.understand("remember that u-bolts r due in May")
+        self.assertEqual(note["arguments"]["information"], "u-bolts r due in May")
 
     def sourcing(self, text, register):
         with tempfile.TemporaryDirectory() as tmp:

@@ -34,8 +34,39 @@ CAUSAL = [
     # "Stockouts double outages" claims an effect; "double the downtime" compares.
     re.compile(r"\b(doubles?|doubled|triples?|tripled)\b(?!\s+the\b)", re.I),
     # Arabic puts the subject between the verb and its "إلى": "أدى نقص المخزون إلى".
-    re.compile(r"(أدى|أدت|يؤدي|تؤدي|أدّى|أدّت)\s+(?:\S+\s+){0,7}(إلى|الى)|بسبب|تسبب|تسبّب|يسبب|يسبّب"),
+    # "أفضى ... إلى" is the formal synonym of "أدى ... إلى", and "أسفر عن" of "resulted in".
+    re.compile(r"(أدى|أدت|يؤدي|تؤدي|أدّى|أدّت|أفضى|أفضت|يفضي|تفضي|يُفضي|تُفضي)\s+(?:\S+\s+){0,7}(إلى|الى)"
+               r"|بسبب|تسبب|تسبّب|يسبب|يسبّب|(أسفر|أسفرت|يسفر|تسفر|يُسفر|تُسفر)\s+(?:\S+\s+){0,3}?عن\b"),
     re.compile(r"\b(contribut(es|ed|ing)|produc(es|ed)|trigger(s|ed)|spark(s|ed)|set(s)? off)\b", re.I),
+    # Soft causal verbs: "bred", "spawned", "fuelled", "fostered", "provoked",
+    # "precipitated", "engendered". "Induced" is left out: an induced current is
+    # physics, not a claim.
+    re.compile(r"(?<!-)\b(bred(?!\s+(?:in|on|at|for)\b)|breeds|spawn(s|ed)|fuel(s|led|ed)|foster(s|ed)|provok(es|ed)|"
+               r"precipitat(es|ed)|engender(s|ed))\b", re.I),
+    # Nominal origin: "the product of a faulty fan", "a by-product of". A
+    # multiplication ("the product of two rates") is excluded.
+    re.compile(r"\b(the|a)\s+(?:\w+ly\s+|direct\s+)?(?:by-?)?product of\b"
+               r"(?!\s+(?:the\s+)?(?:two|three|four|\d|these|those|its|their|both|all)\b)", re.I),
+    # Tracing an effect to an origin: "can be traced back to deferred inspections".
+    # Tracing a figure to its source is what this repository asks for, so a
+    # source, register, row or document after "to" is not a cause, and neither
+    # is a person who "cannot be traced" (identifiability, not origin).
+    re.compile(r"(?<!not )(?<!cannot )(?<!can't )(?<!never )\b(?:be|been|is|are|was|were)\s+(?:\w+ly\s+)?(?:traced|traceable)\s+(?:back\s+)?to\b"
+               r"(?!\s+(?:them|him|her|you|us|me|anyone|anybody|someone|a person|an individual)\b)"
+               r"(?!\s+(?:(?:its|their|the|a|an|each|every|this|that|one)\s+)?(?:\w+\s+)?(?:source|register|row|cell|"
+               r"calculation|record|file|table|sheet|page|line|column|document|citation|reference|figure|"
+               r"heading|section|commit|ticket|run|dataset)s?\b)"
+               r"|\btrace[sd]?\s+back\s+to\b(?!\s+(?:(?:its|their|the|a|an|each|every)\s+)?(?:\w+\s+)?(?:source|register|row|"
+               r"document|record|file|calculation)s?\b)", re.I),
+    # The pseudo-cleft names a cause: "late delivery is what pushed the overhaul
+    # over budget", "is what ultimately killed the bearing". "That is what
+    # happened" or "is what we found" only report.
+    re.compile(r"\b(is|was|are|were)\s+what\s+(?:\w+ly\s+)?(?!(?:happened|occurred|remained|mattered|followed|"
+               r"changed|appeared|seemed|counted|existed|emerged|showed|surfaced|stood|matched|looked)\b)\w+ed\b", re.I),
+    # A sentence-opening passive participle gives a reason: "Having been starved
+    # of grease, the points machine locked up", "Having been left uncovered, ...".
+    # Irregular participles ("left", "worn", "shut") count, so any word follows.
+    re.compile(r"^having been\s+(?:\w+ly\s+)?\w+\b[^,]{0,80},", re.I),
     # Attribution: "was responsible for", "is to blame for", "the reason for". A bare
     # "behind" is left out: "the record was behind the tree" reports a lag.
     re.compile(r"\b(is|are|was|were|been|being)\s+(?:\w+ly\s+)?(responsible for|to blame for|"
@@ -63,7 +94,11 @@ CAUSAL = [
     re.compile(r"\S+\s+(?:\S+\s+){0,6}[وف]?ب?(يقلل|تقلل|يقلّل|تقلّل|يزيد|تزيد|يزود|تزود|يرفع|ترفع|يخفض|تخفض|يخفّض|تخفّض|"
                r"يحسن|تحسن|يحسّن|تحسّن|يسوي|تسوي|يخلي|تخلي|يخلّي|تخلّي)\s+(?!(في|خلال|بنسبة|عن|على|إلى|الى|حتى)\s)(?:من\s+)?\S+"),
     # Arabic attributes a cause by returning to it: "يعود التراجع إلى نقص البيانات".
-    re.compile(r"(يعود|تعود|يرجع|ترجع|يُعزى|تُعزى|يعزى|تعزى)\s+(?:\S+\s+){0,7}(إلى|الى)"),
+    # Or by attributing it: "عزا المهندس توقف المضخة إلى ارتفاع الحرارة".
+    re.compile(r"(يعود|تعود|يرجع|ترجع|يُعزى|تُعزى|يعزى|تعزى|عزا|عزت|عزى|يعزو|تعزو|نعزو|عزوا)\s+(?:\S+\s+){0,7}(إلى|الى)"),
+    # The Arabic pseudo-cleft: "تسرب الزيت هو ما دفع الفريق إلى الإيقاف".
+    re.compile(r"(هو|هي)\s+(ما|الذي|التي)\s+(دفع|دفعت|يدفع|تدفع|جعل|جعلت|يجعل|تجعل|أدى|أدت|اجبر|أجبر|أجبرت|"
+               r"اضطر|اضطرت|أوقف|أوقفت|تسبب|تسببت|أفسد|أفسدت|أتلف|أتلفت|قتل)\b"),
     # "جاء نتيجة تحديث النظام": a result attributed to a thing. The older rule
     # had only "نتيجة ل"; the noun may follow directly or after "عن".
     re.compile(r"نتيجة\s+(?!(لذلك|لهذا|ذلك|هذا)\b)(?!(الاختبار|اختبار|الفحص|فحص|التحليل|القياس|قياس|الاستطلاع|الاقتراع|الامتحان|المباراة|"
@@ -98,6 +133,10 @@ META = re.compile(
     r"\b(can ?not|can't|no finding|not)\s+(claim|prove|show|be stated as|establish|confirm)|"
     r"\bnot (what|a) caus|\bnot proof\b|\bassociation,? not\b|"
     r"\b(doesn't|does not|don't|do not|can't|cannot)\s+(tell|show|say|prove)\s+(us\s+)?(which|whether|if|what)\b|"
+    # A denial: "nothing in the data suggests", "we make no claim about cause".
+    r"\b(nothing|no evidence|no data|no sign|none of (the|this|these))\b.{0,40}\b(suggests?|shows?|indicates?|implies|points? to|supports?)\b|"
+    r"\bno (causal )?claims? (about|of|that|regarding|on)\b|\bno (evidence|indication|sign) (that|of)\b|\bmake no\b.{0,20}\bclaims?\b|"
+    r"لا (ندعي|ندّعي|نزعم|يوجد ما يشير|شيء يشير|دليل على)|(دون|بدون|من غير) (ادعاء|ادّعاء|الادعاء|زعم)|لا شيء في .{0,30}يشير|"
     r"لا يمكن (ادعاء|إثبات)|ليس سبباً|لم (يثبت|تثبت|يُثبت|تُثبت|يتضح)|لا (يثبت|تثبت|يدل على أن)|"
     # A hypothesis, or a question not yet tested, is not a claim (round 5 of ADR 0027).
     r"\bhypothes[ie]s\b|\bhypothesi[sz]e|\buntested\b|\bunproven\b|"
