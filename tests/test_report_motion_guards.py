@@ -284,3 +284,26 @@ class MotionAccessTests(unittest.TestCase):
         self.assertEqual(len(winners), 1)
         self.assertFalse(winners[0]["publication_allowed"])
         self.assertEqual(self.motion.record(job, "alice")["status"], winners[0]["status"])
+
+    def test_duplicate_submission_has_one_winner_and_cannot_reopen_review(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from threading import Barrier
+        from server.motion_local import MotionError
+        _, _, _, job, _ = self.fixture()
+        other = LocalMotion()
+        self.motion._update(job, "RENDERED_DRAFT")
+        barrier = Barrier(2)
+        def submit(instance):
+            barrier.wait()
+            try:
+                return instance.submit(job, "alice")
+            except MotionError:
+                return None
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(submit, [self.motion, other]))
+        self.assertEqual(sum(result is not None for result in results), 1)
+        checks = {key: value for key, value in self.checks.items() if key != "outcome"}
+        self.motion.decide(job, "bob", "approve", "Human review", checks, approval_allowed=True)
+        for instance in (self.motion, other):
+            with self.assertRaises(MotionError): instance.submit(job, "alice")
+        self.assertEqual(self.motion.record(job, "alice")["status"], "INTERNAL_APPROVED")

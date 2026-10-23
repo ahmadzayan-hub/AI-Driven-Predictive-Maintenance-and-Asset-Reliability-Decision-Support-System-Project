@@ -309,10 +309,12 @@ class LocalMotion:
         return path
 
     def submit(self, job_id, owner):
-        row = self.record(job_id, owner)
-        if row["status"] != "RENDERED_DRAFT":
-            raise MotionError("Video must be rendered before review submission")
-        self._update(job_id, "REVIEW_REQUESTED")
+        with self.lock, self.connect() as con:
+            con.execute("BEGIN IMMEDIATE")
+            row = con.execute("SELECT status FROM motion_jobs WHERE id=? AND owner=?", (job_id, owner)).fetchone()
+            if row is None or row["status"] != "RENDERED_DRAFT":
+                raise MotionError("Video must be rendered before review submission")
+            con.execute("UPDATE motion_jobs SET status='REVIEW_REQUESTED' WHERE id=?", (job_id,))
         return self.view(job_id, owner)
 
     def decide(self, job_id, reviewer, outcome, note, checks, approval_allowed=False):
