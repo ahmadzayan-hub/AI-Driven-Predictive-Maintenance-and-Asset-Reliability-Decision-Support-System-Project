@@ -1,10 +1,10 @@
 """Per-tenant quotas and usage reporting.
 
-Three limits, each chosen because it bounds a resource this system can
+Resource limits, each chosen because it bounds a resource this system can
 actually exhaust: runs started per day (compute), datasets stored, and
-total bytes stored (the database). Every one is counted from the durable
-rows themselves, so usage cannot drift away from reality the way a
-separate tally would.
+total bytes stored (the database). Runs and datasets are counted from durable rows. Model admission credits
+include in-flight reservations and conservative unreclaimed credits after a
+crash; they are not a measurement of billed or completed provider calls.
 
 What this deliberately does **not** do is put a price on anything. The
 deployment has no billing relationship, no metered provider by default,
@@ -18,7 +18,13 @@ they are enforced on the server before the resource is created — not
 checked in the browser, where they would be a suggestion.
 """
 
+import logging
+import threading
+from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import datetime, timedelta, timezone
+
+LOG = logging.getLogger("agentic.quota")
 
 # Generous by default: these exist to stop a runaway loop or an accident,
 # not to ration ordinary use. An operator lowers them per deployment.
@@ -84,6 +90,7 @@ def usage(store, owner, limits, now=None):
     """What this tenant has used, and what is left."""
     runs_today = store.count_runs_since(owner, _day_start(now))
     datasets = store.dataset_usage(owner)
+    model_credits = store.model_calls_today(owner, _day_start(now)[:10])
     return {
         "runs_today": {
             "used": runs_today,
@@ -101,18 +108,16 @@ def usage(store, owner, limits, now=None):
             "limit": limits["dataset_bytes"],
             "remaining": max(0, limits["dataset_bytes"] - datasets["bytes"]),
         },
-        # Stated rather than silently omitted: these are real costs the
-        # system does not currently measure. Model calls, their latency
-        # and the tokens providers report are counted per process in the
-        # gateway's ledger (GET /api/health, "model_calls"), not per
-        # tenant: a per-tenant token budget is still out of scope.
+        # Historical field name retained for clients. This is admission
+        # accounting including reservations, not actual/billed calls. The
+        # process gateway ledger separately records observed attempts.
         "model_calls": {
-            "used": store.model_calls_today(owner, _day_start(now)[:10]),
+            "used": model_credits,
             "limit": limits["model_calls_per_day"],
-            "remaining": max(0, limits["model_calls_per_day"]
-                             - store.model_calls_today(owner, _day_start(now)[:10])),
+            "remaining": max(0, limits["model_calls_per_day"] - model_credits),
         },
         "not_tracked": ["model tokens per tenant", "function execution time", "currency"],
+        "model_budget_basis": "admission credits, including in-flight or unreclaimed reservations; not billed calls",
         "tracked_per_process": ["model latency", "model tokens where reported"],
     }
 
@@ -146,27 +151,92 @@ def check_dataset(store, owner, limits, incoming_bytes):
             "allowance. Re-run an existing dataset, or remove one you no longer need.")
 
 
+class _AdmissionCredits:
+    """One shared, thread-safe token, including in copied consultant contexts."""
+
+    def __init__(self, owner, day, reserved):
+        self.owner, self.day, self.reserved = owner, day, reserved
+        self.consumed = 0
+        self.closed = False
+        self.lock = threading.Lock()
+
+    def consume(self, owner, day):
+        with self.lock:
+            if (self.closed or owner != self.owner or day != self.day
+                    or self.consumed >= self.reserved):
+                return False
+            self.consumed += 1
+            return True
+
+    def close(self):
+        with self.lock:
+            if self.closed:
+                return 0
+            self.closed = True
+            return self.reserved - self.consumed
+
+
 class ModelBudget:
-    """The gateway's budget hook (B6): a provider attempt is allowed while
-    the owner's model calls today are under the limit, and every attempt
-    is charged to the owner the tenant context names. Over the limit the
-    gateway makes no attempt and the built-in writer answers, which the
-    ledger shows as no call rather than a failed one."""
+    """Admission credits, not a bill or an observed provider-call counter.
+
+    Standalone calls reserve one credit durably. Run advancement reserves a
+    bounded block before its state transaction and consumes in memory inside
+    that transaction. Provider failures stay spent; unused credits are returned
+    once after commit/rollback. Crash/uncertain settlement is conservative.
+    """
 
     def __init__(self, store, limits, now=None):
         self.store = store
         self.limits = limits
         self._now = now
+        self._scope = ContextVar("model_admission_scope", default=None)
 
     def _owner(self):
         from server import tenant
         return tenant.owner_or_local()
 
+    def _day(self):
+        return _day_start(self._now() if self._now else None)[:10]
+
+    @contextmanager
+    def reservation(self, requested):
+        active = self._scope.get()
+        if active is not None:
+            # Never top up, overwrite or prematurely settle an outer scope.
+            yield active
+            return
+        owner, day = self._owner(), self._day()
+        try:
+            reserved = self.store.reserve_model_calls(
+                owner, day, self.limits["model_calls_per_day"], requested)
+        except Exception:
+            LOG.warning("Model admission unavailable; provider attempts blocked")
+            reserved = 0
+        credits = _AdmissionCredits(owner, day, reserved)
+        context = self._scope.set(credits)
+        try:
+            yield credits
+        finally:
+            unused = credits.close()
+            self._scope.reset(context)
+            if unused:
+                try:
+                    self.store.release_model_credits(owner, day, unused)
+                except Exception:
+                    # Never retry an unknown commit outcome or leak DB details.
+                    LOG.warning("Model credit settlement unavailable; no retry attempted")
+
     def allow(self, provider):
-        day = _day_start(self._now() if self._now else None)[:10]
-        return self.store.model_calls_today(self._owner(), day) < self.limits["model_calls_per_day"]
+        credits = self._scope.get()
+        if credits is not None:
+            return credits.consume(self._owner(), self._day())
+        try:
+            return self.store.reserve_model_call(
+                self._owner(), self._day(), self.limits["model_calls_per_day"])
+        except Exception:
+            LOG.warning("Model admission unavailable; provider attempt blocked")
+            return False
 
     def charge(self, entry):
-        day = _day_start(self._now() if self._now else None)[:10]
-        return self.store.count_model_call(self._owner(), day)
-
+        # Admission already spent this credit, regardless of provider outcome.
+        return None

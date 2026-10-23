@@ -34,6 +34,7 @@ and then with nothing configured (as in most tests) nothing here runs.
 import json
 import re
 from concurrent.futures import ThreadPoolExecutor
+from contextvars import copy_context
 
 from server.model_gateway import split_spec
 from server.model_privacy import blocks_model
@@ -558,7 +559,11 @@ class ModelRoles:
 
         if self.consultants:
             with ThreadPoolExecutor(max_workers=len(self.consultants)) as pool:
-                answers = list(pool.map(consult_one, self.consultants))
+                # Each task gets its own Context, sharing the same locked
+                # admission token and tenant identity. Threads do not inherit it.
+                futures = [pool.submit(copy_context().run, consult_one, name)
+                           for name in self.consultants]
+                answers = [future.result() for future in futures]
             notes = [{"provider": name, "text": text, "risks": risks}
                      for name, text, risks in answers if text]
         brief = None

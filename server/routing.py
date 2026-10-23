@@ -119,6 +119,10 @@ class RoutedGateway:
 
     # The run engine treats the gateway as an opaque narrator; anything
     # it asks of one, it may ask of this.
+    @property
+    def budget(self):
+        return self.gateway.budget
+
     def status(self):
         status = dict(self.gateway.status())
         status["router"] = self.name

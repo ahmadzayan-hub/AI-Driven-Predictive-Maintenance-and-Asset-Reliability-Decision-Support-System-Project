@@ -1588,3 +1588,14 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Decisions:** Preserve PR24/32 merged work and leave divergent PR30/31 untouched. Separate model-budget repair because the existing run transaction boundary invalidates naive durable reservation.
 - **Open / next:** Resolve the model admission boundary and test PostgreSQL/hosted identity/worker recovery on approved infrastructure. Review PR30 integration before any merge.
 - **Blockers:** Production merge/deploy and database migration need approval; no live credentials, provider calls or production writes performed.
+
+
+## 2026-10-23 · `portfolio-model-admission-review` · fix/bounded-model-admission-20261023
+
+**Goal:** Enforce model admission across API and worker without weakening run transactions or disabling normal model roles.
+
+- **Done:** Bounded durable reservation before run locking, shared context-propagated credits, once-only unused settlement, worker/routed gateway parity and truthful credit semantics. Existing public MBA assets preserved.
+- **Verified:** Synthetic rollback, restart, provider-failure, consultant concurrency, owner/day isolation and uncertain-commit regressions; existing worker role flow retained. Exact command results are recorded in the PR, and PostgreSQL skips are not counted as acceptance.
+- **Decisions:** Do not reserve the entire daily budget or top up within a run transaction. A crash conservatively retains the bounded unconsumed allowance. Keep state/lease and human publication approval unchanged.
+- **Open / next:** Review CI PostgreSQL evidence, hosted identity/schema/worker/recovery and domain acceptance before any production change.
+- **Blockers:** Main merge, production migration/configuration and deployment remain approval-gated. No live provider or production database calls performed.
