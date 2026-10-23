@@ -124,5 +124,15 @@ export default defineConfig({
       reuseExistingServer: false,
       timeout: 30_000,
     },
+    {
+      // Real API + worker + durable checkpoints; scripted model transport only.
+      // This disposable fixture is never imported by the production factory.
+      command: `${PYTHON} -m uvicorn tests.specialist_browser_app:app --host 127.0.0.1 --port 8126`,
+      cwd: '..',
+      url: 'http://127.0.0.1:8126/api/health',
+      env: { MIYAAR_SYNTHETIC_SPECIALIST_BROWSER: '1' },
+      reuseExistingServer: false,
+      timeout: 30_000,
+    },
   ],
 })

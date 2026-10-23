@@ -92,6 +92,20 @@ describe('collaboration state is observed, not simulated', () => {
 })
 
 describe('profile plan and evidence boundary', () => {
+  it('uses the exact standalone specialist plan without claiming ordinary stages or joined-data support', () => {
+    const roles = ['evidence_steward', 'analysis_investigator', 'report_drafter', 'evidence_verifier', 'publish']
+    const pipelines = { stages: [
+      { role: roles[0], title: 'Evidence steward', after: 'collector', question: null, can_fail_run: true },
+      { role: roles[1], title: 'Analyst', after: 'descriptive', question: null, can_fail_run: true },
+      { role: roles[2], title: 'Drafter', after: 'reporter', question: null, can_fail_run: true },
+      { role: roles[3], title: 'Verifier', after: 'validator', question: null, can_fail_run: true },
+    ], profiles: { specialist_evidence: roles.slice(0, 4) }, explicit_plans: { specialist_evidence: roles }, default: [], problems: [] }
+    expect(planRoles(pipelines, 'specialist_evidence', true)).toEqual(roles)
+    expect(planRoles(pipelines, 'specialist_evidence')).not.toBe(roles)
+    expect(roles.map(role => roleBand(role, pipelines))).toEqual(['data', 'analytics', 'assurance', 'assurance', 'publish'])
+    expect(planRoles(pipelines, '')).toContain('predictive')
+    expect(planRoles(pipelines, '')).not.toContain('evidence_steward')
+  })
   it('places a custom stage after its declared predecessor', () => {
     const pipelines = { stages: [{ role: 'target', title: 'Target', after: 'prescriptive', question: null, can_fail_run: false }], profiles: { target: ['target'] }, default: [], problems: [] }
     const roles = planRoles(pipelines, 'target')

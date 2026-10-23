@@ -20,6 +20,8 @@ export function roleBand(role: string, pipelines?: Pipelines | null): Band {
 /** The stages a run will have. A run that joins datasets merges them
  *  right after cleaning (ADR 0030). */
 export function planRoles(pipelines: Pipelines | null, profile: string, joined = false): string[] {
+  const explicit = pipelines?.explicit_plans?.[profile]
+  if (explicit) return [...explicit]
   const custom = pipelines ? (profile ? pipelines.profiles[profile] ?? [] : pipelines.default) : []
   return BASE_ROLES.flatMap((role) => [
     role,

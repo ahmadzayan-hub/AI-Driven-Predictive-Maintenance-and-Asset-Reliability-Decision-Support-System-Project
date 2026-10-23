@@ -643,13 +643,31 @@ class SqlStore:
     # A lease is a row-level claim with an expiry. A worker that crashes
     # stops renewing, the expiry passes, and another worker picks the run
     # up — no lock to clean up, no heartbeat table to keep consistent.
-    def claim_run(self, worker_id, now, expires_at):
+    def claim_run(self, worker_id, now, expires_at, *, exclude_specialists=False,
+                  specialist_model=None):
         """Take the lease on one runnable run. Returns its id, or None."""
+        eligibility = ("AND NOT EXISTS (SELECT 1 FROM tasks WHERE tasks.run_id = runs.id "
+                       "AND tasks.role = 'evidence_steward') ") if exclude_specialists else ""
+        eligibility_args = ()
+        if specialist_model is not None and not exclude_specialists:
+            # Filter before LIMIT/claim, not after repeatedly taking the oldest
+            # incompatible run. Existing JSON checkpoints are authoritative;
+            # no schema or approximate string matching is introduced.
+            model = ("CASE WHEN json_valid(tasks.result_json) THEN "
+                     "json_extract(tasks.result_json, '$.specialist.model') ELSE NULL END"
+                     if self.placeholder == "?" else
+                     "CASE WHEN pg_input_is_valid(tasks.result_json, 'jsonb') THEN "
+                     "tasks.result_json::jsonb #>> '{specialist,model}' ELSE NULL END")
+            eligibility = ("AND (NOT EXISTS (SELECT 1 FROM tasks WHERE tasks.run_id = runs.id "
+                           "AND tasks.role = 'evidence_steward') OR EXISTS "
+                           "(SELECT 1 FROM tasks WHERE tasks.run_id = runs.id "
+                           "AND tasks.role = 'evidence_steward' AND " + model + " = ?)) ")
+            eligibility_args = (specialist_model,)
         candidates = self._exec(
             "SELECT id FROM runs WHERE state IN ('queued', 'running') "
             "AND (paused IS NULL OR paused = 0) "
             "AND (lease_owner IS NULL OR lease_expires_at < ?) "
-            "ORDER BY created_at LIMIT 5", (now,))
+            + eligibility + "ORDER BY created_at LIMIT 5", (now, *eligibility_args))
         for row in candidates:
             # The guard repeats inside the UPDATE, so two workers that
             # both selected this candidate cannot both win: the loser
@@ -659,8 +677,8 @@ class SqlStore:
                     "UPDATE runs SET lease_owner = ?, lease_expires_at = ? "
                     "WHERE id = ? AND state IN ('queued', 'running') "
                     "AND (paused IS NULL OR paused = 0) "
-                    "AND (lease_owner IS NULL OR lease_expires_at < ?)",
-                    (worker_id, expires_at, row["id"], now)):
+                    "AND (lease_owner IS NULL OR lease_expires_at < ?) " + eligibility,
+                    (worker_id, expires_at, row["id"], now, *eligibility_args)):
                 return row["id"]
             # Zero rows changed usually means another worker got there
             # first. It can also mean this worker won, the connection

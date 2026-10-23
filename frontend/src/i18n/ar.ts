@@ -389,6 +389,8 @@ export const ar: Record<MessageKey, string> = {
   'runs.profileDefault': 'الافتراضي',
   'runs.profileModels': 'نماذج استكشافية',
   'runs.profileMaintenance': 'الصيانة (محكومة)',
+  'runs.profileSpecialists': 'وكلاء الأدلة (بحدود)',
+  'runs.profileExplicitHelp': 'مصدر واحد، نموذج وعامل، مراجعة بشرية. اختبار النموذج الفعلي معلق.',
   'runs.start': 'بدء التحليل',
   'runs.previous': 'التحليلات السابقة',
   'runs.startFailed': 'تعذّر بدء التحليل.',

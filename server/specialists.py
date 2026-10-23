@@ -207,12 +207,48 @@ class SpecialistCoordinator:
 
     def _save(self, task, cp, state="pending", output=None):
         cp["revision"] += 1
+        run = self.store.get_run(cp["run"])
+        accepted = [cp["artifacts"][key] for key in cp["outputs"] if key in cp["artifacts"]]
+        claims = [claim for item in accepted for claim in item.get("claims", [])][:12]
+        calculations = [calc for item in accepted for calc in item.get("calculations", [])][:48]
+        projected = dict(output or {})
+        checks = []
+        language = run.get("report_language") or "en"
+        if calculations:
+            projected["report_markdown"] = self._evidence_table(calculations, cp["source"], language)
+        if state == "succeeded" and task["role"] == ROLE_NAMES[0]:
+            checks.append({"name": "source_version_bound", "passed": True,
+                "detail": ("مصدر التحليل وإصداره مثبتان: " if language == "ar" else
+                           "Analysis source and version are bound: ") + cp["source"]["id"] +
+                          " / SHA-256 " + cp["source"]["sha256"]})
+        latest_verification = next((o["result"] for o in reversed(cp["observations"])
+                                    if o["tool"] == "verify_draft"), None)
+        if latest_verification:
+            checks.append({"name": "independent_evidence_replay", "passed": latest_verification["passed"],
+                "detail": ("إعادة تحقق حسابية للأدلة؛ ليست موافقة نشر بشرية. " if language == "ar" else
+                           "Deterministic evidence replay; not human publication approval. ") +
+                          "Report SHA-256 " + latest_verification["draft_hash"] +
+                          ("; " + ", ".join(latest_verification["issues"]) if latest_verification["issues"] else "")})
         result = {"status": "succeeded" if state == "succeeded" else "running",
                   "summary": SPEC_BY_ROLE[task["role"]].title + " / " + SPEC_BY_ROLE[task["role"]].title_ar,
-                  "output": output or {}, "claims": [], "quality_checks": [], "specialist": cp}
+                  "output": projected, "claims": claims, "quality_checks": checks, "specialist": cp}
         if len(canonical(result).encode()) > MAX_CHECKPOINT_BYTES:
             raise ValueError("Specialist checkpoint size limit reached.")
         self.engine._set_task(task["id"], state, summary=result["summary"], result=result)
+
+    @staticmethod
+    def _evidence_table(calculations, source, language):
+        """Bounded existing report-view contract, never a raw checkpoint export."""
+        def cell(value):
+            return str(value).replace("|", "\\|").replace("\n", " ").replace("\r", " ")[:1000]
+        headings = ("| الرقم | القيمة | الطريقة |" if language == "ar" else "| Figure | Value | Method |")
+        rows = ["| " + " | ".join((cell(calc["id"] + " · " + calc["name"]),
+                                     cell(calc["value"]), cell(calc["method"]))) + " |"
+                for calc in calculations[:48]]
+        provenance = ("مصدر التحليل وإصداره" if language == "ar" else "Analysis source and version")
+        return (headings + "\n| --- | --- | --- |\n" + "\n".join(rows) + "\n\n" +
+                provenance + ": " + source["id"] + "\n\nSHA-256: " + source["sha256"] +
+                "\n\nAnalysis SHA-256: " + source["analysis_sha256"] + "\n")
 
     def _trace(self, cp, event, **values):
         cp["trace"].append({"event": event, **values})
@@ -359,7 +395,7 @@ class SpecialistCoordinator:
                             return self._stop(run_id, admitted_task, admitted_cp, "deadline")
                     dispatched = True
                     result = deadline.call_with_deadline(self.driver.decide, self.timeout, request)
-                if not schema.valid(DECISION_SCHEMA, result) or len(canonical(result)) > 24000:
+                if not schema.valid(DECISION_SCHEMA, result) or len(canonical(result).encode()) > 24000:
                     raise ValueError("invalid_decision")
             else:
                 dispatched = True
@@ -547,8 +583,16 @@ class SpecialistCoordinator:
             if len(text) > 12000:
                 raise ValueError("Draft limit exceeded.")
             heading = "# مسودة تقرير الأدلة" if run.get("report_language") == "ar" else "# Evidence report draft"
-            content = heading + "\n\n" + text + "\n\n" + "\n".join(claim_refs) + "\n"
+            selected_claims = [claims[key] for key in claim_refs]
+            evidence = {key for claim in selected_claims for key in claim["evidence"]}
+            calculations = {calc["id"]: calc for item in accepted for calc in item["calculations"]
+                            if calc["id"] in evidence}
+            content = (heading + "\n\n" + text + "\n\n" +
+                       self._evidence_table(list(calculations.values()), states[ROLE_NAMES[0]]["source"],
+                                            run.get("report_language") or "en") +
+                       "\n" + "\n".join(claim_refs) + "\n")
             return {"ref": ref, "claim_refs": claim_refs, "text": text,
+                    "claims": selected_claims, "calculations": list(calculations.values()),
                     "content": content, "hash": digest(content)}
 
         def read_draft():

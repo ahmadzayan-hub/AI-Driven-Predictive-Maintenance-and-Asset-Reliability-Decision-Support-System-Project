@@ -435,7 +435,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
                     del session_locks[stale]
             return session_locks.setdefault(session_id, threading.Lock())
 
-    gateway = ModelGateway()
+    gateway = ModelGateway(os.environ if env is None else env)
     # The unwrapped gateway keeps the model call ledger (finding G4);
     # a router wraps it without replacing it.
     base_gateway = gateway
@@ -453,11 +453,18 @@ def create_app(config_path=None, env=None, dist_dir=None):
     # Hosted PostgreSQL (DATABASE_URL / config "database_url") when
     # configured; local SQLite otherwise. See docs/adr/0001-database.md.
     store = open_store(
-        os.environ.get("DATABASE_URL") or config.get("database_url"),
+        (os.environ if env is None else env).get("DATABASE_URL") or config.get("database_url"),
         config.get("database_file") or PROJECT_ROOT / "data" / "agentic.db",
         schema_mode="verify",
     )
     limits = load_limits(env)
+    base_gateway.budget = ModelBudget(store, limits)
+    from server.specialist_config import configure_specialists, pipeline_metadata, worker_prefix
+    specialist_driver, specialist_capability = configure_specialists(
+        gateway, store, os.environ if env is None else env, identity_mode=identity.mode,
+        execution_mode=(os.environ if env is None else env).get("AGENTIC_OS_RUN_EXECUTION", "client"),
+        publish_target=resolve_publish_target(env, config))
+    app.state.specialist_capability = specialist_capability
     # Custom stages (ADR 0020). A stage that fails to load leaves the
     # pipeline as it was; the problem is reported, not raised.
     stage_registry, stage_problems = load_stages(env, config)
@@ -472,6 +479,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         execution_mode=(os.environ if env is None else env).get("AGENTIC_OS_RUN_EXECUTION", "client"),
         roles=model_roles if model_roles.active else None,
         publish_target=resolve_publish_target(env, config),
+        specialist_driver=specialist_driver,
     )
     app.state.engine = engine
     app.state.store = store
@@ -561,7 +569,6 @@ def create_app(config_path=None, env=None, dist_dir=None):
         window_seconds=int(environ.get("AGENTIC_OS_RATE_WINDOW", "60")),
     )
     # The owner's daily model budget, charged through the tenant context.
-    base_gateway.budget = ModelBudget(store, limits)
     app.state.gateway = base_gateway
 
     @app.middleware("http")
@@ -813,6 +820,10 @@ def create_app(config_path=None, env=None, dist_dir=None):
             **liveness,
             "model_provider": gateway.status(),
             "model_configuration": base_gateway.configuration_report(),
+            "specialist_execution": {**specialist_capability,
+                "worker_capable": specialist_capability["configured"] and
+                    worker_status(store, engine.execution_mode,
+                        expected_prefix=worker_prefix(specialist_capability))["ready"]},
             "model_roles": model_roles.status(),
             "model_map": model_roles.model_map(),
             # A misconfigured router is the operator's to fix, and they
@@ -1122,6 +1133,10 @@ def create_app(config_path=None, env=None, dist_dir=None):
         # A retried POST with the same Idempotency-Key (header, or the
         # body's idempotency_key) returns the run already made, as 200
         # rather than 201, instead of creating a second one (B14).
+        if run.profile == "specialist_evidence" and not specialist_capability["configured"]:
+            raise HTTPException(503, detail={"code": "specialist_unavailable",
+                "reason": specialist_capability["reason"],
+                "message": specialist_capability["message_ar" if run.language == "ar" else "message"]})
         with lock:
             try:
                 detail = engine.create_run(run.goal, run.dataset_text,
@@ -1180,8 +1195,11 @@ def create_app(config_path=None, env=None, dist_dir=None):
         """The registered custom stages, the profiles that choose among
         them, what a run gets by default, and why any stage could not
         be loaded."""
-        return {"stages": [describe(d) for d in engine.stages.values()],
-                "profiles": engine.profiles,
+        specialist_plan = pipeline_metadata(specialist_capability)
+        return {"stages": [describe(d) for d in engine.stages.values()] + specialist_plan["stages"],
+                "profiles": {**engine.profiles, **specialist_plan["profiles"]},
+                "explicit_plans": specialist_plan["explicit_plans"],
+                "specialist_execution": specialist_capability,
                 "default": engine.custom_roles_for(None),
                 "problems": app.state.stage_problems}
 

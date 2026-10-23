@@ -7,7 +7,9 @@ Status: proposed for hosted activation; code and isolated tests only.
 Keep the live `vercel.json` unchanged. Provide a separate zero-instance example
 and an explicit-allowlist Dockerfile. The entrypoint refuses accidental startup,
 SQLite fallback, filesystem publication/knowledge/evaluation ledgers and external
-model providers. It requires managed identity and the same worker execution mode
+model providers by default. The separate
+[specialist wiring](2026-10-23-specialist-runtime-wiring.md) adds an explicit,
+single-recipient configuration gate without activating it. It requires managed identity and the same worker execution mode
 as the API. The operational switch is not a substitute for authorization.
 
 The worker handles SIGTERM: finish the current atomic stage, release its lease,
