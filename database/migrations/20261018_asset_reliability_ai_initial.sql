@@ -5,7 +5,7 @@
 -- Backend uses managed PostgreSQL (psycopg2) with server-side owner checks.
 -- No secrets, user records, customer data, or privileged credentials in this file.
 -- Migration generated 2026-10-18; apply only to dedicated Team 3 Supabase project.
--- Snapshot refreshed 2026-10-21 for organization operations, validation and workers.
+-- Snapshot refreshed 2026-10-22 for private evidence workspaces and governed review.
 -- This is the initial-schema mirror; editing it does not apply a hosted migration.
 BEGIN;
 CREATE TABLE IF NOT EXISTS organizations (
@@ -125,6 +125,66 @@ CREATE TABLE IF NOT EXISTS connectors (
       next_due_at TEXT, lease_owner TEXT, lease_expires_at TEXT,
       created_at TEXT NOT NULL, updated_at TEXT NOT NULL, credential_id TEXT);
 
+CREATE TABLE IF NOT EXISTS rmd_packs (
+      id TEXT PRIMARY KEY, owner TEXT NOT NULL, organization_id TEXT,
+      title TEXT NOT NULL, revision INTEGER NOT NULL,
+      created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+
+CREATE TABLE IF NOT EXISTS rmd_sources (
+      id TEXT PRIMARY KEY, pack_id TEXT NOT NULL REFERENCES rmd_packs(id),
+      name TEXT NOT NULL, kind TEXT NOT NULL, sha256 TEXT NOT NULL,
+      revision INTEGER NOT NULL, metadata_json TEXT NOT NULL,
+      mapping_json TEXT NOT NULL, original_base64 TEXT NOT NULL,
+      artifacts_json TEXT NOT NULL, applicability_json TEXT NOT NULL,
+      created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+      UNIQUE(pack_id, name, kind, sha256));
+
+CREATE TABLE IF NOT EXISTS rmd_analyses (
+      id TEXT PRIMARY KEY, pack_id TEXT NOT NULL REFERENCES rmd_packs(id),
+      created_at TEXT NOT NULL, pack_revision INTEGER NOT NULL,
+      fingerprint TEXT NOT NULL, language TEXT NOT NULL,
+      filters_json TEXT NOT NULL, result_json TEXT NOT NULL,
+      records_json TEXT NOT NULL);
+
+CREATE TABLE IF NOT EXISTS rmd_links (
+      id TEXT PRIMARY KEY, pack_id TEXT NOT NULL REFERENCES rmd_packs(id),
+      analysis_id TEXT NOT NULL REFERENCES rmd_analyses(id),
+      left_record_id TEXT NOT NULL, right_record_id TEXT NOT NULL,
+      method TEXT NOT NULL, state TEXT NOT NULL, revision INTEGER NOT NULL,
+      detail_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+
+CREATE TABLE IF NOT EXISTS rmd_analysis_sources (
+      id TEXT PRIMARY KEY, pack_id TEXT NOT NULL REFERENCES rmd_packs(id),
+      analysis_id TEXT NOT NULL REFERENCES rmd_analyses(id),
+      sources_json TEXT NOT NULL);
+
+CREATE TABLE IF NOT EXISTS rmd_runs (
+      id TEXT PRIMARY KEY, pack_id TEXT NOT NULL REFERENCES rmd_packs(id),
+      analysis_id TEXT NOT NULL REFERENCES rmd_analyses(id), created_at TEXT NOT NULL);
+
+CREATE TABLE IF NOT EXISTS rmd_actions (
+      id TEXT PRIMARY KEY, pack_id TEXT NOT NULL REFERENCES rmd_packs(id),
+      analysis_id TEXT NOT NULL REFERENCES rmd_analyses(id),
+      priority_id TEXT NOT NULL, state TEXT NOT NULL, revision INTEGER NOT NULL,
+      body_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+      UNIQUE(pack_id, analysis_id, priority_id));
+
+CREATE TABLE IF NOT EXISTS rmd_incidents (
+      id TEXT PRIMARY KEY, pack_id TEXT NOT NULL REFERENCES rmd_packs(id),
+      title TEXT NOT NULL, record_ids_json TEXT NOT NULL,
+      revision INTEGER NOT NULL, created_at TEXT NOT NULL);
+
+CREATE TABLE IF NOT EXISTS rmd_audit (
+      id TEXT PRIMARY KEY, pack_id TEXT NOT NULL REFERENCES rmd_packs(id),
+      actor TEXT NOT NULL, action TEXT NOT NULL, entity_id TEXT NOT NULL,
+      revision INTEGER NOT NULL, detail_json TEXT NOT NULL, created_at TEXT NOT NULL);
+
+CREATE TABLE IF NOT EXISTS rmd_requests (
+      id TEXT PRIMARY KEY, owner TEXT NOT NULL, pack_id TEXT,
+      operation TEXT NOT NULL, request_key TEXT NOT NULL,
+      payload_hash TEXT NOT NULL, response_json TEXT NOT NULL,
+      created_at TEXT NOT NULL, UNIQUE(owner, operation, request_key));
+
 CREATE INDEX IF NOT EXISTS ar_ai_runs_owner_created_idx ON runs (owner, created_at);
 CREATE INDEX IF NOT EXISTS ar_ai_runs_owner_updated_idx ON runs (owner, updated_at);
 CREATE INDEX IF NOT EXISTS ar_ai_datasets_owner_created_idx ON datasets (owner, created_at);
@@ -172,4 +232,25 @@ ALTER TABLE public.datasets ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.datasets FROM PUBLIC, anon, authenticated;
 ALTER TABLE public.connectors ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.connectors FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.rmd_packs ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.rmd_packs FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.rmd_sources ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.rmd_sources FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.rmd_analyses ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.rmd_analyses FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.rmd_analysis_sources ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.rmd_analysis_sources FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.rmd_runs ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.rmd_runs FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.rmd_links ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.rmd_links FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.rmd_actions ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.rmd_actions FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.rmd_incidents ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.rmd_incidents FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.rmd_audit ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.rmd_audit FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.rmd_requests ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.rmd_requests FROM PUBLIC, anon, authenticated;
 COMMIT;
+

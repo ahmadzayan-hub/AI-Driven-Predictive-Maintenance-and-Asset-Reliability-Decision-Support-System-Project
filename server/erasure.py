@@ -29,29 +29,52 @@ def owned_run_ids(store, owner):
             store._exec("SELECT id FROM runs WHERE owner = ?", (owner,))]
 
 
-def survey(store, owner):
-    """What this owner has, without changing anything."""
-    run_ids = owned_run_ids(store, owner)
+def _target_runs(store, owner, plan):
+    # Shared evidence survives a creator's personal erasure. Conversely, a
+    # deleted sole-member organization can hold a report created by an earlier
+    # member. Follow the pack boundary rather than the run creator alone.
+    ids = {row["id"] for row in store._exec(
+        "SELECT id FROM runs WHERE owner = ? AND id NOT IN (SELECT id FROM rmd_runs)", (owner,))}
+    for row in store._exec("SELECT r.id,p.owner,p.organization_id FROM rmd_runs r JOIN rmd_packs p ON p.id=r.pack_id"):
+        if ((not row["organization_id"] and row["owner"] == owner)
+                or row["organization_id"] in plan.get("delete_organizations", [])):
+            ids.add(row["id"])
+    return sorted(ids)
+
+
+def _owner_counts(store, owner, run_ids):
     counts = {}
     for table in DELETE_ORDER:
-        if table in OWNED_DIRECTLY:
-            rows = store._exec(
-                f"SELECT COUNT(*) AS n FROM {table} WHERE owner = ?", (owner,))
+        if table in OWNED_DIRECTLY and table != "runs":
+            rows = store._exec(f"SELECT COUNT(*) AS n FROM {table} WHERE owner = ?", (owner,))
         elif not run_ids:
             counts[table] = 0
             continue
         else:
-            marks = ", ".join("?" * len(run_ids))
-            rows = store._exec(
-                f"SELECT COUNT(*) AS n FROM {table} WHERE run_id IN ({marks})",
-                tuple(run_ids))
+            # One query per run avoids SQLite parameter limits for long-lived
+            # workspaces and uses only the registered table/column constants.
+            column = "id" if table == "runs" else "run_id"
+            rows = [{"n": sum(store._exec(f"SELECT COUNT(*) AS n FROM {table} WHERE {column} = ?", (rid,))[0]["n"]
+                              for rid in run_ids)}]
         counts[table] = int(rows[0]["n"]) if rows else 0
+    return counts
+
+
+def survey(store, owner):
+    """What this owner has, without changing anything."""
+    counts = {}
     from server.operations import operations_erasure_plan, operations_erasure_counts, OperationsError
     try:
         operations = operations_erasure_plan(store, owner)
+        run_ids = _target_runs(store, owner, operations)
+        counts.update(_owner_counts(store, owner, run_ids))
         counts.update(operations_erasure_counts(store, owner, operations))
     except OperationsError as error:
         operations = {"blocked": error.code, "message": error.message}
+        run_ids = _target_runs(store, owner, {})
+        counts.update(_owner_counts(store, owner, run_ids))
+    from server.rmd_schema import rmd_counts
+    counts.update(rmd_counts(store, owner, operations.get("delete_organizations", [])))
     return {"owner": owner, "runs": len(run_ids), "rows": counts,
             "total_rows": sum(counts.values()), "operations": operations}
 
@@ -64,6 +87,29 @@ def published_paths(store, run_ids):
     return [row["path"] for row in store._exec(
         f"SELECT path FROM vault_notes WHERE run_id IN ({marks})",
         tuple(run_ids))]
+
+
+def erase_vault_paths(vault_dir, notes):
+    """Remove contained local publications; identify copies left out of reach."""
+    deleted, missing = [], []
+    if not vault_dir:
+        return deleted, list(notes)
+    root = Path(vault_dir).resolve()
+    for relative in notes:
+        path = root / relative
+        try:
+            path.resolve().relative_to(root)
+        except (ValueError, OSError):
+            missing.append(f"{relative} (outside the vault; left alone)")
+            continue
+        try:
+            path.unlink()
+            deleted.append(relative)
+        except FileNotFoundError:
+            missing.append(relative)
+        except OSError:
+            missing.append(f"{relative} (local removal failed)")
+    return deleted, missing
 
 
 def erase(store, owner, vault_dir=None, memory_file=None):
@@ -79,38 +125,27 @@ def erase(store, owner, vault_dir=None, memory_file=None):
         for membership in memberships:
             store._lock_transaction("operations:" + membership["org_id"])
         operations_plan = operations_erasure_plan(store, owner)
-        run_ids = owned_run_ids(store, owner)
+        run_ids = _target_runs(store, owner, operations_plan)
         notes = published_paths(store, run_ids)
+        before = _owner_counts(store, owner, run_ids)
+        from server.rmd_schema import erase_owner_rmd, rmd_counts
+        evidence_counts = rmd_counts(store, owner, operations_plan["delete_organizations"])
+        erase_owner_rmd(store, owner)
         deleted = erase_operations(store, owner, operations_plan)
+        deleted.update(evidence_counts)
         for table in DELETE_ORDER:
-            if table in OWNED_DIRECTLY:
-                deleted[table] = store._exec_rowcount(
+            if table in OWNED_DIRECTLY and table != "runs":
+                store._exec_rowcount(
                     f"DELETE FROM {table} WHERE owner = ?", (owner,))
-            elif not run_ids:
-                deleted[table] = 0
             else:
-                marks = ", ".join("?" * len(run_ids))
-                deleted[table] = store._exec_rowcount(
-                    f"DELETE FROM {table} WHERE run_id IN ({marks})",
-                    tuple(run_ids))
+                column = "id" if table == "runs" else "run_id"
+                for rid in run_ids:
+                    store._exec_rowcount(f"DELETE FROM {table} WHERE {column} = ?", (rid,))
+            # Evidence lifecycle may already have removed these rows in this
+            # transaction. Count all removals once, from the captured targets.
+            deleted[table] = before[table]
 
-    files_deleted, files_missing = [], []
-    if vault_dir:
-        root = Path(vault_dir)
-        for relative in notes:
-            path = root / relative
-            try:
-                # Containment check: a note path comes from the database,
-                # and a deletion routine is the last place to trust one.
-                path.resolve().relative_to(root.resolve())
-            except (ValueError, OSError):
-                files_missing.append(f"{relative} (outside the vault; left alone)")
-                continue
-            if path.exists():
-                path.unlink()
-                files_deleted.append(relative)
-            else:
-                files_missing.append(relative)
+    files_deleted, files_missing = erase_vault_paths(vault_dir, notes)
 
     memory_file_cleared = False
     if memory_file and owner == "local-owner":

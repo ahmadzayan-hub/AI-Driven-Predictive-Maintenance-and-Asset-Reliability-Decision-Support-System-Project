@@ -44,7 +44,7 @@ from server.executive import ExecutiveDashboardAgent, parse_filters as executive
 from server import executive_export
 from server.maintenance import kpis as kpi_register
 from server.maintenance import performance
-from server.assistant import Assistant
+from server.assistant import Assistant, redact_reference_turns
 from server.connectors import Busy, ConnectorError, Connectors, TooSoon
 from server.model_gateway import ModelGateway
 from server.orchestration import ModelRoles
@@ -62,6 +62,8 @@ from server.worker import worker_status
 from server.operations_api import install_operations_api
 from server.reliability_api import install_reliability_api
 from server.pilot import install_pilot_api
+from server.rmd_api import install_rmd_api
+from server.rmd_workflow import authorize_run as authorize_evidence_run
 from server.speech import LocalSpeech, SpeechError, MAX_BYTES as MAX_AUDIO_BYTES, content_format
 from utils import load_config
 
@@ -199,7 +201,8 @@ class Session:
             self.id = row["id"]
             self.created_at = row["created_at"]
             self.ended = bool(row["ended"])
-            self.transcript = json.loads(row["transcript_json"])
+            self.transcript = redact_reference_turns(json.loads(row["transcript_json"]),
+                                                    json.loads(row["preferences_json"]).get("language", "en"))
             self._next_entry_id = row["next_entry_id"]
             self.agent.preferences.update(json.loads(row["preferences_json"]))
             self.agent.history = json.loads(row["history_json"])
@@ -477,7 +480,8 @@ def create_app(config_path=None, env=None, dist_dir=None):
     runtime, runtime_name, runtime_problem = build_runtime(env, config)
     app.state.runtime_name = runtime_name
     app.state.runtime_problem = runtime_problem
-    assistant = Assistant(gateway, engine, runtime=runtime, runtime_name=runtime_name)
+    assistant = Assistant(gateway, engine, runtime=runtime, runtime_name=runtime_name,
+                          identity_mode=identity.mode, env=env)
     app.state.assistant = assistant
     # Where memory lives, and whose it is.
     #
@@ -515,7 +519,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
     app.add_middleware(
         CORSMiddleware,
         allow_origins=allowed_origins,
-        allow_methods=["GET", "POST", "PUT", "DELETE"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
         allow_headers=["Content-Type", "Authorization"],
     )
 
@@ -528,21 +532,14 @@ def create_app(config_path=None, env=None, dist_dir=None):
     # Open event streams per owner in this process (ADR 0034): each polls
     # the database every second, so one owner cannot open hundreds.
     open_streams = {}
-    # Knowledge collections are read-only Markdown, so they are loaded once
-    # and rebuilt only when a file's size or timestamp moves. Re-importing
-    # the same bytes therefore changes nothing (ADR 0057).
-    knowledge_cache = {}
-
-    def knowledge_store():
-        root = Path(os.environ.get("AGENTIC_OS_KNOWLEDGE_DIR")
+    # Content and collection grants are read together for each request.
+    def knowledge_store(principal):
+        # Authorization is never cached. A manifest edit or membership removal
+        # must take effect on the next request, including a formerly warm index.
+        root = Path(environ.get("AGENTIC_OS_KNOWLEDGE_DIR")
                     or knowledge_module.DEFAULT_ROOT).expanduser()
-        stamp = tuple(sorted(
-            (str(f.relative_to(root)), f.stat().st_mtime_ns, f.stat().st_size)
-            for f in root.rglob("*.md"))) if root.is_dir() else ()
-        if knowledge_cache.get("stamp") != stamp:
-            knowledge_cache["stamp"] = stamp
-            knowledge_cache["store"] = knowledge_module.load(root)
-        return knowledge_cache["store"]
+        return knowledge_module.load(root).for_principal(
+            principal, store, local=identity.mode == "local")
 
     streams_lock = threading.Lock()
     # The default must exceed the application's own legitimate write
@@ -719,6 +716,11 @@ def create_app(config_path=None, env=None, dist_dir=None):
     install_operations_api(app, store, current_principal)
     install_reliability_api(app, store, current_principal)
     install_pilot_api(app, store, engine, current_principal, identity.mode)
+    rmd = install_rmd_api(app, store, current_principal, identity.mode, env=env, engine=engine)
+
+    def owns_run(principal, run_id, permission="read"):
+        scoped = authorize_evidence_run(rmd, principal, run_id, permission)
+        return (scoped if scoped is not None else owns(principal, engine.owner_of(run_id)))
 
     @app.get("/api/auth/config")
     def auth_config():
@@ -888,7 +890,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
                     save_session(session)
                     return {"reply": entry, "state": session.snapshot()}
                 session.agent.record_request(text)
-            outcome = assistant.handle(text, session)
+            outcome = assistant.handle(text, session, principal=principal)
             with lock:
                 entry = session.add_entry(
                     "agent", outcome["text"], source=outcome.get("source"),
@@ -1005,15 +1007,14 @@ def create_app(config_path=None, env=None, dist_dir=None):
     @app.get("/api/vault")
     def list_vault_notes(principal=Depends(requires("read"))):
         with lock:
-            owner = None if principal.can("admin") else principal.subject
-            return {"notes": store.list_notes(owner=owner)}
+            return {"notes": [note for note in store.list_notes(owner=None)
+                              if owns_run(principal, note["run_id"])]}
 
     @app.get("/api/vault/note")
     def get_vault_note(path: str, principal=Depends(requires("read"))):
         with lock:
-            owner = None if principal.can("admin") else principal.subject
-            note = store.get_note(path, owner=owner)
-            if note is None:
+            note = store.get_note(path, owner=None)
+            if note is None or not owns_run(principal, note["run_id"]):
                 raise HTTPException(status_code=404, detail="Note not found.")
             return note
 
@@ -1023,7 +1024,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
     @app.get("/api/knowledge")
     def list_knowledge(principal=Depends(requires("read"))):
         """What is indexed, from where, and at which version."""
-        return {"collections": knowledge_store().describe()}
+        return {"collections": knowledge_store(principal).describe()}
 
     @app.get("/api/knowledge/search")
     def search_knowledge(q: str = Query(..., min_length=2, max_length=400),
@@ -1035,7 +1036,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         The text returned is reference material. It is quoted to a reader
         or handed to a model as evidence; it never instructs the system.
         """
-        hits = knowledge_store().search(q, collection=collection, limit=limit)
+        hits = knowledge_store(principal).search(q, collection=collection, limit=limit)
         return {"query": q,
                 "results": [dict(h.passage.as_dict(score=h.score),
                                  matched=list(h.matched)) for h in hits]}
@@ -1043,12 +1044,12 @@ def create_app(config_path=None, env=None, dist_dir=None):
     # ------------------------------------------------------------------
     # Runs: goal -> plan -> tasks -> approval -> artifact
     # ------------------------------------------------------------------
-    def _run_or_404(action, principal=None, run_id=None):
+    def _run_or_404(action, principal=None, run_id=None, permission="read"):
         try:
             if principal is not None and run_id is not None:
                 # Ownership is checked before any state change, and a run
                 # owned by someone else is indistinguishable from missing.
-                if not owns(principal, engine.owner_of(run_id)):
+                if not owns_run(principal, run_id, permission):
                     raise KeyError(run_id)
             return action()
         except KeyError:
@@ -1221,7 +1222,16 @@ def create_app(config_path=None, env=None, dist_dir=None):
                   principal=Depends(requires("read"))):
         with lock:
             owner = None if principal.can("admin") else principal.subject
-            return {"runs": engine.list_runs(owner=owner, state=state)}
+            candidates = {r["id"]: r for r in engine.list_runs(owner=owner, state=state)}
+            # Organization colleagues can see their governed reports; creator
+            # ownership does not preserve access after membership revocation.
+            for row in store._exec("SELECT id FROM rmd_runs"):
+                run = store.get_run(row["id"])
+                if run is not None and (state is None or run["state"] == state):
+                    candidates[row["id"]] = {key: run.get(key) for key in
+                        ("id", "goal", "dataset_name", "state", "created_at", "updated_at")}
+            runs = [r for r in candidates.values() if owns_run(principal, r["id"])]
+            return {"runs": sorted(runs, key=lambda r: (r["created_at"], r["id"]), reverse=True)}
 
     @app.get("/api/runs/{run_id}")
     def get_run(run_id: str, principal=Depends(requires("read"))):
@@ -1231,29 +1241,29 @@ def create_app(config_path=None, env=None, dist_dir=None):
     @app.post("/api/runs/{run_id}/advance")
     def advance_run(run_id: str, principal=Depends(requires("write"))):
         if engine.execution_mode == "worker":
-            detail = _run_or_404(lambda: engine.advance(run_id), principal, run_id)
+            detail = _run_or_404(lambda: engine.advance(run_id), principal, run_id, permission="write")
             return JSONResponse(detail, status_code=202)
         # A stage may call a model for most of a minute. The engine holds
         # store.atomic("run:...") for the run it advances, so the global
         # lock is not needed here and would stall every tenant (finding B4).
-        return _run_or_404(lambda: engine.advance(run_id), principal, run_id)
+        return _run_or_404(lambda: engine.advance(run_id), principal, run_id, permission="write")
 
     @app.post("/api/runs/{run_id}/pause")
     def pause_run(run_id: str, principal=Depends(requires("write"))):
         with lock:
             return _run_or_404(lambda: engine.set_paused(run_id, True),
-                               principal, run_id)
+                               principal, run_id, permission="write")
 
     @app.post("/api/runs/{run_id}/resume")
     def resume_run(run_id: str, principal=Depends(requires("write"))):
         with lock:
             return _run_or_404(lambda: engine.set_paused(run_id, False),
-                               principal, run_id)
+                               principal, run_id, permission="write")
 
     @app.post("/api/runs/{run_id}/cancel")
     def cancel_run(run_id: str, principal=Depends(requires("write"))):
         with lock:
-            return _run_or_404(lambda: engine.cancel(run_id), principal, run_id)
+            return _run_or_404(lambda: engine.cancel(run_id), principal, run_id, permission="write")
 
     # ------------------------------------------------------------------
     # A run's cleaned table (ADR 0031): download, fields, totals, records
@@ -1264,7 +1274,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         it, so a large table does not hold up everyone else."""
         def source():
             with lock:
-                if not owns(principal, engine.owner_of(run_id)):
+                if not owns_run(principal, run_id):
                     raise KeyError(run_id)
                 return engine.table_source(run_id)
         try:
@@ -1303,7 +1313,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
                               principal=Depends(requires("read"))):
         await run_table(run_id, principal, language)
         with lock:
-            if not owns(principal, engine.owner_of(run_id)):
+            if not owns_run(principal, run_id):
                 raise HTTPException(status_code=404, detail="Run not found.")
             return performance.load_policy(store, run_id)
 
@@ -1328,7 +1338,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         except performance.PolicyError as error:
             raise HTTPException(status_code=422, detail=error.detail(language))
         with lock:
-            if not owns(principal, engine.owner_of(run_id)):
+            if not owns_run(principal, run_id, "write"):
                 raise HTTPException(status_code=404, detail="Run not found.")
             current = performance.load_policy(store, run_id)
             if current["revision"] != expected:
@@ -1409,7 +1419,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
                 # Cleaning may have been followed by more stages while the
                 # table loaded. Capture their stored metadata with the tasks.
                 run = engine.store.get_run(run_id)
-                if run is None or not owns(principal, run.get("owner") or "local-owner"):
+                if run is None or not owns_run(principal, run_id):
                     raise HTTPException(status_code=404, detail="Run not found.")
                 tasks = engine.store.get_tasks(run_id)
                 selected_policy = performance.load_policy(store, run_id)
@@ -1471,7 +1481,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
             return _run_or_404(
                 lambda: engine.decide_approval(run_id, approval_id, decision.decision,
                                                        approver=principal.subject),
-                principal, run_id,
+                principal, run_id, permission="authorize",
             )
 
     # ------------------------------------------------------------------
@@ -1565,7 +1575,8 @@ def create_app(config_path=None, env=None, dist_dir=None):
 
         def poll_locked():
             with lock:
-                return reader.poll()
+                return [event for event in reader.poll()
+                        if event[1] != "run" or owns_run(principal, event[2]["id"])]
 
         async def poll():
             return await run_in_threadpool(poll_locked)

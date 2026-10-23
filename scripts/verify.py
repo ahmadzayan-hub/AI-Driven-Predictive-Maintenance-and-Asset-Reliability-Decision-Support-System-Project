@@ -44,7 +44,7 @@ DIST = FRONTEND / "dist"
 # report rendering allocation in
 # docs/adr/2026-10-22-arabic-rendered-analysis-reports.md; initial-load
 # limits stay fixed.
-BUDGET_KB = {"js": 100, "js_total": 220, "js_chunk": 30, "css": 10.5, "css_total": 30.5,
+BUDGET_KB = {"js": 100, "js_total": 248, "js_chunk": 30, "css": 10.5, "css_total": 33.5,
              "fonts": 120}
 LABELS = {"js": "js first load", "js_total": "js total", "js_chunk": "largest js chunk",
           "css": "css first load", "css_total": "css total", "fonts": "fonts"}

@@ -191,7 +191,7 @@ test('the sidebar groups views by task, with colour instead of headings', async 
   const nav = page.getByRole('navigation', { name: 'Main' })
   const groups = nav.locator('.sidebar__group')
   await expect(groups).toHaveCount(3)
-  await expect(groups.nth(0).getByRole('button')).toHaveText(['Operations', 'Command Centre', 'Asset Intelligence', 'Dashboards', 'Approvals'])
+  await expect(groups.nth(0).getByRole('button')).toHaveText(['Operations', 'Command Centre', 'Asset Intelligence', 'RMD Evidence', 'Dashboards', 'Approvals'])
   await expect(groups.nth(1).getByRole('button')).toHaveText(['Datasets', 'Analytics'])
   await expect(groups.nth(2).getByRole('button')).toHaveText([/^Workspace/, /^Memory/, 'Activity', 'Preferences'])
   await expect(nav.locator('p, h2, h3')).toHaveCount(0)

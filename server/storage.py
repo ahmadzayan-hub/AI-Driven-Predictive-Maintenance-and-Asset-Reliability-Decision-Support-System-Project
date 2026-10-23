@@ -31,6 +31,8 @@ def is_database_error(error):
     module = type(error).__module__ or ""
     return module.startswith("psycopg")
 
+from server.rmd_schema import RMD_RESTORE_ORDER, RMD_SCHEMA, RMD_TABLES
+
 # The single source of truth for which tables exist. Backup, restore and
 # test teardown all derive from this, so adding a table cannot leave one
 # of them stale (a bug that has already bitten once).
@@ -50,7 +52,7 @@ TABLES = (
     "kpi_policies",
     "organizations", "organization_members", "operation_sites", "operation_assets",
     "work_orders", "operation_audit", "operation_requests", "worker_heartbeats", "reliability_trials",
-)
+) + RMD_TABLES
 
 # Restore must insert parents before children.
 RESTORE_ORDER = (
@@ -67,7 +69,7 @@ RESTORE_ORDER = (
     "connectors",
     "organizations", "organization_members", "operation_sites", "operation_assets",
     "work_orders", "operation_audit", "operation_requests", "worker_heartbeats", "reliability_trials",
-)
+) + RMD_RESTORE_ORDER
 
 # Bump when _migrate gains a step; a database below it gets the pass.
 SCHEMA_VERSION = 1
@@ -182,7 +184,7 @@ SCHEMA_STATEMENTS = [
       last_dataset_id TEXT, last_sha256 TEXT, last_run_id TEXT,
       next_due_at TEXT, lease_owner TEXT, lease_expires_at TEXT,
       created_at TEXT NOT NULL, updated_at TEXT NOT NULL, credential_id TEXT)""",
-]
+] + RMD_SCHEMA
 
 
 # Runs listed by state (the approval queue) are capped far above the page.
@@ -306,7 +308,12 @@ class SqlStore:
         self._lock_schema()
         try:
             for statement in SCHEMA_STATEMENTS:
-                self._exec(statement)
+                if statement not in RMD_SCHEMA:
+                    self._exec(statement)
+            # The evidence tables (RMD) carry their own guard, which also
+            # revokes Supabase's default grants on PostgreSQL.
+            from server.rmd_schema import ensure_schema
+            ensure_schema(self)
             if self._schema_version() < SCHEMA_VERSION:
                 self._migrate()
                 self._exec("INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)",

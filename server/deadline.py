@@ -11,6 +11,7 @@ hanging a run (assessment G10); it is not a sandbox.
 
 import concurrent.futures
 import os
+from contextvars import copy_context
 
 DEFAULT_STAGE_SECONDS = 120.0
 DEFAULT_RUNTIME_SECONDS = 60.0
@@ -36,7 +37,9 @@ def call_with_deadline(fn, seconds, *args, **kwargs):
     """Run `fn(*args, **kwargs)` on a worker thread; raise Timeout after
     `seconds`. The function's own exceptions propagate unchanged."""
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-    future = executor.submit(fn, *args, **kwargs)
+    # Carry the actual requester's authorization context into this call.
+    # A fresh copy per invocation keeps worker changes out of later requests.
+    future = executor.submit(copy_context().run, fn, *args, **kwargs)
     try:
         return future.result(timeout=seconds)
     except concurrent.futures.TimeoutError:
