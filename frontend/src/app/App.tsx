@@ -298,13 +298,16 @@ export function App() {
   )
 
   // Hosted deployments gate everything behind the identity provider.
-  if (store.needsSignIn && store.authConfig) {
+  const accessPending = store.authConfig?.mode === 'jwt' && Boolean(store.identity) && !store.identity?.principal.permissions.includes('write')
+  if ((store.needsSignIn || accessPending) && store.authConfig) {
     return (
       <ViewBoundary>
         <Suspense fallback={<ViewLoading />}>
           <SignIn
             config={store.authConfig}
-            onSignedIn={(token) => void store.signIn(token)}
+            onSignedIn={store.signIn}
+            accessPending={accessPending}
+            onSignOut={store.signOut}
           />
         </Suspense>
       </ViewBoundary>

@@ -90,6 +90,7 @@ export interface AuthConfig {
   provider_url: string
   publishable_key: string
   flows: string[]
+  redirect_url?: string
 }
 
 export interface IdentityInfo {

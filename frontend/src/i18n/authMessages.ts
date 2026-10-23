@@ -1,0 +1,33 @@
+const en = {
+  loading: 'Checking available sign-in methods…', retry: 'Retry',
+  settingsFailed: 'Could not check sign-in options. Password sign-in is still available; retry for other methods.',
+  activation: 'Password-free sign-in needs the project owner to finish the secure callback setup.',
+  socialUnavailable: 'Google and Apple sign-in are not enabled for this project.',
+  google: 'Continue with Google', apple: 'Continue with Apple',
+  link: 'Sign in by email link', signup: 'Create account by email',
+  linkHelp: 'No password? Use a one-time email link. New accounts need operator approval for upload and analysis access.',
+  sent: 'If this address is eligible, a link has been requested. Open the newest link in this browser within 10 minutes. You are not signed in yet.',
+  callback: 'This sign-in link was cancelled, expired, already used or opened in another browser. Start again here.',
+  configuration: 'This sign-in method is not configured for this address. Contact the project owner.',
+  provider: 'The identity provider could not complete the request. Try again.',
+  token: 'The provider did not return an access token.',
+  pending: 'Your account is verified. Upload and analysis access is awaiting operator approval. New accounts are read-only; signing in does not grant administrator access.',
+  pendingTitle: 'Account verified', signout: 'Use a different account',
+}
+const ar: Record<keyof typeof en, string> = {
+  loading: 'جارٍ التحقق من طرق تسجيل الدخول…', retry: 'إعادة المحاولة',
+  settingsFailed: 'تعذّر التحقق من خيارات الدخول. يمكنك استخدام كلمة المرور أو إعادة المحاولة للخيارات الأخرى.',
+  activation: 'الدخول دون كلمة مرور يحتاج إلى إكمال إعداد رابط العودة الآمن بواسطة مالك المشروع.',
+  socialUnavailable: 'الدخول عبر Google وApple غير مفعّل لهذا المشروع.',
+  google: 'المتابعة عبر Google', apple: 'المتابعة عبر Apple',
+  link: 'الدخول برابط عبر البريد', signup: 'إنشاء حساب عبر البريد',
+  linkHelp: 'ليس لديك كلمة مرور؟ استخدم رابطًا لمرة واحدة. الحساب الجديد يحتاج موافقة المشغّل لرفع الملفات والتحليل.',
+  sent: 'إذا كان البريد مؤهلًا فقد طُلب إرسال الرابط. افتح أحدث رابط في هذا المتصفح خلال 10 دقائق. لم يتم تسجيل الدخول بعد.',
+  callback: 'رابط الدخول ملغى أو منتهي أو مستخدم أو فُتح في متصفح آخر. ابدأ مجددًا من هنا.',
+  configuration: 'طريقة الدخول هذه غير مهيأة لهذا العنوان. تواصل مع مالك المشروع.',
+  provider: 'تعذّر على مزوّد الهوية إكمال الطلب. حاول مجددًا.',
+  token: 'لم يُرجع المزوّد رمز وصول.',
+  pending: 'تم التحقق من حسابك. صلاحية رفع الملفات والتحليل تنتظر موافقة المشغّل. الحساب الجديد للقراءة فقط؛ الدخول لا يمنح صلاحيات المدير.',
+  pendingTitle: 'تم التحقق من الحساب', signout: 'استخدام حساب آخر',
+}
+export function authMessages(locale: string) { return locale === 'ar' ? ar : en }

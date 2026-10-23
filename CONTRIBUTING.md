@@ -57,29 +57,31 @@ You need Python 3.10 or newer, Node.js 20.19+ or 22+, and Git.
 ```bash
 # The repository's name is long; give the clone a short folder on Windows.
 git clone https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project.git agentic-os
-cd agentic-os-final-project
+cd agentic-os
 
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+python -m pip install --require-hashes -r requirements.txt
 
 cd frontend && npm ci && npm run build && cd ..
 python scripts/serve.py
 ```
 
-Then open <http://localhost:8000>. No API keys, accounts or database are
-needed: the app runs fully on your computer, with its data in local files.
+Then open <http://localhost:8000>. The default is a single local-owner
+workspace with local persistence, no sign-in and no model-provider keys.
+The launcher binds to loopback; do not expose local-owner mode on an
+untrusted network or treat it as authenticated hosted operation.
 The README explains the optional extras: model narration, PostgreSQL and
 the background worker.
 
 ## Make a change
 
-The default branch is currently `claude/agentic-os-final-project-53j6ql`.
-GitHub shows it on the repository's front page, and it is the branch a
-fresh clone starts on. Every change reaches it through a pull request.
+The integration and default branch is `main`. Confirm the current branch
+on GitHub before starting work. Every change reaches it through a reviewed
+pull request; deployment and application access are separate from a merge.
 
 ```bash
-git switch claude/agentic-os-final-project-53j6ql
+git switch main
 git pull                                    # start from the latest work
 git switch -c yourname/short-topic          # e.g. sara/arabic-report-wording
 
@@ -96,7 +98,7 @@ and CI is green. Keep each pull request to one topic: a small one gets
 reviewed today, while a large one waits.
 
 If someone else's work lands first, bring it into your branch with
-`git pull origin claude/agentic-os-final-project-53j6ql`, resolve any
+`git pull origin main`, resolve any
 conflicts, and push again.
 
 ## Checks before a pull request
