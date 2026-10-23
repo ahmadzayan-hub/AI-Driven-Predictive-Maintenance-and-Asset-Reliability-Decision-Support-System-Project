@@ -702,7 +702,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
             </form>
             <p
               className={`statusline ${errorMessage ? 'statusline--error' : ''}`}
-              role="status"
+              role={errorMessage ? 'alert' : 'status'}
               aria-live="polite"
               dir="auto"
             >

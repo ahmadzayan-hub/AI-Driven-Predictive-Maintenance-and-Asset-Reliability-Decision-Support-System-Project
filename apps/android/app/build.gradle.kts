@@ -1,7 +1,7 @@
 plugins {
     id("com.android.application") version "8.9.1"
-    kotlin("android") version "2.1.20"
-    kotlin("plugin.serialization") version "2.1.20"
+    kotlin("android")
+    kotlin("plugin.serialization")
     id("org.jetbrains.kotlin.plugin.compose") version "2.1.20"
     id("com.google.devtools.ksp") version "2.1.20-1.0.32"
     id("com.google.dagger.hilt.android") version "2.56.1"

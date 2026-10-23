@@ -1029,8 +1029,6 @@ def create_app(config_path=None, env=None, dist_dir=None):
         # rather than 201, instead of creating a second one (B14).
         with lock:
             try:
-                if idempotency_key and run.idempotency_key and idempotency_key != run.idempotency_key:
-                    raise IdempotencyConflict("The header and body must name the same attempt key.")
                 detail = engine.create_run(run.goal, run.dataset_text,
                                            run.dataset_name,
                                            owner=principal.subject,

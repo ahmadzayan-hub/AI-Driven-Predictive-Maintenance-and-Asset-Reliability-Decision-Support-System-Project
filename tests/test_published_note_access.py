@@ -65,7 +65,7 @@ class PublishedNoteAccessTests(unittest.TestCase):
         run_id, notes = self.publish("owner-a")
         for role in ("owner", "viewer", "auditor"):
             with self.subTest(role=role):
-                headers = self.headers("other-user", role)
+                headers = {**self.headers("other-user", role), "X-Request-ID": "synthetic-isolation-check"}
                 self.assertEqual(self.client.get(f"/api/runs/{run_id}",
                                                 headers=headers).status_code, 404)
                 response = self.client.get("/api/vault", headers=headers)

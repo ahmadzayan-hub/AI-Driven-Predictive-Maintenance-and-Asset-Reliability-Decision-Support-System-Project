@@ -101,8 +101,9 @@ class PilotApiTest(unittest.TestCase):
 
     def test_trial_presence_is_not_disclosed_to_another_tenant(self):
         trial = self.trial()
-        existing = self.client.get("/api/operations/trials/" + trial["id"], headers=self.bob)
-        missing = self.client.get("/api/operations/trials/not-a-trial", headers=self.bob)
+        headers = {**self.bob, "X-Request-ID": "synthetic-isolation-check"}
+        existing = self.client.get("/api/operations/trials/" + trial["id"], headers=headers)
+        missing = self.client.get("/api/operations/trials/not-a-trial", headers=headers)
         self.assertEqual(existing.status_code, 404)
         self.assertEqual(missing.status_code, 404)
         self.assertEqual(existing.json(), missing.json(), "Cross-tenant trial existence is distinguishable from a missing trial")
