@@ -67,7 +67,9 @@ read-only hosts, changed destinations and YAML source-name fidelity. Scoped web
 journeys cover reload recovery, evidence, charts, RTL, keyboard review and
 confirmed publication. Hosted Android compiles Compose and runs JVM/app tests,
 lint, APK assembly and signature verification. Platform jobs run the actual API
-journeys in Edge on Windows and WebKit on macOS.
+journeys in Edge on Windows and WebKit on macOS, including model cards in
+both languages. Synthetic model setup permits one connection-reset retry bound
+to one exact-request idempotency key; stages and human decisions are not retried.
 
 | Review | Current evidence | Acceptance boundary |
 | --- | --- | --- |
