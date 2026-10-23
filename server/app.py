@@ -1189,6 +1189,17 @@ def create_app(config_path=None, env=None, dist_dir=None):
         with lock:
             return _run_or_404(lambda: engine.get_run(run_id), principal, run_id)
 
+    @app.get("/api/runs/{run_id}/motion-storyboard")
+    def motion_storyboard(run_id: str, principal=Depends(requires("read"))):
+        """Read-only storyboard generated server-side from owned evidence."""
+        from server.motion_storyboard import MotionStoryRefused, from_run
+        with lock:
+            run = _run_or_404(lambda: engine.get_run(run_id), principal, run_id)
+        try:
+            return from_run(run)
+        except MotionStoryRefused as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+
     @app.post("/api/runs/{run_id}/advance")
     def advance_run(run_id: str, principal=Depends(requires("write"))):
         if engine.execution_mode == "worker":
