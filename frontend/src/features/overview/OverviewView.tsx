@@ -12,7 +12,6 @@ import { CommandCentre } from './CommandCentre'
 import { DecisionActions } from './DecisionActions'
 import { summarizeRunEvidence } from './evidence'
 import { downloadMotionRun } from './motionEvidence'
-import { LocalMotionPanel } from './LocalMotionPanel'
 
 interface OverviewViewProps {
   onOpenRun: (id: string) => void
@@ -239,6 +238,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard,
     <section className="panel" aria-label={t('overview.aria')}>
       <div className="panel__inner panel__inner--wide">
         {header}
+        {motionError ? <p role="alert" className="statusline statusline--error">{motionError}</p> : null}
 
         {source ? <CommandCentre run={source} brief={brief} failed={briefFailed} onOpenDashboard={onOpenDashboard} /> : null}
 
