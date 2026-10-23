@@ -330,14 +330,13 @@ class SqlStore:
     def _migrate(self):
         """Additive migrations for databases created by earlier versions.
 
-        ADD COLUMN errors when the column already exists in both dialects,
-        which makes this safely repeatable on every startup."""
+        Each column is added only when the catalogue says it is missing, so
+        the pass is repeatable and quiet: no expected error reaches the
+        database log (B9). A fresh database already has every column from
+        the base statements and gets nothing here."""
         for table in ("runs", "sessions"):
-            try:
+            if not self._has_column(table, "owner"):
                 self._exec(f"ALTER TABLE {table} ADD COLUMN owner TEXT")
-            except Exception:
-                self._rollback()
-            else:
                 # Rows written before ownership existed belong to the
                 # local owner, matching pre-auth behavior.
                 self._exec(
@@ -354,35 +353,30 @@ class SqlStore:
         for column in ("dataset_id", "lease_owner", "lease_expires_at",
                        "report_language", "mapping_json", "joins_json",
                        "connector_id", "assumptions_json", "idempotency_key"):
-            try:
+            if not self._has_column("runs", column):
                 self._exec(f"ALTER TABLE runs ADD COLUMN {column} TEXT")
-            except Exception:
-                self._rollback()
-        try:
-            # decided_by: the approver's subject, written by the gate (A13).
+        # decided_by: the approver's subject, written by the gate (A13).
+        if not self._has_column("approvals", "decided_by"):
             self._exec("ALTER TABLE approvals ADD COLUMN decided_by TEXT")
-        except Exception:
-            self._rollback()
-        try:
-            # NULL means "never paused", which reads as not paused.
+        # NULL means "never paused", which reads as not paused.
+        if not self._has_column("runs", "paused"):
             self._exec("ALTER TABLE runs ADD COLUMN paused INTEGER")
-        except Exception:
-            self._rollback()
         # What a dataset is (ADR 0024). NULL for rows stored before the
         # dataset API, until the same data is stored again.
         # The owner's column mapping (ADR 0025), and the copy a run takes.
         for column, kind in (("source_format", "TEXT"), ("row_count", "INTEGER"),
                              ("column_count", "INTEGER"), ("mapping_json", "TEXT"),
                              ("mapping_updated_at", "TEXT")):
-            try:
+            if not self._has_column("datasets", column):
                 self._exec(f"ALTER TABLE datasets ADD COLUMN {column} {kind}")
-            except Exception:
-                self._rollback()
         self._migrate_memory_owner()
-        try:
+        if not self._has_column("connectors", "credential_id"):
             self._exec("ALTER TABLE connectors ADD COLUMN credential_id TEXT")
-        except Exception:
-            self._rollback()
+
+    def _has_column(self, table, column):
+        """Whether the live table has the column, from the catalogue."""
+        rows = self._exec("PRAGMA table_info(" + table + ")")
+        return any(row["name"] == column for row in rows)
 
     def upsert_worker_heartbeat(self, worker_id, seen_at, state):
         with self.atomic("worker-heartbeats"):
@@ -410,11 +404,8 @@ class SqlStore:
         one: a database written before ownership existed was written by
         a single-user install.
         """
-        try:
-            self._exec("SELECT owner FROM memory_kv LIMIT 1")
+        if self._has_column("memory_kv", "owner"):
             return  # already migrated
-        except Exception:
-            self._rollback()
         try:
             self._exec("ALTER TABLE memory_kv RENAME TO memory_kv_pre_owner")
             for statement in SCHEMA_STATEMENTS:
@@ -910,6 +901,12 @@ class PostgresStore(SqlStore):
     placeholder = "%s"
     # One lock id for the schema pass, shared by every instance (B12).
     SCHEMA_LOCK = 727001
+
+    def _has_column(self, table, column):
+        rows = self._exec("SELECT 1 AS present FROM information_schema.columns "
+                          "WHERE table_schema = current_schema() AND table_name = ? "
+                          "AND column_name = ?", (table, column))
+        return bool(rows)
 
     def _lock_schema(self):
         self._exec("SELECT pg_advisory_lock(?)", (self.SCHEMA_LOCK,))
