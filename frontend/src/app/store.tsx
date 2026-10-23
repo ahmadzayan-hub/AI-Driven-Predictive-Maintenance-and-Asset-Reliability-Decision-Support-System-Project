@@ -252,17 +252,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return
       }
       if (config.mode === 'jwt') {
-        if (!hasToken()) {
+        if (window.location.pathname === '/auth/callback' || !hasToken()) {
           setNeedsSignIn(true)
           return
         }
         try {
-          setIdentity(await api.identity())
+          const verified = await api.identity()
+          if (verified.mode !== 'jwt' || verified.principal.provider !== 'jwt') throw new Error(translate('signin.failed'))
+          setIdentity(verified)
+          if (!verified.principal.permissions.includes('write')) return
         } catch (error) {
           if (error instanceof ApiError && error.status === 401) {
             handleUnauthorized()
             return
           }
+          setBootError(error instanceof Error ? error.message : translate('signin.failed'))
+          return
         }
       }
     } catch {
@@ -308,18 +313,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(
     async (token: string) => {
+      const generation = ++sessionGeneration.current
       storeToken(token)
-      setNeedsSignIn(false)
       setBootError(null)
+      let verified: IdentityInfo
       try {
-        setIdentity(await api.identity())
+        verified = await api.identity()
+        if (verified.mode !== "jwt" || verified.principal.provider !== "jwt") throw new Error(translate("signin.failed"))
       } catch (error) {
-        if (error instanceof ApiError && error.status === 401) {
-          handleUnauthorized()
-          return
-        }
+        if (generation === sessionGeneration.current) handleUnauthorized()
+        throw error
       }
-      await start()
+      if (generation !== sessionGeneration.current) throw new Error(translate('signin.failed'))
+      setIdentity(verified)
+      setSession(null)
+      try { localStorage.removeItem(SESSION_KEY) } catch { /* storage is optional */ }
+      setNeedsSignIn(false)
+      if (verified.principal.permissions.includes('write')) await start()
     },
     [handleUnauthorized, start],
   )

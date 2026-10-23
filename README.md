@@ -1,5 +1,3 @@
-![Conceptual industrial motor, precision bearing and condition sensor in navy and blue](docs/media/reliability-hero.webp)
-
 # Asset Reliability · موثوقية الأصول
 
 **Turn maintenance data into findings, inspect the evidence, and review the next decision.**
@@ -13,8 +11,8 @@ Python · FastAPI · React · TypeScript · English / العربية
 [Get started](#get-started) · [Product tour](#product-tour) · [Capabilities](#capabilities) ·
 [Project guide](#project-guide) · [Testing](#testing)
 
-*The hero above is original AI-generated concept artwork. Product screenshots below
-are actual interface renders with labelled synthetic data. [Image provenance](docs/design/README_ASSETS.md).*
+*Product screenshots below are actual interface renders with labelled synthetic data.
+[Image provenance](docs/REPOSITORY_GUIDE.md#visual-assets).*
 
 ## What this workspace helps you do
 
@@ -31,6 +29,27 @@ The product is under active development. Prediction quality, operational savings
 and hosted service readiness require their own evidence. Current scope and
 acceptance gates are recorded in the [project charter](docs/PROJECT_CHARTER.md)
 and [known limitations](docs/KNOWN_LIMITATIONS.md).
+
+## Current status and runtime
+
+The repository implements real data upload, governed analysis, evidence review
+and approval-bound publication. Hosted activation and independent maintenance
+acceptance remain separate from source-code completion.
+
+- **Local workspace:** a single local owner with persistent local state and no
+  sign-in; appropriate for authorized work on a trusted computer.
+- **Public demo:** shared read-only identity and fictional data, not a live
+  maintenance service or durable customer workspace.
+- **Managed hosted operation:** provider-verified identity, server-side roles,
+  owner-scoped storage and worker foundations exist in source. The intended
+  provider, schema, recovery and complete authenticated journey must be
+  verified before calling a deployment operational.
+
+A Vercel page or green build is not that acceptance. The code supports PKCE
+email onboarding/recovery and conditional Google/Apple sign-in. These methods
+are shown only after matching callback/provider configuration; an email request
+is not a verified login, and new accounts do not gain workspace permissions
+automatically. [Setup, identity and release boundaries](docs/REPOSITORY_GUIDE.md).
 
 ## Product tour
 
@@ -67,7 +86,8 @@ These figures are not results from an uploaded dataset or a live telemetry feed.
 
 Use Python 3.10+ and a compatible Node.js release; see
 [system requirements](#system-requirements). Clone into a short folder name.
-The repository currently requires authorized GitHub access.
+Repository access and application sign-in are separate. See
+[the runtime guide](docs/REPOSITORY_GUIDE.md#three-runtime-modes).
 
 ```bash
 git clone https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project.git asset-reliability
@@ -85,6 +105,8 @@ python scripts/serve.py            # this computer only; add --lan for a phone o
 ```
 
 Open **<http://127.0.0.1:8000>**. The server hosts the interface and API.
+This default is a single local-owner workspace with local persistence and no
+sign-in, not a hosted multi-user account. Keep it on loopback for private work.
 The deterministic analysis path needs no model-provider credentials.
 
 | Your goal | Start here |
@@ -137,6 +159,7 @@ probabilities or commercial readiness by displaying a score.
 | [Architecture](#architecture) and [developer reference](#developer-reference) | Engine, API, configuration and operational commands |
 | [Testing](#testing) and [GitHub checks](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions) | Dated verification results and current workflow status |
 | [Known limitations](docs/KNOWN_LIMITATIONS.md) | Remaining domain, device, privacy and hosted-operation work |
+| [Runtime and release guide](docs/REPOSITORY_GUIDE.md) | Local, demo and hosted modes; identity, persistence and acceptance |
 | [Contributing](CONTRIBUTING.md) | Collaboration, setup and repository rules |
 
 <div dir="rtl" lang="ar">
@@ -147,6 +170,8 @@ probabilities or commercial readiness by displaying a score.
 المساعد **معيار** يربط السؤال بالبيانات، وينسّق **هيرميس** مراحل التحليل.
 يمكنك رفع ملفك، ومراجعة الأعمدة والنتائج والقيود، ثم الموافقة على نشر التقرير المحدد.
 واجهة الصيانة التجريبية تستخدم بيانات خيالية، ولا تمثّل مراقبة مباشرة للمعدات.
+التشغيل المحلي يعمل لمستخدم واحد دون تسجيل دخول؛ التشغيل المستضاف يحتاج تحققًا
+فعليًا من الهوية والصلاحيات وقاعدة البيانات والاستعادة، وليس مجرد صفحة منشورة.
 
 [دليل رفع البيانات والتحليل](docs/DATASET_ANALYTICS.md#البدء-بالعربية) ·
 [إعداد الذكاء الاصطناعي المحلي](docs/LOCAL_AI_SETUP.md) ·
@@ -176,8 +201,8 @@ probabilities or commercial readiness by displaying a score.
   interface is planned in `docs/UI_PLAN.md` and its design system is
   generated with the vendored `ui-ux-pro-max` skill (ADR 0023)
 - **Datasets in the formats business data comes in** — CSV and TSV, Excel
-  workbooks, JSON and JSON Lines, up to 4 megabytes, read with the
-  standard library into one canonical table (`POST /api/datasets`,
+  workbooks, JSON and JSON Lines, up to 4 MB as uploaded, 50,000 rows
+  and 10 MB once converted to CSV, read with the standard library into one canonical table (`POST /api/datasets`,
   ADR 0024). Excel dates, error cells and formulas are handled and
   reported; hostile workbooks (entity and decompression bombs, paths
   outside the archive) are refused; the same data in any format is stored
@@ -2203,12 +2228,15 @@ See `user_guide.md` for the full command reference.
 
 ## Security and Privacy
 
-- Memory is stored as plain text in `data/memory.json` on your own
-  computer; nothing is sent to any external service. Remove entries from
-  the Memory panel, with `/forget`, or by deleting the file.
+- In the default local-owner mode, memory uses the local file backend.
+  With managed identity or PostgreSQL, the server uses owner-scoped database
+  memory. Use the application's memory controls for the configured mode.
+  Optional external providers have their own data flow; do not interpret
+  local-first defaults as a blanket claim that every configuration is offline.
 - Keep credentials out of commits and use `.env.example` for placeholders.
-  The repository remains temporarily private under the documented containment
-  decision; visibility and historical remediation require owner review.
+  Repository access is separate from application authorization. Preserve
+  intentionally published course materials while keeping secrets and genuinely
+  non-public personal information out of commits.
 - The API validates input lengths and shapes, restricts CORS, hides stack
   traces, and requires confirmation in the UI before destructive actions.
 
@@ -2273,9 +2301,12 @@ described in [docs/PLAYBOOK.md](docs/PLAYBOOK.md):
 Team members start with [CONTRIBUTING.md](CONTRIBUTING.md). It covers
 getting access, ways to help without writing code, local setup, the
 branch and pull-request flow, and the repository's continuing rules: no
-secrets, no personal data, no force-push. The repository is temporarily private
-under the [20 October containment decision](docs/adr/2026-10-20-temporary-private-containment.md);
-the owner must approve access for any additional team member or instructor.
+secrets, no genuinely non-public personal data, no force-push. Intentionally
+published MBA/course materials remain preserved. GitHub repository access
+does not grant access to a deployed application or its private data.
+
+No repository-wide license file is present in the reviewed source. This README
+does not create or change a license; existing third-party notices apply.
 
 ## Project Information
 
@@ -2283,3 +2314,4 @@ the owner must approve access for any additional team member or instructor.
 - Product: AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project
 - Engine: Agentic OS
 - Version: 1.0.0
+

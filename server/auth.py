@@ -22,6 +22,7 @@ serving everything as the local owner.
 
 import os
 import time
+from urllib.parse import urlsplit
 from dataclasses import dataclass
 
 # Role -> permission set. Checked server-side on every action; the UI is
@@ -260,17 +261,31 @@ def public_auth_config(identity, env=None):
         env.get("SUPABASE_PUBLISHABLE_KEY") or env.get("SUPABASE_ANON_KEY") or ""
     )
     flows = []
+    redirect_url = env.get("AGENTIC_OS_AUTH_REDIRECT_URL", "")
+    try:
+        callback = urlsplit(redirect_url)
+        safe_callback = (callback.scheme == "https" and callback.hostname and
+                         not callback.username and not callback.password and
+                         callback.path == "/auth/callback" and
+                         not callback.query and not callback.fragment and
+                         not any(c.isspace() for c in redirect_url))
+    except ValueError:
+        safe_callback = False
+    if not safe_callback:
+        redirect_url = ""
     if provider_url and publishable_key:
-        # Password sign-in is implemented. Magic-link callback token
-        # verification/redirect handling is not yet implemented, so it
-        # must not be advertised as a working sign-in option.
         flows = ["password"]
+        # The operator must first allow this exact callback at the provider.
+        # Browser settings discovery additionally gates each enabled method.
+        if redirect_url:
+            flows.append("pkce")
     return {
         "mode": "jwt",
         "provider": "supabase" if provider_url else "custom",
         "provider_url": provider_url,
         "publishable_key": publishable_key,
         "flows": flows,
+        "redirect_url": redirect_url,
     }
 
 

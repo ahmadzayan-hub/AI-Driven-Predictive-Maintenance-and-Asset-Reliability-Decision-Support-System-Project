@@ -19,6 +19,15 @@ const TOKEN =
   'RNyXg3ACSP23KpieEeYMf3Lqo2eECjse8OzSJ2D6Jvg'
 
 test.describe('managed authentication', () => {
+  test.beforeEach(async ({ page }) => {
+    // Synthetic provider boundary: these tests never send email or contact OAuth.
+    await page.route('https://example.supabase.co/auth/v1/**', (route) => {
+      if (new URL(route.request().url()).pathname.endsWith('/settings')) return route.fulfill({
+        json: { external: { email: true, google: false, apple: false }, disable_signup: false },
+      })
+      return route.abort()
+    })
+  })
   test.skip(
     ({ baseURL }) => baseURL === AUTH_BASE,
     'runs against the dedicated auth server only',
@@ -90,5 +99,83 @@ test.describe('managed authentication', () => {
     await expect(page.getByRole('main', { name: 'Sign in' })).toBeVisible()
     const stored = await page.evaluate(() => localStorage.getItem('aos-token'))
     expect(stored).toBeNull()
+  })
+})
+
+
+test.describe('managed PKCE onboarding', () => {
+  async function prepare(page: import('@playwright/test').Page) {
+    await skipOnboarding(page)
+    await page.route(`${AUTH_BASE}/api/auth/config`, (route) => route.fulfill({ json: {
+      mode: 'jwt', provider: 'supabase', provider_url: 'https://example.supabase.co',
+      publishable_key: 'synthetic-public-key', flows: ['password', 'pkce'], redirect_url: `${AUTH_BASE}/auth/callback`,
+    } }))
+    await page.route('https://example.supabase.co/auth/v1/**', (route) => {
+      const path = new URL(route.request().url()).pathname
+      if (path.endsWith('/settings')) return route.fulfill({ json: {
+        external: { email: true, google: false, apple: false }, disable_signup: false,
+      } })
+      if (path.endsWith('/otp')) return route.fulfill({ json: {} })
+      return route.abort()
+    })
+    await page.goto(AUTH_BASE)
+  }
+
+  test('email registration stays pending until PKCE exchange and real API identity verification', async ({ page }) => {
+    await prepare(page)
+    await page.getByLabel('Email').fill('synthetic@example.invalid')
+    const request = page.waitForRequest('https://example.supabase.co/auth/v1/otp?**')
+    await page.getByRole('button', { name: 'Create account by email' }).click()
+    const sent = await request
+    expect(sent.postDataJSON()).toMatchObject({ create_user: true, code_challenge_method: 's256' })
+    await expect(page.getByText(/You are not signed in yet/)).toBeVisible()
+    expect(await page.evaluate(() => localStorage.getItem('aos-token'))).toBeNull()
+    const pending = await page.evaluate(() => JSON.parse(localStorage.getItem('aos-auth-request')!))
+    let exchanges = 0
+    await page.route('https://example.supabase.co/auth/v1/token?grant_type=pkce', (route) => {
+      exchanges += 1
+      expect(route.request().postDataJSON()).toEqual({ auth_code: 'synthetic-one-use', code_verifier: pending.verifier })
+      return route.fulfill({ json: { access_token: TOKEN } })
+    })
+    await page.goto(`${AUTH_BASE}/auth/callback?code=synthetic-one-use`)
+    await expect(page.getByRole('main', { name: 'Sign in' })).toHaveCount(0)
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('aos-token'))).toBe(TOKEN)
+    expect(exchanges).toBe(1)
+    expect(new URL(page.url()).search).toBe('')
+    expect(await page.evaluate(() => localStorage.getItem('aos-auth-request'))).toBeNull()
+    // This request hits the real test API, not a mocked identity endpoint.
+    await page.goto(`${AUTH_BASE}/#/assistant`)
+    await expect(composerInput(page)).toBeVisible()
+  })
+
+  test('an exchanged but forged token never unlocks the workspace', async ({ page }) => {
+    await prepare(page)
+    await page.getByLabel('Email').fill('synthetic@example.invalid')
+    await page.getByRole('button', { name: 'Sign in by email link' }).click()
+    await expect(page.getByText(/You are not signed in yet/)).toBeVisible()
+    await page.route('https://example.supabase.co/auth/v1/token?grant_type=pkce', (route) => route.fulfill({ json: { access_token: 'forged.token.value' } }))
+    await page.goto(`${AUTH_BASE}/auth/callback?code=synthetic`)
+    await expect(page.getByRole('main', { name: 'Sign in' })).toBeVisible()
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('aos-token'))).toBeNull()
+    await expect(composerInput(page)).toHaveCount(0)
+    await expect(page.locator('.statusline--error')).toContainText(/token|credentials|authentication/i)
+  })
+
+  test('cancelled callbacks are consumed without an exchange or implicit-token acceptance', async ({ page }) => {
+    await prepare(page)
+    let exchanges = 0
+    await page.route('https://example.supabase.co/auth/v1/token?**', (route) => { exchanges += 1; return route.abort() })
+    await page.goto(`${AUTH_BASE}/auth/callback?error=access_denied#access_token=untrusted`)
+    await expect(page.getByText(/cancelled, expired, already used/)).toBeVisible()
+    expect(exchanges).toBe(0)
+    expect(new URL(page.url()).search).toBe(''); expect(new URL(page.url()).hash).toBe('')
+    expect(await page.evaluate(() => localStorage.getItem('aos-token'))).toBeNull()
+  })
+
+  test('disabled social providers do not show fake login buttons', async ({ page }) => {
+    await prepare(page)
+    await expect(page.getByText('Google and Apple sign-in are not enabled for this project.')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Continue with Google' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Continue with Apple' })).toHaveCount(0)
   })
 })

@@ -142,3 +142,41 @@ describe('Miyaar chat request continuity', () => {
     expect(result.current.session?.transcript).toHaveLength(0)
   })
 })
+
+describe('verified hosted identity', () => {
+  const jwt = { mode: 'jwt' as const, provider_url: 'https://example.supabase.co', publishable_key: 'public', flows: ['password'] }
+  const identity = (permissions = ['read']) => ({ mode: 'jwt' as const, principal: { subject: 'verified-owner', role: 'viewer', provider: 'jwt', email: '', permissions } })
+  async function hosted() {
+    vi.mocked(api.authConfig).mockResolvedValue(jwt)
+    const hook = renderHook(() => useStore(), { wrapper: StoreProvider })
+    await waitFor(() => expect(hook.result.current.needsSignIn).toBe(true)); return hook
+  }
+  it('keeps rejected tokens out of sessions and storage', async () => {
+    vi.spyOn(api, 'identity').mockRejectedValue(new ApiError('Untrusted token', 401)); const { result } = await hosted()
+    await act(async () => { await expect(result.current.signIn('untrusted')).rejects.toThrow('Untrusted token') })
+    expect(result.current.needsSignIn).toBe(true); expect(result.current.identity).toBeNull(); expect(localStorage.getItem('aos-token')).toBeNull(); expect(api.createSession).not.toHaveBeenCalled()
+  })
+  it('accepts a verified viewer without creating a write session or granting permissions', async () => {
+    vi.spyOn(api, 'identity').mockResolvedValue(identity()); const { result } = await hosted()
+    await act(async () => { await result.current.signIn('verified') })
+    expect(result.current.identity?.principal.permissions).toEqual(['read']); expect(result.current.session).toBeNull(); expect(api.createSession).not.toHaveBeenCalled()
+  })
+  it('creates a session only after server-verified write permission', async () => {
+    vi.spyOn(api, 'identity').mockResolvedValue(identity(['read', 'write'])); const { result } = await hosted()
+    await act(async () => { await result.current.signIn('verified') }); expect(api.createSession).toHaveBeenCalledOnce(); expect(result.current.identity?.principal.subject).toBe('verified-owner')
+  })
+  it('does not let a late verification undo sign-out', async () => {
+    const pending = deferred<ReturnType<typeof identity>>(); vi.spyOn(api, 'identity').mockReturnValue(pending.promise); const { result } = await hosted(); let attempt!: Promise<void>
+    act(() => { attempt = result.current.signIn('old').catch(() => {}); result.current.signOut() })
+    await act(async () => { pending.resolve(identity(['read', 'write'])); await attempt })
+    expect(result.current.needsSignIn).toBe(true); expect(result.current.identity).toBeNull(); expect(api.createSession).not.toHaveBeenCalled(); expect(localStorage.getItem('aos-token')).toBeNull()
+  })
+  it('does not restore a cached session on a callback before exchange', async () => {
+    window.history.replaceState(null, '', '/auth/callback?code=synthetic'); localStorage.setItem('aos-token', 'old'); const verify = vi.spyOn(api, 'identity'); await hosted()
+    expect(verify).not.toHaveBeenCalled(); expect(api.createSession).not.toHaveBeenCalled(); window.history.replaceState(null, '', '/')
+  })
+  it('does not write a session when identity verification is unavailable', async () => {
+    localStorage.setItem('aos-token', 'existing'); vi.mocked(api.authConfig).mockResolvedValue(jwt); vi.spyOn(api, 'identity').mockRejectedValue(new ApiError('Identity unavailable', 503))
+    const { result } = renderHook(() => useStore(), { wrapper: StoreProvider }); await waitFor(() => expect(result.current.bootError).toBe('Identity unavailable')); expect(api.createSession).not.toHaveBeenCalled()
+  })
+})
