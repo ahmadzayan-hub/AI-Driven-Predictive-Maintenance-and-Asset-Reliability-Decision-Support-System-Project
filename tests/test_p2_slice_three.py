@@ -10,6 +10,7 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -145,6 +146,16 @@ class StoreRateLimiterTest(unittest.TestCase):
         self.assertGreaterEqual(retry_after, 1)
         self.assertTrue(b.check("ip:2")[0], "another caller has its own window")
 
+    def test_exact_boundary_resets_only_after_the_fixed_window(self):
+        first, _ = self.stores()
+        clock = [1259.999]
+        limiter = StoreRateLimiter(first, limit=3, window_seconds=60, clock=lambda: clock[0])
+        self.assertEqual([limiter.check("boundary")[0] for _ in range(4)], [True, True, True, False])
+        clock[0] = 1260.0
+        self.assertEqual([limiter.check("boundary")[0] for _ in range(4)], [True, True, True, False])
+        rows = first._exec("SELECT window_start, count FROM rate_windows WHERE key=? ORDER BY window_start", ("boundary",))
+        self.assertEqual([(r["window_start"], r["count"]) for r in rows], [(1200, 4), (1260, 4)])
+
     def test_a_new_window_opens_and_old_ones_are_dropped(self):
         first, _ = self.stores()
         clock = [1000.0]
@@ -237,7 +248,11 @@ class ApiBudgetWiringTest(unittest.TestCase):
                                       "memory_file": str(root / "memory.json"),
                                       "vault_dir": str(root / "vault")}), encoding="utf-8")
         self.env = {"AGENTIC_OS_RATE_LIMIT": "3", "AGENTIC_OS_RATE_LIMIT_STORE": "1"}
-        self.app = create_app(config, env=self.env)
+        # Keep this wiring test inside one fixed window even across a wall-clock
+        # minute boundary. Production clock behavior is tested separately.
+        with patch("server.app.StoreRateLimiter", side_effect=lambda *args, **kwargs:
+                   StoreRateLimiter(*args, **kwargs, clock=lambda: 1200.0)):
+            self.app = create_app(config, env=self.env)
         self.client = TestClient(closing(self, self.app), raise_server_exceptions=False)
 
     def test_the_gateway_has_the_store_budget(self):
