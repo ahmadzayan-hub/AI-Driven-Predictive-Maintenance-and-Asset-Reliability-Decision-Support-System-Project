@@ -1,0 +1,26 @@
+FINDING: [P04] The section supply reliability of 97.7% is wrong; series reliability is 0.98 × 0.96 × 0.99 = 93.1%, below the 97.0% target.
+Category: arithmetic
+FINDING: [P05] Lift downtime and availability use repair time alone; restoration is 4.9 h, so downtime is 1,656.2 h and availability 99.84%.
+Category: domain_method
+FINDING: [P05] The 3-hour restoration promise rests on the 2.4-hour repair time; restoration averages 4.9 hours.
+Category: overclaim
+FINDING: [P07] "No failures" comes from a log that cannot see loss of battery capacity, a hidden failure only the discharge test reveals.
+Category: domain_method
+FINDING: [P08] The 0.04% treats both pumps as independent despite one shared level controller; about 0.54% with the common cause.
+Category: domain_method
+FINDING: [P10] A 13-week survey interval is longer than the 8-week P-F interval.
+Category: domain_method
+FINDING: [P12] A Weibull shape of 3.4 means wear-out, not random failures.
+Category: domain_method
+FINDING: [P14] The backlog target is met only by deferring work, mainly safety-related PSD sensor defects.
+Category: overclaim
+FINDING: [P16] The condition-monitoring budget is ranked on total corrective cost alone.
+Category: domain_method
+FINDING: [P17] MTBF of 360,912 h is a failure rate, not a service life; it cannot set a renewal horizon.
+Category: domain_method
+FINDING: [P18] The fall in lift failures is attributed to the new contractor without a control.
+Category: causal_claim
+FINDING: [P19] The pump failure rate divides by 37 sumps, not 74 pumps; per pump it is 29.7%.
+Category: denominator
+FINDING: [P20] Zero failures in six sections over five months is taken as proof of elimination.
+Category: overclaim

@@ -1,11 +1,24 @@
 # Project progress
 
-Last updated: 2026-10-23, Codex RMD evidence implementation and final main integration. Source originals omitted by owner instruction; combined hosted acceptance and measured verification scopes are recorded in README.
+Last updated: 2026-10-23, platform/API recovery, transactional publishing and application build delivery. Original RMD sources remain omitted by owner instruction. Measured verification and release limits are recorded in README and docs/implementation/PLATFORM_RELEASE.md.
 
 
 **Vision.** **AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project** uses Agentic OS as its governed analytics engine. It digests several datasets with dynamic inputs, then carries them through preparation, cleaning and modelling to a multi-page interactive dashboard with live data, with insights and key findings that are always traceable to a calculation. The product scope and remaining domain work are in `docs/PROJECT_CHARTER.md`; the reusable engine milestones are in `brain/Projects/Analytics OS roadmap.md`.
 
 ## Now
+
+- **Platform and application delivery, 2026-10-23:** shared error/schema contract,
+  exact-request retry/reload recovery, indexed asset evidence and KPI retry,
+  complete chart tables, read-only-host SQL publication and fresh destination
+  review. Android now compiles Compose, passes lint and produces a signature-
+  verified debug APK; Windows Edge and macOS WebKit actual-API journeys pass.
+  English/Arabic, keyboard and phone behavior are covered within the recorded
+  CI scope. [Handoff](docs/implementation/PLATFORM_RELEASE.md),
+  [API/application decision](docs/adr/2026-10-23-platform-contract-and-application-builds.md)
+  and [publishing decision](docs/adr/2026-10-23-database-publication-target.md).
+  Windows/iOS currently use the PWA. Physical-device, secure credential storage,
+  release/store, prospective maintenance and production acceptance remain open;
+  no production deployment was performed.
 
 - **RMD Evidence and Insights, 2026-10-22:** integrated private ingestion,
   persistence, source/column provenance, reviewed record relationships,
@@ -19,7 +32,7 @@ Last updated: 2026-10-23, Codex RMD evidence implementation and final main integ
   document/workbook findings are outside this delivery. See
   [reuse map and acceptance](docs/RMD_EVIDENCE.md).
 
-- **P2 slice one: 2026-10-23, on branch `claude/tender-clarke-m4uwgq`.** Verdict bound (A9), declared splits (A10), incomplete periods (A12), loopback by default (B8), idempotent run creation (B14, in part), wall-clock limits on custom stages and agent runtimes (G10). [Decision](docs/adr/2026-10-23-p2-slice-one.md); counts in README.md#testing. Open: the rest of B14, the standards lint blind score, the remaining P2 list.
+- **P2 slice one: 2026-10-23, on branch `claude/tender-clarke-m4uwgq`.** Verdict bound (A9), declared splits (A10), incomplete periods (A12), loopback by default (B8), idempotent run creation (B14, in part), wall-clock limits on custom stages and agent runtimes (G10). [Decision](docs/adr/2026-10-23-p2-slice-one.md); counts in README.md#testing. B14 is closed by the platform delivery above. Open: the standards lint blind score and remaining P2 list.
 
 - **Decision inputs in the interface: 2026-10-22, merged into main as `37fce5e` with the hosted CI second pass (PR #21; hosted suite 139 passed, 5 skipped).** The Analytics form collects an improvement and a cost per group and the explored range; the run view shows the decision record (recommendation and basis, inputs stated or assumed, flip point, who decided). Script allocation 220 KB. [Decision](docs/adr/2026-10-22-decision-inputs-interface.md); counts in README.md#testing. Open: the standards lint scores 0% on its blind set; P2 items in the [roadmap](docs/implementation/DELIVERY_ROADMAP.md).
 
@@ -27,7 +40,7 @@ Last updated: 2026-10-23, Codex RMD evidence implementation and final main integ
 
 - **Release gate, slice three: 2026-10-22, on branch `claude/tender-clarke-m4uwgq`.** The P1 list is closed: decision inputs and record (A2, A13), signalling escalation (A8), currency (U4), landing and phone bar (U12), hosted robustness (B4, B5, B10), blind floors (G1), model ledger (G4), browser coverage (U13); [decision](docs/adr/2026-10-22-release-gate-slice-three.md). Verified 8/8 with PostgreSQL; counts in README.md#testing. Open (interface inputs for uplift and cost delivered the same day): the standards lint scores 0% on its blind set; P2 items in the [roadmap](docs/implementation/DELIVERY_ROADMAP.md).
 - **Release gate, slice two: 2026-10-22, on branch `claude/tender-clarke-m4uwgq`.** Rates never summed (A4), a naive baseline and weak rule for every forecast (A5), figures checked against cited evidence (A6), approve after reading (U3), JWT audience and issuer required (B7); [decision](docs/adr/2026-10-22-release-gate-slice-two.md). Verified 8/8 with PostgreSQL; counts in README.md#testing. Remaining P1 and owner decisions in the [roadmap](docs/implementation/DELIVERY_ROADMAP.md).
-- **Android app authored: 2026-10-22.** `apps/android` with a JVM-tested Kotlin core (14 tests) and a Compose app that waits for an Android SDK to compile; honesty boundary in [the record](docs/adr/2026-10-22-android-app-first-release.md). **Blocked here:** `dl.google.com` denied by the network policy.
+- **Android application build verified: 2026-10-23.** The existing Kotlin/Compose app now builds in hosted CI with JVM/app checks, lint, APK assembly and signature verification. The hosted SDK resolves the earlier local SDK/network block. Exact results and artifact links are in README.md#testing; device and production release boundaries are in [the application handoff](docs/implementation/PLATFORM_RELEASE.md).
 - **Platform assessment, five audit fixes and the Executive Command Centre: 2026-10-22, on branch `claude/tender-clarke-m4uwgq`, pull request pending.** 74 code-grounded findings ([assessment](docs/audits/SAAS_PLATFORM_ASSESSMENT.md)); blockers fixed with tests; the Overview is the Command Centre ([decision](docs/adr/2026-10-22-executive-command-centre.md)); P1 backlog and owner decisions in the [roadmap](docs/implementation/DELIVERY_ROADMAP.md). Verified 8/8; details in README.md#testing.
 - **Local model roles repaired: 2026-10-22.** Chat returned genuine Qwen replies, but a full analysis exposed missing model-role wiring in the background worker. The worker now uses the same roles as the API, with the shared privacy boundary and human publishing gate. After Hermes3 repeatedly exceeded the local deadline, the owner explicitly selected Qwen3 4B Instruct 2507 for all local roles, including a consultant. The private persistent profile follows that choice; cloud credentials are no longer required for this local setup. Distinct prompts use one model and do not establish independent review. Actual report authors, accepted notes, verification and remaining latency/quality limits are recorded in README.md#testing and the [worker decision](docs/adr/2026-10-22-worker-model-role-parity.md).
 
@@ -164,11 +177,11 @@ Last updated: 2026-10-23, Codex RMD evidence implementation and final main integ
 
 ## Next
 
-0. **Intent needs more than patterns, causal wording needs more patterns.** The causal lint and the intent rules were fixed against `blind_v6` (2026-10-20) and judged on `blind_v7`, which no rule has seen: causal wording recall 28% to 60% and precision 70% to 88%; intent 32 to 35 of 57 correct, within noise. Next: a model behind the intent rules (ADR 0019) or a much larger labelled set; for the lint, the remaining misses are listed in [the decision](docs/adr/2026-10-20-labelled-cases-from-real-use.md). Move `blind_v7` into dev before the next fix and write `blind_v8`. The intent holdout floor was raised to 76% at the owner's request. A model behind the intent rules already exists (ADR 0019) and is now measurable: `python scripts/evaluate_agents.py --suite intent_model --split blind_v7`, which needs a configured provider and has not been run.
+0. **Intent needs a model, causal wording generalised: 2026-10-23** ([decision](docs/adr/2026-10-23-blind-v7-into-dev-causal-and-intent-fix.md)). `blind_v7` moved into dev, the rules were fixed against it, and an independent `blind_v8` judged the result once: causal recall 60% to 80% and precision 88% to 92%; intent macro recall 61% to 58.7%, flat while dev went to 100%, which is overfitting. Next: run the model behind the intent rules (`python scripts/evaluate_agents.py --suite intent_model --split blind_v8`, needs a configured provider) or label a much larger intent set. Blind floors are the first score rounded down (0.80, 0.58). Before the next fix, move `blind_v8` into dev and write `blind_v9`.
 1. Resolve the release blockers and acceptance gates in `private/project-review-2026-10-17/PROJECT_ASSESSMENT.md`, then complete independent maintenance/model acceptance beyond the now-connected controlled KPI register and executive evidence view. Complete the capstone PBIX/model-evidence package alongside stabilization; confirm official dates from the course source.
 2. Observe the manager's timed review task, real Windows/Android/iOS PWA installation and assistive-technology use; measure fresh Web Vitals. Automated interface checks and bundle budgets pass; see the validation record for the remaining observations. CSS is near its existing limit, so trim before adding styles or record a justified budget change in an ADR.
-3. Exercise a live source against a real public host, and a scheduled refresh with the worker, on a deployment with direct egress. For workbooks with non-tabular cover sheets, add metadata discovery before parsing; the current picker requires the first visible sheet to parse.
-4. Reviewer memos: check 7 holds on held-out memo F (100% in 5 of 5 runs). Next: a second held-out maintenance memo, so the estimate rests on more than one memo; number words in the checker's coverage; the auditor's false alarm on correct run-to-failure. For intent and causal wording, try a model behind the rules once a rotated key or a local model is available; the rules plateau near 70% on blind sets.
+3. Exercise a live source against a real public host, and a scheduled refresh with the worker, on a deployment with direct egress (not possible behind this container's proxy). Workbook cover sheets are handled ([decision](docs/adr/2026-10-23-workbook-sheet-discovery.md)): sheets are listed without parsing and the first that looks like a table is read. Still open: a header below a title row is judged "not a table", and the picker does not yet call `/api/datasets/sheets` when no sheet looks tabular.
+4. Reviewer memos: check 7 holds on the second held-out memo G, 9 of 9 `domain_method` defects in 3 of 3 runs with no false alarm on 11 decoys ([decision](docs/adr/2026-10-23-number-words-and-run-to-failure.md)). The checker reads number words in English and Arabic and sources a register stated in millions; the auditor's false alarm on a correct run-to-failure is gone in 2 of 2 controlled runs on memo F, which is dev data for that fix. Next: a third held-out memo with no run-to-failure decoy written from memo F, and the auditor's other false alarm (memo E P08); P04 and P14 on memo G were found but filed under a neighbouring category.
 5. Invite the team as collaborators and protect the default branch (owner action, on GitHub).
 
 ## Analytics OS milestones

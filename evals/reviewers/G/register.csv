@@ -1,0 +1,137 @@
+Check,Expected
+Mainline track km,21.6
+Depot track km,2.4
+Total track km,24.0
+Stops,31
+Switches total,148
+Mainline switches,112
+Depot switches,36
+Traction substations,9
+Service hours per day,18
+Required service hours 2025,6570
+Calendar hours 2025,8760
+Work orders completed 2025,4210
+Preventive work orders completed,2940
+Corrective work orders completed,1270
+Preventive work orders scheduled,3100
+Preventive compliance %,94.8
+Signalling delay incidents 2024,52
+Signalling delay incidents 2025,46
+Train-km 2024 (million),1.79
+Train-km 2025 (million),1.84
+Signalling delay rate 2024 per million train-km,29.1
+Signalling delay rate 2025 per million train-km,25.0
+Switch failures 2025,39
+Mainline switch failures 2025,30
+Depot switch failures 2025,9
+Mainline switch failures per track-km,1.39
+Depot switch failures per track-km,3.75
+Depot to mainline per-km ratio,2.7
+Point machines,148
+Point machine failures,18
+Failed point machine operating hours,81000
+Point machine MTBF hours (as stated),4500
+Point machine overhaul interval hours,4000
+Point machine failure interval months (approx),6
+Axle counter heads,60
+Axle counter head-hours,525600
+Axle counter heads not failed,48
+Axle counter failures,12
+Axle counter MTBF hours,43800
+Insulated rail joint failures,22
+IRJ failures within 90 days,14
+IRJ early failure share %,64
+IRJ early window days,90
+IRJ Weibull shape,0.6
+IRJ current replacement interval years,10
+IRJ proposed replacement interval years,6
+Clamp-lock Weibull shape,3.4
+Clamp-lock characteristic life years,7.5
+Clamp-lock failures,9
+Clamp-lock failed age above years,6.5
+Clamp-lock replacement age years,6
+PIS controller failures,41
+PIS controller boards,310
+PIS controller Weibull shape,1.0
+PIS controller shape lower bound,0.98
+PIS controller shape upper bound,1.04
+PIS controller replacement cycle years,3
+PIS controller unit cost UA,1200
+PIS controller cycle cost UA,372000
+Traction power downtime in service hours,19.71
+Traction power available hours,6550.29
+Traction power availability %,99.7
+PIS availability target %,95.0
+PIS outage hours,438
+PIS availability as stated %,95.0
+OCS wear measurement interval months,12
+OCS P-F interval months,4
+OCS possessions saved per year,2
+OCS alternative cycle months,6
+RCF inspection interval months,3
+RCF P-F interval months,9
+RCF inspection opportunities,3
+Broken rails 2025,0
+Broken rails 2024,3
+S4 rectifiers,2
+S4 rectifier unavailability,0.02
+S4 incomer kV,11
+S4 combined unavailability as stated,0.0004
+S4 availability as stated %,99.96
+UPS units,2
+UPS unavailability,0.01
+UPS independent term,0.0001
+UPS beta factor,0.05
+UPS common-cause term,0.0005
+UPS combined unavailability,0.0006
+Switch MTTR hours,1.5
+Mainline switch disruption service-hours as stated,45
+Wheel lathe failures,4
+Wheel lathe mean downtime hours,18
+Wheel lathe active repair hours,6
+Wheel lathe spares wait hours,10
+Wheel lathe access hours,2
+Wheel lathe total downtime hours,72
+Wheel lathe scheduled hours,4000
+Wheel lathe shifts per day,2
+Wheel lathe shift hours,8
+Wheel lathe days,250
+Wheel lathe availability %,98.2
+Interlocking reliability,0.98
+Object controller reliability,0.96
+Train detection reliability,0.97
+Route setting reliability as stated (average),0.97
+Route setting target,0.95
+PIS server reliability,0.99
+PIS network reliability,0.98
+PIS display reliability,0.97
+PIS chain reliability,0.941
+PIS chain reliability %,94.1
+Depot LED fittings,420
+Depot LED failures,11
+LED replacement time hours (max),1
+Help points per stop,2
+Help points,62
+Help point unit cost UA,380
+Help point failures 2025,3
+Drained stops,9
+Drained stop geometry faults,4
+Comparison stops,9
+Comparison stop geometry faults,15
+Geometry fault reduction %,73
+High-traffic switches,56
+Low-traffic switches,56
+High-traffic switch failures,21
+Low-traffic switch failures,9
+High to low traffic failure rate ratio,2.3
+Switch heater repair cost UA,9500
+Wash plant repair cost UA,48000
+Maintenance spend 2025 (million UA),14.6
+Track spend (million UA),4.1
+S&C spend (million UA),2.3
+Power and OCS spend (million UA),3.4
+Signalling spend (million UA),2.7
+Depot plant spend (million UA),1.2
+PIS spend (million UA),0.9
+Report year,2025
+Plan year,2026

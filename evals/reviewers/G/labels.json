@@ -1,0 +1,115 @@
+{
+  "about": "Synthetic benchmark G, held out: a fictional tramway's 2025 infrastructure reliability and maintenance year-end review, written by an independent agent from the category definitions only, without reading any repository files, earlier memos or reviewer instructions. It plants 12 defects (9 domain_method, 1 causal_claim, 1 denominator, 1 overclaim) and 11 decoys that look suspicious but are correct; all arithmetic holds against register.csv.",
+  "categories": [
+    "domain_method",
+    "causal_claim",
+    "denominator",
+    "overclaim"
+  ],
+  "paragraphs": [
+    "P01",
+    "P02",
+    "P03",
+    "P04",
+    "P05",
+    "P06",
+    "P07",
+    "P08",
+    "P09",
+    "P10",
+    "P11",
+    "P12",
+    "P13",
+    "P14",
+    "P15",
+    "P16",
+    "P17",
+    "P18",
+    "P19",
+    "P20",
+    "P21",
+    "P22",
+    "P23",
+    "P24",
+    "P25",
+    "P26",
+    "P27",
+    "P28"
+  ],
+  "defects": {
+    "P04": [
+      "denominator"
+    ],
+    "P05": [
+      "domain_method"
+    ],
+    "P07": [
+      "domain_method"
+    ],
+    "P09": [
+      "domain_method"
+    ],
+    "P11": [
+      "domain_method"
+    ],
+    "P12": [
+      "domain_method"
+    ],
+    "P14": [
+      "overclaim"
+    ],
+    "P15": [
+      "domain_method"
+    ],
+    "P17": [
+      "domain_method"
+    ],
+    "P19": [
+      "domain_method"
+    ],
+    "P22": [
+      "domain_method"
+    ],
+    "P23": [
+      "causal_claim"
+    ]
+  },
+  "decoys": [
+    "P03",
+    "P06",
+    "P08",
+    "P10",
+    "P13",
+    "P16",
+    "P18",
+    "P20",
+    "P21",
+    "P24",
+    "P25"
+  ],
+  "why": {
+    "P03": "Decoy, correct: delay incidents are normalised by service delivered (train-km), the right base when volume changes: 52/1.79 = 29.1 and 46/1.84 = 25.0 per million train-km.",
+    "P04": "Switch failures are normalised per track-km, but the depot packs 36 switches into 2.4 km while the mainline has 112 over 21.6 km. The right base is per switch (or per switch operation): mainline 30/112 = 0.268, depot 9/36 = 0.250 failures per switch, so the depot is not worse; the 2.7 ratio (3.75/1.39) is an artefact of the denominator.",
+    "P05": "Censoring ignored: MTBF uses only the 81,000 h of the 18 failed machines and omits the 130 survivors (148 - 18) that ran all year. Including survivor time (about 130 x 8,760 = 1,138,800 h plus 81,000 h = 1,219,800 h) gives roughly 67,767 h, about 15 times longer, so a 4,000 h overhaul is unjustified. 81,000/18 = 4,500 is arithmetically right.",
+    "P06": "Decoy, correct: exposure includes the 48 survivors and replaced heads (60 x 8,760 = 525,600 head-hours); 525,600/12 = 43,800 h is a properly censored MTBF.",
+    "P07": "Infant mortality and Weibull shape misread: 14 of 22 (64%) failures within 90 days and beta = 0.6 (< 1) indicate a decreasing hazard (installation or quality defects), not wear-out. Shortening the replacement interval from 10 to 6 years installs more new joints and increases early-life failures; the fix is installation quality, not a shorter interval.",
+    "P08": "Decoy, correct: beta = 3.4 (> 1) indicates wear-out, failures all above 6.5 years with eta 7.5 years, so age-based replacement at 6 years is appropriate.",
+    "P09": "Preventive replacement of a constant-hazard item: beta = 1.0 (0.98 to 1.04) and no age relationship means a new board is as likely to fail as an old one, so replacing all 310 boards every 3 years (310 x 1,200 = 372,000 UA) does not reduce failures (and may add installation-induced failures). Cost arithmetic holds.",
+    "P10": "Decoy, correct: availability is computed on required service time as the contract requires; (6,570 - 19.71)/6,570 = 6,550.29/6,570 = 99.70%; planned overnight isolations are outside required service time.",
+    "P11": "Availability on the wrong time base: the target is defined over required service time and all 438 outage hours fell in service hours, so availability is 1 - 438/6,570 = 93.33%, which misses the 95.0% target. Using 8,760 calendar hours (1 - 438/8,760 = 95.0%) dilutes the outage with non-service hours.",
+    "P12": "Condition-monitoring interval longer than the P-F interval: a 12-month measurement cycle against a 4-month P-F interval means wear can progress from detectable to strand failure between measurements; the interval should be well under 4 months (typically P-F/2 or less), not kept at 12 to save 2 possessions.",
+    "P13": "Decoy, correct: inspection every 3 months against a 9-month P-F interval gives 9/3 = 3 opportunities to detect each crack before it becomes reportable.",
+    "P14": "Overclaim: one year with 0 broken rails versus 3 the year before is a small count and cannot show that risk is 'eliminated'; broken-rail risk is reduced at best, and the difference of 3 events is within normal year-to-year variation.",
+    "P15": "Common cause ignored: the two rectifiers share one 11 kV incomer and one cooling fan unit, so they are not independent; a single incomer or fan failure removes both. The product 0.02 x 0.02 = 0.0004 (99.96%) understates joint unavailability; a beta-factor or common-cause term is needed and resilience work may be warranted.",
+    "P16": "Decoy, correct: separate feeders and rooms support treating the pair as largely independent, and a common-cause beta factor is still applied: 0.01 x 0.01 = 0.0001 plus 0.05 x 0.01 = 0.0005, total 0.0006.",
+    "P17": "MTTR quoted as active repair only and used as downtime: 1.5 h runs from technician arrival to completion, omitting detection, response travel, possession and restoration time, so 30 x 1.5 = 45 service-hours understates actual service disruption.",
+    "P18": "Decoy, correct: mean downtime includes active repair, logistic delay and access (6 + 10 + 2 = 18 h); 4 x 18 = 72 h; scheduled time 2 x 8 x 250 = 4,000 h; availability 1 - 72/4,000 = 98.2%.",
+    "P19": "Series reliabilities averaged instead of multiplied: route setting needs all three, so reliability is 0.98 x 0.96 x 0.97 = 0.9126, which fails the 0.95 target. The average (0.98 + 0.96 + 0.97)/3 = 0.97 is arithmetically right but the wrong method.",
+    "P20": "Decoy, correct: series chain reliabilities are multiplied: 0.99 x 0.98 x 0.97 = 0.941094, about 94.1%.",
+    "P21": "Decoy, correct run-to-failure: cheap, non-safety, evident failure, redundant (overlapping) fittings, separate tested emergency lighting; 11 failures of 420 is low impact.",
+    "P22": "Run-to-failure chosen for a safety-related item with a hidden failure: an emergency help point's failure is not evident until a passenger needs it, so low unit cost (380 UA) and few failures (3 of 62 = 31 x 2) do not justify withdrawing the monthly functional test; hidden safety functions need failure-finding tests.",
+    "P23": "Causal claim from observational data: the 9 drained stops were those due for resurfacing (resurfaced at the same time) and were not randomly assigned; 4 vs 15 faults ((15 - 4)/15 = 73%) is an association and cannot be attributed to drainage alone.",
+    "P24": "Decoy, correct: per-switch rates (21/56 vs 9/56, ratio 21/9 = 2.33, about 2.3; 21 + 9 = 30 mainline failures) are stated as an association, with the age confounder named and a matched study planned.",
+    "P25": "Decoy, correct: criticality uses consequence (safety, service, cost) combined with frequency, not repair cost alone, so the cheaper switch heater (9,500 UA) correctly ranks above the wash plant (48,000 UA)."
+  }
+}
