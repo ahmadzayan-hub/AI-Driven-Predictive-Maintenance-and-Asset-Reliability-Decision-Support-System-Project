@@ -4,9 +4,9 @@ import { assetMessages } from './messages'
 import { api, ApiError } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
 import { stateLabel } from '../../shared/labels'
-import { PerformanceLegend, PerformanceValue, hasVerdict, performanceTone } from '../../shared/components/PerformanceValue'
+import { PerformanceLegend, PerformanceValue, performanceTone } from '../../shared/components/PerformanceValue'
 import type { Pipelines } from '../../shared/types'
-import { loadAssetEvidence } from './assetEvidence'
+import { findAssetEvidence } from './assetEvidence'
 import type { AssetEvidence } from './assetEvidence'
 import { formatValue, needsDisclosure } from './kpiDisplay'
 import type { RunKpis } from '../../shared/types'
@@ -19,43 +19,57 @@ interface Props {
 }
 
 export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
-  const { t, locale, formatTime } = usePack(assetMessages)
+  const { t, locale, formatDate, formatTime } = usePack(assetMessages)
   const [evidence, setEvidence] = useState<AssetEvidence | null>(null)
   const [pipelines, setPipelines] = useState<Pipelines | null>(null)
   const [kpiAnswer, setKpiAnswer] = useState<{ key: string; data: RunKpis } | null>(null)
-  const [searchCapped, setSearchCapped] = useState(false)
+  const [preparedAt, setPreparedAt] = useState('')
+  const [kpiState, setKpiState] = useState<{ key: string; loading: boolean; error: string } | null>(null)
+  const [kpiReload, setKpiReload] = useState(0)
   const [busy, setBusy] = useState(true)
   const [error, setError] = useState('')
   const [reload, setReload] = useState(0)
 
   useEffect(() => {
     let alive = true
+    const controller = new AbortController()
     setBusy(true)
     setError('')
     setEvidence(null)
-    Promise.all([api.pipelines(), loadAssetEvidence(api.assetEvidence)])
+    setPreparedAt('')
+    Promise.all([api.pipelines(controller.signal), api.assetEvidence(controller.signal)])
       .then(([config, result]) => {
         if (!alive) return
         setPipelines(config)
-        setSearchCapped(result.capped)
-        setEvidence(result.evidence)
+        setPreparedAt(result.prepared_at)
+        setEvidence(findAssetEvidence(result.run ? [result.run] : []))
       })
       .catch((reason) => alive && setError(reason instanceof ApiError ? reason.message : t('assets.unavailable')))
       .finally(() => { if (alive) setBusy(false) })
-    return () => { alive = false }
+    return () => { alive = false; controller.abort() }
   }, [reload, t])
 
   const runId = evidence?.run.id ?? null
-  const kpiKey = JSON.stringify([runId, evidence?.run.updated_at, locale])
+  const kpiKey = JSON.stringify([runId, evidence?.run.updated_at, locale, kpiReload])
   const kpis = kpiAnswer?.key === kpiKey ? kpiAnswer.data : null
   useEffect(() => {
     if (!runId) return
     let alive = true
-    api.runKpis(runId, locale === 'ar' ? 'ar' : 'en')
-      .then((result) => { if (alive) setKpiAnswer({ key: kpiKey, data: result }) })
-      .catch(() => { if (alive) setKpiAnswer(null) })
-    return () => { alive = false }
-  }, [runId, locale, kpiKey])
+    const controller = new AbortController()
+    setKpiState({ key: kpiKey, loading: true, error: '' })
+    api.runKpis(runId, locale === 'ar' ? 'ar' : 'en', controller.signal)
+      .then((result) => {
+        if (!alive) return
+        setKpiAnswer({ key: kpiKey, data: result })
+        setKpiState({ key: kpiKey, loading: false, error: '' })
+      })
+      .catch(() => {
+        if (!alive) return
+        setKpiAnswer(null)
+        setKpiState({ key: kpiKey, loading: false, error: t('assets.kpiFailed') })
+      })
+    return () => { alive = false; controller.abort() }
+  }, [runId, locale, kpiKey, t])
 
   const enabled = Boolean(pipelines?.profiles.maintenance?.includes('rail_asset_manager'))
   return (
@@ -76,7 +90,7 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
             <span>{busy ? t('assets.loading') : enabled ? t('assets.profile') : t('assets.profileMissing')}</span>
           </div>
           {error ? <div role="alert"><p>{error}</p><button type="button" className="btn btn--ghost" onClick={() => setReload((n) => n + 1)}>{t('assets.retry')}</button></div> : null}
-          {searchCapped ? <p className="panel__note">{t('assets.searchScope')}</p> : null}
+          {!busy && preparedAt ? <p className="panel__note">{t('assets.checked')} <time dateTime={preparedAt}>{formatDate(preparedAt)} {formatTime(preparedAt)}</time> · {t('assets.scope')}</p> : null}
           {!busy && !error && !evidence ? (
             <div className="asset-intelligence__blank">
               <Icon name="database" size={31}/>
@@ -91,8 +105,12 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
                 <div><dt>{t('assets.dataset')}</dt><dd dir="auto">{evidence.run.dataset_name}</dd></div>
                 <div><dt>{t('assets.runState')}</dt><dd>{stateLabel(t, evidence.run.state)}</dd></div>
                 <div><dt>{t('assets.stage')}</dt><dd>{stateLabel(t, evidence.screen.state)}</dd></div>
-                <div><dt>{t('assets.asOf')}</dt><dd><time dateTime={evidence.run.updated_at}>{formatTime(evidence.run.updated_at)}</time></dd></div>
+                <div><dt>{t('assets.updated')}</dt><dd><time dateTime={evidence.run.updated_at}>{formatDate(evidence.run.updated_at)} {formatTime(evidence.run.updated_at)}</time></dd></div>
               </dl>
+              {kpiState?.key === kpiKey && kpiState.loading ? <p role="status">{t('assets.kpiLoading')}</p> : null}
+              {kpiState?.key === kpiKey && kpiState.error ? <div role="alert">
+                <p>{kpiState.error}</p><button type="button" className="btn btn--ghost" onClick={() => setKpiReload((n) => n + 1)}>{t('assets.kpiRetry')}</button>
+              </div> : null}
               {/* Figures first; the screening and model notes that qualify the run follow. */}
               {kpis && kpis.measures.length ? (
                 <div className="asset-intelligence__finding">
@@ -103,7 +121,8 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
                       const shown = formatValue(measure, locale === 'ar' ? 'ar' : 'en')
                       const tone = performanceTone(measure.value, measure.assessment)
                       // A reason explains a verdict; "no target" is said once, below.
-                      const verdict = hasVerdict(tone) || measure.assessment?.reason_code === 'target_outdated'
+                      const verdict = tone === 'good' || tone === 'okay' || tone === 'bad'
+                        || measure.assessment?.reason_code === 'target_outdated'
                       return (
                         <li key={measure.key} data-family={measure.family ?? 'other'}>
                           <span dir="auto">{measure.title}</span>

@@ -8,8 +8,8 @@ import java.net.URLEncoder
 interface Transport {
     suspend fun get(url: String, headers: Map<String, String>): TransportResponse
     suspend fun postJson(url: String, body: String, headers: Map<String, String>): TransportResponse
-    suspend fun postMultipart(url: String, fileName: String, mediaType: String, bytes: ByteArray,
-                              fields: Map<String, String>, headers: Map<String, String>): TransportResponse
+    suspend fun postBytes(url: String, mediaType: String, bytes: ByteArray,
+                          headers: Map<String, String>): TransportResponse
     suspend fun delete(url: String, headers: Map<String, String>): TransportResponse
 }
 
@@ -17,7 +17,7 @@ data class TransportResponse(val status: Int, val body: String) {
     val ok: Boolean get() = status in 200..299
 }
 
-class ApiException(val status: Int, val detail: String) : Exception("HTTP $status: $detail")
+class ApiException(val status: Int, val detail: String, val code: String? = null) : Exception("HTTP $status: $detail")
 
 /** Reads the platform's API. `tokenProvider` returns a bearer token for a
  *  signed-in workspace, or null for the view-only demo. */
@@ -43,13 +43,15 @@ class AssetReliabilityClient(
     }
 
     private inline fun <reified T> parse(response: TransportResponse): T {
-        if (!response.ok) throw ApiException(response.status, detailOf(response.body))
+        if (!response.ok) throw ApiException(response.status, detailOf(response.body), codeOf(response.body))
         return ApiJson.decodeFromString(response.body)
     }
 
     suspend fun health(): Health = parse(transport.get(url("/api/health"), headers()))
     suspend fun authConfig(): AuthConfig = parse(transport.get(url("/api/auth/config"), headers()))
-    suspend fun runs(): List<RunSummary> = parse<RunsPage>(transport.get(url("/api/runs"), headers())).runs
+    suspend fun identity(): WorkspaceIdentity = parse(transport.get(url("/api/identity"), headers()))
+    suspend fun runs(state: String? = null): List<RunSummary> = parse<RunsPage>(transport.get(
+        url("/api/runs", if (state == null) emptyMap() else mapOf("state" to state)), headers())).runs
     suspend fun run(id: String): RunDetail = parse(transport.get(url("/api/runs/${enc(id)}"), headers()))
     suspend fun datasets(): List<DatasetSummary> =
         parse<DatasetsPage>(transport.get(url("/api/datasets"), headers())).datasets
@@ -60,13 +62,13 @@ class AssetReliabilityClient(
 
     /** Uploads a CSV, TSV, XLSX, JSON or JSONL file as a stored dataset. */
     suspend fun uploadDataset(fileName: String, mediaType: String, bytes: ByteArray,
-                              language: String = "en"): DatasetSummary = parse(
-        transport.postMultipart(url("/api/datasets", mapOf("language" to language)),
-            fileName, mediaType, bytes, emptyMap(), headers(language)))
+                              language: String = "en"): DatasetSummary = parse<DatasetUpload>(
+        transport.postBytes(url("/api/datasets", mapOf("name" to fileName, "language" to language)),
+            mediaType, bytes, headers(language))).dataset
 
     /** Starts a governed analysis on a stored dataset. */
     suspend fun createRun(goal: String, datasetId: String, language: String = "en",
-                          profile: String? = null): RunDetail {
+                          profile: String? = null, idempotencyKey: String? = null): RunDetail {
         val body = buildString {
             append("{\"goal\":").append(quote(goal))
             append(",\"dataset_id\":").append(quote(datasetId))
@@ -74,7 +76,9 @@ class AssetReliabilityClient(
             if (profile != null) append(",\"profile\":").append(quote(profile))
             append("}")
         }
-        return parse(transport.postJson(url("/api/runs"), body, headers(language)))
+        val sentHeaders = headers(language).toMutableMap()
+        idempotencyKey?.let { sentHeaders["Idempotency-Key"] = it }
+        return parse(transport.postJson(url("/api/runs"), body, sentHeaders))
     }
 
     suspend fun advance(runId: String): RunDetail =
@@ -83,6 +87,9 @@ class AssetReliabilityClient(
     suspend fun decide(runId: String, approvalId: String, approve: Boolean): RunDetail = parse(
         transport.postJson(url("/api/runs/${enc(runId)}/approvals/${enc(approvalId)}"),
             "{\"decision\":\"${if (approve) "approve" else "reject"}\"}", headers()))
+
+    suspend fun refreshPublicationReview(runId: String): RunDetail =
+        parse(transport.postJson(url("/api/runs/${enc(runId)}/approvals/refresh"), "{}", headers()))
 
     suspend fun createSession(language: String = "en"): SessionState =
         parse(transport.postJson(url("/api/sessions"), "{\"language\":${quote(language)}}", headers()))
@@ -101,6 +108,12 @@ class AssetReliabilityClient(
     private fun enc(value: String) = URLEncoder.encode(value, "UTF-8")
 
     companion object {
+        fun codeOf(body: String): String? = try {
+            val root = ApiJson.parseToJsonElement(body) as? kotlinx.serialization.json.JsonObject
+            val detail = (root?.get("error") ?: root?.get("detail")) as? kotlinx.serialization.json.JsonObject
+            (detail?.get("code") as? kotlinx.serialization.json.JsonPrimitive)?.content
+        } catch (_: Exception) { null }
+
         fun quote(text: String): String = buildString {
             append('"')
             for (c in text) when (c) {
@@ -116,8 +129,12 @@ class AssetReliabilityClient(
 
         fun detailOf(body: String): String = try {
             val element = ApiJson.parseToJsonElement(body)
-            val detail = (element as? kotlinx.serialization.json.JsonObject)?.get("detail")
-            (detail as? kotlinx.serialization.json.JsonPrimitive)?.content ?: body.take(200)
+            val root = element as? kotlinx.serialization.json.JsonObject
+            val error = root?.get("error") as? kotlinx.serialization.json.JsonObject
+            val detail = root?.get("detail")
+            val structured = detail as? kotlinx.serialization.json.JsonObject
+            ((error?.get("message") ?: structured?.get("message") ?: detail)
+                as? kotlinx.serialization.json.JsonPrimitive)?.content ?: body.take(200)
         } catch (_: Exception) {
             body.take(200)
         }

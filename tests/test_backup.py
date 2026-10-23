@@ -417,13 +417,16 @@ class CrossDialectRestoreTestCase(unittest.TestCase):
         hosted_config = root / "hosted.json"
         hosted_config.write_text(json.dumps({
             "agent_name": "Hosted", "memory_file": str(root / "memory.json"),
-            "vault_dir": str(root / "vault-hosted"),
+            # A database move retains the reviewed destination. Moving the
+            # vault too requires a new review (publication-target contract).
+            "vault_dir": str(root / "vault"),
             "database_url": PG_TEST_URL}), encoding="utf-8")
         hosted = TestClient(closing(self, create_app(hosted_config)), raise_server_exceptions=False)
         moved = hosted.get(f"/api/runs/{run['id']}").json()
         self.assertEqual(moved["report"]["content"], run["report"]["content"])
         self.assertIn("total_sales | 190.0", moved["report"]["content"])
-        # And the run continues in its new home.
+        # And the run continues in its new database home, without silently
+        # changing the destination the human was asked to review.
         decided = hosted.post(
             f"/api/runs/{run['id']}/approvals/{moved['approvals'][0]['id']}",
             json={"decision": "approve"}).json()

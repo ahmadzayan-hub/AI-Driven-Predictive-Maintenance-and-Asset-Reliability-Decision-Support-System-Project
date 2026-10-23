@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { applyLocale } from '../../i18n'
 import { api } from '../../shared/api'
@@ -10,6 +10,7 @@ const railway = (id: string) => runFixture({
   id, dataset_name: `${id}.csv`, state: 'awaiting_approval',
   tasks: [{ id: 'rail', role: 'rail_asset_manager', title: 'Rail', state: 'succeeded', summary: 'Synthetic railway evidence', quality_checks: [], claims: [] }],
 })
+const answer = (run: ReturnType<typeof railway> | null) => ({ run, prepared_at: '2026-10-23T08:00:00Z', scope: 'latest_completed_maintenance_stage' as const })
 const measures = (run: string, title: string): RunKpis => ({
   run, language: 'en', records: 1, unavailable: {}, measures: [{
     key: 'cost', title, value: 13, scale: 'money', numerator: 13, denominator: 1,
@@ -27,42 +28,50 @@ beforeEach(() => {
 })
 afterEach(() => { vi.restoreAllMocks(); act(() => applyLocale('en')) })
 
-it('reads the one server answer for the evidence and never the run list (U10)', async () => {
+it('announces a KPI failure, retains the screening and retries only the measures', async () => {
+  const run = railway('retry-measures')
+  vi.spyOn(api, 'assetEvidence').mockResolvedValue(answer(run))
+  vi.spyOn(api, 'runKpis').mockRejectedValueOnce(new Error('synthetic outage'))
+    .mockResolvedValue(measures(run.id, 'Recovered measurement'))
+  render(<AssetIntelligenceView onOpenRun={vi.fn()} />)
+  expect(await screen.findByRole('alert')).toHaveTextContent('The measures could not be loaded')
+  expect(screen.getByText('Synthetic railway evidence')).toBeVisible()
+  fireEvent.click(screen.getByRole('button', { name: 'Retry measures' }))
+  expect(await screen.findByText('Recovered measurement')).toBeVisible()
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  expect(api.assetEvidence).toHaveBeenCalledOnce()
+  expect(api.runKpis).toHaveBeenCalledTimes(2)
+})
+
+it('loads selected server evidence in one request without scanning recent run payloads', async () => {
   const old = railway('older-railway')
-  vi.spyOn(api, 'assetEvidence').mockResolvedValue({ run: old, scanned: 11, capped: false })
-  const list = vi.spyOn(api, 'listRuns')
-  const detail = vi.spyOn(api, 'getRun')
+  const newer = Array.from({ length: 10 }, (_, index) => runFixture({ id: `generic-${index}`, updated_at: '2026-10-20T00:00:00Z' }))
+  vi.spyOn(api, 'assetEvidence').mockResolvedValue(answer(old))
+  vi.spyOn(api, 'listRuns').mockResolvedValue({ runs: [...newer, old] })
+  vi.spyOn(api, 'getRun').mockImplementation(async (id) => id === old.id ? old : newer.find((run) => run.id === id)!)
   vi.spyOn(api, 'runKpis').mockResolvedValue(measures(old.id, 'Older railway measure'))
   render(<AssetIntelligenceView onUpload={vi.fn()} onOpenRun={vi.fn()} />)
   expect(await screen.findByText('older-railway.csv')).toBeVisible()
   expect(await screen.findByText(/Older railway measure/)).toBeVisible()
   expect(screen.queryByText('No validated railway asset analysis yet')).not.toBeInTheDocument()
-  expect(api.assetEvidence).toHaveBeenCalledTimes(1)
-  expect(list).not.toHaveBeenCalled()
-  expect(detail).not.toHaveBeenCalled()
-  // The figures say when their run was last updated (U16).
-  expect(screen.getByText('As of')).toBeVisible()
-})
-
-it('says the scan was capped when the server says so', async () => {
-  vi.spyOn(api, 'assetEvidence').mockResolvedValue({ run: null, scanned: 50, capped: true })
-  render(<AssetIntelligenceView onUpload={vi.fn()} onOpenRun={vi.fn()} />)
-  expect(await screen.findByText('No validated railway asset analysis yet')).toBeVisible()
-  expect(screen.getByText(/most recent/i)).toBeVisible()
+  expect(api.assetEvidence).toHaveBeenCalledOnce()
+  expect(api.getRun).not.toHaveBeenCalled()
+  expect(api.listRuns).not.toHaveBeenCalled()
+  expect(document.querySelector('time')).toHaveAttribute('dateTime', '2026-10-23T08:00:00Z')
 })
 
 it('hides the previous run measurements while a different run KPI request is pending and translates states', async () => {
   const old = railway('old'), next = railway('new')
   const pending = deferred<RunKpis>()
-  vi.spyOn(api, 'assetEvidence').mockResolvedValueOnce({ run: old, scanned: 1, capped: false })
-    .mockResolvedValue({ run: next, scanned: 1, capped: false })
+  vi.spyOn(api, 'assetEvidence').mockResolvedValueOnce(answer(old)).mockResolvedValue(answer(next))
+  vi.spyOn(api, 'getRun').mockImplementation(async (id) => id === old.id ? old : next)
   vi.spyOn(api, 'runKpis').mockImplementation((id) => id === old.id
     ? Promise.resolve(measures(old.id, 'Old measurement')) : pending.promise)
   render(<AssetIntelligenceView onUpload={vi.fn()} onOpenRun={vi.fn()} />)
   expect(await screen.findByText(/Old measurement/)).toBeVisible()
   act(() => applyLocale('ar'))
   expect(await screen.findByText('new.csv')).toBeVisible()
-  await waitFor(() => expect(api.runKpis).toHaveBeenLastCalledWith('new', 'ar'))
+  await waitFor(() => expect(api.runKpis).toHaveBeenLastCalledWith('new', 'ar', expect.any(AbortSignal)))
   expect(screen.queryByText(/Old measurement/)).not.toBeInTheDocument()
   expect(screen.getByText('بانتظار الموافقة')).toBeVisible()
   expect(screen.getByText('نجح')).toBeVisible()
@@ -73,12 +82,12 @@ it('hides the previous run measurements while a different run KPI request is pen
 it('ignores a delayed KPI response from a previous run', async () => {
   const old = railway('old'), next = railway('new')
   const pending = deferred<RunKpis>()
-  vi.spyOn(api, 'assetEvidence').mockResolvedValueOnce({ run: old, scanned: 1, capped: false })
-    .mockResolvedValue({ run: next, scanned: 1, capped: false })
+  vi.spyOn(api, 'assetEvidence').mockResolvedValueOnce(answer(old)).mockResolvedValue(answer(next))
+  vi.spyOn(api, 'getRun').mockImplementation(async (id) => id === old.id ? old : next)
   vi.spyOn(api, 'runKpis').mockImplementation((id) => id === old.id
     ? pending.promise : Promise.resolve(measures(next.id, 'Current measurement')))
   render(<AssetIntelligenceView onUpload={vi.fn()} onOpenRun={vi.fn()} />)
-  await waitFor(() => expect(api.runKpis).toHaveBeenCalledWith('old', 'en'))
+  await waitFor(() => expect(api.runKpis).toHaveBeenCalledWith('old', 'en', expect.any(AbortSignal)))
   act(() => applyLocale('ar'))
   expect(await screen.findByText(/Current measurement/)).toBeVisible()
   await act(async () => pending.resolve(measures(old.id, 'Late measurement')))
@@ -89,7 +98,8 @@ it('ignores a delayed KPI response from a previous run', async () => {
 it('shows measures as family tiles, keeps a verdict reason on its tile and says "no target" once, folded', async () => {
   const run = railway('tiles')
   const base = measures(run.id, 'unused').measures[0]
-  vi.spyOn(api, 'assetEvidence').mockResolvedValue({ run, scanned: 1, capped: false })
+  vi.spyOn(api, 'assetEvidence').mockResolvedValue(answer(run))
+  vi.spyOn(api, 'getRun').mockResolvedValue(run)
   vi.spyOn(api, 'runKpis').mockResolvedValue({ ...measures(run.id, 'unused'), measures: [
     { ...base, key: 'availability', title: 'Availability', scale: 'percent', value: 97.5, family: 'reliability', population_label: 'Every observation',
       assessment: { status: 'unassessed', reason: 'No display target is configured.', reason_code: 'no_target', direction: null, source_ref: null, rule_id: null, thresholds: null } },

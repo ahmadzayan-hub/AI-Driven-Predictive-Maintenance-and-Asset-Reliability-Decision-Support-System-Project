@@ -57,7 +57,7 @@ export function Figure({ title, chart, table, open = false }: {
       <div dir="ltr" className="dash-plot">{chart}</div>
       <details className="runchart__data" dir={isRtl ? 'rtl' : 'ltr'} open={open}>
         <summary>{t('dash.numbers')}</summary>
-        <div className="evidence__table">{table}</div>
+        <div className="evidence__table" role="region" aria-label={title} tabIndex={0}>{table}</div>
       </details>
     </figure>
   )

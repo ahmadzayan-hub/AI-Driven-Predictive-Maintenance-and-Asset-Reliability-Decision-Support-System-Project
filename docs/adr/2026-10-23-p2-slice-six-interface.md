@@ -21,6 +21,9 @@ slice of section 3 of `docs/implementation/DELIVERY_ROADMAP.md`).
    `capped` (whether the owner has more runs than the scan reads). The
    Asset Intelligence view reads that one answer instead of the run list
    and up to fifty run payloads; its error state with a retry stays.
+   *Merge note, 23 October:* main delivered the same endpoint through a
+   stage index (`runs_with_completed_stage`) with `prepared_at` and `scope`
+   instead of a scan count; the merge keeps main's answer and view.
 3. **The relationship table says how many rows it shows (U11).** Under the
    scatter's numeric alternative, when the chart draws more than the 100
    rows the table lists, a line says so in both languages.

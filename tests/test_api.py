@@ -378,9 +378,11 @@ class InterfaceServingTestCase(unittest.TestCase):
             with self.subTest(path=path):
                 response = self.get(path)
                 self.assertEqual(response.status_code, 404)
-                # One error envelope (B14): the detail as before, plus a coded error.
-            self.assertEqual(response.json(), {"detail": "Not found.",
-                                               "error": {"code": "http_404", "message": "Not found."}})
+                self.assertEqual(response.json()["detail"], "Not found.")
+                self.assertEqual(response.json()["error"], {
+                    "code": "not_found", "message": "Not found.", "problems": [],
+                    "request_id": response.headers["X-Request-ID"],
+                })
 
 
 if __name__ == "__main__":

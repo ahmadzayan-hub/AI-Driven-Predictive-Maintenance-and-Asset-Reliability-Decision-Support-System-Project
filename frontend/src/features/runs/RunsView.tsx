@@ -31,6 +31,7 @@ import type {
 import { ApprovalCard } from './ApprovalCard'
 import { DecisionInputs } from './DecisionInputs'
 import { DecisionRecordCard } from './DecisionRecordCard'
+import { CreationAttempt } from './creationAttempt'
 import { EvidencePanel } from './EvidencePanel'
 import { JoinBuilder } from './JoinBuilder'
 import { ModelCards } from './ModelCards'
@@ -208,6 +209,8 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
   const fullReportRef = useRef<HTMLDivElement | null>(null)
   const closeEvidence = useCallback(() => setEvidenceTask(null), [])
   const starting = useRef(false)
+  const creationAttempt = useRef<CreationAttempt | null>(null)
+  if (!creationAttempt.current) creationAttempt.current = new CreationAttempt()
   // Where the data comes from (ADR 0024). A stored dataset and an
   // uploaded file are both analysed by reference: the run sends an id.
   const [source, setSource] = useState<'sample' | 'stored' | 'upload'>(() =>
@@ -359,6 +362,12 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
     try {
       const datasetId = primaryId ?? undefined
       const pasted = source === 'upload' && !uploaded && csvDraft.trim()
+      const idempotencyKey = await creationAttempt.current!.forRequest(draftScope, JSON.stringify([
+        goal.trim(), pasted ? csvDraft : null, pasted ? t('runs.pastedName') : null,
+        profile || null, reportLanguage, datasetId ?? null,
+        datasetId && joins.length ? { joins, breakdown } : null, assumptions ?? null,
+      ]))
+      if (!visible.current) return
       const detail = await api.createRun(
         goal.trim(),
         pasted ? csvDraft : undefined,
@@ -370,7 +379,9 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
         datasetId,
         datasetId && joins.length ? { joins, breakdown } : undefined,
         assumptions ?? undefined,
+        idempotencyKey,
       )
+      creationAttempt.current!.complete(draftScope)
       setRun(detail)
       void refreshList()
     } catch (error) {
@@ -691,7 +702,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
             </form>
             <p
               className={`statusline ${errorMessage ? 'statusline--error' : ''}`}
-              role="status"
+              role={errorMessage ? 'alert' : 'status'}
               aria-live="polite"
               dir="auto"
             >
@@ -819,7 +830,12 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                 <p className="eyebrow">{typeLabel(t, section.type, section.title)}</p>
                 <h3>{questionLabel(t, section.type, section.question)}</h3>
                 <p className="finding-card__headline" lang={reportLang} dir={reportDir}>{section.headline}</p>
-                {task ? <button type="button" className="evidence-link" aria-label={t('cockpit.whyFor', { type: typeLabel(t, section.type, section.title) })} onClick={() => setEvidenceTask(task)}>{t('cockpit.why')}<Icon name="search" size={14} /></button> : null}
+                {task ? <button type="button" className="evidence-link" aria-label={t('cockpit.whyFor', { type: typeLabel(t, section.type, section.title) })} onClick={(event) => {
+                  // Safari does not focus a button on pointer activation.
+                  // Give the dialog a reliable invoking control to restore.
+                  event.currentTarget.focus({ preventScroll: true })
+                  setEvidenceTask(task)
+                }}>{t('cockpit.why')}<Icon name="search" size={14} /></button> : null}
               </article>
             })}
           </section> : null}

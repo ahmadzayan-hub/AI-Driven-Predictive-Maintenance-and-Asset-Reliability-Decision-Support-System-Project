@@ -1,6 +1,6 @@
 # Delivery roadmap
 
-Date: 22 October 2026 · Source: `docs/audits/SAAS_PLATFORM_ASSESSMENT.md`
+Updated: 23 October 2026 · Source: `docs/audits/SAAS_PLATFORM_ASSESSMENT.md`
 (finding ids below refer to it) · Owner decisions are marked.
 
 Status words: **Implemented** (in code, with tests), **Tested** (verified by
@@ -28,6 +28,9 @@ outside this repository), **Proposed** (designed, not built).
 | P2 slice five: blind benchmarks and first-run floors for the brief-compliance, security-privacy and accessibility-i18n reviewers (G9) | Implemented, Tested | `docs/adr/2026-10-23-p2-slice-five-reviewer-benchmarks.md`; `evals/reviewers/H`, `I`, `J`; `tests/test_evals.py::ReviewerBenchmarkTests` |
 | P2 slice six: the interface items, paid for by committed font subsets (U19), one-call asset evidence (U10), the table note (U11), one noun per destination (U14), every upload call to action through Datasets (U15), as-of times and the empty-picker action (U16), every pack in the parity test and the export hook (U18) | Implemented, Tested | `docs/adr/2026-10-23-p2-slice-six-interface.md`; `tests/test_p2_slice_six.py`; the frontend unit and end-to-end suites |
 | P3 slice seven: the minor findings A16, A17, A19, B17, B18, B19, B20, G12, G13, G14, G15 and U17 | Implemented, Tested | `docs/adr/2026-10-23-p3-slice-seven.md`; `tests/test_p2_slice_seven.py` |
+| Shared API contract and recoverable creation (B14), asset summary/retry (U10), complete relationship table (U11), asset freshness (U16, in part) | Implemented, Tested | `docs/adr/2026-10-23-platform-contract-and-application-builds.md`; authenticated OpenAPI, request-bound replay, synthetic HTTP/component/browser regressions |
+| Read-only-host publication (B13, in part), escaped source metadata (B19, in part), CORS PATCH/recovery headers (B17, in part) | Partially implemented, Tested | `docs/adr/2026-10-23-database-publication-target.md`; atomic SQL publication, changed-destination fresh review and rollback checks; request-duration, local paths and CSP consolidation remain open |
+| Android debug application, Windows Edge and macOS WebKit journeys | Implemented, Tested within recorded scope | Hosted Compose build, lint, APK signature and actual-API bilingual/keyboard recovery checks; [application handoff](PLATFORM_RELEASE.md). Device, store and production acceptance remain separate |
 
 ## 2. Next release gate (P1)
 
@@ -70,6 +73,9 @@ The sixth delivered the interface items
 P3 findings ([slice seven](../adr/2026-10-23-p3-slice-seven.md)). Still open:
 the model half of G8 (an opt-in suite that needs a provider) and the two
 owner decisions, U8 and U20.
+In parallel, the platform and application slice on main closed B14, U10 and U11
+with its own contract and the scoped parts of B13, B17, B19 and U16; its
+[handoff](PLATFORM_RELEASE.md) maps components to APIs.
 
 ## 4. The brief's deliverables and their status
 

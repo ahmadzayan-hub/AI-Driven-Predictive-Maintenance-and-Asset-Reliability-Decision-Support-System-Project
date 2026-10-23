@@ -113,6 +113,8 @@ Full list: [brain/Soul.md](brain/Soul.md).
 
 - **Performance color convention (20 Oct, the 20 October performance-color decision):** bad red, okay blue, good green, always with visible status words. Actual maintenance KPIs have no universal bands: per-run configured targets use the controlled result scale, source/rationale and unrounded inclusive higher/lower/nested-range comparisons. Percent input 80 means 80%; no 0–100 clamp. Unassessed/missing stay neutral. Policies have independent audit history and optimistic saves; include them in the entire executive snapshot hash, even when their KPI is unavailable. Target edits never approve or publish. Fictional preview condition bands stay isolated from actual targets.
 
+- **Application release boundary (23 Oct):** Windows/iOS currently use the PWA; Kotlin/Compose Android now has a hosted debug build and signature verification. Device, secure token storage, release signing and store acceptance remain separate. Read-only hosts can publish SQL notes with `AGENTIC_OS_PUBLISH_TARGET=database` (Vercel default). A changed destination requires a fresh, unchanged-artifact review, not reuse of the previous approval. See `docs/implementation/PLATFORM_RELEASE.md`.
+
 ## Open questions
 
 - **Local model acceptance (21 Oct):** this Windows host has limited spare RAM. Probe installed models sequentially and unload unused probe models; keeping several resident caused paging and timeouts. Keep one selected instruction model. An installed SDK or healthy API does not prove a real model response. Vercel AI Gateway rejected the team's synthetic request until a valid payment card is added; never copy deployment OIDC credentials into chat or files.

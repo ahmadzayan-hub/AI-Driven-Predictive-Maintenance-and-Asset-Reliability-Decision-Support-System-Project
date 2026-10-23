@@ -15,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
@@ -55,6 +56,7 @@ fun AppRoot(settingsViewModel: SettingsViewModel = hiltViewModel()) {
     val direction = if (translator.isArabic) LayoutDirection.Rtl else LayoutDirection.Ltr
     CompositionLocalProvider(LocalTranslator provides translator, LocalLayoutDirection provides direction) {
         AssetReliabilityTheme {
+          key(settings?.serverUrl, settings?.token) {
             val nav = rememberNavController()
             val backStack by nav.currentBackStackEntryAsState()
             val current = backStack?.destination?.route?.substringBefore("/")
@@ -82,6 +84,7 @@ fun AppRoot(settingsViewModel: SettingsViewModel = hiltViewModel()) {
                     composable("settings") { SettingsScreen() }
                 }
             }
+          }
         }
     }
 }

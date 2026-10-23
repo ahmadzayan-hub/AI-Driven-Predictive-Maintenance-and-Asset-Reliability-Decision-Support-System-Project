@@ -6,6 +6,8 @@ on:
       - 'server/**'
       - 'tests/test_rmd*'
       - 'tests/test_knowledge_access.py'
+      - 'tests/test_platform_contract.py'
+      - 'tests/test_publication_target.py'
       - 'frontend/**'
       - 'scripts/verify.py'
       - '.github/workflows/rmd-evidence.yml'
@@ -26,7 +28,7 @@ jobs:
       - name: Install backend dependencies
         run: pip install --require-hashes -r requirements.txt
       - name: Synthetic evidence and permission regressions
-        run: python -m unittest tests.test_rmd_ingestion tests.test_rmd_analytics tests.test_rmd_service tests.test_rmd_workflow tests.test_knowledge_access tests.test_operations.OperationsTest tests.test_p2_slice_one tests.test_agent_runtime -v
+        run: python -m unittest tests.test_publication_target tests.test_platform_contract tests.test_rmd_ingestion tests.test_rmd_analytics tests.test_rmd_service tests.test_rmd_workflow tests.test_knowledge_access tests.test_operations.OperationsTest tests.test_p2_slice_one tests.test_agent_runtime -v
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
         with:
           node-version: '22'
@@ -57,7 +59,7 @@ jobs:
         run: npx playwright install --with-deps chromium
         working-directory: frontend
       - name: Evidence journey, Arabic phone and accessibility
-        run: npx playwright test rmd.spec.ts --max-failures=1
+        run: npx playwright test rmd.spec.ts platform.spec.ts --max-failures=1
         working-directory: frontend
       - name: Sidebar navigation contract
         run: npx playwright test overview.spec.ts --grep "sidebar groups" --project=desktop

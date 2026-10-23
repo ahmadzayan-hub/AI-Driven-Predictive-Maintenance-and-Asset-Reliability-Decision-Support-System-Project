@@ -259,14 +259,19 @@ required local files. Both behaviors are covered by tests
     hosted acceptance. On 21 October `dcde343` was deployed to production
     with approval; it runs in `local` mode until the owner adds
     `AGENTIC_OS_DEMO=1` in Vercel. See `docs/VERCEL_DEPLOYMENT.md`.
-12. Android support is a verified installable PWA; a native Capacitor
-    project is documented but not shipped (no Android SDK available to
-    build or test one honestly).
-13. Obsidian integration is approval-gated write-back into a vault
-    folder; reading/sync/retrieval from a vault is not implemented. Since
-    23 October the database store is the publish target and the folder a
-    courtesy: on a host where it cannot be written, the published path
-    names the store and `/api/vault` still serves both notes (B13).
+12. Windows and iOS use the installable PWA. The Kotlin/Compose Android
+    client now builds an actual debug APK in hosted CI, with core/app tests
+    and lint. Physical devices, native secure credential storage, release
+    signing and store acceptance remain separate; see
+    [the application handoff](implementation/PLATFORM_RELEASE.md).
+13. Publication supports a local Obsidian vault or durable SQL notes.
+    Vercel defaults to database publication without filesystem writes;
+    `AGENTIC_OS_PUBLISH_TARGET` selects explicitly. An approval is refused
+    when its reviewed destination changes. An authorized approver can request
+    a fresh review of the unchanged report and new destination; this resets
+    consent and does not publish. External-vault reading/sync is
+    not implemented; existing owned API routes retrieve the SQL notes.
+    Request/model duration under real hosted load still requires acceptance.
 14. The interface is Arabic or English (ADR 0018), right-to-left in
     Arabic, and the agent's own replies follow the chosen language.
     Reports are written in the language a run was started in (ADR 0022),
@@ -300,15 +305,9 @@ required local files. Both behaviors are covered by tests
     names those gaps rather than hiding them. The gateway's in-process
     ledger (`GET /api/health`, `model_calls`) records every provider
     attempt with its latency and the token counts the provider reported,
-    never an estimate; it is lost on restart and summed across tenants.
-    Since 23 October the store counts model calls per owner per UTC day
-    and the gateway stops attempting at `model_calls_per_day` (B6), but
-    that is a count of calls, not of tokens: a per-tenant token budget is
-    still out of scope. The daily window is calendar-based (midnight UTC), so a
+    never an estimate; it is lost on restart and summed across tenants,
+    so a per-tenant token budget is still out of scope. The daily window is calendar-based (midnight UTC), so a
     burst either side of midnight can exceed the intended daily rate.
-    The request rate limit is counted in the store when it is PostgreSQL,
-    so every instance shares one window; a store outage lets writes
-    through to fail on their own data access rather than refusing them.
 17. Datasets come from a file (CSV, TSV, Excel `.xlsx`, JSON or JSON
     Lines) or pasted CSV (ADR 0024): up to 4 MB as uploaded, the limit
     of the platform the app is deployed to, 50,000 rows, and 10 MB once
@@ -467,19 +466,6 @@ required local files. Both behaviors are covered by tests
     until the stream ends. A connector's error is stored in the
     language it was created in.
 
-20. On PostgreSQL one process holds a pool of at most 20 connections
-    (23 October, B11): a thread at the bound waits up to 30 seconds for a
-    released one and then fails as a database error (503). A pooler in
-    front of the database stays the hosted recommendation; the bound is
-    what one instance asks of it. The classification card carries
-    probabilities with a Brier score and reliability bins (A14); the
-    regression card does not quote prediction intervals. The generic
-    stages refuse mapping-ignored, personal and target-derived columns
-    (A11), but a measure recorded after the outcome that is none of those
-    is still declared rather than detected. A hosted model's structured
-    answer is checked against its schema on the server (G5); Anthropic has
-    no JSON mode, so it is asked in text and checked the same way.
-
 30. The maintenance KPI register (`server/maintenance/kpis.py`) is bound
     to cleaned runs through the KPI endpoint and Asset Intelligence view
     (ADRs 0049 and 0051). The separate `?design=maintenance` preview still
@@ -553,9 +539,7 @@ and was not activated by this implementation.
 ## KPI register: what it cannot measure yet
 
 The register ([decision](adr/2026-10-21-register-availability-and-pooled-reliability-measures.md))
-holds 19 controlled measures, each a ratio of sums over a declared population
-(the corrective-only repair time, `mttr_corrective`, was added on 23 October;
-the pooled `mttr` still includes planned downtime and says so).
+holds 14 controlled measures, each a ratio of sums over a declared population.
 These common asset-management measures are **not** in it, because the exports
 this product reads do not carry the fields, and a stand-in would be a guess:
 

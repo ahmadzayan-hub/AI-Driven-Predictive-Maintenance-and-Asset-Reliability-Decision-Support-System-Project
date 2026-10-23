@@ -30,10 +30,13 @@ class AssetEvidenceEndpointTest(unittest.TestCase):
         self.app = create_app(config)
         self.client = TestClient(closing(self, self.app), raise_server_exceptions=False)
 
-    def test_no_run_means_an_empty_answer_with_the_scan_size(self):
+    def test_no_run_means_an_empty_answer_with_its_scope(self):
         response = self.client.get("/api/assets/evidence")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"run": None, "scanned": 0, "capped": False})
+        answer = response.json()
+        self.assertIsNone(answer["run"])
+        self.assertEqual(answer["scope"], "latest_completed_maintenance_stage")
+        self.assertTrue(answer["prepared_at"])
 
     def test_a_run_with_a_succeeded_screen_is_returned_in_full(self):
         created = self.client.post("/api/runs", json={"goal": "Audit test run"}).json()
@@ -47,8 +50,7 @@ class AssetEvidenceEndpointTest(unittest.TestCase):
         answer = self.client.get("/api/assets/evidence").json()
         self.assertEqual(answer["run"]["id"], created["id"])
         self.assertIn("tasks", answer["run"])
-        self.assertEqual(answer["scanned"], 1)
-        self.assertFalse(answer["capped"])
+        self.assertEqual(answer["scope"], "latest_completed_maintenance_stage")
 
     def test_the_endpoint_is_registered(self):
         self.assertIn("/api/assets/evidence", {getattr(r, "path", None) for r in self.app.routes})

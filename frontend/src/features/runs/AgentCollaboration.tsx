@@ -111,8 +111,9 @@ export default function AgentCollaboration({ run, events, interrupted, pipelines
       return `${shown.tasks.find((task) => task.id === event.subject)?.title}: ${stateLabel(t, event.state)}`
     }
     if (event.kind === 'artifact.published') return t('flow.published')
+    if (event.kind === 'approval.superseded') return t('flow.reviewReplaced')
     if (event.kind.startsWith('approval.')) {
-      const decision = event.state === 'approved' ? t('flow.approved')
+      const decision = ['approved', 'approved_once'].includes(event.state) ? t('flow.approved')
         : event.state === 'rejected' ? t('flow.rejected') : stateLabel(t, event.state)
       return `${t('flow.approval')}: ${decision}`
     }

@@ -5,7 +5,7 @@ tags: [project]
 status: active
 updated: 2026-10-23
 review_every_days: 14
-sources: [README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/RMD_EVIDENCE.md, docs/assessments/2026-10-20-project-review.md, docs/assessments/2026-10-21-saas-competitive-benchmark.md, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0024-the-dataset-api.md, docs/adr/0028-views-load-on-demand.md, scripts/verify.py, docs/adr/0058-executive-dashboard-agent-and-scoped-evidence.md]
+sources: [docs/implementation/PLATFORM_RELEASE.md, README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/RMD_EVIDENCE.md, docs/assessments/2026-10-20-project-review.md, docs/assessments/2026-10-21-saas-competitive-benchmark.md, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0024-the-dataset-api.md, docs/adr/0028-views-load-on-demand.md, scripts/verify.py, docs/adr/0058-executive-dashboard-agent-and-scoped-evidence.md]
 ---
 
 # Agentic OS
@@ -19,6 +19,16 @@ The engine in this repository, described in [[Identity]]: a governed business-an
 - **Production:** read-only metadata on 20 October identifies the older `42e53d00` Vercel deployment behind Vercel Authentication. Current application identity, durable storage and the corrected source still require hosted acceptance; earlier owner-access observations are historical.
 
 ## What it does today
+
+- The platform shares an authenticated API schema and readable error contract,
+  retains exact-request retry identity across a web reload and queries owned
+  asset evidence across stored history. Missing KPI cards have a retry action;
+  chart tables retain all plotted sample values. The [[Approval gate]] supports
+  transaction-only SQL publication and a fresh review for a changed destination.
+  The Kotlin/Compose Android app has a built, signature-verified debug APK;
+  Windows Edge and macOS WebKit actual-API journeys are tested. Windows/iOS use
+  the PWA. Device, secure credential storage, store and production acceptance
+  remain distinct. The application handoff and README hold the observed scope.
 
 - RMD Evidence connects private document/workbook ingestion, confirmed mappings,
   immutable record-grain calculations, investigation review, bilingual views,

@@ -62,6 +62,16 @@ def resolve_vault_dir(env=None, config=None, root=None):
     return root / "vault"
 
 
+def resolve_publish_target(env=None, config=None):
+    """Serverless publication is durable in SQL, without a writable vault."""
+    env = os.environ if env is None else env
+    selected = (env.get("AGENTIC_OS_PUBLISH_TARGET") or (config or {}).get("publish_target")
+                or ("database" if env.get("VERCEL") == "1" else "vault"))
+    if selected not in ("database", "vault"):
+        raise ValueError("AGENTIC_OS_PUBLISH_TARGET must be database or vault.")
+    return selected
+
+
 RUN_STATES = {"queued", "running", "awaiting_approval", "verifying",
               "completed", "partially_completed", "failed", "cancelled"}
 TASK_STATES = {"pending", "running", "succeeded", "failed", "skipped",
@@ -152,10 +162,18 @@ MAX_IDEMPOTENCY_KEY = 200
 # How many orchestration failures the engine remembers for the health detail.
 MAX_ORCHESTRATION_PROBLEMS = 20
 
+
+class IdempotencyConflict(ValueError):
+    """The owner reused a creation key for a different request."""
+
+
+class PublicationDestinationChanged(ValueError):
+    """A pending review names a different destination from current settings."""
+
 class RunEngine:
     def __init__(self, store, vault_dir, gateway, limits=None, glossary=None,
                  stages=None, profiles=None, execution_mode="client", roles=None,
-                 stage_timeout=None):
+                 stage_timeout=None, publish_target=None):
         if execution_mode not in ("client", "worker"):
             raise ValueError("AGENTIC_OS_RUN_EXECUTION must be client or worker.")
         self.execution_mode = execution_mode
@@ -180,6 +198,9 @@ class RunEngine:
                               deadline.seconds_from_env("AGENTIC_OS_STAGE_TIMEOUT",
                                                         deadline.DEFAULT_STAGE_SECONDS))
         self.vault_dir = Path(vault_dir)
+        self.publish_target = publish_target or resolve_publish_target()
+        if self.publish_target not in ("database", "vault"):
+            raise ValueError("publish_target must be database or vault.")
         self.gateway = gateway
         # None disables quota enforcement entirely (the CLI and tests that
         # are not about quotas); the API always passes limits.
@@ -390,21 +411,33 @@ class RunEngine:
             idempotency_key = str(idempotency_key).strip()
             if not idempotency_key or len(idempotency_key) > MAX_IDEMPOTENCY_KEY:
                 raise ValueError("An idempotency key is 1 to 200 characters.")
+        request_hash = hashlib.sha256(json.dumps({
+            "goal": goal.strip(), "dataset_id": dataset_id,
+            "dataset_text": None if dataset_id else dataset_text,
+            "dataset_name": None if dataset_id else dataset_name,
+            "profile": profile, "language": language, "joins": joins or None,
+            "breakdown": breakdown, "assumptions": assumptions or None,
+        }, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")).hexdigest() if idempotency_key else None
         with self.store.atomic("owner:" + owner):
             if idempotency_key:
                 existing = self.store.find_run_by_key(owner, idempotency_key)
                 if existing is not None:
+                    if existing.get("request_hash") != request_hash:
+                        raise IdempotencyConflict(
+                            "تخص هوية المحاولة طلبًا مختلفًا أو سابقًا لا يمكن مطابقة مدخلاته. راجع التحليل السابق أو ابدأ محاولة جديدة."
+                            if language == "ar" else
+                            "This attempt key belongs to a different request, or an older request whose inputs cannot be matched. Review the earlier analysis or start a new attempt.")
                     detail = self.get_run(existing["id"])
                     detail["idempotent_replay"] = True
                     return detail
             return self._create_run_atomic(goal, dataset_text, dataset_name, owner,
                                            dataset_id, profile, language, joins, breakdown,
-                                           assumptions, idempotency_key)
+                                           assumptions, idempotency_key, request_hash)
 
     def _create_run_atomic(self, goal, dataset_text=None, dataset_name=None,
                            owner="local-owner", dataset_id=None, profile=None,
                            language="en", joins=None, breakdown=None, assumptions=None,
-                           idempotency_key=None):
+                           idempotency_key=None, request_hash=None):
         # An unknown profile, or a language reports are not written in, is
         # refused before anything is written.
         roles = self.roles_for(profile, joined=bool(joins))
@@ -473,7 +506,7 @@ class RunEngine:
             "mapping_json": mapping_json, "joins_json": joins_json,
             "assumptions_json": (json.dumps(assumptions, ensure_ascii=False)
                                  if assumptions else None),
-            "idempotency_key": idempotency_key or None})
+            "idempotency_key": idempotency_key or None, "request_hash": request_hash})
         titles = analytics.ROLE_TITLES_AR if language == "ar" else analytics.ROLE_TITLES
         for idx, role in enumerate(roles):
             # A plugin may name itself in Arabic too (ADR 0033).
@@ -777,12 +810,17 @@ class RunEngine:
             content_hash = hashlib.sha256(artifact["content"].encode()).hexdigest()
             self.store.insert("approvals", {
                 "id": self.new_id(), "run_id": run_id,
-                "action": ("نشر تقرير التحليل في مخزن Obsidian" if arabic else
-                           "Publish the analytics report to the Obsidian vault"),
-                "target": str(self.vault_dir / "Reports"), "risk": "high",
-                "impact": ("يكتب ملاحظتين بصيغة Markdown (التقرير وسجل التشغيل) في "
-                           "المخزن المحلي." if arabic else
-                           "Writes two markdown notes (report + run log) to the local vault."),
+                "action": (("نشر تقرير التحليل في المخزن الدائم" if arabic else
+                            "Publish the analytics report to the durable vault")
+                           if self.publish_target == "database" else
+                           ("نشر تقرير التحليل في مخزن Obsidian" if arabic else
+                            "Publish the analytics report to the Obsidian vault")),
+                "target": self.publication_destination(), "risk": "high",
+                "impact": (("يحفظ ملاحظتي Markdown (التقرير وسجل التشغيل) في قاعدة البيانات بصلاحيات مساحة العمل." if arabic else
+                            "Stores two Markdown notes (report + run log) in the database under workspace permissions.")
+                           if self.publish_target == "database" else
+                           ("يكتب ملاحظتين بصيغة Markdown (التقرير وسجل التشغيل) في المخزن المحلي." if arabic else
+                            "Writes two markdown notes (report + run log) to the local vault.")),
                 "reversibility": ("قابل للتراجع: احذف الملاحظتين المنشأتين." if arabic
                                   else "Reversible: delete the created notes."),
                 "content_hash": content_hash, "state": "pending",
@@ -796,6 +834,34 @@ class RunEngine:
     def decide_approval(self, run_id, approval_id, decision, approver=None):
         with self.store.atomic("run:" + run_id):
             return self._decide_approval_atomic(run_id, approval_id, decision, approver)
+
+    def refresh_publication_review(self, run_id):
+        """Request fresh consent for a changed destination, never publish.
+
+        A changed report cannot use this shortcut: its evidence must go through
+        a new governed analysis. Repeating this request at the same destination
+        returns the current pending review without another history entry.
+        """
+        with self.store.atomic("run:" + run_id):
+            run = self._row(run_id)
+            arabic = (run.get("report_language") or "en") == "ar"
+            if run["state"] != "awaiting_approval":
+                raise ValueError("تتطلب مراجعة النشر الجديدة تحليلًا بانتظار الموافقة." if arabic
+                                 else "A new publication review requires a run awaiting approval.")
+            pending = self.store.pending_approval(run_id)
+            artifact = self.store.latest_artifact(run_id)
+            if not pending or not artifact:
+                raise ValueError("مراجعة التقرير المعلّقة غير متاحة." if arabic
+                                 else "The pending report review is unavailable.")
+            current_hash = hashlib.sha256(artifact["content"].encode()).hexdigest()
+            if current_hash != pending["content_hash"]:
+                raise ValueError("تغيّر التقرير؛ ابدأ تحليلًا جديدًا خاضعًا للضوابط قبل طلب الموافقة." if arabic
+                                 else "The report changed; start a new governed analysis before requesting approval.")
+            if pending["target"] == self.publication_destination():
+                return self.get_run(run_id)
+            self.store.update("approvals", pending["id"], {"state": "superseded"})
+            task = next(task for task in self.store.get_tasks(run_id) if task["role"] == "publish")
+            return self._request_publish_approval(run_id, task)
 
     def _decision_record(self, tasks):
         """The run's decision record, as the sensitivity stage completed it
@@ -839,7 +905,12 @@ class RunEngine:
         if current_hash != approval["content_hash"]:
             raise ValueError("Artifact changed after approval was requested.")
         if decision == "approve":
-            path, on_disk = self._publish(run_id, artifact)
+            if approval["target"] != self.publication_destination():
+                raise PublicationDestinationChanged(
+                    "تغيرت وجهة النشر بعد المراجعة. حدّث طلب المراجعة ثم اقرأ التقرير والوجهة الجديدة قبل الموافقة."
+                    if (self._row(run_id).get("report_language") or "en") == "ar" else
+                    "The publication destination changed after review. Update the review request, then read the report and new destination before approving.")
+            path, where = self._publish(run_id, artifact)
             self.store.update("approvals", approval_id,
                               {"state": "approved_once", "decided_at": _now(),
                                "decided_by": approver})
@@ -848,7 +919,9 @@ class RunEngine:
             self.store.update("artifacts", artifact["id"],
                               {"published_path": self._relative(path)})
             self._set_task(task["id"], "succeeded",
-                           summary=(f"Published to {self._relative(path)}." if on_disk else
+                           summary=(f"Published to {self._relative(path)}." if where == "vault" else
+                                    f"Published to the database store as {self._relative(path)}."
+                                    if where == "database" else
                                     f"Published to the database store as {path}; the vault "
                                     "folder is not writable on this host."))
             self._set_run_state(run_id, "completed")
@@ -865,12 +938,15 @@ class RunEngine:
         """A published path as the vault sees it: `Reports/<note>.md`, or
         the `store:` form when the vault folder was not writable."""
         text = str(path)
-        if text.startswith("store:"):
-            return text
+        if text.startswith("store:") or not Path(path).is_absolute():
+            return Path(text).as_posix()
         try:
             return Path(path).resolve().relative_to(Path(self.vault_dir).resolve()).as_posix()
         except ValueError:
             return Path(path).name
+
+    def publication_destination(self):
+        return "database:Reports" if self.publish_target == "database" else str(self.vault_dir / "Reports")
 
     def _publish(self, run_id, artifact):
         """Publish the approved report and its run log.
@@ -880,7 +956,8 @@ class RunEngine:
         with a read-only filesystem publishes completely or not at all
         (assessment B13). The vault folder is then written as a courtesy
         for Obsidian; when it cannot be, the published path names the
-        store and the approval says so. Returns (path, on_disk)."""
+        store and the approval says so. Returns (path, where), with where
+        one of "vault", "database" or "fallback"."""
         run = self._row(run_id)
         slug = re.sub(r"[^a-z0-9]+", "-", run["goal"].lower()).strip("-")[:48] or "report"
         note_name = f"{slug}-{run_id}.md"
@@ -900,9 +977,15 @@ class RunEngine:
             log_lines.append(f"| {t['title']} | {t['state']}: {t['summary'] or ''} |")
         log_lines.append(f"\nReport: [[{note_stem}]]\n")
         log_text = "\n".join(log_lines)
+        # The store writes share the approval/state transaction. Database
+        # mode never touches a filesystem, including a read-only serverless
+        # root; vault mode writes the folder too and falls back to the store
+        # alone when the folder cannot be written (B13).
         now = _now()
         self.store.upsert_note(f"Reports/{note_name}", run_id, report_text, now)
         self.store.upsert_note(f"Runs/{run_id}.md", run_id, log_text, now)
+        if self.publish_target == "database":
+            return Path("Reports") / note_name, "database"
         try:
             reports = self.vault_dir / "Reports"
             logs = self.vault_dir / "Runs"
@@ -912,8 +995,8 @@ class RunEngine:
             note.write_text(report_text, encoding="utf-8")
             (logs / f"{run_id}.md").write_text(log_text, encoding="utf-8")
         except OSError:
-            return f"store:Reports/{note_name}", False
-        return note, True
+            return f"store:Reports/{note_name}", "fallback"
+        return note, "vault"
 
     def set_paused(self, run_id, paused):
         with self.store.atomic("run:" + run_id):
@@ -1076,7 +1159,7 @@ class RunEngine:
         # when, from the approval row itself (A13). No stage writes this part.
         decision = self._decision_record(self.store.get_tasks(run_id))
         if decision is not None:
-            gate = next((a for a in approvals if a["state"] != "pending"), None)
+            gate = next((a for a in approvals if a["state"] in ("approved_once", "rejected")), None)
             decision["approval"] = ({"state": gate["state"], "decided_at": gate["decided_at"],
                                      "decided_by": gate.get("decided_by")} if gate else None)
         declared = json.loads(run.get("joins_json") or "{}")
