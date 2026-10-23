@@ -205,8 +205,14 @@ class ReviewGateTests(unittest.TestCase):
     def test_only_a_named_person_can_accept_a_gate(self):
         with self.assertRaises(ValueError):
             self.run_plan(self.plan(accepted=[{"gate": "team-items", "reason": "later"}]))
+        # Since 23 October (assessment G14) the person must be a known
+        # reviewer: one the plan lists, or a committer to the repository.
+        with self.assertRaises(ValueError):
+            self.run_plan(self.plan(accepted=[{"gate": "team-items", "by": "A. Stranger",
+                                               "reason": "later"}], reviewers=["A. Owner"]), reset=True)
         card = self.run_plan(self.plan(accepted=[{"gate": "team-items", "by": "A. Owner",
-                                                   "reason": "supplied on submission day"}]), reset=True)
+                                                   "reason": "supplied on submission day"}],
+                                       reviewers=["A. Owner"]), reset=True)
         self.assertEqual((card["score"], card["accepted"]), (100.0, 1))
         self.assertEqual(card["decision"], "stop: 100% validated")
 

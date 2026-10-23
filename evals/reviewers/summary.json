@@ -1,5 +1,395 @@
 [
  {
+  "bench": "J",
+  "categories": [
+   "alt_text",
+   "translation_parity",
+   "keyboard",
+   "target_size",
+   "rtl_order",
+   "overflow",
+   "contrast"
+  ],
+  "findings": 8,
+  "recall": 1.0,
+  "detection": {
+   "per_class": {
+    "True": {
+     "precision": 1.0,
+     "recall": 1.0,
+     "f1": 1.0,
+     "support": 8,
+     "predicted": 8
+    },
+    "False": {
+     "precision": 1.0,
+     "recall": 1.0,
+     "f1": 1.0,
+     "support": 8,
+     "predicted": 8
+    }
+   },
+   "accuracy": 1.0,
+   "macro_recall": 1.0,
+   "cases": 16,
+   "positive": "True",
+   "recall": 1.0,
+   "precision": 1.0
+  },
+  "false_alarms": [],
+  "secondary": [],
+  "category_confusion": {
+   "labels": [
+    "alt_text",
+    "translation_parity",
+    "keyboard",
+    "target_size",
+    "rtl_order",
+    "overflow",
+    "contrast",
+    "missed"
+   ],
+   "matrix": {
+    "alt_text": {
+     "alt_text": 1,
+     "translation_parity": 0,
+     "keyboard": 0,
+     "target_size": 0,
+     "rtl_order": 0,
+     "overflow": 0,
+     "contrast": 0,
+     "missed": 0
+    },
+    "translation_parity": {
+     "alt_text": 0,
+     "translation_parity": 2,
+     "keyboard": 0,
+     "target_size": 0,
+     "rtl_order": 0,
+     "overflow": 0,
+     "contrast": 0,
+     "missed": 0
+    },
+    "keyboard": {
+     "alt_text": 0,
+     "translation_parity": 0,
+     "keyboard": 1,
+     "target_size": 0,
+     "rtl_order": 0,
+     "overflow": 0,
+     "contrast": 0,
+     "missed": 0
+    },
+    "target_size": {
+     "alt_text": 0,
+     "translation_parity": 0,
+     "keyboard": 0,
+     "target_size": 1,
+     "rtl_order": 0,
+     "overflow": 0,
+     "contrast": 0,
+     "missed": 0
+    },
+    "rtl_order": {
+     "alt_text": 0,
+     "translation_parity": 0,
+     "keyboard": 0,
+     "target_size": 0,
+     "rtl_order": 1,
+     "overflow": 0,
+     "contrast": 0,
+     "missed": 0
+    },
+    "overflow": {
+     "alt_text": 0,
+     "translation_parity": 0,
+     "keyboard": 0,
+     "target_size": 0,
+     "rtl_order": 0,
+     "overflow": 1,
+     "contrast": 0,
+     "missed": 0
+    },
+    "contrast": {
+     "alt_text": 0,
+     "translation_parity": 0,
+     "keyboard": 0,
+     "target_size": 0,
+     "rtl_order": 0,
+     "overflow": 0,
+     "contrast": 1,
+     "missed": 0
+    },
+    "missed": {
+     "alt_text": 0,
+     "translation_parity": 0,
+     "keyboard": 0,
+     "target_size": 0,
+     "rtl_order": 0,
+     "overflow": 0,
+     "contrast": 0,
+     "missed": 0
+    }
+   }
+  },
+  "per_category": {
+   "alt_text": {
+    "matrix": {
+     "True": {
+      "True": 1,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 15
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1,
+      "predicted": 1
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 15,
+      "predicted": 15
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 16,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "translation_parity": {
+    "matrix": {
+     "True": {
+      "True": 2,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 14
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 2,
+      "predicted": 2
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 14,
+      "predicted": 14
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 16,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "keyboard": {
+    "matrix": {
+     "True": {
+      "True": 1,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 15
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1,
+      "predicted": 1
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 15,
+      "predicted": 15
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 16,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "target_size": {
+    "matrix": {
+     "True": {
+      "True": 1,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 15
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1,
+      "predicted": 1
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 15,
+      "predicted": 15
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 16,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "rtl_order": {
+    "matrix": {
+     "True": {
+      "True": 1,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 15
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1,
+      "predicted": 1
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 15,
+      "predicted": 15
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 16,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "overflow": {
+    "matrix": {
+     "True": {
+      "True": 1,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 15
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1,
+      "predicted": 1
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 15,
+      "predicted": 15
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 16,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "contrast": {
+    "matrix": {
+     "True": {
+      "True": 1,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 15
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1,
+      "predicted": 1
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 15,
+      "predicted": 15
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 16,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   }
+  },
+  "agent": "accessibility-i18n-reviewer",
+  "tag": "named-v1"
+ },
+ {
   "bench": "A",
   "categories": [
    "causal_claim",
@@ -7339,6 +7729,301 @@
   },
   "agent": "analytics-expert-reviewer",
   "tag": "named-v3-r3"
+ },
+ {
+  "bench": "H",
+  "categories": [
+   "missing_evidence",
+   "length_or_order",
+   "missing_element",
+   "standards_gap",
+   "method"
+  ],
+  "findings": 10,
+  "recall": 0.75,
+  "detection": {
+   "per_class": {
+    "True": {
+     "precision": 0.75,
+     "recall": 0.75,
+     "f1": 0.75,
+     "support": 8,
+     "predicted": 8
+    },
+    "False": {
+     "precision": 0.8333333333333334,
+     "recall": 0.8333333333333334,
+     "f1": 0.8333333333333334,
+     "support": 12,
+     "predicted": 12
+    }
+   },
+   "accuracy": 0.8,
+   "macro_recall": 0.7916666666666667,
+   "cases": 20,
+   "positive": "True",
+   "recall": 0.75,
+   "precision": 0.75
+  },
+  "false_alarms": [
+   "P01 \u00b7 missing_element",
+   "P20 \u00b7 missing_element"
+  ],
+  "secondary": [
+   "P09 \u00b7 missing_evidence",
+   "P17 \u00b7 missing_evidence"
+  ],
+  "category_confusion": {
+   "labels": [
+    "missing_evidence",
+    "length_or_order",
+    "missing_element",
+    "standards_gap",
+    "method",
+    "missed"
+   ],
+   "matrix": {
+    "missing_evidence": {
+     "missing_evidence": 0,
+     "length_or_order": 0,
+     "missing_element": 0,
+     "standards_gap": 0,
+     "method": 0,
+     "missed": 1
+    },
+    "length_or_order": {
+     "missing_evidence": 0,
+     "length_or_order": 0,
+     "missing_element": 0,
+     "standards_gap": 0,
+     "method": 0,
+     "missed": 0
+    },
+    "missing_element": {
+     "missing_evidence": 0,
+     "length_or_order": 0,
+     "missing_element": 3,
+     "standards_gap": 0,
+     "method": 0,
+     "missed": 1
+    },
+    "standards_gap": {
+     "missing_evidence": 0,
+     "length_or_order": 0,
+     "missing_element": 0,
+     "standards_gap": 2,
+     "method": 0,
+     "missed": 0
+    },
+    "method": {
+     "missing_evidence": 0,
+     "length_or_order": 0,
+     "missing_element": 0,
+     "standards_gap": 0,
+     "method": 1,
+     "missed": 0
+    },
+    "missed": {
+     "missing_evidence": 0,
+     "length_or_order": 0,
+     "missing_element": 0,
+     "standards_gap": 0,
+     "method": 0,
+     "missed": 0
+    }
+   }
+  },
+  "per_category": {
+   "missing_evidence": {
+    "matrix": {
+     "True": {
+      "True": 0,
+      "False": 1
+     },
+     "False": {
+      "True": 0,
+      "False": 17
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": null,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 1,
+      "predicted": 0
+     },
+     "False": {
+      "precision": 0.9444444444444444,
+      "recall": 1.0,
+      "f1": 0.9714285714285714,
+      "support": 17,
+      "predicted": 18
+     }
+    },
+    "accuracy": 0.9444444444444444,
+    "macro_recall": 0.5,
+    "cases": 18,
+    "positive": "True",
+    "recall": 0.0,
+    "precision": null,
+    "misses": [
+     "P02 \u00b7 missing_evidence"
+    ],
+    "false_alarms": []
+   },
+   "length_or_order": {
+    "matrix": {
+     "True": {
+      "True": 0,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 20
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "support": 0,
+      "predicted": 0
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20,
+      "predicted": 20
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 20,
+    "positive": "True",
+    "recall": null,
+    "precision": null,
+    "misses": [],
+    "false_alarms": []
+   },
+   "missing_element": {
+    "matrix": {
+     "True": {
+      "True": 3,
+      "False": 1
+     },
+     "False": {
+      "True": 2,
+      "False": 14
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 0.6,
+      "recall": 0.75,
+      "f1": 0.6666666666666665,
+      "support": 4,
+      "predicted": 5
+     },
+     "False": {
+      "precision": 0.9333333333333333,
+      "recall": 0.875,
+      "f1": 0.9032258064516129,
+      "support": 16,
+      "predicted": 15
+     }
+    },
+    "accuracy": 0.85,
+    "macro_recall": 0.8125,
+    "cases": 20,
+    "positive": "True",
+    "recall": 0.75,
+    "precision": 0.6,
+    "misses": [
+     "P19 \u00b7 missing_element"
+    ],
+    "false_alarms": [
+     "P01 \u00b7 missing_element",
+     "P20 \u00b7 missing_element"
+    ]
+   },
+   "standards_gap": {
+    "matrix": {
+     "True": {
+      "True": 2,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 18
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 2,
+      "predicted": 2
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 18,
+      "predicted": 18
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 20,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "method": {
+    "matrix": {
+     "True": {
+      "True": 1,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 19
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1,
+      "predicted": 1
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 19,
+      "predicted": 19
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 20,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   }
+  },
+  "agent": "brief-compliance-reviewer",
+  "tag": "named-v1"
  },
  {
   "bench": "A",
@@ -14897,6 +15582,292 @@
   },
   "agent": "figures-tool",
   "tag": "v7"
+ },
+ {
+  "bench": "I",
+  "categories": [
+   "secret",
+   "personal_data",
+   "raw_data_to_model",
+   "unsafe_input",
+   "soul_rule"
+  ],
+  "findings": 9,
+  "recall": 1.0,
+  "detection": {
+   "per_class": {
+    "True": {
+     "precision": 0.8888888888888888,
+     "recall": 1.0,
+     "f1": 0.9411764705882353,
+     "support": 8,
+     "predicted": 9
+    },
+    "False": {
+     "precision": 1.0,
+     "recall": 0.9,
+     "f1": 0.9473684210526316,
+     "support": 10,
+     "predicted": 9
+    }
+   },
+   "accuracy": 0.9444444444444444,
+   "macro_recall": 0.95,
+   "cases": 18,
+   "positive": "True",
+   "recall": 1.0,
+   "precision": 0.8888888888888888
+  },
+  "false_alarms": [
+   "P18 \u00b7 personal_data"
+  ],
+  "secondary": [],
+  "category_confusion": {
+   "labels": [
+    "secret",
+    "personal_data",
+    "raw_data_to_model",
+    "unsafe_input",
+    "soul_rule",
+    "missed"
+   ],
+   "matrix": {
+    "secret": {
+     "secret": 1,
+     "personal_data": 0,
+     "raw_data_to_model": 0,
+     "unsafe_input": 0,
+     "soul_rule": 0,
+     "missed": 0
+    },
+    "personal_data": {
+     "secret": 0,
+     "personal_data": 1,
+     "raw_data_to_model": 0,
+     "unsafe_input": 0,
+     "soul_rule": 0,
+     "missed": 0
+    },
+    "raw_data_to_model": {
+     "secret": 0,
+     "personal_data": 0,
+     "raw_data_to_model": 1,
+     "unsafe_input": 0,
+     "soul_rule": 0,
+     "missed": 0
+    },
+    "unsafe_input": {
+     "secret": 0,
+     "personal_data": 0,
+     "raw_data_to_model": 0,
+     "unsafe_input": 3,
+     "soul_rule": 0,
+     "missed": 0
+    },
+    "soul_rule": {
+     "secret": 0,
+     "personal_data": 0,
+     "raw_data_to_model": 0,
+     "unsafe_input": 0,
+     "soul_rule": 2,
+     "missed": 0
+    },
+    "missed": {
+     "secret": 0,
+     "personal_data": 0,
+     "raw_data_to_model": 0,
+     "unsafe_input": 0,
+     "soul_rule": 0,
+     "missed": 0
+    }
+   }
+  },
+  "per_category": {
+   "secret": {
+    "matrix": {
+     "True": {
+      "True": 1,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 17
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1,
+      "predicted": 1
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 17,
+      "predicted": 17
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 18,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "personal_data": {
+    "matrix": {
+     "True": {
+      "True": 1,
+      "False": 0
+     },
+     "False": {
+      "True": 1,
+      "False": 16
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 0.5,
+      "recall": 1.0,
+      "f1": 0.6666666666666666,
+      "support": 1,
+      "predicted": 2
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 0.9411764705882353,
+      "f1": 0.9696969696969697,
+      "support": 17,
+      "predicted": 16
+     }
+    },
+    "accuracy": 0.9444444444444444,
+    "macro_recall": 0.9705882352941176,
+    "cases": 18,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 0.5,
+    "misses": [],
+    "false_alarms": [
+     "P18 \u00b7 personal_data"
+    ]
+   },
+   "raw_data_to_model": {
+    "matrix": {
+     "True": {
+      "True": 1,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 17
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1,
+      "predicted": 1
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 17,
+      "predicted": 17
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 18,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "unsafe_input": {
+    "matrix": {
+     "True": {
+      "True": 3,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 15
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 3,
+      "predicted": 3
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 15,
+      "predicted": 15
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 18,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   },
+   "soul_rule": {
+    "matrix": {
+     "True": {
+      "True": 2,
+      "False": 0
+     },
+     "False": {
+      "True": 0,
+      "False": 16
+     }
+    },
+    "per_class": {
+     "True": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 2,
+      "predicted": 2
+     },
+     "False": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 16,
+      "predicted": 16
+     }
+    },
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "cases": 18,
+    "positive": "True",
+    "recall": 1.0,
+    "precision": 1.0,
+    "misses": [],
+    "false_alarms": []
+   }
+  },
+  "agent": "security-privacy-reviewer",
+  "tag": "named-v1"
  },
  {
   "bench": "A",

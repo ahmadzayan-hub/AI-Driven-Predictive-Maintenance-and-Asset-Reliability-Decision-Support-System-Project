@@ -22,6 +22,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
@@ -33,7 +34,8 @@ from agent import Agent, language_code
 from server.agent_runtime import build_runtime
 from server import knowledge as knowledge_module
 from server import analytics
-from server.api_contract import document_errors, error_response, install_error_handlers
+from server.api_contract import document_errors, error_body, install_error_handlers
+from server.api_contract import error_response as contract_error
 from server import datasets as dataset_reader
 from server import joins as joining
 from server import live
@@ -53,10 +55,11 @@ from server.runs import (IdempotencyConflict, PublicationDestinationChanged, Run
                          resolve_publish_target, resolve_vault_dir)
 from server import demo
 from server.auth import DEMO_PRINCIPAL, AuthError, build_identity, public_auth_config
-from server.quota import QuotaExceeded, load_limits
+from server.quota import ModelBudget, QuotaExceeded, load_limits
+from server import tenant
 from server.quota import usage as quota_usage
-from server.rate_limit import WRITE_METHODS, RateLimiter
-from server.storage import DbMemoryBackend, PostgresStore, open_store
+from server.rate_limit import WRITE_METHODS, RateLimiter, StoreRateLimiter
+from server.storage import DbMemoryBackend, PostgresStore, open_store, is_database_error
 from server.worker import worker_status
 from server.operations_api import install_operations_api
 from server.reliability_api import install_reliability_api
@@ -120,6 +123,9 @@ PREFERENCE_KEY_PATTERN = re.compile(r"^[a-z][a-z0-9_]{0,39}$")
 # honoured only when it is short and safe to print; the subject is a
 # hash prefix, never the raw subject, and never the token.
 REQUEST_LOG = logging.getLogger("agentic_os.requests")
+# Unexpected errors, one JSON line each with the request id and the
+# traceback in the server log (assessment B9); never in a response.
+ERROR_LOG = logging.getLogger("agentic_os.errors")
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,64}$")
 # Per-session locks are dropped once this many sessions have been seen,
 # keeping only the ones a request is holding at that moment.
@@ -545,10 +551,17 @@ def create_app(config_path=None, env=None, dist_dir=None):
     # cadence: a client-stepped analytics run issues ~3 advance calls per
     # second, so a 120/min budget (2/s) would throttle a normal run.
     # 600/min leaves headroom while still stopping runaway loops.
-    limiter = RateLimiter(
+    # A shared store counts every instance's requests in one window (B6);
+    # a single SQLite instance keeps the in-process bucket.
+    shared_store = isinstance(store, PostgresStore) or environ.get("AGENTIC_OS_RATE_LIMIT_STORE") == "1"
+    limiter = (StoreRateLimiter if shared_store else RateLimiter)(
+        *([store] if shared_store else []),
         limit=int(environ.get("AGENTIC_OS_RATE_LIMIT", "600")),
         window_seconds=int(environ.get("AGENTIC_OS_RATE_WINDOW", "60")),
     )
+    # The owner's daily model budget, charged through the tenant context.
+    base_gateway.budget = ModelBudget(store, limits)
+    app.state.gateway = base_gateway
 
     @app.middleware("http")
     async def rate_limit(request: Request, call_next):
@@ -630,6 +643,12 @@ def create_app(config_path=None, env=None, dist_dir=None):
         a hashed subject. No token, body, query string or raw subject."""
         request.state.request_id = request_id_for(request.headers.get("x-request-id"))
         started = time.monotonic()
+        # The owner this request works for, for the model budget (B6).
+        try:
+            subject = identity.authenticate(request.headers.get("authorization")).subject
+        except AuthError:
+            subject = None
+        tenant.current_owner.set(subject)
         try:
             response = await call_next(request)
         except Exception:
@@ -642,16 +661,53 @@ def create_app(config_path=None, env=None, dist_dir=None):
 
     app.add_middleware(InterfaceGZip)
 
+    def error_response(request, status, detail, code=None, problems=None, headers=None):
+        """The one envelope (B14) from `server.api_contract`, with the
+        security headers and the request id every answer carries."""
+        request_id = getattr(request.state, "request_id", None)
+        combined = dict(headers or {})
+        if request_id:
+            combined["X-Request-ID"] = request_id
+        return apply_security_headers(contract_error(
+            request, status, detail, code=code, problems=problems,
+            headers=combined or None,
+        ), request.url.path)
+
+    @app.exception_handler(HTTPException)
+    async def handle_http_error(request: Request, exc: HTTPException):
+        response = error_response(request, exc.status_code, exc.detail)
+        for key, value in (exc.headers or {}).items():
+            response.headers[key] = value
+        return response
+
+    @app.exception_handler(RequestValidationError)
+    async def handle_validation_error(request: Request, exc: RequestValidationError):
+        # Locations, types and messages only: never the offending input.
+        issues = [{"loc": list(item["loc"]), "type": item["type"], "msg": item["msg"]}
+                  for item in exc.errors()]
+        body = error_body(request, 422, issues, code="validation_failed", problems=issues)
+        body["error"]["message"] = ("راجع الحقول المحددة ثم أعد المحاولة." if _language_of(request) == "ar"
+                                    else "Check the indicated fields and try again.")
+        request_id = getattr(request.state, "request_id", None)
+        return apply_security_headers(JSONResponse(
+            body, status_code=422, headers={"X-Request-ID": request_id} if request_id else None,
+        ), request.url.path)
+
     @app.exception_handler(Exception)
     async def handle_unexpected_error(request: Request, exc: Exception):
-        # Never leak stack traces or internal details to the browser.
+        # Never leak stack traces or internal details to the browser; the
+        # server log gets the type and the request id for triage (B9).
         request_id = getattr(request.state, "request_id", None)
-        return apply_security_headers(error_response(
-            request, 500, ("حدث خطأ في الخادم. يرجى المحاولة مجددًا." if
-                request.headers.get("accept-language", "").startswith("ar") else
-                "Something went wrong on the server. Please try again."),
-            headers={"X-Request-ID": request_id} if request_id else None,
-        ), request.url.path)
+        ERROR_LOG.error(json.dumps({"request_id": request_id, "path": request.url.path,
+                                    "error": type(exc).__name__}, separators=(",", ":")),
+                        exc_info=exc)
+        if is_database_error(exc):
+            return error_response(request, 503,
+                                  "The database is unavailable. Please try again shortly.",
+                                  "database_unavailable")
+        return error_response(request, 500,
+                              ("حدث خطأ في الخادم. يرجى المحاولة مجددًا." if _language_of(request) == "ar"
+                               else "Something went wrong on the server. Please try again."))
 
     # ------------------------------------------------------------------
     # Identity and authorization
@@ -729,11 +785,23 @@ def create_app(config_path=None, env=None, dist_dir=None):
     # Health and sessions
     # ------------------------------------------------------------------
     @app.get("/api/health")
-    def health():
-        return {
+    def health(request: Request):
+        """Liveness for anyone; the operator's detail (model names, the
+        role map, problems, execution, the call ledger) for a signed-in
+        reader only (assessment B18). Local mode signs everyone in."""
+        liveness = {
             "status": "ok",
             "agent_name": config.get("agent_name", "Agentic OS"),
             "version": str(config.get("version", "1.0.0")),
+        }
+        try:
+            principal = identity.authenticate(request.headers.get("authorization"))
+        except AuthError:
+            return {**liveness, "detail": "sign in to read the operator detail"}
+        if not principal.can("read"):
+            return {**liveness, "detail": "sign in to read the operator detail"}
+        return {
+            **liveness,
             "model_provider": gateway.status(),
             "model_roles": model_roles.status(),
             "model_map": model_roles.model_map(),
@@ -743,6 +811,8 @@ def create_app(config_path=None, env=None, dist_dir=None):
             "stage_problems": app.state.stage_problems,
             "agent_runtime": app.state.runtime_name,
             "runtime_problem": app.state.runtime_problem,
+            # Why an orchestration note was missing, newest last (G12).
+            "orchestration_problems": list(engine.orchestration_problems),
             "execution": worker_status(store, engine.execution_mode),
             # Model calls this process has made: totals per provider,
             # never prompts or replies (finding G4).
@@ -966,6 +1036,18 @@ def create_app(config_path=None, env=None, dist_dir=None):
     # ------------------------------------------------------------------
     # Vault: durable record of approved, published knowledge
     # ------------------------------------------------------------------
+    def _language_of(request):
+        value = request.query_params.get("language", "en")
+        return "ar" if value == "ar" else "en"
+
+    @app.exception_handler(ConnectorError)
+    async def connector_error(request, error):
+        # One handler for a service's own errors (assessment B20): the
+        # status and the message in the request's language come from the
+        # error, the envelope from error_response.
+        return error_response(request, error.status, error.message(_language_of(request)),
+                              getattr(error, "code", None) or f"http_{error.status}")
+
     @app.get("/api/vault")
     def list_vault_notes(principal=Depends(requires("read"))):
         with lock:
@@ -1630,8 +1712,6 @@ def create_app(config_path=None, env=None, dist_dir=None):
                     principal.subject, body.name, body.url, body.goal, language=body.language,
                     format=body.format, sheet=body.sheet, every_minutes=body.every_minutes,
                     profile=body.profile, credential_id=body.credential_id)
-            except ConnectorError as error:
-                raise HTTPException(status_code=error.status, detail=error.message(language))
             except ValueError as error:  # an unknown pipeline profile
                 raise HTTPException(status_code=422, detail=str(error))
 
@@ -1646,8 +1726,6 @@ def create_app(config_path=None, env=None, dist_dir=None):
                                          enabled=body.enabled, every_minutes=every)
             except KeyError:
                 _no_connector()
-            except ConnectorError as error:
-                raise HTTPException(status_code=error.status, detail=error.message(language))
 
     @app.delete("/api/connectors/{connector_id}", status_code=204)
     def delete_connector(connector_id: str, principal=Depends(requires("write"))):

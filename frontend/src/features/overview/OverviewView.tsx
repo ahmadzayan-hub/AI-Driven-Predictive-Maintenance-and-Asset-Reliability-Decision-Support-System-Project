@@ -16,6 +16,7 @@ import { downloadMotionRun } from './motionEvidence'
 interface OverviewViewProps {
   onOpenRun: (id: string) => void
   onStart: (preset: RunPreset | null) => void
+  onAddDataset?: () => void
   /** False in the view-only demo: no button that would start an analysis. */
   canStart?: boolean
   onApprovals?: () => void
@@ -30,7 +31,7 @@ interface OverviewViewProps {
  *  findings, what is waiting at the approval gate, and the newest runs.
  *  Everything comes from existing endpoints; nothing is computed here
  *  that the server did not already say. */
-export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard, onSeeAll, canStart = true }: OverviewViewProps) {
+export function OverviewView({ onOpenRun, onStart, onAddDataset, onApprovals, onOpenDashboard, onSeeAll, canStart = true }: OverviewViewProps) {
   const { t, tx, locale, formatNumber, formatDate } = useI18n()
   const [runs, setRuns] = useState<RunSummary[] | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
@@ -92,7 +93,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard,
   const agentRun = orderedRuns.find((run) => run.state === 'running' || run.state === 'queued') ?? orderedRuns[0]
   const actions = onOpenDashboard ? (
     <DecisionActions
-      onUpload={canStart ? () => onStart({ kind: 'upload' }) : undefined}
+      onUpload={canStart ? onAddDataset : undefined}
       onDashboard={() => onOpenDashboard()}
       onApprovals={onApprovals}
       onAgents={agentRun ? () => onOpenRun(agentRun.id) : undefined}

@@ -1,10 +1,12 @@
 -- Asset Reliability AI: secure initial application schema
--- Mirrors server/storage.py SCHEMA_STATEMENTS and additive _migrate columns.
+-- Mirrors server/storage.py SCHEMA_STATEMENTS, which since 23 October carry
+-- every column the additive _migrate pass adds to older databases.
 -- PostgREST / anon / authenticated are intentionally NOT granted table access.
 -- Backend uses managed PostgreSQL (psycopg2) with server-side owner checks.
 -- No secrets, user records, customer data, or privileged credentials in this file.
 -- Migration generated 2026-10-18; apply only to dedicated Team 3 Supabase project.
 -- Snapshot refreshed 2026-10-22 for private evidence workspaces and governed review.
+-- Snapshot refreshed 2026-10-23 for the shared rate windows and the model budget (B6).
 -- This is the initial-schema mirror; editing it does not apply a hosted migration.
 BEGIN;
 CREATE TABLE IF NOT EXISTS organizations (
@@ -51,6 +53,21 @@ CREATE TABLE IF NOT EXISTS operation_requests (
 CREATE TABLE IF NOT EXISTS worker_heartbeats (
       id TEXT PRIMARY KEY, seen_at TEXT NOT NULL, state TEXT NOT NULL);
 
+-- Request windows per caller (P2 slice three, B6): one counter shared by
+-- every instance.
+CREATE TABLE IF NOT EXISTS rate_windows (
+      key TEXT NOT NULL, window_start INTEGER NOT NULL, count INTEGER NOT NULL,
+      PRIMARY KEY (key, window_start));
+
+-- Model calls per owner per UTC day (B6): the tenant's model budget.
+CREATE TABLE IF NOT EXISTS model_calls_daily (
+      owner TEXT NOT NULL, day TEXT NOT NULL, count INTEGER NOT NULL,
+      PRIMARY KEY (owner, day));
+
+-- Which migration pass the store has applied (P2 slice two, B12).
+CREATE TABLE IF NOT EXISTS schema_migrations (
+      version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
+
 CREATE TABLE IF NOT EXISTS reliability_trials (
       id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
       created_by TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
@@ -89,7 +106,7 @@ CREATE TABLE IF NOT EXISTS approvals (
       action TEXT NOT NULL, target TEXT NOT NULL, risk TEXT NOT NULL,
       impact TEXT NOT NULL, reversibility TEXT NOT NULL,
       content_hash TEXT NOT NULL, state TEXT NOT NULL,
-      created_at TEXT NOT NULL, decided_at TEXT);
+      created_at TEXT NOT NULL, decided_at TEXT, decided_by TEXT);
 
 CREATE TABLE IF NOT EXISTS artifacts (
       id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(id),
@@ -100,8 +117,7 @@ CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
       ended INTEGER NOT NULL, preferences_json TEXT NOT NULL,
       history_json TEXT NOT NULL, transcript_json TEXT NOT NULL,
-      next_entry_id INTEGER NOT NULL,
-      owner TEXT);
+      next_entry_id INTEGER NOT NULL, owner TEXT);
 
 CREATE TABLE IF NOT EXISTS memory_kv (
       owner TEXT NOT NULL, key TEXT NOT NULL, text TEXT NOT NULL,
@@ -116,11 +132,8 @@ CREATE TABLE IF NOT EXISTS datasets (
       id TEXT PRIMARY KEY, sha256 TEXT NOT NULL, name TEXT NOT NULL,
       content TEXT NOT NULL, byte_size INTEGER NOT NULL,
       owner TEXT NOT NULL, created_at TEXT NOT NULL,
-      source_format TEXT,
-      row_count INTEGER,
-      column_count INTEGER,
-      mapping_json TEXT,
-      mapping_updated_at TEXT);
+      source_format TEXT, row_count INTEGER, column_count INTEGER,
+      mapping_json TEXT, mapping_updated_at TEXT);
 
 CREATE TABLE IF NOT EXISTS connectors (
       id TEXT PRIMARY KEY, owner TEXT NOT NULL, name TEXT NOT NULL,
@@ -130,8 +143,7 @@ CREATE TABLE IF NOT EXISTS connectors (
       last_status TEXT, last_error TEXT, last_checked_at TEXT,
       last_dataset_id TEXT, last_sha256 TEXT, last_run_id TEXT,
       next_due_at TEXT, lease_owner TEXT, lease_expires_at TEXT,
-      created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
-      credential_id TEXT);
+      created_at TEXT NOT NULL, updated_at TEXT NOT NULL, credential_id TEXT);
 
 CREATE TABLE IF NOT EXISTS rmd_packs (
       id TEXT PRIMARY KEY, owner TEXT NOT NULL, organization_id TEXT,
@@ -216,6 +228,12 @@ ALTER TABLE public.operation_requests ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.operation_requests FROM PUBLIC, anon, authenticated;
 ALTER TABLE public.worker_heartbeats ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.worker_heartbeats FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.rate_windows ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.rate_windows FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.model_calls_daily ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.model_calls_daily FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.schema_migrations ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.schema_migrations FROM PUBLIC, anon, authenticated;
 ALTER TABLE public.reliability_trials ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.reliability_trials FROM PUBLIC, anon, authenticated;
 ALTER TABLE public.runs ENABLE ROW LEVEL SECURITY;

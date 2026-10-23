@@ -113,6 +113,15 @@ def _parts(url, env):
     host = parts.hostname.lower()
     allowed = [h.strip().lower() for h in (env.get("AGENTIC_OS_CONNECTOR_HOSTS") or "").split(",")
                if h.strip()]
+    if not allowed and is_production(env) and host != FIXTURE_HOST:
+        # Default deny in production (assessment B16): a scheduled fetcher
+        # for arbitrary public hosts is not something a hosted install
+        # gets by omission.
+        raise ConnectorError(
+            "This server has no list of allowed sources (AGENTIC_OS_CONNECTOR_HOSTS), "
+            "so live sources are refused until an operator sets one.",
+            "لا توجد على هذا الخادم قائمة بالمصادر المسموح بها (AGENTIC_OS_CONNECTOR_HOSTS)، "
+            "فتُرفض المصادر الحية حتى يحددها المشغّل.")
     if allowed and host not in allowed:
         raise ConnectorError(f"{host} is not on this server's list of allowed sources.",
                              f"{host} ليس ضمن قائمة المصادر المسموح بها على هذا الخادم.")
@@ -130,6 +139,15 @@ def _parts(url, env):
     path = quote(parts.path or "/", safe=safe) + (
         "?" + quote(parts.query, safe=safe + "?") if parts.query else "")
     return host, port, path
+
+
+def is_production(env=None):
+    """A hosted or declared-production install: AGENTIC_OS_ENV=production,
+    a sign-in provider configured, or a Vercel deployment."""
+    env = os.environ if env is None else env
+    return bool(env.get("AGENTIC_OS_ENV") == "production" or env.get("VERCEL")
+                or env.get("AGENTIC_OS_JWT_SECRET") or env.get("AGENTIC_OS_JWKS_URL")
+                or env.get("SUPABASE_JWT_SECRET"))
 
 
 def check_address(url, env=None, resolve=socket.getaddrinfo):

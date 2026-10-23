@@ -159,6 +159,9 @@ def model_cards(result):
 # The longest idempotency key a run creation accepts (B14).
 MAX_IDEMPOTENCY_KEY = 200
 
+# How many orchestration failures the engine remembers for the health detail.
+MAX_ORCHESTRATION_PROBLEMS = 20
+
 
 class IdempotencyConflict(ValueError):
     """The owner reused a creation key for a different request."""
@@ -175,6 +178,9 @@ class RunEngine:
             raise ValueError("AGENTIC_OS_RUN_EXECUTION must be client or worker.")
         self.execution_mode = execution_mode
         self.store = store
+        # The last reasons an orchestration note is missing (G12), shown
+        # by /api/health to a signed-in reader.
+        self.orchestration_problems = []
         # Every row id the engine makes comes from here. The public demo
         # swaps in a seeded generator while it seeds, so each serverless
         # instance builds its demo under the same ids (server/demo.py).
@@ -665,6 +671,8 @@ class RunEngine:
         self._annotate(run, task, tasks, result, ctx)
         if ctx.get("orchestration"):
             result["orchestration"] = ctx["orchestration"]
+        if ctx.get("orchestration_problem"):
+            result["orchestration_problem"] = ctx["orchestration_problem"]
         self._set_task(task["id"], "succeeded", summary=result["summary"], result=result)
 
         if task["role"] == "validator" and not result["output"]["passed"]:
@@ -720,8 +728,13 @@ class RunEngine:
             note = roles.agent_note(run["goal"], task["role"], result, language)
             if note:
                 result["agent_note"] = note
-        except Exception:
-            pass
+        except Exception as error:
+            # A model failure never fails a run, but it is not silent
+            # (assessment G12): the task result and the engine both say why.
+            problem = f"{task['role']}: {type(error).__name__}: {str(error)[:200]}"
+            result["orchestration_problem"] = problem
+            self.orchestration_problems.append(problem)
+            del self.orchestration_problems[:-MAX_ORCHESTRATION_PROBLEMS]
 
     def _consult(self, run, ctx):
         """The consultants and Hermes' brief, read by the reporter."""
@@ -735,7 +748,11 @@ class RunEngine:
             if roles is None:
                 return None
             return roles.consult(run["goal"], facts, run.get("report_language") or "en")
-        except Exception:
+        except Exception as error:
+            problem = f"consult: {type(error).__name__}: {str(error)[:200]}"
+            ctx["orchestration_problem"] = problem
+            self.orchestration_problems.append(problem)
+            del self.orchestration_problems[:-MAX_ORCHESTRATION_PROBLEMS]
             return None
 
     def _advance_custom(self, run_id, task, descriptor, ctx):
@@ -893,14 +910,20 @@ class RunEngine:
                     "تغيرت وجهة النشر بعد المراجعة. حدّث طلب المراجعة ثم اقرأ التقرير والوجهة الجديدة قبل الموافقة."
                     if (self._row(run_id).get("report_language") or "en") == "ar" else
                     "The publication destination changed after review. Update the review request, then read the report and new destination before approving.")
-            path = self._publish(run_id, artifact)
+            path, where = self._publish(run_id, artifact)
             self.store.update("approvals", approval_id,
                               {"state": "approved_once", "decided_at": _now(),
                                "decided_by": approver})
+            # The path a reader sees is relative to the vault folder
+            # (assessment B19): never the server's absolute layout.
             self.store.update("artifacts", artifact["id"],
-                              {"published_path": str(path)})
+                              {"published_path": self._relative(path)})
             self._set_task(task["id"], "succeeded",
-                           summary=f"Published to {path}.")
+                           summary=(f"Published to {self._relative(path)}." if where == "vault" else
+                                    f"Published to the database store as {self._relative(path)}."
+                                    if where == "database" else
+                                    f"Published to the database store as {path}; the vault "
+                                    "folder is not writable on this host."))
             self._set_run_state(run_id, "completed")
         else:
             self.store.update("approvals", approval_id,
@@ -911,15 +934,34 @@ class RunEngine:
             self._set_run_state(run_id, "completed")
         return self.get_run(run_id)
 
+    def _relative(self, path):
+        """A published path as the vault sees it: `Reports/<note>.md`, or
+        the `store:` form when the vault folder was not writable."""
+        text = str(path)
+        if text.startswith("store:") or not Path(path).is_absolute():
+            return Path(text).as_posix()
+        try:
+            return Path(path).resolve().relative_to(Path(self.vault_dir).resolve()).as_posix()
+        except ValueError:
+            return Path(path).name
+
     def publication_destination(self):
         return "database:Reports" if self.publish_target == "database" else str(self.vault_dir / "Reports")
 
     def _publish(self, run_id, artifact):
+        """Publish the approved report and its run log.
+
+        The database store is the publish target: both notes are written
+        there first, inside the approval's transaction, so a hosted host
+        with a read-only filesystem publishes completely or not at all
+        (assessment B13). The vault folder is then written as a courtesy
+        for Obsidian; when it cannot be, the published path names the
+        store and the approval says so. Returns (path, where), with where
+        one of "vault", "database" or "fallback"."""
         run = self._row(run_id)
-        reports = self.vault_dir / "Reports"
-        logs = self.vault_dir / "Runs"
         slug = re.sub(r"[^a-z0-9]+", "-", run["goal"].lower()).strip("-")[:48] or "report"
-        note = reports / f"{slug}-{run_id}.md"
+        note_name = f"{slug}-{run_id}.md"
+        note_stem = note_name[:-3]
         frontmatter = (
             "---\n"
             f"type: analytics-report\nrun: {run_id}\n"
@@ -927,29 +969,34 @@ class RunEngine:
             f"dataset: {json.dumps(run['dataset_name'], ensure_ascii=False)}\n"
             f"lang: {run.get('report_language') or 'en'}\n---\n\n"
         )
-        report_content = frontmatter + artifact["content"] + f"\n\nRun log: [[{run_id}]]\n"
+        report_text = frontmatter + artifact["content"] + f"\n\nRun log: [[{run_id}]]\n"
         log_lines = [f"---\ntype: run-log\nrun: {run_id}\ngenerated: {_now()}\n---",
                      f"# Run {run_id}", "", f"**Goal:** {run['goal']}", "",
                      "| Stage | Outcome |", "| --- | --- |"]
         for t in self.store.get_tasks(run_id):
             log_lines.append(f"| {t['title']} | {t['state']}: {t['summary'] or ''} |")
-        log_lines.append(f"\nReport: [[{note.stem}]]\n")
-        log_note = logs / f"{run_id}.md"
-        log_content = "\n".join(log_lines)
-        # These writes share the approval/state transaction. Database mode
-        # never touches a filesystem, including a read-only serverless root.
+        log_lines.append(f"\nReport: [[{note_stem}]]\n")
+        log_text = "\n".join(log_lines)
+        # The store writes share the approval/state transaction. Database
+        # mode never touches a filesystem, including a read-only serverless
+        # root; vault mode writes the folder too and falls back to the store
+        # alone when the folder cannot be written (B13).
         now = _now()
-        self.store.upsert_note(f"Reports/{note.name}", run_id,
-                               report_content, now)
-        self.store.upsert_note(f"Runs/{run_id}.md", run_id,
-                               log_content, now)
+        self.store.upsert_note(f"Reports/{note_name}", run_id, report_text, now)
+        self.store.upsert_note(f"Runs/{run_id}.md", run_id, log_text, now)
         if self.publish_target == "database":
-            return Path("Reports") / note.name
-        reports.mkdir(parents=True, exist_ok=True)
-        logs.mkdir(parents=True, exist_ok=True)
-        note.write_text(report_content, encoding="utf-8")
-        log_note.write_text(log_content, encoding="utf-8")
-        return note
+            return Path("Reports") / note_name, "database"
+        try:
+            reports = self.vault_dir / "Reports"
+            logs = self.vault_dir / "Runs"
+            reports.mkdir(parents=True, exist_ok=True)
+            logs.mkdir(parents=True, exist_ok=True)
+            note = reports / note_name
+            note.write_text(report_text, encoding="utf-8")
+            (logs / f"{run_id}.md").write_text(log_text, encoding="utf-8")
+        except OSError:
+            return f"store:Reports/{note_name}", "fallback"
+        return note, "vault"
 
     def set_paused(self, run_id, paused):
         with self.store.atomic("run:" + run_id):

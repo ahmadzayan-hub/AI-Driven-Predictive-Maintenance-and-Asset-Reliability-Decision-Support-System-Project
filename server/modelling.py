@@ -30,6 +30,7 @@ import statistics
 from collections import Counter
 
 from server import analytics
+from datetime import datetime, timezone
 
 MIN_ROWS = 30
 # A model beats its baseline when it improves on it by at least this much.
@@ -83,6 +84,58 @@ def _even(items, cap):
 def _table(ctx):
     return (analytics._rows(ctx), analytics._columns(ctx), analytics._numeric(ctx),
             ctx["governance"]["measure"], ctx["preparer"].get("date_col"))
+
+
+# Numeric columns this close to a linear function of the target are the
+# target under another name (a total beside its rate, a copy): |r| at or
+# above this is refused as an input (A11).
+DERIVED_CORRELATION = 0.999
+
+
+def _screen(ctx, rows, columns, numeric, target):
+    """Inputs the generic models may not use, with the reason (A11).
+
+    The maintenance targets screen by the contract's timing; the generic
+    stages have no contract, so they refuse what can be known without one:
+    columns the saved mapping ignores, detected personal data, and numeric
+    columns identical to or a linear function of the target."""
+    excluded = {}
+    roles = (ctx.get("mapping") or {}).get("roles") or {}
+    for column, role in roles.items():
+        if role == "ignore" and column in columns:
+            excluded[column] = "explicitly ignored by the saved column mapping"
+    texts = [c for c in columns if c not in numeric and c not in excluded]
+    if texts:
+        screened = [{c: str(row.get(c) or "") for c in texts} for row in rows[:2000]]
+        for finding in analytics.personal_data_findings(texts, screened):
+            excluded[finding["column"]] = "detected personal data is not a model input"
+    if target in numeric:
+        pairs = [(row.get(target), row) for row in rows
+                 if isinstance(row.get(target), (int, float))]
+        for column in numeric:
+            if column == target or column in excluded:
+                continue
+            xs = [(t, row.get(column)) for t, row in pairs
+                  if isinstance(row.get(column), (int, float))]
+            if len(xs) < 3:
+                continue
+            if all(t == x for t, x in xs):
+                excluded[column] = "identical to the target"
+                continue
+            r = _correlation([t for t, _ in xs], [x for _, x in xs])
+            if r is not None and abs(r) >= DERIVED_CORRELATION:
+                excluded[column] = (f"a linear function of the target (|r| = {abs(r):.4f}), "
+                                    "so it carries the outcome")
+    return excluded
+
+
+def _correlation(xs, ys):
+    mx, my = statistics.fmean(xs), statistics.fmean(ys)
+    sx = math.sqrt(sum((x - mx) ** 2 for x in xs))
+    sy = math.sqrt(sum((y - my) ** 2 for y in ys))
+    if not sx or not sy:
+        return None
+    return sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / (sx * sy)
 
 
 def _inputs(rows, columns, numeric, exclude):
@@ -189,13 +242,17 @@ def _weak(ctx, role, label_en, label_ar, improvement):
         ["c_improvement"])
 
 
-def _leakage(ctx, role):
+def _leakage(ctx, role, excluded=None):
+    refused = len(excluded or {})
     return _claim(
         ctx, role, "cl_inputs", "limitation",
-        "The model uses every other measure as an input. A measure recorded after "
-        "the outcome would make it look better than it is.",
-        "يستخدم النموذج كل مقياس آخر مدخلاً. والمقياس المسجَّل بعد النتيجة يجعله يبدو "
-        "أفضل مما هو عليه.",
+        "The model uses every other measure as an input, after refusing "
+        f"{refused} column(s) the mapping ignores, that hold personal data, or that "
+        "are the target under another name. A measure recorded after the outcome "
+        "that is not one of those would still make it look better than it is.",
+        f"يستخدم النموذج كل مقياس آخر مدخلاً، بعد استبعاد {refused} من الأعمدة التي "
+        "يتجاهلها التعيين أو تحمل بيانات شخصية أو تمثل الهدف باسم آخر. والمقياس "
+        "المسجَّل بعد النتيجة من غير هذه يجعله يبدو أفضل مما هو عليه.",
         ["c_inputs"])
 
 
@@ -225,13 +282,38 @@ def _section(ctx, title, headline, calculations, lines=()):
     return "\n".join(out)
 
 
+# The model card's version (assessment A14): bumped when the fitting or
+# the evaluation changes, so a stored card says which code scored it.
+CARD_VERSION = "2026-10-23"
+
+
+def _window(rows, date):
+    """The first and last period in the training rows, when a date exists."""
+    if not date:
+        return None
+    periods = sorted({str(row.get(date)) for row in rows if row.get(date) not in (None, "")})
+    return {"first": periods[0], "last": periods[-1]} if periods else None
+
+
 def _card(kind, target, inputs, train, test, split, metric, model, baseline,
-          baseline_name, improvement, beats, details):
-    return {"kind": kind, "target": target, "inputs": inputs, "train_records": train,
+          baseline_name, improvement, beats, details, ctx=None, window=None,
+          excluded=None):
+    """A model card. With `ctx` it carries the snapshot hash the model was
+    fitted on, the card version and the fitting time (A14), so a score can
+    be reproduced or retired; `window` is the training period range and
+    `excluded` the inputs the screen refused with the reason (A11)."""
+    card = {"kind": kind, "target": target, "inputs": inputs, "train_records": train,
             "test_records": test, "split": split,
             "metric": {"name": metric, "model": model, "baseline": baseline,
                        "baseline_name": baseline_name},
-            "improvement": improvement, "beats_baseline": beats, "details": details}
+            "improvement": improvement, "beats_baseline": beats, "details": details,
+            "version": CARD_VERSION,
+            "fitted_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "snapshot": ((ctx or {}).get("collector") or {}).get("snapshot"),
+            "training_window": window}
+    if excluded:
+        card["excluded_inputs"] = excluded
+    return card
 
 
 # ---------------------------------------------------------------------------
@@ -299,15 +381,56 @@ def fit_naive_bayes(vectors, labels):
     return model
 
 
-def predict_naive_bayes(model, vector):
-    best, score = None, -math.inf
+def _log_scores(model, vector):
+    scores = {}
     for label, (prior, means, spreads) in model.items():
         total = prior
         for x, m, s in zip(vector, means, spreads):
             total -= (x - m) ** 2 / (2 * s) + 0.5 * math.log(s)
-        if total > score:
-            best, score = label, total
-    return best
+        scores[label] = total
+    return scores
+
+
+def predict_naive_bayes(model, vector):
+    scores = _log_scores(model, vector)
+    return max(scores, key=scores.get)
+
+
+def naive_bayes_probabilities(model, vector):
+    """Each class's posterior probability (the scores, exponentiated and
+    normalised), so a prediction carries how sure the model is (A14)."""
+    scores = _log_scores(model, vector)
+    top = max(scores.values())
+    weights = {label: math.exp(score - top) for label, score in scores.items()}
+    total = sum(weights.values())
+    return {label: weight / total for label, weight in weights.items()}
+
+
+CALIBRATION_BINS = 5
+
+
+def calibration(probabilities, truths, base_rate):
+    """How the model's probabilities for the positive class compare with
+    what happened (A14): the Brier score against always saying the
+    training base rate, and the reliability bins (mean predicted against
+    observed share). A model whose Brier score is not below the base
+    rate's is not calibrated enough to quote a probability from."""
+    if not probabilities:
+        return None
+    brier = statistics.fmean((p - t) ** 2 for p, t in zip(probabilities, truths))
+    baseline = statistics.fmean((base_rate - t) ** 2 for t in truths)
+    bins = []
+    for index in range(CALIBRATION_BINS):
+        low, high = index / CALIBRATION_BINS, (index + 1) / CALIBRATION_BINS
+        members = [(p, t) for p, t in zip(probabilities, truths)
+                   if low <= p < high or (index == CALIBRATION_BINS - 1 and p == 1.0)]
+        if members:
+            bins.append({"range": [round(low, 2), round(high, 2)], "records": len(members),
+                         "mean_predicted": round(statistics.fmean(p for p, _ in members), 4),
+                         "observed": round(statistics.fmean(t for _, t in members), 4)})
+    return {"brier": round(brier, 4), "baseline_brier": round(baseline, 4),
+            "better_than_base_rate": brier < baseline, "bins": bins,
+            "base_rate": round(base_rate, 4)}
 
 
 def _distance(a, b):
@@ -345,6 +468,25 @@ def kmeans(points, k, seed=7, iterations=60):
             break
     spread = sum(_distance(p, centres[a]) for p, a in zip(points, assignment))
     return assignment, centres, spread
+
+
+# A found structure must beat shapeless data's silhouette by this much (A19).
+NOISE_MARGIN = 0.05
+
+
+def _noise_silhouette(points, k, probe, seed=11):
+    """The silhouette k-means reaches on uniform noise with the same size
+    and per-feature ranges as `points`: the floor a real structure must
+    clear. Seeded, so the same table always gets the same floor."""
+    if not points:
+        return 0.0
+    rng = random.Random(seed)
+    width = len(points[0])
+    lows = [min(p[i] for p in points) for i in range(width)]
+    highs = [max(p[i] for p in points) for i in range(width)]
+    noise = [[rng.uniform(lows[i], highs[i]) for i in range(width)] for _ in points]
+    assignment, _, _ = kmeans(noise, k)
+    return silhouette([noise[i] for i in probe], [assignment[i] for i in probe])
 
 
 def silhouette(points, assignment):
@@ -410,7 +552,8 @@ class RegressionModel:
         role = self.role
         rows, columns, numeric, measure, date = _table(ctx)
         title = _say(ctx, "What predicts the measure?", "ما الذي يتنبأ بالمقياس؟")
-        exclude = {measure, date}
+        screened = _screen(ctx, rows, columns, numeric, measure)
+        exclude = {measure, date, *screened}
         numbers, texts = _inputs(rows, columns, numeric, exclude)
         names, vector = _vectoriser(numbers, texts)
         if not names:
@@ -469,7 +612,7 @@ class RegressionModel:
                    f"{measure} هو {model_error:,.2f} مقابل {base_error:,.2f} عند تخمين "
                    f"المتوسط دائماً: أفضل بنسبة {improvement:.0%}.",
                    ["c_model_error", "c_base_error", "c_improvement", "c_test"]),
-            _leakage(ctx, role),
+            _leakage(ctx, role, screened),
         ]
         if beats and ranked:
             top_name, top_value = ranked[0]
@@ -514,7 +657,7 @@ class RegressionModel:
                     "average_error", round(model_error, 4), round(base_error, 4),
                     "training_average", round(improvement, 4), beats,
                     {"weights": [{"input": n, "weight": round(v, 6)} for n, v in ranked],
-                     "held_out_share_explained": round(explained, 4)}),
+                     "held_out_share_explained": round(explained, 4)}, window=_window(train_rows, date), excluded=screened, ctx=ctx),
             },
         }
 
@@ -553,6 +696,8 @@ class ClassificationModel:
             exclude = {measure, date}
             derived = measure
             labels_of, target_name = None, None
+        screened = _screen(ctx, rows, columns, numeric, derived or target_name)
+        exclude = exclude | set(screened)
         numbers, texts = _inputs(rows, columns, numeric, exclude)
         names, vector = _vectoriser(numbers, texts)
         if not names:
@@ -592,6 +737,14 @@ class ClassificationModel:
         actual = [labels_of(r) for r in test_rows]
         predicted = [predict_naive_bayes(model, scale(vector(r))) for r in test_rows]
         present = sorted(set(actual))
+        # Probabilities for the least common training class, scored against
+        # the training base rate (A14).
+        positive = Counter(train_labels).most_common()[-1][0]
+        posteriors = [naive_bayes_probabilities(model, scale(vector(r))).get(positive, 0.0)
+                      for r in test_rows]
+        probabilities = calibration(posteriors, [1.0 if a == positive else 0.0 for a in actual],
+                                    train_labels.count(positive) / len(train_labels))
+        probabilities["positive_class"] = positive
 
         def balanced(guesses):
             hits = []
@@ -624,6 +777,12 @@ class ClassificationModel:
                   "share of held-out records classified correctly"),
             _calc(role, "c_improvement", "improvement_over_baseline", round(improvement, 4),
                   "(model − baseline) / baseline, balanced accuracy"),
+            _calc(role, "c_brier", "brier_score", probabilities["brier"],
+                  f"mean squared gap between the model's probability of “{positive}” and "
+                  "what happened, on the held-out records"),
+            _calc(role, "c_base_brier", "baseline_brier_score", probabilities["baseline_brier"],
+                  f"the same for always saying the training share of “{positive}” "
+                  f"({probabilities['base_rate']:.0%})"),
         ]
         claims = [
             _claim(ctx, role, "cl_fit", "calculation",
@@ -635,10 +794,21 @@ class ClassificationModel:
                    f"بنسبة {model_score:.0%} في المتوسط، مقابل {base_score:.0%} عند تخمين "
                    f"«{majority}» دائماً: أفضل بنسبة {improvement:.0%}.",
                    ["c_model_score", "c_base_score", "c_improvement", "c_test"]),
-            _leakage(ctx, role),
+            _leakage(ctx, role, screened),
         ]
         if not beats:
             claims.append(_weak(ctx, role, "classifier", "نموذج التصنيف", improvement))
+        if not probabilities["better_than_base_rate"]:
+            claims.append(_claim(
+                ctx, role, "cl_calibration", "limitation",
+                f"The model's probabilities are no closer to what happened than the base "
+                f"rate (Brier {probabilities['brier']:.3f} against "
+                f"{probabilities['baseline_brier']:.3f}), so no probability from it should "
+                "be quoted.",
+                f"احتمالات النموذج ليست أقرب إلى ما حدث من النسبة الأساسية (برير "
+                f"{probabilities['brier']:.3f} مقابل {probabilities['baseline_brier']:.3f})، "
+                "فلا ينبغي الاستشهاد بأي احتمال منه.",
+                ["c_brier", "c_base_brier"]))
         headline = _say(
             ctx,
             (f"The classifier gets each class right {model_score:.0%} of the time, "
@@ -673,7 +843,9 @@ class ClassificationModel:
                     split, "balanced_accuracy", round(model_score, 4), round(base_score, 4),
                     "most_common_class", round(improvement, 4), beats,
                     {"classes": present, "hit_rates": hit_rates, "confusion": confusion,
-                     "accuracy": round(accuracy, 4), "majority": majority}),
+                     "accuracy": round(accuracy, 4), "majority": majority,
+                     "probabilities": probabilities},
+                    window=_window(train_rows, date), ctx=ctx, excluded=screened),
             },
         }
 
@@ -710,7 +882,11 @@ class ClusteringModel:
             trials.append((score, k, assignment, centres, spread))
         score, k, assignment, centres, spread = max(trials, key=lambda t: (t[0], -t[1]))
         explained = 1 - spread / whole if whole else 0.0
-        found = score >= SEPARATED
+        # Structure must beat what k-means finds in shapeless data of the
+        # same size and ranges (assessment A19): uniform noise also gets a
+        # positive silhouette, so the threshold alone cannot fail it.
+        noise_score = _noise_silhouette(points, k, probe)
+        found = score >= SEPARATED and score >= noise_score + NOISE_MARGIN
         profiles = []
         for group in range(k):
             members = [r for r, a in zip(sample, assignment) if a == group]
@@ -735,6 +911,9 @@ class ClusteringModel:
                   "one group explains nothing)"),
             _calc(role, "c_improvement", "improvement_over_baseline", round(explained, 4),
                   "share of spread explained over the one-group baseline"),
+            _calc(role, "c_noise", "separation_in_shapeless_data", round(noise_score, 4),
+                  f"the same k-means on uniform noise with these ranges; a found structure "
+                  f"must beat it by {NOISE_MARGIN}"),
         ]
         claims = [_claim(
             ctx, role, "cl_fit", "calculation",
@@ -748,12 +927,14 @@ class ClusteringModel:
         if not found:
             claims.append(_claim(
                 ctx, role, "cl_weak", "limitation",
-                f"The groups overlap (separation {score:.2f}, below the 0.25 needed), so "
-                "the records do not fall into natural groups and the groups should not be "
-                "treated as segments.",
-                f"المجموعات متداخلة (فصل {score:.2f}، أقل من 0.25 المطلوب)، فالسجلات لا "
-                "تنقسم إلى مجموعات طبيعية ولا ينبغي معاملة المجموعات كشرائح.",
-                ["c_separation"]))
+                f"The groups overlap (separation {score:.2f}, against 0.25 needed and "
+                f"{noise_score:.2f} in shapeless data of the same shape), so the records do "
+                "not fall into natural groups and the groups should not be treated as "
+                "segments.",
+                f"المجموعات متداخلة (فصل {score:.2f}، مقابل 0.25 المطلوب و{noise_score:.2f} "
+                "في بيانات بلا شكل بالحجم نفسه)، فالسجلات لا تنقسم إلى مجموعات طبيعية ولا "
+                "ينبغي معاملة المجموعات كشرائح.",
+                ["c_separation", "c_noise"]))
         headline = _say(
             ctx,
             (f"The records fall into {k} groups that explain {explained:.0%} of the spread."
@@ -773,8 +954,10 @@ class ClusteringModel:
             "status": "succeeded", "summary": headline, "claims": claims,
             "calculations": calcs,
             "quality_checks": [{"name": "groups_are_separated", "passed": found,
-                                "detail": _say(ctx, f"Separation {score:.2f} (0.25 needed).",
-                                               f"الفصل {score:.2f} (المطلوب 0.25).")}],
+                                "detail": _say(ctx, f"Separation {score:.2f} (0.25 needed; "
+                                                    f"{noise_score:.2f} in shapeless data).",
+                                               f"الفصل {score:.2f} (المطلوب 0.25؛ "
+                                               f"{noise_score:.2f} في بيانات بلا شكل).")}],
             "output": {
                 "headline": headline, "fitted": True,
                 "question": _say(ctx, self.question, "هل تنقسم السجلات إلى مجموعات طبيعية؟"),
@@ -784,7 +967,8 @@ class ClusteringModel:
                     {"kind": "none"}, "separation", round(score, 4), SEPARATED,
                     "separation_needed", round(explained, 4), found,
                     {"groups": k, "share_of_spread_explained": round(explained, 4),
-                     "profiles": profiles}),
+                     "separation_in_noise": round(noise_score, 4), "profiles": profiles},
+                    ctx=ctx),
             },
         }
 
@@ -811,11 +995,17 @@ class SeasonalForecast:
         needed = 3 * season
         if len(series) < needed:
             return _thin(ctx, role, title, needed, len(series), "periods", "الفترات")
-        history, held = series[:-season], series[-season:]
-        forecast = seasonal_forecast(history, season, season)
+        # Two held-out seasons when the history allows (assessment A19):
+        # one season can agree with the model by chance; the card says
+        # how many were held.
+        held_seasons = 2 if len(series) >= 4 * season else 1
+        hold = held_seasons * season
+        history, held = series[:-hold], series[-hold:]
+        forecast = seasonal_forecast(history, season, hold)
         model_error = statistics.fmean(abs(a - f) for a, f in zip(held, forecast))
         naive = statistics.fmean(abs(a - history[-1]) for a in held)
-        last_season = statistics.fmean(abs(a - b) for a, b in zip(held, history[-season:]))
+        last_season = statistics.fmean(abs(a - history[-season:][i % season])
+                                       for i, a in enumerate(held))
         # A trend with no season is a baseline too: a season is only found
         # when it adds to what the trend alone already forecasts.
         slope, intercept, _ = analytics._linear_fit(history)
@@ -832,8 +1022,9 @@ class SeasonalForecast:
         calcs = [
             _calc(role, "c_periods", "periods", len(series), f"periods at {grain} grain"),
             _calc(role, "c_model_error", "model_average_error", round(model_error, 4),
-                  f"mean of |actual − forecast| total {measure} over the last {season} "
-                  "periods, fitted on the periods before them"),
+                  f"mean of |actual − forecast| total {measure} over the last {hold} "
+                  f"periods ({held_seasons} season(s) held out), fitted on the periods "
+                  "before them"),
             _calc(role, "c_base_error", "baseline_average_error", round(base_error, 4),
                   "the best of repeating the last period, repeating the season before, and "
                   f"the straight trend alone (here: {base_name})"),
@@ -842,10 +1033,10 @@ class SeasonalForecast:
         ]
         claims = [_claim(
             ctx, role, "cl_fit", "calculation",
-            f"Forecasting the last {season} periods from the ones before, the seasonal model "
+            f"Forecasting the last {hold} periods from the ones before, the seasonal model "
             f"is off by {model_error:,.2f} a period on average, against {base_error:,.2f} "
             f"for the better simple guess: {improvement:.0%} better.",
-            f"عند توقع آخر {season} فترات من الفترات السابقة لها، يخطئ النموذج الموسمي "
+            f"عند توقع آخر {hold} فترات من الفترات السابقة لها، يخطئ النموذج الموسمي "
             f"بمقدار {model_error:,.2f} في الفترة في المتوسط، مقابل {base_error:,.2f} لأفضل "
             f"تخمين بسيط: أفضل بنسبة {improvement:.0%}.",
             ["c_model_error", "c_base_error", "c_improvement"])]
@@ -885,11 +1076,13 @@ class SeasonalForecast:
                 "report_markdown": _section(ctx, title, headline, calcs, lines),
                 "model_card": _card(
                     "seasonal", measure, [f"{grain} season of {season}"], len(history),
-                    season, {"kind": "last_season"}, "average_error", round(model_error, 4),
+                    hold, {"kind": "last_season" if held_seasons == 1 else "last_two_seasons",
+                           "seasons_held": held_seasons},
+                    "average_error", round(model_error, 4),
                     round(base_error, 4), base_name, round(improvement, 4), beats,
                     {"season": season, "grain": grain,
                      "forecast": [{"label": l, "value": round(v, 2)}
-                                  for l, v in zip(ahead_labels, ahead)]}),
+                                  for l, v in zip(ahead_labels, ahead)]}, ctx=ctx),
             },
         }
 

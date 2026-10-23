@@ -11,6 +11,7 @@ functions.
 
 import json
 import tempfile
+import os
 import unittest
 from pathlib import Path
 
@@ -33,6 +34,11 @@ try:
     PYDANTIC_AI = True
 except ImportError:  # pragma: no cover
     PYDANTIC_AI = False
+
+# The optional-runtimes CI job installs these and sets this flag, so a
+# missing runtime there is a failure rather than a silent skip (G11).
+if os.environ.get("REQUIRE_OPTIONAL_RUNTIMES") == "1" and not (LANGGRAPH and PYDANTIC_AI):
+    raise ImportError("REQUIRE_OPTIONAL_RUNTIMES=1 but langgraph or pydantic-ai is not installed")
 
 
 class FakeSession:

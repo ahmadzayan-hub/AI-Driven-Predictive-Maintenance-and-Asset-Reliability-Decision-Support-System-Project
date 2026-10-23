@@ -685,6 +685,106 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Standards lint: families and blind set v2 — 23 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-23-standards-lint-families-blind-v2.md)):
+blind_v1 into dev, rules as linguistic families, blind_v2 written
+independently and scored once: dev 100%, holdout 100% recall, blind 32%
+recall (floor 0.31, was 0% on v1).
+
+### P3 slice seven: the minor findings — 23 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-23-p3-slice-seven.md)): signed
+driver shares with n (A16); a leave-one-out robust anomaly rule with a stated
+minimum (A17); a uniform-noise floor for clustering and two held-out seasons
+(A19); PATCH preflight tested and one CSP source (B17); public liveness with
+authenticated detail on `/api/health` (B18); relative published paths and a
+JSON-quoted frontmatter (B19); one `ConnectorError` handler and `uvicorn`
+without extras (B20); recorded orchestration failures (G12); quantity words
+and the causal lint in grounding (G13); acceptance by a known reviewer (G14);
+tool arguments held to `inputSchema` (G15); one voice toggle name, a
+platform-aware shortcut hint and a 2 px focus ring (U17). `REQUIRE_PG=1
+python scripts/verify.py --quick` against PostgreSQL 16: **1,957 Python
+tests reported, 21 skipped** (optional extras only; 23 new), brain check,
+type check, **378 frontend unit tests**; build and budget within limits.
+
+### P2 slice six: interface items, paid for by font subsets — 23 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-23-p2-slice-six-interface.md)):
+committed woff2 subsets from `scripts/subset_fonts.py`, 119.4 KB to 86.5 KB
+(U19); `GET /api/assets/evidence` and a one-call Asset Intelligence view
+(U10); the relationship table lists every plotted point (U11, main's version kept in the merge);
+"Analyses" and "Administration" (U14); every upload call to action through
+Datasets (U15); the evidence's as-of time and an action on the empty
+dashboard picker (U16); all 21 message packs in the parity test, the export
+job in a hook, no line over 200 characters, one `hasVerdict()` (U18).
+Budgets: JS 99.0 of 100 KB first load, 245.2 of 248 KB total; CSS 10.0 of
+10.5 and 32.7 of 33.5 KB; fonts 86.5 of 100 KB. Frontend unit tests: **377
+passed** (8 new). End-to-end: the thirteen specs the slice touches, counts
+in the session log.
+
+### P2 slice five: benchmarks and floors for the three unmeasured reviewers — 23 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-23-p2-slice-five-reviewer-benchmarks.md)):
+blind memos H, I and J with first-run floors for the brief-compliance (75%
+lane recall, 2 false alarms), security-privacy (100%, 1) and
+accessibility-i18n (100%, 0) reviewers (G9); `tests/test_evals.py` holds the
+labels and the saved runs to those floors. `python -m unittest
+tests.test_evals tests.test_docs`: 62 of 62.
+
+### P2 slice four: screened inputs, probabilities with a Brier score, bounded pool, server-checked structured answers, agreement by finding, two actions measured — 23 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-23-p2-slice-four.md)): the
+generic regression and classification refuse mapping-ignored, personal and
+target-identical or derived columns and list them with reasons (A11); the
+classification card carries probabilities with a Brier score against the
+base rate, reliability bins and a limitation claim when it does not beat it
+(A14); `PostgresStore` holds a bounded pool of 20 per process (B11); the
+model's intent and the consultants' structured risks are validated against
+their schema on the server, with JSON mode on every OpenAI-compatible
+provider (G5); consultant agreement is compared by the finding each risk
+names (G6); the rules reach `search_knowledge` and `agent_scorecard` with 40
+new labelled cases (G8). `REQUIRE_PG=1 python scripts/verify.py --quick`
+against PostgreSQL 16: **1,911 Python tests reported, 21 skipped**
+(optional extras only; 17 new), brain check, type check, **369 frontend unit tests**. No interface code changed, so the build, budget and
+browser suites were not re-run; the hosted run on the pull request is their
+record.
+
+### P2 slice three: corrective repair time, versioned and screened model cards, reversible cleaning, shared rate limit and model budget, a connection per thread — 23 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-23-p2-slice-three.md)):
+`mttr_corrective` joins the register, which holds 19 measures (A7); every
+model card carries `version`, `fitted_at`, the run `snapshot` and
+`training_window`, and the maintenance card lists `excluded_inputs` with
+reasons (A14, A11); the cleaner records `dropped_indices` and
+`unreadable_values`, reports `c_coercion` and claims the limitation (A18);
+the write rate limit is counted in the store when it is shared and a
+per-owner model budget (`AGENTIC_OS_QUOTA_MODEL_CALLS_PER_DAY`, default 500)
+stops the gateway attempting over budget (B6); `PostgresStore` holds a
+connection per thread (B11). `REQUIRE_PG=1 python scripts/verify.py --quick`
+against PostgreSQL 16, after merging main's RMD evidence and chart-axis
+work: **1,894 Python tests reported, 21 skipped** (optional extras only; 19
+new), brain check, type check, **369 frontend unit tests**.
+No interface code changed, so the build, budget and browser suites were not
+re-run; the hosted run on the pull request is their record.
+
+### P2 slice two: store as publish target, logged failures, one error envelope, required allowlist, recorded migrations, optional-runtime job — 23 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-23-p2-slice-two.md)): approval
+publishes to the database store first and the vault folder as a courtesy
+(B13); unexpected errors are logged with the request id and a database
+outage answers 503 (B9); every error carries `detail` and `error: {code,
+message}` and the contract is at `GET /api/openapi.json` behind sign-in
+(B14, closed); production without `AGENTIC_OS_CONNECTOR_HOSTS` refuses live
+sources (B16); migrations are recorded and locked and a fresh schema is
+complete without the pass (B12); the `optional-runtimes` CI job installs
+LangGraph, Pydantic AI and the MCP SDK and fails on a skip (G11).
+`REQUIRE_PG=1 python scripts/verify.py --quick` against PostgreSQL 16:
+**1,758 Python tests reported, 21 skipped** (optional extras only; 13 new),
+brain check (46 notes, maintained today), type check, **353 frontend unit
+tests**. No interface code changed, so the build, budget and browser suites
+were not re-run; the hosted run on the pull request is their record.
+
 ### P2 slice one: verdict bounds, declared splits, incomplete periods, loopback, idempotency, timeouts — 23 October 2026
 
 Behaviour change ([decision](docs/adr/2026-10-23-p2-slice-one.md)): a

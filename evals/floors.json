@@ -1,5 +1,5 @@
 {
-  "about": "The recall each suite must keep (ADR 0027): positive-class recall for a detector, macro recall for a multi-class agent. dev and holdout floors were set from the round 5 measurement (intent, jargon and causal wording on blind set v4), rounded down to the whole per cent; the causal holdout was read while its fixes were chosen (ADR 0056) and the standards holdout was written by the session that wrote the patterns, so for those suites holdout is a second dev score and the floor is kept, not raised. The blind floor, added 22 October 2026, judges the split each suite declares as blind in scripts/evaluate_agents.py (causal and intent blind_v8, jargon blind_v6, standards blind_v1): written from the label definitions only, never looked at while fixing, and floored at the score measured that day rounded down. Causal and intent had blind_v7 floors (0.6 and 0.61) until 23 October 2026, when blind_v7 moved into their dev splits to fix the rules against it; their dev floors stay at 1.0 over the enlarged dev, blind_v8, written independently the same day and scored once against the fixed rules, is floored at that first score rounded down: causal recall 0.80, intent macro recall 0.58 (0.587 on 58 cases: the first scoring showed two intent sentences already in dev word for word, so they were removed and the remaining 58 rescored). tests/test_evals.py fails when a change drops below any floor. figures_tool is the Tier 0 checker scored as a reviewer on the seeded memos in evals/reviewers (paragraph detection recall, with no false alarms).",
+  "about": "The recall each suite must keep (ADR 0027): positive-class recall for a detector, macro recall for a multi-class agent. dev and holdout floors were set from the round 5 measurement (intent, jargon and causal wording on blind set v4), rounded down to the whole per cent; the causal holdout was read while its fixes were chosen (ADR 0056) and the standards holdout was written by the session that wrote the patterns, so for those suites holdout is a second dev score and the floor is kept, not raised. The blind floor, added 22 October 2026, judges the split each suite declares as blind in scripts/evaluate_agents.py (causal and intent blind_v8, jargon blind_v6, standards blind_v2 (blind_v1 moved into dev on 23 October 2026 after the rules were fixed against it; blind_v2 floored at its first score)): written from the label definitions only, never looked at while fixing, and floored at the score measured that day rounded down. Causal and intent had blind_v7 floors (0.6 and 0.61) until 23 October 2026, when blind_v7 moved into their dev splits to fix the rules against it; their dev floors stay at 1.0 over the enlarged dev, blind_v8, written independently the same day and scored once against the fixed rules, is floored at that first score rounded down: causal recall 0.80, intent macro recall 0.58 (0.587 on 58 cases: the first scoring showed two intent sentences already in dev word for word, so they were removed and the remaining 58 rescored). tests/test_evals.py fails when a change drops below any floor. figures_tool is the Tier 0 checker scored as a reviewer on the seeded memos in evals/reviewers (paragraph detection recall, with no false alarms). The three reviewer floors added 23 October 2026 (assessment G9) are each reviewer's first run on its own blind memo (H, I, J), scored in its lane: lane recall, paragraph detection recall, and the most false alarms allowed; recorded as measured, never adjusted after reading the run.",
   "intent": {
     "dev": 1.0,
     "holdout": 0.76,
@@ -34,7 +34,7 @@
   "standards": {
     "dev": 1.0,
     "holdout": 0.9,
-    "blind": 0.0
+    "blind": 0.31
   },
   "figures": {
     "dev": 1.0,
@@ -44,5 +44,26 @@
     "A": 1.0,
     "B": 1.0,
     "C": 0.75
+  },
+  "brief_compliance_reviewer": {
+    "H": {
+      "lane": 0.75,
+      "detection": 0.75,
+      "false_alarms": 2
+    }
+  },
+  "security_privacy_reviewer": {
+    "I": {
+      "lane": 1.0,
+      "detection": 1.0,
+      "false_alarms": 1
+    }
+  },
+  "accessibility_i18n_reviewer": {
+    "J": {
+      "lane": 1.0,
+      "detection": 1.0,
+      "false_alarms": 0
+    }
   }
 }

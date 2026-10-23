@@ -22,6 +22,12 @@ outside this repository), **Proposed** (designed, not built).
 | Slice two of the release gate: rates never summed, trended or ranked (A4), a naive baseline and weak rule for every forecast (A5), figures checked against cited evidence (A6), approve only after reading (U3), JWT audience and issuer required (B7) | Implemented, Tested | `docs/adr/2026-10-22-release-gate-slice-two.md`; `tests/test_analytics.py::RatesAreNeverSummedTestCase`, `::ForecastBaselineTestCase`, `::ClaimFiguresMatchEvidenceTestCase`; `frontend/src/tests/approval-card.test.tsx` |
 | Slice three of the release gate: decision inputs and record (A2, A13), signalling escalation (A8), currency (U4), landing and phone bar (U12), per-session locking, transactional restore and request logging (B4, B5, B10), blind-set floors (G1), model call ledger (G4), browser coverage of demo, Assets and Approvals (U13) | Implemented, Tested | `docs/adr/2026-10-22-release-gate-slice-three.md` |
 | P2 slice one: verdict bound (A9), declared splits (A10), incomplete periods (A12), loopback by default (B8), idempotent run creation (B14, in part), wall-clock limits on custom stages and agent runtimes (G10) | Implemented, Tested | `docs/adr/2026-10-23-p2-slice-one.md`; `tests/test_p2_slice_one.py` |
+| P2 slice two: the store as publish target (B13), logged failures and 503 on an outage (B9), one error envelope and the contract behind sign-in (B14, closed), a required connector allowlist in production (B16), recorded and locked migrations (B12), the optional-runtime CI job (G11) | Implemented, Tested | `docs/adr/2026-10-23-p2-slice-two.md`; `tests/test_p2_slice_two.py` |
+| P2 slice three: a corrective repair time (A7), screened inputs on the maintenance card (A11, in part), versioned cards bound to the snapshot (A14, in part), reversible cleaning (A18), a store-backed rate limit with a per-tenant model budget (B6), one PostgreSQL connection per thread (B11, in part) | Implemented, Tested | `docs/adr/2026-10-23-p2-slice-three.md`; `tests/test_p2_slice_three.py` |
+| P2 slice four: screened inputs for the generic models (A11, closed), probabilities with a Brier score and reliability bins (A14, closed), a bounded connection pool (B11, closed), structured answers checked on the server with JSON mode per provider (G5), agreement by finding reference (G6), rules and cases for the knowledge search and the scorecard (G8) | Implemented, Tested | `docs/adr/2026-10-23-p2-slice-four.md`; `tests/test_p2_slice_four.py` |
+| P2 slice five: blind benchmarks and first-run floors for the brief-compliance, security-privacy and accessibility-i18n reviewers (G9) | Implemented, Tested | `docs/adr/2026-10-23-p2-slice-five-reviewer-benchmarks.md`; `evals/reviewers/H`, `I`, `J`; `tests/test_evals.py::ReviewerBenchmarkTests` |
+| P2 slice six: the interface items, paid for by committed font subsets (U19), one-call asset evidence (U10), the table note (U11), one noun per destination (U14), every upload call to action through Datasets (U15), as-of times and the empty-picker action (U16), every pack in the parity test and the export hook (U18) | Implemented, Tested | `docs/adr/2026-10-23-p2-slice-six-interface.md`; `tests/test_p2_slice_six.py`; the frontend unit and end-to-end suites |
+| P3 slice seven: the minor findings A16, A17, A19, B17, B18, B19, B20, G12, G13, G14, G15 and U17 | Implemented, Tested | `docs/adr/2026-10-23-p3-slice-seven.md`; `tests/test_p2_slice_seven.py` |
 | Shared API contract and recoverable creation (B14), asset summary/retry (U10), complete relationship table (U11), asset freshness (U16, in part) | Implemented, Tested | `docs/adr/2026-10-23-platform-contract-and-application-builds.md`; authenticated OpenAPI, request-bound replay, synthetic HTTP/component/browser regressions |
 | Read-only-host publication (B13, in part), escaped source metadata (B19, in part), CORS PATCH/recovery headers (B17, in part) | Partially implemented, Tested | `docs/adr/2026-10-23-database-publication-target.md`; atomic SQL publication, changed-destination fresh review and rollback checks; request-duration, local paths and CSP consolidation remain open |
 | Android debug application, Windows Edge and macOS WebKit journeys | Implemented, Tested within recorded scope | Hosted Compose build, lint, APK signature and actual-API bilingual/keyboard recovery checks; [application handoff](PLATFORM_RELEASE.md). Device, store and production acceptance remain separate |
@@ -46,20 +52,30 @@ the decision record card on the run, were delivered the same day
 
 As marked in the assessment: KPI bases (A7), input screening in generic
 models (A11), model versioning and calibration (A14), transformation
-reversibility (A18); rate limiting and model quota (B6), narrow excepts (B9),
-connection pool (B11), versioned migrations (B12), hosted request/model duration
-(remaining B13), connector allowlist (B16); railway wording behind a profile
-(U8, owner decision), naming (U14), one upload flow (U15), as-of stamps outside
-Command Centre and Assets (remaining U16), pack parity and executive hook (U18), font subsetting
+reversibility (A18); rate limiting and model quota (B6), connection pool
+(B11); railway wording behind a profile (U8, owner decision), asset KPI errors
+and endpoint (U10), chart table note (U11), naming (U14), one upload flow (U15),
+as-of stamps (U16), pack parity and executive hook (U18), font subsetting
 (U19), navy rail (U20, owner decision); structured consultant output and
 deterministic agreement (G5, G6), eval cases for the two unmeasured actions
-(G8), reviewer benchmarks (G9), optional runtime CI job (G11); and the P3 items.
-The first P2 slice (A9, A10, A12, B8, the idempotency half of B14, G10) was
-delivered on 23 October ([decision](../adr/2026-10-23-p2-slice-one.md)).
-The platform/application slice closes B14, U10 and U11, and the scoped parts
-of B13, B17, B19 and U16 listed above. Its [handoff](PLATFORM_RELEASE.md)
-maps components to APIs and records the distinction between tested software,
-unavailable original RMD evidence and unperformed release acceptance.
+(G8), reviewer benchmarks (G9); and the P3 items.
+The first P2 slice (A9, A10, A12, B8, the idempotency half of B14, G10),
+the second (B9, B12, B13, the rest of B14, B16, G11) and the third (A7,
+A18, B6, and the first halves of A11, A14 and B11) were delivered on 23
+October ([slice one](../adr/2026-10-23-p2-slice-one.md),
+[slice two](../adr/2026-10-23-p2-slice-two.md),
+[slice three](../adr/2026-10-23-p2-slice-three.md)), and the fourth closed
+A11, A14 and B11 and delivered G5, G6 and the rules half of G8
+([slice four](../adr/2026-10-23-p2-slice-four.md)). The fifth benchmarked the three
+remaining reviewers (G9, [slice five](../adr/2026-10-23-p2-slice-five-reviewer-benchmarks.md)).
+The sixth delivered the interface items
+([slice six](../adr/2026-10-23-p2-slice-six-interface.md)) and the seventh the
+P3 findings ([slice seven](../adr/2026-10-23-p3-slice-seven.md)). Still open:
+the model half of G8 (an opt-in suite that needs a provider) and the two
+owner decisions, U8 and U20.
+In parallel, the platform and application slice on main closed B14, U10 and U11
+with its own contract and the scoped parts of B13, B17, B19 and U16; its
+[handoff](PLATFORM_RELEASE.md) maps components to APIs.
 
 ## 4. The brief's deliverables and their status
 

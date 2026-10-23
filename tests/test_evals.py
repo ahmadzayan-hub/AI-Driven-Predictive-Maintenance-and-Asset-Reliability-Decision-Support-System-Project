@@ -101,7 +101,7 @@ class SuiteTests(unittest.TestCase):
         self.assertIn("<table class=\"cm\">", page)
         self.assertIn("Rows: true label", page)
         self.assertIn("<th>Blind</th>", page)
-        self.assertIn("blind (blind_v1) · 36 cases", page)
+        self.assertIn("blind (blind_v2) · 40 cases", page)
         self.assertIn("Reviewers on seeded memos", page)
         self.assertIn("Rows: the planted defect.", page)
 
@@ -228,7 +228,7 @@ class RecallFixTests(unittest.TestCase):
             return {case["text"] for key, cases in data.items()
                     if key != skip and isinstance(cases, list)
                     for case in cases if isinstance(case, dict) and "text" in case}
-        for name, key, size in (("jargon", "blind_v6", 40), ("standards", "blind_v1", 36)):
+        for name, key, size in (("jargon", "blind_v6", 40), ("standards", "blind_v2", 40)):
             data = json.loads((ev.EVALS / f"{name}.json").read_text(encoding="utf-8"))
             if key not in data:
                 continue
@@ -626,6 +626,45 @@ class ReviewerBenchmarkTests(unittest.TestCase):
                 for categories in labels["defects"].values():
                     self.assertLessEqual(set(categories), set(labels["categories"]))
                 self.assertTrue(fc.load_register(folder / "register.csv", "Expected", ["Check"]))
+
+    def test_the_three_lane_benchmarks_label_paragraphs_that_exist(self):
+        """Memos H, I and J (assessment G9) have no register: their lanes
+        are compliance, security and accessibility, not figures."""
+        import re
+        import score_review
+        lanes = {"H": "brief-compliance-reviewer", "I": "security-privacy-reviewer",
+                 "J": "accessibility-i18n-reviewer"}
+        for bench, agent in lanes.items():
+            with self.subTest(bench=bench):
+                folder = ROOT / "evals" / "reviewers" / bench
+                labels = json.loads((folder / "labels.json").read_text(encoding="utf-8"))
+                memo = (folder / "memo.md").read_text(encoding="utf-8")
+                self.assertEqual(re.findall(r"\[(P\d{2})\]", memo), labels["paragraphs"])
+                self.assertLessEqual(set(labels["defects"]), set(labels["paragraphs"]))
+                self.assertEqual(set(labels["categories"]), set(score_review.LANES[agent]))
+                self.assertFalse(set(labels["decoys"]) & set(labels["defects"]))
+                self.assertEqual(set(labels["why"]), set(labels["defects"]))
+                for categories in labels["defects"].values():
+                    self.assertLessEqual(set(categories), set(labels["categories"]))
+        self.assertTrue((ROOT / "evals" / "reviewers" / "H" / "brief.md").exists())
+
+    def test_the_benchmarked_reviewers_keep_their_recorded_floors(self):
+        """The saved first runs of the three reviewers (G9) score at or
+        above the floors recorded from them; a later run is saved beside
+        the first, never over it."""
+        import score_review
+        floors = json.loads((ROOT / "evals" / "floors.json").read_text(encoding="utf-8"))
+        for key, agent in (("brief_compliance_reviewer", "brief-compliance-reviewer"),
+                           ("security_privacy_reviewer", "security-privacy-reviewer"),
+                           ("accessibility_i18n_reviewer", "accessibility-i18n-reviewer")):
+            for bench, floor in floors[key].items():
+                with self.subTest(agent=agent, bench=bench):
+                    run = ROOT / "evals" / "reviewers" / "runs" / f"{agent}-{bench}-named-v1.txt"
+                    result = score_review.score(ROOT / "evals" / "reviewers" / bench,
+                                                run.read_text(encoding="utf-8"), score_review.LANES[agent])
+                    self.assertGreaterEqual(result["detection"]["recall"] + 1e-9, floor["detection"])
+                    self.assertGreaterEqual(result["recall"] + 1e-9, floor["lane"])
+                    self.assertLessEqual(len(result["false_alarms"]), floor["false_alarms"])
 
     def test_the_scorer_separates_misses_false_alarms_and_secondary_findings(self):
         import score_review
