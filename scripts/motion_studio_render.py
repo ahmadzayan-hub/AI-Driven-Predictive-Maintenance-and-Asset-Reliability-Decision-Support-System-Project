@@ -129,7 +129,14 @@ def mux_frames(frames_dir: Path, output: Path, audio: Path | None = None, *,
         cmd += ["-c:a", "aac", "-ar", "48000", "-b:a", "192k"]
     cmd += ["-t", f"{target:.6f}", "-movflags", "+faststart", str(output)]
     checked_run(cmd)
+    from motion_studio_quality import MediaQualityError, inspect_mp4
+    try:
+        qa = inspect_mp4(output, expect_audio=bool(audio), expected_duration=target)
+    except (MediaQualityError, OSError, subprocess.TimeoutExpired):
+        output.unlink(missing_ok=True)
+        raise
     return {"output": str(output), "fps": 30, "duration": target,
+            "media_qa": qa,
             "frames": len(frames), "audio": bool(audio), "status": "DRAFT_REQUIRES_HUMAN_REVIEW"}
 
 
