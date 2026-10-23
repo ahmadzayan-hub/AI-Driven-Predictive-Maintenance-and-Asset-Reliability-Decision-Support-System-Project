@@ -22,6 +22,7 @@ describe('approval card', () => {
     const approve = screen.getByRole('button', { name: 'Approve and publish' })
     const read = screen.getByLabelText('I have read this exact report') as HTMLInputElement
     expect(approve).toBeDisabled()
+    expect(approve).toHaveAccessibleDescription(/Next: open the exact report/)
     expect(read).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Reject' })).toBeEnabled()
 
@@ -29,17 +30,23 @@ describe('approval card', () => {
     details.open = true
     fireEvent(details, new Event('toggle'))
     expect(read).toBeEnabled()
+    expect(read).toHaveAccessibleDescription(/Next: confirm that you have read/)
     expect(approve).toBeDisabled()
 
     fireEvent.click(read)
     expect(read.checked).toBe(true)
     expect(approve).toBeEnabled()
+    expect(approve).toHaveAccessibleDescription(/Nothing is published until/)
+    fireEvent.click(read)
+    expect(approve).toBeDisabled()
+    expect(approve).toHaveAccessibleDescription(/Next: confirm that you have read/)
   })
 
   it('keeps the gate in Arabic', () => {
     act(() => applyLocale('ar', false))
     render(<ApprovalCard detail={awaiting} />)
     expect(screen.getByLabelText('قرأت هذا التقرير المحدد')).toBeDisabled()
+    expect(screen.getByLabelText('قرأت هذا التقرير المحدد')).toHaveAccessibleDescription(/افتح التقرير المحدد/)
   })
 
   it('never offers Approve when the run carries no report', () => {
@@ -61,6 +68,19 @@ describe('approval card', () => {
     expect(screen.getByLabelText('I have read this exact report')).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Approve and publish' })).toBeDisabled()
     expect(container.querySelector('details')).not.toHaveAttribute('open')
+  })
+
+  it('resets guidance and consent when the same approval points to a new report version', async () => {
+    const { container } = render(<ApprovalCard detail={awaiting} />)
+    await act(async () => {})
+    const details = container.querySelector('details')!
+    details.open = true; fireEvent(details, new Event('toggle'))
+    fireEvent.click(screen.getByLabelText('I have read this exact report'))
+    act(() => runStore.receive({ ...awaiting, report: { ...awaiting.report!, version: 2 } }))
+    const approve = screen.getByRole('button', { name: 'Approve and publish' })
+    expect(approve).toBeDisabled()
+    expect(approve).toHaveAccessibleDescription(/Next: open the exact report/)
+    expect(screen.getByLabelText('I have read this exact report')).not.toBeChecked()
   })
 
   it('refreshes a changed destination without publishing or carrying old consent', async () => {
