@@ -147,6 +147,21 @@ class RunEngineTestCase(unittest.TestCase):
         self.assertEqual(again.status_code, 409)
         self.assertEqual(len(list((self.vault / "Reports").glob("*.md"))), 1)
 
+    def test_a_retried_post_with_the_same_idempotency_key_makes_one_run(self):
+        # B14: the header wins over the body; the replay is a 200, not a 201.
+        body = {"goal": "Analyze the sample sales dataset", "idempotency_key": "body-key"}
+        first = self.client.post("/api/runs", json=body, headers={"Idempotency-Key": "k-9"})
+        self.assertEqual(first.status_code, 201)
+        again = self.client.post("/api/runs", json=body, headers={"Idempotency-Key": "k-9"})
+        self.assertEqual(again.status_code, 200)
+        self.assertEqual(again.json()["id"], first.json()["id"])
+        self.assertTrue(again.json()["idempotent_replay"])
+        by_body = self.client.post("/api/runs", json=body)
+        self.assertEqual(by_body.status_code, 201)
+        self.assertNotEqual(by_body.json()["id"], first.json()["id"])
+        self.assertEqual(self.client.post("/api/runs", json=body).status_code, 200)
+        self.assertEqual(len(self.client.get("/api/runs").json()["runs"]), 2)
+
     def test_the_decision_record_travels_with_the_run_and_the_gate_completes_it(self):
         # Assumptions are inputs (A2); the record is persisted and completed
         # by the approval, never by a stage (A13).

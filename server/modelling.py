@@ -119,30 +119,46 @@ def _vectoriser(numbers, texts):
     return names, vector
 
 
-def _split(rows, date):
+# A chronological hold-out needs this many periods; with fewer, the split
+# falls back to every fifth record and says so (assessment A10).
+MIN_SPLIT_PERIODS = 5
+
+
+def _split(rows, date, reason=None):
     """Training and held-out positions: the latest fifth of the periods when
-    the run has a date, otherwise every fifth record."""
+    the run has a date and enough periods, otherwise every fifth record.
+
+    The fallback is never silent: the split carries the reason it is not
+    chronological, and the model card prints it, because a random split of
+    asset history reads as better than it is when the data drifts."""
     if date:
         periods = sorted({row.get(date) for row in rows if row.get(date) not in (None, "")},
                          key=str)
-        if len(periods) >= 5:
+        if len(periods) >= MIN_SPLIT_PERIODS:
             first = periods[int(len(periods) * 0.8)]
             train = [i for i, row in enumerate(rows)
                      if row.get(date) not in (None, "") and str(row[date]) < str(first)]
             test = [i for i, row in enumerate(rows)
                     if row.get(date) not in (None, "") and str(row[date]) >= str(first)]
             return train, test, {"kind": "time", "first_held_out": first}
+        reason = reason or (f"only {len(periods)} period(s); a chronological hold-out "
+                            f"needs {MIN_SPLIT_PERIODS}")
+    else:
+        reason = reason or "no date column"
     train = [i for i in range(len(rows)) if i % 5]
     test = [i for i in range(len(rows)) if not i % 5]
-    return train, test, {"kind": "every_fifth"}
+    return train, test, {"kind": "every_fifth", "reason": reason}
 
 
 def _split_text(ctx, split):
     if split["kind"] == "time":
         return _say(ctx, f"trained on periods before {split['first_held_out']}, tested from it on",
                     f"دُرّب على الفترات قبل {split['first_held_out']} واختُبر من بعدها")
-    return _say(ctx, "every fifth record held out for testing",
-                "أُبقي كل خامس سجل جانباً للاختبار")
+    reason = split.get("reason")
+    return _say(ctx, "every fifth record held out for testing"
+                + (f" ({reason})" if reason else ""),
+                "أُبقي كل خامس سجل جانباً للاختبار"
+                + (f" ({reason})" if reason else ""))
 
 
 def _scaler(vectors):
@@ -406,7 +422,7 @@ class RegressionModel:
         subset = [rows[i] for i in usable]
         train, test, split = _split(subset, date)
         if len(train) < MIN_ROWS - 10 or len(test) < 5:
-            train, test, split = _split(subset, None)
+            train, test, split = _split(subset, None, "the chronological split left too few records on one side")
         train_rows = _even([subset[i] for i in train], TRAIN_CAP)
         test_rows = [subset[i] for i in test]
         raw = [vector(r) for r in train_rows]
@@ -546,7 +562,7 @@ class ClassificationModel:
             return _thin(ctx, role, title, MIN_ROWS, len(usable), "records", "السجلات")
         train, test, split = _split(usable, date)
         if len(train) < MIN_ROWS - 10 or len(test) < 5:
-            train, test, split = _split(usable, None)
+            train, test, split = _split(usable, None, "the chronological split left too few records on one side")
         if derived:
             train_values = sorted(v for v in (usable[i].get(derived) for i in train)
                                   if isinstance(v, (int, float)))

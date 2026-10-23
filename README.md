@@ -78,7 +78,7 @@ source .venv/bin/activate
 python -m pip install --require-hashes -r requirements.txt
 npm --prefix frontend ci
 npm --prefix frontend run build
-python scripts/serve.py --local-only
+python scripts/serve.py            # this computer only; add --lan for a phone on the same Wi-Fi
 ```
 
 Open **<http://127.0.0.1:8000>**. The server hosts the interface and API.
@@ -473,7 +473,7 @@ built frontend. The launcher also prints an address for **a phone on the
 same Wi-Fi** (`http://192.168.x.x:8000`) — with the consequence stated,
 because binding to the network is a real decision: local mode has no
 login, so anyone on that network can read and change the saved memory.
-Use `--local-only` on a network you do not trust, and `--port 9000` if
+The server binds to this computer alone unless you add `--lan`; use `--port 9000` if
 8000 is taken.
 
 "Add to Home screen" needs HTTPS on most phones, so the *installable* app
@@ -545,6 +545,21 @@ cd frontend && npm run typecheck
 # --e2e adds both the main and Miyaar Playwright suites.
 python scripts/verify.py
 ```
+
+### P2 slice one: verdict bounds, declared splits, incomplete periods, loopback, idempotency, timeouts — 23 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-23-p2-slice-one.md)): a
+useful maintenance-risk verdict needs its Wilson lower bound above chance
+(A9); the train and test split carries the reason it is not chronological
+and dated asset data without one is not scored (A10); a partial last period
+is left out of the forecast and the anomaly check and declared (A12); the
+launcher binds to loopback unless `--lan` is given (B8); `POST /api/runs`
+honours an `Idempotency-Key` (B14, in part); custom stages and agent
+runtimes have wall-clock limits (G10). `REQUIRE_PG=1 python scripts/verify.py
+--quick` against PostgreSQL 16: **1,745 Python tests reported, 21 skipped**
+(optional extras only; 19 new), brain check (46 notes), type check, **353
+frontend unit tests**. No interface code changed, so the build, budget and
+browser suites were not re-run.
 
 ### Decision inputs in the interface — 22 October 2026
 

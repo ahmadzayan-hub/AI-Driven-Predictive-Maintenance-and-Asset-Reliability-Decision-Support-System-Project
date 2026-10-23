@@ -1427,7 +1427,13 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Merged:** PR #21 (CI second pass plus this slice) into main as `37fce5e` after hosted CI went green on `5c5d0a0`: 1726 Python tests (25 skipped), 40 unit files, Playwright 139 passed and 5 skipped, Miyaar 12 passed, budget passed; the browser cache is now saved for later runs.
 - **Open / next:** the standards lint scores 0% on its blind set; P2 items in the roadmap.
 
-## 2026-10-22 — Codex: GitHub repository presentation
+## 2026-10-23 · `d9e3f889` · claude/tender-clarke-m4uwgq (P2 slice one)
+
+- **Found:** with the P1 list closed, the open P2 findings that make hosted runs honest and safe under failure were A9 (a noise target called useful one time in fourteen), A10 (a silent random split under five periods), A12 (a half-filled last month read as a drop), B8 (the launcher open to the LAN by default), B14 (a retried POST made a second run) and G10 (a hung custom stage or runtime hung the run).
+- **Done:** a one-sided 95% Wilson lower bound on balanced accuracy, required above chance, recorded on the card and cited by the claim in both languages; the split carries its reason and a dated maintenance target without a chronological hold-out is not scored; forecast and anomaly leave an incomplete last period out and say so; `scripts/serve.py` binds to loopback with `--lan` as the opt-in; `Idempotency-Key` on `POST /api/runs` with a unique index per owner and a 200 replay; `server/deadline.py` gives custom stages and agent runtimes wall-clock limits from `AGENTIC_OS_STAGE_TIMEOUT` and `AGENTIC_OS_RUNTIME_TIMEOUT`. [Decision](docs/adr/2026-10-23-p2-slice-one.md); assessment rows, roadmap, known limitations, model validation and dataset analytics docs updated.
+- **Verified:** quick verify with PostgreSQL 6 of 6: 1745 Python tests (19 new), 21 skipped; 353 frontend unit tests; docs tests.
+- **Decided:** without any date column the every-fifth split stays allowed and declared, since there is no drift to hide; the rest of B14 (one error envelope, OpenAPI behind auth) stays open.
+- **Open / next:** brain maintenance is due; the standards lint blind score; the remaining P2 list in the roadmap.
 
 **Goal:** study the maintenance project, redesign its GitHub page and add original generated images.
 

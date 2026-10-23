@@ -25,7 +25,7 @@ from collections import OrderedDict
 from datetime import datetime, timezone
 from pathlib import Path
 
-from server import analytics, datasets, metrics, quota, model_privacy
+from server import analytics, datasets, deadline, metrics, quota, model_privacy
 from server import joins as joining
 from server import query
 from server import mapping as colmap
@@ -146,9 +146,13 @@ def model_cards(result):
     return candidates[:12]
 
 
+# The longest idempotency key a run creation accepts (B14).
+MAX_IDEMPOTENCY_KEY = 200
+
 class RunEngine:
     def __init__(self, store, vault_dir, gateway, limits=None, glossary=None,
-                 stages=None, profiles=None, execution_mode="client", roles=None):
+                 stages=None, profiles=None, execution_mode="client", roles=None,
+                 stage_timeout=None):
         if execution_mode not in ("client", "worker"):
             raise ValueError("AGENTIC_OS_RUN_EXECUTION must be client or worker.")
         self.execution_mode = execution_mode
@@ -164,6 +168,11 @@ class RunEngine:
         # order, and the named profiles that choose among them.
         self.stages = dict(stages or {})
         self.profiles = dict(profiles or {})
+        # A custom stage's wall-clock limit (assessment G10); None reads
+        # AGENTIC_OS_STAGE_TIMEOUT, seconds, default 120.
+        self.stage_timeout = (float(stage_timeout) if stage_timeout else
+                              deadline.seconds_from_env("AGENTIC_OS_STAGE_TIMEOUT",
+                                                        deadline.DEFAULT_STAGE_SECONDS))
         self.vault_dir = Path(vault_dir)
         self.gateway = gateway
         # None disables quota enforcement entirely (the CLI and tests that
@@ -366,15 +375,30 @@ class RunEngine:
 
     def create_run(self, goal, dataset_text=None, dataset_name=None,
                    owner="local-owner", dataset_id=None, profile=None,
-                   language="en", joins=None, breakdown=None, assumptions=None):
+                   language="en", joins=None, breakdown=None, assumptions=None,
+                   idempotency_key=None):
+        """Create a run; with an idempotency key, return the run this owner
+        already created under it instead of a second one (assessment B14).
+        A replayed run carries `idempotent_replay: True`."""
+        if idempotency_key is not None:
+            idempotency_key = str(idempotency_key).strip()
+            if not idempotency_key or len(idempotency_key) > MAX_IDEMPOTENCY_KEY:
+                raise ValueError("An idempotency key is 1 to 200 characters.")
         with self.store.atomic("owner:" + owner):
+            if idempotency_key:
+                existing = self.store.find_run_by_key(owner, idempotency_key)
+                if existing is not None:
+                    detail = self.get_run(existing["id"])
+                    detail["idempotent_replay"] = True
+                    return detail
             return self._create_run_atomic(goal, dataset_text, dataset_name, owner,
                                            dataset_id, profile, language, joins, breakdown,
-                                           assumptions)
+                                           assumptions, idempotency_key)
 
     def _create_run_atomic(self, goal, dataset_text=None, dataset_name=None,
                            owner="local-owner", dataset_id=None, profile=None,
-                           language="en", joins=None, breakdown=None, assumptions=None):
+                           language="en", joins=None, breakdown=None, assumptions=None,
+                           idempotency_key=None):
         # An unknown profile, or a language reports are not written in, is
         # refused before anything is written.
         roles = self.roles_for(profile, joined=bool(joins))
@@ -442,7 +466,8 @@ class RunEngine:
             "report_language": language,
             "mapping_json": mapping_json, "joins_json": joins_json,
             "assumptions_json": (json.dumps(assumptions, ensure_ascii=False)
-                                 if assumptions else None)})
+                                 if assumptions else None),
+            "idempotency_key": idempotency_key or None})
         titles = analytics.ROLE_TITLES_AR if language == "ar" else analytics.ROLE_TITLES
         for idx, role in enumerate(roles):
             # A plugin may name itself in Arabic too (ADR 0033).
@@ -695,8 +720,15 @@ class RunEngine:
         failed rather than silently lacking it.
         """
         try:
-            result = descriptor.run(copy.deepcopy(ctx))
+            result = deadline.call_with_deadline(descriptor.run, self.stage_timeout,
+                                                 copy.deepcopy(ctx))
             result = stage_registry.validate_result(task["role"], result)
+        except deadline.Timeout:
+            # The stage keeps running on its abandoned thread; its result,
+            # if it ever comes, is never recorded (G10).
+            message = (f"Custom stage “{task['role']}” timed out after "
+                       f"{self.stage_timeout:g} s and was abandoned.")
+            return self._custom_failed(run_id, task, descriptor, message)
         except Exception as error:
             message = f"Custom stage “{task['role']}” failed: {error}"
             return self._custom_failed(run_id, task, descriptor, message)

@@ -2791,6 +2791,46 @@ def segments(ctx):
     )
 
 
+
+def _complete_periods(prep):
+    """The trend's periods with a trailing incomplete one left out.
+
+    A last period holding fewer records than UNEVEN_PERIODS of the busiest
+    earlier period is read as still filling (a partial month), not as a
+    drop: the forecast and the anomaly check leave it out and say so
+    (assessment A12). Returns labels, values and what was dropped."""
+    labels = list(prep["trend"])
+    series = list(prep["trend"].values())
+    counts = prep.get("trend_counts") or {}
+    dropped = None
+    if len(labels) >= 3 and all(label in counts for label in labels):
+        last = labels[-1]
+        most = max(counts[label] for label in labels[:-1])
+        if counts[last] < UNEVEN_PERIODS * most:
+            dropped = {"period": last, "records": counts[last], "most": most}
+            labels, series = labels[:-1], series[:-1]
+    return labels, series, dropped
+
+
+def _incomplete_period_claim(ctx, claim_id, dropped, what_en, what_ar):
+    return _claim(
+        ctx, claim_id, "limitation",
+        f"The last period, {dropped['period']}, holds {dropped['records']:,} record(s) against "
+        f"up to {dropped['most']:,} in earlier periods, so it was treated as incomplete and "
+        f"left out of {what_en}.",
+        f"تضم الفترة الأخيرة، {dropped['period']}، {dropped['records']:,} من السجلات مقابل "
+        f"{dropped['most']:,} على الأكثر في الفترات السابقة، فعُدّت غير مكتملة واستُبعدت من "
+        f"{what_ar}.",
+        ["c_incomplete_period"])
+
+
+def _incomplete_period_calc(dropped):
+    return {"id": "c_incomplete_period", "name": "incomplete_last_period_records",
+            "value": dropped["records"],
+            "method": f"records in {dropped['period']}, under {UNEVEN_PERIODS:.0%} of the busiest "
+                      f"earlier period ({dropped['most']})"}
+
+
 def anomaly(ctx):
     """Anomaly Agent — which periods do not fit the pattern?
 
@@ -2800,8 +2840,7 @@ def anomaly(ctx):
     that a period is unusual *given the trend*.
     """
     prep = ctx["preparer"]
-    labels = list(prep["trend"].keys())
-    series = list(prep["trend"].values())
+    labels, series, dropped = _complete_periods(prep)
     if len(series) < 4:
         return _result(
             "succeeded",
@@ -2834,6 +2873,8 @@ def anomaly(ctx):
     calcs = [{"id": "c_anom_spread", "name": "typical_gap_from_trend",
               "value": round(spread, 2),
               "method": "standard deviation of the gaps between actual and trend"}]
+    if dropped:
+        calcs.append(_incomplete_period_calc(dropped))
     for index, item in enumerate(anomalies[:5]):
         calcs.append({"id": f"c_anom_{index}", "name": f"gap_{item['period']}",
                       "value": item["gap"],
@@ -2860,6 +2901,9 @@ def anomaly(ctx):
             "out as unusual.",
             "كل الفترات قريبة من النمط العام، ولا شيء يبرز على أنه غير اعتيادي.",
             ["c_anom_spread"]))
+    if dropped:
+        claims.append(_incomplete_period_claim(ctx, "cl_anom_incomplete", dropped,
+                                               "the check", "الفحص"))
     return _result(
         "succeeded",
         _say(ctx,
@@ -3212,9 +3256,13 @@ def predictive(ctx):
     """
     prep = ctx["preparer"]
     measure, date_col = prep["measure"], prep["date_col"]
-    labels = list(prep["trend"].keys())
-    series = list(prep["trend"].values())
+    labels, series, dropped = _complete_periods(prep)
     calcs, claims = [], []
+    if dropped:
+        calcs.append(_incomplete_period_calc(dropped))
+        claims.append(_incomplete_period_claim(ctx, "cl_forecast_incomplete", dropped,
+                                               "the trend and its backtest",
+                                               "الاتجاه واختباره"))
 
     if prep.get("measure_is_rate"):
         reason_en = (f"{measure} is a rate. Its period totals are sums of per-record "

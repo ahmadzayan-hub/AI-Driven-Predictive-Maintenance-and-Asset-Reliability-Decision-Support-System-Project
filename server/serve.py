@@ -4,7 +4,8 @@
 things to the reader: binding to the network so a phone on the same
 Wi-Fi can reach it, and finding the machine's address to type into that
 phone. Both are easy to get wrong and neither is interesting, so this
-does them and prints the result.
+does them and prints the result. The network is opened only by `--lan`;
+the default binds to this computer alone.
 
 It also states the consequence, because binding to the network is a real
 decision: local mode has no login, so everyone on that network can use
@@ -38,18 +39,20 @@ def lan_address(probe=("192.0.2.1", 80)):
     return None if address.startswith("127.") else address
 
 
-def banner(port, local_only=False, address=None):
+def banner(port, local_only=True, address=None):
     """What to print once the server is up.
 
     Takes the address rather than detecting it, so it stays a pure
     function of what the caller decided: `main` does the detection.
+    Loopback is the default (assessment B8): local mode has no login, so
+    the network is opened only by an explicit `--lan`.
     """
     lines = ["", "  Agentic OS is running.", "",
              f"    On this computer:  http://localhost:{port}"]
     if local_only:
         lines += ["",
-                  "    Reachable from this computer only (--local-only).",
-                  "    Drop that flag to open it from a phone on the same Wi-Fi."]
+                  "    Reachable from this computer only (the default).",
+                  "    Add --lan to open it from a phone on the same Wi-Fi."]
     else:
         if address:
             lines += [f"    On your phone:     http://{address}:{port}"
@@ -59,7 +62,7 @@ def banner(port, local_only=False, address=None):
         lines += ["",
                   "    Anyone on this network can open it. Local mode has no",
                   "    login, so they can read and change the saved memory.",
-                  "    Use --local-only on a network you do not trust."]
+                  "    Leave --lan off on a network you do not trust."]
     lines += ["",
               "    “Add to Home screen” needs HTTPS on most phones, so the",
               "    installable app comes from a real deployment, not from here.",
@@ -70,9 +73,12 @@ def banner(port, local_only=False, address=None):
 def build_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--lan", action="store_true",
+                        help="also bind to the local network so a phone on the "
+                             "same Wi-Fi can reach it (no login in local mode)")
     parser.add_argument("--local-only", action="store_true",
-                        help="bind to 127.0.0.1 — nothing else on the network "
-                             "can reach it")
+                        help="bind to 127.0.0.1 only; this is now the default, "
+                             "so the flag is kept for existing commands")
     parser.add_argument("--reload", action="store_true",
                         help="restart on code changes (development)")
     return parser
@@ -81,12 +87,15 @@ def build_parser():
 def main(argv=None):
     args = build_parser().parse_args(argv)
 
-    address = None if args.local_only else lan_address()
-    print(banner(args.port, args.local_only, address), flush=True)
+    # --local-only wins when both are given: the safer reading of a
+    # contradictory command line.
+    local_only = args.local_only or not args.lan
+    address = None if local_only else lan_address()
+    print(banner(args.port, local_only, address), flush=True)
 
     import uvicorn
 
     uvicorn.run("server.app:app",
-                host=LOOPBACK if args.local_only else "0.0.0.0",
+                host=LOOPBACK if local_only else "0.0.0.0",
                 port=args.port, reload=args.reload, log_level="warning")
     return 0
