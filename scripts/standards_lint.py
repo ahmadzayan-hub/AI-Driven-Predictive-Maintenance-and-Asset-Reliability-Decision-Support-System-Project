@@ -45,8 +45,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 SENTENCE = re.compile(r"[^.!?؟\n]+[.!?؟]?")
 
 # The patterns are linguistic families, not the phrasings of the cases
-# they were fixed on (blind set v1, moved into dev on 23 October): each
-# class names the idea and lets the words vary.
+# they were fixed on (blind sets v1 and v2, moved into dev on 23 October):
+# each class names the idea and lets the words vary.
 
 # English number words, for counts written out ("fifty-seven assets").
 NUMBER_WORDS = (r"(?:(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|"
@@ -58,11 +58,20 @@ COUNT = rf"(?:\d[\d,]*|{NUMBER_WORDS})"
 # A ranking presented as a solved allocation.
 OPTIMISATION = re.compile(
     r"\b(optimal|optimally|optimum|optimis(e|es|ed|ing)|optimiz(e|es|ed|ing)|"
-    r"best possible|the best (allocation|schedule|plan|use|mix|order)|ideal (allocation|schedule|plan|mix|order|use)|"
-    r"(most|as) (efficient|effective|economical)( (spend|allocation|use|plan|schedule|order))?( possible| as possible)|"
-    r"perfect(ly)? (allocat|schedul|balanc)\w*|"
+    r"best possible|best achievable|"
+    r"the best (allocation|schedule|plan|use|mix|order|arrangement|sequence|sequencing|roster|rota|split|ordering|combination)|"
+    r"the best \w+ (the |a |any )?\w+ (can|could) (achieve|reach|manage|get|do)|"
+    r"ideal (allocation|schedule|plan|mix|order|use|arrangement|sequence|roster)|"
+    r"solved (allocation|schedule|plan|roster|rota|problem|assignment)|"
+    r"(most|as) (efficient|effective|economical)( (spend|allocation|use|plan|schedule|order|arrangement))?( possible| as possible| achievable)|"
+    r"perfect(ly)? (allocat|schedul|balanc|sequenc)\w*|"
+    r"no (other|alternative) (order|ordering|schedule|arrangement|allocation|sequence|plan|roster) (could|would|can|will)|"
+    r"(cannot|can't|could not|couldn't) be (improved|bettered|beaten)|as good as it gets|"
     r"maximis(e|es|ed|ing)|maximiz(e|es|ed|ing)|minimis(e|es|ed|ing)|minimiz(e|es|ed|ing))\b"
-    r"|الأمثل|المثلى|أمثلية|الحل الأمثل|المثالي|المثالية|أكفأ|أفضل (توزيع|جدول|خطة|استخدام)", re.I)
+    r"|الأمثل|المثلى|أمثلية|الحل الأمثل|المثالي|المثالية|أكفأ|"
+    r"أفضل (توزيع|جدول|خطة|استخدام|ترتيب|تسلسل|تخصيص|مزيج)|"
+    r"(التوزيع|الجدول|الترتيب|التخصيص) المحلول|لا يوجد (ترتيب|جدول|توزيع|تخصيص) آخر|"
+    r"لا يمكن تحسين|لا (يمكن|يُمكن) (تجاوزه|تجاوزها|التفوق عليه)", re.I)
 
 # A benefit asserted as already obtained.
 REALISED = re.compile(
@@ -70,16 +79,24 @@ REALISED = re.compile(
     r"realiz(ed|ing) savings|(has|have|had) (already )?(paid for (it|them)sel(f|ves)|"
     r"saved|recovered|avoided)|paid for (it|them)sel(f|ves)|"
     r"(cut|reduced|lowered|trimmed|slashed|brought down) (the |its |our |their |a )?"
-    r"(\w+ ){0,3}(costs?|bill|spend|spending|expenditure|outlay) by|"
+    r"(\w+ ){0,3}(costs?|bill|bills|invoices?|spend|spending|expenditure|outlay) by|"
+    r"(knocked|took|taken|shaved|wiped|lopped|trimmed) (\S+ ){0,4}off (the |this |its |our |their |last )?"
+    r"(\S+ ){0,3}(costs?|bill|bills|invoices?|spend|spending|expenditure|outlay|budget)|"
+    r"(earned|made|won|got|clawed) back (its|the|their) (purchase price|price|cost|outlay|investment)|"
+    r"recouped|(has|have|had) paid (it|them)sel(f|ves) back|"
+    r"payback (was|has been|is) (reached|achieved|complete)|"
     r"cut costs? by|reduced costs? by|returned|recovered)\b"
     r"|وفّر(نا|ت)?|تم توفير|حقق(ت|نا)? (وفورات|توفيراً)|وفورات (فعلية|محققة)|"
-    r"(خفّض|خفض|قلّص|قلص)(ت|نا)? [^.؟]{0,40}(التكاليف|فاتورة|الفاتورة|الإنفاق|المصروفات)|"
-    r"دفع تكلفته|استرد(ت)? ", re.I)
+    r"(خفّض|خفض|قلّص|قلص|خفّضت|قلّصت)(ت|نا)? [^.؟]{0,60}(التكاليف|تكاليف|فاتورة|الفاتورة|فواتير|الفواتير|الإنفاق|المصروفات|النفقات|نفقات)|"
+    r"دفع تكلفته|استرد(ت|ّت)? |استعاد(ت)? (ثمنه|ثمنها|تكلفته|تكلفتها|سعره|سعرها)|"
+    r"(غطّت|غطت|سدّدت|سددت) (ثمنه|ثمنها|تكلفته|تكلفتها)", re.I)
 
 # A cost total that does not say how overhaul is treated: a maintenance
 # cost word, a spend word and a money figure in one sentence.
-COST_ACTIVITY = r"(upkeep|maintenance|servicing|repair|repairs|overhaul|refurbishment|renewal)"
-SPEND_WORD = r"(spend|spending|expenditure|costs?|outlay|bill|budget|cash out)"
+COST_ACTIVITY = (r"(upkeep|maintenance|servicing|repair|repairs|overhaul|overhauls|refurbishment|renewal|"
+                 r"refits?|rebuilds?|inspections?|restoration|keeping (the |its |our |their )?\w+ (fleet |assets |plant )?running|"
+                 r"keep(ing)? (them|it) (going|running))")
+SPEND_WORD = r"(spend|spending|spent|expenditure|costs?|outlay|outlays|bill|bills|budget|cash out|came to|totalled|totaled)"
 MONEY = r"(aed|usd|sar|eur|gbp|qar|kwd|\$|€|£|million|billion|\d[\d,]*(\.\d+)?\s*(m|bn|k))\b"
 CAPITALISATION = re.compile(
     r"\b(total (maintenance|repair|overhaul) (cost|costs|spend|expenditure)|"
@@ -87,8 +104,8 @@ CAPITALISATION = re.compile(
     r"capitalis(e|ed)|capitaliz(e|ed)|capex|opex)\b"
     rf"|(?=.*\b{COST_ACTIVITY}\b)(?=.*\b{SPEND_WORD}\b)(?=.*{MONEY}).+"
     r"|إجمالي (تكاليف|تكلفة) (الصيانة|الإصلاح)|رسملة"
-    r"|(?=.*(الصيانة|الإصلاح|العمرة|الخدمة الدورية|الصيانة الدورية))"
-    r"(?=.*(إنفاق|الإنفاق|تكاليف|تكلفة|مصروفات|ما أُنفق|أُنفق|الإنفاق))(?=.*(درهم|ريال|دولار|مليون|ألف|يورو)).+", re.I)
+    r"|(?=.*(الصيانة|الإصلاح|الإصلاحات|العمرة|العمرات|الخدمة الدورية|الصيانة الدورية|الفحوص|الفحوصات|الترميم|الترميمات|التشغيل|تشغيل|الإبقاء على))"
+    r"(?=.*(إنفاق|الإنفاق|تكاليف|تكلفة|مصروفات|نفقات|النفقات|ما أُنفق|أُنفق|أنفق|بلغ|بلغت|وصل|مجموع|إجمالي))(?=.*(درهم|ريال|دولار|مليون|ألف|يورو)).+", re.I)
 
 # Saying how the cost is treated is what the standard asks for, so a
 # sentence that says it is the compliant case rather than the breach.
@@ -103,21 +120,30 @@ TREATMENT = re.compile(
 # within a few words, and a state or threshold anywhere in the sentence.
 ASSET_NOUN = r"(assets?|equipments?|machines?|units?|vehicles?|trains?|escalators?|pumps?|motors?|cars?|lifts?)"
 STATE = (r"(high[- ]risk|critical|overdue|failing|at[- ]risk|exceed\w*|above|over the|threshold|"
-         r"band|alarm\w*|flagged|late|past due|due for|out of tolerance|breach\w*)")
+         r"band|alarm\w*|flagged|late|past due|due for|out of tolerance|breach\w*|"
+         r"ceiling|limit|limits|cross\w*|beyond|outside|tripped|warning|fault\w*|defect\w*|"
+         r"in the (red|amber)|red|amber|worst|need\w* (attention|repair|replacement|action|work)|"
+         r"risk (class|category|group|band|tier)|(class|category|tier|group) [a-d1-5]\b)")
 GRAIN = re.compile(
     rf"\b{COUNT}\s+(?:\w+\s+){{0,2}}?{ASSET_NOUN}\b(?=.*\b{STATE}\b)"
     rf"|\b{COUNT}\s+{STATE}\s+{ASSET_NOUN}\b"
     r"|(\d[\d,]*|[^ ]+ )\s*(أصول|أصلاً|أصل|معدات|معدة|وحدات|وحدة|مركبات|مركبة|قطارات|قطاراً|سلالم)"
-    r"(?=.*(عالية المخاطر|حرجة|الحرج|الحرجة|متأخرة|متأخر|تجاوز|الحد|إنذار|خارج الحدود))", re.I)
+    r"(?=.*(عالية المخاطر|عالية الخطورة|شديدة الخطورة|الخطورة|الخطرة|حرجة|الحرج|الحرجة|متأخرة|متأخر|"
+    r"تجاوز|تجاوزت|تخطت|تخطى|الحد|السقف|إنذار|تحذير|خارج الحدود|خارج النطاق|معيبة|متعثرة|الفئة|فئة))", re.I)
 
 # A recommendation with no objective, owner or measure attached.
 RECOMMENDATION = re.compile(
     r"\b(we recommend|it is recommended|recommendation:|we (suggest|propose|advise)|"
     r"(is|are) (advised|suggested|proposed)|"
     r"(should|ought to|needs? to|must|has to|have to) (be )?"
-    r"(prioritis|prioritiz|replac|overhaul|defer|bring|move|schedul|inspect|repair|renew|retir|go to|focus|start|stop|increase|reduce|accelerat|postpon)\w*|"
+    r"(prioritis|prioritiz|replac|overhaul|defer|bring|move|schedul|inspect|repair|renew|retir|go to|focus|start|stop|increase|reduce|accelerat|postpon|look|revisit|review|consider|re-?examin|shorten|lengthen|extend|tighten|relax)\w*|"
+    r"it (would|might|may|could) be (sensible|wise|prudent|advisable|worthwhile|worth|reasonable|a good idea)|"
+    r"(would|might|may) (do well|be well advised) to|"
+    r"(is|are) worth (considering|looking at|revisiting|a look)|"
+    r"we (urge|encourage|ask|call on|invite|would like)|"
     r"priority (should|ought to|must|needs to) (go|be given))"
-    r"|نوصي|يوصى|يُقترح|نقترح|يقترح|ينبغي|يجب|يلزم|من الأفضل|يجب (إعطاء|تحديد) الأولوية", re.I)
+    r"|نوصي|يوصى|يُقترح|نقترح|يقترح|ينبغي|يجب|يلزم|من الأفضل|من المستحسن|يُستحسن|يستحسن|من الحكمة|"
+    r"حبذا|يحسن|من المفيد|ندعو|نحث|يجدر|من المناسب|يجب (إعطاء|تحديد) الأولوية", re.I)
 LINE_OF_SIGHT = re.compile(
     r"\b(objective|objectives|goal|target|availability|reliability|downtime|cost|risk|safety|"
     r"owner|owns|accountable|responsible|manager|kpi|measure|measured|budget|deadline|by \d{4}|"
