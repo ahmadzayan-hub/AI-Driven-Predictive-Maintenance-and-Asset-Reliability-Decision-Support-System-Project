@@ -48,6 +48,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard,
     setFailed(null)
     setRuns(null)
     setLatest(null)
+    setMotionError(null)
     setLatestFailed(false)
     setBrief(null)
     setBriefFailed(false)
@@ -311,6 +312,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard,
               >
                 {reportLang === 'ar' ? 'مسودة فيديو تحليلي' : 'Motion draft'}
               </button>
+              {motionError ? <p role="alert" className="statusline statusline--error" dir="auto" lang={reportLang}>{motionError}</p> : null}
             </>
           ) : null}
         </section>

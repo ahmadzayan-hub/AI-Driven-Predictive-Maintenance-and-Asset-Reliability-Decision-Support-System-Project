@@ -60,5 +60,6 @@ independent maintenance/model acceptance remain separate gates.
 
 Integration retains main's workbook discovery, reviewer/evaluation improvements
 and optional local Motion Studio sources. Remove its unused Overview import to
-keep the repository's strict TypeScript build valid; the retained local panel
+keep the repository's strict TypeScript build valid, and render its otherwise
+unused bilingual draft-error state as an accessible alert. The retained local panel
 does not become an enabled hosted capability merely through this merge.
