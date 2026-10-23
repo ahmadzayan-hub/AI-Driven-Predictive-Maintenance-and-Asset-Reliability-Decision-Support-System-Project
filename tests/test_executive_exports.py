@@ -136,6 +136,11 @@ class ExecutiveDocumentTests(unittest.TestCase):
             self.assertIn("word/styles.xml", archive.namelist())
             self.assertFalse(any("macro" in name.lower() or "vba" in name.lower() for name in archive.namelist()))
             for name in archive.namelist():
+                if name == "word/fonts/Dubai-Regular.odttf":
+                    from server.report_fonts import obfuscate_font, FONT_SHA256
+                    from hashlib import sha256
+                    self.assertEqual(sha256(obfuscate_font(archive.read(name))).hexdigest(), FONT_SHA256)
+                    continue
                 root = ET.fromstring(archive.read(name))
                 if name.endswith(".rels"):
                     self.assertFalse(any(item.get("TargetMode") == "External" for item in root))
