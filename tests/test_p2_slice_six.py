@@ -2,6 +2,7 @@
 server-side pieces. The interface changes are covered by the frontend
 unit tests and the end-to-end specs they name."""
 
+import hashlib
 import json
 import tempfile
 import unittest
@@ -59,15 +60,19 @@ class AssetEvidenceEndpointTest(unittest.TestCase):
 class InterfaceContractTest(unittest.TestCase):
     """U19 and U14: what the build ships and what the navigation says."""
 
-    def test_the_font_subsets_exist_and_the_stylesheet_names_each_once(self):
+    def test_the_original_dubai_face_is_local_unmodified_and_loaded_once(self):
         folder = ROOT / "frontend" / "src" / "shared" / "fonts"
         css = (folder / "fonts.css").read_text(encoding="utf-8")
-        for stem in ("fira-sans-latin-400-normal", "fira-sans-latin-500-normal", "fira-sans-latin-600-normal",
-                     "fira-code-latin-400-normal", "fira-code-latin-500-normal"):
-            with self.subTest(stem=stem):
-                self.assertTrue((folder / f"{stem}.woff2").exists())
-                self.assertEqual(css.count(f"url(./{stem}.woff2)"), 1)
-        self.assertNotIn("format('woff')", css)
+        original = ROOT / "server" / "assets" / "fonts" / "Dubai-Regular.ttf"
+        self.assertEqual(len(original.read_bytes()), 139928)
+        self.assertEqual(hashlib.sha256(original.read_bytes()).hexdigest(),
+                         "e7b232e0d3a6699f9d9023c0b49a9288ead97a33bc5175b9d1619c09f8672298")
+        self.assertEqual(css.count("url(../../../../server/assets/fonts/Dubai-Regular.ttf)"), 1)
+        self.assertEqual(css.count("@font-face"), 1)
+        self.assertIn("font-display: swap", css)
+        self.assertNotIn("url(http", css)
+        self.assertNotIn(".woff", css)
+        self.assertTrue((original.parent / "DUBAI-FONT-NOTICE.md").exists())
         main = (ROOT / "frontend" / "src" / "main.tsx").read_text(encoding="utf-8")
         self.assertNotIn("from '@fontsource", main)
         self.assertNotIn("import '@fontsource", main)

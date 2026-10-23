@@ -97,6 +97,24 @@ describe('actual semantic source colors', () => {
     expect(channel(green, 1)).toBeGreaterThan(Math.max(channel(green, 0), channel(green, 2)))
   })
 
+  it.each([['light', light], ['dark', dark], ['system dark', systemDark]] as const)('keeps navigation and primary actions readable in %s', (_name, theme) => {
+    for (const text of ['nav-text', 'nav-muted', 'nav-accent']) {
+      for (const surface of ['nav-surface', 'nav-active']) {
+        expect(contrast(theme[text], theme[surface])).toBeGreaterThanOrEqual(4.5)
+      }
+    }
+    expect(contrast(theme['on-accent'], theme['accent-solid'])).toBeGreaterThanOrEqual(4.5)
+    expect(contrast(theme['border-strong'], theme.surface)).toBeGreaterThanOrEqual(3)
+  })
+
+  it.each([['light', light], ['dark', dark], ['system dark', systemDark]] as const)('keeps semantic text readable on tinted executive families in %s', (name, theme) => {
+    const category = (key: string) => tokensCss.match(new RegExp(`--${key}: light-dark\\((#[a-f0-9]+), (#[a-f0-9]+)\\)`))![name === 'light' ? 1 : 2]
+    for (const hue of [theme.accent, theme['text-muted'], category('violet'), category('magenta')]) {
+      const mixed = '#' + [1, 3, 5].map(i => Math.round(parseInt(hue.slice(i, i + 2), 16) * .09 + parseInt(theme['surface-raised'].slice(i, i + 2), 16) * .91).toString(16).padStart(2, '0')).join('')
+      for (const tone of ['good', 'okay', 'bad', 'unassessed', 'unavailable'] as const) expect(contrast(foreground(tone, theme), mixed)).toBeGreaterThanOrEqual(4.5)
+    }
+  })
+
   it('keeps system-dark metric semantics identical to explicit dark mode', () => {
     for (const tone of ['good', 'okay', 'bad', 'unassessed', 'unavailable'] as const) {
       expect(foreground(tone, systemDark)).toBe(foreground(tone, dark))

@@ -1938,3 +1938,6 @@ form.field {
   .shell__header { gap: var(--space-2); flex-wrap: wrap; height: auto; min-height: 60px; padding-block: var(--space-2); }
   .header__actions [data-control='help'] { display: none; }
 }
+
+.brand__descriptor { color: var(--text-muted); font-size: var(--text-xs); max-width: 27ch; line-height: 1.4; }
+@media (max-width: 1023px) { .brand__descriptor { display: none; } }

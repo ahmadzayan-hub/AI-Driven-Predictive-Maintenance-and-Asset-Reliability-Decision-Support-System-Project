@@ -12,7 +12,7 @@ export const en = {
   'nav.reviewShort': 'Review',
 
   "assistant.name": "Miyaar",
-  "assistant.tagline": "The intelligent assistant for asset reliability",
+  "assistant.tagline": "AI-Powered Asset Maintenance, Reliability & Decision Support",
   "miyaar.eyebrow": "YOUR ASSET RELIABILITY WORKSPACE",
   "miyaar.headline": "Every asset. A clearer decision.",
   "miyaar.intro": "I'm Miyaar. Bring your maintenance data, explore the evidence, and turn analysis into decisions you can stand behind.",
@@ -477,7 +477,6 @@ export const en = {
   'overview.evidencePassed': 'Run-level evidence checks passed',
   'overview.evidencePending': 'Validation incomplete or needs review',
   'overview.evidenceScope': 'This checks the recorded calculations and evidence in one run. It does not certify AI model accuracy, safety or live operations.',
-  'overview.desc': 'The latest decision brief, the figures behind it, what is waiting for you, and what you have stored.',
   'overview.start': 'Start an analysis',
   'overview.loading': 'Loading the overview',
   'overview.failed': 'The overview could not be loaded.',

@@ -59,7 +59,7 @@ class BudgetTests(unittest.TestCase):
             + "".join(head) + "</head><body></body></html>")
         (dist / "assets" / "index-a1.css").write_text("body{margin:0}" * 10)
         (dist / "assets" / "font-400.woff2").write_bytes(b"\0" * font_bytes)
-        (dist / "assets" / "font-400.woff").write_bytes(b"\0" * 500_000)  # never counted
+        (dist / "assets" / "diagram.png").write_bytes(b"\0" * 500_000)  # not a font
         return dist
 
     def test_a_views_stylesheet_counts_in_the_total_only(self):
@@ -77,7 +77,7 @@ class BudgetTests(unittest.TestCase):
     def test_a_build_inside_the_budget_passes(self):
         ok, summary = verify.check_budget(self.build(20_000, 50_000))
         self.assertTrue(ok, summary)
-        self.assertIn("fonts 50.0 of 100 KB", summary)
+        self.assertIn("fonts 50.0 of 145 KB", summary)
 
     def test_a_build_over_the_budget_fails_and_names_what(self):
         ok, summary = verify.check_budget(self.build(200_000, 50_000))
@@ -87,10 +87,17 @@ class BudgetTests(unittest.TestCase):
     def test_a_few_bytes_over_fails_even_when_it_rounds_to_the_limit(self):
         # 10,046 bytes of first-load CSS once printed as "10.0 of 10 KB" and
         # passed. The check compares exact bytes; only the summary rounds.
-        ok, summary = verify.check_budget(self.build(20_000, 100_040))
+        ok, summary = verify.check_budget(self.build(20_000, 145_040))
         self.assertFalse(ok, summary)
         self.assertIn("over: fonts", summary)
-        self.assertTrue(verify.check_budget(self.build(20_000, 100_000))[0])
+        self.assertTrue(verify.check_budget(self.build(20_000, 145_000))[0])
+
+    def test_original_ttf_fonts_are_counted_without_a_compression_loophole(self):
+        dist = self.build(20_000, 0)
+        (dist / 'assets' / 'Dubai-Regular.ttf').write_bytes(b'0' * 139928)
+        self.assertEqual(verify.measure_budget(dist, exact=True)['fonts'], 139928)
+        (dist / 'assets' / 'unused-bold.ttf').write_bytes(b'0' * 10000)
+        self.assertFalse(verify.check_budget(dist)[0])
 
     def test_a_chunk_loaded_on_demand_is_not_first_load(self):
         light = verify.measure_budget(self.build(20_000, 50_000))
