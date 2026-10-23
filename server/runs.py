@@ -174,7 +174,8 @@ class PublicationDestinationChanged(ValueError):
 class RunEngine:
     def __init__(self, store, vault_dir, gateway, limits=None, glossary=None,
                  stages=None, profiles=None, execution_mode="client", roles=None,
-                 stage_timeout=None, publish_target=None):
+                 stage_timeout=None, publish_target=None, specialist_driver=None,
+                 specialist_limits=None):
         if execution_mode not in ("client", "worker"):
             raise ValueError("AGENTIC_OS_RUN_EXECUTION must be client or worker.")
         self.execution_mode = execution_mode
@@ -216,6 +217,10 @@ class RunEngine:
         self.glossary = glossary
         self._tables = OrderedDict()
         self._tables_lock = threading.Lock()
+        self.specialists = None
+        if specialist_driver is not None:
+            from server.specialists import SpecialistCoordinator
+            self.specialists = SpecialistCoordinator(self, specialist_driver, specialist_limits)
 
     # -- state helpers ----------------------------------------------------
     def _set_run_state(self, run_id, new_state, error=None):
@@ -356,6 +361,13 @@ class RunEngine:
         one of them runs before provenance, validation and reporting.
         A run that joins datasets merges them right after cleaning, before
         anything else reads the cleaned rows (ADR 0030)."""
+        if profile == "specialist_evidence":
+            if self.specialists is None:
+                raise ValueError("Specialist execution requires an explicit decision driver.")
+            if joined:
+                raise ValueError("The first specialist profile accepts one authorized source only.")
+            from server.specialists import ROLE_NAMES
+            return [*ROLE_NAMES, "publish"]
         custom = self.custom_roles_for(profile)
         roles = []
         for role, _ in analytics.PIPELINE:
@@ -511,14 +523,20 @@ class RunEngine:
         titles = analytics.ROLE_TITLES_AR if language == "ar" else analytics.ROLE_TITLES
         for idx, role in enumerate(roles):
             # A plugin may name itself in Arabic too (ADR 0033).
+            descriptor = self.stages.get(role)
+            if profile == "specialist_evidence":
+                from server.specialists import SPEC_BY_ROLE
+                descriptor = SPEC_BY_ROLE.get(role) or descriptor
             title = (titles.get(role)
-                     or (language == "ar" and getattr(self.stages[role], "title_ar", None))
-                     or self.stages[role].title)
+                     or (language == "ar" and getattr(descriptor, "title_ar", None))
+                     or descriptor.title)
             self.store.insert("tasks", {
                 "id": self.new_id(), "run_id": run_id, "idx": idx,
                 "role": role, "title": title,
                 "state": "pending", "summary": None, "result_json": None,
                 "updated_at": now})
+        if profile == "specialist_evidence":
+            self.specialists.initialize(run_id)
         return self.get_run(run_id)
 
     def _dataset_text(self, run):
@@ -598,6 +616,8 @@ class RunEngine:
             # The queued run itself is the durable request, so repeated
             # advance calls do not enqueue additional work.
             return self.get_run(run_id)
+        if self.specialists is not None and self.specialists.handles(run_id):
+            return self.specialists.advance(run_id, lease_owner)
         budget = getattr(self.gateway, "budget", None)
         owner_context = tenant.current_owner.set(self.owner_of(run_id))
         try:
@@ -827,6 +847,7 @@ class RunEngine:
         return self.get_run(run_id)
 
     def _request_publish_approval(self, run_id, task):
+        self._verify_specialist_publication(run_id)
         # The approval is read by the same person who reads the report, so
         # it is in the report's language. `risk` stays an enum (ADR 0022).
         arabic = (self._row(run_id).get("report_language") or "en") == "ar"
@@ -915,6 +936,12 @@ class RunEngine:
                 return any(c.get("id") == "cl_recommendation" for c in claims)
         return False
 
+    def _verify_specialist_publication(self, run_id):
+        if any(t["role"] == "evidence_steward" for t in self.store.get_tasks(run_id)):
+            if self.specialists is None:
+                raise ValueError("Specialist verification is unavailable; publication is blocked.")
+            self.specialists.ensure_verified(run_id)
+
     def _decide_approval_atomic(self, run_id, approval_id, decision, approver=None):
         approval = self.store.get_approval(approval_id, run_id)
         if approval is None:
@@ -936,6 +963,7 @@ class RunEngine:
         if current_hash != approval["content_hash"]:
             raise ValueError("Artifact changed after approval was requested.")
         if decision == "approve":
+            self._verify_specialist_publication(run_id)
             if approval["target"] != self.publication_destination():
                 raise PublicationDestinationChanged(
                     "تغيرت وجهة النشر بعد المراجعة. حدّث طلب المراجعة ثم اقرأ التقرير والوجهة الجديدة قبل الموافقة."
