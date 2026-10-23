@@ -33,6 +33,7 @@ from agent import Agent, language_code
 from server.agent_runtime import build_runtime
 from server import knowledge as knowledge_module
 from server import analytics
+from server.api_contract import document_errors, error_response, install_error_handlers
 from server import datasets as dataset_reader
 from server import joins as joining
 from server import live
@@ -48,8 +49,8 @@ from server.model_gateway import ModelGateway
 from server.orchestration import ModelRoles
 from server.routing import RoutedGateway, build_router
 from server.stages import describe, load_stages
-from server.runs import (RunEngine, TableNotReady, dataset_summary,
-                         resolve_vault_dir)
+from server.runs import (IdempotencyConflict, PublicationDestinationChanged, RunEngine, TableNotReady, dataset_summary,
+                         resolve_publish_target, resolve_vault_dir)
 from server import demo
 from server.auth import DEMO_PRINCIPAL, AuthError, build_identity, public_auth_config
 from server.quota import QuotaExceeded, load_limits
@@ -409,6 +410,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         redoc_url=None,
         openapi_url=None,
     )
+    install_error_handlers(app)
 
     # Protects the in-memory state the store does not: the read-modify-
     # write of a session row and, in local mode, the memory file. Model
@@ -462,6 +464,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         profiles=config.get("profiles") or {},
         execution_mode=(os.environ if env is None else env).get("AGENTIC_OS_RUN_EXECUTION", "client"),
         roles=model_roles if model_roles.active else None,
+        publish_target=resolve_publish_target(env, config),
     )
     app.state.engine = engine
     app.state.store = store
@@ -503,9 +506,10 @@ def create_app(config_path=None, env=None, dist_dir=None):
             return None  # the Agent's own data/memory.json backend
         return DbMemoryBackend(store, owner or "local-owner")
 
+    environ = os.environ if env is None else env
     allowed_origins = [
         origin.strip()
-        for origin in os.environ.get(
+        for origin in environ.get(
             "AGENTIC_OS_ALLOWED_ORIGINS",
             "http://localhost:5173,http://127.0.0.1:5173",
         ).split(",")
@@ -515,10 +519,10 @@ def create_app(config_path=None, env=None, dist_dir=None):
         CORSMiddleware,
         allow_origins=allowed_origins,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
-        allow_headers=["Content-Type", "Authorization"],
+        allow_headers=["Content-Type", "Authorization", "Idempotency-Key", "X-Request-ID"],
+        expose_headers=["X-Request-ID", "Retry-After", "X-RateLimit-Remaining", "Content-Disposition"],
     )
 
-    environ = os.environ if env is None else env
     app.state.speech = LocalSpeech(environ)
     # Live sources (ADR 0034). The fence reads its host list and the test
     # fixture folder from the same environment as everything else.
@@ -558,9 +562,10 @@ def create_app(config_path=None, env=None, dist_dir=None):
                 key = request.client.host if request.client else "anonymous"
             allowed, remaining, retry_after = limiter.check(key)
             if not allowed:
-                return JSONResponse(
-                    status_code=429,
-                    content={"detail": "Too many requests. Please slow down."},
+                return error_response(
+                    request, 429, ("طلبات كثيرة جدًا. يرجى التمهل." if
+                        request.headers.get("accept-language", "").startswith("ar") else
+                        "Too many requests. Please slow down."),
                     headers={"Retry-After": str(retry_after)},
                 )
             response = await call_next(request)
@@ -641,9 +646,10 @@ def create_app(config_path=None, env=None, dist_dir=None):
     async def handle_unexpected_error(request: Request, exc: Exception):
         # Never leak stack traces or internal details to the browser.
         request_id = getattr(request.state, "request_id", None)
-        return apply_security_headers(JSONResponse(
-            status_code=500,
-            content={"detail": "Something went wrong on the server. Please try again."},
+        return apply_security_headers(error_response(
+            request, 500, ("حدث خطأ في الخادم. يرجى المحاولة مجددًا." if
+                request.headers.get("accept-language", "").startswith("ar") else
+                "Something went wrong on the server. Please try again."),
             headers={"X-Request-ID": request_id} if request_id else None,
         ), request.url.path)
 
@@ -688,6 +694,11 @@ def create_app(config_path=None, env=None, dist_dir=None):
     @app.get("/api/identity")
     def whoami(principal=Depends(current_principal)):
         return {"mode": identity.mode, "principal": principal.as_dict()}
+
+    @app.get("/api/openapi.json", include_in_schema=False)
+    def authenticated_openapi(principal=Depends(requires("read"))):
+        """An authenticated machine-readable contract; no public Swagger UI."""
+        return document_errors(app.openapi())
 
     def get_session(session_id, principal=None):
         row = store.get_session(session_id)
@@ -1007,6 +1018,8 @@ def create_app(config_path=None, env=None, dist_dir=None):
             raise HTTPException(status_code=404, detail="Run not found.")
         except QuotaExceeded as error:
             raise HTTPException(status_code=429, detail=error.message)
+        except PublicationDestinationChanged as error:
+            raise HTTPException(status_code=409, detail={"code": "publication_destination_changed", "message": str(error)})
         except ValueError as error:
             raise HTTPException(status_code=409, detail=str(error))
 
@@ -1037,6 +1050,8 @@ def create_app(config_path=None, env=None, dist_dir=None):
                 raise HTTPException(status_code=404, detail='Dataset not found.')
             except joining.JoinError as error:
                 raise HTTPException(status_code=422, detail=error.detail(run.language))
+            except IdempotencyConflict as error:
+                raise HTTPException(status_code=409, detail={"code": "idempotency_conflict", "message": str(error)})
             except ValueError as error:
                 # An unknown profile, or one naming an unregistered stage.
                 raise HTTPException(status_code=422, detail=str(error))
@@ -1209,6 +1224,23 @@ def create_app(config_path=None, env=None, dist_dir=None):
                         ("id", "goal", "dataset_name", "state", "created_at", "updated_at")}
             runs = [r for r in candidates.values() if owns_run(principal, r["id"])]
             return {"runs": sorted(runs, key=lambda r: (r["created_at"], r["id"]), reverse=True)}
+
+    @app.get("/api/assets/evidence")
+    def latest_asset_evidence(principal=Depends(requires("read"))):
+        """Latest completed maintenance screening across the caller's history.
+
+        Query the stage index, not the recent-run list. Authorization is checked
+        afresh before returning a payload; a private pack never gains an admin
+        bypass through this endpoint.
+        """
+        with lock:
+            owner = None if principal.can("admin") else principal.subject
+            for row in store.runs_with_completed_stage("rail_asset_manager", owner=owner):
+                if owns_run(principal, row["id"]):
+                    return {"run": engine.get_run(row["id"]), "prepared_at": now_iso(),
+                            "scope": "latest_completed_maintenance_stage"}
+        return {"run": None, "prepared_at": now_iso(),
+                "scope": "latest_completed_maintenance_stage"}
 
     @app.get("/api/runs/{run_id}")
     def get_run(run_id: str, principal=Depends(requires("read"))):
@@ -1562,6 +1594,10 @@ def create_app(config_path=None, env=None, dist_dir=None):
             return await run_in_threadpool(table_query.records, table, body.model_dump())
         except table_query.QueryError as error:
             raise HTTPException(status_code=422, detail=error.detail(language))
+
+    @app.post("/api/runs/{run_id}/approvals/refresh")
+    def refresh_publication_review(run_id: str, principal=Depends(requires("approve"))):
+        return _run_or_404(lambda: engine.refresh_publication_review(run_id), principal, run_id, permission="authorize")
 
     @app.post("/api/runs/{run_id}/approvals/{approval_id}")
     def decide_approval(run_id: str, approval_id: str, decision: ApprovalIn, principal=Depends(requires("approve"))):

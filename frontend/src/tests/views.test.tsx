@@ -6,6 +6,7 @@ import { ReadOnlyContext } from '../shared/readOnly'
 import { OverviewView } from '../features/overview/OverviewView'
 import { ConnectorsPanel } from '../features/live/ConnectorsPanel'
 import { connectorsApi } from '../features/live/connectors'
+import { api } from '../shared/api'
 import type { Connector } from '../features/live/connectors'
 
 const USAGE = {
@@ -75,6 +76,22 @@ describe('authenticated live source form', () => {
 })
 
 describe('OverviewView', () => {
+  it.each(['en', 'ar'] as const)('announces a refused motion draft in %s without claiming an export', async (language) => {
+    const user = userEvent.setup()
+    const detail = { ...DETAIL, report_language: language,
+      tasks: [{ role: 'validator', state: 'succeeded', quality_checks: [{ name: 'Synthetic check', passed: true }] }],
+      report: { id: 'report-test', name: 'Synthetic report', version: 1, content: '# Synthetic report', published_path: null },
+    }
+    serve({ '/api/runs': { runs: [{ ...detail, created_at: '2026-10-23T10:00:00Z', updated_at: '2026-10-23T10:00:00Z' }] },
+      '/api/runs/r2': detail, '/api/usage': USAGE })
+    vi.spyOn(api, 'motionStoryboard').mockRejectedValue(new Error('Synthetic refusal'))
+    render(<OverviewView onOpenRun={vi.fn()} onStart={vi.fn()} />)
+    await user.click(await screen.findByRole('button', { name: language === 'ar' ? 'مسودة فيديو تحليلي' : 'Motion draft' }))
+    const message = language === 'ar' ? 'تعذّر إنشاء مسودة الفيديو: راجع حالة الأدلة وصلاحياتك.'
+      : 'Motion draft could not be prepared. Check the evidence status and your permissions.'
+    expect(await screen.findByText(message)).toHaveAttribute('role', 'alert')
+    expect(api.motionStoryboard).toHaveBeenCalledWith('r2')
+  })
   it('offers the sample data and an upload before anything is analysed', async () => {
     const user = userEvent.setup()
     serve({ '/api/runs': { runs: [] }, '/api/usage': USAGE })

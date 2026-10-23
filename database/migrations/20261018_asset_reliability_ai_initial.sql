@@ -68,6 +68,9 @@ CREATE TABLE IF NOT EXISTS runs (
       mapping_json TEXT,
       joins_json TEXT,
       connector_id TEXT,
+      assumptions_json TEXT,
+      idempotency_key TEXT,
+      request_hash TEXT,
       paused INTEGER);
 
 CREATE TABLE IF NOT EXISTS tasks (

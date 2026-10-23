@@ -378,7 +378,11 @@ class InterfaceServingTestCase(unittest.TestCase):
             with self.subTest(path=path):
                 response = self.get(path)
                 self.assertEqual(response.status_code, 404)
-                self.assertEqual(response.json(), {"detail": "Not found."})
+                self.assertEqual(response.json()["detail"], "Not found.")
+                self.assertEqual(response.json()["error"], {
+                    "code": "not_found", "message": "Not found.", "problems": [],
+                    "request_id": response.headers["X-Request-ID"],
+                })
 
 
 if __name__ == "__main__":

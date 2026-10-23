@@ -26,6 +26,12 @@ data class Health(
 data class AuthConfig(val mode: String = "local")
 
 @Serializable
+data class WorkspacePrincipal(val subject: String, val role: String)
+
+@Serializable
+data class WorkspaceIdentity(val mode: String, val principal: WorkspacePrincipal)
+
+@Serializable
 data class RunSummary(
     val id: String,
     val goal: String,
@@ -45,7 +51,14 @@ data class RunApproval(
     val target: String = "",
     val risk: String = "",
     val impact: String = "",
+    val reversibility: String = "",
     val state: String = "",
+)
+
+@Serializable
+data class RunArtifact(
+    val id: String, val name: String, val version: Int, val content: String,
+    @SerialName("published_path") val publishedPath: String? = null,
 )
 
 @Serializable
@@ -67,6 +80,9 @@ data class RunReport(
 )
 
 @Serializable
+data class RunExecution(val mode: String = "client", @SerialName("poll_after_ms") val pollAfterMs: Long = 2500)
+
+@Serializable
 data class RunDetail(
     val id: String,
     val goal: String,
@@ -79,6 +95,8 @@ data class RunDetail(
     val tasks: List<RunTask> = emptyList(),
     val reports: List<RunReport> = emptyList(),
     val approvals: List<RunApproval> = emptyList(),
+    val report: RunArtifact? = null,
+    val execution: RunExecution = RunExecution(),
 )
 
 @Serializable
@@ -94,6 +112,9 @@ data class DatasetSummary(
 
 @Serializable
 data class DatasetsPage(val datasets: List<DatasetSummary> = emptyList())
+
+@Serializable
+data class DatasetUpload(val dataset: DatasetSummary, val created: Boolean = false)
 
 @Serializable
 data class Assessment(

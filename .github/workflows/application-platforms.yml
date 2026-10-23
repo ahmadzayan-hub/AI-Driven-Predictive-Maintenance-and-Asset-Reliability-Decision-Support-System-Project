@@ -1,0 +1,62 @@
+name: Application platform journeys
+
+on:
+  push:
+    paths:
+      - 'frontend/**'
+      - 'server/**'
+      - 'requirements.txt'
+      - '.github/workflows/application-platforms.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  platform:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            browser: msedge
+          - os: macos-latest
+            browser: webkit
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      PYTHON_EXECUTABLE: python
+    steps:
+      - name: Enable long checkout paths on Windows
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install locked backend dependencies
+        run: python -m pip install --require-hashes -r requirements.txt
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+      - name: Type check and production build
+        run: npm run build
+        working-directory: frontend
+      - name: Install the platform browser
+        run: npx playwright install ${{ matrix.browser }}
+        working-directory: frontend
+      - name: Actual API journeys, recovery, RTL and accessibility
+        run: npx playwright test --config=playwright.platforms.config.ts
+        working-directory: frontend
+      - name: Retain synthetic browser evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: application-${{ matrix.os }}
+          path: frontend/test-results
+          retention-days: 14

@@ -1,6 +1,6 @@
 # Delivery roadmap
 
-Date: 22 October 2026 · Source: `docs/audits/SAAS_PLATFORM_ASSESSMENT.md`
+Updated: 23 October 2026 · Source: `docs/audits/SAAS_PLATFORM_ASSESSMENT.md`
 (finding ids below refer to it) · Owner decisions are marked.
 
 Status words: **Implemented** (in code, with tests), **Tested** (verified by
@@ -22,6 +22,9 @@ outside this repository), **Proposed** (designed, not built).
 | Slice two of the release gate: rates never summed, trended or ranked (A4), a naive baseline and weak rule for every forecast (A5), figures checked against cited evidence (A6), approve only after reading (U3), JWT audience and issuer required (B7) | Implemented, Tested | `docs/adr/2026-10-22-release-gate-slice-two.md`; `tests/test_analytics.py::RatesAreNeverSummedTestCase`, `::ForecastBaselineTestCase`, `::ClaimFiguresMatchEvidenceTestCase`; `frontend/src/tests/approval-card.test.tsx` |
 | Slice three of the release gate: decision inputs and record (A2, A13), signalling escalation (A8), currency (U4), landing and phone bar (U12), per-session locking, transactional restore and request logging (B4, B5, B10), blind-set floors (G1), model call ledger (G4), browser coverage of demo, Assets and Approvals (U13) | Implemented, Tested | `docs/adr/2026-10-22-release-gate-slice-three.md` |
 | P2 slice one: verdict bound (A9), declared splits (A10), incomplete periods (A12), loopback by default (B8), idempotent run creation (B14, in part), wall-clock limits on custom stages and agent runtimes (G10) | Implemented, Tested | `docs/adr/2026-10-23-p2-slice-one.md`; `tests/test_p2_slice_one.py` |
+| Shared API contract and recoverable creation (B14), asset summary/retry (U10), complete relationship table (U11), asset freshness (U16, in part) | Implemented, Tested | `docs/adr/2026-10-23-platform-contract-and-application-builds.md`; authenticated OpenAPI, request-bound replay, synthetic HTTP/component/browser regressions |
+| Read-only-host publication (B13, in part), escaped source metadata (B19, in part), CORS PATCH/recovery headers (B17, in part) | Partially implemented, Tested | `docs/adr/2026-10-23-database-publication-target.md`; atomic SQL publication, changed-destination fresh review and rollback checks; request-duration, local paths and CSP consolidation remain open |
+| Android debug application, Windows Edge and macOS WebKit journeys | Implemented, Tested within recorded scope | Hosted Compose build, lint, APK signature and actual-API bilingual/keyboard recovery checks; [application handoff](PLATFORM_RELEASE.md). Device, store and production acceptance remain separate |
 
 ## 2. Next release gate (P1)
 
@@ -44,16 +47,19 @@ the decision record card on the run, were delivered the same day
 As marked in the assessment: KPI bases (A7), input screening in generic
 models (A11), model versioning and calibration (A14), transformation
 reversibility (A18); rate limiting and model quota (B6), narrow excepts (B9),
-connection pool (B11), versioned migrations (B12), hosted publish target
-(B13), the rest of the API contract (one error envelope and OpenAPI behind
-auth, B14), connector allowlist (B16); railway wording behind a profile (U8, owner decision), asset KPI errors
-and endpoint (U10), chart table note (U11), naming (U14), one upload flow (U15),
-as-of stamps (U16), pack parity and executive hook (U18), font subsetting
+connection pool (B11), versioned migrations (B12), hosted request/model duration
+(remaining B13), connector allowlist (B16); railway wording behind a profile
+(U8, owner decision), naming (U14), one upload flow (U15), as-of stamps outside
+Command Centre and Assets (remaining U16), pack parity and executive hook (U18), font subsetting
 (U19), navy rail (U20, owner decision); structured consultant output and
 deterministic agreement (G5, G6), eval cases for the two unmeasured actions
 (G8), reviewer benchmarks (G9), optional runtime CI job (G11); and the P3 items.
 The first P2 slice (A9, A10, A12, B8, the idempotency half of B14, G10) was
 delivered on 23 October ([decision](../adr/2026-10-23-p2-slice-one.md)).
+The platform/application slice closes B14, U10 and U11, and the scoped parts
+of B13, B17, B19 and U16 listed above. Its [handoff](PLATFORM_RELEASE.md)
+maps components to APIs and records the distinction between tested software,
+unavailable original RMD evidence and unperformed release acceptance.
 
 ## 4. The brief's deliverables and their status
 

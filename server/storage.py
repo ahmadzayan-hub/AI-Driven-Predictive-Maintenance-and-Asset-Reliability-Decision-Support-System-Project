@@ -298,11 +298,12 @@ class SqlStore:
         # owner, so a retried POST returns the run it already made (B14).
         for column in ("dataset_id", "lease_owner", "lease_expires_at",
                        "report_language", "mapping_json", "joins_json",
-                       "connector_id", "assumptions_json", "idempotency_key"):
+                       "connector_id", "assumptions_json", "idempotency_key", "request_hash"):
             try:
                 self._exec(f"ALTER TABLE runs ADD COLUMN {column} TEXT")
             except Exception:
                 self._rollback()
+        self._exec("CREATE INDEX IF NOT EXISTS tasks_role_state_run ON tasks (role, state, run_id)")
         try:
             self._exec("CREATE UNIQUE INDEX IF NOT EXISTS runs_idempotency "
                        "ON runs (owner, idempotency_key)")
@@ -429,6 +430,19 @@ class SqlStore:
     def get_tasks(self, run_id):
         return self._exec(
             "SELECT * FROM tasks WHERE run_id = ? ORDER BY idx", (run_id,))
+
+    def runs_with_completed_stage(self, role, owner=None):
+        """Matching run ids only, without the recent-list cap or N payload reads.
+
+        EXISTS avoids duplicate run ids if a custom pipeline repeats a role.
+        The caller still applies its evidence-specific authorization boundary.
+        """
+        owner_clause = " AND r.owner = ?" if owner is not None else ""
+        params = (role, owner) if owner is not None else (role,)
+        return self._exec(
+            "SELECT r.id FROM runs r WHERE EXISTS (SELECT 1 FROM tasks t "
+            "WHERE t.run_id = r.id AND t.role = ? AND t.state = 'succeeded')"
+            + owner_clause + " ORDER BY r.updated_at DESC, r.id DESC", params)
 
     def latest_kpi_policy(self, run_id):
         rows = self._exec("SELECT * FROM kpi_policies WHERE run_id = ? "

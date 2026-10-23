@@ -1,11 +1,24 @@
 # Project progress
 
-Last updated: 2026-10-23, Codex RMD evidence implementation and final main integration. Source originals omitted by owner instruction; combined hosted acceptance and measured verification scopes are recorded in README.
+Last updated: 2026-10-23, platform/API recovery, transactional publishing and application build delivery. Original RMD sources remain omitted by owner instruction. Measured verification and release limits are recorded in README and docs/implementation/PLATFORM_RELEASE.md.
 
 
 **Vision.** **AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project** uses Agentic OS as its governed analytics engine. It digests several datasets with dynamic inputs, then carries them through preparation, cleaning and modelling to a multi-page interactive dashboard with live data, with insights and key findings that are always traceable to a calculation. The product scope and remaining domain work are in `docs/PROJECT_CHARTER.md`; the reusable engine milestones are in `brain/Projects/Analytics OS roadmap.md`.
 
 ## Now
+
+- **Platform and application delivery, 2026-10-23:** shared error/schema contract,
+  exact-request retry/reload recovery, indexed asset evidence and KPI retry,
+  complete chart tables, read-only-host SQL publication and fresh destination
+  review. Android now compiles Compose, passes lint and produces a signature-
+  verified debug APK; Windows Edge and macOS WebKit actual-API journeys pass.
+  English/Arabic, keyboard and phone behavior are covered within the recorded
+  CI scope. [Handoff](docs/implementation/PLATFORM_RELEASE.md),
+  [API/application decision](docs/adr/2026-10-23-platform-contract-and-application-builds.md)
+  and [publishing decision](docs/adr/2026-10-23-database-publication-target.md).
+  Windows/iOS currently use the PWA. Physical-device, secure credential storage,
+  release/store, prospective maintenance and production acceptance remain open;
+  no production deployment was performed.
 
 - **RMD Evidence and Insights, 2026-10-22:** integrated private ingestion,
   persistence, source/column provenance, reviewed record relationships,
@@ -19,7 +32,7 @@ Last updated: 2026-10-23, Codex RMD evidence implementation and final main integ
   document/workbook findings are outside this delivery. See
   [reuse map and acceptance](docs/RMD_EVIDENCE.md).
 
-- **P2 slice one: 2026-10-23, on branch `claude/tender-clarke-m4uwgq`.** Verdict bound (A9), declared splits (A10), incomplete periods (A12), loopback by default (B8), idempotent run creation (B14, in part), wall-clock limits on custom stages and agent runtimes (G10). [Decision](docs/adr/2026-10-23-p2-slice-one.md); counts in README.md#testing. Open: the rest of B14, the standards lint blind score, the remaining P2 list.
+- **P2 slice one: 2026-10-23, on branch `claude/tender-clarke-m4uwgq`.** Verdict bound (A9), declared splits (A10), incomplete periods (A12), loopback by default (B8), idempotent run creation (B14, in part), wall-clock limits on custom stages and agent runtimes (G10). [Decision](docs/adr/2026-10-23-p2-slice-one.md); counts in README.md#testing. B14 is closed by the platform delivery above. Open: the standards lint blind score and remaining P2 list.
 
 - **Decision inputs in the interface: 2026-10-22, merged into main as `37fce5e` with the hosted CI second pass (PR #21; hosted suite 139 passed, 5 skipped).** The Analytics form collects an improvement and a cost per group and the explored range; the run view shows the decision record (recommendation and basis, inputs stated or assumed, flip point, who decided). Script allocation 220 KB. [Decision](docs/adr/2026-10-22-decision-inputs-interface.md); counts in README.md#testing. Open: the standards lint scores 0% on its blind set; P2 items in the [roadmap](docs/implementation/DELIVERY_ROADMAP.md).
 
@@ -27,7 +40,7 @@ Last updated: 2026-10-23, Codex RMD evidence implementation and final main integ
 
 - **Release gate, slice three: 2026-10-22, on branch `claude/tender-clarke-m4uwgq`.** The P1 list is closed: decision inputs and record (A2, A13), signalling escalation (A8), currency (U4), landing and phone bar (U12), hosted robustness (B4, B5, B10), blind floors (G1), model ledger (G4), browser coverage (U13); [decision](docs/adr/2026-10-22-release-gate-slice-three.md). Verified 8/8 with PostgreSQL; counts in README.md#testing. Open (interface inputs for uplift and cost delivered the same day): the standards lint scores 0% on its blind set; P2 items in the [roadmap](docs/implementation/DELIVERY_ROADMAP.md).
 - **Release gate, slice two: 2026-10-22, on branch `claude/tender-clarke-m4uwgq`.** Rates never summed (A4), a naive baseline and weak rule for every forecast (A5), figures checked against cited evidence (A6), approve after reading (U3), JWT audience and issuer required (B7); [decision](docs/adr/2026-10-22-release-gate-slice-two.md). Verified 8/8 with PostgreSQL; counts in README.md#testing. Remaining P1 and owner decisions in the [roadmap](docs/implementation/DELIVERY_ROADMAP.md).
-- **Android app authored: 2026-10-22.** `apps/android` with a JVM-tested Kotlin core (14 tests) and a Compose app that waits for an Android SDK to compile; honesty boundary in [the record](docs/adr/2026-10-22-android-app-first-release.md). **Blocked here:** `dl.google.com` denied by the network policy.
+- **Android application build verified: 2026-10-23.** The existing Kotlin/Compose app now builds in hosted CI with JVM/app checks, lint, APK assembly and signature verification. The hosted SDK resolves the earlier local SDK/network block. Exact results and artifact links are in README.md#testing; device and production release boundaries are in [the application handoff](docs/implementation/PLATFORM_RELEASE.md).
 - **Platform assessment, five audit fixes and the Executive Command Centre: 2026-10-22, on branch `claude/tender-clarke-m4uwgq`, pull request pending.** 74 code-grounded findings ([assessment](docs/audits/SAAS_PLATFORM_ASSESSMENT.md)); blockers fixed with tests; the Overview is the Command Centre ([decision](docs/adr/2026-10-22-executive-command-centre.md)); P1 backlog and owner decisions in the [roadmap](docs/implementation/DELIVERY_ROADMAP.md). Verified 8/8; details in README.md#testing.
 - **Local model roles repaired: 2026-10-22.** Chat returned genuine Qwen replies, but a full analysis exposed missing model-role wiring in the background worker. The worker now uses the same roles as the API, with the shared privacy boundary and human publishing gate. After Hermes3 repeatedly exceeded the local deadline, the owner explicitly selected Qwen3 4B Instruct 2507 for all local roles, including a consultant. The private persistent profile follows that choice; cloud credentials are no longer required for this local setup. Distinct prompts use one model and do not establish independent review. Actual report authors, accepted notes, verification and remaining latency/quality limits are recorded in README.md#testing and the [worker decision](docs/adr/2026-10-22-worker-model-role-parity.md).
 

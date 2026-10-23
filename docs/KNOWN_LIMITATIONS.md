@@ -259,11 +259,19 @@ required local files. Both behaviors are covered by tests
     hosted acceptance. On 21 October `dcde343` was deployed to production
     with approval; it runs in `local` mode until the owner adds
     `AGENTIC_OS_DEMO=1` in Vercel. See `docs/VERCEL_DEPLOYMENT.md`.
-12. Android support is a verified installable PWA; a native Capacitor
-    project is documented but not shipped (no Android SDK available to
-    build or test one honestly).
-13. Obsidian integration is approval-gated write-back into a vault
-    folder; reading/sync/retrieval from a vault is not implemented.
+12. Windows and iOS use the installable PWA. The Kotlin/Compose Android
+    client now builds an actual debug APK in hosted CI, with core/app tests
+    and lint. Physical devices, native secure credential storage, release
+    signing and store acceptance remain separate; see
+    [the application handoff](implementation/PLATFORM_RELEASE.md).
+13. Publication supports a local Obsidian vault or durable SQL notes.
+    Vercel defaults to database publication without filesystem writes;
+    `AGENTIC_OS_PUBLISH_TARGET` selects explicitly. An approval is refused
+    when its reviewed destination changes. An authorized approver can request
+    a fresh review of the unchanged report and new destination; this resets
+    consent and does not publish. External-vault reading/sync is
+    not implemented; existing owned API routes retrieve the SQL notes.
+    Request/model duration under real hosted load still requires acceptance.
 14. The interface is Arabic or English (ADR 0018), right-to-left in
     Arabic, and the agent's own replies follow the chosen language.
     Reports are written in the language a run was started in (ADR 0022),

@@ -41,6 +41,13 @@ class Settings @Inject constructor(@ApplicationContext private val context: Cont
 
     suspend fun current(): AppSettings = flow.first()
 
+    /** One connection revision: never expose a new host with the old token. */
+    suspend fun save(server: String, language: String, token: String?) = context.store.edit {
+        it[serverKey] = server.trim().trimEnd('/')
+        it[languageKey] = if (language == "ar") "ar" else "en"
+        if (token.isNullOrBlank()) it.remove(tokenKey) else it[tokenKey] = token.trim()
+    }
+
     suspend fun setServerUrl(url: String) = context.store.edit { it[serverKey] = url.trim().trimEnd('/') }
     suspend fun setLanguage(language: String) = context.store.edit { it[languageKey] = language }
     suspend fun setToken(token: String?) = context.store.edit {

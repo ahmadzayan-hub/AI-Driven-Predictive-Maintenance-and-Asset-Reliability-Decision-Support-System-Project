@@ -38,7 +38,7 @@ from server.orchestration import ModelRoles
 from server.quota import load_limits
 from server.routing import RoutedGateway, build_router
 from server.stages import load_stages
-from server.runs import RunEngine, _stamp, _utcnow, resolve_vault_dir
+from server.runs import RunEngine, _stamp, _utcnow, resolve_publish_target, resolve_vault_dir
 from server.storage import open_store
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -231,7 +231,8 @@ def build_worker(env=None, config_path=None, **kwargs):
     engine = RunEngine(store, resolve_vault_dir(env=env, config=config),
                        gateway, limits=load_limits(env), stages=stage_registry,
                        profiles=config.get("profiles") or {}, execution_mode="worker",
-                       roles=model_roles if model_roles.active else None)
+                       roles=model_roles if model_roles.active else None,
+                       publish_target=resolve_publish_target(env, config))
     interval = agent_learning.interval_from(env)
     steward = agent_learning.Steward(
         interval, ledger=agent_learning.Ledger(agent_learning.ledger_path(env))) \
