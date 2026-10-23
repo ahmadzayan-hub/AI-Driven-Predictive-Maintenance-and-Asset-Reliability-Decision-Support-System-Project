@@ -1377,7 +1377,10 @@ def create_app(config_path=None, env=None, dist_dir=None):
         def media_source(job_id, principal, *, write=False, review=False, allow_stale=False):
             """Existing source grants are checked live; a job is not a grant."""
             try:
-                row = motion._record(job_id)
+                try:
+                    row = motion._record(job_id)
+                except MotionError:
+                    raise KeyError(job_id) from None
                 is_author = row["owner"] == principal.subject
                 if write and not is_author:
                     raise KeyError(job_id)
@@ -1407,6 +1410,10 @@ def create_app(config_path=None, env=None, dist_dir=None):
                         return dict(row, needs_update=True)
                     raise MotionError("Source report changed; create a new video draft / تغير التقرير؛ أنشئ مسودة فيديو جديدة")
                 return row
+            except HTTPException as exc:
+                if exc.status_code == 404:
+                    raise HTTPException(404, detail="Video unavailable / الفيديو غير متاح") from None
+                raise
             except (KeyError, RmdError):
                 raise HTTPException(404, detail="Video unavailable / الفيديو غير متاح") from None
             except (MotionError, MotionStoryRefused) as exc:

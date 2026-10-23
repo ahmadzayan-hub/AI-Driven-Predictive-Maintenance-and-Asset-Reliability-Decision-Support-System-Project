@@ -246,3 +246,41 @@ class MotionAccessTests(unittest.TestCase):
                     headers={**self.headers(who), "Content-Length": "24000001"}, content=b"synthetic")
                 self.assertEqual(response.status_code, 404)
                 worker.assert_not_called()
+
+    def test_missing_and_inaccessible_jobs_are_indistinguishable(self):
+        _, _, _, job, _ = self.fixture()
+        for who in ("outsider", "operator"):
+            for suffix in ("", "/preview"):
+                missing = self.get("MOT-missing", who, suffix)
+                denied = self.get(job, who, suffix)
+                self.assertEqual(missing.status_code, 404)
+                self.assertEqual(denied.status_code, 404)
+                self.assertEqual(missing.json().get("detail"), denied.json().get("detail"))
+                self.assertEqual(missing.json()["error"]["code"], denied.json()["error"]["code"])
+            missing = self.decide("MOT-missing", who)
+            denied = self.decide(job, who)
+            self.assertEqual(missing.status_code, 404)
+            self.assertEqual(denied.status_code, 404)
+            self.assertEqual(missing.json().get("detail"), denied.json().get("detail"))
+
+    def test_concurrent_final_decisions_have_one_winner_across_connections(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from threading import Barrier
+        from server.motion_local import MotionError
+        _, _, _, job, _ = self.fixture()
+        other = LocalMotion()
+        barrier = Barrier(2)
+        checks = {key: value for key, value in self.checks.items() if key != "outcome"}
+        def decide(pair):
+            instance, outcome = pair
+            barrier.wait()
+            try:
+                return instance.decide(job, "bob", outcome, "Human review", checks, approval_allowed=True)
+            except MotionError:
+                return None
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(decide, [(self.motion, "approve"), (other, "return")]))
+        winners = [result for result in results if result]
+        self.assertEqual(len(winners), 1)
+        self.assertFalse(winners[0]["publication_allowed"])
+        self.assertEqual(self.motion.record(job, "alice")["status"], winners[0]["status"])
