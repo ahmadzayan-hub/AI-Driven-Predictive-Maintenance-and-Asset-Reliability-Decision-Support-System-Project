@@ -685,6 +685,14 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Standards lint: blind set v2 into dev, blind set v3 — 23 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-23-standards-lint-blind-v3.md)):
+blind_v2 into dev (112 dev cases), the five families widened against its
+misses, blind_v3 written independently and scored once: dev 100%, holdout
+100% recall, blind 14% recall with no false alarms (floor 0.13; v3 is a
+harder set in dashboard and slide register, both old blind sets score 100%).
+
 ### Standards lint: families and blind set v2 — 23 October 2026
 
 Behaviour change ([decision](docs/adr/2026-10-23-standards-lint-families-blind-v2.md)):

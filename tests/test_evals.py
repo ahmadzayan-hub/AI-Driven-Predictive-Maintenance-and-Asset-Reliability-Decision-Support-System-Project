@@ -101,7 +101,7 @@ class SuiteTests(unittest.TestCase):
         self.assertIn("<table class=\"cm\">", page)
         self.assertIn("Rows: true label", page)
         self.assertIn("<th>Blind</th>", page)
-        self.assertIn("blind (blind_v2) · 40 cases", page)
+        self.assertIn("blind (blind_v3) · 40 cases", page)
         self.assertIn("Reviewers on seeded memos", page)
         self.assertIn("Rows: the planted defect.", page)
 
@@ -228,7 +228,7 @@ class RecallFixTests(unittest.TestCase):
             return {case["text"] for key, cases in data.items()
                     if key != skip and isinstance(cases, list)
                     for case in cases if isinstance(case, dict) and "text" in case}
-        for name, key, size in (("jargon", "blind_v6", 40), ("standards", "blind_v2", 40)):
+        for name, key, size in (("jargon", "blind_v6", 40), ("standards", "blind_v3", 40)):
             data = json.loads((ev.EVALS / f"{name}.json").read_text(encoding="utf-8"))
             if key not in data:
                 continue

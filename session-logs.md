@@ -1568,3 +1568,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** quick verify with PostgreSQL (counts in README.md#testing); the Miyaar workspace spec.
 - **Open / next:** PR #24 to merge when green; U8 and U20 (owner decisions); the model half of G8; the next standards-lint round.
 
+## 2026-10-23 · `d9e3f889` · claude/tender-clarke-m4uwgq (standards lint round two)
+
+**Goal:** after PR #24 merged, the one backlog item code can still move: the standards lint's next round.
+
+- **Done:** blind_v2 into dev with a source note (112 dev cases); the five families widened against its fifteen misses (optimum as "the best arrangement the depot can achieve", "solved allocation", "no other order could"; saving as "knocked ... off", "earned back", "recouped"; cost activity "inspections", "refits", "keeping the fleet running" with "came to"; grain states "ceiling", "beyond the limit", "risk category"; recommendation in "it would be sensible", "worth considering", "we urge"; and the Arabic forms); an independent agent wrote blind_v3 (40 cases, half Arabic, class recorded per case) from the definitions only; scored once: 14% recall, no false alarms, floored at 0.13.
+- **Verified:** `tests/test_evals.py`, `tests/test_agent_team.py`, `tests/test_docs.py`; `python scripts/evaluate_agents.py --check` (dev 100%, holdout 100% recall with the known false alarm, blind_v3 14%).
+- **Decided:** the floor is the first score even though it is lower than v2's: v3 is a harder set in dashboard and slide register, both old blind sets score 100%, and lowering nothing but the split name would hide that. v3 is never looked at while fixing; the next fix moves it into dev and is judged on v4.
+- **Open / next:** the dashboard and slide register families; U8 and U20 (owner decisions); the model half of G8.
+

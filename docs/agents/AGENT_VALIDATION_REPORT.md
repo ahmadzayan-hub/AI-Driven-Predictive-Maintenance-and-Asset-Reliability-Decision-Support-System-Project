@@ -17,7 +17,7 @@ today; everything else is from the code it cites.
 | jargon | validator's jargon check | 68, 100% (1.0) | 24, 96% accuracy, 92% recall (0.91) | blind_v6, 40 cases, 85% recall, 100% precision (0.85) |
 | causal | causal wording lint | 155, 100% (1.0; includes blind_v7 since 23 October, one contested case set aside) | 32, 100% (0.68; read while the fixes were chosen, ADR 0056) | none since 23 October: blind_v7 (60% recall, 88% precision before the fix) moved into dev, blind_v8 pending; probe_v5 32 cases, 56% recall, adversarial and unfloored |
 | figures | figures checker | 19, 100% (1.0) | 11, 100% (1.0) | no blind set |
-| standards | standards lint | 72, 100% (1.0; blind_v1 moved in on 23 October) | 24, 100% recall (0.9; written by the session that wrote the patterns, not blind) | blind_v2, 40 cases, 32% recall on the 22 refused sentences, every compliant sentence left alone (0.31); blind_v1 had scored 0% |
+| standards | standards lint | 112, 100% (1.0; blind_v1 and blind_v2 moved in on 23 October) | 24, 100% recall (0.9; written by the session that wrote the patterns, not blind) | blind_v3, 40 cases, 14% recall on the 22 refused sentences, every compliant sentence left alone (0.13); blind_v1 had scored 0% and blind_v2 32% before each moved into dev and scored 100% |
 
 All nine suites pass their floors, now on every split they have. Since
 22 October each text classifier declares its blind split in
