@@ -5,7 +5,7 @@ tags: [project]
 status: active
 updated: 2026-10-22
 review_every_days: 14
-sources: [README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/assessments/2026-10-20-project-review.md, docs/assessments/2026-10-21-saas-competitive-benchmark.md, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0024-the-dataset-api.md, docs/adr/0028-views-load-on-demand.md, scripts/verify.py, docs/adr/0058-executive-dashboard-agent-and-scoped-evidence.md]
+sources: [README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/RMD_EVIDENCE.md, docs/assessments/2026-10-20-project-review.md, docs/assessments/2026-10-21-saas-competitive-benchmark.md, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0024-the-dataset-api.md, docs/adr/0028-views-load-on-demand.md, scripts/verify.py, docs/adr/0058-executive-dashboard-agent-and-scoped-evidence.md]
 ---
 
 # Agentic OS
@@ -26,6 +26,9 @@ The engine in this repository, described in [[Identity]]: a governed business-an
   The reuse map and acceptance boundaries are in docs/RMD_EVIDENCE.md.
   The owner omitted unavailable source files from this delivery; synthetic
   verification does not imply those sources were studied.
+  Real API-backed desktop and phone journeys pass in English and Arabic through
+  evidence review and keyboard approval to confirmed publication; manual
+  comprehension and production performance remain separate acceptance work.
 
 - Workspace conversation has an explicit hosted [[Model gateway]] option and
   structured [[Agent runtimes and MCP|LangGraph decisions]]. Model failure is

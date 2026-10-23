@@ -116,3 +116,39 @@ Future work: automatic OCR with reviewed visual coverage, advanced engineering
 models after the readiness gate, and deployment-specific native packaging.
 No prediction or report approval autonomously authorizes maintenance or safety
 decisions.
+
+## Final interface review
+
+Reviewed with the instructions-only RMD UI/UX Pro Max adaptation and the React
+component checklist. This is a source review plus the recorded automated browser
+observations, not a manual screenshot or assistive-technology assessment. The
+upstream design CLI and style database were not installed. Existing platform
+tokens, local fonts and React/Vite architecture take precedence; no RTA approval,
+official branding or new operational imagery is asserted.
+
+Browser evidence uses explicitly synthetic workbook/procedure fixtures on
+`codex/rmd-evidence-insights-20261022`, combined revision `b2174dcc` and navigation
+correction `29ab16d1`. The desktop viewport is 1440 × 900 and phone viewport
+375 × 812; the overview also checks widths 768, 390 and 320. Both locales and
+light/dark overview renderings are covered. Evidence is in the README-linked
+acceptance runs, under the `rmd-synthetic-checks` artifact's
+`frontend/test-results` directory. All results below apply only to that scope.
+
+| ID | Priority | Screen/file location | Observed evidence | User consequence | Change or retained behavior | Test | Result |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| UX-01 | P2 | App and RMD feature folder | Typed React components, shared Dialog/charts/tokens, lazy routes; independent pack/action reads and obsolete-read cancellation | Existing workflows and initial loading remain usable | Retain stack, direct imports and existing components; no new runtime dependency | Source inspection, typecheck and measured build | PASS, inspected scope |
+| UX-02/13 | P2 | RMD styles and shared assets | Semantic tokens and current local typography; no new logo, font or operational photo | Consistent identity without invented asset evidence | Retain existing product assets | Source diff review | PASS, source-only |
+| UX-03/14 | P1 | RMD API, App, assistant/source panels | Pack checks on protected reads/writes; identity-keyed workspace, aborted late replies and fresh grants on re-entry | Private evidence remains scoped | Retain server authorization and in-memory draft policy | Separate-user/org, revocation, erasure and component regressions | PASS, tested boundaries |
+| UX-04 | P1 | Report review and existing ApprovalCard | Actual awaiting-approval response, exact report read gate, keyboard activation, confirmed publication path | Approval and publication remain distinct decisions/states | Reuse artifact-bound server gate | Real-API bilingual desktop/phone journeys | PASS, synthetic |
+| UX-05/06 | P1 | Findings, readiness, source inspector and assistant | Unavailable measures explain missing inputs; component failures preserve drafts and suppress stale results | Missing evidence and failures remain visible | Retain explicit asynchronous and evidence states | Calculation/service/component checks and browser drill-down | PASS, tested cases |
+| UX-07/08 | P1 | RMD overview, dialogs and report journey | English/Arabic journeys pass; checked widths do not overflow; phone action remains above navigation | Phone and RTL work can reach review | Corrected scroll containment in 7f8be777 | rmd.spec.ts and synthetic captures | PASS, stated viewport/state scope |
+| UX-09/10/11 | P2 | Dialogs, controls, typography | Keyboard approval and automated accessibility scans pass; manual screen-reader, text growth, orientation and target-box audit were not executed | Additional assistive-technology issues may remain | Retain visible focus, labelled controls and shared dialog behavior; perform manual assessment | Automated checks completed; manual assessment absent | NOT TESTED for remaining manual criteria |
+| UX-12 | P1 | Evidence charts, record dialog and exports | Chart tables and source-row drill-down use server snapshot values; exports retain population/calculation identity | Figures can be inspected without inferring incident totals | Retain accessible tables and authorized drill-down | Analytics/export tests and real-API evidence checks | PASS, synthetic |
+| UX-15 | P2 | Lazy RMD views and shared shell | Exact-byte bundle gate passes; no comparable production latency or Web Vitals study | Download limits are measured; runtime speed remains unproven | Retain lazy routes and documented total allocation | Hosted production build/budget | PASS for bundle; NOT TESTED for production latency |
+| UX-16 | P2 | App sidebar / overview.spec.ts | Old sidebar expectation omitted RMD; duplicate shield conflicted with destination identity | Navigation needs a distinct, tested destination | Include RMD in expectation; reuse search icon | Follow-up sidebar, Miyaar and subsequent full aggregate rerun pass | PASS, corrected scope |
+
+No critical authorization or evidence-integrity result is inferred from a
+screenshot. Manual comprehension timing, formal accessibility conformance and
+production acceptance remain open as described above. Review responsibility:
+Codex implementation lead, with the recorded independent source reviews and
+hosted test evidence.
