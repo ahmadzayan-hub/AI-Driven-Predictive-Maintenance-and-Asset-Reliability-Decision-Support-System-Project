@@ -103,6 +103,7 @@ export const en = {
   "cockpit.version": "Version {version}",
   "cockpit.hashBound": "Approval applies to this exact report. A changed report needs a new approval.",
   "cockpit.confirming": "Confirming with the server…",
+  "cockpit.updateReview": "Update destination for a new review",
   "cockpit.why": "Why is this true?",
   "cockpit.whyFor": "Why is this true? {type}",
   "cockpit.claims": "Reported claims",

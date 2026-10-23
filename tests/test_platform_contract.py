@@ -185,6 +185,34 @@ class PlatformContractTests(unittest.IsolatedAsyncioTestCase):
         private = await self.client.get("/api/vault/note", headers={"Authorization": "Bearer " + token("bob")}, params={"path": path})
         self.assertEqual(private.status_code, 404)
 
+    async def test_changed_destination_requires_authorized_fresh_review_and_a_new_approval_id(self):
+        self.app.state.engine.publish_target = "vault"
+        run = (await self.client.post("/api/runs", headers=self.headers, json={"goal": "Synthetic destination recovery"})).json()
+        for _ in range(40):
+            if run["state"] == "awaiting_approval": break
+            run = (await self.client.post(f"/api/runs/{run['id']}/advance", headers=self.headers)).json()
+        self.assertEqual(run["state"], "awaiting_approval")
+        old_id = run["approvals"][0]["id"]
+        self.app.state.engine.publish_target = "database"
+        refused = await self.client.post(f"/api/runs/{run['id']}/approvals/{old_id}", headers=self.headers, json={"decision": "approve"})
+        self.assertEqual(refused.status_code, 409)
+        self.assertEqual(refused.json()["error"]["code"], "publication_destination_changed")
+        path = f"/api/runs/{run['id']}/approvals/refresh"
+        hidden = await self.client.post(path, headers={"Authorization": "Bearer " + token("bob")})
+        self.assertEqual(hidden.status_code, 404)
+        denied = await self.client.post(path, headers={"Authorization": "Bearer " + token("alice", {"agentic_os_role": "viewer"})})
+        self.assertEqual(denied.status_code, 403)
+        refreshed = await self.client.post(path, headers=self.headers)
+        self.assertEqual(refreshed.status_code, 200, refreshed.text)
+        body = refreshed.json()
+        pending = next(a for a in body["approvals"] if a["state"] == "pending")
+        self.assertNotEqual(pending["id"], old_id)
+        self.assertIsNone(body["report"]["published_path"])
+        self.assertEqual((await self.client.post(f"/api/runs/{run['id']}/approvals/{old_id}", headers=self.headers, json={"decision": "approve"})).status_code, 409)
+        published = await self.client.post(f"/api/runs/{run['id']}/approvals/{pending['id']}", headers=self.headers, json={"decision": "approve"})
+        self.assertEqual(published.status_code, 200, published.text)
+        self.assertTrue(published.json()["report"]["published_path"].startswith("Reports/"))
+
 
 if __name__ == "__main__":
     unittest.main()

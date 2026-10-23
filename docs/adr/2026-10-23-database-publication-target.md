@@ -25,8 +25,13 @@ Local vault mode retains the existing Obsidian files as well as durable SQL
 notes. Its physical writes are not an atomic filesystem transaction; failed
 local mirroring remains an operator recovery case. Only confirmed server state
 indicates success. The approval names its actual destination and storage impact;
-a changed destination invalidates an approval. Reject and create a new reviewed
-analysis, or restore the reviewed configuration, to recover.
+a changed destination invalidates an approval. An authorized approver can use
+`POST /api/runs/{id}/approvals/refresh` to request a new review of the unchanged
+artifact and current destination. The previous request becomes `superseded`,
+with no invented human rejection or approval. Refresh is idempotent, cannot
+publish, and cannot legitimize changed/unvalidated report content. Web and
+Android reset the read confirmation for the new approval identity. Reopen and
+read the report and destination before approving again.
 
 Dataset names use JSON-escaped YAML scalar values. Source spelling, quotes,
 Unicode and newlines survive without introducing extra frontmatter fields.

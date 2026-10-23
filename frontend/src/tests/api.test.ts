@@ -24,7 +24,7 @@ describe('api client', () => {
       error: { code: 'mapping_invalid', message: 'Canonical explanation', problems, request_id: 'test-request' },
       detail: 'Legacy explanation',
     }) })
-    await expect(api.health()).rejects.toMatchObject({ message: 'Canonical explanation', problems })
+    await expect(api.health()).rejects.toMatchObject({ message: 'Canonical explanation', problems, code: 'mapping_invalid' })
   })
 
   it('sends a caller-controlled run key without dropping authentication', async () => {

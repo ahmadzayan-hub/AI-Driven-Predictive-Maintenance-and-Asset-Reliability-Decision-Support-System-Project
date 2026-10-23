@@ -30,10 +30,14 @@ import com.assetreliability.app.ui.components.Muted
 import com.assetreliability.app.ui.components.RisingCard
 import com.assetreliability.app.ui.t
 import com.assetreliability.core.api.RunDetail
+import com.assetreliability.core.api.ApiException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+private fun reviewKey(run: RunDetail): String = listOf(run.id,
+    run.approvals.firstOrNull { it.state == "pending" }?.id, run.report?.id, run.report?.version).joinToString(":")
 
 /** The human gate, on the phone. Approve is enabled only after the report
  *  has been opened and the person has said they read it (assessment
@@ -47,11 +51,13 @@ class ApprovalsViewModel @Inject constructor(private val platform: PlatformRepos
     val read = MutableStateFlow(false)
     val busy = MutableStateFlow(false)
     val result = MutableStateFlow<RunDetail?>(null)
+    val destinationChanged = MutableStateFlow<String?>(null)
 
     init { refresh() }
 
     fun refresh() = viewModelScope.launch {
         error.value = null
+        destinationChanged.value = null
         try {
             readOnly.value = runCatching { platform.isReadOnly() }.getOrDefault(false)
             val summaries = platform.runs("awaiting_approval").sortedBy { it.createdAt }
@@ -59,14 +65,28 @@ class ApprovalsViewModel @Inject constructor(private val platform: PlatformRepos
         } catch (e: Exception) { error.value = e.message ?: e.toString() }
     }
 
-    fun open(runId: String) { opened.value = if (opened.value == runId) null else runId; read.value = false }
+    fun open(run: RunDetail) { opened.value = if (opened.value == reviewKey(run)) null else reviewKey(run); read.value = false }
 
     fun decide(run: RunDetail, approve: Boolean) = viewModelScope.launch {
-        if (busy.value || readOnly.value || (approve && (!read.value || opened.value != run.id || run.report == null))) return@launch
+        if (busy.value || readOnly.value || (approve && (!read.value || opened.value != reviewKey(run) || run.report == null))) return@launch
         val approval = run.approvals.firstOrNull { it.state == "pending" } ?: return@launch
         busy.value = true
         try { result.value = platform.decide(run.id, approval.id, approve); opened.value = null; read.value = false; refresh() }
-        catch (e: Exception) { error.value = e.message ?: e.toString() }
+        catch (e: Exception) {
+            destinationChanged.value = if (e is ApiException && e.code == "publication_destination_changed") run.id else null
+            error.value = e.message ?: e.toString()
+        }
+        finally { busy.value = false }
+    }
+
+    fun refreshDestination(runId: String) = viewModelScope.launch {
+        if (busy.value || readOnly.value) return@launch
+        busy.value = true
+        try {
+            platform.refreshPublicationReview(runId)
+            opened.value = null; read.value = false
+            refresh()
+        } catch (e: Exception) { error.value = e.message ?: e.toString() }
         finally { busy.value = false }
     }
 }
@@ -80,6 +100,7 @@ fun ApprovalsScreen(viewModel: ApprovalsViewModel = hiltViewModel()) {
     val read by viewModel.read.collectAsStateWithLifecycle()
     val busy by viewModel.busy.collectAsStateWithLifecycle()
     val result by viewModel.result.collectAsStateWithLifecycle()
+    val destinationChanged by viewModel.destinationChanged.collectAsStateWithLifecycle()
 
     LazyColumn(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
         item {
@@ -94,7 +115,12 @@ fun ApprovalsScreen(viewModel: ApprovalsViewModel = hiltViewModel()) {
             }
         }
         when {
-            error != null -> item { ErrorState(error!!) { viewModel.refresh() } }
+            error != null -> item {
+                ErrorState(error!!) { viewModel.refresh() }
+                destinationChanged?.let { id ->
+                    OutlinedButton(onClick = { viewModel.refreshDestination(id) }, enabled = !busy) { Text(t("approvals.updateReview")) }
+                }
+            }
             waiting == null -> item { Loading() }
             waiting!!.isEmpty() -> item { Muted(t("approvals.none")) }
             else -> items(waiting!!, key = { it.id }) { run ->
@@ -103,8 +129,8 @@ fun ApprovalsScreen(viewModel: ApprovalsViewModel = hiltViewModel()) {
                     Muted(run.datasetName + " · " + run.updatedAt.take(10))
                     val report = run.report
                     val approval = run.approvals.firstOrNull { it.state == "pending" }
-                    OutlinedButton(onClick = { viewModel.open(run.id) }, modifier = Modifier.padding(top = 8.dp)) { Text(t("approvals.open")) }
-                    if (opened == run.id) {
+                    OutlinedButton(onClick = { viewModel.open(run) }, modifier = Modifier.padding(top = 8.dp)) { Text(t("approvals.open")) }
+                    if (opened == reviewKey(run)) {
                         Column(Modifier.padding(top = 8.dp)) {
                             run.reports.filter { it.headline.isNotBlank() }.forEach { Text("• " + it.headline, modifier = Modifier.padding(vertical = 2.dp)) }
                             report?.let {

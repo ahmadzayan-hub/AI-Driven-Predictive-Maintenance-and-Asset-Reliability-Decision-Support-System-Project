@@ -163,6 +163,10 @@ MAX_IDEMPOTENCY_KEY = 200
 class IdempotencyConflict(ValueError):
     """The owner reused a creation key for a different request."""
 
+
+class PublicationDestinationChanged(ValueError):
+    """A pending review names a different destination from current settings."""
+
 class RunEngine:
     def __init__(self, store, vault_dir, gateway, limits=None, glossary=None,
                  stages=None, profiles=None, execution_mode="client", roles=None,
@@ -814,6 +818,30 @@ class RunEngine:
         with self.store.atomic("run:" + run_id):
             return self._decide_approval_atomic(run_id, approval_id, decision, approver)
 
+    def refresh_publication_review(self, run_id):
+        """Request fresh consent for a changed destination, never publish.
+
+        A changed report cannot use this shortcut: its evidence must go through
+        a new governed analysis. Repeating this request at the same destination
+        returns the current pending review without another history entry.
+        """
+        with self.store.atomic("run:" + run_id):
+            run = self._row(run_id)
+            if run["state"] != "awaiting_approval":
+                raise ValueError("A new publication review requires a run awaiting approval.")
+            pending = self.store.pending_approval(run_id)
+            artifact = self.store.latest_artifact(run_id)
+            if not pending or not artifact:
+                raise ValueError("The pending report review is unavailable.")
+            current_hash = hashlib.sha256(artifact["content"].encode()).hexdigest()
+            if current_hash != pending["content_hash"]:
+                raise ValueError("The report changed; start a new governed analysis before requesting approval.")
+            if pending["target"] == self.publication_destination():
+                return self.get_run(run_id)
+            self.store.update("approvals", pending["id"], {"state": "superseded"})
+            task = next(task for task in self.store.get_tasks(run_id) if task["role"] == "publish")
+            return self._request_publish_approval(run_id, task)
+
     def _decision_record(self, tasks):
         """The run's decision record, as the sensitivity stage completed it
         or as the prescriptive stage wrote it; None when neither ran. The
@@ -857,7 +885,10 @@ class RunEngine:
             raise ValueError("Artifact changed after approval was requested.")
         if decision == "approve":
             if approval["target"] != self.publication_destination():
-                raise ValueError("The publication destination changed after review. Restore it or reject and create a new reviewed analysis.")
+                raise PublicationDestinationChanged(
+                    "تغيرت وجهة النشر بعد المراجعة. حدّث طلب المراجعة ثم اقرأ التقرير والوجهة الجديدة قبل الموافقة."
+                    if (self._row(run_id).get("report_language") or "en") == "ar" else
+                    "The publication destination changed after review. Update the review request, then read the report and new destination before approving.")
             path = self._publish(run_id, artifact)
             self.store.update("approvals", approval_id,
                               {"state": "approved_once", "decided_at": _now(),
@@ -1077,7 +1108,7 @@ class RunEngine:
         # when, from the approval row itself (A13). No stage writes this part.
         decision = self._decision_record(self.store.get_tasks(run_id))
         if decision is not None:
-            gate = next((a for a in approvals if a["state"] != "pending"), None)
+            gate = next((a for a in approvals if a["state"] in ("approved_once", "rejected")), None)
             decision["approval"] = ({"state": gate["state"], "decided_at": gate["decided_at"],
                                      "decided_by": gate.get("decided_by")} if gate else None)
         declared = json.loads(run.get("joins_json") or "{}")

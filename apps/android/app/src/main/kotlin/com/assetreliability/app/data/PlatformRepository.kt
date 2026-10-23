@@ -42,6 +42,7 @@ class PlatformRepository @Inject constructor(
     suspend fun advance(runId: String): RunDetail = client().advance(runId)
     suspend fun decide(runId: String, approvalId: String, approve: Boolean): RunDetail =
         client().decide(runId, approvalId, approve)
+    suspend fun refreshPublicationReview(runId: String): RunDetail = client().refreshPublicationReview(runId)
 
     /** Reads the picked file from the content resolver and uploads it. The
      *  platform caps uploads at 4 MB; a larger file is refused here with

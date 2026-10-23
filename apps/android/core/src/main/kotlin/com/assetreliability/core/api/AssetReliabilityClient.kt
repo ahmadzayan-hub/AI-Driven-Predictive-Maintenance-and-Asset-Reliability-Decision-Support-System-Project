@@ -17,7 +17,7 @@ data class TransportResponse(val status: Int, val body: String) {
     val ok: Boolean get() = status in 200..299
 }
 
-class ApiException(val status: Int, val detail: String) : Exception("HTTP $status: $detail")
+class ApiException(val status: Int, val detail: String, val code: String? = null) : Exception("HTTP $status: $detail")
 
 /** Reads the platform's API. `tokenProvider` returns a bearer token for a
  *  signed-in workspace, or null for the view-only demo. */
@@ -43,7 +43,7 @@ class AssetReliabilityClient(
     }
 
     private inline fun <reified T> parse(response: TransportResponse): T {
-        if (!response.ok) throw ApiException(response.status, detailOf(response.body))
+        if (!response.ok) throw ApiException(response.status, detailOf(response.body), codeOf(response.body))
         return ApiJson.decodeFromString(response.body)
     }
 
@@ -88,6 +88,9 @@ class AssetReliabilityClient(
         transport.postJson(url("/api/runs/${enc(runId)}/approvals/${enc(approvalId)}"),
             "{\"decision\":\"${if (approve) "approve" else "reject"}\"}", headers()))
 
+    suspend fun refreshPublicationReview(runId: String): RunDetail =
+        parse(transport.postJson(url("/api/runs/${enc(runId)}/approvals/refresh"), "{}", headers()))
+
     suspend fun createSession(language: String = "en"): SessionState =
         parse(transport.postJson(url("/api/sessions"), "{\"language\":${quote(language)}}", headers()))
 
@@ -105,6 +108,12 @@ class AssetReliabilityClient(
     private fun enc(value: String) = URLEncoder.encode(value, "UTF-8")
 
     companion object {
+        fun codeOf(body: String): String? = try {
+            val root = ApiJson.parseToJsonElement(body) as? kotlinx.serialization.json.JsonObject
+            val detail = (root?.get("error") ?: root?.get("detail")) as? kotlinx.serialization.json.JsonObject
+            (detail?.get("code") as? kotlinx.serialization.json.JsonPrimitive)?.content
+        } catch (_: Exception) { null }
+
         fun quote(text: String): String = buildString {
             append('"')
             for (c in text) when (c) {

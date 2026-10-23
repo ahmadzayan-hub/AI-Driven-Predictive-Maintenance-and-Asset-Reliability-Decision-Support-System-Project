@@ -9,6 +9,7 @@ object Strings {
     val en: Map<String, String> = mapOf(
         "app.name" to "Asset Reliability",
         "state.queued" to "Queued", "state.running" to "Running", "state.paused" to "Paused",
+        "state.verifying" to "Checking results",
         "state.awaiting_approval" to "Awaiting approval", "state.completed" to "Completed",
         "state.partially_completed" to "Partially completed", "state.cancelled" to "Cancelled", "state.failed" to "Failed",
         "nav.command" to "Command Centre", "nav.analyses" to "Analyses", "nav.approvals" to "Approvals",
@@ -58,6 +59,7 @@ object Strings {
         "approvals.reportMissing" to "The full report is unavailable. Reload before approving.",
         "approvals.published" to "Publication confirmed: {path}",
         "approvals.recorded" to "Decision recorded. Publication is not confirmed.",
+        "approvals.updateReview" to "Update destination for a new review",
         "approvals.open" to "Open the report", "approvals.read" to "I have read this report",
         "approvals.approve" to "Approve and publish", "approvals.reject" to "Reject",
         "approvals.gate" to "Approval publishes the exact report shown. Nothing executes a maintenance action.",
@@ -82,6 +84,7 @@ object Strings {
     val ar: Map<String, String> = mapOf(
         "app.name" to "موثوقية الأصول",
         "state.queued" to "في قائمة الانتظار", "state.running" to "قيد التنفيذ", "state.paused" to "متوقف مؤقتًا",
+        "state.verifying" to "جارٍ فحص النتائج",
         "state.awaiting_approval" to "بانتظار الموافقة", "state.completed" to "مكتمل",
         "state.partially_completed" to "مكتمل جزئيًا", "state.cancelled" to "ملغى", "state.failed" to "فشل",
         "nav.command" to "مركز القيادة", "nav.analyses" to "التحليلات", "nav.approvals" to "الموافقات",
@@ -131,6 +134,7 @@ object Strings {
         "approvals.reportMissing" to "التقرير الكامل غير متاح. أعد التحميل قبل الموافقة.",
         "approvals.published" to "تم تأكيد النشر: {path}",
         "approvals.recorded" to "سُجِّل القرار. لم يُؤكَّد النشر.",
+        "approvals.updateReview" to "تحديث الوجهة لمراجعة جديدة",
         "approvals.open" to "افتح التقرير", "approvals.read" to "قرأت هذا التقرير",
         "approvals.approve" to "اعتمد وانشر", "approvals.reject" to "ارفض",
         "approvals.gate" to "الموافقة تنشر التقرير المعروض بالضبط. لا ينفّذ أي إجراء صيانة.",

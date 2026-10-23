@@ -103,6 +103,16 @@ class ClientTest {
         assertEquals("Canonical", AssetReliabilityClient.detailOf("""{"error":{"code":"x","message":"Canonical"},"detail":"Old"}"""))
         assertEquals("Review this field", AssetReliabilityClient.detailOf("""{"detail":{"code":"x","message":"Review this field"}}"""))
         assertEquals("Old", AssetReliabilityClient.detailOf("""{"detail":"Old"}"""))
+        assertEquals("publication_destination_changed", AssetReliabilityClient.codeOf("""{"error":{"code":"publication_destination_changed","message":"Review again"}}"""))
+    }
+
+    @Test
+    fun `refreshing a destination requests review without deciding publication`() = runBlocking {
+        val transport = FakeTransport(mapOf("/api/runs/r1/approvals/refresh" to """{"id":"r1","goal":"g","state":"awaiting_approval"}"""))
+        val run = AssetReliabilityClient(transport, "http://server").refreshPublicationReview("r1")
+        assertEquals("awaiting_approval", run.state)
+        assertEquals("http://server/api/runs/r1/approvals/refresh", transport.calls.single().second)
+        assertEquals("{}", transport.calls.single().third)
     }
 
     @Test

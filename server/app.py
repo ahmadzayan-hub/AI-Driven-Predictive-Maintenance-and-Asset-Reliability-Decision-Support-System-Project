@@ -49,7 +49,7 @@ from server.model_gateway import ModelGateway
 from server.orchestration import ModelRoles
 from server.routing import RoutedGateway, build_router
 from server.stages import describe, load_stages
-from server.runs import (IdempotencyConflict, RunEngine, TableNotReady, dataset_summary,
+from server.runs import (IdempotencyConflict, PublicationDestinationChanged, RunEngine, TableNotReady, dataset_summary,
                          resolve_publish_target, resolve_vault_dir)
 from server import demo
 from server.auth import DEMO_PRINCIPAL, AuthError, build_identity, public_auth_config
@@ -1018,6 +1018,8 @@ def create_app(config_path=None, env=None, dist_dir=None):
             raise HTTPException(status_code=404, detail="Run not found.")
         except QuotaExceeded as error:
             raise HTTPException(status_code=429, detail=error.message)
+        except PublicationDestinationChanged as error:
+            raise HTTPException(status_code=409, detail={"code": "publication_destination_changed", "message": str(error)})
         except ValueError as error:
             raise HTTPException(status_code=409, detail=str(error))
 
@@ -1455,6 +1457,10 @@ def create_app(config_path=None, env=None, dist_dir=None):
             return await run_in_threadpool(table_query.records, table, body.model_dump())
         except table_query.QueryError as error:
             raise HTTPException(status_code=422, detail=error.detail(language))
+
+    @app.post("/api/runs/{run_id}/approvals/refresh")
+    def refresh_publication_review(run_id: str, principal=Depends(requires("approve"))):
+        return _run_or_404(lambda: engine.refresh_publication_review(run_id), principal, run_id, permission="authorize")
 
     @app.post("/api/runs/{run_id}/approvals/{approval_id}")
     def decide_approval(run_id: str, approval_id: str, decision: ApprovalIn, principal=Depends(requires("approve"))):
