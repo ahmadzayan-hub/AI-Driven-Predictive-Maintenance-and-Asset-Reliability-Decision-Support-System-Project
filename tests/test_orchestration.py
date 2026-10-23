@@ -237,7 +237,9 @@ class LocalHermesAndAgentsTestCase(unittest.TestCase):
                           return_value={"message": {"content": "Check coverage before approval."}}) as post:
             self.assertIsNotNone(roles.plan("Review sales", ["Plan", "Analyze", "Review"]))
             self.assertIsNotNone(roles.consult("Review sales", ["Coverage is complete."]))
-        self.assertEqual(post.call_count, 3)
+        # Plan, the structured consultant call (whose plain-text answer is
+        # not in the schema, G5), the free-text consultant call, the brief.
+        self.assertEqual(post.call_count, 4)
         for call in post.call_args_list:
             self.assertEqual(call.args[3]["options"]["num_predict"], 240)
             self.assertIn("45 words", call.args[3]["messages"][0]["content"])

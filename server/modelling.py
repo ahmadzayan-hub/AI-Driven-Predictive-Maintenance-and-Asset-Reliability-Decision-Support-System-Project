@@ -86,6 +86,58 @@ def _table(ctx):
             ctx["governance"]["measure"], ctx["preparer"].get("date_col"))
 
 
+# Numeric columns this close to a linear function of the target are the
+# target under another name (a total beside its rate, a copy): |r| at or
+# above this is refused as an input (A11).
+DERIVED_CORRELATION = 0.999
+
+
+def _screen(ctx, rows, columns, numeric, target):
+    """Inputs the generic models may not use, with the reason (A11).
+
+    The maintenance targets screen by the contract's timing; the generic
+    stages have no contract, so they refuse what can be known without one:
+    columns the saved mapping ignores, detected personal data, and numeric
+    columns identical to or a linear function of the target."""
+    excluded = {}
+    roles = (ctx.get("mapping") or {}).get("roles") or {}
+    for column, role in roles.items():
+        if role == "ignore" and column in columns:
+            excluded[column] = "explicitly ignored by the saved column mapping"
+    texts = [c for c in columns if c not in numeric and c not in excluded]
+    if texts:
+        screened = [{c: str(row.get(c) or "") for c in texts} for row in rows[:2000]]
+        for finding in analytics.personal_data_findings(texts, screened):
+            excluded[finding["column"]] = "detected personal data is not a model input"
+    if target in numeric:
+        pairs = [(row.get(target), row) for row in rows
+                 if isinstance(row.get(target), (int, float))]
+        for column in numeric:
+            if column == target or column in excluded:
+                continue
+            xs = [(t, row.get(column)) for t, row in pairs
+                  if isinstance(row.get(column), (int, float))]
+            if len(xs) < 3:
+                continue
+            if all(t == x for t, x in xs):
+                excluded[column] = "identical to the target"
+                continue
+            r = _correlation([t for t, _ in xs], [x for _, x in xs])
+            if r is not None and abs(r) >= DERIVED_CORRELATION:
+                excluded[column] = (f"a linear function of the target (|r| = {abs(r):.4f}), "
+                                    "so it carries the outcome")
+    return excluded
+
+
+def _correlation(xs, ys):
+    mx, my = statistics.fmean(xs), statistics.fmean(ys)
+    sx = math.sqrt(sum((x - mx) ** 2 for x in xs))
+    sy = math.sqrt(sum((y - my) ** 2 for y in ys))
+    if not sx or not sy:
+        return None
+    return sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / (sx * sy)
+
+
 def _inputs(rows, columns, numeric, exclude):
     """Numeric inputs, and text inputs with their levels (most common first,
     which is the level the others are compared with)."""
@@ -190,13 +242,17 @@ def _weak(ctx, role, label_en, label_ar, improvement):
         ["c_improvement"])
 
 
-def _leakage(ctx, role):
+def _leakage(ctx, role, excluded=None):
+    refused = len(excluded or {})
     return _claim(
         ctx, role, "cl_inputs", "limitation",
-        "The model uses every other measure as an input. A measure recorded after "
-        "the outcome would make it look better than it is.",
-        "يستخدم النموذج كل مقياس آخر مدخلاً. والمقياس المسجَّل بعد النتيجة يجعله يبدو "
-        "أفضل مما هو عليه.",
+        "The model uses every other measure as an input, after refusing "
+        f"{refused} column(s) the mapping ignores, that hold personal data, or that "
+        "are the target under another name. A measure recorded after the outcome "
+        "that is not one of those would still make it look better than it is.",
+        f"يستخدم النموذج كل مقياس آخر مدخلاً، بعد استبعاد {refused} من الأعمدة التي "
+        "يتجاهلها التعيين أو تحمل بيانات شخصية أو تمثل الهدف باسم آخر. والمقياس "
+        "المسجَّل بعد النتيجة من غير هذه يجعله يبدو أفضل مما هو عليه.",
         ["c_inputs"])
 
 
@@ -325,15 +381,56 @@ def fit_naive_bayes(vectors, labels):
     return model
 
 
-def predict_naive_bayes(model, vector):
-    best, score = None, -math.inf
+def _log_scores(model, vector):
+    scores = {}
     for label, (prior, means, spreads) in model.items():
         total = prior
         for x, m, s in zip(vector, means, spreads):
             total -= (x - m) ** 2 / (2 * s) + 0.5 * math.log(s)
-        if total > score:
-            best, score = label, total
-    return best
+        scores[label] = total
+    return scores
+
+
+def predict_naive_bayes(model, vector):
+    scores = _log_scores(model, vector)
+    return max(scores, key=scores.get)
+
+
+def naive_bayes_probabilities(model, vector):
+    """Each class's posterior probability (the scores, exponentiated and
+    normalised), so a prediction carries how sure the model is (A14)."""
+    scores = _log_scores(model, vector)
+    top = max(scores.values())
+    weights = {label: math.exp(score - top) for label, score in scores.items()}
+    total = sum(weights.values())
+    return {label: weight / total for label, weight in weights.items()}
+
+
+CALIBRATION_BINS = 5
+
+
+def calibration(probabilities, truths, base_rate):
+    """How the model's probabilities for the positive class compare with
+    what happened (A14): the Brier score against always saying the
+    training base rate, and the reliability bins (mean predicted against
+    observed share). A model whose Brier score is not below the base
+    rate's is not calibrated enough to quote a probability from."""
+    if not probabilities:
+        return None
+    brier = statistics.fmean((p - t) ** 2 for p, t in zip(probabilities, truths))
+    baseline = statistics.fmean((base_rate - t) ** 2 for t in truths)
+    bins = []
+    for index in range(CALIBRATION_BINS):
+        low, high = index / CALIBRATION_BINS, (index + 1) / CALIBRATION_BINS
+        members = [(p, t) for p, t in zip(probabilities, truths)
+                   if low <= p < high or (index == CALIBRATION_BINS - 1 and p == 1.0)]
+        if members:
+            bins.append({"range": [round(low, 2), round(high, 2)], "records": len(members),
+                         "mean_predicted": round(statistics.fmean(p for p, _ in members), 4),
+                         "observed": round(statistics.fmean(t for _, t in members), 4)})
+    return {"brier": round(brier, 4), "baseline_brier": round(baseline, 4),
+            "better_than_base_rate": brier < baseline, "bins": bins,
+            "base_rate": round(base_rate, 4)}
 
 
 def _distance(a, b):
@@ -436,7 +533,8 @@ class RegressionModel:
         role = self.role
         rows, columns, numeric, measure, date = _table(ctx)
         title = _say(ctx, "What predicts the measure?", "ما الذي يتنبأ بالمقياس؟")
-        exclude = {measure, date}
+        screened = _screen(ctx, rows, columns, numeric, measure)
+        exclude = {measure, date, *screened}
         numbers, texts = _inputs(rows, columns, numeric, exclude)
         names, vector = _vectoriser(numbers, texts)
         if not names:
@@ -495,7 +593,7 @@ class RegressionModel:
                    f"{measure} هو {model_error:,.2f} مقابل {base_error:,.2f} عند تخمين "
                    f"المتوسط دائماً: أفضل بنسبة {improvement:.0%}.",
                    ["c_model_error", "c_base_error", "c_improvement", "c_test"]),
-            _leakage(ctx, role),
+            _leakage(ctx, role, screened),
         ]
         if beats and ranked:
             top_name, top_value = ranked[0]
@@ -540,7 +638,7 @@ class RegressionModel:
                     "average_error", round(model_error, 4), round(base_error, 4),
                     "training_average", round(improvement, 4), beats,
                     {"weights": [{"input": n, "weight": round(v, 6)} for n, v in ranked],
-                     "held_out_share_explained": round(explained, 4)}, window=_window(train_rows, date), ctx=ctx),
+                     "held_out_share_explained": round(explained, 4)}, window=_window(train_rows, date), excluded=screened, ctx=ctx),
             },
         }
 
@@ -579,6 +677,8 @@ class ClassificationModel:
             exclude = {measure, date}
             derived = measure
             labels_of, target_name = None, None
+        screened = _screen(ctx, rows, columns, numeric, derived or target_name)
+        exclude = exclude | set(screened)
         numbers, texts = _inputs(rows, columns, numeric, exclude)
         names, vector = _vectoriser(numbers, texts)
         if not names:
@@ -618,6 +718,14 @@ class ClassificationModel:
         actual = [labels_of(r) for r in test_rows]
         predicted = [predict_naive_bayes(model, scale(vector(r))) for r in test_rows]
         present = sorted(set(actual))
+        # Probabilities for the least common training class, scored against
+        # the training base rate (A14).
+        positive = Counter(train_labels).most_common()[-1][0]
+        posteriors = [naive_bayes_probabilities(model, scale(vector(r))).get(positive, 0.0)
+                      for r in test_rows]
+        probabilities = calibration(posteriors, [1.0 if a == positive else 0.0 for a in actual],
+                                    train_labels.count(positive) / len(train_labels))
+        probabilities["positive_class"] = positive
 
         def balanced(guesses):
             hits = []
@@ -650,6 +758,12 @@ class ClassificationModel:
                   "share of held-out records classified correctly"),
             _calc(role, "c_improvement", "improvement_over_baseline", round(improvement, 4),
                   "(model − baseline) / baseline, balanced accuracy"),
+            _calc(role, "c_brier", "brier_score", probabilities["brier"],
+                  f"mean squared gap between the model's probability of “{positive}” and "
+                  "what happened, on the held-out records"),
+            _calc(role, "c_base_brier", "baseline_brier_score", probabilities["baseline_brier"],
+                  f"the same for always saying the training share of “{positive}” "
+                  f"({probabilities['base_rate']:.0%})"),
         ]
         claims = [
             _claim(ctx, role, "cl_fit", "calculation",
@@ -661,10 +775,21 @@ class ClassificationModel:
                    f"بنسبة {model_score:.0%} في المتوسط، مقابل {base_score:.0%} عند تخمين "
                    f"«{majority}» دائماً: أفضل بنسبة {improvement:.0%}.",
                    ["c_model_score", "c_base_score", "c_improvement", "c_test"]),
-            _leakage(ctx, role),
+            _leakage(ctx, role, screened),
         ]
         if not beats:
             claims.append(_weak(ctx, role, "classifier", "نموذج التصنيف", improvement))
+        if not probabilities["better_than_base_rate"]:
+            claims.append(_claim(
+                ctx, role, "cl_calibration", "limitation",
+                f"The model's probabilities are no closer to what happened than the base "
+                f"rate (Brier {probabilities['brier']:.3f} against "
+                f"{probabilities['baseline_brier']:.3f}), so no probability from it should "
+                "be quoted.",
+                f"احتمالات النموذج ليست أقرب إلى ما حدث من النسبة الأساسية (برير "
+                f"{probabilities['brier']:.3f} مقابل {probabilities['baseline_brier']:.3f})، "
+                "فلا ينبغي الاستشهاد بأي احتمال منه.",
+                ["c_brier", "c_base_brier"]))
         headline = _say(
             ctx,
             (f"The classifier gets each class right {model_score:.0%} of the time, "
@@ -699,7 +824,9 @@ class ClassificationModel:
                     split, "balanced_accuracy", round(model_score, 4), round(base_score, 4),
                     "most_common_class", round(improvement, 4), beats,
                     {"classes": present, "hit_rates": hit_rates, "confusion": confusion,
-                     "accuracy": round(accuracy, 4), "majority": majority}, window=_window(train_rows, date), ctx=ctx),
+                     "accuracy": round(accuracy, 4), "majority": majority,
+                     "probabilities": probabilities},
+                    window=_window(train_rows, date), ctx=ctx, excluded=screened),
             },
         }
 

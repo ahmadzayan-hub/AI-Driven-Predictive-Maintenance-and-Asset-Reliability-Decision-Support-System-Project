@@ -462,15 +462,18 @@ required local files. Both behaviors are covered by tests
     until the stream ends. A connector's error is stored in the
     language it was created in.
 
-20. On PostgreSQL each thread holds its own connection (23 October, B11),
-    so reads no longer queue behind another thread's transaction, but
-    there is no bound on connections per process beyond the server's
-    thread count; put a connection pooler in front of the database on a
-    hosted deployment. Model cards carry a version, the run snapshot and
-    the training window (A14), but no probabilities or calibration: those
-    stay in the registered-window protocol, and the generic regression and
-    classification stages still declare leakage rather than screen their
-    inputs (A11).
+20. On PostgreSQL one process holds a pool of at most 20 connections
+    (23 October, B11): a thread at the bound waits up to 30 seconds for a
+    released one and then fails as a database error (503). A pooler in
+    front of the database stays the hosted recommendation; the bound is
+    what one instance asks of it. The classification card carries
+    probabilities with a Brier score and reliability bins (A14); the
+    regression card does not quote prediction intervals. The generic
+    stages refuse mapping-ignored, personal and target-derived columns
+    (A11), but a measure recorded after the outcome that is none of those
+    is still declared rather than detected. A hosted model's structured
+    answer is checked against its schema on the server (G5); Anthropic has
+    no JSON mode, so it is asked in text and checked the same way.
 
 30. The maintenance KPI register (`server/maintenance/kpis.py`) is bound
     to cleaned runs through the KPI endpoint and Asset Intelligence view

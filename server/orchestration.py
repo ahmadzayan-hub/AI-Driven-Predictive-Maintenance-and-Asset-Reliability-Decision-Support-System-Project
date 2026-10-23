@@ -31,11 +31,13 @@ not a model is reachable. AGENTIC_OS_BUILT_IN_ROLES=0 switches that off,
 and then with nothing configured (as in most tests) nothing here runs.
 """
 
+import json
 import re
 from concurrent.futures import ThreadPoolExecutor
 
 from server.model_gateway import split_spec
 from server.model_privacy import blocks_model
+from server import schema
 
 MAX_FACTS = 14
 MAX_NOTE_CHARS = 900
@@ -68,6 +70,31 @@ CONSULTANT_SYSTEM = (
 )
 ARABIC = (" Write in formal Arabic, copying every number exactly as written "
           "in the facts with the same digits.")
+# Structured consultant risks (assessment G5): each risk names the finding
+# it is about by its number in the list, so agreement between consultants
+# is a comparison of references, not a model's opinion (G6).
+CONSULTANT_RISKS_SYSTEM = (
+    "You are an independent senior reliability and analytics consultant "
+    "reviewing verified analytics findings, numbered in the list you are given. "
+    "Return ONLY one JSON object: {\"risks\": [{\"finding\": <number>, "
+    "\"concern\": \"one short sentence\"}], \"note\": \"two short sentences\"}. "
+    "Name at most three risks, each about one numbered finding: the evidence "
+    "gap or question the approver should raise before acting on it. The note "
+    "is your qualitative review in a single paragraph. Never state a number, "
+    "never invent causes or predictions. Plain business English."
+)
+MAX_RISKS = 3
+RISKS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "risks": {"type": "array", "maxItems": MAX_RISKS, "items": {
+            "type": "object",
+            "properties": {"finding": {"type": "integer"},
+                           "concern": {"type": "string", "minLength": 1}},
+            "required": ["finding", "concern"], "additionalProperties": False}},
+        "note": {"type": "string", "minLength": 1}},
+    "required": ["risks", "note"], "additionalProperties": False,
+}
 
 TITLES = {
     "en": {"heading": "## Orchestrator and consultant notes",
@@ -79,7 +106,11 @@ TITLES = {
                                "They add questions, not figures; every number in "
                                "this report is calculated.*",
            "hermes": "**Hermes (orchestrator, {provider}):**",
-           "consultant": "**Consultant ({provider}):**"},
+           "consultant": "**Consultant ({provider}):**",
+           "risk": "- Finding {finding}: {concern}",
+           "agreement": ("**Agreement (compared by the finding each risk names):** named by "
+                         "more than one consultant: {agreed}; by one only: {single}."),
+           "none": "none"},
     "ar": {"heading": "## ملاحظات المنسّق والمستشارين",
            "caution": "*كتبتها نماذج لغوية من النتائج المتحقق منها أعلاه. "
                       "تضيف رأياً لا أرقاماً؛ وكل رقم في هذا التقرير محسوب.*",
@@ -87,7 +118,11 @@ TITLES = {
                                "أعلاه، دون أي نموذج لغوي. تضيف أسئلة لا أرقاماً؛ "
                                "وكل رقم في هذا التقرير محسوب.*",
            "hermes": "**هيرميس (المنسّق، {provider}):**",
-           "consultant": "**مستشار ({provider}):**"},
+           "consultant": "**مستشار ({provider}):**",
+           "risk": "- النتيجة {finding}: {concern}",
+           "agreement": ("**الاتفاق (بالمقارنة حسب رقم النتيجة):** سمّاها أكثر من مستشار: "
+                         "{agreed}؛ وسمّاها مستشار واحد فقط: {single}."),
+           "none": "لا شيء"},
 }
 
 # The built-in writers. Each sentence is fixed text in both languages and
@@ -107,6 +142,12 @@ BUILT_IN_TEXT = {
         "brief": ("Check first: {first}. Then read the consultant notes below: a risk "
                   "named by more than one of them is confirmed; one named by a single "
                   "consultant needs a reason before you act on it."),
+        "brief_compared": ("Check first: {first}. The consultants' risks were compared "
+                           "by the finding each names."),
+        "agreed": "Named by more than one consultant, so confirmed: {findings}.",
+        "single": ("Named by a single consultant, so it needs a reason before you act "
+                   "on it: {findings}."),
+        "joiner": ", ",
         "example": " Finding to check: {fact}",
         "rules": [
             (("missing", "gap", "blank", "null", "incomplete", "unavailable", "not supported"),
@@ -138,6 +179,12 @@ BUILT_IN_TEXT = {
         "brief": ("تحقّق أولاً من: {first}. ثم اقرأ ملاحظات المستشارين أدناه: الخطر الذي "
                   "يذكره أكثر من مستشار مؤكد؛ وما يذكره مستشار واحد يحتاج إلى سبب قبل "
                   "التصرف بناءً عليه."),
+        "brief_compared": ("تحقّق أولاً من: {first}. قورنت مخاطر المستشارين حسب "
+                           "النتيجة التي يسمّيها كل منهم."),
+        "agreed": "سمّاها أكثر من مستشار فهي مؤكدة: {findings}.",
+        "single": ("سمّاها مستشار واحد فتحتاج إلى سبب قبل التصرف بناءً عليها: "
+                   "{findings}."),
+        "joiner": "، ",
         "example": " نتيجة للتحقق: {fact}",
         "rules": [
             (("مفقود", "فجوة", "فارغ", "ناقص", "غير متاح", "غير مدعوم",
@@ -192,19 +239,81 @@ def built_in_agent_note(role, facts, language="en"):
 def built_in_consult(facts, language="en"):
     """At most three questions for the approver: the standard one, then
     one per risk rule that a finding triggers, quoting that finding."""
+    return built_in_consult_risks(facts, language)[0]
+
+
+def built_in_consult_risks(facts, language="en"):
+    """The built-in consultant's note and its structured risks: each rule
+    hit names the finding (1-based) it quotes, so the agreement check
+    (G6) can compare it with a model's risks by reference."""
     text = _text(language)
-    notes = [text["always"]]
+    notes, risks = [text["always"]], []
     for words, sentence in text["rules"]:
-        hit = next((f for f in facts if any(w in f.lower() for w in words)), None)
-        if hit:
-            notes.append(sentence + text["example"].format(fact=hit))
+        hit = next((i for i, f in enumerate(facts) if any(w in f.lower() for w in words)), None)
+        if hit is not None:
+            notes.append(sentence + text["example"].format(fact=facts[hit]))
+            risks.append({"finding": hit + 1, "concern": sentence})
         if len(notes) == 3:
             break
-    return " ".join(notes)
+    return " ".join(notes), risks
 
 
-def built_in_brief(facts, language="en"):
-    return _text(language)["brief"].format(first=facts[0]) if facts else None
+def parse_risks(raw, facts):
+    """A model's structured answer → (note, risks) or None (G5).
+
+    The shape is validated against RISKS_SCHEMA; a finding number outside
+    the list is dropped, and the note must be grounded like any other."""
+    if not isinstance(raw, str):
+        return None
+    match = re.search(r"\{.*\}", raw, re.DOTALL)
+    if not match:
+        return None
+    try:
+        data = json.loads(match.group(0))
+    except ValueError:
+        return None
+    if not schema.valid(RISKS_SCHEMA, data):
+        return None
+    risks = [{"finding": r["finding"], "concern": r["concern"].strip()[:300]}
+             for r in data["risks"] if 1 <= r["finding"] <= len(facts)]
+    return data["note"].strip(), risks
+
+
+def agreement(notes, facts=()):
+    """Which findings more than one consultant named, and which only one
+    did, by reference (G6): a comparison the code makes, not a model.
+    The quoted findings travel with the numbers so the brief and the
+    report can name them without a digit of their own."""
+    named = {}
+    for note in notes:
+        for risk in note.get("risks") or []:
+            named.setdefault(risk["finding"], set()).add(note["provider"])
+    agreed = sorted(f for f, who in named.items() if len(who) > 1)
+    single = sorted(f for f, who in named.items() if len(who) == 1)
+    quote = lambda f: facts[f - 1] if 0 < f <= len(facts) else f"#{f}"  # noqa: E731
+    return {"agreed": agreed, "single": single,
+            "agreed_findings": [quote(f) for f in agreed],
+            "single_findings": [quote(f) for f in single],
+            "by_finding": {str(f): sorted(who) for f, who in sorted(named.items())}}
+
+
+def built_in_brief(facts, language="en", agreed=None):
+    """The approver's brief. With the consultants' agreement (G6) it says
+    which findings more than one consultant named and which only one did,
+    by number, instead of telling the reader to compare the notes."""
+    if not facts:
+        return None
+    text = _text(language)
+    if not agreed or not (agreed.get("agreed") or agreed.get("single")):
+        return text["brief"].format(first=facts[0])
+    parts = []
+    if agreed.get("agreed"):
+        parts.append(text["agreed"].format(
+            findings=text["joiner"].join(f"“{f}”" for f in agreed["agreed_findings"])))
+    if agreed.get("single"):
+        parts.append(text["single"].format(
+            findings=text["joiner"].join(f"“{f}”" for f in agreed["single_findings"])))
+    return text["brief_compared"].format(first=facts[0]) + " " + " ".join(parts)
 
 
 def _numbers(text):
@@ -373,18 +482,26 @@ class ModelRoles:
         user = "Goal: " + goal + "\nVerified findings:\n- " + "\n- ".join(facts)
         notes = []
 
+        numbered = ("Goal: " + goal + "\nVerified findings, numbered:\n"
+                    + "\n".join(f"{i + 1}. {f}" for i, f in enumerate(facts)))
+
         def consult_one(name):
             if name == BUILT_IN:
-                return name, grounded(built_in_consult(facts, language), facts)
-            return name, self._ask(CONSULTANT_SYSTEM, user, name, language, facts)
+                text, risks = built_in_consult_risks(facts, language)
+                return name, grounded(text, facts), risks
+            structured = self._ask_risks(numbered, name, language, facts)
+            if structured is not None:
+                return (name,) + structured
+            return name, self._ask(CONSULTANT_SYSTEM, user, name, language, facts), []
 
         if self.consultants:
             with ThreadPoolExecutor(max_workers=len(self.consultants)) as pool:
                 answers = list(pool.map(consult_one, self.consultants))
-            notes = [{"provider": name, "text": text} for name, text in answers if text]
+            notes = [{"provider": name, "text": text, "risks": risks}
+                     for name, text, risks in answers if text]
         brief = None
         if self.hermes == BUILT_IN:
-            text = grounded(built_in_brief(facts, language), facts)
+            text = grounded(built_in_brief(facts, language, agreement(notes, facts)), facts)
             brief = {"provider": BUILT_IN, "text": text} if text else None
         elif self.hermes:
             consulted = "".join(f"\nConsultant ({n['provider']}): {n['text']}" for n in notes)
@@ -393,7 +510,32 @@ class ModelRoles:
             brief = {"provider": self.hermes, "text": text} if text else None
         if not notes and brief is None:
             return None
-        return {"hermes": brief, "consultants": notes}
+        return {"hermes": brief, "consultants": notes, "agreement": agreement(notes, facts)}
+
+    def _ask_risks(self, user, provider, language, facts):
+        """The structured consultant call (G5): (note, risks) when the
+        provider answered in the schema and the note is grounded; None
+        when it did not, so the free-text call can be tried."""
+        ask = getattr(self.gateway, "ask_json", None)
+        if not callable(ask) or blocks_model(texts=[user, *facts]):
+            return None
+        system = CONSULTANT_RISKS_SYSTEM + (ARABIC if language == "ar" else "")
+        options = {}
+        if (split_spec(provider)[0] == "ollama"
+                and getattr(self.gateway, "ollama_think", None) is False):
+            options["max_tokens"] = 240
+            system += (" Use at most 45 words in the note, in one plain paragraph.")
+        try:
+            raw = ask(system, user, provider=provider, schema=RISKS_SCHEMA,
+                      task="consult", **options)
+        except TypeError:
+            raw = ask(system, user, provider=provider, **options)
+        parsed = parse_risks(raw, facts)
+        if parsed is None:
+            return None
+        note, risks = parsed
+        note = grounded(note, facts)
+        return (note, risks) if note else None
 
 
 def report_section(orchestration, language="en"):
@@ -412,4 +554,11 @@ def report_section(orchestration, language="en"):
         lines += ["", text["hermes"].format(provider=brief["provider"]), brief["text"]]
     for note in orchestration.get("consultants") or []:
         lines += ["", text["consultant"].format(provider=note["provider"]), note["text"]]
+        for risk in note.get("risks") or []:
+            lines.append(text["risk"].format(finding=risk["finding"], concern=risk["concern"]))
+    agreed = orchestration.get("agreement") or {}
+    if agreed.get("agreed") or agreed.get("single"):
+        lines += ["", text["agreement"].format(
+            agreed="; ".join(f"“{f}”" for f in agreed.get("agreed_findings") or []) or text["none"],
+            single="; ".join(f"“{f}”" for f in agreed.get("single_findings") or []) or text["none"])]
     return lines

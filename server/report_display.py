@@ -24,6 +24,8 @@ LABELS = {
     "c_merge_pii": ("joined_columns_with_personal_data", "أعمدة الدمج التي تتضمن بيانات شخصية"),
     "c_rows_before": ("rows_before", "الصفوف قبل التنظيف"),
     "c_rows_after": ("rows_after", "الصفوف بعد التنظيف"),
+    "c_brier": ("brier_score", "درجة برير"),
+    "c_base_brier": ("baseline_brier_score", "درجة برير لخط الأساس"),
     "c_coercion": ("values_not_read_as_numbers", "القيم التي تعذّرت قراءتها كأرقام"),
     "c_dropped": ("rows_dropped", "الصفوف المستبعدة"),
     "c_dates_unread": ("dates_not_read", "التواريخ التي تعذرت قراءتها"),

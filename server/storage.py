@@ -14,6 +14,7 @@ engine never sees a driver type.
 
 import hashlib
 import threading
+import time
 from contextlib import contextmanager
 import logging
 import sqlite3
@@ -980,7 +981,10 @@ class PostgresStore(SqlStore):
         # tracked so close() releases every one of them.
         self._local = threading.local()
         self._pool_lock = threading.Lock()
+        self._pool_available = threading.Condition(self._pool_lock)
         self._connections = []
+        self._released = []
+        self._opening = 0
         super().__init__()
         import psycopg2  # lazy: only hosted mode needs the driver
 
@@ -1026,18 +1030,78 @@ class PostgresStore(SqlStore):
             self._connections = [c for c in self._connections if not c.closed]
             return len(self._connections)
 
+    # The most connections one process holds (B11): the serverless
+    # function and the worker each stay well under a pooler's budget.
+    # A thread that needs a connection past the bound waits for one to
+    # be released rather than opening another.
+    MAX_CONNECTIONS = 20
+
+    # How long a thread waits for a released connection at the bound
+    # before the request fails rather than hangs.
+    POOL_WAIT_SECONDS = 30
+
     def _connect(self):
-        conn = self._psycopg2.connect(self._database_url, connect_timeout=10)
-        conn.autocommit = True
-        with self._pool_lock:
-            self._connections = [c for c in self._connections if not c.closed] + [conn]
+        with self._pool_available:
+            deadline = time.monotonic() + self.POOL_WAIT_SECONDS
+            while True:
+                self._connections = [c for c in self._connections if not c.closed]
+                idle = self._idle_connection()
+                if idle is not None:
+                    return idle
+                if len(self._connections) + self._opening < self.MAX_CONNECTIONS:
+                    self._opening += 1
+                    break
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise self._psycopg2.OperationalError(
+                        f"no database connection free within {self.POOL_WAIT_SECONDS}s "
+                        f"(bound {self.MAX_CONNECTIONS} per process)")
+                self._pool_available.wait(remaining)
+        try:
+            conn = self._psycopg2.connect(self._database_url, connect_timeout=10)
+            conn.autocommit = True
+        finally:
+            with self._pool_available:
+                self._opening -= 1
+        with self._pool_available:
+            self._connections.append(conn)
         return conn
+
+    def _idle_connection(self):
+        """A connection whose thread has finished with it, or None.
+
+        Threads record their connection on exit of every statement, so a
+        pool at its bound hands a finished thread's connection to the
+        next thread. Called with the pool lock held."""
+        while self._released:
+            conn = self._released.pop()
+            if not conn.closed:
+                return conn
+        return None
+
+    def _release(self):
+        """Hand this thread's connection back once no transaction is open.
+
+        Every statement outside a transaction returns its connection to
+        the pool, so an idle request thread never holds one: the bound
+        counts connections in use, not threads that once ran a statement.
+        A transaction keeps its connection until it commits or rolls back."""
+        conn = getattr(self._local, "conn", None)
+        if conn is None or self._transaction_depth or getattr(self._local, "pinned", False):
+            return
+        with self._pool_available:
+            if conn not in self._released:
+                self._released.append(conn)
+            self._local.conn = None
+            self._pool_available.notify()
 
     def close(self):
         """Release every thread's connection; the next statement on any
         thread opens a fresh one."""
-        with self._pool_lock:
+        with self._pool_available:
             connections, self._connections = self._connections, []
+            self._released = []
+            self._pool_available.notify_all()
         for conn in connections:
             try:
                 conn.close()
@@ -1047,6 +1111,11 @@ class PostgresStore(SqlStore):
 
     def _begin_transaction(self):
         # Reconnection is safe before the transaction has acquired any state.
+        # The connection is pinned to this thread before BEGIN so the
+        # statement's release keeps it for the whole transaction; the depth
+        # stays 0 until BEGIN has run, so a dead connection is still
+        # replaced here rather than failing the operation.
+        self._local.pinned = True
         self._exec("BEGIN")
 
     def _lock_transaction(self, key):
@@ -1085,15 +1154,32 @@ class PostgresStore(SqlStore):
                 return statement(sql, params)
 
     def _exec(self, sql, params=()):
-        return self._retrying(super()._exec, sql, params)
+        try:
+            return self._retrying(super()._exec, sql, params)
+        finally:
+            self._release()
 
     def _exec_rowcount(self, sql, params=()):
         # The lease statements run through here, which is to say the
         # worker's entire job does.
-        return self._retrying(super()._exec_rowcount, sql, params)
+        try:
+            return self._retrying(super()._exec_rowcount, sql, params)
+        finally:
+            self._release()
 
     def _commit(self):
         pass  # autocommit
+
+    def _finish_transaction(self, statement):
+        try:
+            super()._finish_transaction(statement)
+        finally:
+            # atomic() resets the depth after this; the connection goes
+            # back to the pool on the next statement's release, or here
+            # when none follows.
+            self._local.depth = 0
+            self._local.pinned = False
+            self._release()
 
     def _table_columns(self, table):
         rows = self._exec(

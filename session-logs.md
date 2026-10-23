@@ -1486,3 +1486,14 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** `tests/test_p2_slice_three.py` 19 of 19 with PostgreSQL; quick verify with PostgreSQL (counts in README.md#testing).
 - **Decided:** exact duplicates are still removed, with their indices kept; calibration stays in the registered-window protocol; no connection bound beyond the thread count, a pooler is the hosted answer.
 - **Open / next:** PR #24 (slice two) to merge when CI is green, then this slice on its own pull request; the remaining P2 list (A11 and A14 second halves, B11 bound, U-items, G5, G6, G8, G9) and the standards lint blind score.
+
+## 2026-10-23 · `d9e3f889` · claude/tender-clarke-m4uwgq (P2 slice four)
+
+**Goal:** the fourth P2 slice: A11 and A14 second halves, B11 bound, G5, G6, G8.
+
+- **Found:** the generic models took every numeric column (A11); the classification card had no probabilities (A14); the per-thread connections had no bound (B11); hosted JSON mode was only on Ollama and the AI Gateway and the intent shape was parsed, not validated (G5); consultant agreement was delegated to a model (G6); two assistant actions had no rules and no cases (G8).
+- **Done:** `_screen` refuses mapping-ignored, personal and target-identical or derived columns with reasons on the card; naive Bayes posteriors scored with Brier against the base rate and five reliability bins, a limitation claim when the base rate wins; a bounded pool of 20 with release after each statement, a pinned transaction connection and a 30 s wait at the bound; `server/schema.py` and validation of the normalised intent and the consultants' `RISKS_SCHEMA`, JSON mode on OpenAI, Groq and the compatible providers, structured risks with a free-text fallback; `agreement()` by finding reference quoted in the built-in brief and the report; rules and 40 cases for `search_knowledge` and `agent_scorecard` (dev 100%, holdout 81%). [Decision](docs/adr/2026-10-23-p2-slice-four.md); assessment rows, roadmap, known limitations, README updated.
+- **Verified:** `tests/test_p2_slice_four.py` 17 of 17 with PostgreSQL; the store, run-engine and concurrency suites with the pool; quick verify with PostgreSQL (counts in README.md#testing).
+- **Decided:** validation runs on the normalised intent so older model contracts hold; Anthropic is asked in text; findings are quoted, not numbered, in built-in text so it stays grounded; every statement outside a transaction returns its connection, which is what makes the bound honest.
+- **Open / next:** PR #24 to merge when green; G9 reviewer benchmarks; the interface items; the standards lint blind score.
+

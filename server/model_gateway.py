@@ -429,11 +429,26 @@ class ModelGateway:
             return gateway.ask_json(system, user, provider=provider,
                                     max_tokens=max_tokens, schema=schema, task=task)
         self._ledger_task.name = task
-        if (provider or self.provider) == "ollama":
-            return self._complete_ollama(system, user, max_tokens, json_output=True,
-                                         schema=schema)
-        if (provider or self.provider) == "vercel":
-            return self._complete_vercel(system, user, max_tokens, json_output=True)
+        # Each provider's own JSON mode (assessment G5): Ollama takes the
+        # schema itself; the OpenAI-compatible providers take
+        # response_format; Anthropic has no such switch and is asked in
+        # text. The caller validates the shape either way (server/schema.py).
+        completers = {"ollama": lambda: self._complete_ollama(system, user, max_tokens,
+                                                              json_output=True, schema=schema),
+                      "vercel": lambda: self._complete_vercel(system, user, max_tokens,
+                                                              json_output=True),
+                      "openai": lambda: self._complete_openai(system, user, max_tokens,
+                                                              json_output=True),
+                      "groq": lambda: self._complete_groq(system, user, max_tokens,
+                                                          json_output=True),
+                      **{name: (lambda name=name: self._complete_compat(
+                          name, system, user, max_tokens, json_output=True))
+                         for name in self.compat}}
+        chosen = provider or self.provider
+        if chosen in completers:
+            if self.budget is not None and not self.budget.allow(chosen):
+                return None
+            return completers[chosen]()
         return self.ask(system, user, provider=provider, max_tokens=max_tokens, task=task)
 
     def _post(self, url, headers, payload):
@@ -639,16 +654,17 @@ class ModelGateway:
             text = None
         return self._record("anthropic", self.anthropic_model, body, text, started)
 
-    def _complete_openai(self, system, user, max_tokens=None):
+    def _complete_openai(self, system, user, max_tokens=None, json_output=False):
         if not (self.openai_key and self.openai_model):
             return None
         started = time.monotonic()
-        body = self._post(
-            OPENAI_URL, {"Authorization": f"Bearer {self.openai_key}"},
-            {"model": self.openai_model,
+        payload = {"model": self.openai_model,
              "max_completion_tokens": max_tokens or MAX_OUTPUT_TOKENS,
              "messages": [{"role": "system", "content": system},
-                          {"role": "user", "content": user}]})
+                          {"role": "user", "content": user}]}
+        if json_output:
+            payload["response_format"] = {"type": "json_object"}
+        body = self._post(OPENAI_URL, {"Authorization": f"Bearer {self.openai_key}"}, payload)
         return self._record("openai", self.openai_model, body,
                             self._choice_text(body), started)
 
@@ -662,24 +678,26 @@ class ModelGateway:
         return lambda system, user, max_tokens=None: self._complete_compat(
             name, system, user, max_tokens)
 
-    def _complete_compat(self, name, system, user, max_tokens=None):
+    def _complete_compat(self, name, system, user, max_tokens=None, json_output=False):
         if name not in self.compat:
             return None
         url, key, model = self.compat[name]
         started = time.monotonic()
-        body = self._post(
-            url, {"Authorization": f"Bearer {key}"},
-            {"model": model, "max_tokens": max_tokens or MAX_OUTPUT_TOKENS,
+        payload = {"model": model, "max_tokens": max_tokens or MAX_OUTPUT_TOKENS,
              "messages": [{"role": "system", "content": system},
-                          {"role": "user", "content": user}]})
+                          {"role": "user", "content": user}]}
+        if json_output:
+            payload["response_format"] = {"type": "json_object"}
+        body = self._post(url, {"Authorization": f"Bearer {key}"}, payload)
         return self._record(name, model, body, self._choice_text(body), started)
 
-    def _complete_groq(self, system, user, max_tokens=None):
+    def _complete_groq(self, system, user, max_tokens=None, json_output=False):
         started = time.monotonic()
-        body = self._post(
-            GROQ_URL, {"Authorization": f"Bearer {self.groq_key}"},
-            {"model": self.groq_model, "max_tokens": max_tokens or MAX_OUTPUT_TOKENS,
+        payload = {"model": self.groq_model, "max_tokens": max_tokens or MAX_OUTPUT_TOKENS,
              "messages": [{"role": "system", "content": system},
-                          {"role": "user", "content": user}]})
+                          {"role": "user", "content": user}]}
+        if json_output:
+            payload["response_format"] = {"type": "json_object"}
+        body = self._post(GROQ_URL, {"Authorization": f"Bearer {self.groq_key}"}, payload)
         return self._record("groq", self.groq_model, body,
                             self._choice_text(body), started)

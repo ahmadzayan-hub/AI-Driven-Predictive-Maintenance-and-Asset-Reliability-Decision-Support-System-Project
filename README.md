@@ -623,6 +623,24 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### P2 slice four: screened inputs, probabilities with a Brier score, bounded pool, server-checked structured answers, agreement by finding, two actions measured — 23 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-23-p2-slice-four.md)): the
+generic regression and classification refuse mapping-ignored, personal and
+target-identical or derived columns and list them with reasons (A11); the
+classification card carries probabilities with a Brier score against the
+base rate, reliability bins and a limitation claim when it does not beat it
+(A14); `PostgresStore` holds a bounded pool of 20 per process (B11); the
+model's intent and the consultants' structured risks are validated against
+their schema on the server, with JSON mode on every OpenAI-compatible
+provider (G5); consultant agreement is compared by the finding each risk
+names (G6); the rules reach `search_knowledge` and `agent_scorecard` with 40
+new labelled cases (G8). `REQUIRE_PG=1 python scripts/verify.py --quick`
+against PostgreSQL 16: **1,911 Python tests reported, 21 skipped**
+(optional extras only; 17 new), brain check, type check, **369 frontend unit tests**. No interface code changed, so the build, budget and
+browser suites were not re-run; the hosted run on the pull request is their
+record.
+
 ### P2 slice three: corrective repair time, versioned and screened model cards, reversible cleaning, shared rate limit and model budget, a connection per thread — 23 October 2026
 
 Behaviour change ([decision](docs/adr/2026-10-23-p2-slice-three.md)):

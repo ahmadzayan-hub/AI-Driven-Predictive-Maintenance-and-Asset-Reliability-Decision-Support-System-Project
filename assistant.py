@@ -413,6 +413,32 @@ _LANGUAGE_VERB = re.compile(
     r"\b(reply|answer|speak|talk|switch|change|respond|write|use)\b"
     r"|\b(in|to|into)\s+(arabic|english)\b"
     r"|(رد|ردّ|تكلم|اتكلم|كلمني|غير|غيّر|حوّل|حول|اللغة|بال)", re.I)
+_SEARCH_KNOWLEDGE = re.compile(
+    r"(?:search|look\s+up|find|check|consult|query|what\s+do(?:es)?)\b.{0,40}?\b"
+    r"(?:knowledge(?:\s+base)?|handbook|manual|standard|procedure|guide(?:line)?s?|"
+    r"documentation|docs|collection)\b"
+    r"|\b(?:knowledge\s+base|handbook|manual|standards?|procedures?|guidelines?)\b.{0,30}?"
+    r"\b(?:say|says|state|states|require|requires|on|about|for)\b"
+    r"|(?:ابحث|ابحثي|فتّش|راجع|ماذا\s+(?:تقول|يقول))\b.{0,40}?"
+    r"(?:قاعدة\s+المعرفة|المعرفة|الدليل|المواصفة|المعيار|الإجراء|الإجراءات|الوثائق)"
+    r"|(?:قاعدة\s+المعرفة|الدليل|المواصفة|المعيار|الإجراء)\b.{0,30}?(?:عن|حول|بشأن|تقول|يقول)",
+    re.I | re.S)
+_SEARCH_KNOWLEDGE_QUERY = re.compile(
+    r"(?:about|on|for|regarding|say(?:s)?\s+about|require(?:s)?\s+for)\s+(?P<q>[^?.!]+)"
+    r"|(?:عن|حول|بشأن)\s+(?P<q_ar>[^؟?.!]+)", re.I | re.S)
+_SCORECARD = re.compile(
+    r"\b(?:agent|agents'?|eval(?:uation)?|reviewer|classifier|detector)s?\b.{0,30}?"
+    r"\b(?:scorecard|score\s*card|recall|precision|confusion\s+matrix|floors?)\b"
+    r"|\b(?:scorecard|score\s*card)\b"
+    r"|\b(?:recall|precision|accuracy|floors?)\b.{0,30}?\b(?:agents?|classifiers?|detectors?|lints?|suites?)\b"
+    r"|\bhow\s+(?:accurate|good|well)\b.{0,40}?\b(?:agents?|classifiers?|detectors?|assistant)\b"
+    r"|(?:بطاقة\s+(?:الأداء|النتائج|التقييم)|سجل\s+الأداء)"
+    r"|(?:ما\s+(?:مدى\s+)?دقة|كم\s+دقة)\b.{0,30}?(?:الوكلاء|الوكيل|المصنّف|المصنفات|المساعد)",
+    re.I | re.S)
+_SCORECARD_SUITE = re.compile(
+    r"\b(?P<suite>intent|column_roles|personal_data|router|raw_guard|jargon|causal|figures|standards)\b",
+    re.I)
+
 _RUN_STATUS = re.compile(
     r"\b(status|progress)\b|\bhow('s| is| far)( along)?( is)? (the |my |that )?"
     r"(run|analysis|report)|\bis (the |my |it |that )?(run |analysis |report )?"
@@ -562,6 +588,15 @@ def understand(text):
     # question wins over the noun.
     if _RUN_STATUS.search(text):
         return intent("run_status")
+    # Two server actions the rules did not reach before (assessment G8):
+    # the knowledge base and the agents' scorecard.
+    if _SCORECARD.search(text):
+        suite = _SCORECARD_SUITE.search(text)
+        return intent("agent_scorecard", {"suite": suite.group("suite").lower() if suite else None})
+    if _SEARCH_KNOWLEDGE.search(text):
+        found = _SEARCH_KNOWLEDGE_QUERY.search(text)
+        query = (found.group("q") or found.group("q_ar") or "").strip() if found else ""
+        return intent("search_knowledge", {"query": query or text, "collection": None})
     if _REPORT_QUESTION.search(text):
         return intent("explain_report", {"section": section_for(text)})
     if _START_RUN.search(text):

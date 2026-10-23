@@ -24,6 +24,7 @@ outside this repository), **Proposed** (designed, not built).
 | P2 slice one: verdict bound (A9), declared splits (A10), incomplete periods (A12), loopback by default (B8), idempotent run creation (B14, in part), wall-clock limits on custom stages and agent runtimes (G10) | Implemented, Tested | `docs/adr/2026-10-23-p2-slice-one.md`; `tests/test_p2_slice_one.py` |
 | P2 slice two: the store as publish target (B13), logged failures and 503 on an outage (B9), one error envelope and the contract behind sign-in (B14, closed), a required connector allowlist in production (B16), recorded and locked migrations (B12), the optional-runtime CI job (G11) | Implemented, Tested | `docs/adr/2026-10-23-p2-slice-two.md`; `tests/test_p2_slice_two.py` |
 | P2 slice three: a corrective repair time (A7), screened inputs on the maintenance card (A11, in part), versioned cards bound to the snapshot (A14, in part), reversible cleaning (A18), a store-backed rate limit with a per-tenant model budget (B6), one PostgreSQL connection per thread (B11, in part) | Implemented, Tested | `docs/adr/2026-10-23-p2-slice-three.md`; `tests/test_p2_slice_three.py` |
+| P2 slice four: screened inputs for the generic models (A11, closed), probabilities with a Brier score and reliability bins (A14, closed), a bounded connection pool (B11, closed), structured answers checked on the server with JSON mode per provider (G5), agreement by finding reference (G6), rules and cases for the knowledge search and the scorecard (G8) | Implemented, Tested | `docs/adr/2026-10-23-p2-slice-four.md`; `tests/test_p2_slice_four.py` |
 
 ## 2. Next release gate (P1)
 
@@ -57,9 +58,11 @@ the second (B9, B12, B13, the rest of B14, B16, G11) and the third (A7,
 A18, B6, and the first halves of A11, A14 and B11) were delivered on 23
 October ([slice one](../adr/2026-10-23-p2-slice-one.md),
 [slice two](../adr/2026-10-23-p2-slice-two.md),
-[slice three](../adr/2026-10-23-p2-slice-three.md)). Still open from the
-list: calibration on the pipeline card (A14), the screen in the generic
-stages (A11), a connection bound (B11), the U-items, G5, G6, G8 and G9.
+[slice three](../adr/2026-10-23-p2-slice-three.md)), and the fourth closed
+A11, A14 and B11 and delivered G5, G6 and the rules half of G8
+([slice four](../adr/2026-10-23-p2-slice-four.md)). Still open from the
+list: the U-items, G9, and the model half of G8 (an opt-in suite that
+needs a provider).
 
 ## 4. The brief's deliverables and their status
 
