@@ -66,5 +66,8 @@ class PydanticAIRuntime:
             return tools.call(name, arguments)["text"]
 
         call.__name__ = name
+        # Sequential: Pydantic AI otherwise runs a turn's tool calls concurrently, so a
+        # `recall` asked for after `remember` in the same turn could run first and miss
+        # what was just saved (an intermittent CI failure, 5 of 40 local runs).
         return Tool.from_schema(call, name=name, description=spec["description"],
-                                json_schema=spec["inputSchema"])
+                                json_schema=spec["inputSchema"], sequential=True)
