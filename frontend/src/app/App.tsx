@@ -62,17 +62,17 @@ const NAV_GROUPS: Array<{ id: string; items: NavItem[] }> = [
     id: 'decide',
     items: [
       { id: 'operations', label: 'nav.operations', icon: 'check' },
-      { id: 'overview', label: 'nav.overview', icon: 'dashboard' },
+      { id: 'overview', label: 'nav.overview', icon: 'dashboard', short: 'nav.homeShort' },
       { id: 'assets', label: 'nav.assets', icon: 'activity', short: 'nav.assetsShort' },
       { id: 'rmd', label: 'nav.rmd', icon: 'search' },
       { id: 'dashboard', label: 'nav.dashboard', icon: 'chart' },
-      { id: 'approvals', label: 'nav.approvals', icon: 'shield' },
+      { id: 'approvals', label: 'nav.approvals', icon: 'shield', short: 'nav.reviewShort' },
     ],
   },
   {
     id: 'prepare',
     items: [
-      { id: 'datasets', label: 'nav.datasets', icon: 'database' },
+      { id: 'datasets', label: 'nav.datasets', icon: 'database', short: 'nav.dataShort' },
       { id: 'runs', label: 'nav.runs', icon: 'sparkle' },
     ],
   },
@@ -94,12 +94,11 @@ const NEEDS_SESSION: ReadonlySet<Tab> = new Set<Tab>(['chat', 'memory', 'prefere
 const DEMO_GROUPS = NAV_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => !NEEDS_SESSION.has(item.id)) }))
 
 // A phone's bottom bar holds at most five places: the four a manager opens
-// most, and "More", which opens the drawer holding the rest. Approvals is
-// on the bar because publishing waits for a person; Dashboards stays in
-// the drawer under More.
-const BAR_TABS: Tab[] = ['overview', 'assets', 'approvals', 'chat']
+// most, and "More", which opens every preserved route. Data, analysis and
+// review follow the work; assets, dashboards and the assistant stay in More.
+const BAR_TABS: Tab[] = ['overview', 'datasets', 'runs', 'approvals']
 const BAR_ITEMS = BAR_TABS.map((id) => ALL_ITEMS.find((item) => item.id === id)!)
-const DEMO_BAR_ITEMS = BAR_ITEMS.map((item) => item.id === 'chat' ? ALL_ITEMS.find((other) => other.id === 'runs')! : item)
+const DEMO_BAR_ITEMS = BAR_ITEMS
 
 const ONBOARDING_KEY = 'aos-onboarded'
 
@@ -467,7 +466,7 @@ export function App() {
         </button>
         <div className="brand">
           <span className="brand__mark" aria-hidden="true"><img src="/artwork/asset-reliability-mark.svg" alt="" width={32} height={32} /></span>
-          <h1 className="brand__name" title={t('brand.fullName')}>{t('brand.name')}</h1>
+          <h1 className="brand__name" title={t('brand.fullName')}>{t('assistant.name')}</h1>
         </div>
         <div className="header__search">
           <button
@@ -482,7 +481,6 @@ export function App() {
           </button>
         </div>
         <div className="header__spacer" />
-        {demo ? <span className="badge badge--ready" title={t('demo.note')}><span className="badge__dot" aria-hidden="true" />{t('demo.badge')}</span> : <StatusBadge status={status} />}
         <div className="header__actions">
           {languageButton}
           <button
@@ -498,12 +496,14 @@ export function App() {
             type="button"
             className="iconbtn"
             aria-label={t('help.aria')}
+            data-control="help"
             onClick={() => setHelpOpen(true)}
           >
             <Icon name="help" />
           </button>
         </div>
       </header>
+      <div className="shell__mode" inert={drawerOpen}>{demo ? <strong title={t('demo.note')}>{t('demo.badge')}</strong> : <StatusBadge status={status} />}</div>
 
       <div className="shell__body">
         {sidebar}
