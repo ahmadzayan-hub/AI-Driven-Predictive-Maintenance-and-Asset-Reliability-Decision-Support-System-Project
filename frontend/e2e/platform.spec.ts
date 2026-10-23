@@ -2,7 +2,8 @@ import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import { skipOnboarding } from './helpers'
 
-test.use({ contextOptions: { reducedMotion: 'reduce' } })
+// Route-controlled failure must reach Playwright in WebKit as well as Chromium.
+test.use({ serviceWorkers: 'block', contextOptions: { reducedMotion: 'reduce' } })
 
 test('a committed run with a lost response recovers after reload without a duplicate', async ({ page }) => {
   await skipOnboarding(page)
@@ -30,6 +31,7 @@ test('a committed run with a lost response recovers after reload without a dupli
     }
   })
   await page.getByRole('button', { name: 'Start run', exact: true }).click()
+  await expect.poll(() => requests).toBe(1)
   await expect(page.getByRole('alert')).toContainText('Cannot reach')
   await expect(page.getByLabel('Goal', { exact: true })).toHaveValue(question)
   await page.reload()

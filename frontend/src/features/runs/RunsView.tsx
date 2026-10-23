@@ -830,7 +830,12 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                 <p className="eyebrow">{typeLabel(t, section.type, section.title)}</p>
                 <h3>{questionLabel(t, section.type, section.question)}</h3>
                 <p className="finding-card__headline" lang={reportLang} dir={reportDir}>{section.headline}</p>
-                {task ? <button type="button" className="evidence-link" aria-label={t('cockpit.whyFor', { type: typeLabel(t, section.type, section.title) })} onClick={() => setEvidenceTask(task)}>{t('cockpit.why')}<Icon name="search" size={14} /></button> : null}
+                {task ? <button type="button" className="evidence-link" aria-label={t('cockpit.whyFor', { type: typeLabel(t, section.type, section.title) })} onClick={(event) => {
+                  // Safari does not focus a button on pointer activation.
+                  // Give the dialog a reliable invoking control to restore.
+                  event.currentTarget.focus({ preventScroll: true })
+                  setEvidenceTask(task)
+                }}>{t('cockpit.why')}<Icon name="search" size={14} /></button> : null}
               </article>
             })}
           </section> : null}

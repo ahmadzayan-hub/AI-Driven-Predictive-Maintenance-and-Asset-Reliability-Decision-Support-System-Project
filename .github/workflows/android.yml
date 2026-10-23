@@ -35,6 +35,35 @@ jobs:
         run: |
           chmod +x apps/android/gradlew
           bash scripts/build-apk.sh
+      - name: Verify APK signature and record measured build evidence
+        run: |
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose apps/android/app/build/outputs/apk/debug/app-debug.apk
+          python3 - <<'PY'
+          import hashlib, json, xml.etree.ElementTree as ET, zipfile
+          from pathlib import Path
+          root = Path('apps/android')
+          apk = root / 'app/build/outputs/apk/debug/app-debug.apk'
+          suites = []
+          for module in ('core', 'app'):
+              reports = sorted((root / module / 'build/test-results').rglob('TEST-*.xml'))
+              if not reports:
+                  raise SystemExit(f'Missing actual test reports: {module}')
+              for report in reports:
+                  suite = ET.parse(report).getroot()
+                  suites.append({'module': module, 'name': suite.get('name'),
+                      **{key: int(suite.get(key, '0')) for key in ('tests', 'failures', 'errors', 'skipped')}})
+          if any(suite['failures'] or suite['errors'] for suite in suites):
+              raise SystemExit('Test report records failures')
+          with zipfile.ZipFile(apk) as archive:
+              if not {'AndroidManifest.xml', 'classes.dex', 'resources.arsc'}.issubset(archive.namelist()):
+                  raise SystemExit('APK is missing required packaged entries')
+          evidence = {'apk': str(apk), 'bytes': apk.stat().st_size,
+              'sha256': hashlib.file_digest(apk.open('rb'), 'sha256').hexdigest(), 'suites': suites,
+              'tests': sum(suite['tests'] for suite in suites), 'skipped': sum(suite['skipped'] for suite in suites),
+              'scope': 'Debug build, JVM tests, lint and signature; no physical-device or store acceptance'}
+          (root / 'app/build/reports/artifact-verification.json').write_text(json.dumps(evidence, indent=2))
+          print(json.dumps(evidence, indent=2))
+          PY
       - name: Retain installable debug APK and test reports
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
