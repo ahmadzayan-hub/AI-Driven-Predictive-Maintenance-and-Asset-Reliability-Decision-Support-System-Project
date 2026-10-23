@@ -1,6 +1,6 @@
 import { usePack } from '../../i18n/pack'
 import { Icon } from '../../shared/components/Icon'
-import { PerformanceValue, performanceTone } from '../../shared/components/PerformanceValue'
+import { PerformanceValue, hasVerdict, performanceTone } from '../../shared/components/PerformanceValue'
 import { formatMoney } from '../../shared/format'
 import { modelTone } from '../../shared/modelTone'
 import type { KpiMeasure, RunExecutive, RunSummary } from '../../shared/types'
@@ -104,7 +104,7 @@ export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCe
             const value = stated ? formatMoney(m.value as number, stated, locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : formatValue(m, locale)
             const unit = m.scale === 'hours' ? ` ${t('command.hours')}` : m.scale === 'money' && !stated ? ` ${t('command.currency')}` : ''
             const tone = performanceTone(m.value, m.assessment)
-            const verdict = tone === 'good' || tone === 'okay' || tone === 'bad'
+            const verdict = hasVerdict(tone)
             return <div key={m.key} data-source={`kpi.${m.key}`}>
               <dt dir="auto">{m.title}</dt>
               <dd><PerformanceValue tone={tone} reason={verdict ? m.assessment?.reason : undefined}><bdi>{value === null ? '—' : value}{value === null ? '' : unit}</bdi></PerformanceValue></dd>

@@ -28,7 +28,7 @@ async function horizontalOverflow(page: Page) {
 /** Run the sample analysis up to the approval gate, so the Overview has
  *  findings and a run waiting, and the Datasets view a stored dataset. */
 async function runSampleToApproval(page: Page) {
-  await openTab(page, /^Analytics/)
+  await openTab(page, /^Analyses/)
   await page.getByRole('button', { name: 'Start run' }).click()
   await expect(page.getByRole('region', { name: 'Approval required' })).toBeVisible({
     timeout: 40_000,
@@ -118,8 +118,8 @@ test('the phone bar holds five places and More opens the rest', async ({ page })
   await more.click()
   const drawer = page.getByRole('dialog', { name: 'Navigation' })
   await expect(drawer).toBeVisible()
-  // Dashboards and Operations remain reachable through More with the manager navigation shortcuts.
-  await drawer.getByRole('button', { name: /^Operations/ }).click()
+  // Dashboards and Administration remain reachable through More with the manager navigation shortcuts.
+  await drawer.getByRole('button', { name: /^Administration/ }).click()
   await expect(drawer).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Maintenance operations', level: 2 })).toBeVisible()
   await expect(more).toBeFocused()
@@ -139,7 +139,7 @@ test('the new views do not scroll sideways at 320 px, in either language', async
   await page.goto('/')
   await page.setViewportSize({ width: 320, height: 640 })
 
-  for (const name of [/^Command Centre/, /^Datasets/, /^Analytics/]) {
+  for (const name of [/^Command Centre/, /^Datasets/, /^Analyses/]) {
     await openTab(page, name)
     await expect(page.locator('main .panel__title:visible')).toBeVisible()
     await expect(page.locator('main .skeleton:visible')).toHaveCount(0)
@@ -191,8 +191,8 @@ test('the sidebar groups views by task, with colour instead of headings', async 
   const nav = page.getByRole('navigation', { name: 'Main' })
   const groups = nav.locator('.sidebar__group')
   await expect(groups).toHaveCount(3)
-  await expect(groups.nth(0).getByRole('button')).toHaveText(['Operations', 'Command Centre', 'Asset Intelligence', 'RMD Evidence', 'Dashboards', 'Approvals'])
-  await expect(groups.nth(1).getByRole('button')).toHaveText(['Datasets', 'Analytics'])
+  await expect(groups.nth(0).getByRole('button')).toHaveText(['Administration', 'Command Centre', 'Asset Intelligence', 'RMD Evidence', 'Dashboards', 'Approvals'])
+  await expect(groups.nth(1).getByRole('button')).toHaveText(['Datasets', 'Analyses'])
   await expect(groups.nth(2).getByRole('button')).toHaveText([/^Workspace/, /^Memory/, 'Activity', 'Preferences'])
   await expect(nav.locator('p, h2, h3')).toHaveCount(0)
   // Each view keeps its own icon.

@@ -1274,6 +1274,28 @@ def create_app(config_path=None, env=None, dist_dir=None):
             runs = [r for r in candidates.values() if owns_run(principal, r["id"])]
             return {"runs": sorted(runs, key=lambda r: (r["created_at"], r["id"]), reverse=True)}
 
+    @app.get("/api/assets/evidence")
+    def asset_evidence(principal=Depends(requires("read"))):
+        """The newest run with a succeeded railway asset screen, in full,
+        so the Asset Intelligence view reads one answer instead of up to
+        fifty run payloads (assessment U10). `scanned` is how many recent
+        runs were inspected; `capped` says the owner has more runs than
+        the scan reads."""
+        with lock:
+            owner = None if principal.can("admin") else principal.subject
+            candidates = engine.list_runs(owner=owner)
+            scanned = 0
+            for summary in sorted(candidates, key=lambda r: r["updated_at"], reverse=True):
+                if not owns_run(principal, summary["id"]):
+                    continue
+                scanned += 1
+                tasks = store.get_tasks(summary["id"])
+                if any(t["role"] == "rail_asset_manager" and t["state"] == "succeeded"
+                       for t in tasks):
+                    run = engine.get_run(summary["id"])
+                    return {"run": run, "scanned": scanned, "capped": len(candidates) >= 50}
+            return {"run": None, "scanned": scanned, "capped": len(candidates) >= 50}
+
     @app.get("/api/runs/{run_id}")
     def get_run(run_id: str, principal=Depends(requires("read"))):
         with lock:

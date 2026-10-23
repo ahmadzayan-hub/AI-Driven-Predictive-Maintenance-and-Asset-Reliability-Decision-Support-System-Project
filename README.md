@@ -623,6 +623,21 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### P2 slice six: interface items, paid for by font subsets — 23 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-23-p2-slice-six-interface.md)):
+committed woff2 subsets from `scripts/subset_fonts.py`, 119.4 KB to 86.5 KB
+(U19); `GET /api/assets/evidence` and a one-call Asset Intelligence view
+(U10); the relationship table says it lists the first 100 points (U11);
+"Analyses" and "Administration" (U14); every upload call to action through
+Datasets (U15); the evidence's as-of time and an action on the empty
+dashboard picker (U16); all 21 message packs in the parity test, the export
+job in a hook, no line over 200 characters, one `hasVerdict()` (U18).
+Budgets: JS 99.0 of 100 KB first load, 245.2 of 248 KB total; CSS 10.0 of
+10.5 and 32.7 of 33.5 KB; fonts 86.5 of 100 KB. Frontend unit tests: **377
+passed** (8 new). End-to-end: the thirteen specs the slice touches, counts
+in the session log.
+
 ### P2 slice five: benchmarks and floors for the three unmeasured reviewers — 23 October 2026
 
 Behaviour change ([decision](docs/adr/2026-10-23-p2-slice-five-reviewer-benchmarks.md)):

@@ -311,6 +311,9 @@ export const api = {
   listRuns: (state?: string) => request<{ runs: RunSummary[] }>(state ? `/api/runs?state=${encodeURIComponent(state)}` : '/api/runs'),
   usage: () => request<Usage>('/api/usage'),
   getRun: (id: string) => request<RunDetail>(`/api/runs/${id}`, {}, RUN_REQUEST_TIMEOUT_MS),
+  /** The newest run carrying a succeeded railway asset screen, assembled
+   *  by the server in one answer (U10). */
+  assetEvidence: () => request<{ run: RunDetail | null; scanned: number; capped: boolean }>('/api/assets/evidence', {}, RUN_REQUEST_TIMEOUT_MS),
   /** The maintenance KPI register computed on a run's cleaned table
    *  (ADR 0049). 409 until the run has finished cleaning. */
   runKpis: (id: string, language: 'en' | 'ar' = 'en') =>

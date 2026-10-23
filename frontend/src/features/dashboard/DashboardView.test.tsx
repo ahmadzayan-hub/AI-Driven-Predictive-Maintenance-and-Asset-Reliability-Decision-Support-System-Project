@@ -39,7 +39,7 @@ it('offers maintenance intake and retries a failed analysis picker rather than r
   vi.mocked(api.listRuns).mockRejectedValueOnce(new ApiError('Unavailable', 503)).mockResolvedValueOnce({ runs: [{ id: 'r2', state: 'awaiting_approval', goal: 'Synthetic maintenance analysis', dataset_name: 'sample.csv', created_at: '', updated_at: '' }] })
   const onNavigate = vi.fn()
   render(<DashboardView runId={null} page={null} query="" onNavigate={onNavigate} onOpenRun={vi.fn()} />)
-  expect(screen.getByRole('link', { name: 'Analyse maintenance data' })).toHaveAttribute('href', '#/runs?source=upload&profile=maintenance')
+  expect(screen.getByRole('link', { name: 'Analyse maintenance data' })).toHaveAttribute('href', '#/datasets')
   expect(await screen.findByRole('alert')).toHaveTextContent('could not be loaded')
   expect(screen.queryByText(/No analysis has a cleaned table/)).not.toBeInTheDocument()
   await user.click(screen.getByRole('button', { name: 'Try again' }))

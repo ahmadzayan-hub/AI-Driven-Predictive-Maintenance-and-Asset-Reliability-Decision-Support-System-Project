@@ -11,7 +11,7 @@ test('a registered custom stage runs under the same gate, chosen by profile', as
 }) => {
   await skipOnboarding(page)
   await page.goto('/')
-  await openTab(page, /^Analytics/)
+  await openTab(page, /^Analyses/)
 
   // The picker exists because profiles are configured; the default adds nothing.
   const picker = page.getByLabel('Pipeline profile')

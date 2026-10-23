@@ -27,7 +27,7 @@ test('no horizontal overflow at 320, 768, and 1024 px', async ({ page }) => {
     'A long message with an unbreakable token Supercalifragilisticexpialidocious1234567890 to prove wrapping works.',
   )
   await expect(lastAgentBubble(page)).toBeVisible()
-  await openTab(page, /^Analytics/)
+  await openTab(page, /^Analyses/)
   await page.getByRole('button', { name: 'Start run' }).click()
   await expect(page.getByRole('region', { name: 'Approval required' })).toBeVisible({
     timeout: 40_000,

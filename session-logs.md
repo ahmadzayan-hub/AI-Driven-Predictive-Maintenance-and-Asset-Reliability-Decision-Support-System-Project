@@ -1518,3 +1518,13 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Decided:** labels are never changed after a run; the title-tag false alarm stays on the record rather than being relabelled.
 - **Open / next:** PR #24 CI, then merge; the interface items (U10, U11, U14, U15, U16, U18, U19); the model half of G8; the standards lint blind score.
 
+## 2026-10-23 · `d9e3f889` · claude/tender-clarke-m4uwgq (P2 slice six)
+
+**Goal:** the interface items of the P2 list (U10, U11, U14, U15, U16, U18, U19), inside the budgets.
+
+- **Found:** JS total had 3 KB of headroom and CSS 0.7 KB, fonts 0.6 KB; the asset view read the run list and up to fifty payloads; the relationship table listed 100 of 500 points silently; two navigation labels named the wrong thing; four upload entry points, two of them bypassing the preview; no as-of time on the evidence; eight message packs outside the parity test; the Command Centre carried the export job and 25 lines over 200 characters.
+- **Done:** `scripts/subset_fonts.py` writes committed woff2 subsets (119.4 KB to 86.5 KB, budget 100 KB) and the build imports one stylesheet; `GET /api/assets/evidence` and a one-call view; the table note; "Analyses" and "Administration"; every call to action, the assistant's suggestion included, through Datasets, with the intake spec on that path; the as-of `<time>` and the empty-picker action; all 21 packs in the parity test, `useExecutiveExport`, no long line, `hasVerdict()`. [Decision](docs/adr/2026-10-23-p2-slice-six-interface.md); assessment rows, roadmap, README updated.
+- **Verified:** build and budget (JS 99.0 of 100 and 245.2 of 248 KB, CSS 10.0 of 10.5 and 32.7 of 33.5 KB, fonts 86.5 of 100 KB); frontend unit tests 378 of 378; `tests/test_p2_slice_six.py` 6 of 6; Playwright on the thirteen touched specs: 57 passed, 5 skipped, and the two workspace failures were a regex my rename had wrongly applied to the agent flow's own Analytics tab, reverted and passing (5 of 5, 1 skipped); screenshots restored afterwards; quick verify with PostgreSQL after the budget test followed the new font limit.
+- **Decided:** the Analyses form keeps its file control as a source choice; the entry points are what changed. The font subsets are committed so the build needs no font tooling.
+- **Open / next:** PR #24 CI, then merge; the standards lint blind score; the model half of G8; P3 items.
+
