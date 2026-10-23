@@ -635,8 +635,9 @@ the write rate limit is counted in the store when it is shared and a
 per-owner model budget (`AGENTIC_OS_QUOTA_MODEL_CALLS_PER_DAY`, default 500)
 stops the gateway attempting over budget (B6); `PostgresStore` holds a
 connection per thread (B11). `REQUIRE_PG=1 python scripts/verify.py --quick`
-against PostgreSQL 16: **1,777 Python tests reported, 21 skipped** (optional
-extras only; 19 new), brain check, type check, **353 frontend unit tests**.
+against PostgreSQL 16, after merging main's RMD evidence and chart-axis
+work: **1,894 Python tests reported, 21 skipped** (optional extras only; 19
+new), brain check, type check, **369 frontend unit tests**.
 No interface code changed, so the build, budget and browser suites were not
 re-run; the hosted run on the pull request is their record.
 

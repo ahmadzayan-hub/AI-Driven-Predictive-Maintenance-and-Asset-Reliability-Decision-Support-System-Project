@@ -45,8 +45,15 @@ def prepared(rows, chosen=None):
     return ctx
 
 
+# The card's provenance (A14, A11) names the snapshot it was fitted on, the
+# fitting time and the reasons inputs were refused, which legitimately
+# differ between the mappings these tests compare; the scores must not.
+PROVENANCE = ("snapshot", "fitted_at", "excluded_inputs")
+
+
 def model(ctx):
-    return targets.MaintenanceRisk([targets.TARGETS[0]]).run(ctx)["output"]["models"][0]
+    card = targets.MaintenanceRisk([targets.TARGETS[0]]).run(ctx)["output"]["models"][0]
+    return {k: v for k, v in card.items() if k not in PROVENANCE}
 
 
 class MaintenanceMappingTests(unittest.TestCase):
