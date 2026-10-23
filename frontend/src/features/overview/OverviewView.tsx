@@ -12,7 +12,6 @@ import { CommandCentre } from './CommandCentre'
 import { DecisionActions } from './DecisionActions'
 import { summarizeRunEvidence } from './evidence'
 import { downloadMotionRun } from './motionEvidence'
-import { LocalMotionPanel } from './LocalMotionPanel'
 
 interface OverviewViewProps {
   onOpenRun: (id: string) => void
@@ -312,6 +311,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard,
               >
                 {reportLang === 'ar' ? 'مسودة فيديو تحليلي' : 'Motion draft'}
               </button>
+              {motionError ? <p role="alert" className="statusline statusline--error" dir="auto" lang={reportLang}>{motionError}</p> : null}
             </>
           ) : null}
         </section>
