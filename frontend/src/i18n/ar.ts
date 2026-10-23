@@ -13,7 +13,7 @@ export const ar: Record<MessageKey, string> = {
   'nav.dataShort': 'البيانات',
   'nav.reviewShort': 'المراجعة',
   "assistant.name": "معيار",
-  "assistant.tagline": "المساعد الذكي لموثوقية الأصول",
+  "assistant.tagline": "ذكاء صيانة الأصول ودعم القرار",
   "miyaar.eyebrow": "مساحتك لاتخاذ قرارات موثوقية الأصول",
   "miyaar.headline": "لكل أصل، قرار أوضح.",
   "miyaar.intro": "أنا معيار. أضف بيانات الصيانة، واستكشف الأدلة، وحوّل نتائج التحليل إلى قرارات يمكنك الاستناد إليها.",

@@ -5,13 +5,16 @@ import { viewLoaded } from './helpers'
 
 // Actual browser captures of the explicit fictional demo, never live operational data.
 test.use({ baseURL: 'http://127.0.0.1:8125', contextOptions: { reducedMotion: 'reduce' } })
+for (const theme of ['light', 'dark'] as const) {
 for (const locale of ['en', 'ar'] as const) {
   for (const width of [320, 360, 390, 1440]) {
-    test(`task-first ${locale} at ${width}px`, async ({ page }, info) => {
+    test(`task-first ${theme} ${locale} at ${width}px`, async ({ page }, info) => {
       test.skip(info.project.name !== 'desktop', 'Explicit viewport matrix runs once')
       await page.setViewportSize({ width, height: 900 })
       await page.addInitScript((language) => localStorage.setItem('aos-locale', language), locale)
+      if (theme === 'dark') await page.addInitScript(() => localStorage.setItem('aos-theme', 'dark'))
       await page.goto('/')
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
       await viewLoaded(page)
       await expect(page.locator('.next-action')).toBeVisible()
       await expect(page.locator('.command--pending')).toHaveCount(0)
@@ -43,7 +46,7 @@ for (const locale of ['en', 'ar'] as const) {
       const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
       expect(axe.violations).toEqual([])
       await mkdir('../docs/screenshots', { recursive: true })
-      await page.screenshot({ path: `../docs/screenshots/miyaar-task-first-synthetic-${locale}-${width}.png` })
+      await page.screenshot({ path: `../docs/screenshots/miyaar-task-first-synthetic-${theme}-${locale}-${width}.png` })
       // Text zoom / reflow: CSS zoom exercises layout without claiming physical-device QA.
       await page.locator('html').evaluate((el) => { el.style.zoom = '2' })
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
@@ -53,4 +56,5 @@ for (const locale of ['en', 'ar'] as const) {
       await expect(page).toHaveURL(/#\/runs\/[a-zA-Z0-9_-]+$/)
     })
   }
+}
 }

@@ -466,7 +466,8 @@ export function App() {
         </button>
         <div className="brand">
           <span className="brand__mark" aria-hidden="true"><img src="/artwork/asset-reliability-mark.svg" alt="" width={32} height={32} /></span>
-          <h1 className="brand__name" title={t('brand.fullName')}>{t('assistant.name')}</h1>
+          <h1 className="brand__name" title={t('assistant.tagline')}>{t('assistant.name')}</h1>
+          <span className="brand__descriptor">{t('assistant.tagline')}</span>
         </div>
         <div className="header__search">
           <button
