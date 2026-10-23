@@ -1,0 +1,47 @@
+FINDING: [P04] Depot switches called 2.7 times less reliable, from failures per track-km
+Category: denominator
+Reasoning: Failures are divided by track length, not by switch count. Per switch the rates are 30/112 = 0.27 for the mainline and 9/36 = 0.25 for the depot, so there is no gap, and the monthly-inspection proposal rests on the wrong base.
+
+FINDING: [P05] Point machine MTBF of 4,500 h uses only the hours of the 18 machines that failed
+Category: domain_method
+Reasoning: The running time of the 130 machines that did not fail is left out, so the MTBF is understated. A fixed 4,000 h overhaul is also set from an MTBF, with no wear-out evidence.
+
+FINDING: [P07] A Weibull shape of 0.6, with 64% of failures inside 90 days, is called wear-out
+Category: domain_method
+Reasoning: A shape below 1 with early failures is infant mortality. The fix is installation quality, not a shorter replacement interval.
+
+FINDING: [P09] Age-based replacement of all PIS boards despite a Weibull shape of 1.0
+Category: domain_method
+Reasoning: A shape of 1.0 with no age relationship means a constant failure rate, so scheduled replacement will not reduce failures.
+
+FINDING: [P11] PIS availability computed over 8,760 calendar hours while the target is defined over required service time
+Category: domain_method
+Reasoning: Over 6,570 service hours, availability is 1 - 438/6,570 = 93.3%, so the 95.0% target was missed, not met.
+
+FINDING: [P12] A 12-month measurement cycle kept against a 4-month P-F interval
+Category: domain_method
+Reasoning: The inspection interval must be shorter than the P-F interval.
+
+FINDING: [P14] The ultrasonic testing programme is said to have eliminated broken-rail risk
+Category: causal_claim
+Reasoning: The only evidence is 0 broken rails in 2025 against 3 in 2024, a before/after count with no control. Zero events does not mean zero risk.
+
+FINDING: [P15] S4 rectifiers treated as independent despite a shared incomer cable and cooling fan
+Category: domain_method
+Reasoning: Common-cause dependencies, so 0.0004 understates the unavailability.
+
+FINDING: [P17] Switch MTTR measured from the technician's arrival is used as the service disruption per failure
+Category: domain_method
+Reasoning: Detection, response and travel time are excluded, so the 1.5 h and the 45 service-hours are understated.
+
+FINDING: [P19] Series route-setting reliability computed as the average of the three subsystems
+Category: domain_method
+Reasoning: Series reliability is the product: 0.98 x 0.96 x 0.97 = 0.913, below the 0.95 target.
+
+FINDING: [P22] Emergency help points moved to run-to-failure and the functional test withdrawn because of unit cost and a low failure count
+Category: domain_method
+Reasoning: Safety-related items; strategy must follow the consequence of failure, not the 380 UA price.
+
+FINDING: [P23] New drainage is said to have caused a 73% reduction in geometry faults
+Category: causal_claim
+Reasoning: Non-randomised comparison of 9 stops against 9; stop selection is a confounder. Association only.
