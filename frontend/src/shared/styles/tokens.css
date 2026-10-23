@@ -77,13 +77,9 @@
   --space-6: 32px;
 
   /* Typography */
-  /* Fira Sans for text and headings, Fira Code for figures and code. Both
-     are bundled (subsets of the @fontsource Latin files, scripts/subset_fonts.py) — never fetched from a third
-     party — and fall back to the system stacks while they load. */
-  --font-sans: 'Fira Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
-    Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --font-mono: 'Fira Code', ui-monospace, 'SF Mono', 'Cascadia Code', Menlo,
-    Consolas, monospace;
+  /* Official original Dubai face for both scripts; system mono for raw IDs/code. */
+  --font-sans: 'Dubai', 'Segoe UI', Tahoma, Arial, system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
   --text-xs: 0.75rem;
   --text-s: 0.8125rem;
   --text-m: 0.9375rem;
@@ -119,11 +115,10 @@
 /* Arabic. System fonts with full Arabic coverage, ordered so that Latin
    glyphs (product names, paths, keyboard keys) come from the same face
    as the Arabic around them rather than a fallback with a different
-   x-height. No web font is loaded: the app works offline and ships no
-   third-party requests. Arabic glyphs sit lower and read smaller at the
+   x-height. The same bundled Dubai font covers both scripts; no third-party font requests. Arabic glyphs sit lower and read smaller at the
    same size, so the leading is opened up slightly. */
 :root:lang(ar) {
-  --font-sans: 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Noto Naskh Arabic', 'Geeza Pro',
+  --font-sans: 'Dubai', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Noto Naskh Arabic', 'Geeza Pro',
     'Helvetica Neue', Arial, system-ui, sans-serif;
   --leading: 1.65;
   --tracking-tight: 0;
