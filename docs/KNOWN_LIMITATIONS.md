@@ -259,7 +259,10 @@ required local files. Both behaviors are covered by tests
     project is documented but not shipped (no Android SDK available to
     build or test one honestly).
 13. Obsidian integration is approval-gated write-back into a vault
-    folder; reading/sync/retrieval from a vault is not implemented.
+    folder; reading/sync/retrieval from a vault is not implemented. Since
+    23 October the database store is the publish target and the folder a
+    courtesy: on a host where it cannot be written, the published path
+    names the store and `/api/vault` still serves both notes (B13).
 14. The interface is Arabic or English (ADR 0018), right-to-left in
     Arabic, and the agent's own replies follow the chosen language.
     Reports are written in the language a run was started in (ADR 0022),

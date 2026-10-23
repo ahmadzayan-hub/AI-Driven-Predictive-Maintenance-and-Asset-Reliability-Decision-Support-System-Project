@@ -154,3 +154,27 @@ jobs:
           path: frontend/playwright-report
           retention-days: 7
 
+  optional-runtimes:
+    # The optional agent runtimes (LangGraph, Pydantic AI, the MCP SDK)
+    # are installed here and their tests must run, not skip (assessment
+    # G11). Pinned by version in requirements-agents.txt; the core
+    # requirements keep their hashes.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5.1.0
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies and the optional runtimes
+        run: |
+          pip install --require-hashes -r requirements.txt
+          pip install -r requirements-agents.txt
+
+      - name: Optional runtime tests (skips are failures)
+        env:
+          REQUIRE_OPTIONAL_RUNTIMES: '1'
+        run: python -m unittest tests.test_frameworks tests.test_mcp -v
+

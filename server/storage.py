@@ -15,11 +15,29 @@ engine never sees a driver type.
 import hashlib
 import threading
 from contextlib import contextmanager
+import logging
+import sqlite3
+from datetime import datetime, timezone
+
+
+LOG = logging.getLogger("agentic.storage")
+
+
+def is_database_error(error):
+    """True for an error raised by the database driver (sqlite3 or psycopg),
+    the kind a caller may answer with 503 rather than 500 (B9)."""
+    if isinstance(error, sqlite3.Error):
+        return True
+    module = type(error).__module__ or ""
+    return module.startswith("psycopg")
 
 # The single source of truth for which tables exist. Backup, restore and
 # test teardown all derive from this, so adding a table cannot leave one
 # of them stale (a bug that has already bitten once).
 TABLES = (
+    # Which migration pass this database has had (B12); in backups so a
+    # restored database carries its version.
+    "schema_migrations",
     "runs",
     "tasks",
     "approvals",
@@ -36,6 +54,7 @@ TABLES = (
 
 # Restore must insert parents before children.
 RESTORE_ORDER = (
+    "schema_migrations",
     "datasets",
     "runs",
     "kpi_policies",
@@ -49,6 +68,9 @@ RESTORE_ORDER = (
     "organizations", "organization_members", "operation_sites", "operation_assets",
     "work_orders", "operation_audit", "operation_requests", "worker_heartbeats", "reliability_trials",
 )
+
+# Bump when _migrate gains a step; a database below it gets the pass.
+SCHEMA_VERSION = 1
 
 SCHEMA_STATEMENTS = [
     """CREATE TABLE IF NOT EXISTS organizations (
@@ -85,16 +107,25 @@ SCHEMA_STATEMENTS = [
       actor TEXT NOT NULL, request_key TEXT NOT NULL, payload_hash TEXT NOT NULL,
       response_json TEXT NOT NULL, created_at TEXT NOT NULL,
       UNIQUE(org_id, actor, request_key))""",
+    # Which migration pass this database has had (B12); read at start-up.
+    """CREATE TABLE IF NOT EXISTS schema_migrations (
+      version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)""",
     """CREATE TABLE IF NOT EXISTS worker_heartbeats (
       id TEXT PRIMARY KEY, seen_at TEXT NOT NULL, state TEXT NOT NULL)""",
     """CREATE TABLE IF NOT EXISTS reliability_trials (
       id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
       created_by TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
       revision INTEGER NOT NULL, protocol_json TEXT NOT NULL, predictions_json TEXT NOT NULL)""",
+    # The columns after `error` arrived by migration over time; a fresh
+    # database gets them here, and _migrate adds them to older ones (B12).
     """CREATE TABLE IF NOT EXISTS runs (
       id TEXT PRIMARY KEY, goal TEXT NOT NULL, dataset_name TEXT NOT NULL,
       dataset_text TEXT NOT NULL, state TEXT NOT NULL,
-      created_at TEXT NOT NULL, updated_at TEXT NOT NULL, error TEXT)""",
+      created_at TEXT NOT NULL, updated_at TEXT NOT NULL, error TEXT,
+      owner TEXT, dataset_id TEXT, lease_owner TEXT, lease_expires_at TEXT,
+      report_language TEXT, mapping_json TEXT, joins_json TEXT,
+      connector_id TEXT, assumptions_json TEXT, idempotency_key TEXT,
+      paused INTEGER)""",
     """CREATE TABLE IF NOT EXISTS tasks (
       id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(id),
       idx INTEGER NOT NULL, role TEXT NOT NULL, title TEXT NOT NULL,
@@ -111,7 +142,7 @@ SCHEMA_STATEMENTS = [
       action TEXT NOT NULL, target TEXT NOT NULL, risk TEXT NOT NULL,
       impact TEXT NOT NULL, reversibility TEXT NOT NULL,
       content_hash TEXT NOT NULL, state TEXT NOT NULL,
-      created_at TEXT NOT NULL, decided_at TEXT)""",
+      created_at TEXT NOT NULL, decided_at TEXT, decided_by TEXT)""",
     """CREATE TABLE IF NOT EXISTS artifacts (
       id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(id),
       name TEXT NOT NULL, kind TEXT NOT NULL, version INTEGER NOT NULL,
@@ -120,7 +151,7 @@ SCHEMA_STATEMENTS = [
       id TEXT PRIMARY KEY, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
       ended INTEGER NOT NULL, preferences_json TEXT NOT NULL,
       history_json TEXT NOT NULL, transcript_json TEXT NOT NULL,
-      next_entry_id INTEGER NOT NULL)""",
+      next_entry_id INTEGER NOT NULL, owner TEXT)""",
     # Memory is per owner. The composite key matters as much as the
     # column: keys are handed out per owner, so the first thing two
     # tenants save is "memory_1" for both, and a single-column primary
@@ -137,7 +168,9 @@ SCHEMA_STATEMENTS = [
     """CREATE TABLE IF NOT EXISTS datasets (
       id TEXT PRIMARY KEY, sha256 TEXT NOT NULL, name TEXT NOT NULL,
       content TEXT NOT NULL, byte_size INTEGER NOT NULL,
-      owner TEXT NOT NULL, created_at TEXT NOT NULL)""",
+      owner TEXT NOT NULL, created_at TEXT NOT NULL,
+      source_format TEXT, row_count INTEGER, column_count INTEGER,
+      mapping_json TEXT, mapping_updated_at TEXT)""",
     # Live data (ADR 0034): an owner's saved source, what its last
     # refresh found, when the next one is due, and the worker's lease.
     """CREATE TABLE IF NOT EXISTS connectors (
@@ -148,7 +181,7 @@ SCHEMA_STATEMENTS = [
       last_status TEXT, last_error TEXT, last_checked_at TEXT,
       last_dataset_id TEXT, last_sha256 TEXT, last_run_id TEXT,
       next_due_at TEXT, lease_owner TEXT, lease_expires_at TEXT,
-      created_at TEXT NOT NULL, updated_at TEXT NOT NULL)""",
+      created_at TEXT NOT NULL, updated_at TEXT NOT NULL, credential_id TEXT)""",
 ]
 
 
@@ -263,9 +296,36 @@ class SqlStore:
                 cursor.close()
 
     def _create_schema(self):
-        for statement in SCHEMA_STATEMENTS:
-            self._exec(statement)
-        self._migrate()
+        """Create what is missing and migrate what is old, once.
+
+        The migrations are recorded in `schema_migrations` (assessment
+        B12): a database already at SCHEMA_VERSION skips the ALTER TABLE
+        pass on every later start, and on PostgreSQL the whole pass runs
+        under an advisory lock so two cold-starting instances do not race
+        on the same DDL."""
+        self._lock_schema()
+        try:
+            for statement in SCHEMA_STATEMENTS:
+                self._exec(statement)
+            if self._schema_version() < SCHEMA_VERSION:
+                self._migrate()
+                self._exec("INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)",
+                           (SCHEMA_VERSION, datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")))
+            # After the pass: an older database only now has both columns.
+            self._exec("CREATE UNIQUE INDEX IF NOT EXISTS runs_idempotency "
+                       "ON runs (owner, idempotency_key)")
+        finally:
+            self._unlock_schema()
+
+    def _schema_version(self):
+        rows = self._exec("SELECT MAX(version) AS version FROM schema_migrations")
+        return int(rows[0]["version"] or 0) if rows else 0
+
+    def _lock_schema(self):
+        """SQLite serialises writers itself; PostgreSQL overrides this."""
+
+    def _unlock_schema(self):
+        pass
 
     def _migrate(self):
         """Additive migrations for databases created by earlier versions.
@@ -298,11 +358,6 @@ class SqlStore:
                 self._exec(f"ALTER TABLE runs ADD COLUMN {column} TEXT")
             except Exception:
                 self._rollback()
-        try:
-            self._exec("CREATE UNIQUE INDEX IF NOT EXISTS runs_idempotency "
-                       "ON runs (owner, idempotency_key)")
-        except Exception:
-            self._rollback()
         try:
             # decided_by: the approver's subject, written by the gate (A13).
             self._exec("ALTER TABLE approvals ADD COLUMN decided_by TEXT")
@@ -798,7 +853,12 @@ class DbMemoryBackend:
     def load(self):
         try:
             return self._store.memory_load(self._owner)
-        except Exception:
+        except Exception as error:
+            # Only a database outage reads as an empty memory, and it is
+            # logged; any other error is a bug and surfaces (B9).
+            if not is_database_error(error):
+                raise
+            LOG.warning("memory load failed for an owner: %s", type(error).__name__)
             return {}
 
     def save(self, payload):
@@ -848,6 +908,17 @@ class SQLiteStore(SqlStore):
 
 class PostgresStore(SqlStore):
     placeholder = "%s"
+    # One lock id for the schema pass, shared by every instance (B12).
+    SCHEMA_LOCK = 727001
+
+    def _lock_schema(self):
+        self._exec("SELECT pg_advisory_lock(?)", (self.SCHEMA_LOCK,))
+
+    def _unlock_schema(self):
+        try:
+            self._exec("SELECT pg_advisory_unlock(?)", (self.SCHEMA_LOCK,))
+        except Exception:
+            self._rollback()
 
     def __init__(self, database_url):
         super().__init__()

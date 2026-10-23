@@ -1,5 +1,6 @@
 -- Asset Reliability AI: secure initial application schema
--- Mirrors server/storage.py SCHEMA_STATEMENTS and additive _migrate columns.
+-- Mirrors server/storage.py SCHEMA_STATEMENTS, which since 23 October carry
+-- every column the additive _migrate pass adds to older databases.
 -- PostgREST / anon / authenticated are intentionally NOT granted table access.
 -- Backend uses managed PostgreSQL (psycopg2) with server-side owner checks.
 -- No secrets, user records, customer data, or privileged credentials in this file.
@@ -51,6 +52,10 @@ CREATE TABLE IF NOT EXISTS operation_requests (
 CREATE TABLE IF NOT EXISTS worker_heartbeats (
       id TEXT PRIMARY KEY, seen_at TEXT NOT NULL, state TEXT NOT NULL);
 
+-- Which migration pass the store has applied (P2 slice two, B12).
+CREATE TABLE IF NOT EXISTS schema_migrations (
+      version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
+
 CREATE TABLE IF NOT EXISTS reliability_trials (
       id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
       created_by TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
@@ -60,14 +65,9 @@ CREATE TABLE IF NOT EXISTS runs (
       id TEXT PRIMARY KEY, goal TEXT NOT NULL, dataset_name TEXT NOT NULL,
       dataset_text TEXT NOT NULL, state TEXT NOT NULL,
       created_at TEXT NOT NULL, updated_at TEXT NOT NULL, error TEXT,
-      owner TEXT,
-      dataset_id TEXT,
-      lease_owner TEXT,
-      lease_expires_at TEXT,
-      report_language TEXT,
-      mapping_json TEXT,
-      joins_json TEXT,
-      connector_id TEXT,
+      owner TEXT, dataset_id TEXT, lease_owner TEXT, lease_expires_at TEXT,
+      report_language TEXT, mapping_json TEXT, joins_json TEXT,
+      connector_id TEXT, assumptions_json TEXT, idempotency_key TEXT,
       paused INTEGER);
 
 CREATE TABLE IF NOT EXISTS tasks (
@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS approvals (
       action TEXT NOT NULL, target TEXT NOT NULL, risk TEXT NOT NULL,
       impact TEXT NOT NULL, reversibility TEXT NOT NULL,
       content_hash TEXT NOT NULL, state TEXT NOT NULL,
-      created_at TEXT NOT NULL, decided_at TEXT);
+      created_at TEXT NOT NULL, decided_at TEXT, decided_by TEXT);
 
 CREATE TABLE IF NOT EXISTS artifacts (
       id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(id),
@@ -97,8 +97,7 @@ CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
       ended INTEGER NOT NULL, preferences_json TEXT NOT NULL,
       history_json TEXT NOT NULL, transcript_json TEXT NOT NULL,
-      next_entry_id INTEGER NOT NULL,
-      owner TEXT);
+      next_entry_id INTEGER NOT NULL, owner TEXT);
 
 CREATE TABLE IF NOT EXISTS memory_kv (
       owner TEXT NOT NULL, key TEXT NOT NULL, text TEXT NOT NULL,
@@ -113,11 +112,8 @@ CREATE TABLE IF NOT EXISTS datasets (
       id TEXT PRIMARY KEY, sha256 TEXT NOT NULL, name TEXT NOT NULL,
       content TEXT NOT NULL, byte_size INTEGER NOT NULL,
       owner TEXT NOT NULL, created_at TEXT NOT NULL,
-      source_format TEXT,
-      row_count INTEGER,
-      column_count INTEGER,
-      mapping_json TEXT,
-      mapping_updated_at TEXT);
+      source_format TEXT, row_count INTEGER, column_count INTEGER,
+      mapping_json TEXT, mapping_updated_at TEXT);
 
 CREATE TABLE IF NOT EXISTS connectors (
       id TEXT PRIMARY KEY, owner TEXT NOT NULL, name TEXT NOT NULL,
@@ -127,8 +123,7 @@ CREATE TABLE IF NOT EXISTS connectors (
       last_status TEXT, last_error TEXT, last_checked_at TEXT,
       last_dataset_id TEXT, last_sha256 TEXT, last_run_id TEXT,
       next_due_at TEXT, lease_owner TEXT, lease_expires_at TEXT,
-      created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
-      credential_id TEXT);
+      created_at TEXT NOT NULL, updated_at TEXT NOT NULL, credential_id TEXT);
 
 CREATE INDEX IF NOT EXISTS ar_ai_runs_owner_created_idx ON runs (owner, created_at);
 CREATE INDEX IF NOT EXISTS ar_ai_runs_owner_updated_idx ON runs (owner, updated_at);
@@ -153,6 +148,8 @@ ALTER TABLE public.operation_requests ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.operation_requests FROM PUBLIC, anon, authenticated;
 ALTER TABLE public.worker_heartbeats ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.worker_heartbeats FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.schema_migrations ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.schema_migrations FROM PUBLIC, anon, authenticated;
 ALTER TABLE public.reliability_trials ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.reliability_trials FROM PUBLIC, anon, authenticated;
 ALTER TABLE public.runs ENABLE ROW LEVEL SECURITY;

@@ -18,7 +18,9 @@ ADDITIVE = {
     "runs": {"owner": "TEXT", "dataset_id": "TEXT", "lease_owner": "TEXT",
              "lease_expires_at": "TEXT", "report_language": "TEXT",
              "mapping_json": "TEXT", "joins_json": "TEXT",
-             "connector_id": "TEXT", "paused": "INTEGER"},
+             "connector_id": "TEXT", "assumptions_json": "TEXT",
+             "idempotency_key": "TEXT", "paused": "INTEGER"},
+    "approvals": {"decided_by": "TEXT"},
     "sessions": {"owner": "TEXT"},
     "datasets": {"source_format": "TEXT", "row_count": "INTEGER",
                  "column_count": "INTEGER", "mapping_json": "TEXT",
@@ -60,8 +62,8 @@ class SupabaseSchemaSnapshotTest(unittest.TestCase):
             expected = statement.split("(", 1)[1].rsplit(")", 1)[0]
             actual = re.search(rf"CREATE TABLE IF NOT EXISTS {table}\s*\((.*?)\);",
                                self.sql, flags=re.DOTALL).group(1)
-            for column, kind in ADDITIVE.get(table, {}).items():
-                actual = re.sub(rf",\s*\b{column}\s+{kind}\b", "", actual)
+            # Since 23 October the base statements carry the additive
+            # columns too, so the mirror is compared in full.
             with self.subTest(table=table):
                 self.assertEqual(normalize(actual), normalize(expected))
 

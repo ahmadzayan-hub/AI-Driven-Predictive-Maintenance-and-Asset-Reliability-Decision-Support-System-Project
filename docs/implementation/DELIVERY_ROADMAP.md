@@ -22,6 +22,7 @@ outside this repository), **Proposed** (designed, not built).
 | Slice two of the release gate: rates never summed, trended or ranked (A4), a naive baseline and weak rule for every forecast (A5), figures checked against cited evidence (A6), approve only after reading (U3), JWT audience and issuer required (B7) | Implemented, Tested | `docs/adr/2026-10-22-release-gate-slice-two.md`; `tests/test_analytics.py::RatesAreNeverSummedTestCase`, `::ForecastBaselineTestCase`, `::ClaimFiguresMatchEvidenceTestCase`; `frontend/src/tests/approval-card.test.tsx` |
 | Slice three of the release gate: decision inputs and record (A2, A13), signalling escalation (A8), currency (U4), landing and phone bar (U12), per-session locking, transactional restore and request logging (B4, B5, B10), blind-set floors (G1), model call ledger (G4), browser coverage of demo, Assets and Approvals (U13) | Implemented, Tested | `docs/adr/2026-10-22-release-gate-slice-three.md` |
 | P2 slice one: verdict bound (A9), declared splits (A10), incomplete periods (A12), loopback by default (B8), idempotent run creation (B14, in part), wall-clock limits on custom stages and agent runtimes (G10) | Implemented, Tested | `docs/adr/2026-10-23-p2-slice-one.md`; `tests/test_p2_slice_one.py` |
+| P2 slice two: the store as publish target (B13), logged failures and 503 on an outage (B9), one error envelope and the contract behind sign-in (B14, closed), a required connector allowlist in production (B16), recorded and locked migrations (B12), the optional-runtime CI job (G11) | Implemented, Tested | `docs/adr/2026-10-23-p2-slice-two.md`; `tests/test_p2_slice_two.py` |
 
 ## 2. Next release gate (P1)
 
@@ -43,17 +44,17 @@ the decision record card on the run, were delivered the same day
 
 As marked in the assessment: KPI bases (A7), input screening in generic
 models (A11), model versioning and calibration (A14), transformation
-reversibility (A18); rate limiting and model quota (B6), narrow excepts (B9),
-connection pool (B11), versioned migrations (B12), hosted publish target
-(B13), the rest of the API contract (one error envelope and OpenAPI behind
-auth, B14), connector allowlist (B16); railway wording behind a profile (U8, owner decision), asset KPI errors
+reversibility (A18); rate limiting and model quota (B6), connection pool
+(B11); railway wording behind a profile (U8, owner decision), asset KPI errors
 and endpoint (U10), chart table note (U11), naming (U14), one upload flow (U15),
 as-of stamps (U16), pack parity and executive hook (U18), font subsetting
 (U19), navy rail (U20, owner decision); structured consultant output and
 deterministic agreement (G5, G6), eval cases for the two unmeasured actions
-(G8), reviewer benchmarks (G9), optional runtime CI job (G11); and the P3 items.
-The first P2 slice (A9, A10, A12, B8, the idempotency half of B14, G10) was
-delivered on 23 October ([decision](../adr/2026-10-23-p2-slice-one.md)).
+(G8), reviewer benchmarks (G9); and the P3 items.
+The first P2 slice (A9, A10, A12, B8, the idempotency half of B14, G10) and
+the second (B9, B12, B13, the rest of B14, B16, G11) were delivered on 23
+October ([slice one](../adr/2026-10-23-p2-slice-one.md),
+[slice two](../adr/2026-10-23-p2-slice-two.md)).
 
 ## 4. The brief's deliverables and their status
 

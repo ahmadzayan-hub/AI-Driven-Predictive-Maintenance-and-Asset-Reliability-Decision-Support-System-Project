@@ -148,6 +148,11 @@ class ModelGateway:
             self.timeout = min(60, max(1, timeout)) if math.isfinite(timeout) else TIMEOUT_SECONDS
         except (TypeError, ValueError):
             self.timeout = TIMEOUT_SECONDS
+        # On Vercel the function itself has 30 s (vercel.json), and a call
+        # may time out twice; a longer configured timeout would cut the
+        # request off mid-answer instead (assessment B13).
+        if env.get("VERCEL"):
+            self.timeout = min(self.timeout, TIMEOUT_SECONDS)
         thinking = str(env.get("OLLAMA_THINK", "")).lower()
         self.ollama_think = (False if thinking in ("0", "false")
                              else True if thinking in ("1", "true") else None)

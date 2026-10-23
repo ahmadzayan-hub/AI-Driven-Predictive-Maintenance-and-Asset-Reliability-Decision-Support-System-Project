@@ -56,6 +56,18 @@ Serverless hardening already in place:
   a lost transaction; the caller must retry the complete operation.
 - `SQLiteStore` relocates to a writable temp directory when its target
   directory is read-only, instead of crashing at import (tested).
+- Approval publishes to the database store first and writes the vault
+  folder only as a courtesy: on a read-only filesystem the published path
+  reads `store:Reports/<note>` and `/api/vault` serves both notes
+  ([decision](adr/2026-10-23-p2-slice-two.md)).
+- On Vercel the model timeout is clamped to 12 s whatever
+  `AGENTIC_OS_MODEL_TIMEOUT_SECONDS` says: the function has 30 s and a call
+  may time out twice.
+- The schema pass runs once per `SCHEMA_VERSION`, under a PostgreSQL
+  advisory lock, so cold-starting instances do not race on DDL.
+- A database outage answers 503 with `error.code` `database_unavailable`;
+  every error carries `detail` and `error: {code, message}`. The API contract
+  is at `GET /api/openapi.json` for a signed-in reader.
 
 ## Deploy it
 
@@ -75,6 +87,7 @@ Serverless hardening already in place:
    | --- | --- |
    | `DATABASE_URL` | **Durable state.** Supabase → Connect → *Transaction pooler* (port 6543, built for serverless), with your database password |
    | `AGENTIC_OS_ENV=production` | Fail closed unless auth is configured |
+   | `AGENTIC_OS_CONNECTOR_HOSTS` | **Required in production** (this variable, a sign-in provider, or a Vercel deployment counts as production): the comma-separated hosts live sources may fetch from. Unset, every live source is refused ([decision](adr/2026-10-23-p2-slice-two.md)) |
    | `AGENTIC_OS_DEMO=1` | **Instead of sign-in:** a public, view-only demo on generated fictional data; works without `DATABASE_URL` (every instance seeds the same demo under the same ids). With neither `DATABASE_URL` nor a sign-in provider set, Vercel deployments start in this mode by default; `AGENTIC_OS_DEMO=0` opts out. Remove the token-verification variables first, or the server will not start ([decision](adr/2026-10-21-view-only-demo-mode.md)) |
    | `SUPABASE_JWT_SECRET` *or* `AGENTIC_OS_JWKS_URL` | Token verification |
    | `SUPABASE_URL`, `SUPABASE_ANON_KEY` | Browser sign-in (publishable) |

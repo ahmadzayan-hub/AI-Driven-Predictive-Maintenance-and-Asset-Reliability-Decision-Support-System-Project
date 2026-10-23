@@ -822,14 +822,16 @@ class RunEngine:
         if current_hash != approval["content_hash"]:
             raise ValueError("Artifact changed after approval was requested.")
         if decision == "approve":
-            path = self._publish(run_id, artifact)
+            path, on_disk = self._publish(run_id, artifact)
             self.store.update("approvals", approval_id,
                               {"state": "approved_once", "decided_at": _now(),
                                "decided_by": approver})
             self.store.update("artifacts", artifact["id"],
                               {"published_path": str(path)})
             self._set_task(task["id"], "succeeded",
-                           summary=f"Published to {path}.")
+                           summary=(f"Published to {path}." if on_disk else
+                                    f"Published to the database store as {path}; the vault "
+                                    "folder is not writable on this host."))
             self._set_run_state(run_id, "completed")
         else:
             self.store.update("approvals", approval_id,
@@ -841,13 +843,18 @@ class RunEngine:
         return self.get_run(run_id)
 
     def _publish(self, run_id, artifact):
+        """Publish the approved report and its run log.
+
+        The database store is the publish target: both notes are written
+        there first, inside the approval's transaction, so a hosted host
+        with a read-only filesystem publishes completely or not at all
+        (assessment B13). The vault folder is then written as a courtesy
+        for Obsidian; when it cannot be, the published path names the
+        store and the approval says so. Returns (path, on_disk)."""
         run = self._row(run_id)
-        reports = self.vault_dir / "Reports"
-        logs = self.vault_dir / "Runs"
-        reports.mkdir(parents=True, exist_ok=True)
-        logs.mkdir(parents=True, exist_ok=True)
         slug = re.sub(r"[^a-z0-9]+", "-", run["goal"].lower()).strip("-")[:48] or "report"
-        note = reports / f"{slug}-{run_id}.md"
+        note_name = f"{slug}-{run_id}.md"
+        note_stem = note_name[:-3]
         frontmatter = (
             "---\n"
             f"type: analytics-report\nrun: {run_id}\n"
@@ -855,24 +862,28 @@ class RunEngine:
             f"dataset: \"{run['dataset_name']}\"\n"
             f"lang: {run.get('report_language') or 'en'}\n---\n\n"
         )
-        note.write_text(frontmatter + artifact["content"]
-                        + f"\n\nRun log: [[{run_id}]]\n", encoding="utf-8")
+        report_text = frontmatter + artifact["content"] + f"\n\nRun log: [[{run_id}]]\n"
         log_lines = [f"---\ntype: run-log\nrun: {run_id}\ngenerated: {_now()}\n---",
                      f"# Run {run_id}", "", f"**Goal:** {run['goal']}", "",
                      "| Stage | Outcome |", "| --- | --- |"]
         for t in self.store.get_tasks(run_id):
             log_lines.append(f"| {t['title']} | {t['state']}: {t['summary'] or ''} |")
-        log_lines.append(f"\nReport: [[{note.stem}]]\n")
-        log_note = logs / f"{run_id}.md"
-        log_note.write_text("\n".join(log_lines), encoding="utf-8")
-        # Durable record: published notes also live in the store, so hosted
-        # (stateless) backends keep them and /api/vault can serve them.
+        log_lines.append(f"\nReport: [[{note_stem}]]\n")
+        log_text = "\n".join(log_lines)
         now = _now()
-        self.store.upsert_note(f"Reports/{note.name}", run_id,
-                               note.read_text(encoding="utf-8"), now)
-        self.store.upsert_note(f"Runs/{run_id}.md", run_id,
-                               log_note.read_text(encoding="utf-8"), now)
-        return note
+        self.store.upsert_note(f"Reports/{note_name}", run_id, report_text, now)
+        self.store.upsert_note(f"Runs/{run_id}.md", run_id, log_text, now)
+        try:
+            reports = self.vault_dir / "Reports"
+            logs = self.vault_dir / "Runs"
+            reports.mkdir(parents=True, exist_ok=True)
+            logs.mkdir(parents=True, exist_ok=True)
+            note = reports / note_name
+            note.write_text(report_text, encoding="utf-8")
+            (logs / f"{run_id}.md").write_text(log_text, encoding="utf-8")
+        except OSError:
+            return f"store:Reports/{note_name}", False
+        return note, True
 
     def set_paused(self, run_id, paused):
         with self.store.atomic("run:" + run_id):

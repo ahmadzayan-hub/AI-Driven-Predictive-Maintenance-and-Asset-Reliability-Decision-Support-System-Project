@@ -22,6 +22,8 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
@@ -55,7 +57,7 @@ from server.auth import DEMO_PRINCIPAL, AuthError, build_identity, public_auth_c
 from server.quota import QuotaExceeded, load_limits
 from server.quota import usage as quota_usage
 from server.rate_limit import WRITE_METHODS, RateLimiter
-from server.storage import DbMemoryBackend, PostgresStore, open_store
+from server.storage import DbMemoryBackend, PostgresStore, open_store, is_database_error
 from server.worker import worker_status
 from server.operations_api import install_operations_api
 from server.reliability_api import install_reliability_api
@@ -117,6 +119,9 @@ PREFERENCE_KEY_PATTERN = re.compile(r"^[a-z][a-z0-9_]{0,39}$")
 # honoured only when it is short and safe to print; the subject is a
 # hash prefix, never the raw subject, and never the token.
 REQUEST_LOG = logging.getLogger("agentic_os.requests")
+# Unexpected errors, one JSON line each with the request id and the
+# traceback in the server log (assessment B9); never in a response.
+ERROR_LOG = logging.getLogger("agentic_os.errors")
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,64}$")
 # Per-session locks are dropped once this many sessions have been seen,
 # keeping only the ones a request is holding at that moment.
@@ -640,15 +645,53 @@ def create_app(config_path=None, env=None, dist_dir=None):
 
     app.add_middleware(InterfaceGZip)
 
-    @app.exception_handler(Exception)
-    async def handle_unexpected_error(request: Request, exc: Exception):
-        # Never leak stack traces or internal details to the browser.
+    def error_envelope(status, detail, code=None):
+        """One shape for every error (assessment B14): `detail` as before,
+        for existing clients, and `error` with a code and a message."""
+        if isinstance(detail, dict):
+            message = detail.get("message") if isinstance(detail.get("message"), str) else None
+            code = code or detail.get("code") or f"http_{status}"
+        elif isinstance(detail, list):
+            message = "The request is not valid."
+            code = code or "request_invalid"
+        else:
+            message = str(detail)
+            code = code or f"http_{status}"
+        return {"detail": detail, "error": {"code": code, "message": message or str(detail)}}
+
+    def error_response(request, status, detail, code=None):
         request_id = getattr(request.state, "request_id", None)
         return apply_security_headers(JSONResponse(
-            status_code=500,
-            content={"detail": "Something went wrong on the server. Please try again."},
+            status_code=status, content=error_envelope(status, detail, code),
             headers={"X-Request-ID": request_id} if request_id else None,
         ), request.url.path)
+
+    @app.exception_handler(HTTPException)
+    async def handle_http_error(request: Request, exc: HTTPException):
+        response = error_response(request, exc.status_code, exc.detail)
+        for key, value in (exc.headers or {}).items():
+            response.headers[key] = value
+        return response
+
+    @app.exception_handler(RequestValidationError)
+    async def handle_validation_error(request: Request, exc: RequestValidationError):
+        return error_response(request, 422, jsonable_encoder(exc.errors()), "request_invalid")
+
+    @app.exception_handler(Exception)
+    async def handle_unexpected_error(request: Request, exc: Exception):
+        # Never leak stack traces or internal details to the browser; the
+        # server log gets the type and the request id for triage (B9).
+        request_id = getattr(request.state, "request_id", None)
+        ERROR_LOG.error(json.dumps({"request_id": request_id, "path": request.url.path,
+                                    "error": type(exc).__name__}, separators=(",", ":")),
+                        exc_info=exc)
+        if is_database_error(exc):
+            return error_response(request, 503,
+                                  "The database is unavailable. Please try again shortly.",
+                                  "database_unavailable")
+        return error_response(request, 500,
+                              "Something went wrong on the server. Please try again.",
+                              "server_error")
 
     # ------------------------------------------------------------------
     # Identity and authorization
@@ -953,6 +996,12 @@ def create_app(config_path=None, env=None, dist_dir=None):
     # ------------------------------------------------------------------
     # Vault: durable record of approved, published knowledge
     # ------------------------------------------------------------------
+    @app.get("/api/openapi.json")
+    def openapi_schema(principal=Depends(requires("read"))):
+        """The API contract, to a signed-in reader (assessment B14); the
+        public /openapi.json and /docs stay off."""
+        return app.openapi()
+
     @app.get("/api/vault")
     def list_vault_notes(principal=Depends(requires("read"))):
         with lock:

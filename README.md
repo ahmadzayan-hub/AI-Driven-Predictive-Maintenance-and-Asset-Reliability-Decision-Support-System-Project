@@ -546,6 +546,23 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### P2 slice two: store as publish target, logged failures, one error envelope, required allowlist, recorded migrations, optional-runtime job — 23 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-23-p2-slice-two.md)): approval
+publishes to the database store first and the vault folder as a courtesy
+(B13); unexpected errors are logged with the request id and a database
+outage answers 503 (B9); every error carries `detail` and `error: {code,
+message}` and the contract is at `GET /api/openapi.json` behind sign-in
+(B14, closed); production without `AGENTIC_OS_CONNECTOR_HOSTS` refuses live
+sources (B16); migrations are recorded and locked and a fresh schema is
+complete without the pass (B12); the `optional-runtimes` CI job installs
+LangGraph, Pydantic AI and the MCP SDK and fails on a skip (G11).
+`REQUIRE_PG=1 python scripts/verify.py --quick` against PostgreSQL 16:
+**1,758 Python tests reported, 21 skipped** (optional extras only; 13 new),
+brain check (46 notes, maintained today), type check, **353 frontend unit
+tests**. No interface code changed, so the build, budget and browser suites
+were not re-run; the hosted run on the pull request is their record.
+
 ### P2 slice one: verdict bounds, declared splits, incomplete periods, loopback, idempotency, timeouts — 23 October 2026
 
 Behaviour change ([decision](docs/adr/2026-10-23-p2-slice-one.md)): a
