@@ -109,7 +109,7 @@ test('drafts, deep links, evidence and exact-report keyboard approval', async ({
 })
 
 test('Arabic phone cockpit and evidence fit the viewport', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', 'explicit phone sizes run once')
+  test.skip(testInfo.project.name === 'mobile', 'explicit phone sizes run once per browser engine')
   // A real analysis precedes every target-size check, two viewport checks
   // and a complete evidence-dialog audit. Keep all checks within one journey.
   test.setTimeout(90_000)

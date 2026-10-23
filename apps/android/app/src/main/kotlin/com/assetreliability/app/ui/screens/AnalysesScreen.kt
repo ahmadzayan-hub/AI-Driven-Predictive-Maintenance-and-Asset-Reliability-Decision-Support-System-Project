@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.item
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -43,9 +42,11 @@ import com.assetreliability.core.api.RunDetail
 import com.assetreliability.core.api.RunSummary
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import java.util.UUID
 
 sealed interface NewRunState {
     data object Idle : NewRunState
@@ -66,6 +67,9 @@ class AnalysesViewModel @Inject constructor(private val platform: PlatformReposi
     val error = MutableStateFlow<String?>(null)
     val readOnly = MutableStateFlow(false)
     val newRun = MutableStateFlow<NewRunState>(NewRunState.Idle)
+    private var attemptSignature: String? = null
+    private var attemptKey: String = UUID.randomUUID().toString()
+    private var knownRunId: String? = null
 
     init { refresh() }
 
@@ -77,27 +81,49 @@ class AnalysesViewModel @Inject constructor(private val platform: PlatformReposi
         } catch (e: Exception) { error.value = e.message ?: e.toString() }
     }
 
-    fun start(uri: Uri, goal: String, maintenance: Boolean) = viewModelScope.launch {
+    fun start(uri: Uri, goal: String, maintenance: Boolean) {
+        if (newRun.value is NewRunState.Uploading || newRun.value is NewRunState.Running) return
         newRun.value = NewRunState.Uploading
+        viewModelScope.launch {
         try {
-            val dataset = platform.upload(uri)
-            var run = platform.createRun(goal.ifBlank { "Analyse ${dataset.name}" }, dataset.id, if (maintenance) "maintenance" else null)
+            val signature = "$uri\u0000$goal\u0000$maintenance"
+            if (attemptSignature != signature) {
+                attemptSignature = signature
+                attemptKey = UUID.randomUUID().toString()
+                knownRunId = null
+            }
+            var run = knownRunId?.let { platform.run(it) } ?: run {
+                val dataset = platform.upload(uri)
+                platform.createRun(goal, dataset.id, if (maintenance) "maintenance" else null, attemptKey)
+            }
+            knownRunId = run.id
             var guard = 0
             while (run.state in setOf("queued", "running") && guard++ < 200) {
                 val done = run.tasks.count { it.state == "succeeded" }
                 val current = run.tasks.firstOrNull { it.state == "running" } ?: run.tasks.firstOrNull { it.state == "pending" }
                 newRun.value = NewRunState.Running(done, run.tasks.size, current?.title ?: "")
-                run = platform.advance(run.id)
-                if (run.state in setOf("queued", "running")) delay(250)
+                run = if (run.execution.mode == "worker") {
+                    delay(run.execution.pollAfterMs.coerceIn(1000, 10_000))
+                    platform.run(run.id)
+                } else {
+                    platform.advance(run.id).also { if (it.state in setOf("queued", "running")) delay(250) }
+                }
             }
-            newRun.value = if (run.state == "failed") NewRunState.Failed(run.error ?: run.state) else NewRunState.Finished(run)
+            newRun.value = if (run.state in setOf("queued", "running", "failed"))
+                NewRunState.Failed(run.error ?: run.state) else NewRunState.Finished(run)
             refresh()
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             newRun.value = NewRunState.Failed(e.message ?: e.toString())
         }
+        }
     }
 
-    fun reset() { newRun.value = NewRunState.Idle }
+    fun reset(newAnalysis: Boolean = false) {
+        if (newAnalysis) { attemptSignature = null; knownRunId = null }
+        newRun.value = NewRunState.Idle
+    }
 }
 
 @Composable
@@ -129,7 +155,7 @@ fun AnalysesScreen(viewModel: AnalysesViewModel = hiltViewModel()) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(maintenance, { maintenance = it }); Text(t("analyses.maintenance"))
                         }
-                        Button(onClick = { picked?.let { viewModel.start(it, goal, maintenance) } }, enabled = picked != null) { Text(t("analyses.start")) }
+                        Button(onClick = { picked?.let { viewModel.start(it, goal.trim(), maintenance) } }, enabled = picked != null && goal.isNotBlank()) { Text(t("analyses.start")) }
                     }
                     NewRunState.Uploading -> Loading(t("analyses.uploading"))
                     is NewRunState.Running -> {
@@ -137,9 +163,13 @@ fun AnalysesScreen(viewModel: AnalysesViewModel = hiltViewModel()) {
                         LinearProgressIndicator(progress = { if (state.total == 0) 0f else state.done.toFloat() / state.total }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
                     }
                     is NewRunState.Finished -> {
-                        Text(if (state.run.state == "awaiting_approval") t("analyses.done") else t("analyses.completed"), style = MaterialTheme.typography.titleMedium)
+                        Text(when (state.run.state) {
+                            "awaiting_approval" -> t("analyses.done")
+                            "completed" -> t("analyses.completed")
+                            else -> t("analyses.state", "state" to t("state.${state.run.state}"))
+                        }, style = MaterialTheme.typography.titleMedium)
                         state.run.reports.filter { it.headline.isNotBlank() }.forEach { Muted("• " + it.headline, Modifier.padding(top = 4.dp)) }
-                        OutlinedButton(onClick = { viewModel.reset(); picked = null; pickedName = "" }, modifier = Modifier.padding(top = 8.dp)) { Text(t("analyses.new")) }
+                        OutlinedButton(onClick = { viewModel.reset(newAnalysis = true); picked = null; pickedName = "" }, modifier = Modifier.padding(top = 8.dp)) { Text(t("analyses.new")) }
                     }
                     is NewRunState.Failed -> ErrorState(t("analyses.failed", "reason" to state.reason)) { viewModel.reset() }
                 }
@@ -152,7 +182,7 @@ fun AnalysesScreen(viewModel: AnalysesViewModel = hiltViewModel()) {
             else -> items(runs!!, key = { it.id }) { run ->
                 RisingCard(1) {
                     Text(run.goal, style = MaterialTheme.typography.titleMedium)
-                    Muted(run.datasetName + " · " + t("analyses.state", "state" to run.state.replace('_', ' ')) + " · " + run.updatedAt.take(10))
+                    Muted(run.datasetName + " · " + t("analyses.state", "state" to t("state.${run.state}")) + " · " + run.updatedAt.take(10))
                 }
             }
         }

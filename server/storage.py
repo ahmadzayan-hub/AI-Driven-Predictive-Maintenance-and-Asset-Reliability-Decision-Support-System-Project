@@ -140,7 +140,7 @@ SCHEMA_STATEMENTS = [
       owner TEXT, dataset_id TEXT, lease_owner TEXT, lease_expires_at TEXT,
       report_language TEXT, mapping_json TEXT, joins_json TEXT,
       connector_id TEXT, assumptions_json TEXT, idempotency_key TEXT,
-      paused INTEGER)""",
+      request_hash TEXT, paused INTEGER)""",
     """CREATE TABLE IF NOT EXISTS tasks (
       id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(id),
       idx INTEGER NOT NULL, role TEXT NOT NULL, title TEXT NOT NULL,
@@ -372,9 +372,12 @@ class SqlStore:
         # owner, so a retried POST returns the run it already made (B14).
         for column in ("dataset_id", "lease_owner", "lease_expires_at",
                        "report_language", "mapping_json", "joins_json",
-                       "connector_id", "assumptions_json", "idempotency_key"):
+                       "connector_id", "assumptions_json", "idempotency_key", "request_hash"):
             if not self._has_column("runs", column):
                 self._exec(f"ALTER TABLE runs ADD COLUMN {column} TEXT")
+        # Claim queries filter on role and state (platform contract, 23 Oct 2026). The unique
+        # idempotency index is created once, after the whole pass, above.
+        self._exec("CREATE INDEX IF NOT EXISTS tasks_role_state_run ON tasks (role, state, run_id)")
         # decided_by: the approver's subject, written by the gate (A13).
         if not self._has_column("approvals", "decided_by"):
             self._exec("ALTER TABLE approvals ADD COLUMN decided_by TEXT")
@@ -526,6 +529,19 @@ class SqlStore:
     def get_tasks(self, run_id):
         return self._exec(
             "SELECT * FROM tasks WHERE run_id = ? ORDER BY idx", (run_id,))
+
+    def runs_with_completed_stage(self, role, owner=None):
+        """Matching run ids only, without the recent-list cap or N payload reads.
+
+        EXISTS avoids duplicate run ids if a custom pipeline repeats a role.
+        The caller still applies its evidence-specific authorization boundary.
+        """
+        owner_clause = " AND r.owner = ?" if owner is not None else ""
+        params = (role, owner) if owner is not None else (role,)
+        return self._exec(
+            "SELECT r.id FROM runs r WHERE EXISTS (SELECT 1 FROM tasks t "
+            "WHERE t.run_id = r.id AND t.role = ? AND t.state = 'succeeded')"
+            + owner_clause + " ORDER BY r.updated_at DESC, r.id DESC", params)
 
     def latest_kpi_policy(self, run_id):
         rows = self._exec("SELECT * FROM kpi_policies WHERE run_id = ? "

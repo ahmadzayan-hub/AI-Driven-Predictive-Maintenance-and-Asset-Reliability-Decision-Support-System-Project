@@ -20,9 +20,8 @@ class FakeTransport(private val answers: Map<String, String>) : Transport {
 
     override suspend fun get(url: String, headers: Map<String, String>) = answer("GET", url, null)
     override suspend fun postJson(url: String, body: String, headers: Map<String, String>) = answer("POST", url, body)
-    override suspend fun postMultipart(url: String, fileName: String, mediaType: String, bytes: ByteArray,
-                                       fields: Map<String, String>, headers: Map<String, String>) =
-        answer("MULTIPART", url, "$fileName:$mediaType:${bytes.size}")
+    override suspend fun postBytes(url: String, mediaType: String, bytes: ByteArray, headers: Map<String, String>) =
+        answer("BYTES", url, String(bytes))
     override suspend fun delete(url: String, headers: Map<String, String>) = answer("DELETE", url, null)
 }
 
@@ -72,12 +71,14 @@ class ClientTest {
     }
 
     @Test
-    fun `an upload goes as multipart and a failure carries the server's detail`() = runBlocking {
-        val transport = FakeTransport(mapOf("/api/datasets" to """{"id":"ds9","name":"fleet.csv"}"""))
+    fun `an upload sends the raw body and filename and a failure carries the server's detail`() = runBlocking {
+        val transport = FakeTransport(mapOf("/api/datasets" to """{"dataset":{"id":"ds9","name":"fleet.csv"},"created":true}"""))
         val client = AssetReliabilityClient(transport, "http://server")
         val dataset = client.uploadDataset("fleet.csv", "text/csv", "a,b\n1,2\n".toByteArray())
         assertEquals("ds9", dataset.id)
-        assertEquals("MULTIPART", transport.calls.single().first)
+        assertEquals("BYTES", transport.calls.single().first)
+        assertEquals("a,b\n1,2\n", transport.calls.single().third)
+        assertTrue(transport.calls.single().second.contains("name=fleet.csv"))
         try {
             client.run("missing")
             throw AssertionError("expected a 404")
@@ -95,5 +96,57 @@ class ClientTest {
         assertTrue(url.contains("expected_snapshot_id=abc"))
         assertTrue(url.contains("format=docx"))
         assertTrue(url.contains("language=ar"))
+    }
+
+    @Test
+    fun `canonical and structured legacy errors remain readable`() {
+        assertEquals("Canonical", AssetReliabilityClient.detailOf("""{"error":{"code":"x","message":"Canonical"},"detail":"Old"}"""))
+        assertEquals("Review this field", AssetReliabilityClient.detailOf("""{"detail":{"code":"x","message":"Review this field"}}"""))
+        assertEquals("Old", AssetReliabilityClient.detailOf("""{"detail":"Old"}"""))
+        assertEquals("publication_destination_changed", AssetReliabilityClient.codeOf("""{"error":{"code":"publication_destination_changed","message":"Review again"}}"""))
+    }
+
+    @Test
+    fun `refreshing a destination requests review without deciding publication`() = runBlocking {
+        val transport = FakeTransport(mapOf("/api/runs/r1/approvals/refresh" to """{"id":"r1","goal":"g","state":"awaiting_approval"}"""))
+        val run = AssetReliabilityClient(transport, "http://server").refreshPublicationReview("r1")
+        assertEquals("awaiting_approval", run.state)
+        assertEquals("http://server/api/runs/r1/approvals/refresh", transport.calls.single().second)
+        assertEquals("{}", transport.calls.single().third)
+    }
+
+    @Test
+    fun `approval queues request pending state instead of filtering a recent page`() = runBlocking {
+        val transport = FakeTransport(mapOf("/api/runs?state=" to """{"runs":[]}"""))
+        AssetReliabilityClient(transport, "http://server").runs("awaiting_approval")
+        assertTrue(transport.calls.single().second.endsWith("/api/runs?state=awaiting_approval"))
+    }
+
+    @Test
+    fun `a creation retry sends its same explicit key and authorization`() = runBlocking {
+        val transport = object : Transport by FakeTransport(emptyMap()) {
+            val seen = mutableListOf<Map<String, String>>()
+            override suspend fun postJson(url: String, body: String, headers: Map<String, String>): TransportResponse {
+                seen.add(headers)
+                return TransportResponse(200, """{"id":"r1","goal":"g","state":"queued"}""")
+            }
+        }
+        val client = AssetReliabilityClient(transport, "http://server") { "synthetic-token" }
+        repeat(2) { client.createRun("g", "d", idempotencyKey = "same-attempt") }
+        assertEquals(2, transport.seen.size)
+        assertTrue(transport.seen.all { it["Idempotency-Key"] == "same-attempt" && it["Authorization"] == "Bearer synthetic-token" })
+    }
+
+    @Test
+    fun `the full approval artifact and server publication path are retained`() {
+        val content = "Synthetic full report. ".repeat(300)
+        val json = """{"id":"r1","goal":"g","state":"completed","report":{"id":"a1","name":"report.md","version":3,"content":${AssetReliabilityClient.quote(content)},"published_path":"Reports/synthetic.md"},"execution":{"mode":"worker","poll_after_ms":3000}}"""
+        val run = ApiJson.decodeFromString<RunDetail>(json)
+        assertEquals(content, run.report!!.content)
+        assertTrue(run.report!!.content.length > 4000)
+        assertEquals(3, run.report!!.version)
+        assertEquals("Reports/synthetic.md", run.report!!.publishedPath)
+        assertEquals("worker", run.execution.mode)
+        assertEquals(3000L, run.execution.pollAfterMs)
     }
 }

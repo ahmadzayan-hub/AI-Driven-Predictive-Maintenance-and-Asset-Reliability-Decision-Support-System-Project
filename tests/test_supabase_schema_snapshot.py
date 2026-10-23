@@ -19,7 +19,7 @@ ADDITIVE = {
              "lease_expires_at": "TEXT", "report_language": "TEXT",
              "mapping_json": "TEXT", "joins_json": "TEXT",
              "connector_id": "TEXT", "assumptions_json": "TEXT",
-             "idempotency_key": "TEXT", "paused": "INTEGER"},
+             "idempotency_key": "TEXT", "request_hash": "TEXT", "paused": "INTEGER"},
     "approvals": {"decided_by": "TEXT"},
     "sessions": {"owner": "TEXT"},
     "datasets": {"source_format": "TEXT", "row_count": "INTEGER",

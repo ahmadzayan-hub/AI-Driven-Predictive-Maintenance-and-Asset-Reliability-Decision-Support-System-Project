@@ -117,7 +117,12 @@ class ApiEnvelopeTest(unittest.TestCase):
         self.assertEqual(response.status_code, 404)
         body = response.json()
         self.assertEqual(body["detail"], "Note not found.")
-        self.assertEqual(body["error"], {"code": "http_404", "message": "Note not found."})
+        # One contract with the platform API (main's api_contract): a stable code, the message,
+        # field problems and the request id.
+        self.assertEqual({k: body["error"][k] for k in ("code", "message")},
+                         {"code": "not_found", "message": "Note not found."})
+        self.assertEqual(body["error"]["problems"], [])
+        self.assertEqual(body["error"]["request_id"], response.headers["X-Request-ID"])
         self.assertTrue(response.headers.get("X-Request-ID"))
 
     def test_a_422_from_validation_has_the_same_shape(self):
@@ -125,7 +130,8 @@ class ApiEnvelopeTest(unittest.TestCase):
         self.assertEqual(response.status_code, 422)
         body = response.json()
         self.assertIsInstance(body["detail"], list)
-        self.assertEqual(body["error"]["code"], "request_invalid")
+        self.assertEqual(body["error"]["code"], "validation_failed")
+        self.assertTrue(body["error"]["problems"])
 
     def test_a_database_outage_is_a_503_and_is_logged_with_the_request_id(self):
         def outage(*args, **kwargs):

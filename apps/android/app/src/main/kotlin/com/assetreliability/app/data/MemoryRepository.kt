@@ -15,11 +15,13 @@ import com.assetreliability.core.memory.LocalMemory
 import com.assetreliability.core.memory.MemoryRecord
 import com.assetreliability.core.memory.Recall
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import java.security.MessageDigest
 import java.time.Instant
 import java.util.UUID
 import javax.inject.Inject
@@ -58,50 +60,72 @@ abstract class MemoryDatabase : RoomDatabase() {
  *  index for recall. The embedder is lexical until an on-device semantic
  *  model is installed, and the UI says which one is in use. */
 @Singleton
-class MemoryRepository @Inject constructor(@ApplicationContext context: Context) {
-    private val db = Room.databaseBuilder(context, MemoryDatabase::class.java, "memory.db").build()
+class MemoryRepository @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val settings: Settings,
+    private val platform: PlatformRepository,
+) {
     private val embedder = HashingEmbedder(256)
     private val lock = Mutex()
+    private var database: MemoryDatabase? = null
+    private var activeScope: String? = null
     private var memory: LocalMemory? = null
 
     val embedderName: String get() = embedder.name
 
-    private suspend fun load(): LocalMemory = lock.withLock {
-        memory ?: run {
-            val dao = db.memory()
-            val saved = dao.snapshot()
-            val restored = if (saved != null) {
-                runCatching { LocalMemory.restore(Json.decodeFromString(LocalMemory.Snapshot.serializer(), saved.json), embedder) }.getOrNull()
-            } else null
-            val built = restored ?: LocalMemory(embedder).also { fresh ->
-                dao.all().forEach { fresh.remember(MemoryRecord(it.id, it.text, it.kind, it.createdAt, it.runId, it.language)) }
+    /** Recheck access before reading metadata, recall or saved excerpts. A
+     *  disconnected/expired workspace does not expose its cached brief. The
+     *  server-verified subject, not decoded JWT claims, selects the database.
+     *  Legacy unscoped memory.db is retained without guessing its owner.
+     */
+    private suspend fun <T> authorized(operation: suspend (LocalMemory, MemoryDao) -> T): T =
+        withContext(Dispatchers.IO) {
+            val before = settings.current()
+            val identity = platform.identity()
+            val after = settings.current()
+            if (before.serverUrl != after.serverUrl || before.token != after.token)
+                throw CancellationException("Workspace changed")
+            val scope = MessageDigest.getInstance("SHA-256")
+                .digest((before.serverUrl + "\u0000" + identity.principal.subject).toByteArray(Charsets.UTF_8))
+                .joinToString("") { "%02x".format(it.toInt() and 255) }
+            lock.withLock {
+                if (activeScope != scope) {
+                    database?.close()
+                    database = Room.databaseBuilder(context, MemoryDatabase::class.java, "memory-$scope.db").build()
+                    activeScope = scope
+                    memory = null
+                }
+                val dao = database!!.memory()
+                val current = memory ?: run {
+                    val saved = dao.snapshot()
+                    val restored = saved?.let {
+                        runCatching { LocalMemory.restore(Json.decodeFromString(LocalMemory.Snapshot.serializer(), it.json), embedder) }.getOrNull()
+                    }
+                    (restored ?: LocalMemory(embedder).also { fresh ->
+                        dao.all().forEach { fresh.remember(MemoryRecord(it.id, it.text, it.kind, it.createdAt, it.runId, it.language)) }
+                    }).also { memory = it }
+                }
+                operation(current, dao)
             }
-            memory = built
-            built
         }
-    }
 
-    private suspend fun persist(current: LocalMemory) {
-        db.memory().saveSnapshot(IndexSnapshotEntity("hnsw", Json.encodeToString(LocalMemory.Snapshot.serializer(), current.snapshot())))
+    private suspend fun persist(current: LocalMemory, dao: MemoryDao) {
+        dao.saveSnapshot(IndexSnapshotEntity("hnsw", Json.encodeToString(LocalMemory.Snapshot.serializer(), current.snapshot())))
     }
 
     suspend fun remember(text: String, kind: String, runId: String? = null, language: String = "en"): MemoryRecord =
-        withContext(Dispatchers.IO) {
+        authorized { current, dao ->
             val record = MemoryRecord(UUID.randomUUID().toString(), text.trim(), kind, Instant.now().toString(), runId, language)
-            val current = load()
-            lock.withLock {
-                current.remember(record)
-                db.memory().upsert(MemoryEntity(record.id, record.text, record.kind, record.createdAt, record.runId, record.language))
-                persist(current)
-            }
+            dao.upsert(MemoryEntity(record.id, record.text, record.kind, record.createdAt, record.runId, record.language))
+            current.remember(record)
+            persist(current, dao)
             record
         }
 
-    suspend fun forget(id: String) = withContext(Dispatchers.IO) {
-        val current = load()
-        lock.withLock { current.forget(id); db.memory().delete(id); persist(current) }
+    suspend fun forget(id: String) = authorized { current, dao ->
+        dao.delete(id); current.forget(id); persist(current, dao)
     }
 
-    suspend fun recall(query: String, k: Int = 5): List<Recall> = withContext(Dispatchers.IO) { load().recall(query, k) }
-    suspend fun all(): List<MemoryRecord> = withContext(Dispatchers.IO) { load().all().sortedByDescending { it.createdAt } }
+    suspend fun recall(query: String, k: Int = 5): List<Recall> = authorized { current, _ -> current.recall(query, k) }
+    suspend fun all(): List<MemoryRecord> = authorized { current, _ -> current.all().sortedByDescending { it.createdAt } }
 }

@@ -77,9 +77,17 @@ CREATE TABLE IF NOT EXISTS runs (
       id TEXT PRIMARY KEY, goal TEXT NOT NULL, dataset_name TEXT NOT NULL,
       dataset_text TEXT NOT NULL, state TEXT NOT NULL,
       created_at TEXT NOT NULL, updated_at TEXT NOT NULL, error TEXT,
-      owner TEXT, dataset_id TEXT, lease_owner TEXT, lease_expires_at TEXT,
-      report_language TEXT, mapping_json TEXT, joins_json TEXT,
-      connector_id TEXT, assumptions_json TEXT, idempotency_key TEXT,
+      owner TEXT,
+      dataset_id TEXT,
+      lease_owner TEXT,
+      lease_expires_at TEXT,
+      report_language TEXT,
+      mapping_json TEXT,
+      joins_json TEXT,
+      connector_id TEXT,
+      assumptions_json TEXT,
+      idempotency_key TEXT,
+      request_hash TEXT,
       paused INTEGER);
 
 CREATE TABLE IF NOT EXISTS tasks (

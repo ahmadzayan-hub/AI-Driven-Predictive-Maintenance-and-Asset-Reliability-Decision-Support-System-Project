@@ -5,7 +5,6 @@ import com.assetreliability.core.api.TransportResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -40,13 +39,10 @@ class OkHttpTransport @Inject constructor() : Transport {
         execute(Request.Builder().url(url).headers(headers)
             .post(body.toRequestBody("application/json; charset=utf-8".toMediaType())).build())
 
-    override suspend fun postMultipart(url: String, fileName: String, mediaType: String, bytes: ByteArray,
-                                       fields: Map<String, String>, headers: Map<String, String>): TransportResponse {
-        val form = MultipartBody.Builder().setType(MultipartBody.FORM)
-        fields.forEach { (k, v) -> form.addFormDataPart(k, v) }
-        form.addFormDataPart("file", fileName, bytes.toRequestBody(mediaType.toMediaType()))
-        return execute(Request.Builder().url(url).headers(headers).post(form.build()).build())
-    }
+    override suspend fun postBytes(url: String, mediaType: String, bytes: ByteArray,
+                                    headers: Map<String, String>): TransportResponse =
+        execute(Request.Builder().url(url).headers(headers)
+            .post(bytes.toRequestBody(mediaType.toMediaType())).build())
 
     override suspend fun delete(url: String, headers: Map<String, String>) =
         execute(Request.Builder().url(url).headers(headers).delete().build())

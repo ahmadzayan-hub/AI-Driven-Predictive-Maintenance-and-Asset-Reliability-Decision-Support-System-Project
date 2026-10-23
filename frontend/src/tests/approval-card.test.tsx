@@ -1,8 +1,10 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApprovalCard } from '../features/runs/ApprovalCard'
 import { runFixture } from './run-fixture'
 import { applyLocale } from '../i18n'
+import { api, ApiError } from '../shared/api'
+import { runStore } from '../features/runs/runStore'
 
 /** The human gate: Approve needs the exact report opened and read (assessment U3). */
 const awaiting = runFixture({
@@ -12,7 +14,8 @@ const awaiting = runFixture({
 })
 
 describe('approval card', () => {
-  afterEach(() => { act(() => applyLocale('en', false)); vi.restoreAllMocks() })
+  beforeEach(() => { runStore.reset(); vi.spyOn(api, 'getRun').mockResolvedValue(awaiting) })
+  afterEach(() => { act(() => { applyLocale('en', false); runStore.reset() }); vi.restoreAllMocks() })
 
   it('enables Approve only after the exact report was opened and confirmed read', () => {
     const { container } = render(<ApprovalCard detail={awaiting} />)
@@ -40,8 +43,45 @@ describe('approval card', () => {
   })
 
   it('never offers Approve when the run carries no report', () => {
+    vi.mocked(api.getRun).mockResolvedValue({ ...awaiting, report: null })
     render(<ApprovalCard detail={{ ...awaiting, report: null }} />)
     expect(screen.getByRole('button', { name: 'Approve and publish' })).toBeDisabled()
     expect(screen.queryByLabelText('I have read this exact report')).not.toBeNull()
+  })
+
+  it('requires a new report read when another tab replaces the pending review', async () => {
+    const { container } = render(<ApprovalCard detail={awaiting} />)
+    await act(async () => {})
+    const details = container.querySelector('details')!
+    details.open = true; fireEvent(details, new Event('toggle'))
+    fireEvent.click(screen.getByLabelText('I have read this exact report'))
+    expect(screen.getByRole('button', { name: 'Approve and publish' })).toBeEnabled()
+    act(() => runStore.receive({ ...awaiting, approvals: [{ ...awaiting.approvals[0], id: 'new-review', target: 'database:Reports' }] }))
+    expect(screen.getByLabelText('I have read this exact report')).not.toBeChecked()
+    expect(screen.getByLabelText('I have read this exact report')).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Approve and publish' })).toBeDisabled()
+    expect(container.querySelector('details')).not.toHaveAttribute('open')
+  })
+
+  it('refreshes a changed destination without publishing or carrying old consent', async () => {
+    const changed = new ApiError('Synthetic changed destination', 409)
+    changed.code = 'publication_destination_changed'
+    vi.spyOn(api, 'decideApproval').mockRejectedValue(changed)
+    vi.spyOn(api, 'refreshPublicationReview').mockResolvedValue({ ...awaiting,
+      approvals: [{ ...awaiting.approvals[0], id: 'review-new', target: 'database:Reports' }],
+    })
+    const { container } = render(<ApprovalCard detail={awaiting} />)
+    await act(async () => {})
+    const details = container.querySelector('details')!
+    details.open = true; fireEvent(details, new Event('toggle'))
+    fireEvent.click(screen.getByLabelText('I have read this exact report'))
+    fireEvent.click(screen.getByRole('button', { name: 'Approve and publish' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Update destination for a new review' }))
+    await waitFor(() => expect(screen.getByText('database:Reports')).toBeVisible())
+    expect(api.decideApproval).toHaveBeenCalledOnce()
+    expect(api.refreshPublicationReview).toHaveBeenCalledOnce()
+    expect(screen.getByLabelText('I have read this exact report')).not.toBeChecked()
+    expect(screen.getByRole('button', { name: 'Approve and publish' })).toBeDisabled()
+    expect(runStore.get(awaiting.id).detail?.report?.published_path).toBeNull()
   })
 })

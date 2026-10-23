@@ -48,7 +48,7 @@ class SettingsViewModel @Inject constructor(
     val check = MutableStateFlow<Pair<Boolean, Map<String, String>>?>(null)
 
     fun save(server: String, language: String, token: String) = viewModelScope.launch {
-        store.setServerUrl(server); store.setLanguage(language); store.setToken(token)
+        store.save(server, language, token)
     }
 
     fun checkConnection() = viewModelScope.launch {

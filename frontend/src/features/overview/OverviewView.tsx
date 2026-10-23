@@ -49,6 +49,7 @@ export function OverviewView({ onOpenRun, onStart, onAddDataset, onApprovals, on
     setFailed(null)
     setRuns(null)
     setLatest(null)
+    setMotionError(null)
     setLatestFailed(false)
     setBrief(null)
     setBriefFailed(false)

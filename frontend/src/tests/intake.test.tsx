@@ -19,7 +19,7 @@ const upload: UploadResult = {
 beforeEach(() => {
   applyLocale('en')
   vi.spyOn(api, 'listRuns').mockResolvedValue({ runs: [] })
-  vi.spyOn(api, 'assetEvidence').mockResolvedValue({ run: null, scanned: 0, capped: false })
+  vi.spyOn(api, 'assetEvidence').mockResolvedValue({ run: null, prepared_at: '2026-10-23T00:00:00Z', scope: 'latest_completed_maintenance_stage' })
   vi.spyOn(api, 'listDatasets').mockResolvedValue({ datasets: [] })
   vi.spyOn(api, 'pipelines').mockResolvedValue({ stages: [], profiles: {}, default: [], problems: [] })
   vi.spyOn(api, 'createRun').mockRejectedValue(new ApiError('Test stopped after validating request'))
@@ -31,6 +31,25 @@ afterEach(() => {
 })
 
 describe('real data intake', () => {
+  it('reuses an uncertain request key while preserving the question and changes it for new inputs', async () => {
+    const user = userEvent.setup()
+    render(<RunsView draftScope="synthetic-session" />)
+    const question = screen.getByLabelText('Goal')
+    await user.clear(question)
+    await user.type(question, 'Synthetic retry question')
+    await user.click(screen.getByRole('button', { name: 'Start run' }))
+    await waitFor(() => expect(api.createRun).toHaveBeenCalledTimes(1))
+    const first = vi.mocked(api.createRun).mock.calls[0][8]
+    expect(first).toEqual(expect.any(String))
+    await user.click(screen.getByRole('button', { name: 'Start run' }))
+    await waitFor(() => expect(api.createRun).toHaveBeenCalledTimes(2))
+    expect(vi.mocked(api.createRun).mock.calls[1][8]).toBe(first)
+    expect(question).toHaveValue('Synthetic retry question')
+    await user.type(question, ' changed')
+    await user.click(screen.getByRole('button', { name: 'Start run' }))
+    await waitFor(() => expect(api.createRun).toHaveBeenCalledTimes(3))
+    expect(vi.mocked(api.createRun).mock.calls[2][8]).not.toBe(first)
+  })
   it.each([
     { ui: 'en', report: 'ar', label: 'Report language', start: 'Start run' },
     { ui: 'ar', report: 'en', label: 'لغة التقرير', start: 'بدء التحليل' },
@@ -117,7 +136,7 @@ describe('real data intake', () => {
     await user.click(start)
     await waitFor(() => expect(api.createRun).toHaveBeenCalledTimes(1))
     expect(vi.mocked(api.createRun).mock.calls[0]).toEqual([
-      'Analyse equipment.xlsx and produce a business report', undefined, undefined, undefined, 'en', 'equipment1', undefined, undefined,
+      'Analyse equipment.xlsx and produce a business report', undefined, undefined, undefined, 'en', 'equipment1', undefined, undefined, expect.any(String),
     ])
   })
 

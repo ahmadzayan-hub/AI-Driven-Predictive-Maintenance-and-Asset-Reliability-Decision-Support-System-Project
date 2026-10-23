@@ -106,6 +106,7 @@ export const ar: Record<MessageKey, string> = {
   "cockpit.version": "الإصدار {version}",
   "cockpit.hashBound": "تنطبق الموافقة على هذا التقرير بعينه. يحتاج التقرير المعدّل إلى موافقة جديدة.",
   "cockpit.confirming": "جارٍ تأكيد القرار مع الخادم…",
+  "cockpit.updateReview": "تحديث الوجهة لمراجعة جديدة",
   "cockpit.why": "ما الدليل على ذلك؟",
   "cockpit.whyFor": "ما الدليل على ذلك؟ {type}",
   "cockpit.claims": "الاستنتاجات الواردة",

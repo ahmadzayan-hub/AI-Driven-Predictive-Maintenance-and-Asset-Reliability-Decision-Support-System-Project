@@ -147,7 +147,7 @@ class ApiHardeningTest(unittest.TestCase):
         self.assertEqual(response.status_code, 422)
         body = response.json()
         self.assertIn("AGENTIC_OS_CONNECTOR_HOSTS", body["detail"])
-        self.assertEqual(body["error"]["code"], "http_422")
+        self.assertEqual(body["error"]["code"], "validation_failed")
         self.assertTrue(response.headers.get("X-Request-ID"))
 
     def test_runtime_dependencies_carry_no_unused_extras(self):

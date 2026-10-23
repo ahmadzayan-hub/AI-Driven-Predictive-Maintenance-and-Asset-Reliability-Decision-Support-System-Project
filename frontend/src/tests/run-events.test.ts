@@ -33,6 +33,13 @@ describe('observations of durable run snapshots', () => {
     const after = runFixture({ report: { ...before.report!, published_path: 'Reports/test.md' } })
     expect(snapshotEvents(before, after).filter((event) => event.kind === 'artifact.published')).toHaveLength(1)
   })
+  it('distinguishes a replaced review from a human decision and publication', () => {
+    const approval = { id: 'review-old', action: 'Publish', target: 'synthetic-vault', risk: 'high', impact: 'Test', reversibility: 'Test', state: 'pending', created_at: '2026-10-23T10:00:00Z', decided_at: null }
+    const before = runFixture({ state: 'awaiting_approval', approvals: [approval] })
+    const after = { ...before, approvals: [{ ...approval, state: 'superseded' }, { ...approval, id: 'review-new', target: 'database:Reports' }] }
+    expect(snapshotEvents(before, after).map((event) => event.kind)).toEqual(['approval.superseded', 'approval.requested'])
+    expect(snapshotEvents(before, { ...before, approvals: [{ ...approval, state: 'unknown-future-state' }] })).toEqual([])
+  })
   it('deduplicates repeated observations and bounds the timeline', () => {
     const event = snapshotEvents(null, runFixture())[0]
     expect(appendEvents([], [event, event])).toHaveLength(1)

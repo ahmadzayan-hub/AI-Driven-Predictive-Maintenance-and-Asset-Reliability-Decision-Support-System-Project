@@ -20,6 +20,7 @@ export class ApiError extends Error {
   offline: boolean
   /** Field-level reasons, when the server gives them (a refused mapping). */
   problems: MappingProblem[]
+  code: string | null = null
 
   constructor(message: string, status = 0, offline = false, problems: MappingProblem[] = []) {
     super(message)
@@ -31,15 +32,25 @@ export class ApiError extends Error {
 }
 
 /** The server's `detail`: a sentence, or a summary with field errors. */
-function readDetail(body: unknown): { message: string | null; problems: MappingProblem[] } {
-  if (!body || typeof body !== 'object' || !('detail' in body)) return { message: null, problems: [] }
+function readDetail(body: unknown): { message: string | null; problems: MappingProblem[]; code?: string } {
+  if (!body || typeof body !== 'object') return { message: null, problems: [] }
+  if ('error' in body && body.error && typeof body.error === 'object' && 'message' in body.error) {
+    const error = body.error as { message: unknown; problems?: unknown; code?: unknown }
+    if (typeof error.message === 'string') return {
+      message: error.message,
+      problems: Array.isArray(error.problems) ? error.problems as MappingProblem[] : [],
+      code: typeof error.code === 'string' ? error.code : undefined,
+    }
+  }
+  if (!('detail' in body)) return { message: null, problems: [] }
   const detail = (body as { detail: unknown }).detail
   if (typeof detail === 'string') return { message: detail, problems: [] }
   if (detail && typeof detail === 'object' && 'message' in detail) {
-    const { message, errors } = detail as { message: unknown; errors?: unknown }
+    const { message, errors, code } = detail as { message: unknown; errors?: unknown; code?: unknown }
     return {
       message: typeof message === 'string' ? message : null,
       problems: Array.isArray(errors) ? (errors as MappingProblem[]) : [],
+      code: typeof code === 'string' ? code : undefined,
     }
   }
   return { message: null, problems: [] }
@@ -126,13 +137,15 @@ export async function request<T>(
 
   if (!response.ok) {
     notifyUnauthorized(response.status, sentHeaders)
-    const { message, problems } = readDetail(body)
-    throw new ApiError(
+    const { message, problems, code } = readDetail(body)
+    const error = new ApiError(
       message ?? translate('api.failed', { status: response.status }),
       response.status,
       false,
       problems,
     )
+    error.code = code ?? null
+    throw error
   }
   return body as T
 }
@@ -240,11 +253,13 @@ export const api = {
     /** The decision inputs the run states (slice three, A2); the server
      *  validates them before anything is written. */
     assumptions?: RunAssumptions | null,
+    idempotencyKey?: string,
   ) =>
     request<RunDetail>(
       '/api/runs',
       {
         method: 'POST',
+        ...(idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey } } : {}),
         body: JSON.stringify({
           goal,
           dataset_text: datasetId ? null : (datasetText ?? null),
@@ -307,18 +322,18 @@ export const api = {
       { method: 'DELETE' },
       UPLOAD_TIMEOUT_MS,
     ),
-  pipelines: () => request<Pipelines>('/api/pipelines'),
+  pipelines: (signal?: AbortSignal) => request<Pipelines>('/api/pipelines', { signal }),
+  assetEvidence: (signal?: AbortSignal) => request<{
+    run: RunDetail | null; prepared_at: string; scope: 'latest_completed_maintenance_stage'
+  }>('/api/assets/evidence', { signal }, RUN_REQUEST_TIMEOUT_MS),
   listRuns: (state?: string) => request<{ runs: RunSummary[] }>(state ? `/api/runs?state=${encodeURIComponent(state)}` : '/api/runs'),
   usage: () => request<Usage>('/api/usage'),
   getRun: (id: string) => request<RunDetail>(`/api/runs/${id}`, {}, RUN_REQUEST_TIMEOUT_MS),
   motionStoryboard: (id: string) => request<Record<string, unknown>>(`/api/runs/${encodeURIComponent(id)}/motion-storyboard`),
-  /** The newest run carrying a succeeded railway asset screen, assembled
-   *  by the server in one answer (U10). */
-  assetEvidence: () => request<{ run: RunDetail | null; scanned: number; capped: boolean }>('/api/assets/evidence', {}, RUN_REQUEST_TIMEOUT_MS),
   /** The maintenance KPI register computed on a run's cleaned table
    *  (ADR 0049). 409 until the run has finished cleaning. */
-  runKpis: (id: string, language: 'en' | 'ar' = 'en') =>
-    request<RunKpis>(`/api/runs/${id}/kpis?language=${language}`),
+  runKpis: (id: string, language: 'en' | 'ar' = 'en', signal?: AbortSignal) =>
+    request<RunKpis>(`/api/runs/${id}/kpis?language=${language}`, { signal }),
   /** Read-only, evidence-linked brief over the same filters as the dashboard. */
   runExecutive: (id: string, language: 'en' | 'ar' = 'en', filters: TableFilter[] = [], signal?: AbortSignal) =>
     request<RunExecutive>(
@@ -409,6 +424,7 @@ export const api = {
       name: attachmentName(response.headers.get('content-disposition'), `run-${id}-cleaned.csv`),
     }
   },
+  refreshPublicationReview: (id: string) => request<RunDetail>(`/api/runs/${encodeURIComponent(id)}/approvals/refresh`, { method: 'POST' }, RUN_REQUEST_TIMEOUT_MS),
   decideApproval: (id: string, approvalId: string, decision: 'approve' | 'reject') =>
     request<RunDetail>(`/api/runs/${id}/approvals/${approvalId}`, {
       method: 'POST',

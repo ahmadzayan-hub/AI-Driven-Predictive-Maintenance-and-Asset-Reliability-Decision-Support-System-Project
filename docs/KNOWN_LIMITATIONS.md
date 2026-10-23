@@ -267,6 +267,20 @@ required local files. Both behaviors are covered by tests
     23 October the database store is the publish target and the folder a
     courtesy: on a host where it cannot be written, the published path
     names the store and `/api/vault` still serves both notes (B13).
+
+12. Windows and iOS use the installable PWA. The Kotlin/Compose Android
+    client now builds an actual debug APK in hosted CI, with core/app tests
+    and lint. Physical devices, native secure credential storage, release
+    signing and store acceptance remain separate; see
+    [the application handoff](implementation/PLATFORM_RELEASE.md).
+13. Publication supports a local Obsidian vault or durable SQL notes.
+    Vercel defaults to database publication without filesystem writes;
+    `AGENTIC_OS_PUBLISH_TARGET` selects explicitly. An approval is refused
+    when its reviewed destination changes. An authorized approver can request
+    a fresh review of the unchanged report and new destination; this resets
+    consent and does not publish. External-vault reading/sync is
+    not implemented; existing owned API routes retrieve the SQL notes.
+    Request/model duration under real hosted load still requires acceptance.
 14. The interface is Arabic or English (ADR 0018), right-to-left in
     Arabic, and the agent's own replies follow the chosen language.
     Reports are written in the language a run was started in (ADR 0022),
