@@ -39,7 +39,7 @@ for (const locale of ['en', 'ar'] as const) {
       await expect(summary.locator('..')).toHaveAttribute('open', '')
       await page.keyboard.press('Enter')
       await expect(summary.locator('..')).not.toHaveAttribute('open')
-      await action.scrollIntoViewIfNeeded()
+      await page.locator('.panel:visible').evaluate((el) => { el.scrollTop = 0 })
       const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
       expect(axe.violations).toEqual([])
       await mkdir('../docs/screenshots', { recursive: true })
