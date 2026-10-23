@@ -108,7 +108,7 @@ test('voice consent, actual listening, interim preview and reviewed final draft'
     Object.assign(window,{SpeechRecognition:Recognition, testRecognition:Recognition})
   })
   await boot(page)
-  await page.getByRole('button',{name:'Dictate with microphone'}).click()
+  await page.getByRole('button',{name:'Voice dictation'}).click()
   await expect(page.getByText('Before using voice input',{exact:true})).toBeVisible()
   await page.getByRole('button',{name:'I understand, start recording'}).click()
   await expect(page.getByText('Requesting microphone access…')).toBeVisible()
