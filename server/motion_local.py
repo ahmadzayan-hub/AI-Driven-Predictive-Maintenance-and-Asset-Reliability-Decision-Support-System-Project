@@ -81,6 +81,14 @@ class LocalMotion:
             con.execute("UPDATE motion_jobs SET status='FAILED', error='Interrupted by server restart'"
                         " WHERE status IN ('RUNNING','QUEUED')")
 
+    def _record(self, job_id):
+        """Internal lookup; HTTP callers must apply current source ACL first."""
+        with self.lock, self.connect() as con:
+            row = con.execute("SELECT * FROM motion_jobs WHERE id=?", (job_id,)).fetchone()
+        if row is None:
+            raise MotionError("Video unavailable / الفيديو غير متاح")
+        return dict(row)
+
     def record(self, job_id, owner):
         with self.lock, self.connect() as con:
             row = con.execute("SELECT * FROM motion_jobs WHERE id=? AND owner=?", (job_id, owner)).fetchone()
@@ -88,14 +96,14 @@ class LocalMotion:
             raise MotionError("No such video job owned by this account")
         return dict(row)
 
-    def create(self, owner, run_id, run, audio: bytes | None, suffix=".wav"):
+    def create(self, owner, run_id, run, audio: bytes | None, suffix=".wav", *, storyboard=None):
         if not isinstance(owner, str) or not owner.strip():
             raise MotionError("Owner is missing")
         if audio and (len(audio) > MAX_BYTES or len(audio) == 0):
             raise MotionError("Invalid narration size")
         if suffix not in {".wav",".mp3",".m4a",".aac",".flac"}:
             raise MotionError("Unsupported narration format")
-        story = from_run(run)
+        story = from_run(run) if storyboard is None else storyboard
         if story["language"] == "ar" and not audio:
             raise MotionError("Arabic media requires an attached human-approved narration")
         story_raw = json.dumps(story, ensure_ascii=False, sort_keys=True)

@@ -1339,14 +1339,26 @@ def create_app(config_path=None, env=None, dist_dir=None):
         with lock:
             return _run_or_404(lambda: engine.get_run(run_id), principal, run_id)
 
+    @app.middleware("http")
+    async def private_motion_responses(request: Request, call_next):
+        response = await call_next(request)
+        if (request.url.path.startswith("/api/motion/")
+                or request.url.path.endswith("/motion-storyboard")):
+            response.headers.update({"Cache-Control": "private, no-store, max-age=0",
+                                     "Pragma": "no-cache", "Vary": "Authorization"})
+        return response
+
     @app.get("/api/runs/{run_id}/motion-storyboard")
     def motion_storyboard(run_id: str, principal=Depends(requires("read"))):
         """Read-only storyboard generated server-side from owned evidence."""
-        from server.motion_storyboard import MotionStoryRefused, from_run
+        from server.motion_storyboard import MotionStoryRefused, from_evidence_run
+        from server.rmd_service import RmdError
         with lock:
             run = _run_or_404(lambda: engine.get_run(run_id), principal, run_id)
         try:
-            return from_run(run)
+            return from_evidence_run(rmd, principal, run)
+        except RmdError:
+            raise HTTPException(status_code=404, detail="Run not found.") from None
         except MotionStoryRefused as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
 
@@ -1358,8 +1370,36 @@ def create_app(config_path=None, env=None, dist_dir=None):
     ) and identity.mode != "demo"
     if motion_enabled:
         from server.motion_local import LocalMotion, MotionError, MAX_BYTES
-        from server.motion_storyboard import from_run, MotionStoryRefused
+        from server.motion_storyboard import from_evidence_run, MotionStoryRefused
+        from server.rmd_service import RmdError
         motion = LocalMotion()
+
+        def media_source(job_id, principal, *, write=False, review=False):
+            """Existing source grants are checked live; a job is not a grant."""
+            try:
+                row = motion._record(job_id)
+                is_author = row["owner"] == principal.subject
+                if write and not is_author:
+                    raise KeyError(job_id)
+                run = _run_or_404(lambda: engine.get_run(row["run_id"]), principal, row["run_id"],
+                                  permission="write" if write else "read")
+                if review or not is_author:
+                    if (identity.mode == "local" or not principal.can("approve")
+                            or (not is_author and row["status"] not in {"REVIEW_REQUESTED", "INTERNAL_APPROVED", "RETURNED"})):
+                        raise KeyError(job_id)
+                    scoped = authorize_evidence_run(rmd, principal, row["run_id"], "authorize")
+                    if scoped is False or (scoped is None and not principal.can("admin")):
+                        raise KeyError(job_id)
+                story = from_evidence_run(rmd, principal, run)
+                canonical_story = json.dumps(story, ensure_ascii=False, sort_keys=True)
+                import hashlib
+                if hashlib.sha256(canonical_story.encode()).hexdigest() != row["storyboard_sha"]:
+                    raise MotionError("Source report changed; create a new video draft / تغير التقرير؛ أنشئ مسودة فيديو جديدة")
+                return row
+            except (KeyError, RmdError):
+                raise HTTPException(404, detail="Video unavailable / الفيديو غير متاح") from None
+            except (MotionError, MotionStoryRefused) as exc:
+                raise HTTPException(409, detail=str(exc)) from None
 
         @app.post("/api/motion/runs/{run_id}/render", status_code=202)
         async def create_motion_video(
@@ -1367,6 +1407,8 @@ def create_app(config_path=None, env=None, dist_dir=None):
             narration_suffix: str = Query(default=".wav", pattern=r"^\.(wav|m4a|mp3|aac|flac)$"),
             principal=Depends(requires("write")),
         ):
+            with lock:
+                _run_or_404(lambda: engine.get_run(run_id), principal, run_id, permission="write")
             # Raw audio bytes; no multipart spooling. Read at most 24MB+1.
             size = 0
             audio = bytearray()
@@ -1376,26 +1418,31 @@ def create_app(config_path=None, env=None, dist_dir=None):
                     raise HTTPException(413, detail="Narration exceeds 24MB")
                 audio.extend(chunk)
             with lock:
-                run = _run_or_404(lambda: engine.get_run(run_id), principal, run_id)
+                run = _run_or_404(lambda: engine.get_run(run_id), principal, run_id, permission="write")
             try:
+                story = from_evidence_run(rmd, principal, run)
                 return motion.create(
                     principal.subject, run_id, run,
-                    bytes(audio) if audio else None, suffix=narration_suffix,
+                    bytes(audio) if audio else None, suffix=narration_suffix, storyboard=story,
                 )
+            except RmdError:
+                raise HTTPException(404, detail="Run not found.") from None
             except (MotionError, MotionStoryRefused) as exc:
                 raise HTTPException(409, detail=str(exc)) from exc
 
         @app.get("/api/motion/jobs/{job_id}")
         def motion_job(job_id: str, principal=Depends(requires("read"))):
             try:
-                return motion.view(job_id, principal.subject)
+                row = media_source(job_id, principal)
+                return motion.view(job_id, row["owner"])
             except MotionError:
                 raise HTTPException(404, detail="No such owned video")
 
         @app.get("/api/motion/jobs/{job_id}/preview")
         def motion_preview(job_id: str, principal=Depends(requires("read"))):
             try:
-                video = motion.preview(job_id, principal.subject)
+                row = media_source(job_id, principal)
+                video = motion.preview(job_id, row["owner"])
             except MotionError:
                 raise HTTPException(404, detail="No such available owned MP4")
             return FileResponse(
@@ -1407,6 +1454,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         @app.post("/api/motion/jobs/{job_id}/submit")
         def motion_submit(job_id: str, principal=Depends(requires("write"))):
             try:
+                media_source(job_id, principal, write=True)
                 return motion.submit(job_id, principal.subject)
             except MotionError as exc:
                 raise HTTPException(409, detail=str(exc)) from exc
@@ -1423,24 +1471,9 @@ def create_app(config_path=None, env=None, dist_dir=None):
         @app.post("/api/motion/jobs/{job_id}/decision")
         def motion_decide(job_id: str, body: VideoDecision,
                           principal=Depends(requires("approve"))):
-            # A platform-wide approver is needed to verify a different
-            # account's source. Never infer approval from a local owner.
-            if not principal.crosses_owners or identity.mode == "local":
-                raise HTTPException(403, detail="Independent managed reviewer required")
-            with motion.lock, motion.connect() as con:
-                row = con.execute(
-                    "SELECT run_id,owner,storyboard_sha FROM motion_jobs WHERE id=?",
-                    (job_id,),
-                ).fetchone()
-            if row is None:
-                raise HTTPException(404, detail="No such video")
+            # Reviewer authority AND live source access; never grant membership.
+            row = media_source(job_id, principal, review=True)
             try:
-                run = engine.get_run(row["run_id"])
-                current_story = from_run(run)
-                canonical = json.dumps(current_story, ensure_ascii=False, sort_keys=True)
-                import hashlib
-                if hashlib.sha256(canonical.encode()).hexdigest() != row["storyboard_sha"]:
-                    raise MotionError("Source run was revised; render a new video")
                 return motion.decide(
                     job_id, principal.subject, body.outcome, body.note,
                     body.model_dump(exclude={"outcome", "note"}), approval_allowed=True,

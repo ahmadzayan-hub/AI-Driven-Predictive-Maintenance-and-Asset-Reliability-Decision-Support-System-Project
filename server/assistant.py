@@ -461,7 +461,7 @@ class Assistant:
         if action == "start_run":
             outcome.update(self._start_run(arguments, session, text))
         elif action == "run_status":
-            outcome.update(self._run_status(session))
+            outcome.update(self._run_status(session, arguments))
         elif action == "explain_report":
             outcome.update(self._explain(arguments, session))
         elif action == "search_knowledge":
@@ -595,9 +595,37 @@ class Assistant:
             return None
         return self.engine.get_run(runs[0]["id"])
 
-    def _run_status(self, session):
+    def _selected_run(self, session, arguments):
+        """Honor an explicit report, never fall back to another owner's/latest.
+
+        Private RMD evidence belongs to the ephemeral ACL-aware panel, not a
+        saved ordinary transcript, even for an otherwise authorized reader.
+        """
+        run_id = arguments.get("run_id")
+        principal = self._requester.get()
+        if principal is None and self.identity_mode != "local":
+            return None
+        if principal is not None and not principal.can("read"):
+            return None
+        if not run_id:
+            # An inspected session is not an authorization grant.
+            if principal is not None and principal.subject != session.owner and not principal.can("admin"):
+                return None
+            return self._latest_run(session.owner)
+        if self.engine.store._exec("SELECT id FROM rmd_runs WHERE id = ?", (run_id,)):
+            return None
+        try:
+            owner = self.engine.owner_of(run_id)
+            requester = principal.subject if principal is not None else session.owner
+            if owner != requester and not (principal is not None and principal.can("admin")):
+                return None
+            return self.engine.get_run(run_id)
+        except KeyError:
+            return None
+
+    def _run_status(self, session, arguments=None):
         language = session.agent.language()
-        run = self._latest_run(session.owner)
+        run = self._selected_run(session, arguments or {})
         if run is None:
             return {"text": reply(language, "no_runs"), "result": None}
         done = sum(1 for t in run["tasks"] if t["state"] == "succeeded")
@@ -616,7 +644,7 @@ class Assistant:
         rephrase them: a paraphrase of a verified sentence is no longer a
         verified sentence."""
         language = session.agent.language()
-        run = self._latest_run(session.owner)
+        run = self._selected_run(session, arguments or {})
         if run is None:
             return {"text": reply(language, "no_runs"), "result": None}
         sections = [s for s in run.get("reports", []) if s.get("headline")]

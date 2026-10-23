@@ -1,6 +1,6 @@
 # Motion Studio — implementation and release handoff
 
-**Status:** Draft PR only. Not a production video-release service.
+**Status:** Implemented source on main, with an opt-in local MP4 queue. Not a deployed production video-release service. See [the source-bound review decision](adr/2026-10-23-report-motion-access.md).
 
 ## What is implemented
 
@@ -45,9 +45,9 @@ For RMD also run `uv run pytest -q` and the documented RMD authenticated browser
 
 ## Outstanding release blockers
 
-- Branch CI still requires a clean pass; prior failed checks are not ignored.
-- No backend-hosted media queue, storage/tenancy or authenticated MP4 download endpoint has been implemented. The renderer is a local CLI and editor is a standalone static app.
+- Each new release still requires CI on its exact commit; historical passes do not validate later changes.
+- An opt-in local queue, persistent local media, authenticated preview and independent internal review now exist in `server/motion_local.py` and the Motion API. These are not a durable distributed production worker or externally authorized publication service. Rendering remains disabled unless explicitly configured; no infrastructure is enabled by this change.
 - Rendering final videos with multimedia overlays, per-word captions, transitions and source-verification overlays still requires additional work.
-- No automatic connection to a human approval/issuance register yet. Video drafting remains separate from official release.
+- The internal review gate checks a different authorized reviewer and the current report/source hashes. An existing reviewer must already have live source access; platform admin does not grant private-pack membership. Official issuance/distribution remains separate and `publication_allowed` stays false.
 - Real-device Arabic playback and exported-audio end-to-end QA remain unverified.
 - Do not claim this is a finished enterprise MP4 production system until those are closed.
