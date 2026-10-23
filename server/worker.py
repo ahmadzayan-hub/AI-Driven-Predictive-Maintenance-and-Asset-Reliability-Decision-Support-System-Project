@@ -53,7 +53,7 @@ HEARTBEAT_STALE_SECONDS = 120
 
 
 def worker_status(store, mode="client", clock=_utcnow,
-                  stale_seconds=HEARTBEAT_STALE_SECONDS):
+                  stale_seconds=HEARTBEAT_STALE_SECONDS, expected_prefix=None):
     """Recent database activity, not a promise that a process is alive.
 
     Heartbeats bracket bounded stages, so the threshold exceeds the model
@@ -63,6 +63,8 @@ def worker_status(store, mode="client", clock=_utcnow,
     observed = []
     now = clock()
     for row in store.list_worker_heartbeats():
+        if expected_prefix and not row["id"].startswith(expected_prefix):
+            continue
         try:
             seen = datetime.fromisoformat(row["seen_at"])
             age = (now - seen).total_seconds()
@@ -112,8 +114,13 @@ class RunWorker:
         return _stamp(self.clock() + timedelta(seconds=self.lease_seconds))
 
     def claim(self):
+        options = {"exclude_specialists": True} if self.engine.specialists is None else {}
+        if self.engine.specialists is not None:
+            binding = self.engine.specialists.driver.identifier
+            if isinstance(binding, str):
+                options = {"specialist_model": binding}
         return self.store.claim_run(self.worker_id, _stamp(self.clock()),
-                                    self._expiry())
+                                    self._expiry(), **options)
 
     def heartbeat(self, state="idle"):
         self.store.upsert_worker_heartbeat(self.worker_id, _stamp(self.clock()), state)
@@ -223,6 +230,8 @@ def build_worker(env=None, config_path=None, **kwargs):
 
     env = os.environ if env is None else env
     config = read_config(config_path or env.get("AGENTIC_OS_CONFIG"))
+    from server.auth import build_identity
+    identity_mode = build_identity(env).mode if env.get("AGENTIC_OS_SPECIALISTS_ENABLED") == "1" else "local"
     store = open_store(
         env.get("DATABASE_URL") or config.get("database_url"),
         config.get("database_file") or PROJECT_ROOT / "data" / "agentic.db",
@@ -249,17 +258,31 @@ def build_worker(env=None, config_path=None, **kwargs):
     stage_registry, stage_problems = load_stages(env, config)
     for stage_problem in stage_problems:
         print(stage_problem, file=sys.stderr, flush=True)
+    from server.specialist_config import configure_specialists, worker_prefix
+    specialist_driver, specialist_capability = configure_specialists(
+        gateway, store, env,
+        identity_mode=identity_mode,
+        execution_mode=env.get("AGENTIC_OS_RUN_EXECUTION", "client"),
+        publish_target=resolve_publish_target(env, config))
+    if env.get("AGENTIC_OS_SPECIALISTS_ENABLED") == "1" and specialist_driver is None:
+        store.close()
+        raise ValueError("Specialist worker configuration rejected: " + specialist_capability["reason"])
     engine = RunEngine(store, resolve_vault_dir(env=env, config=config),
                        gateway, limits=limits, stages=stage_registry,
                        profiles=config.get("profiles") or {}, execution_mode="worker",
                        roles=model_roles if model_roles.active else None,
-                       publish_target=resolve_publish_target(env, config))
+                       publish_target=resolve_publish_target(env, config),
+                       specialist_driver=specialist_driver)
     interval = agent_learning.interval_from(env)
     steward = agent_learning.Steward(
         interval, ledger=agent_learning.Ledger(agent_learning.ledger_path(env))) \
         if interval else None
-    return RunWorker(engine, store, connectors=Connectors(engine, env=env),
-                     steward=steward, **kwargs)
+    worker = RunWorker(engine, store, connectors=Connectors(engine, env=env),
+                       steward=steward, **kwargs)
+    worker.specialist_capability = specialist_capability
+    if specialist_capability["configured"]:
+        worker.worker_id = worker_prefix(specialist_capability) + worker.worker_id
+    return worker
 
 
 def main(argv=None):

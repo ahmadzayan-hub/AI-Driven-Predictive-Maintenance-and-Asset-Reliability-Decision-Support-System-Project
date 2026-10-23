@@ -51,7 +51,7 @@ class DaemonContractTests(unittest.TestCase):
         image = (ROOT / "Dockerfile.worker").read_text()
         instructions = [line for line in image.splitlines() if line.startswith(("COPY ", "ADD ", "ARG "))]
         self.assertEqual(instructions, ["COPY requirements.txt ./", "COPY server/ ./server/",
-                                        "COPY config.json agent.py utils.py ./"])
+                                        "COPY config.json agent.py assistant.py utils.py ./"])
         self.assertIn("--require-hashes", image)
         self.assertIn("USER 10001:10001", image)
         self.assertIn('ENTRYPOINT ["python", "-m", "server.daemon"]', image)
@@ -65,7 +65,7 @@ class DaemonContractTests(unittest.TestCase):
             target = Path(directory)
             shutil.copytree(ROOT / "server", target / "server",
                             ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-            for name in ("config.json", "agent.py", "utils.py"):
+            for name in ("config.json", "agent.py", "assistant.py", "utils.py"):
                 shutil.copyfile(ROOT / name, target / name)
             env = {"PATH": os.environ.get("PATH", ""), "PYTHONPATH": str(target),
                    "PYTHONDONTWRITEBYTECODE": "1"}
@@ -78,6 +78,26 @@ class DaemonContractTests(unittest.TestCase):
     def test_config_validation_is_network_free(self):
         with patch.object(ModelGateway, "_post", side_effect=AssertionError("Provider call")):
             validate_environment(self.env())
+
+    def test_specialist_candidate_requires_explicit_single_model_and_admission(self):
+        env = {**self.env(), "AGENTIC_OS_SPECIALISTS_ENABLED": "1",
+               "AGENTIC_OS_SPECIALIST_MODEL": "ollama:synthetic-model",
+               "OLLAMA_MODEL": "synthetic-model", "AGENTIC_OS_QUOTA_MODEL_CALLS_PER_DAY": "20"}
+        with patch.object(ModelGateway, "_post", side_effect=AssertionError("Provider call")):
+            validate_environment(env)
+            for changes in ({"AGENTIC_OS_SPECIALIST_MODEL": "ollama:other"},
+                            {"AGENTIC_OS_QUOTA_MODEL_CALLS_PER_DAY": "0"},
+                            {"AGENTIC_OS_QUOTA_MODEL_CALLS_PER_DAY": ""},
+                            {"AGENTIC_OS_QUOTA_MODEL_CALLS_PER_DAY": None},
+                            {"AGENTIC_OS_QUOTA_MODEL_CALLS_PER_DAY": " "},
+                            {"AGENTIC_OS_QUOTA_MODEL_CALLS_PER_DAY": "-1"},
+                            {"AGENTIC_OS_QUOTA_MODEL_CALLS_PER_DAY": "1.0"},
+                            {"AGENTIC_OS_QUOTA_MODEL_CALLS_PER_DAY": "NaN"},
+                            {"AGENTIC_OS_QUOTA_MODEL_CALLS_PER_DAY": "Infinity"},
+                            {"AGENTIC_OS_DAEMON_ACTIVATION": ""},
+                            {"AGENTIC_OS_TASK_MODELS": "agents=ollama:synthetic-model"}):
+                with self.subTest(changes=changes), self.assertRaises(ValueError):
+                    validate_environment({**env, **changes})
 
     def test_missing_activation_database_publication_execution_or_identity_fails(self):
         for field in ("AGENTIC_OS_DAEMON_ACTIVATION", "DATABASE_URL", "AGENTIC_OS_PUBLISH_TARGET",

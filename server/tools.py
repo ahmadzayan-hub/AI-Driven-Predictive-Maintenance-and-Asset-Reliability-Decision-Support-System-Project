@@ -208,15 +208,28 @@ def specialist_model_view(value):
 
     Actual source/artifact hashes stay unchanged in durable checkpoints. Only
     documented hash fields with exact lowercase SHA-256 shape are transformed
-    for the model transport. Arbitrary source text, numbers and claims are never
-    exempted from the existing personal-data detector.
+    for the model transport. A generated report's duplicate human markdown is
+    omitted: its text, claims and calculations are still scanned and sent.
+    Arbitrary content fields, source text and numbers are never exempted.
     """
     import re
     if isinstance(value, dict):
+        # Only the installed draft_report handler emits this full shape. The
+        # human markdown duplicates the retained text/calculations and appends
+        # server-generated SHA provenance; scanning that duplicate would treat
+        # valid digit-heavy hashes as personal phone numbers. Do not strip an
+        # arbitrary content field or exempt draft text/claims from inspection.
+        human_draft = (isinstance(value.get("claim_refs"), list)
+                       and isinstance(value.get("text"), str)
+                       and isinstance(value.get("claims"), list)
+                       and isinstance(value.get("calculations"), list)
+                       and isinstance(value.get("hash"), str)
+                       and re.fullmatch(r"[a-f0-9]{64}", value["hash"]))
         return {key: ("sha256-ap:" + "".join("abcdefghijklmnop"[int(c, 16)] for c in item)
                       if key in {"sha256", "analysis_sha256", "hash", "draft_hash"} and isinstance(item, str)
                       and re.fullmatch(r"[a-f0-9]{64}", item)
-                      else specialist_model_view(item)) for key, item in value.items()}
+                      else specialist_model_view(item)) for key, item in value.items()
+                if not (human_draft and key == "content")}
     if isinstance(value, list):
         return [specialist_model_view(item) for item in value]
     return value
@@ -251,7 +264,7 @@ class ScopedToolBox(ToolBox):
             return failure
         if not schema.valid(self.catalogue[name]["inputSchema"], given):
             return failure
-        if len(json.dumps(given, ensure_ascii=False)) > 24000:
+        if len(json.dumps(given, ensure_ascii=False).encode()) > 24000:
             return failure
         try:
             result = self.handlers[name](**given)

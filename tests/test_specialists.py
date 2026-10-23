@@ -414,6 +414,21 @@ s.close()
         self.assertTrue(model_privacy.blocks_model(texts=[canonical(specialist_model_view({
             "claim": "Call 123456789012"}))]))
 
+    def test_human_markdown_projection_keeps_all_independent_privacy_checks(self):
+        from server import model_privacy
+        draft = {"claim_refs": ["artifact:test#claim"], "text": "Accepted result",
+                 "claims": [], "calculations": [], "hash": "1" * 64,
+                 "content": "Accepted result\nSHA-256: " + "1" * 64}
+        visible = specialist_model_view(draft)
+        self.assertNotIn("content", visible)
+        self.assertEqual(visible["text"], draft["text"])
+        self.assertIn("content", draft)
+        for value in ({"content": "Call 123456789012"},
+                      {**draft, "text": "Call 123456789012"},
+                      {**draft, "claims": [{"text": "Call 123456789012"}]},
+                      {**draft, "calculations": [{"value": "123456789012"}]}):
+            self.assertTrue(model_privacy.blocks_model(texts=[canonical(specialist_model_view(value))]))
+
     def test_mapping_and_goal_versions_invalidate_review_not_only_dataset_bytes(self):
         run = self.create(); result = self.advance_until(run["id"])
         self.store.update("runs", run["id"], {"goal": "A different decision"})

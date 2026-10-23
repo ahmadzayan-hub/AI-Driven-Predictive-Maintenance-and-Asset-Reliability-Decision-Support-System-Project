@@ -89,7 +89,8 @@ jobs:
             --mount type=bind,src="$GITHUB_WORKSPACE/tests",dst=/acceptance/tests,readonly \
             --env PG_TEST_URL --env REQUIRE_PG=1 --env PYTHONPATH=/app:/acceptance \
             --entrypoint python miyaar-worker-candidate \
-            -m unittest tests.test_daemon.DurableBytesPostgresRestartTests -v
+            -m unittest tests.test_daemon.DurableBytesPostgresRestartTests \
+              tests.test_specialist_wiring.SpecialistWiringPostgresTests.test_api_to_separate_worker_restart_report_and_human_publication -v
 
       - name: Python dependency audit (informational)
         # Advisory only: a new transitive CVE should be visible without

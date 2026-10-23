@@ -7,7 +7,7 @@ COPY requirements.txt ./
 RUN python -m pip install --no-cache-dir --require-hashes -r requirements.txt
 # Explicit source allowlist. Never COPY the repository, uploads, vault or .env.
 COPY server/ ./server/
-COPY config.json agent.py utils.py ./
+COPY config.json agent.py assistant.py utils.py ./
 RUN useradd --uid 10001 --create-home worker
 USER 10001:10001
 STOPSIGNAL SIGTERM

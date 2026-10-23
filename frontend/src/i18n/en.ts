@@ -408,6 +408,8 @@ export const en = {
   'runs.profileDefault': 'Default',
   'runs.profileModels': 'Exploratory models',
   'runs.profileMaintenance': 'Maintenance (governed)',
+  'runs.profileSpecialists': 'Bounded evidence agents',
+  'runs.profileExplicitHelp': 'One source; model and worker; human review. Live-model test pending.',
   'runs.start': 'Start run',
   'runs.previous': 'Previous runs',
   'runs.startFailed': 'Could not start the run.',

@@ -616,7 +616,10 @@ class RunEngine:
             # The queued run itself is the durable request, so repeated
             # advance calls do not enqueue additional work.
             return self.get_run(run_id)
-        if self.specialists is not None and self.specialists.handles(run_id):
+        specialist_run = any(t["role"] == "evidence_steward" for t in self.store.get_tasks(run_id))
+        if specialist_run:
+            if self.specialists is None:
+                raise ValueError("Specialist driver is unavailable; the checkpoint is preserved.")
             return self.specialists.advance(run_id, lease_owner)
         budget = getattr(self.gateway, "budget", None)
         owner_context = tenant.current_owner.set(self.owner_of(run_id))

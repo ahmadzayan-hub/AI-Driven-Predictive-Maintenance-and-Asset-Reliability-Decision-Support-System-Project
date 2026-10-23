@@ -401,6 +401,8 @@ export interface Pipelines {
     can_fail_run: boolean
   }>
   profiles: Record<string, string[]>
+  /** Standalone bounded workflows, not extensions of the normal analytics plan. */
+  explicit_plans?: Record<string, string[]>
   /** The custom stages a run gets when no profile is chosen. */
   default: string[]
   problems: string[]

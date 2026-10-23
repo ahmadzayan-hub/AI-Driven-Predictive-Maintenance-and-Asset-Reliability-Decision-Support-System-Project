@@ -3,6 +3,7 @@
 !requirements.txt
 !config.json
 !agent.py
+!assistant.py
 !utils.py
 !server/
 !server/**
