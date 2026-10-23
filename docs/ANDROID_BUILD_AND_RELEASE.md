@@ -15,41 +15,31 @@ On Android (Chrome): open the app → menu → **Add to Home screen /
 Install app**. It launches standalone with the Agentic OS icon and splash
 colors.
 
-## Native Android (Kotlin, Jetpack Compose): authored 22 October 2026
+## Native Android: built in hosted CI, 23 October 2026
 
-`apps/android` holds a Kotlin and Compose app over the platform API: upload,
-analyse, the Command Centre, approvals, a presentation view with report
-sharing, and a local vector memory. Its pure-Kotlin `core` module is built
-and tested on the JVM in this repository (14 tests); the Android `app`
-module is authored and waits for a machine with the Android SDK, or for
-`dl.google.com` to be allowed in the cloud environment, to compile and
-produce the APK (`scripts/build-apk.sh`). The decision and its honesty
-boundary are in
-[the Android record](adr/2026-10-22-android-app-first-release.md); the
-screens and build steps are in [apps/android/README.md](../apps/android/README.md).
+`apps/android` is the existing Kotlin/Compose client over the same platform API.
+The hosted [Android build](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39935735248)
+compiles Compose, runs core/app tests and lint, and assembles a debug APK.
+The artifact is `asset-reliability-android-debug`; unzip it and locate
+`app/build/outputs/apk/debug/app-debug.apk`. Source, screens and build commands
+are in [the app guide](../apps/android/README.md). Exact verification counts
+are maintained in [README](../README.md#testing).
 
-## Capacitor wrapper (earlier documented path, superseded)
+The raw upload and response contracts match FastAPI. The approval screen shows
+the complete report artifact/version, destination and impact. Publication needs
+server confirmation and a returned path. Changed destinations require a fresh
+review and a new read confirmation; refresh never publishes. Worker-backed runs poll the server;
+client-backed runs retain the existing bounded stepping behavior.
 
-A real `apps/android` Capacitor project requires the Android SDK and
-Gradle to build and an emulator/device to test. Neither exists in the
-implementation environment, and committing an unbuilt, untested native
-project would violate the no-placeholder rule. The exact path:
+## Device and release acceptance
 
-```bash
-cd frontend
-npm i @capacitor/core @capacitor/cli @capacitor/android
-npx cap init "Agentic OS" com.agenticos.app --web-dir=dist
-npm run build && npx cap add android && npx cap sync android
-cd android && ./gradlew lintDebug testDebugUnitTest assembleDebug
-# artifact: android/app/build/outputs/apk/debug/app-debug.apk
-```
+The successful debug APK is a build artifact. Physical installation, TalkBack,
+large text, rotation, background/process recovery, account switching and live
+managed sign-in remain device checks. Production needs reviewed secure token
+storage, an actual HTTPS API, release signing outside Git and the applicable
+store target-SDK/privacy review. No production keystore, store submission or
+production deployment is performed here.
 
-Release requirements (per Android core app quality + V2 §18): HTTPS-only
-API origin, tokens in platform secure storage (not WebView localStorage),
-deep-link allowlist, minimal permissions requested at point of use, back/
-keyboard/safe-area handling (the PWA layout already handles safe areas),
-adaptive icons (the maskable icons ship already), and CI jobs for lint,
-unit tests, and `assembleDebug` with the APK as an artifact. Never commit
-keystores or signing credentials.
-
-Do not claim device validation until it has actually run on hardware.
+Windows and iOS use the existing PWA. Platform browser jobs exercise Edge on
+Windows and WebKit on macOS; they do not establish physical iPhone/iPad or
+installed-PWA acceptance. See [the platform handoff](implementation/PLATFORM_RELEASE.md).

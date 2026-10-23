@@ -87,3 +87,7 @@ What each round of brain maintenance changed, newest last. The SessionStart hook
 - Rechecked the source-backed RMD acceptance record and retained the owner's original-input omission. Updated only delivery observations; no runtime evidence was copied into the brain.
 - Rechecked the brain structure and existing [[Home]] coverage before the final synchronization. No new note, duplicate or structural repair was needed.
 - Refreshed [[Knowledge retrieval]] against the integration regression: deadline workers preserve the actual requester's context, while collection grants remain scoped. Retained incoming run safeguards and chart-scale improvements from main rather than overwriting them.
+
+- Refreshed [[Agentic OS]] against the shared API/recovery, asset and application-build delivery. Kept actual debug/build evidence distinct from device, store, production and maintenance-outcome acceptance.
+- Refreshed [[Approval gate]] against SQL publication and destination-bound fresh review: superseding is not a human decision, refresh cannot publish, and changed content cannot reuse review. No runtime reports were copied.
+- Preserved incoming [[Agent evaluation]] and [[Decision log]] updates while integrating main. Rechecked their source paths and the existing [[Home]] map; the expanded changes remain in existing notes rather than duplicate concepts.

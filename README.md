@@ -521,6 +521,52 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+**23 October 2026 · platform and application delivery.** The
+[complete regression run](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39931777071)
+passes on `dc8df410`: **1,882 Python tests with PostgreSQL, 26 conditional skips**,
+**375 component checks**, **149 browser checks, 5 declared skips**, and **12
+Miyaar checks**. TypeScript, production build and interface budget pass. The
+[scoped evidence run](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39933239605)
+also passes on `28296d1c`: **189 backend checks, 6 conditional skips** (PostgreSQL
+not configured for that job and hosted LibreOffice unavailable), **10 real-API
+desktop/phone RMD journeys** and **1 sidebar contract**. The
+[platform run](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39933239611)
+passes **8 journeys each** in Edge on Windows and WebKit on macOS, including
+Arabic phone and keyboard publication. Gzipped bytes: **JS first load
+99.0/100 KB**, **JS total 245.6/248 KB**, largest chunk **17.7/30 KB**, CSS first
+**10.0/10.5 KB**, CSS total **32.8/33.5 KB**, fonts **119.4/120 KB**.
+
+The [final Android build](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39935735248)
+passes on `073f5d2b`: **21 JVM/app tests, 0 skipped**, Compose compilation,
+Android lint, debug APK assembly, required package entries and actual APK v2
+signature verification. [Download the debug APK artifact](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39935735248/artifacts/12493119185)
+(retained until 6 November 2026). APK SHA-256:
+`4a2741e5821e296f4465fe376dfbe07f2f57c098c841f515c08cbd83b2a1b6c5`.
+This is debug-build evidence; device, credential-storage, store and production
+acceptance remain separate.
+
+Local feasible checks on the merged source pass **46 backend/document/identity/storyboard
+checks** and the strict brain check. After restoring canonical text fixtures,
+**115 deterministic incoming-team dataset/evaluation/reviewer checks pass**;
+that scope excludes the unavailable local canonical XLSX fixture. The earlier bounded platform suite
+passes **42 checks, 5 PostgreSQL skips**. Local Node dependencies, Chromium and
+legacy TestClient execution remain sandbox-blocked; hosted jobs use the normal
+application. An initial expanded local check reported **92 tests, 28 errors**
+from missing canonical evaluation/dashboard/XLSX fixtures in this partial
+checkout. Two follow-up attempts each reported **115 tests, 1 missing skill-file
+error** until both canonical skill fixtures were restored. These incomplete
+attempts are not passes; the final bounded result above is green.
+
+Fresh-destination recovery, exact-review consent and the final activity-state
+correction are at `073f5d2b` and `8222e8d0`; incoming main's workbook discovery,
+reviewer/evaluation improvements and Motion Studio handoff are retained through
+`913b17f6`. Main's further optional local Motion Studio sources are preserved
+at `0c384ceb`, with its unused Overview import removed for strict TypeScript.
+The latest combined-source checks are still running; the prior green
+results above do not assert those later revisions passed. Remaining acceptance
+and the current/future split are in the [platform handoff](docs/implementation/PLATFORM_RELEASE.md).
+
+
 **23 October 2026 · final main integration.** The
 [combined acceptance run](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39922112369)
 passes on `52389750`, retaining main through `6fec34b7`, including P2 safeguards
@@ -536,8 +582,7 @@ TestClient attempts were blocked at the AnyIO portal, and **3 UDP probe checks**
 were blocked by sandbox socket permissions; these are not claimed as local
 passes. Hosted acceptance uses the normal HTTP server. The
 [aggregate CI run on this integrated source](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39922112323)
-has passed its Python/PostgreSQL step and is continuing the broader regression;
-the completed full-run record below applies to its stated earlier revision.
+completed successfully; the completed full-run record below applies to its stated earlier revision.
 
 **22–23 October 2026 · RMD evidence implementation (synthetic inputs).** The
 [full hosted CI rerun](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39873026849)
