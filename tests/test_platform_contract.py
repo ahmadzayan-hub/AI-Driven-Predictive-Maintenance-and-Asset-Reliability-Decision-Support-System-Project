@@ -34,6 +34,7 @@ class PlatformContractTests(unittest.IsolatedAsyncioTestCase):
             "AGENTIC_OS_AUTH_MODE": "jwt", "AGENTIC_OS_JWT_SECRET": SECRET,
             "AGENTIC_OS_JWT_AUDIENCE": AUDIENCE, "AGENTIC_OS_JWT_ISSUER": ISSUER,
             "AGENTIC_OS_DEFAULT_ROLE": "owner", "AGENTIC_OS_ALLOWED_ORIGINS": "https://client.invalid",
+            "AGENTIC_OS_PUBLISH_TARGET": "database",
         })
         self.addCleanup(self.app.state.store.close)
         for name in ("fastapi.routing.run_in_threadpool", "fastapi.dependencies.utils.run_in_threadpool",
@@ -156,6 +157,33 @@ class PlatformContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 429)
         self.assertEqual(response.json()["error"]["code"], "rate_limited")
         self.assertEqual(response.headers["retry-after"], "3")
+
+    async def test_actual_api_publishes_owned_notes_to_the_database_after_the_human_gate(self):
+        created = await self.client.post("/api/runs", headers=self.headers, json={"goal": "Synthetic publication contract"})
+        self.assertEqual(created.status_code, 201, created.text)
+        run = created.json()
+        for _ in range(40):
+            if run["state"] == "awaiting_approval":
+                break
+            response = await self.client.post(f"/api/runs/{run['id']}/advance", headers=self.headers)
+            self.assertEqual(response.status_code, 200, response.text)
+            run = response.json()
+        self.assertEqual(run["state"], "awaiting_approval")
+        self.assertIsNone(run["report"]["published_path"])
+        self.assertEqual(run["approvals"][0]["target"], "database:Reports")
+        with patch.object(Path, "mkdir", side_effect=AssertionError("Read-only host")):
+            approved = await self.client.post(f"/api/runs/{run['id']}/approvals/{run['approvals'][0]['id']}",
+                                              headers=self.headers, json={"decision": "approve"})
+        self.assertEqual(approved.status_code, 200, approved.text)
+        result = approved.json()
+        self.assertEqual(result["state"], "completed")
+        path = result["report"]["published_path"]
+        self.assertTrue(path.startswith("Reports/"))
+        note = await self.client.get("/api/vault/note", headers=self.headers, params={"path": path})
+        self.assertEqual(note.status_code, 200, note.text)
+        self.assertIn(run["report"]["content"], note.json()["content"])
+        private = await self.client.get("/api/vault/note", headers={"Authorization": "Bearer " + token("bob")}, params={"path": path})
+        self.assertEqual(private.status_code, 404)
 
 
 if __name__ == "__main__":

@@ -50,7 +50,7 @@ from server.orchestration import ModelRoles
 from server.routing import RoutedGateway, build_router
 from server.stages import describe, load_stages
 from server.runs import (IdempotencyConflict, RunEngine, TableNotReady, dataset_summary,
-                         resolve_vault_dir)
+                         resolve_publish_target, resolve_vault_dir)
 from server import demo
 from server.auth import DEMO_PRINCIPAL, AuthError, build_identity, public_auth_config
 from server.quota import QuotaExceeded, load_limits
@@ -464,6 +464,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         profiles=config.get("profiles") or {},
         execution_mode=(os.environ if env is None else env).get("AGENTIC_OS_RUN_EXECUTION", "client"),
         roles=model_roles if model_roles.active else None,
+        publish_target=resolve_publish_target(env, config),
     )
     app.state.engine = engine
     app.state.store = store

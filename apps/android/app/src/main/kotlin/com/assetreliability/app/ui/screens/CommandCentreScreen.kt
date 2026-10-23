@@ -172,8 +172,9 @@ fun CommandCentreScreen(onPresent: (String) -> Unit, viewModel: CommandCentreVie
                 item {
                     RisingCard(4) {
                         SectionTitle(t("command.action"))
-                        if (c.recommendedAction == null) Muted(t("command.actionNone")) else {
-                            Text(c.recommendedAction)
+                        val recommendedAction = c.recommendedAction
+                        if (recommendedAction == null) Muted(t("command.actionNone")) else {
+                            Text(recommendedAction)
                             c.assumption?.let { Muted(it, Modifier.padding(top = 6.dp)) }
                             Muted(t("command.actionNote"), Modifier.padding(top = 8.dp))
                         }

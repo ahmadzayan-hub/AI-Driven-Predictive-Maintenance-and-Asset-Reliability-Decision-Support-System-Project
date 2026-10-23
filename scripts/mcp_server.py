@@ -33,7 +33,7 @@ from server.auth import build_identity  # noqa: E402
 from server.mcp import McpServer  # noqa: E402
 from server.model_gateway import ModelGateway  # noqa: E402
 from server.quota import load_limits  # noqa: E402
-from server.runs import RunEngine, resolve_vault_dir  # noqa: E402
+from server.runs import RunEngine, resolve_publish_target, resolve_vault_dir  # noqa: E402
 from server.stages import load_stages  # noqa: E402
 from server.storage import DbMemoryBackend, PostgresStore, open_store  # noqa: E402
 from utils import load_config  # noqa: E402
@@ -57,9 +57,10 @@ def build(config_path=None, env=None):
     for problem in problems:
         print(f"mcp: {problem}", file=sys.stderr)
     gateway = ModelGateway()
-    engine = RunEngine(store, resolve_vault_dir(config=config),
+    engine = RunEngine(store, resolve_vault_dir(env=env, config=config),
                        gateway, limits=load_limits(env), stages=stages,
-                       profiles=config.get("profiles") or {})
+                       profiles=config.get("profiles") or {},
+                       publish_target=resolve_publish_target(env, config))
     memory = (DbMemoryBackend(store, "local-owner")
               if isinstance(store, PostgresStore) else None)
     session = Session(config, memory)

@@ -62,6 +62,16 @@ def resolve_vault_dir(env=None, config=None, root=None):
     return root / "vault"
 
 
+def resolve_publish_target(env=None, config=None):
+    """Serverless publication is durable in SQL, without a writable vault."""
+    env = os.environ if env is None else env
+    selected = (env.get("AGENTIC_OS_PUBLISH_TARGET") or (config or {}).get("publish_target")
+                or ("database" if env.get("VERCEL") == "1" else "vault"))
+    if selected not in ("database", "vault"):
+        raise ValueError("AGENTIC_OS_PUBLISH_TARGET must be database or vault.")
+    return selected
+
+
 RUN_STATES = {"queued", "running", "awaiting_approval", "verifying",
               "completed", "partially_completed", "failed", "cancelled"}
 TASK_STATES = {"pending", "running", "succeeded", "failed", "skipped",
@@ -156,7 +166,7 @@ class IdempotencyConflict(ValueError):
 class RunEngine:
     def __init__(self, store, vault_dir, gateway, limits=None, glossary=None,
                  stages=None, profiles=None, execution_mode="client", roles=None,
-                 stage_timeout=None):
+                 stage_timeout=None, publish_target=None):
         if execution_mode not in ("client", "worker"):
             raise ValueError("AGENTIC_OS_RUN_EXECUTION must be client or worker.")
         self.execution_mode = execution_mode
@@ -178,6 +188,9 @@ class RunEngine:
                               deadline.seconds_from_env("AGENTIC_OS_STAGE_TIMEOUT",
                                                         deadline.DEFAULT_STAGE_SECONDS))
         self.vault_dir = Path(vault_dir)
+        self.publish_target = publish_target or resolve_publish_target()
+        if self.publish_target not in ("database", "vault"):
+            raise ValueError("publish_target must be database or vault.")
         self.gateway = gateway
         # None disables quota enforcement entirely (the CLI and tests that
         # are not about quotas); the API always passes limits.
@@ -776,12 +789,17 @@ class RunEngine:
             content_hash = hashlib.sha256(artifact["content"].encode()).hexdigest()
             self.store.insert("approvals", {
                 "id": self.new_id(), "run_id": run_id,
-                "action": ("نشر تقرير التحليل في مخزن Obsidian" if arabic else
-                           "Publish the analytics report to the Obsidian vault"),
-                "target": str(self.vault_dir / "Reports"), "risk": "high",
-                "impact": ("يكتب ملاحظتين بصيغة Markdown (التقرير وسجل التشغيل) في "
-                           "المخزن المحلي." if arabic else
-                           "Writes two markdown notes (report + run log) to the local vault."),
+                "action": (("نشر تقرير التحليل في المخزن الدائم" if arabic else
+                            "Publish the analytics report to the durable vault")
+                           if self.publish_target == "database" else
+                           ("نشر تقرير التحليل في مخزن Obsidian" if arabic else
+                            "Publish the analytics report to the Obsidian vault")),
+                "target": self.publication_destination(), "risk": "high",
+                "impact": (("يحفظ ملاحظتي Markdown (التقرير وسجل التشغيل) في قاعدة البيانات بصلاحيات مساحة العمل." if arabic else
+                            "Stores two Markdown notes (report + run log) in the database under workspace permissions.")
+                           if self.publish_target == "database" else
+                           ("يكتب ملاحظتين بصيغة Markdown (التقرير وسجل التشغيل) في المخزن المحلي." if arabic else
+                            "Writes two markdown notes (report + run log) to the local vault.")),
                 "reversibility": ("قابل للتراجع: احذف الملاحظتين المنشأتين." if arabic
                                   else "Reversible: delete the created notes."),
                 "content_hash": content_hash, "state": "pending",
@@ -838,6 +856,8 @@ class RunEngine:
         if current_hash != approval["content_hash"]:
             raise ValueError("Artifact changed after approval was requested.")
         if decision == "approve":
+            if approval["target"] != self.publication_destination():
+                raise ValueError("The publication destination changed after review. Restore it or reject and create a new reviewed analysis.")
             path = self._publish(run_id, artifact)
             self.store.update("approvals", approval_id,
                               {"state": "approved_once", "decided_at": _now(),
@@ -856,23 +876,23 @@ class RunEngine:
             self._set_run_state(run_id, "completed")
         return self.get_run(run_id)
 
+    def publication_destination(self):
+        return "database:Reports" if self.publish_target == "database" else str(self.vault_dir / "Reports")
+
     def _publish(self, run_id, artifact):
         run = self._row(run_id)
         reports = self.vault_dir / "Reports"
         logs = self.vault_dir / "Runs"
-        reports.mkdir(parents=True, exist_ok=True)
-        logs.mkdir(parents=True, exist_ok=True)
         slug = re.sub(r"[^a-z0-9]+", "-", run["goal"].lower()).strip("-")[:48] or "report"
         note = reports / f"{slug}-{run_id}.md"
         frontmatter = (
             "---\n"
             f"type: analytics-report\nrun: {run_id}\n"
             f"generated: {_now()}\nstatus: approved\n"
-            f"dataset: \"{run['dataset_name']}\"\n"
+            f"dataset: {json.dumps(run['dataset_name'], ensure_ascii=False)}\n"
             f"lang: {run.get('report_language') or 'en'}\n---\n\n"
         )
-        note.write_text(frontmatter + artifact["content"]
-                        + f"\n\nRun log: [[{run_id}]]\n", encoding="utf-8")
+        report_content = frontmatter + artifact["content"] + f"\n\nRun log: [[{run_id}]]\n"
         log_lines = [f"---\ntype: run-log\nrun: {run_id}\ngenerated: {_now()}\n---",
                      f"# Run {run_id}", "", f"**Goal:** {run['goal']}", "",
                      "| Stage | Outcome |", "| --- | --- |"]
@@ -880,14 +900,20 @@ class RunEngine:
             log_lines.append(f"| {t['title']} | {t['state']}: {t['summary'] or ''} |")
         log_lines.append(f"\nReport: [[{note.stem}]]\n")
         log_note = logs / f"{run_id}.md"
-        log_note.write_text("\n".join(log_lines), encoding="utf-8")
-        # Durable record: published notes also live in the store, so hosted
-        # (stateless) backends keep them and /api/vault can serve them.
+        log_content = "\n".join(log_lines)
+        # These writes share the approval/state transaction. Database mode
+        # never touches a filesystem, including a read-only serverless root.
         now = _now()
         self.store.upsert_note(f"Reports/{note.name}", run_id,
-                               note.read_text(encoding="utf-8"), now)
+                               report_content, now)
         self.store.upsert_note(f"Runs/{run_id}.md", run_id,
-                               log_note.read_text(encoding="utf-8"), now)
+                               log_content, now)
+        if self.publish_target == "database":
+            return Path("Reports") / note.name
+        reports.mkdir(parents=True, exist_ok=True)
+        logs.mkdir(parents=True, exist_ok=True)
+        note.write_text(report_content, encoding="utf-8")
+        log_note.write_text(log_content, encoding="utf-8")
         return note
 
     def set_paused(self, run_id, paused):
