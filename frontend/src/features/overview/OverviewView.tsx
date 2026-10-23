@@ -117,10 +117,6 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard,
       <section className="panel" aria-label={t('overview.aria')}>
         <div className="panel__inner panel__inner--wide">
           {header}
-          {motionError ? <p role="alert" className="statusline statusline--error">{motionError}</p> : null}
-        {import.meta.env.VITE_MOTION_LOCAL_ENABLED === 'true' && latest && evidence.status === 'passed' ? (
-          <LocalMotionPanel runId={latest.id} language={reportLang} />
-        ) : null}
         {actions}
           <div className="card">
             <p className="statusline statusline--error" role="alert" dir="auto">
