@@ -1,5 +1,7 @@
 # Project progress
 
+Model-admission review wave (23 October): bounded credits are reserved before run transactions, shared by consultant contexts and settled after commit/rollback. This preserves existing run locks and worker roles; conservative credit/crash semantics and hosted acceptance remain release-review gates. See docs/adr/2026-10-23-bounded-model-admission.md.
+
 Review wave (23 October): fail-closed shared write limits are prepared for review. Production merge/deployment and hosted acceptance remain separate approval gates. See docs/adr/2026-10-23-fail-closed-write-limiter.md.
 
 Last updated: 2026-10-23, platform/API recovery, transactional publishing and application build delivery. Original RMD sources remain omitted by owner instruction. Measured verification and release limits are recorded in README and docs/implementation/PLATFORM_RELEASE.md.

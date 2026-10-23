@@ -24,6 +24,17 @@ preserved (23 October 2026). Earlier confidentiality/removal claims are not
 authorization to delete those materials or rewrite history. This does not
 authorize publishing secrets or genuinely non-public personal information.
 
+## Model admission credits (review candidate, 23 October 2026)
+
+The per-owner daily model_calls usage counter includes in-flight and conservatively
+unreclaimed admission reservations, not measured/billed provider calls. No frontend
+usage view or export currently consumes that field; the API carries an explicit
+model_budget_basis. The process health ledger is separate observed-attempt evidence,
+not a billing record. Bounded reservations can temporarily reduce same-owner
+concurrent capacity; crash/uncertain settlement can retain unused credits until the
+UTC reset. See [decision](adr/2026-10-23-bounded-model-admission.md). Hosted rollout,
+production schema changes and domain acceptance remain approval-gated.
+
 ## Intelligence
 
 Local role acceptance is recorded in [README testing](../README.md#testing).

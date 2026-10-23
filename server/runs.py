@@ -22,12 +22,13 @@ import re
 import threading
 import uuid
 from collections import OrderedDict
+from contextlib import nullcontext
 from datetime import datetime, timezone
 from pathlib import Path
 
 from server import analytics, datasets, deadline, metrics, quota, model_privacy
 from server import joins as joining
-from server import query
+from server import query, tenant
 from server import mapping as colmap
 from server import stages as stage_registry
 
@@ -597,8 +598,38 @@ class RunEngine:
             # The queued run itself is the durable request, so repeated
             # advance calls do not enqueue additional work.
             return self.get_run(run_id)
-        with self.store.atomic("run:" + run_id):
-            return self._advance_atomic(run_id, lease_owner)
+        budget = getattr(self.gateway, "budget", None)
+        owner_context = tenant.current_owner.set(self.owner_of(run_id))
+        try:
+            # Commit admission before taking the run transaction. The latter
+            # preserves all existing state/CAS invariants, while rollback cannot
+            # erase credits for provider work that has already happened.
+            scope = (budget.reservation(self._model_attempt_bound())
+                     if budget is not None else nullcontext())
+            with scope:
+                with self.store.atomic("run:" + run_id):
+                    return self._advance_atomic(run_id, lease_owner)
+        finally:
+            tenant.current_owner.reset(owner_context)
+
+    def _model_attempt_bound(self):
+        """Conservative bound for one built-in stage, never the daily budget.
+
+        Narration, Hermes and agent notes each use at most two attempts.
+        Each external consultant may use two structured attempts, repeat
+        once for compatibility, then two text fallback attempts. Reserve
+        across configured roles so a concurrent advance changing the pending
+        stage cannot invalidate admission. Unused credits are returned.
+        Custom stages exceeding this bounded envelope degrade, never top up
+        inside a state transaction.
+        """
+        from server.orchestration import BUILT_IN
+        bound = 2  # the pipeline's narrated stage
+        if self.roles is not None:
+            bound += 2 * (self.roles.hermes not in (None, BUILT_IN))
+            bound += 2 * (self.roles.agents not in (None, BUILT_IN))
+            bound += 6 * sum(name != BUILT_IN for name in self.roles.consultants)
+        return bound
 
     def _advance_atomic(self, run_id, lease_owner=None):
         """Execute exactly one bounded task; every transition is durable.

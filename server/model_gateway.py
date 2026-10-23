@@ -351,7 +351,7 @@ class ModelGateway:
             if caller is None:
                 continue
             if self.budget is not None and not self.budget.allow(name):
-                break  # the owner's model budget is spent (B6): deterministic text
+                break  # budget denied or unavailable: explicitly deterministic text
             text = (caller(goal, facts, language=language) if language != "en"
                     else caller(goal, facts))
             if text:
@@ -389,7 +389,7 @@ class ModelGateway:
                    **{name: self._compat_completer(name) for name in self.compat}}
         for name in self._attempts(provider):
             if self.budget is not None and not self.budget.allow(name):
-                # The owner's model budget for today is spent (B6): no
+                # Budget admission was denied or unavailable: no
                 # attempt is made, and the built-in writer answers.
                 return None
             caller = callers.get(name)

@@ -499,17 +499,54 @@ class SqlStore:
                           (owner, day))
         return rows[0]["count"] if rows else 0
 
+    def reserve_model_calls(self, owner, day, limit, requested):
+        """Commit bounded admission credits before any provider/run work.
+
+        Never nest this transaction: a later run rollback must not erase
+        spending, and nested atomic blocks do not acquire another PG key.
+        """
+        with self._operation_lock:
+            if self._transaction_depth:
+                raise RuntimeError("Model admission requires a top-level transaction")
+            with self.atomic("model-calls:" + owner):
+                used = self.model_calls_today(owner, day)
+                reserved = min(max(0, requested), max(0, limit - used))
+                if reserved:
+                    self._exec(
+                        "INSERT INTO model_calls_daily (owner, day, count) VALUES (?, ?, ?) "
+                        "ON CONFLICT (owner, day) DO UPDATE SET count = model_calls_daily.count + ?",
+                        (owner, day, reserved, reserved))
+                return reserved
+
+    def reserve_model_call(self, owner, day, limit):
+        return self.reserve_model_calls(owner, day, limit, 1) == 1
+
+    def release_model_credits(self, owner, day, unused):
+        """Return only this scope's unused credits; caller must not retry.
+
+        A commit acknowledgement can be lost. The scope closes before this
+        call and never retries an uncertain release or resets a captured count.
+        """
+        if unused <= 0:
+            return
+        with self._operation_lock:
+            if self._transaction_depth:
+                raise RuntimeError("Model credit release requires a top-level transaction")
+            with self.atomic("model-calls:" + owner):
+                if self.model_calls_today(owner, day) < unused:
+                    raise RuntimeError("Model credit accounting mismatch")
+                self._exec("UPDATE model_calls_daily SET count = count - ? "
+                           "WHERE owner = ? AND day = ?", (unused, owner, day))
+
     def count_model_call(self, owner, day):
         """One more model call for the owner today; returns the new count."""
         with self.atomic("model-calls:" + owner):
-            count = self.model_calls_today(owner, day) + 1
-            if count == 1:
-                self._exec("INSERT INTO model_calls_daily (owner, day, count) VALUES (?, ?, 1)",
-                           (owner, day))
-            else:
-                self._exec("UPDATE model_calls_daily SET count = ? WHERE owner = ? AND day = ?",
-                           (count, owner, day))
-            return count
+            # An all-unused reservation may leave an existing zero row.
+            # Count alone is not evidence that the row does not exist.
+            self._exec("INSERT INTO model_calls_daily (owner, day, count) VALUES (?, ?, 1) "
+                       "ON CONFLICT (owner, day) DO UPDATE SET count = model_calls_daily.count + 1",
+                       (owner, day))
+            return self.model_calls_today(owner, day)
 
     def list_runs(self, owner=None, limit=50, state=None):
         """The newest `limit` runs, or every run in one `state` up to a

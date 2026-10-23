@@ -117,3 +117,5 @@ All seven [[Analytics OS roadmap]] milestones have their records.
 | 2026-10-23-blind-v7-into-dev-causal-and-intent-fix | blind_v7 moves into dev; causal and intent rules fixed as linguistic families; no blind floor for those two until blind_v8; one contested "accounts for" case set aside | [[Agent evaluation]] |
 
 | 2026-10-23-fail-closed-write-limiter | Fail-closed shared write limits; model transaction-boundary repair remains separate | [[Model gateway]], [[Tenant isolation]] |
+
+| 2026-10-23-bounded-model-admission | Bounded admission before run transactions; tenant propagation and conservative settlement | [[Model gateway]], [[Tenant isolation]] |

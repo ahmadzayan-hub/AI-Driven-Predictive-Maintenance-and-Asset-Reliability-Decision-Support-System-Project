@@ -190,6 +190,7 @@ class ModelBudgetTest(unittest.TestCase):
         try:
             self.assertTrue(budget.allow("anthropic"))
             budget.charge({"provider": "anthropic"})
+            self.assertTrue(budget.allow("anthropic"))
             budget.charge({"provider": "anthropic"})
             self.assertFalse(budget.allow("anthropic"))
         finally:

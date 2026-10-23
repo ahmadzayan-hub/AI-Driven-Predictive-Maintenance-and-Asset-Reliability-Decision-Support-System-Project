@@ -35,7 +35,7 @@ from server import agent_learning, tenant
 from server.connectors import Connectors
 from server.model_gateway import ModelGateway
 from server.orchestration import ModelRoles
-from server.quota import load_limits
+from server.quota import ModelBudget, load_limits
 from server.routing import RoutedGateway, build_router
 from server.stages import load_stages
 from server.runs import RunEngine, _stamp, _utcnow, resolve_publish_target, resolve_vault_dir
@@ -211,6 +211,8 @@ def build_worker(env=None, config_path=None, **kwargs):
         config.get("database_file") or PROJECT_ROOT / "data" / "agentic.db",
     )
     gateway = ModelGateway(env)
+    limits = load_limits(env)
+    gateway.budget = ModelBudget(store, limits)
     # Like the API, roles use the plain gateway so each named provider/model
     # remains explicit even when a separate router selects report narration.
     model_roles = ModelRoles(gateway, env)
@@ -230,7 +232,7 @@ def build_worker(env=None, config_path=None, **kwargs):
     for stage_problem in stage_problems:
         print(stage_problem, file=sys.stderr, flush=True)
     engine = RunEngine(store, resolve_vault_dir(env=env, config=config),
-                       gateway, limits=load_limits(env), stages=stage_registry,
+                       gateway, limits=limits, stages=stage_registry,
                        profiles=config.get("profiles") or {}, execution_mode="worker",
                        roles=model_roles if model_roles.active else None,
                        publish_target=resolve_publish_target(env, config))
