@@ -384,6 +384,8 @@ export interface UploadResult {
   warnings: string[]
   sheets: string[]
   selected_sheet?: string | null
+  /** Each sheet described before parsing; sizes are approximate. */
+  sheet_details?: Array<{ name: string; hidden: boolean; rows: number | null; columns: number | null; tabular: boolean; unreadable: boolean }>
 }
 
 /** Registered custom stages and the profiles that choose among them,

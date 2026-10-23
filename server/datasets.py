@@ -72,6 +72,7 @@ class ParsedDataset:
     sheets: list = field(default_factory=list)
     csv_text: str = ""
     selected_sheet: str | None = None
+    sheet_details: list = field(default_factory=list)   # see list_sheets()
 
     def preview(self):
         return self.rows[:PREVIEW_ROWS]
@@ -403,6 +404,14 @@ def _refuse_doctype(*_):
     raise _bad_workbook("it declares a document type")
 
 
+class _BudgetSpent(DatasetError):
+    """The whole workbook is refused, never just one of its sheets."""
+
+
+class _Enough(Exception):
+    """Stops reading a sheet once its sample is taken."""
+
+
 class _Budget:
     """Counts the XML bytes read from one workbook, across every part."""
 
@@ -412,8 +421,9 @@ class _Budget:
     def take(self, n):
         self.used += n
         if self.used > MAX_XML_BYTES:
-            raise _bad_workbook("its sheets expand to more than "
-                                f"{MAX_XML_BYTES // 1_000_000} MB")
+            refused = _bad_workbook("its sheets expand to more than "
+                                    f"{MAX_XML_BYTES // 1_000_000} MB")
+            raise _BudgetSpent(refused.status, refused.en, refused.ar)
 
 
 def _parse_part(archive, name, budget, start=None, end=None, text=None):
@@ -598,14 +608,22 @@ def _column_index(ref):
     return index - 1
 
 
-def _read_sheet(archive, part, budget, strings, kinds, date1904):
-    rows, counts = [], {"errors": 0, "uncached": 0, "kept": 0}
+def _read_sheet(archive, part, budget, strings, kinds, date1904, limit=None):
+    """The sheet's non-blank rows. With `limit`, stop after that many and
+    set `counts["more"]` when the sheet had more."""
+    rows = []
+    counts = {"errors": 0, "uncached": 0, "kept": 0, "dimension": None, "more": False}
     state = {"row": None, "col": -1, "cell": None, "in_value": False,
              "in_inline": 0, "in_text": False, "skip": 0}
 
     def start(tag, attrs):
         local = _local(tag)
-        if local == "row":
+        if local == "dimension" and state["row"] is None:
+            counts["dimension"] = attrs.get("ref")
+        elif local == "row":
+            if limit is not None and len(rows) >= limit:
+                counts["more"] = True
+                raise _Enough()
             state["row"], state["col"] = {}, -1
         elif local == "c" and state["row"] is not None:
             index = _column_index(attrs.get("r"))
@@ -692,40 +710,143 @@ def _read_sheet(archive, part, budget, strings, kinds, date1904):
                 return converted
         return raw
 
-    _parse_part(archive, part, budget, start=start, end=end, text=text)
+    try:
+        _parse_part(archive, part, budget, start=start, end=end, text=text)
+    except _Enough:
+        pass
     return rows, counts
 
 
-def _read_xlsx(body, sheet=None):
+# How many non-blank rows of each sheet are read to describe it.
+SAMPLE_ROWS = 20
+
+
+def _open_archive(body):
     try:
-        archive = zipfile.ZipFile(io.BytesIO(body))
+        return zipfile.ZipFile(io.BytesIO(body))
     except zipfile.BadZipFile:
         raise _bad_workbook("it is not a valid ZIP archive")
+
+
+def _workbook(archive, budget):
+    """The workbook's sheets, in order, with what reading any of them needs.
+    Only parts the workbook's own relationships name are opened."""
+    names = set(archive.namelist())
+    root_rels = _relationships(archive, "", budget) if "_rels/.rels" in names else {}
+    workbook = next((target for kind, target in root_rels.values()
+                     if kind.endswith("/officeDocument")), "xl/workbook.xml")
+    if workbook not in names:
+        raise _bad_workbook("it has no workbook part")
+    rels = _relationships(archive, workbook, budget)
+    sheets, settings = [], {"date1904": False}
+
+    def start(tag, attrs):
+        local = _local(tag)
+        if local == "workbookPr":
+            settings["date1904"] = attrs.get("date1904", "").lower() in ("1", "true")
+        elif local == "sheet":
+            rel = rels.get(_attr(attrs, "id"))
+            if rel and rel[0].endswith("/worksheet") and rel[1] in names:
+                sheets.append({"name": attrs.get("name", ""), "part": rel[1],
+                               "hidden": attrs.get("state", "visible") != "visible"})
+
+    _parse_part(archive, workbook, budget, start=start)
+    if not sheets:
+        raise _bad_workbook("it has no worksheets")
+
+    def part_of(suffix):
+        return next((target for kind, target in rels.values()
+                     if kind.endswith(suffix) and target in names), None)
+
+    strings = _shared_strings(archive, part_of("/sharedStrings"), budget)
+    kinds = _styles(archive, part_of("/styles"), budget)
+    return sheets, strings, kinds, settings["date1904"]
+
+
+def _ref_size(ref):
+    """(rows, columns) a dimension such as A1:F12 declares, or None."""
+    points = re.findall(r"([A-Za-z]{1,3})([0-9]{1,7})", ref or "")
+    if not points or len(points) > 2:
+        return None
+    (c1, r1), (c2, r2) = points[0], points[-1]
+
+    def col(letters):
+        index = 0
+        for letter in letters.upper():
+            index = index * 26 + (ord(letter) - 64)
+        return index
+    return abs(int(r2) - int(r1)) + 1, abs(col(c2) - col(c1)) + 1
+
+
+def _is_number(text):
+    try:
+        return math.isfinite(float(text))
+    except ValueError:
+        return False
+
+
+def _looks_tabular(rows):
+    """A header row of at least two distinct names, not all numbers and
+    not mostly gaps, followed by a row with at least two values. A cover
+    sheet (a title, notes, a logo, merged cells) has no such header."""
+    if len(rows) < 2:
+        return False
+    header = rows[0]
+    filled = [i for i, v in enumerate(header) if v.strip()]
+    names = [header[i].strip().lower() for i in filled]
+    if len(names) < 2 or len(set(names)) < len(names) or all(map(_is_number, names)):
+        return False
+    if 2 * len(names) < filled[-1] - filled[0] + 1:
+        return False
+    return any(sum(1 for v in row if v.strip()) >= 2 for row in rows[1:])
+
+
+def _describe(archive, sheet, budget, strings, kinds, date1904):
+    info = {"name": sheet["name"], "hidden": sheet["hidden"], "rows": None,
+            "columns": None, "tabular": False, "unreadable": False}
+    try:
+        rows, counts = _read_sheet(archive, sheet["part"], budget, strings, kinds,
+                                   date1904, limit=SAMPLE_ROWS)
+    except _BudgetSpent:
+        raise
+    except DatasetError:
+        info["unreadable"] = True
+        return info
+    size = _ref_size(counts["dimension"])
+    if size:
+        info["rows"], info["columns"] = size
+    elif not counts["more"]:
+        info["rows"] = len(rows)
+        info["columns"] = max((len(r) for r in rows), default=0)
+    info["tabular"] = _looks_tabular(rows)
+    return info
+
+
+def default_sheet(details):
+    """The first visible sheet that looks like a table; failing that, the
+    first visible sheet, as before."""
+    visible = [d for d in details if not d["hidden"]] or details
+    return next((d for d in visible if d["tabular"]), visible[0])["name"]
+
+
+def list_sheets(body):
+    """Every sheet of a workbook, described from a sample of its rows:
+    name, hidden, approximate rows and columns, whether it looks like a
+    table, and whether it could not be read at all. No sheet has to parse;
+    the XML budget and the document type refusal apply as when reading."""
+    if len(body) > MAX_UPLOAD_BYTES:
+        raise too_large()
     budget = _Budget()
-    with archive:
-        names = set(archive.namelist())
-        root_rels = _relationships(archive, "", budget) if "_rels/.rels" in names else {}
-        workbook = next((target for kind, target in root_rels.values()
-                         if kind.endswith("/officeDocument")), "xl/workbook.xml")
-        if workbook not in names:
-            raise _bad_workbook("it has no workbook part")
-        rels = _relationships(archive, workbook, budget)
+    with _open_archive(body) as archive:
+        sheets, strings, kinds, date1904 = _workbook(archive, budget)
+        return [_describe(archive, s, budget, strings, kinds, date1904) for s in sheets]
 
-        sheets, settings = [], {"date1904": False}
 
-        def start(tag, attrs):
-            local = _local(tag)
-            if local == "workbookPr":
-                settings["date1904"] = attrs.get("date1904", "").lower() in ("1", "true")
-            elif local == "sheet":
-                rel = rels.get(_attr(attrs, "id"))
-                if rel and rel[0].endswith("/worksheet") and rel[1] in names:
-                    sheets.append({"name": attrs.get("name", ""), "part": rel[1],
-                                   "hidden": attrs.get("state", "visible") != "visible"})
-
-        _parse_part(archive, workbook, budget, start=start)
-        if not sheets:
-            raise _bad_workbook("it has no worksheets")
+def _read_xlsx(body, sheet=None):
+    budget = _Budget()
+    with _open_archive(body) as archive:
+        sheets, strings, kinds, date1904 = _workbook(archive, budget)
+        details = [_describe(archive, s, budget, strings, kinds, date1904) for s in sheets]
         if sheet:
             chosen = next((s for s in sheets if s["name"] == sheet), None) or next(
                 (s for s in sheets if s["name"].lower() == sheet.strip().lower()), None)
@@ -734,16 +855,9 @@ def _read_xlsx(body, sheet=None):
                 raise DatasetError(422, f"The workbook has no sheet called “{sheet}”. Its sheets: {listed}.",
                                    f"لا يحتوي المصنّف على ورقة باسم «{sheet}». أوراقه: {listed}.")
         else:
-            chosen = next((s for s in sheets if not s["hidden"]), sheets[0])
-
-        def part_of(suffix):
-            return next((target for kind, target in rels.values()
-                         if kind.endswith(suffix) and target in names), None)
-
-        strings = _shared_strings(archive, part_of("/sharedStrings"), budget)
-        kinds = _styles(archive, part_of("/styles"), budget)
-        rows, counts = _read_sheet(archive, chosen["part"], budget, strings, kinds,
-                                   settings["date1904"])
+            name = default_sheet(details)
+            chosen = next(s for s in sheets if s["name"] == name)
+        rows, counts = _read_sheet(archive, chosen["part"], budget, strings, kinds, date1904)
 
     warnings = []
     if counts["errors"]:
@@ -755,9 +869,16 @@ def _read_xlsx(body, sheet=None):
             "en": f"{counts['uncached']:,} formulas had no saved result and were left empty; open and save the file in Excel to keep them.",
             "ar": f"تُركت {counts['uncached']:,} صيغة بلا نتيجة محفوظة فارغة؛ افتح الملف في Excel واحفظه للاحتفاظ بها."})
     if len(sheets) > 1 and not sheet:
-        warnings.append({
-            "en": f"Read the sheet “{chosen['name']}”, the first of {len(sheets)}.",
-            "ar": f"قُرئت الورقة «{chosen['name']}»، وهي الأولى من {len(sheets)} أوراق."})
+        first_visible = next((s for s in sheets if not s["hidden"]), sheets[0])
+        if chosen is first_visible:
+            warnings.append({
+                "en": f"Read the sheet “{chosen['name']}”, the first of {len(sheets)}.",
+                "ar": f"قُرئت الورقة «{chosen['name']}»، وهي الأولى من {len(sheets)} أوراق."})
+        else:
+            warnings.append({
+                "en": f"Read the sheet “{chosen['name']}”, the first of {len(sheets)} that looks like a table.",
+                "ar": f"قُرئت الورقة «{chosen['name']}»، وهي أول ورقة من {len(sheets)} تبدو جدولًا."})
     parsed = _table("xlsx", rows, warnings, [s["name"] for s in sheets])
     parsed.selected_sheet = chosen["name"]
+    parsed.sheet_details = details
     return parsed
