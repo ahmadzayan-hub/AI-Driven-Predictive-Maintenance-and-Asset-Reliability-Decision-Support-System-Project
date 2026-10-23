@@ -29,6 +29,9 @@ A run is a reviewer's reply, saved as `runs/<reviewer>-<memo>-<tag>.txt`. The re
 - `ctl-v1`, `ctl-v2`, `ctl-v3`: a general-purpose agent on the reviewer's model, given the v1, v2 or v3 instructions, with everything else the same. This is the controlled comparison, because a subagent's edited instructions only load in a new session.
 - `v1` to `v7`: the checker after each round of fixes (v5 reads percentage points; v6 ignores clock times and longer numbers in coverage; v7 reads counts written in English and Arabic words).
 
+- `ctl-v4`, `ctl-v4-repeat` (figures-auditor, memo F, 2026-10-23): a general-purpose agent given the auditor instructions with the step-6 bullet that leaves a stated failure consequence to check 7. The saved file keeps each FINDING and Category line; the reasoning lines are shortened. Memo F is dev data for that bullet, since its false alarm chose the fix.
+- `named-v3-r1` to `named-v3-r3` (analytics reviewer, memo G): three runs of the subagent as this session loaded it, on the second held-out memo.
+
 Each run is told to put the paragraph id on the FINDING line and add a `Category:` line, and to open only the memo and its register.
 
 ```bash

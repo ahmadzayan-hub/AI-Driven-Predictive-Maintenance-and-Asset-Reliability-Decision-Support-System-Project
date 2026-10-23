@@ -495,6 +495,17 @@ class RecallFixTests(unittest.TestCase):
         # A short feminine form before a definite noun is a fraction: "خمس السكان" is a fifth.
         self.assertEqual(fc.word_figures("يسكن خمس السكان في المدينة، وكل واحد منهم يعمل."), [])
 
+    def test_a_register_in_millions_sources_figures_written_in_millions(self):
+        # Memo G: the register held "Train-km 2025 (million)" as 1.84, and the
+        # memo wrote "1.84 million", which was read as 1,840,000 and reported
+        # unsourced. A label that names its scale is that scale. Fresh text.
+        text = "Spend was 9.6 million dirhams and the fleet ran 2.05 million km."
+        result = self.sourcing(text, {"Spend (million AED)": "9.6", "Fleet km 2025 (million)": "2.05"})
+        self.assertEqual(result["unsourced"], [])
+        # Without a scale in the label, 2.05 is 2.05, and "2.05 million" is not it.
+        result = self.sourcing(text, {"Spend (million AED)": "9.6", "Fleet km 2025": "2.05"})
+        self.assertEqual([u["number"] for u in result["unsourced"]], ["2.05 million"])
+
     def test_one_figure_written_twice_is_not_two_inputs(self):
         # 75.2% and 0.752 are one quantity: their difference must not source 74.1%.
         result = self.sourcing("The preventive ratio was 75.2%, up from 74.1%.", {"Preventive ratio": "0.752"})

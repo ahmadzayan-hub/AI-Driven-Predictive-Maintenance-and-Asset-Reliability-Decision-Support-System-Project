@@ -647,6 +647,11 @@ def implied(token, sentence, previous, pool, register):
     return ("wrong", best) if max(written / best, best / written) <= SLIP_FACTOR else None
 
 
+# A register label that states the scale its value is written in.
+LABEL_SCALE = re.compile(r"\b(thousand|million|billion|bn)s?\b", re.I)
+LABEL_SCALES = {"thousand": 1e3, "million": 1e6, "billion": 1e9, "bn": 1e9}
+
+
 def load_register(path, value_column, label_columns):
     with open(path, encoding="utf-8-sig", newline="") as handle:
         rows = list(csv.DictReader(handle))
@@ -673,6 +678,11 @@ def check(register, docs, references=(), sourcing_only=False):
         pool_text = " ".join(read_text(r) for r in references)
         pool = {(value_of(t), unit_of(t)) for t in numbers_in(pool_text, keep_small=True)}
         pool |= {(value_of(r["value"]), unit_of(r["value"])) for r in register}
+        # "Train-km 2025 (million)" holding 1.84 is 1,840,000: a label that names
+        # its scale is that scale, so "1.84 million" in the text is sourced.
+        pool |= {(value_of(r["value"]) * LABEL_SCALES[m.group(1).lower()], unit_of(r["value"]))
+                 for r in register for m in [LABEL_SCALE.search(r.get("label", ""))]
+                 if m and value_of(r["value"]) is not None}
         pool = {(v, u) for v, u in pool if v is not None}
         for name, text in texts.items():
             doc = Path(name).name

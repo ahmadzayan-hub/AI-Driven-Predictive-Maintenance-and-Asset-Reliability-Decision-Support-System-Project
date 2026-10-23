@@ -99,3 +99,22 @@ counts, Arabic counts) were watched failing on the previous checker.
 `tests/test_agent_team.py`: one test that check 7 names hidden and evident
 failure and that the auditor leaves method to it, watched failing on the
 previous instructions.
+
+## Amendment, same day: measured, and a register in millions
+
+- **The auditor's false alarm is gone in a controlled run.** Two general-purpose
+  runs given the new auditor instructions (`figures-auditor-F-ctl-v4*.txt`)
+  filed nothing on the correct run-to-failure paragraph P15, where both saved
+  runs on the old instructions filed it as an `overclaim`. Memo F chose the
+  fix, so this shows the fix works on its own case, not that it generalises.
+- **Check 7 on the second held-out memo G:** the analytics reviewer found all 9
+  `domain_method` defects in 3 of 3 runs, with no false alarm on G's 11 decoys,
+  one of which is a correct run-to-failure. Those runs used the instructions
+  before this change, because a subagent's edited instructions load only in a
+  new session.
+- **A register that states its scale in the label.** Memo G's register holds
+  "Train-km 2025 (million)" as 1.84; the memo writes "1.84 million", which the
+  checker read as 1,840,000 and reported unsourced on two paragraphs. A label
+  naming thousand, million or billion now sources the value at that scale. A
+  label without a scale is unchanged, which the new test also asserts. G's
+  false alarms went from 2 to 0; memos A to F score the same.
