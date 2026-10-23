@@ -201,6 +201,31 @@ TARGETS = (
 )
 
 
+def _wilson_lower(hits, n, z=1.645):
+    """Lower bound of a one-sided 95% Wilson interval for a hit rate."""
+    if n <= 0:
+        return 0.0
+    p = hits / n
+    denominator = 1 + z * z / n
+    centre = p + z * z / (2 * n)
+    margin = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n))
+    return max(0.0, (centre - margin) / denominator)
+
+
+def _balanced_accuracy_lower_bound(truth, predicted, z=1.645):
+    """A conservative balanced accuracy: the mean of each class's lower
+    Wilson bound on its hit rate. With a few dozen held-out records a point
+    score can sit well above chance on noise alone; the bound cannot
+    (assessment A9)."""
+    classes = sorted(set(truth), key=str)
+    bounds = []
+    for cls in classes:
+        n = sum(1 for t in truth if t == cls)
+        hits = sum(1 for t, p in zip(truth, predicted) if t == cls and p == cls)
+        bounds.append(_wilson_lower(hits, n, z))
+    return sum(bounds) / len(bounds) if bounds else 0.0
+
+
 def _balanced_accuracy(truth, predicted):
     """Average of each class's hit rate, so a common class cannot carry it."""
     per_class = defaultdict(lambda: [0, 0])
@@ -323,6 +348,17 @@ class MaintenanceRisk:
         population_rows = [row for row, _ in pairs]
         labels_by_id = {id(row): label for row, label in pairs}
         train_idx, test_idx, split = modelling._split(population_rows, date)
+        if date and split["kind"] != "time":
+            # Asset history drifts: a random split lets the model see the
+            # future it is scored on and reads as better than it is. With
+            # a date but too few periods for a chronological hold-out there
+            # is no honest score; without any date, the every-fifth split
+            # is the only one and the card declares it (assessment A10).
+            return self._unsupported(
+                ctx, target,
+                f"no chronological hold-out is possible ({split.get('reason')}), "
+                "and a maintenance model scored on a random split of asset "
+                "history reads as better than it is", f"c_{key}")
         train_rows = [population_rows[i] for i in train_idx]
         test_rows = [population_rows[i] for i in test_idx]
         train_labels = [labels_by_id[id(r)] for r in train_rows]
@@ -398,7 +434,11 @@ class MaintenanceRisk:
         # accuracy, so clearing it by 5% can still mean a near coin flip.
         # A model is only called useful when it is also clearly better
         # than chance in absolute terms.
-        above_chance = model_score >= CHANCE + CHANCE_MARGIN
+        # Three tests. The lower confidence bound must also clear chance:
+        # on 50 held-out records a point score of 0.62 can be noise, and a
+        # verdict that recommends intervention must not rest on it (A9).
+        lower_bound = _balanced_accuracy_lower_bound(truth, predicted)
+        above_chance = model_score >= CHANCE + CHANCE_MARGIN and lower_bound > CHANCE
         verdict = "useful" if (beats and above_chance) else "weak"
 
         card = modelling._card(
@@ -408,6 +448,9 @@ class MaintenanceRisk:
             round(improvement, 4), beats,
             {"verdict": verdict, "decision": target.decision,
              "beats_baseline_margin": beats, "clearly_above_chance": above_chance,
+             "balanced_accuracy_lower_bound": round(lower_bound, 4),
+             "held_out_records": len(test_cohort),
+             "held_out_positives": sum(1 for t in truth if t),
              "horizon": target.horizon,
              "positive_rate_held_out": round(
                  sum(1 for t in truth if t) / len(truth), 4),
@@ -438,6 +481,10 @@ class MaintenanceRisk:
                             len(test_cohort),
                             "held-out records with a formed label, scored by "
                             "the model and the baseline alike"),
+            modelling._calc(prefix, f"c_{key}_lower_bound", f"{key}_balanced_accuracy_lower_bound",
+                            round(lower_bound, 4),
+                            "mean over the two classes of the one-sided 95% Wilson "
+                            "lower bound on each class's hit rate"),
         ]
         if verdict == "useful":
             claim = modelling._claim(
@@ -450,7 +497,7 @@ class MaintenanceRisk:
                 f"{baseline_score:.0%} لخط الأساس، بتحسن {improvement:.0%} على "
                 f"{len(test_cohort)} سجلات محجوزة. {target.decision_ar}",
                 [f"c_{key}_model", f"c_{key}_baseline", f"c_{key}_improvement",
-                 f"c_{key}_held_out"])
+                 f"c_{key}_held_out", f"c_{key}_lower_bound"])
         else:
             claim = modelling._claim(
                 ctx, prefix, f"cl_{key}", "limitation",
@@ -461,19 +508,19 @@ class MaintenanceRisk:
                 f"It should not be used to decide."
                 + ("" if beats else " The margin over the baseline is short of 5%.")
                 + ("" if above_chance else
-                   f" It is also within {CHANCE_MARGIN:.0%} of a coin flip in "
-                   f"absolute terms, and a majority-class baseline scores "
-                   f"{CHANCE:.0%} under this metric by construction."),
+                   f" Its lower confidence bound is {lower_bound:.0%}, so it is not "
+                   f"clearly above a coin flip in absolute terms, and a majority-class "
+                   f"baseline scores {CHANCE:.0%} under this metric by construction."),
                 f"{target.question_ar} يبلغ النموذج {model_score:.0%} دقة متوازنة "
                 f"مقابل {baseline_score:.0%} لخط الأساس على {len(test_cohort)} "
                 f"سجلات محجوزة، بتحسن {improvement:.0%}. فلا ينبغي استخدامه في القرار."
                 + ("" if beats else " هامش التحسن على خط الأساس أقل من 5%.")
                 + ("" if above_chance else
-                   f" كما يقع ضمن {CHANCE_MARGIN:.0%} من التخمين العشوائي بالقيمة "
-                   f"المطلقة، ويسجل خط أساس الفئة الأكثر شيوعاً {CHANCE:.0%} "
-                   f"بحكم تعريف هذا المقياس."),
+                   f" وحدّه الأدنى بثقة {lower_bound:.0%}، فليس أعلى بوضوح من التخمين "
+                   f"العشوائي بالقيمة المطلقة، ويسجل خط أساس الفئة الأكثر شيوعاً "
+                   f"{CHANCE:.0%} بحكم تعريف هذا المقياس."),
                 [f"c_{key}_model", f"c_{key}_baseline", f"c_{key}_improvement",
-                 f"c_{key}_held_out"])
+                 f"c_{key}_held_out", f"c_{key}_lower_bound"])
         claims = [claim]
         if defining:
             claims.append(modelling._claim(

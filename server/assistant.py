@@ -35,7 +35,7 @@ from assistant import (ACTIONS, DESTRUCTIVE, PREFERENCE_KEYS, RUN_STATES,
                        SECTION_QUESTIONS, arguments_valid, confirmation_prompt,
                        execute_local, fallback, intent, is_no, is_yes, reply,
                        understand)
-from server import agent_learning, knowledge, model_privacy, quota
+from server import agent_learning, knowledge, model_privacy, quota, deadline
 from server.tools import ToolBox
 
 # Enough passages that the answer is usually among them, few enough that a
@@ -142,6 +142,10 @@ class Assistant:
         # nothing the rules can — one exact action stays one exact action.
         self.runtime = runtime
         self.runtime_name = runtime_name
+        # The runtime's wall-clock limit (G10): AGENTIC_OS_RUNTIME_TIMEOUT,
+        # seconds, default 60.
+        self.runtime_timeout = deadline.seconds_from_env("AGENTIC_OS_RUNTIME_TIMEOUT",
+                                                         deadline.DEFAULT_RUNTIME_SECONDS)
 
     # ------------------------------------------------------------------
     # Entry point
@@ -355,7 +359,18 @@ class Assistant:
                    "ask": self.gateway.ask,
                    "ask_json": getattr(self.gateway, "ask_json", None)}
         try:
-            closing = self.runtime.run(text, tools, context)
+            # A wall-clock limit (assessment G10): a runtime that hangs is
+            # abandoned on its thread and the rules answer instead.
+            closing = deadline.call_with_deadline(
+                self.runtime.run, self.runtime_timeout, text, tools, context)
+        except deadline.Timeout:
+            outcome = self._execute("chat", {}, session, text, source="rules")
+            outcome["why"] = (f"the agent runtime “{self.runtime_name}” did not answer "
+                              f"within {self.runtime_timeout:g} s and was abandoned; "
+                              "the rules answered instead")
+            if tools.steps:
+                outcome["steps"] = tools.steps
+            return outcome
         except Exception as error:
             outcome = self._execute("chat", {}, session, text, source="rules")
             outcome["why"] = (f"the agent runtime “{self.runtime_name}” failed "
