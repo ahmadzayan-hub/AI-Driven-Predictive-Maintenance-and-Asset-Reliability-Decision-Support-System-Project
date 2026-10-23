@@ -39,8 +39,6 @@ import './dashboard.css'
 const READY_STATES = ['awaiting_approval', 'completed', 'partially_completed']
 const PAGE_SIZE = 25
 const SAMPLE = 500
-// The numeric alternative lists this many points and says so (U11).
-const TABLE_ROWS = 100
 
 interface DashboardViewProps {
   runId: string | null
@@ -658,12 +656,9 @@ function RelationshipPage({ runId, roles, state, filters, setState }: PageProps)
           title={t('dash.chart.relationship', { measure: m, other: vs })}
           chart={<Scatter points={points} label={t('dash.alt.relationship', { measure: m, other: vs, n: formatNumber(points.length) })} />}
           table={<GroupTable head={[vs, m]}
-            rows={points.slice(0, TABLE_ROWS).map((p) => ({ label: formatNumber(p.x), cells: [formatNumber(p.y)] }))} />}
+            rows={points.map((p) => ({ label: formatNumber(p.x), cells: [formatNumber(p.y)] }))} />}
         />
       )}
-      {points.length > TABLE_ROWS ? (
-        <p className="field__help">{t('dash.tableRows', { shown: formatNumber(TABLE_ROWS), n: formatNumber(points.length) })}</p>
-      ) : null}
       {sample.data ? (
         <p className="field__help">
           {sample.data.sampled
