@@ -69,6 +69,8 @@ jobs:
 
       - name: Build non-activating worker candidate
         run: |
+          # BuildKit's content cache does not create a locally inspectable tag.
+          docker pull --platform linux/amd64 python:3.11-slim-bookworm
           docker build --platform linux/amd64 -f Dockerfile.worker -t miyaar-worker-candidate .
           docker image inspect python:3.11-slim-bookworm --format '{{json .RepoDigests}}'
 
