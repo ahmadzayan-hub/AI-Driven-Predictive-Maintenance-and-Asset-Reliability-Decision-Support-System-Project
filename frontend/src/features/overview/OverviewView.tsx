@@ -1,5 +1,7 @@
 import '../../shared/styles/kpi.css'
 import './overview.css'
+import { NextAction, journeyMessages } from './NextAction'
+import { usePack } from '../../i18n/pack'
 import { useEffect, useState } from 'react'
 import { useI18n } from '../../i18n'
 import { api, ApiError } from '../../shared/api'
@@ -33,6 +35,8 @@ interface OverviewViewProps {
  *  that the server did not already say. */
 export function OverviewView({ onOpenRun, onStart, onAddDataset, onApprovals, onOpenDashboard, onSeeAll, canStart = true }: OverviewViewProps) {
   const { t, tx, locale, formatNumber, formatDate } = useI18n()
+  const { t: j } = usePack(journeyMessages)
+  const next = (items: RunSummary[]) => <NextAction runs={items} canStart={canStart} onUpload={() => onAddDataset ? onAddDataset() : onStart({ kind: 'upload' })} onOpenRun={onOpenRun} />
   const [runs, setRuns] = useState<RunSummary[] | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
   const [usage, setUsage] = useState<Usage | null>(null)
@@ -157,7 +161,7 @@ export function OverviewView({ onOpenRun, onStart, onAddDataset, onApprovals, on
       <section className="panel" aria-label={t('overview.aria')}>
         <div className="panel__inner panel__inner--wide">
           {header}
-          {actions}
+          {next(runs)}
           <div className="card empty">
             <img className="overview__onboarding-art" src="/artwork/asset-reliability-hero.svg" alt="" width={800} height={206} loading="lazy" />
             <div className="empty__icon">
@@ -240,23 +244,33 @@ export function OverviewView({ onOpenRun, onStart, onAddDataset, onApprovals, on
     <section className="panel" aria-label={t('overview.aria')}>
       <div className="panel__inner panel__inner--wide">
         {header}
+        {next(runs)}
 
         {source ? <CommandCentre run={source} brief={brief} failed={briefFailed} onOpenDashboard={onOpenDashboard} /> : null}
 
         {/* Counts are counts: a status reads only where a target exists. */}
+        <details className="overview__disclosure">
+          <summary>{j('counts')}</summary>
         <dl className="kpis">
           {tiles.map((tile) => (
             <div key={tile.key} data-hue={tile.hue} className={`kpi ${tile.attention ? 'kpi--attention' : ''}`}>
               <dt className="kpi__label">{tile.label}</dt>
               <dd className="kpi__value"><bdi>{tile.value === undefined ? '—' : formatNumber(tile.value)}</bdi></dd>
               {tile.sub ? <dd className="kpi__sub">{tile.sub}</dd> : null}
+              <dd className="kpi__sub"><details><summary>{j('basis')}</summary><p>{j('countBasis', { source: tile.key === 'finished' || tile.key === 'waiting' ? '/api/runs' : '/api/usage' })}</p></details></dd>
+              <dd>{tile.key === 'waiting' && onApprovals ? <button type="button" className="evidence-link" onClick={onApprovals}>{t('overview.review')}</button>
+                : tile.key === 'datasets' && onAddDataset ? <button type="button" className="evidence-link" onClick={onAddDataset}>{t('nav.datasets')}</button>
+                  : onSeeAll ? <button type="button" className="evidence-link" onClick={onSeeAll}>{t('nav.runs')}</button> : null}</dd>
             </div>
           ))}
         </dl>
+        </details>
         {counts.capped ? (
           <p className="panel__note">{t('overview.capped', { n: formatNumber(RUN_PAGE) })}</p>
         ) : null}
 
+        <details className="overview__disclosure">
+        <summary>{j('evidence')}</summary>
         <section className="card overview__evidence" aria-label={t('overview.evidenceHeading')}>
           <div className="overview__evidence-head">
             <Icon name="shield" size={22} />
@@ -317,8 +331,9 @@ export function OverviewView({ onOpenRun, onStart, onAddDataset, onApprovals, on
             </>
           ) : null}
         </section>
+        </details>
 
-        {actions}
+        <details className="overview__disclosure"><summary>{j('tools')}</summary>{actions}</details>
         <div className="overview__grid">
           <div className="card">
             <h3 className="card__title">{t('overview.findings')}</h3>

@@ -9,13 +9,13 @@ const performanceTones: PerformanceTone[] = ['bad', 'okay', 'good', 'unassessed'
 
 export function PerformanceLegend() {
   const { t } = usePack(performanceMessages)
-  return <aside className="performance-legend" aria-label={t('performance.legend')}>
-    <strong className="performance-legend__title">{t('performance.legend')}</strong>
+  return <details className="performance-legend">
+    <summary className="performance-legend__title">{t('performance.legend')}</summary>
     <ul>{performanceTones.map((tone) => <li key={tone} data-tone={tone}>
       <span className="performance-value__status">{t(`performance.${tone}`)}</span>
     </li>)}</ul>
     <p>{t('performance.explanation')}</p>
-  </aside>
+  </details>
 }
 
 /** Only a supplied assessment establishes performance. Sign, magnitude and

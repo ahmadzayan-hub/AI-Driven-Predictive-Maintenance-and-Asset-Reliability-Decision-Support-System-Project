@@ -86,6 +86,7 @@ describe('OverviewView', () => {
       '/api/runs/r2': detail, '/api/usage': USAGE })
     vi.spyOn(api, 'motionStoryboard').mockRejectedValue(new Error('Synthetic refusal'))
     render(<OverviewView onOpenRun={vi.fn()} onStart={vi.fn()} />)
+    await user.click(await screen.findByText('Analysis checks and optional exports'))
     await user.click(await screen.findByRole('button', { name: language === 'ar' ? 'مسودة فيديو تحليلي' : 'Motion draft' }))
     const message = language === 'ar' ? 'تعذّر إنشاء مسودة الفيديو: راجع حالة الأدلة وصلاحياتك.'
       : 'Motion draft could not be prepared. Check the evidence status and your permissions.'
@@ -178,6 +179,7 @@ describe('OverviewView', () => {
       '/api/runs/observed': DETAIL,
     })
     render(<OverviewView onOpenRun={onOpenRun} onStart={vi.fn()} onOpenDashboard={vi.fn()} />)
+    await user.click(await screen.findByText('Other workflows'))
     await user.click(await screen.findByRole('button', { name: /Inspect agent workflow/ }))
     // Prefer a queued/running workflow; otherwise the most recent recorded run.
     expect(onOpenRun).toHaveBeenCalledWith(state === 'running' ? 'observed' : 'new')

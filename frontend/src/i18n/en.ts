@@ -7,6 +7,10 @@
  *  — the server localises its own replies from the session's language
  *  preference (agent.py). */
 export const en = {
+  'nav.homeShort': 'Home',
+  'nav.dataShort': 'Data',
+  'nav.reviewShort': 'Review',
+
   "assistant.name": "Miyaar",
   "assistant.tagline": "The intelligent assistant for asset reliability",
   "miyaar.eyebrow": "YOUR ASSET RELIABILITY WORKSPACE",
@@ -475,7 +479,7 @@ export const en = {
   'overview.start': 'Start an analysis',
   'overview.loading': 'Loading the overview',
   'overview.failed': 'The overview could not be loaded.',
-  'overview.finished': 'Analyses complete',
+  'overview.finished': 'Closed analyses (full or partial)',
   'overview.waitingTile': 'Waiting for approval',
   'overview.ofLimit': 'of {limit}',
   'overview.inProgress': '{n} in progress',

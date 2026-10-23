@@ -23,6 +23,7 @@ import { memoryMessages } from '../features/memory/messages'
 import { prefsMessages } from '../features/preferences/messages'
 import { activityMessages } from '../features/activity/messages'
 import { voiceMessages } from '../features/chat/voiceMessages'
+import { journeyMessages } from '../features/overview/NextAction'
 import { commandMessages } from '../features/overview/commandMessages'
 import { decisionActionMessages } from '../features/overview/DecisionActions'
 import { collaborationMessages } from '../features/runs/collaborationMessages'
@@ -195,7 +196,7 @@ describe('useI18n', () => {
 // left in English, and no key that the main dictionary also defines.
 describe('message packs', () => {
   // Every pack the views define (assessment U18); a new pack is added here.
-  const packs = { dashMessages, executiveMessages, joinMessages, modelMessages, decisionMessages, liveMessages, maintenanceMessages, intakeMessages, assetMessages, memoryMessages, prefsMessages, activityMessages, voiceMessages, commandMessages, decisionActionMessages, collaborationMessages, performanceMessages, validationMessages, operationsMessages, policyMessages, rmdMessages }
+  const packs = { journeyMessages, dashMessages, executiveMessages, joinMessages, modelMessages, decisionMessages, liveMessages, maintenanceMessages, intakeMessages, assetMessages, memoryMessages, prefsMessages, activityMessages, voiceMessages, commandMessages, decisionActionMessages, collaborationMessages, performanceMessages, validationMessages, operationsMessages, policyMessages, rmdMessages }
   const names = (text: string) => (text.match(/\{\w+\}/g) ?? []).sort()
 
   for (const [name, pack] of Object.entries(packs)) {

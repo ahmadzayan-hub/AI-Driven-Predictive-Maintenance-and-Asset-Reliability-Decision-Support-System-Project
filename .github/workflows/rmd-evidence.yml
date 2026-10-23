@@ -58,6 +58,9 @@ jobs:
       - name: Install browser
         run: npx playwright install --with-deps chromium
         working-directory: frontend
+      - name: Task-first Miyaar responsive and accessibility evidence
+        run: npx playwright test task-first.spec.ts --project=desktop
+        working-directory: frontend
       - name: Evidence journey, Arabic phone and accessibility
         run: npx playwright test rmd.spec.ts platform.spec.ts --max-failures=1
         working-directory: frontend
@@ -76,6 +79,7 @@ jobs:
           name: rmd-synthetic-checks
           path: |
             frontend/dist
+            docs/screenshots/miyaar-task-first-synthetic-*.png
             frontend/test-results
             frontend/playwright-report
           retention-days: 7

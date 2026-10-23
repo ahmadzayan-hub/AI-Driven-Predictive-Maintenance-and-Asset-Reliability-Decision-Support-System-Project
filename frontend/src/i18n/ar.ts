@@ -9,6 +9,9 @@
 import type { MessageKey, PluralForms, PluralKey } from './en'
 
 export const ar: Record<MessageKey, string> = {
+  'nav.homeShort': 'الرئيسية',
+  'nav.dataShort': 'البيانات',
+  'nav.reviewShort': 'المراجعة',
   "assistant.name": "معيار",
   "assistant.tagline": "المساعد الذكي لموثوقية الأصول",
   "miyaar.eyebrow": "مساحتك لاتخاذ قرارات موثوقية الأصول",
@@ -457,7 +460,7 @@ export const ar: Record<MessageKey, string> = {
   'overview.start': 'ابدأ تحليلًا',
   'overview.loading': 'جارٍ تحميل النظرة العامة',
   'overview.failed': 'تعذّر تحميل النظرة العامة.',
-  'overview.finished': 'تحليلات مكتملة',
+  'overview.finished': 'تحليلات منتهية كليًا أو جزئيًا',
   'overview.waitingTile': 'بانتظار الموافقة',
   'overview.ofLimit': 'من أصل {limit}',
   'overview.inProgress': 'قيد التنفيذ: {n}',
