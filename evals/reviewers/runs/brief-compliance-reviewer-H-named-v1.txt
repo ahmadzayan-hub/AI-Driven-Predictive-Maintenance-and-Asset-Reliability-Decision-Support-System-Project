@@ -1,0 +1,54 @@
+FINDING F1 · major · P04
+Category: missing_element
+Evidence: "The record count and the exact period are described in the appendix." Requirement 7 says the Scope and data section states the period covered and the record count. The section states neither. The appendix (P20) has them: 1 January to 31 December, 1,284 work orders.
+Fix: Replace the sentence with "Period: 1 January to 31 December. Records: 1,284 work orders." Add the year if it is known.
+
+FINDING F2 · major · P09
+Category: missing_evidence
+Evidence: "The average first-time-fix rate across the four crews was 83.5%..." This paragraph has no [R<n>] citation (requirement 3). The 83.5% figure is not in Appendix A (requirement 4). The register has no row R6 in the Findings, and P20 holds no first-time-fix row.
+Fix: Add a register row for first-time-fix with the per-crew counts, and cite it. Otherwise delete the sentence.
+
+FINDING F3 · major · P09
+Category: method
+Evidence: "...the mean of each crew's rate." Requirement 12 says figures are percentages or counts, never averages of rates.
+Fix: Report a pooled rate: total first-time fixes divided by total jobs across the four crews. Give the counts.
+
+FINDING F4 · minor · P17
+Category: missing_evidence
+Evidence: "Audit the stores for the twelve parts behind the stock-outs." The figure "twelve" is not in Appendix A (requirement 4). P12's "three-day withdrawal" is also not in the register.
+Fix: Add register rows for the twelve parts and the three-day withdrawal, or remove the figures.
+
+FINDING F5 · major · P17
+Category: missing_element
+Evidence: The stores-audit recommendation names no owner and no date (requirement 5). It cites the objective of 97.0% availability but has no owner or date.
+Fix: Add "Owner: <role>. Date: <date>." The owner and date must come from the authors.
+
+FINDING F6 · major · P16
+Category: standards_gap
+Evidence: "Review the brake pad change interval against the summer duty cycle. Owner: rolling stock engineer. Date: before the summer timetable." It names no organisational objective (requirement 8, ISO 55001 Cl. 6.2.1 line of sight). The date is relative, not a calendar date.
+Fix: Add "Serves the objective of <named objective>." For example, 97.0% fleet availability, if that is the intended link. Give a calendar date.
+
+FINDING F7 · major · P13
+Category: missing_element
+Evidence: "The brake pad interval may be too long for the summer timetable." Requirement 6 says each risk states a likelihood (low, medium or high) and an impact. This risk states neither.
+Fix: Append "likelihood: <low|medium|high>, impact: <statement>".
+
+FINDING F8 · major · P18
+Category: standards_gap
+Evidence: "The maintenance spend for the year was AED 4.9 million, of which overhaul was AED 1.2 million [R8]." Requirement 10 says the text must say whether overhaul is capitalised or expensed (IAS 16 para 12). It does not. The paragraph also sits under Recommendations, though it is a finding.
+Fix: Add a sentence such as "Overhaul is [capitalised as a component | expensed as servicing]; the two are not added together." Move the paragraph to Findings. The accounting treatment must come from the owner (finance).
+
+FINDING F9 · major · P20
+Category: missing_element
+Evidence: Requirement 9 says the deliverable states what it does not know and how it would find out. No paragraph does this. For example, nothing covers the data quality of the export or the TC-07 failure likelihood.
+Fix: Add a short "Limits of this review" statement. It should say what is unknown and how it would be found out (for example, an export reconciliation or a condition-monitoring trial result). Place it in Scope and data or in the appendix.
+
+FINDING F10 · minor · P01
+Category: missing_element
+Evidence: The title line is "# Depot reliability review (synthetic benchmark H)". Requirement 11 requires the title line `# Depot reliability review`.
+Fix: Change the title line to "# Depot reliability review".
+
+Tally: 2 met / 7 partly met / 3 not met, out of 12.
+- Met: requirements 1 and 2.
+- Partly met: 3, 4, 5, 6, 7, 8 and 11.
+- Not met: 9, 10 and 12.

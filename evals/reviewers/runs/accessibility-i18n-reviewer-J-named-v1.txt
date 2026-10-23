@@ -1,0 +1,41 @@
+FINDING F1 · major · P02
+Category: alt_text
+Evidence: "`AssetTable.tsx` adds a trend sparkline per row: `<img src={sparkline} />` with no `alt` attribute and no text alternative."
+Fix: Add an alt that states the trend in a sentence, for example `alt={`Trend: ${trendSummary}`}`, or add `alt=""` only if the same trend is already written as text in the adjacent cell.
+
+FINDING F2 · blocker · P04
+Category: translation_parity
+Evidence: "`en.ts` adds `assets.export.pdf: "Export PDF"`; `ar.ts` has no `assets.export.pdf` key, and the parity test was marked `.skip` \"until the Arabic is confirmed\"."
+Fix: Add `assets.export.pdf` to `ar.ts` with a provisional Arabic string, and un-skip the parity test so it runs. Confirm the wording later with a reviewer.
+
+FINDING F3 · blocker · P06
+Category: keyboard
+Evidence: "`FilterDrawer.tsx` adds `onKeyDown={(e) => { if (e.key === \"Tab\") e.preventDefault(); }}` on the drawer root so focus \"stays on the filters\", with no other way to leave than the mouse."
+Fix: Remove that handler. Keep the focus trap from P05 (cycle Tab and Shift+Tab between the first and last focusable elements inside the drawer), and keep Escape closing the drawer so keyboard users can always leave.
+
+FINDING F4 · major · P08
+Category: target_size
+Evidence: "`AssetTable.css` sets the column sort toggles to `height: 18px; width: 18px` with no padding."
+Fix: Set the toggles to at least `min-width: 24px; min-height: 24px`, with padding if the icon is smaller, or document a spacing exception that places 24px-diameter circles clear of neighbouring targets.
+
+FINDING F5 · major · P10
+Category: rtl_order
+Evidence: "`KpiTile.tsx` renders the Arabic percentage as `<span dir="ltr">{value}%</span>` inside the right-to-left tile, which the screenshot shows reading as `%45` with the sign on the wrong side."
+Fix: Keep the number and sign in one isolated LTR run, for example `<bdi dir="ltr">{`${value}%`}</bdi>` with a plain numeric `value` (no RTL marks). Check the screenshot shows `45%`.
+
+FINDING F6 · major · P12
+Category: overflow
+Evidence: "`FilterDrawer.css` sets the drawer to `width: 400px` with no maximum, and the end-to-end run at 320 px shows the page scrolling sideways by 80 px."
+Fix: Change the width to `width: min(400px, 100%)` (or add `max-width: 100%`) so the drawer fits a 320 px viewport, then rerun the 320 px end-to-end check.
+
+FINDING F7 · blocker · P14
+Category: translation_parity
+Evidence: "`AssetTable.tsx` adds a \"Reset filters\" button whose label is the untranslated English string `\"Reset filters\"` in both languages."
+Fix: Move the label into `en.ts` and `ar.ts` as a key (for example `assets.filter.reset`) with an Arabic translation, and render that key in the button.
+
+FINDING F8 · major · P16
+Category: contrast
+Evidence: "`AssetTable.css` sets the muted status text to `#9a9a9a` on white, a contrast of 2.7:1, for the \"last seen\" column."
+Fix: Use a text colour with at least 4.5:1 contrast on the row background (for example a grey around `#767676` on white, which is about 4.5:1), and confirm it with a contrast measurement.
+
+Checks run: read evals/reviewers/J/memo.md only; reviewed each hunk P01 to P16 against WCAG 2.2 AA (1.1.1, 1.4.3, 1.4.10, 1.4.11, 2.1.2, 2.5.8, 3.1 parity, focus visibility) and the English-Arabic parity and RTL rules; no npm, scripts, or git were run.

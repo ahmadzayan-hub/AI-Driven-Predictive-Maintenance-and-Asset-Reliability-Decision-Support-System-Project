@@ -123,7 +123,15 @@ def score(bench, text, categories=None):
 # What each reviewer is responsible for. The team is scored on every category.
 LANES = {"figures-tool": ["unsourced_figure", "arithmetic"],
          "figures-auditor": ["unsourced_figure", "arithmetic"],
-         "analytics-expert-reviewer": ["causal_claim", "denominator", "overclaim", "domain_method"]}
+         "analytics-expert-reviewer": ["causal_claim", "denominator", "overclaim", "domain_method"],
+         # The three reviewers benchmarked on 23 October (assessment G9):
+         # each has its own memo whose categories are its whole lane.
+         "brief-compliance-reviewer": ["missing_evidence", "length_or_order", "missing_element",
+                                       "standards_gap", "method"],
+         "security-privacy-reviewer": ["secret", "personal_data", "raw_data_to_model",
+                                       "unsafe_input", "soul_rule"],
+         "accessibility-i18n-reviewer": ["alt_text", "translation_parity", "keyboard", "target_size",
+                                         "rtl_order", "overflow", "contrast"]}
 RUN = re.compile(r"^(?P<agent>%s)-(?P<bench>[A-Z])-(?P<tag>[\w-]+)\.txt$" % "|".join(LANES))
 REVIEWERS = Path(__file__).resolve().parent.parent / "evals" / "reviewers"
 

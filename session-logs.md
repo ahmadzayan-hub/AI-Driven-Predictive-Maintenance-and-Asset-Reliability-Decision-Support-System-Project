@@ -1508,3 +1508,13 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** `tests/test_p2_slice_four.py` 17 of 17 with PostgreSQL; the store, run-engine and concurrency suites with the pool; quick verify with PostgreSQL (counts in README.md#testing).
 - **Decided:** validation runs on the normalised intent so older model contracts hold; Anthropic is asked in text; findings are quoted, not numbered, in built-in text so it stays grounded; every statement outside a transaction returns its connection, which is what makes the bound honest.
 - **Open / next:** PR #24 to merge when green; G9 reviewer benchmarks; the interface items; the standards lint blind score.
+
+## 2026-10-23 · `d9e3f889` · claude/tender-clarke-m4uwgq (P2 slice five)
+
+**Goal:** benchmarks and floors for the three reviewers that had none (G9).
+
+- **Done:** memos H (a depot review against a written brief), I (a change packet for a public repository) and J (an interface change packet), each with planted defects, decoys and a `why` per defect, labelled before any run; lanes for the three reviewers in `scripts/score_review.py`; each reviewer run once as the loaded subagent and its reply saved verbatim; floors recorded as measured; tests for the labels and the floors. [Decision](docs/adr/2026-10-23-p2-slice-five-reviewer-benchmarks.md); reviewer README, assessment row, roadmap updated.
+- **Measured:** brief reviewer 75% lane recall, 75% / 75% detection, 2 false alarms (one is the benchmark tag in the title, a fair reading kept as recorded; the other a placement of the uncertainty statement on P20 against the label's P19); security reviewer 100%, 1 false alarm (a block written while saying no finding was needed); accessibility reviewer 100%, none.
+- **Decided:** labels are never changed after a run; the title-tag false alarm stays on the record rather than being relabelled.
+- **Open / next:** PR #24 CI, then merge; the interface items (U10, U11, U14, U15, U16, U18, U19); the model half of G8; the standards lint blind score.
+

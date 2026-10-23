@@ -623,6 +623,15 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### P2 slice five: benchmarks and floors for the three unmeasured reviewers — 23 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-23-p2-slice-five-reviewer-benchmarks.md)):
+blind memos H, I and J with first-run floors for the brief-compliance (75%
+lane recall, 2 false alarms), security-privacy (100%, 1) and
+accessibility-i18n (100%, 0) reviewers (G9); `tests/test_evals.py` holds the
+labels and the saved runs to those floors. `python -m unittest
+tests.test_evals tests.test_docs`: 62 of 62.
+
 ### P2 slice four: screened inputs, probabilities with a Brier score, bounded pool, server-checked structured answers, agreement by finding, two actions measured — 23 October 2026
 
 Behaviour change ([decision](docs/adr/2026-10-23-p2-slice-four.md)): the
