@@ -24,8 +24,8 @@ isolation.
    Alternatively paste CSV or choose an already stored dataset.
 2. **Choose the workbook sheet**, if more than one is available after upload.
    The sheet picker sends the selected sheet to the server. Each sheet is a
-   separate dataset. If a cover sheet cannot parse, move the data sheet first
-   in the workbook or export that sheet as CSV and upload again.
+   separate dataset. A cover sheet is skipped: the first sheet that looks
+   like a table is read, and the picker marks the others "not a table".
 3. **Review column roles before analysis.** Check measures, dimensions and
    dates, then save the mapping. Select the main measure and grouping that
    answer your question. Text identifiers are dimensions, not amounts to sum.

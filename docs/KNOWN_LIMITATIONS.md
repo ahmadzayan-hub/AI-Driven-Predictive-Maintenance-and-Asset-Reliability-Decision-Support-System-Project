@@ -303,9 +303,10 @@ required local files. Both behaviors are covered by tests
     storage. Not read: old `.xls` workbooks, OpenDocument, Parquet, CSV
     in any encoding but UTF-8 or UTF-16, and database connectors. A
     workbook gives one sheet per upload. After a successful upload, the
-    interface lets you choose another sheet (ADR 0038). If the first visible
-    sheet is a non-tabular cover, move the data sheet first, export it as CSV,
-    or name it explicitly through the API. A formula with no saved result
+    interface lets you choose another sheet (ADR 0038). A cover sheet is
+    skipped for the first sheet that looks like a table, judged from a
+    sample of each sheet's first rows; a table whose header sits below a
+    title row is not detected (2026-10-23 workbook sheet discovery). A formula with no saved result
     arrives empty, with a warning. Analysis is in-memory (no
     DuckDB/Polars), so larger-than-memory datasets are out of scope, and
     a dataset cannot yet be deleted from the interface.

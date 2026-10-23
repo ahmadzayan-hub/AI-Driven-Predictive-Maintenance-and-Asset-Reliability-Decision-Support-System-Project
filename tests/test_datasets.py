@@ -40,6 +40,27 @@ def table(parsed):
     return [parsed.columns] + parsed.rows
 
 
+# A synthetic cover sheet as people make them: a title merged across the
+# page, a blank row, notes and a drawing for the logo. No header row.
+COVER = (
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+    '<dimension ref="A1:F12"/><sheetData>'
+    '<row r="1"><c r="A1" t="inlineStr"><is><t>Synthetic plant report</t></is></c></row>'
+    '<row r="3"><c r="A3" t="inlineStr"><is><t>Prepared for testing only</t></is></c></row>'
+    '<row r="4"><c r="A4" t="inlineStr"><is><t>Notes: none of this is real</t></is></c></row>'
+    '</sheetData><mergeCells count="1"><mergeCell ref="A1:F1"/></mergeCells>'
+    '<drawing r:id="rId1"/></worksheet>')
+
+
+def cover_book(cover=COVER):
+    """Cover first, then a table, then a hidden lookup table."""
+    return build_xlsx([("Cover", []),
+                       ("Plant data", [["plant", "cost"], ["North", 320], ["South", 180]]),
+                       ("Lookup", [["code", "label"], ["N", "North"]])],
+                      sheet_xml={0: cover}, hidden=("Lookup",))
+
+
 class FormatDetectionTests(unittest.TestCase):
 
     def test_the_extension_decides_first(self):
@@ -257,6 +278,64 @@ class XlsxTests(unittest.TestCase):
             read(body, "multi.xlsx", sheet="Budget")
         self.assertIn("Its sheets: Hidden, Sales, Costs", caught.exception.en)
 
+    def test_sheets_are_listed_without_any_of_them_parsing(self):
+        title_only = ('<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+                      '<sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>Title</t></is></c>'
+                      '</row></sheetData></worksheet>')
+        body = cover_book(title_only)
+        with self.assertRaises(DatasetError):
+            read(body, "cover.xlsx", sheet="Cover")
+        listed = datasets.list_sheets(body)
+        self.assertEqual([s["name"] for s in listed], ["Cover", "Plant data", "Lookup"])
+        self.assertEqual([s["hidden"] for s in listed], [False, False, True])
+        self.assertEqual([s["tabular"] for s in listed], [False, True, True])
+        self.assertEqual((listed[1]["rows"], listed[1]["columns"]), (3, 2))
+        self.assertEqual(datasets.default_sheet(listed), "Plant data")
+
+    def test_the_declared_dimension_gives_the_approximate_size(self):
+        listed = datasets.list_sheets(cover_book())
+        self.assertEqual((listed[0]["rows"], listed[0]["columns"]), (12, 6))
+        self.assertFalse(listed[0]["tabular"])
+
+    def test_a_cover_sheet_first_defaults_to_the_first_sheet_that_looks_like_a_table(self):
+        parsed = read(cover_book(), "cover.xlsx")
+        self.assertEqual(parsed.selected_sheet, "Plant data")
+        self.assertEqual(parsed.columns, ["plant", "cost"])
+        self.assertEqual(parsed.sheets, ["Cover", "Plant data", "Lookup"])
+        self.assertEqual([s["tabular"] for s in parsed.sheet_details], [False, True, True])
+        self.assertIn("Read the sheet “Plant data”, the first of 3 that looks like a table.",
+                      parsed.warning_texts())
+        self.assertIn("«Plant data»", parsed.warning_texts("ar")[-1])
+
+    def test_a_sheet_too_wide_to_read_is_listed_not_fatal(self):
+        wide = ('<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+                '<sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>Logo</t></is></c>'
+                '<c r="XFD1" t="inlineStr"><is><t>edge</t></is></c></row></sheetData></worksheet>')
+        body = cover_book(wide)
+        listed = datasets.list_sheets(body)
+        self.assertFalse(listed[0]["tabular"])
+        self.assertTrue(listed[0]["unreadable"])
+        self.assertEqual(read(body, "wide.xlsx").selected_sheet, "Plant data")
+
+    def test_a_workbook_with_no_table_keeps_the_first_visible_sheet(self):
+        body = build_xlsx([("Hidden", [["h"], [1]]), ("Sales", [["s"], [2]])], hidden=("Hidden",))
+        self.assertEqual(datasets.default_sheet(datasets.list_sheets(body)), "Sales")
+
+    def test_discovery_keeps_the_budget_and_the_doctype_refusal(self):
+        rows = [["n", "m"]] + [[i, i] for i in range(2000)]
+        body = build_xlsx([("S", rows)])
+        with mock.patch.object(datasets, "MAX_XML_BYTES", 2_000):
+            with self.assertRaises(DatasetError) as caught:
+                datasets.list_sheets(body)
+        self.assertIn("expand to more than", caught.exception.en)
+        laughs = ('<?xml version="1.0"?><!DOCTYPE lolz [<!ENTITY lol "lol">]>'
+                  '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+                  '<sheetData/></worksheet>')
+        listed = datasets.list_sheets(build_xlsx([("S", [])], sheet_xml={0: laughs}))
+        self.assertTrue(listed[0]["unreadable"])
+        with self.assertRaises(DatasetError):
+            datasets.list_sheets(b"PK\x03\x04 not a zip")
+
     def test_strict_ooxml_namespaces_read_the_same(self):
         body = build_xlsx([("S", [["a"], [1]])], ns=STRICT_MAIN)
         self.assertEqual(table(read(body, "strict.xlsx")), [["a"], ["1"]])
@@ -431,6 +510,25 @@ class DatasetApiTestCase(unittest.TestCase):
         self.assertFalse(again.json()["created"])
         self.assertEqual(again.json()["dataset"]["id"], first.json()["dataset"]["id"])
         self.assertEqual(len(self.client.get("/api/datasets").json()["datasets"]), 1)
+
+    def test_a_cover_sheet_first_uploads_the_first_table_and_lists_every_sheet(self):
+        body, headers = cover_book(), getattr(self, "headers", {})
+        listing = self.client.post("/api/datasets/sheets?name=cover.xlsx", content=body,
+                                   headers=headers)
+        self.assertEqual(listing.status_code, 200, listing.text)
+        self.assertEqual(listing.json()["default_sheet"], "Plant data")
+        self.assertEqual([s["tabular"] for s in listing.json()["sheets"]], [False, True, True])
+        self.assertEqual(self.client.get("/api/datasets", headers=headers).json()["datasets"], [])
+        response = self.upload(body, "cover.xlsx")
+        self.assertEqual(response.status_code, 201, response.text)
+        payload = response.json()
+        self.assertEqual(payload["selected_sheet"], "Plant data")
+        self.assertEqual(payload["sheets"], ["Cover", "Plant data", "Lookup"])
+        self.assertEqual(payload["sheet_details"][0]["name"], "Cover")
+        self.assertFalse(payload["sheet_details"][0]["tabular"])
+        csv_listing = self.client.post("/api/datasets/sheets?name=a.csv", content=b"a,b\n1,2\n",
+                                       headers=headers)
+        self.assertEqual(csv_listing.json(), {"sheets": [], "default_sheet": None})
 
     def test_named_sheet_reports_its_identity_and_runs_its_own_rows(self):
         body = build_xlsx([("Cover", [["note"], ["Synthetic fixture"]]),

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { RunsView } from '../features/runs/RunsView'
@@ -10,6 +10,10 @@ const upload: UploadResult = {
   dataset: { id: 'equipment1', name: 'equipment.xlsx', sha256: 'fixture-hash', byte_size: 80, created_at: '2026-10-17', row_count: 2, column_count: 2, source_format: 'xlsx' },
   columns: ['plant', 'cost'], preview: [['North', '320'], ['South', '180']],
   created: true, warnings: [], sheets: ['Equipment', 'Costs'], selected_sheet: 'Equipment',
+  sheet_details: [
+    { name: 'Equipment', hidden: false, rows: 3, columns: 2, tabular: true, unreadable: false },
+    { name: 'Costs', hidden: false, rows: null, columns: null, tabular: false, unreadable: false },
+  ],
 }
 
 beforeEach(() => {
@@ -122,7 +126,10 @@ describe('real data intake', () => {
     render(<RunsView preset={{ kind: 'upload' }} />)
     const file = new File(['synthetic workbook'], 'equipment.xlsx')
     await user.upload(screen.getByLabelText('Choose a file'), file)
-    await user.selectOptions(await screen.findByRole('combobox', { name: 'Workbook sheet' }), 'Costs')
+    const picker = await screen.findByRole('combobox', { name: 'Workbook sheet' })
+    expect(within(picker).getByRole('option', { name: 'Equipment · 3×2' })).toBeInTheDocument()
+    expect(within(picker).getByRole('option', { name: 'Costs · not a table' })).toBeInTheDocument()
+    await user.selectOptions(picker, 'Costs')
     expect(uploader).toHaveBeenLastCalledWith(file, 'en', 'Costs')
     expect(await screen.findByText('Sheet has no data')).toBeVisible()
     expect(screen.getByRole('button', { name: 'Start run' })).toBeDisabled()
