@@ -776,11 +776,23 @@ def create_app(config_path=None, env=None, dist_dir=None):
     # Health and sessions
     # ------------------------------------------------------------------
     @app.get("/api/health")
-    def health():
-        return {
+    def health(request: Request):
+        """Liveness for anyone; the operator's detail (model names, the
+        role map, problems, execution, the call ledger) for a signed-in
+        reader only (assessment B18). Local mode signs everyone in."""
+        liveness = {
             "status": "ok",
             "agent_name": config.get("agent_name", "Agentic OS"),
             "version": str(config.get("version", "1.0.0")),
+        }
+        try:
+            principal = identity.authenticate(request.headers.get("authorization"))
+        except AuthError:
+            return {**liveness, "detail": "sign in to read the operator detail"}
+        if not principal.can("read"):
+            return {**liveness, "detail": "sign in to read the operator detail"}
+        return {
+            **liveness,
             "model_provider": gateway.status(),
             "model_roles": model_roles.status(),
             "model_map": model_roles.model_map(),
@@ -790,6 +802,8 @@ def create_app(config_path=None, env=None, dist_dir=None):
             "stage_problems": app.state.stage_problems,
             "agent_runtime": app.state.runtime_name,
             "runtime_problem": app.state.runtime_problem,
+            # Why an orchestration note was missing, newest last (G12).
+            "orchestration_problems": list(engine.orchestration_problems),
             "execution": worker_status(store, engine.execution_mode),
             # Model calls this process has made: totals per provider,
             # never prompts or replies (finding G4).
@@ -1013,6 +1027,18 @@ def create_app(config_path=None, env=None, dist_dir=None):
     # ------------------------------------------------------------------
     # Vault: durable record of approved, published knowledge
     # ------------------------------------------------------------------
+    def _language_of(request):
+        value = request.query_params.get("language", "en")
+        return "ar" if value == "ar" else "en"
+
+    @app.exception_handler(ConnectorError)
+    async def connector_error(request, error):
+        # One handler for a service's own errors (assessment B20): the
+        # status and the message in the request's language come from the
+        # error, the envelope from error_response.
+        return error_response(request, error.status, error.message(_language_of(request)),
+                              getattr(error, "code", None) or f"http_{error.status}")
+
     @app.get("/api/openapi.json")
     def openapi_schema(principal=Depends(requires("read"))):
         """The API contract, to a signed-in reader (assessment B14); the
@@ -1569,8 +1595,6 @@ def create_app(config_path=None, env=None, dist_dir=None):
                     principal.subject, body.name, body.url, body.goal, language=body.language,
                     format=body.format, sheet=body.sheet, every_minutes=body.every_minutes,
                     profile=body.profile, credential_id=body.credential_id)
-            except ConnectorError as error:
-                raise HTTPException(status_code=error.status, detail=error.message(language))
             except ValueError as error:  # an unknown pipeline profile
                 raise HTTPException(status_code=422, detail=str(error))
 
@@ -1585,8 +1609,6 @@ def create_app(config_path=None, env=None, dist_dir=None):
                                          enabled=body.enabled, every_minutes=every)
             except KeyError:
                 _no_connector()
-            except ConnectorError as error:
-                raise HTTPException(status_code=error.status, detail=error.message(language))
 
     @app.delete("/api/connectors/{connector_id}", status_code=204)
     def delete_connector(connector_id: str, principal=Depends(requires("write"))):

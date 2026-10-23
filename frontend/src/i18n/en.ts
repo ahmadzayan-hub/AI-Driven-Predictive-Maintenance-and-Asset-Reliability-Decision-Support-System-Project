@@ -75,6 +75,7 @@ export const en = {
   'decision.dashboardHelp': 'View validated analysis and supporting figures',
   'decision.approvals': 'Review decisions',
   'decision.approvalsHelp': 'Approve or reject an exact report',
+  'voice.toggle': 'Voice dictation',
   'voice.start': 'Dictate with microphone',
   'voice.stop': 'Stop recording',
   'voice.privacyTitle': 'Before using voice input',

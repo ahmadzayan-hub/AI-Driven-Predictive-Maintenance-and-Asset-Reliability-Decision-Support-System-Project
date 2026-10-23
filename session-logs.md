@@ -1528,3 +1528,13 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Decided:** the Analyses form keeps its file control as a source choice; the entry points are what changed. The font subsets are committed so the build needs no font tooling.
 - **Open / next:** PR #24 CI, then merge; the standards lint blind score; the model half of G8; P3 items.
 
+## 2026-10-23 · `d9e3f889` · claude/tender-clarke-m4uwgq (P3 slice seven)
+
+**Goal:** close the P3 findings the code can close: A16, A17, A19, B17, B18, B19, B20, G12, G13, G14, G15, U17.
+
+- **Done:** signed shares said as such and n on the association claim; a leave-one-out robust anomaly rule (threshold 3, floor 5% of scale, minimum 4 stated, `c_anom_rule`); a uniform-noise silhouette floor for clustering and two held-out seasons when four exist; a PATCH preflight test beside the existing CSP single-source test; `/api/health` liveness for anyone and detail for a signed-in reader; `published_path` relative to the vault and a JSON-quoted frontmatter; one `ConnectorError` handler, `uvicorn` without extras and the lock recompiled with the recorded `uv` command; `orchestration_problem` on task results and in the health detail; quantity words and the causal lint in `grounded()`, with two built-in sentences reworded and a test holding the built-in writer to its own checks in both languages; `known_reviewers` in the review gate; `run_id` in the tool schemas and validation of the remaining arguments; one voice toggle name with `aria-pressed`, a platform-aware shortcut hint, a 2 px field focus ring. [Decision](docs/adr/2026-10-23-p3-slice-seven.md); assessment rows, roadmap, README updated.
+- **Verified:** quick verify with PostgreSQL 6 of 6: 1,957 Python tests (21 skipped; 23 new), brain check, type check, 378 frontend unit tests; build and budget within limits (JS 99.1 of 100 and 245.3 of 248 KB, CSS 10.0 of 10.5 and 32.7 of 33.5 KB, fonts 86.5 of 100 KB); the lock installs with hashes in a dry run; the SBOM check passes.
+- **Also:** the hosted optional-runtimes job on the slice-five head saw Pydantic AI run two tool calls of one turn out of order; the runtime now registers its tools as sequential (with a fallback for releases without the switch).
+- **Decided:** "one", "third" and "quarter" are not read as figures; the speech error mapping stays in place because it carries `Retry-After`; the tool box still drops unknown arguments and reads scalars as text, and only then validates.
+- **Open / next:** U8 and U20 are owner decisions; the standards lint blind score; the model half of G8; PR #24 to merge when green.
+

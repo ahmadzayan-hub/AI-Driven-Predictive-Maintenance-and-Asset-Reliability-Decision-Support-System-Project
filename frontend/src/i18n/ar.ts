@@ -77,6 +77,7 @@ export const ar: Record<MessageKey, string> = {
   'decision.dashboardHelp': 'عرض نتائج التحليل والأرقام المستندة إلى الأدلة',
   'decision.approvals': 'مراجعة القرارات',
   'decision.approvalsHelp': 'اعتماد تقرير محدد أو رفضه',
+  'voice.toggle': 'الإملاء الصوتي',
   'voice.start': 'إملاء صوتي بالميكروفون',
   'voice.stop': 'إيقاف التسجيل',
   'voice.privacyTitle': 'قبل استخدام الإدخال الصوتي',

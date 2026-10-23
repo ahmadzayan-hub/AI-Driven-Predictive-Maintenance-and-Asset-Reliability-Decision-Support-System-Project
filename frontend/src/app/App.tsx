@@ -41,6 +41,10 @@ import { runStore } from '../features/runs/runStore'
 import { useHashRoute } from './routing'
 import type { Route, Tab } from './routing'
 
+// The command shortcut as this platform writes it (assessment U17): the
+// Command key on Apple hardware, Control elsewhere.
+const MODIFIER_KEY = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform) ? '⌘' : 'Ctrl'
+
 interface NavItem {
   id: Tab
   label: MessageKey
@@ -471,7 +475,7 @@ export function App() {
           >
             <Icon name="search" size={16} />
             <span className="searchbtn__text">{t('search.button')}</span>
-            <kbd>Ctrl K</kbd>
+            <kbd>{MODIFIER_KEY} K</kbd>
           </button>
         </div>
         <div className="header__spacer" />

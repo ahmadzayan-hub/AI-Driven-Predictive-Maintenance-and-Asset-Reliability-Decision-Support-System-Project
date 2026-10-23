@@ -623,6 +623,22 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### P3 slice seven: the minor findings — 23 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-23-p3-slice-seven.md)): signed
+driver shares with n (A16); a leave-one-out robust anomaly rule with a stated
+minimum (A17); a uniform-noise floor for clustering and two held-out seasons
+(A19); PATCH preflight tested and one CSP source (B17); public liveness with
+authenticated detail on `/api/health` (B18); relative published paths and a
+JSON-quoted frontmatter (B19); one `ConnectorError` handler and `uvicorn`
+without extras (B20); recorded orchestration failures (G12); quantity words
+and the causal lint in grounding (G13); acceptance by a known reviewer (G14);
+tool arguments held to `inputSchema` (G15); one voice toggle name, a
+platform-aware shortcut hint and a 2 px focus ring (U17). `REQUIRE_PG=1
+python scripts/verify.py --quick` against PostgreSQL 16: **1,957 Python
+tests reported, 21 skipped** (optional extras only; 23 new), brain check,
+type check, **378 frontend unit tests**; build and budget within limits.
+
 ### P2 slice six: interface items, paid for by font subsets — 23 October 2026
 
 Behaviour change ([decision](docs/adr/2026-10-23-p2-slice-six-interface.md)):
