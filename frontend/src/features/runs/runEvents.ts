@@ -2,7 +2,7 @@ import type { RunDetail } from '../../shared/types'
 
 export type RunEventKind =
   | 'run.started' | 'run.changed' | 'run.paused' | 'run.resumed'
-  | 'stage.changed' | 'approval.requested' | 'approval.decided'
+  | 'stage.changed' | 'approval.requested' | 'approval.decided' | 'approval.superseded'
   | 'artifact.published' | 'run.finished'
 
 /** An observation of a server snapshot, not an SSE event or model thought. */
@@ -39,7 +39,9 @@ export function snapshotEvents(previous: RunDetail | null, next: RunDetail): Run
   for (const approval of next.approvals) {
     const before = previous?.approvals.find((item) => item.id === approval.id)
     if (before?.state === approval.state) continue
-    add(approval.state === 'pending' ? 'approval.requested' : 'approval.decided', approval.id, approval.state)
+    if (approval.state === 'pending') add('approval.requested', approval.id, approval.state)
+    else if (approval.state === 'superseded') add('approval.superseded', approval.id, approval.state)
+    else if (['approved', 'approved_once', 'rejected'].includes(approval.state)) add('approval.decided', approval.id, approval.state)
   }
   if (next.report?.published_path && next.report.published_path !== previous?.report?.published_path) {
     add('artifact.published', next.report.id, next.report.published_path)

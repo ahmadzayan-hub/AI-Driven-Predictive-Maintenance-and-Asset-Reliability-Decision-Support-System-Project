@@ -32,6 +32,8 @@ with no invented human rejection or approval. Refresh is idempotent, cannot
 publish, and cannot legitimize changed/unvalidated report content. Web and
 Android reset the read confirmation for the new approval identity. Reopen and
 read the report and destination before approving again.
+The activity view labels a superseded request separately from a human decision.
+Unknown future approval states cannot be inferred as decisions or publication.
 
 Dataset names use JSON-escaped YAML scalar values. Source spelling, quotes,
 Unicode and newlines survive without introducing extra frontmatter fields.
