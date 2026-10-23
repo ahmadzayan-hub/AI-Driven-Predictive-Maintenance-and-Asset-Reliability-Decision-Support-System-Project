@@ -110,6 +110,12 @@ export function interpolate(template: string, vars?: Vars): string {
 
 /** Defaults to the current interface locale. Fixed-language artifacts can
  *  supply their own locale without changing the reader's interface. */
+/** A number in a given language, for text that follows a report's
+ *  language rather than the interface's (the run report charts). */
+export function formatNumberIn(locale: Locale, value: number, options?: Intl.NumberFormatOptions): string {
+  return new Intl.NumberFormat(LOCALES[locale].tag, options).format(value)
+}
+
 export function translate(key: MessageKey, vars?: Vars, locale = currentLocale()): string {
   const template = LOCALES[locale].messages[key] ?? en[key]
   return interpolate(template, vars)

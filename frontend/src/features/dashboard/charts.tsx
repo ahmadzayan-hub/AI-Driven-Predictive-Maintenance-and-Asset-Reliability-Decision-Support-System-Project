@@ -146,6 +146,11 @@ export function Line({ points, label }: { points: Point[]; label: string }) {
       <text x="5" y={y(max) + 1} fontSize="3" textAnchor="end" fill="var(--text-faint)">
         {formatNumber(max, { notation: 'compact' })}
       </text>
+      {min !== max ? (
+        <text x="5" y={y(min) + 1} fontSize="3" textAnchor="end" fill="var(--text-faint)">
+          {formatNumber(min, { notation: 'compact' })}
+        </text>
+      ) : null}
       <text x="6" y="55" fontSize="3.2" fill="var(--text-faint)">
         {points[0]?.label}
       </text>
@@ -172,6 +177,8 @@ export function Histogram({ bins, label }: { bins: Array<{ from: number; to: num
         )
       })}
       <line x1="6" y1="48" x2="98" y2="48" stroke="var(--border-strong)" strokeWidth="0.4" />
+      <text x="5" y="5" fontSize="3" textAnchor="end" fill="var(--text-faint)">{formatNumber(max)}</text>
+      <text x="5" y="49" fontSize="3" textAnchor="end" fill="var(--text-faint)">{formatNumber(0)}</text>
       <text x="6" y="55" fontSize="3.2" fill="var(--text-faint)">
         {bins.length ? formatNumber(bins[0].from, { notation: 'compact' }) : ''}
       </text>
@@ -198,6 +205,7 @@ export function Scatter({ points, label }: { points: Array<{ x: number; y: numbe
       <text x="6" y="55" fontSize="3.2" fill="var(--text-faint)">{formatNumber(xs.min, { notation: 'compact' })}</text>
       <text x="98" y="55" fontSize="3.2" textAnchor="end" fill="var(--text-faint)">{formatNumber(xs.max, { notation: 'compact' })}</text>
       <text x="5" y="6" fontSize="3" textAnchor="end" fill="var(--text-faint)">{formatNumber(ys.max, { notation: 'compact' })}</text>
+      <text x="5" y="49" fontSize="3" textAnchor="end" fill="var(--text-faint)">{formatNumber(ys.min, { notation: 'compact' })}</text>
     </svg>
   )
 }

@@ -5,7 +5,7 @@ import { ReportDocument } from './ReportDocument'
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useReadOnly } from '../../shared/readOnly'
 import { useSessionDraft } from '../../shared/useSessionDraft'
-import { translate } from '../../i18n'
+import { formatNumberIn, translate } from '../../i18n'
 import type { Locale } from '../../i18n'
 import { api, ApiError, MAX_UPLOAD_BYTES, UPLOAD_ACCEPT } from '../../shared/api'
 import { usePack } from '../../i18n/pack'
@@ -13,7 +13,7 @@ import { intakeMessages } from '../datasets/intakeMessages'
 import { decisionMessages } from './messages'
 import { WorkbookSheetPicker } from '../datasets/WorkbookSheetPicker'
 import { MappingPanel } from '../datasets/MappingPanel'
-import { barGeometry } from '../../shared/charts'
+import { barGeometry, valueScale } from '../../shared/charts'
 import { Icon } from '../../shared/components/Icon'
 import { languageLabel, formatLabel, questionLabel, stateLabel, typeLabel } from '../../shared/labels'
 import type {
@@ -82,12 +82,11 @@ function BarChart({ chart }: { chart: ChartSpec }) {
 }
 
 function LineChart({ chart, language }: { chart: ChartSpec; language: Locale }) {
-  const max = Math.max(...chart.values, 1)
-  const min = Math.min(...chart.values, 0)
-  const span = max - min || 1
+  const scale = valueScale(chart.values, 6, 48)
+  const compact = (value: number) => formatNumberIn(language, value, { notation: 'compact' })
   const xy = chart.values.map((value, index) => ({
-    x: (index / Math.max(chart.values.length - 1, 1)) * 96 + 2,
-    y: 48 - ((value - min) / span) * 42,
+    x: (index / Math.max(chart.values.length - 1, 1)) * 90 + 8,
+    y: scale.y(value),
   }))
   const join = (list: { x: number; y: number }[]) => list.map((p) => `${p.x},${p.y}`).join(' ')
   // A projection is drawn dashed from the last measured point onwards, with
@@ -123,8 +122,16 @@ function LineChart({ chart, language }: { chart: ChartSpec; language: Locale }) 
           </text>
         </>
       ) : null}
-      <line x1="0" y1="50" x2="100" y2="50" stroke="var(--border-strong)" strokeWidth="0.5" />
-      <text x="2" y="56" fontSize="3.4" fill="var(--text-faint)">
+      <line x1="8" y1={scale.zero} x2="100" y2={scale.zero} stroke="var(--border-strong)" strokeWidth="0.5" />
+      <text x="7" y={scale.y(scale.max) + 1} fontSize="3" textAnchor="end" fill="var(--text-faint)">
+        {compact(scale.max)}
+      </text>
+      {scale.min !== scale.max ? (
+        <text x="7" y={scale.y(scale.min) + 1} fontSize="3" textAnchor="end" fill="var(--text-faint)">
+          {compact(scale.min)}
+        </text>
+      ) : null}
+      <text x="8" y="56" fontSize="3.4" fill="var(--text-faint)">
         {chart.labels[0]}
       </text>
       <text x="98" y="56" fontSize="3.4" textAnchor="end" fill="var(--text-faint)">

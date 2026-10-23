@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { Bars, Figure, Histogram, Line, Scatter } from '../features/dashboard/charts'
-import { barGeometry } from '../shared/charts'
+import { barGeometry, valueScale } from '../shared/charts'
 import dashboardSource from '../features/dashboard/DashboardView.tsx?raw'
 import { applyLocale } from '../i18n'
 
@@ -182,5 +182,75 @@ describe('barGeometry', () => {
     expect(barGeometry([-4, -2], 4, 50).zero).toBe(4)
     const flat = barGeometry([0, 0], 4, 50)
     expect(flat.bars.every((bar) => bar.height === 0)).toBe(true)
+  })
+})
+
+describe('valueScale: zero is drawn at zero', () => {
+  it('puts zero at the bottom of the band when every value is positive', () => {
+    const scale = valueScale([4, 10], 6, 48)
+    expect(scale.min).toBe(0)
+    expect(scale.max).toBe(10)
+    expect(scale.zero).toBe(48)
+    expect(scale.y(10)).toBe(6)
+  })
+
+  it('draws zero inside the band, not at its edge, when values cross it', () => {
+    const scale = valueScale([-5, 15], 6, 48)
+    // 5 of the 20-unit range lies below zero: zero sits a quarter up the band.
+    expect(scale.zero).toBeCloseTo(48 - 42 * 0.25)
+    expect(scale.y(-5)).toBe(48)
+  })
+
+  it('keeps an all-negative series below a zero line at the top', () => {
+    const scale = valueScale([-8, -2], 6, 48)
+    expect(scale.max).toBe(0)
+    expect(scale.zero).toBe(6)
+  })
+
+  it('does not divide by zero for an empty or flat series', () => {
+    for (const values of [[], [0, 0]]) {
+      const scale = valueScale(values, 6, 48)
+      expect(Number.isFinite(scale.zero)).toBe(true)
+      expect(scale.min).toBe(scale.max)
+    }
+  })
+})
+
+/** The value labels on the start edge of a chart. */
+const scaleLabels = (root: HTMLElement) =>
+  Array.from(root.querySelectorAll('text[text-anchor="end"]')).map((node) => node.textContent)
+
+describe('a scale states both of its ends', () => {
+  it('labels a line from zero to its maximum', () => {
+    const { container } = render(
+      <Line label="trend" points={[{ label: 'Jan', value: 120 }, { label: 'Feb', value: 300 }]} />,
+    )
+    expect(scaleLabels(container)).toEqual(expect.arrayContaining(['300', '0']))
+  })
+
+  it('labels a negative minimum on a line', () => {
+    const { container } = render(
+      <Line label="trend" points={[{ label: 'Jan', value: -10 }, { label: 'Feb', value: 30 }]} />,
+    )
+    expect(scaleLabels(container)).toContain('-10')
+  })
+
+  it('states one label when a line is flat, not two on top of each other', () => {
+    const { container } = render(
+      <Line label="trend" points={[{ label: 'Jan', value: 0 }, { label: 'Feb', value: 0 }]} />,
+    )
+    expect(scaleLabels(container).filter((text) => text === '0')).toHaveLength(1)
+  })
+
+  it('gives a histogram a count scale from zero', () => {
+    const { container } = render(
+      <Histogram label="distribution" bins={[{ from: 0, to: 5, count: 3 }, { from: 5, to: 10, count: 12 }]} />,
+    )
+    expect(scaleLabels(container)).toEqual(expect.arrayContaining(['12', '0']))
+  })
+
+  it('labels the lower bound of a scatter plot', () => {
+    const { container } = render(<Scatter label="relationship" points={[{ x: 1, y: -4 }, { x: 3, y: 9 }]} />)
+    expect(scaleLabels(container)).toEqual(expect.arrayContaining(['9', '-4']))
   })
 })
