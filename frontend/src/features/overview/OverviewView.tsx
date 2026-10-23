@@ -11,7 +11,8 @@ import { countRuns, latestWithFindings, recentRuns, RUN_PAGE, waitingForApproval
 import { CommandCentre } from './CommandCentre'
 import { DecisionActions } from './DecisionActions'
 import { summarizeRunEvidence } from './evidence'
-import { downloadMotionRun, motionFromRun } from './motionEvidence'
+import { downloadMotionRun } from './motionEvidence'
+import { LocalMotionPanel } from './LocalMotionPanel'
 
 interface OverviewViewProps {
   onOpenRun: (id: string) => void
@@ -41,6 +42,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard,
   const [brief, setBrief] = useState<RunExecutive | null>(null)
   const [briefFailed, setBriefFailed] = useState(false)
   const [attempt, setAttempt] = useState(0)
+  const [motionError, setMotionError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -115,7 +117,7 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard,
       <section className="panel" aria-label={t('overview.aria')}>
         <div className="panel__inner panel__inner--wide">
           {header}
-          {actions}
+        {actions}
           <div className="card">
             <p className="statusline statusline--error" role="alert" dir="auto">
               {failed}
@@ -297,9 +299,14 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard,
                     : 'Requires a run that passed evidence checks')}
                 onClick={() => {
                   try {
-                    downloadMotionRun(motionFromRun(latest))
+                    setMotionError(null)
+                    api.motionStoryboard(latest.id)
+                      .then(downloadMotionRun)
+                      .catch(() => setMotionError(reportLang === 'ar'
+                        ? 'تعذّر إنشاء مسودة الفيديو: راجع حالة الأدلة وصلاحياتك.'
+                        : 'Motion draft could not be prepared. Check the evidence status and your permissions.'))
                   } catch {
-                    onOpenRun(latest.id)
+                    setMotionError(reportLang === 'ar' ? 'تعذّر إنشاء المسودة.' : 'Could not prepare the draft.')
                   }
                 }}
               >
