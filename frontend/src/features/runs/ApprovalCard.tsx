@@ -2,9 +2,11 @@ import '../../shared/styles/analytics.css'
 import './report-theme.css'
 import './report-document.css'
 import { ReportDocument } from './ReportDocument'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useReadOnly } from '../../shared/readOnly'
 import { useI18n } from '../../i18n'
+import { usePack } from '../../i18n/pack'
+import { workflowMessages } from './workflowMessages'
 import { api, ApiError } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
 import type { RunDetail } from '../../shared/types'
@@ -16,6 +18,8 @@ export function ApprovalCard({ detail, onDecision }: {
 }) {
   const readOnly = useReadOnly()
   const { t, formatNumber } = useI18n()
+  const { t: tWorkflow } = usePack(workflowMessages)
+  const guidanceId = useId()
   const snapshot = useRun(detail.id)
   const run = snapshot.detail ?? detail
   const approval = run.approvals.find((item) => item.state === 'pending')
@@ -66,6 +70,7 @@ export function ApprovalCard({ detail, onDecision }: {
       </div>
       <p className="decision__intro">{t('cockpit.approvalIntro')}</p>
       {run.report ? <p className="decision__artifact"><span dir="auto">{run.report.name}</span> · {t('cockpit.version', { version: formatNumber(run.report.version) })}</p> : null}
+      {run.report && !readOnly ? <p id={guidanceId} className="panel__note" role="status">{tWorkflow(!opened ? 'workflow.openReport' : !read ? 'workflow.confirmRead' : 'workflow.readyReview')}</p> : null}
       {run.report ? <details key={reviewKey} className="decision__preview report-theme" onToggle={(event) => { if (event.currentTarget.open) setConsent((current) => ({ key: reviewKey, opened: true, read: current.key === reviewKey && current.read })) }}>
         <summary>{t('cockpit.exactReport')}</summary>
         <p className="card__meta">{t('cockpit.previewIncludesEvidence')}</p>
@@ -82,10 +87,10 @@ export function ApprovalCard({ detail, onDecision }: {
       {message ? <p role="alert" className="statusline statusline--error" dir="auto">{message}</p> : null}
       {destinationChanged && !readOnly ? <button type="button" tabIndex={0} className="btn btn--ghost" disabled={busy} onClick={() => void refreshReview()}>{t('cockpit.updateReview')}</button> : null}
       {readOnly ? <p className="panel__note">{t('demo.note')}</p> : <div className="dialog__actions">
-        <label className="decision__read"><input type="checkbox" tabIndex={0} checked={read} disabled={!opened || busy} onChange={(event) => setConsent({ key: reviewKey, opened, read: event.target.checked })} />{t('cockpit.readReport')}</label>
+        <label className="decision__read"><input type="checkbox" tabIndex={0} aria-describedby={run.report ? guidanceId : undefined} checked={read} disabled={!opened || busy} onChange={(event) => setConsent({ key: reviewKey, opened, read: event.target.checked })} />{t('cockpit.readReport')}</label>
         {/* Explicit zero preserves DOM order when WebKit omits implicit form-control stops. */}
         <button type="button" tabIndex={0} className="btn btn--ghost" disabled={busy} onClick={() => void decide('reject')}>{t('runs.reject')}</button>
-        <button type="button" tabIndex={0} className="btn btn--primary" disabled={busy || !run.report || !read} onClick={() => void decide('approve')}>
+        <button type="button" tabIndex={0} className="btn btn--primary" aria-describedby={run.report ? guidanceId : undefined} disabled={busy || !run.report || !read} onClick={() => void decide('approve')}>
           {busy ? <span className="spinner" aria-hidden="true" /> : <Icon name="check" size={16} />}{busy ? t('cockpit.confirming') : t('runs.approve')}
         </button>
       </div>}

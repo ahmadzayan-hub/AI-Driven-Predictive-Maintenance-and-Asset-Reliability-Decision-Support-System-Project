@@ -38,6 +38,7 @@ import { ModelCards } from './ModelCards'
 import { PlanPreview, RunTimeline } from './RunTimeline'
 import { runStore, useRun } from './runStore'
 import { UploadPreview } from '../datasets/UploadPreview'
+import { workflowMessages } from './workflowMessages'
 
 const AgentCollaboration = lazy(() => import('./AgentCollaboration'))
 
@@ -193,9 +194,14 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
   const readOnly = useReadOnly()
   const { t, plural, isRtl, locale, formatNumber, formatDate, formatTime } = usePack(intakeMessages)
   const { t: tDecision } = usePack(decisionMessages)
+  const { t: tWorkflow } = usePack(workflowMessages)
   const visible = useRef(true)
   useLayoutEffect(() => { visible.current = true; return () => { visible.current = false } }, [])
   const [runs, setRuns] = useState<RunSummary[]>([])
+  const [runsState, setRunsState] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [datasetsState, setDatasetsState] = useState<'loading' | 'ready' | 'error'>('loading')
+  const runsRequest = useRef(0)
+  const listingDatasets = useRef(false)
   const [selectedId, setSelectedId] = useState<string | null>(openRunId)
   const snapshot = useRun(selectedId, true)
   const run = snapshot.detail
@@ -258,28 +264,38 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
   }, [])
 
   const refreshList = useCallback(async () => {
+    // A mutation may request a newer list while the initial GET is pending.
+    // Only the latest request may replace the history or its freshness state.
+    const request = ++runsRequest.current
+    setRunsState('loading')
     try {
       const result = await api.listRuns()
+      if (!visible.current || request !== runsRequest.current) return
       setRuns(result.runs)
+      setRunsState('ready')
     } catch {
-      /* list refresh is best-effort; the create/open flows surface errors */
+      // A failed read is not an empty history. Keep any last known rows.
+      if (visible.current && request === runsRequest.current) setRunsState('error')
     }
   }, [])
 
-  useEffect(() => {
-    void refreshList()
-  }, [refreshList])
-
-  useEffect(() => {
-    let cancelled = false
-    api
-      .listDatasets()
-      .then((result) => !cancelled && setDatasets(result.datasets))
-      .catch(() => !cancelled && setDatasets([]))
-    return () => {
-      cancelled = true
-    }
+  const refreshDatasets = useCallback(async () => {
+    if (listingDatasets.current) return
+    listingDatasets.current = true
+    setDatasetsState('loading')
+    try {
+      const result = await api.listDatasets()
+      if (!visible.current) return
+      setDatasets(result.datasets)
+      setDatasetsState('ready')
+    } catch {
+      // Retain the selected dataset and the person's question for retry.
+      if (visible.current) setDatasetsState('error')
+    } finally { listingDatasets.current = false }
   }, [])
+
+  useEffect(() => { void refreshList() }, [refreshList])
+  useEffect(() => { void refreshDatasets() }, [refreshDatasets])
 
   function suggestGoal(name: string | null) {
     if (goal !== autoGoal.current) return
@@ -455,7 +471,11 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
   // Until the list arrives, a preset from the Datasets view is the one
   // choice, so the picker never flashes empty.
   const storedChoices = datasets
-    ? datasets.map((d) => ({ id: d.id, label: datasetLine(d) }))
+    ? [
+        ...(preset?.kind === 'stored' && storedId === preset.id && !datasets.some((d) => d.id === preset.id)
+          ? [{ id: preset.id, label: preset.name }] : []),
+        ...datasets.map((d) => ({ id: d.id, label: datasetLine(d) })),
+      ]
     : preset?.kind === 'stored'
       ? [{ id: preset.id, label: preset.name }]
       : []
@@ -477,7 +497,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
             </div>
           </div>
 
-          {readOnly ? null : <div className="card">
+          {readOnly ? <p className="panel__note" role="note">{t('demo.note')}</p> : <div className="card">
             <form onSubmit={createRun}>
               <ol className="run-steps">
                 {(['intake.step1', 'intake.step2', 'intake.step3', 'intake.step4'] as const).map((key) => <li key={key}>{t(key)}</li>)}
@@ -544,7 +564,12 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                   <label className="field__label" htmlFor="run-stored">
                     {t('runs.storedLabel')}
                   </label>
-                  {datasets && datasets.length === 0 && !storedId ? (
+                  {datasetsState === 'loading' ? <p role="status">{tWorkflow('workflow.datasetsLoading')}</p> : null}
+                  {datasetsState === 'error' ? <div>
+                    <p role="alert" className="statusline statusline--error">{tWorkflow('workflow.datasetsFailed')}</p>
+                    <button type="button" className="btn btn--ghost" onClick={() => void refreshDatasets()}>{tWorkflow('workflow.retryDatasets')}</button>
+                  </div> : null}
+                  {datasetsState === 'ready' && datasets && datasets.length === 0 && !storedId ? (
                     <p className="field__help">{t('runs.storedNone')}</p>
                   ) : (
                     <>
@@ -710,10 +735,16 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
             </p>
           </div>}
 
-          {runs.length > 0 ? (
-            <div className="card">
+          {readOnly && errorMessage ? <p role="alert" className="statusline statusline--error" dir="auto">{errorMessage}</p> : null}
+          <section className="card" aria-label={t('runs.previous')}>
               <h3 className="card__title">{t('runs.previous')}</h3>
-              <ul className="controls__list">
+              {runsState === 'loading' ? <p role="status">{tWorkflow('workflow.runsLoading')}</p> : null}
+              {runsState === 'error' ? <div>
+                <p role="alert" className="statusline statusline--error">{tWorkflow('workflow.runsFailed')}</p>
+                <button type="button" className="btn btn--ghost" onClick={() => void refreshList()}>{tWorkflow('workflow.retryRuns')}</button>
+              </div> : null}
+              {runsState === 'ready' && runs.length === 0 ? <p role="status">{tWorkflow('workflow.runsEmpty')}</p> : null}
+              <ul className="controls__list" aria-busy={runsState === 'loading'}>
                 {runs.map((item) => (
                   <li key={item.id}>
                     <button
@@ -734,8 +765,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                   </li>
                 ))}
               </ul>
-            </div>
-          ) : null}
+          </section>
         </div>
       </section>
     )
