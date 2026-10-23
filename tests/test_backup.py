@@ -355,6 +355,9 @@ class BackupRestorePostgresTestCase(BackupRestoreTestCase):
     memory_in_database = True
 
     def database_config(self):
+        # Prepare the disposable fixture before verify-only application startup.
+        from tests.support import prepare_postgres_schema
+        prepare_postgres_schema(PG_TEST_URL)
         return {"database_url": PG_TEST_URL}
 
     def _drop_all(self):
@@ -367,6 +370,9 @@ class BackupRestorePostgresTestCase(BackupRestoreTestCase):
 
     def wipe_database(self):
         self._drop_all()
+        # Explicit disaster-rehearsal destination, not runtime auto-DDL.
+        from tests.support import prepare_postgres_schema
+        prepare_postgres_schema(PG_TEST_URL)
 
     def setUp(self):
         self._drop_all()

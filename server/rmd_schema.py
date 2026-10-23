@@ -62,6 +62,9 @@ RMD_SCHEMA = [
 
 def ensure_schema(store):
     """Used by direct-service consumers; application storage also registers DDL."""
+    if getattr(store, "schema_mode", None) == "verify":
+        store.validate_schema()
+        return
     with store.atomic("rmd-schema"):
         for statement in RMD_SCHEMA:
             store._exec(statement)

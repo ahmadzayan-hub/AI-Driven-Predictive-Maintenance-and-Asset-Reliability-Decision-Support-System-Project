@@ -209,6 +209,7 @@ def build_worker(env=None, config_path=None, **kwargs):
     store = open_store(
         env.get("DATABASE_URL") or config.get("database_url"),
         config.get("database_file") or PROJECT_ROOT / "data" / "agentic.db",
+        schema_mode="verify",
     )
     gateway = ModelGateway(env)
     limits = load_limits(env)

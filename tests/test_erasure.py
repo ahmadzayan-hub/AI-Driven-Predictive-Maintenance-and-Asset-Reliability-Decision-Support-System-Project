@@ -207,7 +207,8 @@ class PostgresErasureTestCase(ErasureMixin, unittest.TestCase):
     def build_store(self):
         store = closing_store(self, open_store(PG_TEST_URL))
         for table in reversed(RESTORE_ORDER):
-            store._exec(f"DELETE FROM {table}")
+            if table != "schema_migrations":
+                store._exec(f"DELETE FROM {table}")
         return store
 
 

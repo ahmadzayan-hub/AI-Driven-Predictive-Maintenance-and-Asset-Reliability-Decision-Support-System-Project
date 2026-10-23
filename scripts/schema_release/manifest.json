@@ -1,0 +1,1898 @@
+{
+  "schema_migrations": {
+    "columns": {
+      "version": {
+        "type": "integer",
+        "not_null": true,
+        "optional": false
+      },
+      "applied_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      }
+    },
+    "pk": [
+      "version"
+    ],
+    "unique": [],
+    "foreign": []
+  },
+  "rate_windows": {
+    "columns": {
+      "key": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "window_start": {
+        "type": "integer",
+        "not_null": true,
+        "optional": false
+      },
+      "count": {
+        "type": "integer",
+        "not_null": true,
+        "optional": false
+      }
+    },
+    "pk": [
+      "key",
+      "window_start"
+    ],
+    "unique": [],
+    "foreign": []
+  },
+  "model_calls_daily": {
+    "columns": {
+      "owner": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "day": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "count": {
+        "type": "integer",
+        "not_null": true,
+        "optional": false
+      }
+    },
+    "pk": [
+      "owner",
+      "day"
+    ],
+    "unique": [],
+    "foreign": []
+  },
+  "runs": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "goal": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "dataset_name": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "dataset_text": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "state": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "created_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "updated_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "error": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "owner": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "dataset_id": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "lease_owner": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "lease_expires_at": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "report_language": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "mapping_json": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "joins_json": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "connector_id": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "assumptions_json": {
+        "type": "text",
+        "not_null": false,
+        "optional": true
+      },
+      "idempotency_key": {
+        "type": "text",
+        "not_null": false,
+        "optional": true
+      },
+      "request_hash": {
+        "type": "text",
+        "not_null": false,
+        "optional": true
+      },
+      "paused": {
+        "type": "integer",
+        "not_null": false,
+        "optional": false
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [],
+    "foreign": []
+  },
+  "tasks": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "run_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "idx": {
+        "type": "integer",
+        "not_null": true,
+        "optional": false
+      },
+      "role": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "title": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "state": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "summary": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "result_json": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "updated_at": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [],
+    "foreign": [
+      {
+        "columns": [
+          "run_id"
+        ],
+        "target": "runs",
+        "target_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  "approvals": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "run_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "action": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "target": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "risk": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "impact": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "reversibility": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "content_hash": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "state": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "created_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "decided_at": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "decided_by": {
+        "type": "text",
+        "not_null": false,
+        "optional": true
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [],
+    "foreign": [
+      {
+        "columns": [
+          "run_id"
+        ],
+        "target": "runs",
+        "target_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  "artifacts": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "run_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "name": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "kind": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "version": {
+        "type": "integer",
+        "not_null": true,
+        "optional": false
+      },
+      "content": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "published_path": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "created_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [],
+    "foreign": [
+      {
+        "columns": [
+          "run_id"
+        ],
+        "target": "runs",
+        "target_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  "sessions": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "created_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "updated_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "ended": {
+        "type": "integer",
+        "not_null": true,
+        "optional": false
+      },
+      "preferences_json": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "history_json": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "transcript_json": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "next_entry_id": {
+        "type": "integer",
+        "not_null": true,
+        "optional": false
+      },
+      "owner": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [],
+    "foreign": []
+  },
+  "memory_kv": {
+    "columns": {
+      "owner": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "key": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "text": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "category": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "updated": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      }
+    },
+    "pk": [
+      "owner",
+      "key"
+    ],
+    "unique": [],
+    "foreign": []
+  },
+  "vault_notes": {
+    "columns": {
+      "path": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "run_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "content": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "created_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      }
+    },
+    "pk": [
+      "path"
+    ],
+    "unique": [],
+    "foreign": []
+  },
+  "datasets": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "sha256": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "name": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "content": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "byte_size": {
+        "type": "integer",
+        "not_null": true,
+        "optional": false
+      },
+      "owner": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "created_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "source_format": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "row_count": {
+        "type": "integer",
+        "not_null": false,
+        "optional": false
+      },
+      "column_count": {
+        "type": "integer",
+        "not_null": false,
+        "optional": false
+      },
+      "mapping_json": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "mapping_updated_at": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [],
+    "foreign": []
+  },
+  "connectors": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "owner": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "name": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "url": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "format": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "sheet": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "every_minutes": {
+        "type": "integer",
+        "not_null": false,
+        "optional": false
+      },
+      "goal": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "language": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "profile": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "enabled": {
+        "type": "integer",
+        "not_null": true,
+        "optional": false
+      },
+      "failures": {
+        "type": "integer",
+        "not_null": true,
+        "optional": false
+      },
+      "last_status": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "last_error": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "last_checked_at": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "last_dataset_id": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "last_sha256": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "last_run_id": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "next_due_at": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "lease_owner": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "lease_expires_at": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "created_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "updated_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "credential_id": {
+        "type": "text",
+        "not_null": false,
+        "optional": true
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [],
+    "foreign": []
+  },
+  "kpi_policies": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "run_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "version": {
+        "type": "integer",
+        "not_null": true,
+        "optional": false
+      },
+      "revision": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "rules_json": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "actor": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "created_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [
+      [
+        "run_id",
+        "version"
+      ]
+    ],
+    "foreign": [
+      {
+        "columns": [
+          "run_id"
+        ],
+        "target": "runs",
+        "target_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  "organizations": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "name": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "version": {
+        "type": "integer",
+        "not_null": true,
+        "optional": false
+      },
+      "created_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "updated_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [],
+    "foreign": []
+  },
+  "organization_members": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "org_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "subject": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "role": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "created_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [
+      [
+        "org_id",
+        "subject"
+      ]
+    ],
+    "foreign": [
+      {
+        "columns": [
+          "org_id"
+        ],
+        "target": "organizations",
+        "target_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  "operation_sites": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "org_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "code": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "name": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "created_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [
+      [
+        "org_id",
+        "code"
+      ]
+    ],
+    "foreign": [
+      {
+        "columns": [
+          "org_id"
+        ],
+        "target": "organizations",
+        "target_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  "operation_assets": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "org_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "site_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "external_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "source_system": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "name": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "criticality": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "version": {
+        "type": "integer",
+        "not_null": true,
+        "optional": false
+      },
+      "created_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [
+      [
+        "org_id",
+        "source_system",
+        "external_id"
+      ]
+    ],
+    "foreign": [
+      {
+        "columns": [
+          "site_id"
+        ],
+        "target": "operation_sites",
+        "target_columns": [
+          "id"
+        ]
+      },
+      {
+        "columns": [
+          "org_id"
+        ],
+        "target": "organizations",
+        "target_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  "work_orders": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "org_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "asset_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "title": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "rationale": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "status": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "priority": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "assignee": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "due_date": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "evidence_json": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "completion_json": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "version": {
+        "type": "integer",
+        "not_null": true,
+        "optional": false
+      },
+      "created_by": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "authorized_by": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "created_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "updated_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [],
+    "foreign": [
+      {
+        "columns": [
+          "asset_id"
+        ],
+        "target": "operation_assets",
+        "target_columns": [
+          "id"
+        ]
+      },
+      {
+        "columns": [
+          "org_id"
+        ],
+        "target": "organizations",
+        "target_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  "operation_audit": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "org_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "entity_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "actor": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "action": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "version": {
+        "type": "integer",
+        "not_null": true,
+        "optional": false
+      },
+      "detail_json": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "created_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [],
+    "foreign": [
+      {
+        "columns": [
+          "org_id"
+        ],
+        "target": "organizations",
+        "target_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  "operation_requests": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "org_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "actor": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "request_key": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "payload_hash": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "response_json": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "created_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [
+      [
+        "org_id",
+        "actor",
+        "request_key"
+      ]
+    ],
+    "foreign": [
+      {
+        "columns": [
+          "org_id"
+        ],
+        "target": "organizations",
+        "target_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  "worker_heartbeats": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "seen_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "state": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [],
+    "foreign": []
+  },
+  "reliability_trials": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "org_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "created_by": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "created_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "updated_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "revision": {
+        "type": "integer",
+        "not_null": true,
+        "optional": false
+      },
+      "protocol_json": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "predictions_json": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [],
+    "foreign": [
+      {
+        "columns": [
+          "org_id"
+        ],
+        "target": "organizations",
+        "target_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  "rmd_packs": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "owner": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "organization_id": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "title": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "revision": {
+        "type": "integer",
+        "not_null": true,
+        "optional": false
+      },
+      "created_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "updated_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [],
+    "foreign": []
+  },
+  "rmd_sources": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "pack_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "name": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "kind": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "sha256": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "revision": {
+        "type": "integer",
+        "not_null": true,
+        "optional": false
+      },
+      "metadata_json": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "mapping_json": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "original_base64": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "artifacts_json": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "applicability_json": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "created_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "updated_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [
+      [
+        "pack_id",
+        "name",
+        "kind",
+        "sha256"
+      ]
+    ],
+    "foreign": [
+      {
+        "columns": [
+          "pack_id"
+        ],
+        "target": "rmd_packs",
+        "target_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  "rmd_analyses": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "pack_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "created_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "pack_revision": {
+        "type": "integer",
+        "not_null": true,
+        "optional": false
+      },
+      "fingerprint": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "language": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "filters_json": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "result_json": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "records_json": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [],
+    "foreign": [
+      {
+        "columns": [
+          "pack_id"
+        ],
+        "target": "rmd_packs",
+        "target_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  "rmd_analysis_sources": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "pack_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "analysis_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "sources_json": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [],
+    "foreign": [
+      {
+        "columns": [
+          "analysis_id"
+        ],
+        "target": "rmd_analyses",
+        "target_columns": [
+          "id"
+        ]
+      },
+      {
+        "columns": [
+          "pack_id"
+        ],
+        "target": "rmd_packs",
+        "target_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  "rmd_runs": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "pack_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "analysis_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "created_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [],
+    "foreign": [
+      {
+        "columns": [
+          "analysis_id"
+        ],
+        "target": "rmd_analyses",
+        "target_columns": [
+          "id"
+        ]
+      },
+      {
+        "columns": [
+          "pack_id"
+        ],
+        "target": "rmd_packs",
+        "target_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  "rmd_links": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "pack_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "analysis_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "left_record_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "right_record_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "method": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "state": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "revision": {
+        "type": "integer",
+        "not_null": true,
+        "optional": false
+      },
+      "detail_json": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "created_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "updated_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [],
+    "foreign": [
+      {
+        "columns": [
+          "analysis_id"
+        ],
+        "target": "rmd_analyses",
+        "target_columns": [
+          "id"
+        ]
+      },
+      {
+        "columns": [
+          "pack_id"
+        ],
+        "target": "rmd_packs",
+        "target_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  "rmd_actions": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "pack_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "analysis_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "priority_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "state": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "revision": {
+        "type": "integer",
+        "not_null": true,
+        "optional": false
+      },
+      "body_json": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "created_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "updated_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [
+      [
+        "pack_id",
+        "analysis_id",
+        "priority_id"
+      ]
+    ],
+    "foreign": [
+      {
+        "columns": [
+          "analysis_id"
+        ],
+        "target": "rmd_analyses",
+        "target_columns": [
+          "id"
+        ]
+      },
+      {
+        "columns": [
+          "pack_id"
+        ],
+        "target": "rmd_packs",
+        "target_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  "rmd_incidents": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "pack_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "title": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "record_ids_json": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "revision": {
+        "type": "integer",
+        "not_null": true,
+        "optional": false
+      },
+      "created_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [],
+    "foreign": [
+      {
+        "columns": [
+          "pack_id"
+        ],
+        "target": "rmd_packs",
+        "target_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  "rmd_audit": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "pack_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "actor": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "action": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "entity_id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "revision": {
+        "type": "integer",
+        "not_null": true,
+        "optional": false
+      },
+      "detail_json": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "created_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [],
+    "foreign": [
+      {
+        "columns": [
+          "pack_id"
+        ],
+        "target": "rmd_packs",
+        "target_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  "rmd_requests": {
+    "columns": {
+      "id": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "owner": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "pack_id": {
+        "type": "text",
+        "not_null": false,
+        "optional": false
+      },
+      "operation": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "request_key": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "payload_hash": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "response_json": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      },
+      "created_at": {
+        "type": "text",
+        "not_null": true,
+        "optional": false
+      }
+    },
+    "pk": [
+      "id"
+    ],
+    "unique": [
+      [
+        "owner",
+        "operation",
+        "request_key"
+      ]
+    ],
+    "foreign": []
+  }
+}

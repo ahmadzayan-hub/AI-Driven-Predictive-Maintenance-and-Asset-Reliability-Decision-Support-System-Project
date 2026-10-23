@@ -455,6 +455,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
     store = open_store(
         os.environ.get("DATABASE_URL") or config.get("database_url"),
         config.get("database_file") or PROJECT_ROOT / "data" / "agentic.db",
+        schema_mode="verify",
     )
     limits = load_limits(env)
     # Custom stages (ADR 0020). A stage that fails to load leaves the
