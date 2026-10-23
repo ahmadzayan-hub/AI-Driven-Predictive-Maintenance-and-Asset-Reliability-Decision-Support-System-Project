@@ -3,9 +3,9 @@ type: project
 aliases: [Agentic OS project]
 tags: [project]
 status: active
-updated: 2026-10-21
+updated: 2026-10-23
 review_every_days: 14
-sources: [README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/assessments/2026-10-20-project-review.md, docs/assessments/2026-10-21-saas-competitive-benchmark.md, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0024-the-dataset-api.md, docs/adr/0028-views-load-on-demand.md, scripts/verify.py, docs/adr/0058-executive-dashboard-agent-and-scoped-evidence.md]
+sources: [README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/RMD_EVIDENCE.md, docs/assessments/2026-10-20-project-review.md, docs/assessments/2026-10-21-saas-competitive-benchmark.md, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0024-the-dataset-api.md, docs/adr/0028-views-load-on-demand.md, scripts/verify.py, docs/adr/0058-executive-dashboard-agent-and-scoped-evidence.md]
 ---
 
 # Agentic OS
@@ -19,6 +19,19 @@ The engine in this repository, described in [[Identity]]: a governed business-an
 - **Production:** read-only metadata on 20 October identifies the older `42e53d00` Vercel deployment behind Vercel Authentication. Current application identity, durable storage and the corrected source still require hosted acceptance; earlier owner-access observations are historical.
 
 ## What it does today
+
+- RMD Evidence connects private document/workbook ingestion, confirmed mappings,
+  immutable record-grain calculations, investigation review, bilingual views,
+  authorized [[Knowledge retrieval]] and a real report [[Approval gate]].
+  The reuse map and acceptance boundaries are in docs/RMD_EVIDENCE.md.
+  The owner omitted unavailable source files from this delivery; synthetic
+  verification does not imply those sources were studied.
+  Real API-backed desktop and phone journeys pass in English and Arabic through
+  evidence review and keyboard approval to confirmed publication; manual
+  comprehension and production performance remain separate acceptance work.
+  Integration retains main's run safeguards and chart scales. The requester
+  remains scoped across deadline workers; [[Knowledge retrieval]] describes
+  that authorization boundary and its regression evidence.
 
 - Workspace conversation has an explicit hosted [[Model gateway]] option and
   structured [[Agent runtimes and MCP|LangGraph decisions]]. Model failure is

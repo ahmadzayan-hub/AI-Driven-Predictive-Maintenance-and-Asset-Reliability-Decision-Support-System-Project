@@ -1,14 +1,28 @@
 # Project progress
 
-Last updated: 2026-10-22, session `ad7e9eca`, background worker model roles repaired and the owner's all-Qwen local profile activated, preserving concurrent main changes. The session-end skill keeps this file current; the SessionStart hook reads the *Now* section into every new session.
+Last updated: 2026-10-23, Codex RMD evidence implementation and final main integration. Source originals omitted by owner instruction; combined hosted acceptance and measured verification scopes are recorded in README.
 
 
 **Vision.** **AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project** uses Agentic OS as its governed analytics engine. It digests several datasets with dynamic inputs, then carries them through preparation, cleaning and modelling to a multi-page interactive dashboard with live data, with insights and key findings that are always traceable to a calculation. The product scope and remaining domain work are in `docs/PROJECT_CHARTER.md`; the reusable engine milestones are in `brain/Projects/Analytics OS roadmap.md`.
 
 ## Now
 
+- **RMD Evidence and Insights, 2026-10-22:** integrated private ingestion,
+  persistence, source/column provenance, reviewed record relationships,
+  deterministic snapshot calculations, bilingual views, ephemeral assistant,
+  matching exports and the existing artifact-bound publication gate.
+  Synthetic backend/permission/lifecycle checks, hosted frontend/build/budget
+  and real-API English/Arabic desktop/phone journeys pass, including evidence,
+  keyboard approval and confirmed publication. Manual comprehension and
+  production performance remain unmeasured.
+  The owner explicitly omitted the unavailable original inputs, so actual
+  document/workbook findings are outside this delivery. See
+  [reuse map and acceptance](docs/RMD_EVIDENCE.md).
+
 - **P2 slice one: 2026-10-23, on branch `claude/tender-clarke-m4uwgq`.** Verdict bound (A9), declared splits (A10), incomplete periods (A12), loopback by default (B8), idempotent run creation (B14, in part), wall-clock limits on custom stages and agent runtimes (G10). [Decision](docs/adr/2026-10-23-p2-slice-one.md); counts in README.md#testing. Open: the rest of B14, the standards lint blind score, the remaining P2 list.
+
 - **Decision inputs in the interface: 2026-10-22, merged into main as `37fce5e` with the hosted CI second pass (PR #21; hosted suite 139 passed, 5 skipped).** The Analytics form collects an improvement and a cost per group and the explored range; the run view shows the decision record (recommendation and basis, inputs stated or assumed, flip point, who decided). Script allocation 220 KB. [Decision](docs/adr/2026-10-22-decision-inputs-interface.md); counts in README.md#testing. Open: the standards lint scores 0% on its blind set; P2 items in the [roadmap](docs/implementation/DELIVERY_ROADMAP.md).
+
 - **GitHub presentation, 2026-10-22:** README redesigned around the product journey, actual synthetic-session screenshots and a clear local start. Original generated maintenance images have documented provenance; all existing developer commands and dated verification history are retained in expandable sections. Documentation/asset checks and scoped source reviews pass. Local Chromium preview is blocked by the command sandbox; application behavior and existing CI failures are outside this documentation change. See [presentation notes](docs/design/README_ASSETS.md).
 
 - **Release gate, slice three: 2026-10-22, on branch `claude/tender-clarke-m4uwgq`.** The P1 list is closed: decision inputs and record (A2, A13), signalling escalation (A8), currency (U4), landing and phone bar (U12), hosted robustness (B4, B5, B10), blind floors (G1), model ledger (G4), browser coverage (U13); [decision](docs/adr/2026-10-22-release-gate-slice-three.md). Verified 8/8 with PostgreSQL; counts in README.md#testing. Open (interface inputs for uplift and cost delivered the same day): the standards lint scores 0% on its blind set; P2 items in the [roadmap](docs/implementation/DELIVERY_ROADMAP.md).

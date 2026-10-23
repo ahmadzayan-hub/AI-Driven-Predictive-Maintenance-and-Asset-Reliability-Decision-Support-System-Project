@@ -21,6 +21,9 @@ are actual interface renders with labelled synthetic data. [Image provenance](do
 - **Find what needs attention.** Explore downtime, maintenance cost and asset observations within a defined dataset and period.
 - **Understand the finding.** Follow the analysis, inspect calculations, compare models with baselines, and read the limitations.
 - **Make the decision.** Review the exact report before approving publication; preserve its evidence for the next conversation.
+- **Inspect RMD evidence.** Import private reference documents and workbooks,
+  reconcile source records, inspect cited findings and review proposed actions.
+  [Capability and acceptance notes](docs/RMD_EVIDENCE.md).
 
 **Ask → Select data → Follow the analysis → Inspect evidence → Review → Approve → Publish**
 
@@ -87,6 +90,7 @@ The deterministic analysis path needs no model-provider credentials.
 | Your goal | Start here |
 | --- | --- |
 | Analyze a file | Open `http://127.0.0.1:8000/#/runs?source=upload`; review columns, mapping and the business question before starting. |
+| Inspect private RMD evidence | Open http://127.0.0.1:8000/#/rmd; create a pack, import sources, confirm mappings, then inspect and review its calculated snapshot. |
 | Explore the fictional maintenance preview | Open `http://127.0.0.1:8000/?design=maintenance`; its sample review marks are local and do not dispatch work. |
 | Use local chat and optional voice | Follow the bilingual [local AI setup](docs/LOCAL_AI_SETUP.md); microphone text becomes an editable draft. |
 | Continue analysis after closing the browser | Run the [background worker](#background-worker-optional) with the same configuration; it still stops for approval. |
@@ -516,6 +520,79 @@ hardware expectations, hosted configuration and acceptance limits.
 </details>
 
 ## Testing
+
+**23 October 2026 · final main integration.** The
+[combined acceptance run](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39922112369)
+passes on `52389750`, retaining main through `6fec34b7`, including P2 safeguards
+and chart-scale fixes: **169 backend checks, 1 skipped** (hosted LibreOffice
+unavailable), **369 component checks**, **4 real-API RMD journeys**, **1 sidebar
+contract**, and **12 Miyaar checks**. TypeScript, production build and bundle
+budget pass. The integration preserves the actual requester's context across
+runtime deadline workers; the regression first failed permitted lookups and
+now verifies successive users and denied administrator substitution.
+
+The bounded local integration run passed **103 checks**. Separate local legacy
+TestClient attempts were blocked at the AnyIO portal, and **3 UDP probe checks**
+were blocked by sandbox socket permissions; these are not claimed as local
+passes. Hosted acceptance uses the normal HTTP server. The
+[aggregate CI run on this integrated source](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39922112323)
+has passed its Python/PostgreSQL step and is continuing the broader regression;
+the completed full-run record below applies to its stated earlier revision.
+
+**22–23 October 2026 · RMD evidence implementation (synthetic inputs).** The
+[full hosted CI rerun](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39873026849)
+passes on `29ab16d1`: **1,842 Python tests with PostgreSQL, 26 conditional skips**;
+**360 frontend component checks**; **143 main browser checks passed, 5 skipped**;
+**12 Miyaar checks passed**; TypeScript, production build, brain/native contracts
+and interface budget.
+
+The local
+targeted run executed **164 Python checks**, with **2 optional private-knowledge
+checks skipped**, and no failures. This includes genuine legacy Word conversion,
+workbook provenance, calculations, separate-user/organization permissions,
+immutable exports, erasure and the actual report approval/publication lifecycle.
+The strict brain check passes. HTTP boundary tests use an explicitly documented
+inline dispatcher because this runner stalls AnyIO worker wakeups; production
+thread scheduling is a separate hosted check. Hosted checks have passed the
+complete frontend suite (**360 component checks**), TypeScript and production
+build. The focused hosted backend run executed **123 checks**, with **1 skipped**
+because LibreOffice is not installed on that runner. The full Python suite's
+PostgreSQL step also passed in hosted CI.
+
+The [final combined RMD acceptance run](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39922112369)
+passed **all 4 real-API browser journeys**: English and Arabic on desktop and
+phone, including import, mapping, calculations, evidence, knowledge, action
+export, reload, contextual assistant, keyboard approval and server-confirmed
+publication. Axe scans passed on the tested states in both themes; the tested
+layouts had no page overflow at **1440, 768, 390 and 320 px**. Synthetic rendered
+captures are retained in that run's `rmd-synthetic-checks` artifact for seven days.
+The phone journey exposed and verified a fix for the primary action being
+covered by bottom navigation.
+
+Measured gzip: JS first load **98.9 / 100 KB**, total **244.9 / 248 KB**, largest
+chunk **17.2 / 30 KB**; CSS first load **10.0 / 10.5 KB**, total **32.8 / 33.5 KB**;
+fonts **119.4 / 120 KB**. The RMD views are lazy loaded; the total allocation grew
+to accommodate them without increasing the first-load limits. These bundle
+checks do not measure production LCP/CLS/INP or manager comprehension. Automated
+accessibility checks do not establish complete WCAG conformance. The broader
+existing browser suite is recorded separately by the CI workflow. These sizes
+describe revision `52389750`, which preserves main through `6fec34b7`,
+including decision inputs/records, CI/layout fixes, P2 controls and chart scales.
+
+The [repository-wide run on that combined revision](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39870732034)
+executed **1,842 Python tests with PostgreSQL, 26 conditional skips, no failures**,
+and the same **360 frontend checks**. Its main browser suite reported **142
+passed, 5 skipped and 1 failed**: the sidebar assertion still listed the
+destinations before RMD was added. The expectation now includes RMD, and RMD uses
+the existing search icon to preserve the distinct-icon contract. Application
+behavior outside this navigation correction is unchanged from that run. The
+targeted navigation correction and the Miyaar suite skipped by that failed job
+passed in the [follow-up acceptance run](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/39873026926): **1 corrected sidebar check, all 4 RMD journeys, and all 12 Miyaar checks**,
+alongside **360 component checks**, TypeScript, build and budget. The subsequent
+full aggregate rerun linked above also passes; the earlier failed run remains
+an accurate historical record.
+The owner instructed us to omit unavailable source originals;
+no actual-source findings or workbook baseline verification is claimed.
 
 ```bash
 # Python: agent, utils, API, runs, analytics, sequential ranges,

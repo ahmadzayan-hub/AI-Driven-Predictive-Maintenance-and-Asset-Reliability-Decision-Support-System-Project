@@ -3,7 +3,7 @@ type: log
 aliases: [Brain maintenance log]
 tags: [meta]
 status: active
-updated: 2026-10-21
+updated: 2026-10-23
 review_every_days: 7
 sources: [scripts/brain_check.py]
 ---
@@ -72,3 +72,18 @@ What each round of brain maintenance changed, newest last. The SessionStart hook
 - Refreshed [[Agent collaboration]], [[Accessible motion]] and [[Design system]] with the sourced React/SVG, React Flow and Motion study. Distinguished current behavior from the proposed explorer and recorded that production dependencies remain unchanged.
 - Retained incoming agent measurement knowledge through `827a584`. Existing [[Home]] coverage is unchanged; the new research belongs in the existing concepts rather than duplicate notes.
 - Verified the updated source paths and strict brain structure. The isolated experiment's browser scope and remaining acceptance checks are recorded in the study; application verification counts remain in README.
+
+## 2026-10-22
+
+- Measured the vault with the JSON checker: no broken links, missing fields or sources, stale notes, duplicates, orphans, unlinked mentions or weakly linked notes. No structural changes were needed.
+- Refreshed [[Knowledge retrieval]] against the private RMD service, assistant boundary and access regressions: fresh collection grants cover originals, clauses, exports and linked reports; optional model use receives only approved fixed aggregate templates.
+- Refreshed [[Agentic OS]] against the implemented evidence workspace and recorded acceptance. Preserved the owner's instruction to omit unavailable originals; synthetic verification does not establish actual-source findings or applicability. Added the RMD handoff to the note's source register.
+- Re-read [[Home]]: the existing project and knowledge entries cover this extension. Added no duplicate note and copied no runtime data. Verification counts remain in README, with production and manual acceptance limits stated.
+- The strict checker passes after these updates; no structural issue remains.
+
+## 2026-10-23
+
+- Recovered the interrupted [[Agentic OS]] delivery from GitHub refs and the frozen local handoff snapshot. The application revision's full hosted CI is green; no application code was lost or repeated.
+- Rechecked the source-backed RMD acceptance record and retained the owner's original-input omission. Updated only delivery observations; no runtime evidence was copied into the brain.
+- Rechecked the brain structure and existing [[Home]] coverage before the final synchronization. No new note, duplicate or structural repair was needed.
+- Refreshed [[Knowledge retrieval]] against the integration regression: deadline workers preserve the actual requester's context, while collection grants remain scoped. Retained incoming run safeguards and chart-scale improvements from main rather than overwriting them.

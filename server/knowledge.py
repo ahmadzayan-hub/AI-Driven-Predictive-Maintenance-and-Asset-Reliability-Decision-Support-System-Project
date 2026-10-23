@@ -126,7 +126,7 @@ def split_markdown(text, collection, document):
         whole = f"{head}\n\n{content}".strip() if head else content
         for piece in _fit(whole):
             anchor = hashlib.sha256(
-                f"{document}\x00{section}\x00{piece[:120]}".encode()).hexdigest()[:16]
+                f"{collection}\x00{document}\x00{section}\x00{piece}".encode()).hexdigest()
             passages.append(Passage(collection=collection, document=document,
                                     section=section, text=piece, anchor=anchor,
                                     counts=_count(f"{section} {piece}")))
@@ -190,11 +190,16 @@ class Collection:
     documents: dict
 
     def as_dict(self):
+        # A filesystem manifest is configuration, not a response DTO. In
+        # particular it must not serialize owner lists, paths or credentials.
+        public = {key: self.metadata[key] for key in (
+            "title", "description", "data_classification", "version", "applicability")
+                  if key in self.metadata and isinstance(self.metadata[key], (str, int, bool))}
         return {"collection_id": self.name, "passages": len(self.passages),
                 "documents": [{"document": name, "sha256": info["sha256"],
                                "bytes": info["bytes"], "passages": info["passages"]}
                               for name, info in sorted(self.documents.items())],
-                **self.metadata}
+                **public}
 
 
 class KnowledgeStore:
@@ -209,6 +214,45 @@ class KnowledgeStore:
     def describe(self):
         return [c.as_dict() for c in sorted(self.collections.values(),
                                             key=lambda c: c.name)]
+
+    def for_principal(self, principal, store=None, *, local=False, for_model=False):
+        """Authorize before counts, scoring and serialization, on every request.
+
+        Unscoped legacy folders belong only to the local filesystem owner.
+        Hosted collections require an explicit owner, organization membership,
+        or an operator-declared public classification. Platform administration
+        is never a substitute for organization membership. Private references
+        are never an implicit grant to a model or runtime tool.
+        """
+        if principal is None or not principal.can("read"):
+            return KnowledgeStore([])
+        allowed = []
+        for collection in self.collections.values():
+            metadata = collection.metadata
+            public = (metadata.get("visibility") == "public"
+                      and metadata.get("data_classification") == "public")
+            owner = metadata.get("owner_subject") or metadata.get("owner")
+            organization = metadata.get("organization_id")
+            permitted = public
+            if organization:
+                permitted = False
+                if store is not None:
+                    from server.operations import OperationsError, require_org_access
+                    try:
+                        require_org_access(store, principal, str(organization), "read")
+                        permitted = True
+                    except OperationsError:
+                        pass
+            elif owner:
+                permitted = str(owner) == principal.subject
+            elif not public:
+                permitted = (local and principal.provider == "local"
+                             and principal.subject == "local-owner")
+            if for_model:
+                permitted = permitted and public and metadata.get("model_context_allowed") is True
+            if permitted:
+                allowed.append(collection)
+        return KnowledgeStore(allowed)
 
     def search(self, query, collection=None, limit=5):
         """The best passages for a question, most relevant first.

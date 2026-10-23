@@ -64,6 +64,7 @@ export const en = {
   "voice.playbackLimit": "Reading the first 1,800 characters.",
   "composer.offline": "Connection unavailable · your draft is kept",
   "nav.operations": "Operations",
+  "nav.rmd": "RMD Evidence",
   "nav.assets": "Asset Intelligence",
   'decision.eyebrow': 'Your next decision',
   'decision.heading': 'Decision Intelligence Command Centre',
