@@ -8,32 +8,32 @@
   --magenta: light-dark(#be185d, #f9a8d4);
   /* Light neutrals (slate). --border is decorative only; anything a person
      operates (inputs, segmented controls) uses --border-strong, >= 3:1. */
-  --bg: #f8fafc;
+  --bg: #F5F4F0;
   --surface: #ffffff;
   --surface-raised: #ffffff;
-  --surface-sunken: #e9eef6;
-  /* The maintenance design preview keeps a stable, high-contrast navigation rail. */
-  --nav-surface: #111a2e;
-  --nav-text: #f1f5f9;
-  --nav-muted: #a9b6cc;
-  --nav-border: #33415d;
-  --nav-active: #243657;
-  --nav-accent: #8db0ff;
-  --border: #dce3ee;
-  --border-strong: #7c8ba1;
-  --text: #0f172a;
-  --text-muted: #475569;
-  --text-faint: #5b6779;
+  --surface-sunken: #F5F4F0;
+  /* Navigation shares the restrained workspace palette. */
+  --nav-surface: #FFFFFF;
+  --nav-text: #24303B;
+  --nav-muted: #52616D;
+  --nav-border: #D7DDE1;
+  --nav-active: #E9EEF1;
+  --nav-accent: #334E68;
+  --border: #D7DDE1;
+  --border-strong: #71808B;
+  --text: #24303B;
+  --text-muted: #52616D;
+  --text-faint: #52616D;
 
-  /* Accent (navy/blue, from the ui-ux-pro-max analytics palette):
+  /* Accent (restrained navy for decision actions):
      --accent for text/icons/outlines/focus, --accent-solid for filled
      controls. */
-  --accent: #006b73;
-  --accent-solid: #006b73;
-  --accent-solid-hover: #00555e;
-  --accent-soft: #dff5f4;
+  --accent: #334E68;
+  --accent-solid: #334E68;
+  --accent-solid-hover: #243D53;
+  --accent-soft: #E9EEF1;
   --on-accent: #ffffff;
-  --accent-glow: rgb(0 107 115 / .18);
+  --accent-glow: rgb(51 78 104 / .10);
 
   /* Highlight (amber): what needs a person — an approval waiting, a
      provisional figure, a decrease. Never the primary action. */
@@ -65,8 +65,8 @@
 
   /* Shape */
   --radius-s: 8px;
-  --radius-m: 14px;
-  --radius-l: 18px;
+  --radius-m: 10px;
+  --radius-l: 12px;
 
   /* Spacing (8-point grid) */
   --space-1: 4px;
@@ -108,12 +108,12 @@
   color-scheme: light;
   --radius-xl: 24px;
   --surface-glass: rgb(255 255 255 / .94);
-  --accent-haze: rgb(0 107 115 / .08);
-  --workspace-bg: #f2f6fa;
-  --panel-fill: linear-gradient(130deg, var(--surface-raised), var(--surface));
-  --hero-fill: linear-gradient(120deg, #eaf7f7, #f7fafc 60%, #d9edee);
-  --hero-border: #9bc6ca;
-  --user-message: #e3f3f4;
+  --accent-haze: rgb(51 78 104 / .04);
+  --workspace-bg: #F5F4F0;
+  --panel-fill: #FFFFFF;
+  --hero-fill: #FFFFFF;
+  --hero-border: #D7DDE1;
+  --user-message: #E9EEF1;
 }
 
 /* Arabic. System fonts with full Arabic coverage, ordered so that Latin
@@ -134,22 +134,22 @@
 }
 
 [data-theme='dark'] {
-  --bg: #080f1e;
-  --surface: #0d182a;
-  --surface-raised: #122137;
-  --surface-sunken: #070e1b;
-  --border: #233349;
-  --border-strong: #647c98;
-  --text: #edf4fc;
-  --text-muted: #afc0d6;
-  --text-faint: #9aadc5;
+  --bg: #20252B;
+  --surface: #2A3038;
+  --surface-raised: #2A3038;
+  --surface-sunken: #20252B;
+  --border: #47515C;
+  --border-strong: #8A99A8;
+  --text: #EBEEF2;
+  --text-muted: #B8C1CC;
+  --text-faint: #B8C1CC;
 
-  --accent: #59e0d5;
-  --accent-solid: #55dfd2;
-  --accent-solid-hover: #83eee3;
-  --accent-soft: #102f36;
-  --on-accent: #06262b;
-  --accent-glow: rgb(85 223 210 / .18);
+  --accent: #9EBAD4;
+  --accent-solid: #9EBAD4;
+  --accent-solid-hover: #B7CEE2;
+  --accent-soft: #36424E;
+  --on-accent: #20252B;
+  --accent-glow: rgb(158 186 212 / .10);
 
   --highlight: #fbbf24;
   --highlight-soft: #2e2208;
@@ -169,34 +169,40 @@
   --shadow-3: 0 18px 48px rgb(0 0 0 / 0.6);
 
   color-scheme: dark;
-  --accent-haze: rgb(85 223 210 / .07);
-  --surface-glass: rgb(11 21 38 / .94);
-  --workspace-bg: radial-gradient(ellipse at 60% 0%, #102239, #080f1e 65%);
-  --panel-fill: linear-gradient(130deg, #122137, #0d182a);
-  --hero-fill: radial-gradient(ellipse at 90% 40%, #123c48, transparent 65%), linear-gradient(120deg, #122238, #0c192b);
-  --hero-border: #2c5967;
-  --user-message: #133740;
-  --switch-thumb: #06262b;
+  --nav-surface: #2A3038;
+  --nav-text: #EBEEF2;
+  --nav-muted: #B8C1CC;
+  --nav-border: #47515C;
+  --nav-active: #36424E;
+  --nav-accent: #9EBAD4;
+  --accent-haze: rgb(158 186 212 / .04);
+  --surface-glass: #2A3038;
+  --workspace-bg: #20252B;
+  --panel-fill: #2A3038;
+  --hero-fill: #2A3038;
+  --hero-border: #47515C;
+  --user-message: #36424E;
+  --switch-thumb: #20252B;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']):not([data-theme='dark']) {
-    --bg: #080f1e;
-    --surface: #0d182a;
-    --surface-raised: #122137;
-    --surface-sunken: #070e1b;
-    --border: #233349;
-    --border-strong: #647c98;
-    --text: #edf4fc;
-    --text-muted: #afc0d6;
-    --text-faint: #9aadc5;
+    --bg: #20252B;
+    --surface: #2A3038;
+    --surface-raised: #2A3038;
+    --surface-sunken: #20252B;
+    --border: #47515C;
+    --border-strong: #8A99A8;
+    --text: #EBEEF2;
+    --text-muted: #B8C1CC;
+    --text-faint: #B8C1CC;
 
-    --accent: #59e0d5;
-    --accent-solid: #55dfd2;
-    --accent-solid-hover: #83eee3;
-    --accent-soft: #102f36;
-    --on-accent: #06262b;
-    --accent-glow: rgb(85 223 210 / .18);
+    --accent: #9EBAD4;
+    --accent-solid: #9EBAD4;
+    --accent-solid-hover: #B7CEE2;
+    --accent-soft: #36424E;
+    --on-accent: #20252B;
+    --accent-glow: rgb(158 186 212 / .10);
 
     --highlight: #fbbf24;
     --highlight-soft: #2e2208;
@@ -216,14 +222,20 @@
     --shadow-3: 0 18px 48px rgb(0 0 0 / 0.6);
 
     color-scheme: dark;
-  --accent-haze: rgb(85 223 210 / .07);
-  --surface-glass: rgb(11 21 38 / .94);
-  --workspace-bg: radial-gradient(ellipse at 60% 0%, #102239, #080f1e 65%);
-  --panel-fill: linear-gradient(130deg, #122137, #0d182a);
-  --hero-fill: radial-gradient(ellipse at 90% 40%, #123c48, transparent 65%), linear-gradient(120deg, #122238, #0c192b);
-  --hero-border: #2c5967;
-  --user-message: #133740;
-  --switch-thumb: #06262b;
+  --nav-surface: #2A3038;
+  --nav-text: #EBEEF2;
+  --nav-muted: #B8C1CC;
+  --nav-border: #47515C;
+  --nav-active: #36424E;
+  --nav-accent: #9EBAD4;
+  --accent-haze: rgb(158 186 212 / .04);
+  --surface-glass: #2A3038;
+  --workspace-bg: #20252B;
+  --panel-fill: #2A3038;
+  --hero-fill: #2A3038;
+  --hero-border: #47515C;
+  --user-message: #36424E;
+  --switch-thumb: #20252B;
   }
 }
 

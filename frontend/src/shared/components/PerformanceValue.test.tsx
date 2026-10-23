@@ -97,6 +97,16 @@ describe('actual semantic source colors', () => {
     expect(channel(green, 1)).toBeGreaterThan(Math.max(channel(green, 0), channel(green, 2)))
   })
 
+  it.each([['light', light], ['dark', dark], ['system dark', systemDark]] as const)('keeps navigation and primary actions readable in %s', (_name, theme) => {
+    for (const text of ['nav-text', 'nav-muted', 'nav-accent']) {
+      for (const surface of ['nav-surface', 'nav-active']) {
+        expect(contrast(theme[text], theme[surface])).toBeGreaterThanOrEqual(4.5)
+      }
+    }
+    expect(contrast(theme['on-accent'], theme['accent-solid'])).toBeGreaterThanOrEqual(4.5)
+    expect(contrast(theme['border-strong'], theme.surface)).toBeGreaterThanOrEqual(3)
+  })
+
   it('keeps system-dark metric semantics identical to explicit dark mode', () => {
     for (const tone of ['good', 'okay', 'bad', 'unassessed', 'unavailable'] as const) {
       expect(foreground(tone, systemDark)).toBe(foreground(tone, dark))

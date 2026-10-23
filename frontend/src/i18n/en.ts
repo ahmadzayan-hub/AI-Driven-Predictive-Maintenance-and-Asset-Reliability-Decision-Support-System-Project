@@ -12,7 +12,7 @@ export const en = {
   'nav.reviewShort': 'Review',
 
   "assistant.name": "Miyaar",
-  "assistant.tagline": "The intelligent assistant for asset reliability",
+  "assistant.tagline": "AI-Powered Asset Maintenance, Reliability & Decision Support",
   "miyaar.eyebrow": "YOUR ASSET RELIABILITY WORKSPACE",
   "miyaar.headline": "Every asset. A clearer decision.",
   "miyaar.intro": "I'm Miyaar. Bring your maintenance data, explore the evidence, and turn analysis into decisions you can stand behind.",
