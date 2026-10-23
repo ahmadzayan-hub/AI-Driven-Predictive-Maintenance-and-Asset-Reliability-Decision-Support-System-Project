@@ -33,6 +33,13 @@ previews containing only a truncated report section.
   are cancelled; no stale KPI from a different run/language is displayed.
 - The relationship table contains every plotted point, within the existing
   bounded sample. No row is silently dropped from the numeric alternative.
+- Cross-platform execution exposed WebKit's implicit button-focus policy:
+  evidence activation explicitly focuses its invoking control, and the consent,
+  Reject and Approve controls explicitly use tab index zero in DOM order. No
+  positive index or automatic approval is introduced. WebKit's
+  [form-control implementation](https://github.com/WebKit/WebKit/blob/main/Source/WebCore/html/HTMLFormControlElement.cpp)
+  confirms that an explicitly set index uses normal element keyboard focus
+  rather than the platform's implicit-control preference (inspected 23 October).
 - Android sends actual raw upload bytes with an encoded filename and unwraps
   `dataset`; recognizes canonical and legacy errors; queries the approval queue
   explicitly; displays the full exact artifact/version, destination and impact;

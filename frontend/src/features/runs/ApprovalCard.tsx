@@ -63,9 +63,10 @@ export function ApprovalCard({ detail, onDecision }: {
       <p className="decision__binding"><Icon name="shield" size={14} />{t('cockpit.hashBound')}</p>
       {message ? <p role="alert" className="statusline statusline--error" dir="auto">{message}</p> : null}
       {readOnly ? <p className="panel__note">{t('demo.note')}</p> : <div className="dialog__actions">
-        <label className="decision__read"><input type="checkbox" checked={read} disabled={!opened || busy} onChange={(event) => setRead(event.target.checked)} />{t('cockpit.readReport')}</label>
-        <button type="button" className="btn btn--ghost" disabled={busy} onClick={() => void decide('reject')}>{t('runs.reject')}</button>
-        <button type="button" className="btn btn--primary" disabled={busy || !run.report || !read} onClick={() => void decide('approve')}>
+        <label className="decision__read"><input type="checkbox" tabIndex={0} checked={read} disabled={!opened || busy} onChange={(event) => setRead(event.target.checked)} />{t('cockpit.readReport')}</label>
+        {/* Explicit zero preserves DOM order when WebKit omits implicit form-control stops. */}
+        <button type="button" tabIndex={0} className="btn btn--ghost" disabled={busy} onClick={() => void decide('reject')}>{t('runs.reject')}</button>
+        <button type="button" tabIndex={0} className="btn btn--primary" disabled={busy || !run.report || !read} onClick={() => void decide('approve')}>
           {busy ? <span className="spinner" aria-hidden="true" /> : <Icon name="check" size={16} />}{busy ? t('cockpit.confirming') : t('runs.approve')}
         </button>
       </div>}
