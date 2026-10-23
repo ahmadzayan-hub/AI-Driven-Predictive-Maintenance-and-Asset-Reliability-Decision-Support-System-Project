@@ -41,6 +41,8 @@ def root():
     raw = os.environ.get("AGENTIC_MOTION_ROOT", "")
     if not raw:
         raise MotionError("AGENTIC_MOTION_ROOT must point to an approved persistent local directory")
+    if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+        raise MotionError("Motion rendering requires persistent isolated infrastructure, not ephemeral serverless")
     path = Path(raw).expanduser()
     if not path.is_absolute():
         raise MotionError("Motion media root must be absolute")
@@ -54,6 +56,10 @@ class LocalMotion:
         self.database = self.base / "motion.sqlite3"
         self.lock = threading.RLock()
         self._initialize()
+        try:
+            self.database.chmod(0o600)
+        except OSError:
+            pass
 
     def connect(self):
         con = sqlite3.connect(str(self.database), timeout=10)
