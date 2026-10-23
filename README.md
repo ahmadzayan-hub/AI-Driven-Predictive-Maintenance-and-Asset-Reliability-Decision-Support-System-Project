@@ -713,7 +713,7 @@ type check, **378 frontend unit tests**; build and budget within limits.
 Behaviour change ([decision](docs/adr/2026-10-23-p2-slice-six-interface.md)):
 committed woff2 subsets from `scripts/subset_fonts.py`, 119.4 KB to 86.5 KB
 (U19); `GET /api/assets/evidence` and a one-call Asset Intelligence view
-(U10); the relationship table says it lists the first 100 points (U11);
+(U10); the relationship table lists every plotted point (U11, main's version kept in the merge);
 "Analyses" and "Administration" (U14); every upload call to action through
 Datasets (U15); the evidence's as-of time and an action on the empty
 dashboard picker (U16); all 21 message packs in the parity test, the export

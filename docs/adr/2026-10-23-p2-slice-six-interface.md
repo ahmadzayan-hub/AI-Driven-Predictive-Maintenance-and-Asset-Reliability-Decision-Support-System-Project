@@ -27,6 +27,9 @@ slice of section 3 of `docs/implementation/DELIVERY_ROADMAP.md`).
 3. **The relationship table says how many rows it shows (U11).** Under the
    scatter's numeric alternative, when the chart draws more than the 100
    rows the table lists, a line says so in both languages.
+   *Merge note, 23 October:* main's platform slice lists every plotted
+   point instead, and its end-to-end test holds that; the merge keeps the
+   complete table and drops the note.
 4. **One noun per destination (U14).** The run list is "Analyses"
    (Arabic unchanged); the administration view is "Administration"
    (الإدارة). The end-to-end specs follow the labels.
