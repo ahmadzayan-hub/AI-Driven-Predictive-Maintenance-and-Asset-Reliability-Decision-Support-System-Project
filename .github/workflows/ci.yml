@@ -67,6 +67,28 @@ jobs:
           echo "::endgroup::"
           grep -E "^(Ran [0-9]+ tests|FAILED|OK)" python-tests.log || true
 
+      - name: Build non-activating worker candidate
+        run: |
+          docker build --platform linux/amd64 -f Dockerfile.worker -t miyaar-worker-candidate .
+          docker image inspect python:3.11-slim-bookworm --format '{{json .RepoDigests}}'
+
+      - name: Worker container guards and disposable PostgreSQL restart tests
+        # No deployment, production credential, email or model-provider access.
+        # Only this job's disposable PostgreSQL service and synthetic fixtures.
+        run: |
+          set +e
+          docker run --rm --read-only --network none --tmpfs /tmp:rw,noexec,nosuid,size=64m \
+            miyaar-worker-candidate > daemon-guard.log 2>&1
+          result=$?
+          set -e
+          test "$result" -eq 2
+          grep -q 'Daemon configuration rejected' daemon-guard.log
+          docker run --rm --read-only --network host --tmpfs /tmp:rw,noexec,nosuid,size=64m \
+            --mount type=bind,src="$GITHUB_WORKSPACE/tests",dst=/acceptance/tests,readonly \
+            --env PG_TEST_URL --env REQUIRE_PG=1 --env PYTHONPATH=/app:/acceptance \
+            --entrypoint python miyaar-worker-candidate \
+            -m unittest tests.test_daemon.DurableBytesPostgresRestartTests -v
+
       - name: Python dependency audit (informational)
         # Advisory only: a new transitive CVE should be visible without
         # blocking unrelated changes; triage findings in the PR.

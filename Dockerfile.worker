@@ -1,0 +1,14 @@
+# Candidate only: no daemon is declared in the live vercel.json.
+# Resolve and review the official base-image digest before production activation.
+FROM python:3.11-slim-bookworm
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+WORKDIR /app
+COPY requirements.txt ./
+RUN python -m pip install --no-cache-dir --require-hashes -r requirements.txt
+# Explicit source allowlist. Never COPY the repository, uploads, vault or .env.
+COPY server/ ./server/
+COPY config.json agent.py utils.py ./
+RUN useradd --uid 10001 --create-home worker
+USER 10001:10001
+STOPSIGNAL SIGTERM
+ENTRYPOINT ["python", "-m", "server.daemon"]

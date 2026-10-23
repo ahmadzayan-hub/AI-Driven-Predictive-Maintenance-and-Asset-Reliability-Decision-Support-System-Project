@@ -1,0 +1,11 @@
+**
+!Dockerfile.worker
+!requirements.txt
+!config.json
+!agent.py
+!utils.py
+!server/
+!server/**
+**/__pycache__/
+**/*.pyc
+**/.env*
