@@ -72,3 +72,15 @@ What each round of brain maintenance changed, newest last. The SessionStart hook
 - Refreshed [[Agent collaboration]], [[Accessible motion]] and [[Design system]] with the sourced React/SVG, React Flow and Motion study. Distinguished current behavior from the proposed explorer and recorded that production dependencies remain unchanged.
 - Retained incoming agent measurement knowledge through `827a584`. Existing [[Home]] coverage is unchanged; the new research belongs in the existing concepts rather than duplicate notes.
 - Verified the updated source paths and strict brain structure. The isolated experiment's browser scope and remaining acceptance checks are recorded in the study; application verification counts remain in README.
+
+## 2026-10-23
+
+- `scripts/brain_check.py --json` before the edits: 46 notes, 553 links, no broken links, missing fields, bad dates, stale notes, duplicate candidates, unlinked mentions or orphans; maintenance due since 21 October.
+- Refreshed [[Decision log]] with the fourteen records it lacked: the thirteen of 22 October (a model per role, built-in roles, free and hosted open models, generated ids, Arabic rendered reports, the Android app, the audit fixes, the Executive Command Centre, the three release-gate slices, decision inputs in the interface) and today's P2 slice one (sources: `docs/adr`).
+- Refreshed 4 values in [[Model validation]]: the three-test verdict with the Wilson lower bound, declared splits, the unscored dated target without a chronological hold-out, and how to read an older card (sources: `server/maintenance/targets.py`, `server/modelling.py`, `docs/adr/2026-10-23-p2-slice-one.md`).
+- Refreshed [[Run lifecycle]] with idempotent creation, the stage and runtime deadlines and the decision record; [[Governed pipeline]] with rates never summed, decision inputs and incomplete periods; [[Approval gate]] with the read-before-approve rule and the completed record; [[Custom stages]] with the wall-clock limit (sources: `server/runs.py`, `server/deadline.py`, `server/analytics.py`, the 22 and 23 October records).
+- Refreshed [[Release acceptance]] with the closed P1 list, the slice rhythm and the hosted CI state (139 passed, 5 skipped on the merged head), and [[Verification and budgets]] with the current allocations (220 KB of scripts, 30.5 KB of CSS in total) (sources: `docs/implementation/DELIVERY_ROADMAP.md`, `README.md`, `.github/workflows/ci.yml`, `scripts/verify.py`).
+- Refreshed [[User]] with the slice-by-slice way of working of 22 and 23 October (sources: session logs).
+- Linked 1 mention (agent runtime in [[Run lifecycle]]). Merged no notes: no duplicate candidates were reported, and today's decisions extend existing concepts rather than introduce new ones.
+- `scripts/brain_check.py --strict` exits 0 after the edits; [[Home]] still lists every note.
+

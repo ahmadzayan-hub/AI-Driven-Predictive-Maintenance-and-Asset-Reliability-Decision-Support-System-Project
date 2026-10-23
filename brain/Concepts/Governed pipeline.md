@@ -3,9 +3,9 @@ type: concept
 aliases: [Specialist pipeline, Analytics pipeline]
 tags: [architecture, agents]
 status: active
-updated: 2026-10-20
+updated: 2026-10-23
 review_every_days: 30
-sources: [server/analytics.py, server/datasets.py, server/joins.py, docs/AGENT_CATALOG.md, docs/PROJECT_CHARTER.md, docs/adr/0009-hermes-and-the-specialist-roster.md]
+sources: [server/analytics.py, server/datasets.py, server/joins.py, docs/AGENT_CATALOG.md, docs/PROJECT_CHARTER.md, docs/adr/0009-hermes-and-the-specialist-roster.md, docs/adr/2026-10-22-release-gate-slice-two.md, docs/adr/2026-10-22-release-gate-slice-three.md, docs/adr/2026-10-23-p2-slice-one.md]
 ---
 
 # Governed pipeline
@@ -25,6 +25,9 @@ How [[Agentic OS]] analyses a dataset: specialist stages in a defined order, eac
 - Association is never reported as cause; causal claims need a control and a treatment group.
 - Every figure names its measure and its owner through the metric glossary, and follows [[Weighted KPIs]].
 - Runs are durable: they can be paused, cancelled and resumed after a crash.
+- A rate is never summed, trended or ranked; every forecast is backtested against repeating the last period and called weak when it does not beat it; every figure in a claim must appear in the evidence it cites (release-gate slice two, 22 October 2026).
+- Uplift and cost are inputs, not assumptions: a run may state them per target, every option says whether its improvement was stated or assumed, and the sensitivity stage reports the flip point when the ranking is a close call. The Analytics form collects them and the run view shows the decision record (22 October).
+- A last period holding fewer records than three quarters of the busiest earlier period is left out of the forecast and the anomaly check and declared as incomplete (23 October).
 
 ## Limits
 

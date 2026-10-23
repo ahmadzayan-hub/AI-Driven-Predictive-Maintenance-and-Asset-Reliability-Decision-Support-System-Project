@@ -3,7 +3,7 @@ type: decision
 aliases: [ADR index, Architecture decisions]
 tags: [decisions]
 status: active
-updated: 2026-10-22
+updated: 2026-10-23
 review_every_days: 30
 sources: [docs/adr]
 ---
@@ -100,3 +100,17 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 All seven [[Analytics OS roadmap]] milestones have their records.
 | 2026-10-21-connected-agent-workspace | Responsive connected workflow, bounded zoom and recorded asset inspection; lazy-view allocation | [[Agent collaboration]], [[Design system]] |
 | 2026-10-22-worker-model-role-parity | Background execution honors model roles, concise local briefs and the shared privacy boundary; owner-selected one-model CPU profile | [[Model gateway]], [[Hermes orchestrator]], [[Model privacy]] |
+| 2026-10-22-a-model-per-role | A model per role, written as provider and model | [[Model gateway]], [[Hermes orchestrator]] |
+| 2026-10-22-built-in-roles | Built-in Hermes, agents and consultants play any role no model is configured for | [[Hermes orchestrator]], [[Model gateway]] |
+| 2026-10-22-free-open-models-and-task-map | Free open-source model providers and a task-to-model map | [[Model gateway]] |
+| 2026-10-22-hosted-open-source-models | Hosted open-source models for the hosted site | [[Model gateway]], [[Agentic OS]] |
+| 2026-10-22-generated-ids-never-look-personal | Generated ids never look like a person's number | [[Model privacy]], [[Tenant isolation]] |
+| 2026-10-22-arabic-rendered-analysis-reports | Arabic analysis content and rendered house-style reports; a report-language choice per run | [[Identity]], [[House style]], [[Governed pipeline]] |
+| 2026-10-22-android-app-first-release | The Android app's first release, authored with a tested core; compiles once an SDK is reachable | [[Agentic OS]] |
+| 2026-10-22-audit-fixes-period-order-grounding-privacy-identity | Audit fixes: period order, narrator grounding, role privacy, hosted identity, session retention | [[Governed pipeline]], [[Model privacy]], [[Managed identity]] |
+| 2026-10-22-executive-command-centre | The Overview is the Executive Command Centre: a decision brief from real run figures | [[Design system]], [[Weighted KPIs]] |
+| 2026-10-22-release-gate-slice-one | Release gate, slice one: illustrative gain label, no substituted models, uncapped approval queue, announced loading, read-only CI token | [[Release acceptance]], [[Governed pipeline]] |
+| 2026-10-22-release-gate-slice-two | Release gate, slice two: rates never summed, a naive baseline and weak rule for every forecast, figures checked against cited evidence, approve after reading, JWT audience and issuer | [[Release acceptance]], [[Governed pipeline]], [[Approval gate]] |
+| 2026-10-22-release-gate-slice-three | Release gate, slice three: decision inputs and record, signalling escalation, currency, landing on the Command Centre, hosted robustness, blind floors, model ledger, browser coverage; the P1 list closed | [[Release acceptance]], [[Governed pipeline]], [[Approval gate]] |
+| 2026-10-22-decision-inputs-interface | The Analytics form collects an improvement and a cost per group; the run view shows the decision record | [[Governed pipeline]], [[Approval gate]], [[Design system]] |
+| 2026-10-23-p2-slice-one | P2 slice one: a Wilson lower bound on the maintenance-risk verdict, declared splits, incomplete periods left out, loopback by default, idempotent run creation, wall-clock limits on custom stages and agent runtimes | [[Model validation]], [[Run lifecycle]], [[Custom stages]], [[Release acceptance]] |
