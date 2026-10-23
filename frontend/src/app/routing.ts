@@ -19,7 +19,7 @@ export function parseRoute(hash: string): Route {
   const [name, rawId, rawPage] = path.split('/')
   const tab = name === 'assistant' || name === 'workspace' ? 'chat' : name
   if (!TABS.has(tab as Tab)) return { tab: 'overview' }
-  if (tab === 'runs' && rawId && ID.test(rawId)) return { tab, runId: rawId }
+  if ((tab === 'runs' || tab === 'operations') && rawId && ID.test(rawId)) return { tab, runId: rawId }
   if (tab === 'runs' && !rawId && new URLSearchParams(query).get('source') === 'upload') {
     const profile = new URLSearchParams(query).get('profile')
     return { tab, source: 'upload', ...(profile === 'maintenance' || profile === 'models' ? { profile } : {}) }
@@ -41,7 +41,7 @@ export function routeHash(route: Route): string {
     if (!route.runId) return '#/dashboard'
     return `#/dashboard/${encodeURIComponent(route.runId)}${route.page ? `/${route.page}` : ''}${route.query ? `?${route.query}` : ''}`
   }
-  return `#/${route.tab === 'chat' ? 'assistant' : route.tab}${route.tab === 'runs' && route.runId ? `/${encodeURIComponent(route.runId)}` : route.tab === 'runs' && route.source === 'upload' ? `?source=upload${route.profile ? `&profile=${route.profile}` : ''}` : ''}`
+  return `#/${route.tab === 'chat' ? 'assistant' : route.tab}${(route.tab === 'runs' || route.tab === 'operations') && route.runId ? `/${encodeURIComponent(route.runId)}` : route.tab === 'runs' && route.source === 'upload' ? `?source=upload${route.profile ? `&profile=${route.profile}` : ''}` : ''}`
 }
 
 function subscribe(listener: () => void) {

@@ -3,6 +3,7 @@ import './report-theme.css'
 import './report-document.css'
 import { ReportDocument } from './ReportDocument'
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { hasWorkSource } from '../../shared/sourceHandoff'
 import { useReadOnly } from '../../shared/readOnly'
 import { useSessionDraft } from '../../shared/useSessionDraft'
 import { formatNumberIn, translate } from '../../i18n'
@@ -171,6 +172,7 @@ interface RunsViewProps {
   onRunSelected?: (id: string | null) => void
   /** Open this run's dashboard (ADR 0032). */
   onOpenDashboard?: (id: string) => void
+  onDraftWork?: (id: string) => void
 }
 
 /** The custom stages a profile includes, by title, for the picker's help. */
@@ -191,7 +193,7 @@ function stageTitles(pipelines: Pipelines, profile: string, locale: string): str
   })
 }
 
-export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRunSelected, onOpenDashboard, draftScope = 'session' }: RunsViewProps) {
+export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRunSelected, onOpenDashboard, onDraftWork, draftScope = 'session' }: RunsViewProps) {
   const readOnly = useReadOnly()
   const { t, plural, isRtl, locale, formatNumber, formatDate, formatTime } = usePack(intakeMessages)
   const { t: tDecision } = usePack(decisionMessages)
@@ -827,6 +829,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                   </button>
                 </>
               ) : null}
+              {!readOnly && onDraftWork && hasWorkSource(run) && <button type="button" className="btn btn--ghost" onClick={() => onDraftWork(run.id)}>{tWorkflow('workflow.draftWork')}</button>}
               {tableReady && onOpenDashboard ? (
                 <button type="button" className="btn btn--ghost" onClick={() => onOpenDashboard(run.id)}>
                   <Icon name="dashboard" size={16} />

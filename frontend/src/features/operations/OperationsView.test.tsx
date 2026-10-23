@@ -59,6 +59,66 @@ async function openDraft(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe('maintenance operations', () => {
+  it('prefills only the exact revalidated source and never creates work on navigation', async () => {
+    const { calls } = serve(overview(), call => call.path === '/api/runs/source-1' ? { status: 200, body: { id: 'source-1', goal: 'Selected source', state: 'awaiting_approval', dataset_id: 'dataset-7' } } : undefined)
+    render(<OperationsView sourceRunId="source-1" onOpenRun={vi.fn()} />)
+    expect(await screen.findByText('Selected source')).toBeInTheDocument()
+    expect(await screen.findByLabelText('Evidence run ID')).toHaveValue('source-1')
+    expect(screen.getByLabelText('Evidence run ID')).toHaveAttribute('readonly')
+    expect(screen.getByLabelText('Asset column in the dataset')).toHaveValue('')
+    expect(screen.getByLabelText('Registered asset')).toHaveValue('')
+    expect(screen.getByLabelText('Assigned team member')).toHaveValue('')
+    expect(calls.every(call => call.method === 'GET')).toBe(true)
+    expect(screen.getByText(/Base dataset only/)).toBeInTheDocument()
+  })
+  it('clears prior prefill when the selected source changes or context is removed', async () => {
+    serve(overview(), call => call.path === '/api/runs/source-1' ? { status: 200, body: { id: 'source-1', goal: 'First source', state: 'completed', dataset_id: 'dataset-7' } } : call.path === '/api/runs/source-2' ? { status: 404 } : undefined)
+    const props = { onOpenRun: vi.fn(), onClearSource: vi.fn() }
+    const view = render(<OperationsView {...props} sourceRunId="source-1" />)
+    await screen.findByLabelText('Evidence run ID')
+    view.rerender(<OperationsView {...props} sourceRunId="source-2" />)
+    expect(screen.queryByLabelText('Evidence run ID')).not.toBeInTheDocument()
+    await screen.findByRole('alert')
+    view.rerender(<OperationsView {...props} />)
+    await screen.findByText('Records received')
+    expect(screen.getByLabelText('Evidence run ID')).toHaveValue('')
+  })
+  it('clears a valid source directly without retaining its draft fields', async () => {
+    serve(overview(), call => call.path === '/api/runs/source-1' ? { status: 200, body: { id: 'source-1', goal: 'First source', state: 'completed', dataset_id: 'dataset-7' } } : undefined)
+    const view = render(<OperationsView sourceRunId="source-1" onOpenRun={vi.fn()} />)
+    expect(await screen.findByLabelText('Evidence run ID')).toHaveValue('source-1')
+    fireEvent.change(screen.getByLabelText('Work title'), { target: { value: 'Unsaved first source work' } })
+    view.rerender(<OperationsView onOpenRun={vi.fn()} />)
+    await waitFor(() => expect(screen.getByLabelText('Evidence run ID')).toHaveValue(''))
+    expect(screen.getByLabelText('Work title')).toHaveValue('')
+    expect(screen.getByLabelText('Evidence run ID')).not.toHaveAttribute('readonly')
+  })
+  it('rejects a different returned run even when the dataset is valid', async () => {
+    serve(overview(), call => call.path === '/api/runs/source-1' ? { status: 200, body: { id: 'source-2', goal: 'Wrong response', state: 'completed', dataset_id: 'dataset-7' } } : undefined)
+    render(<OperationsView sourceRunId="source-1" onOpenRun={vi.fn()} />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('could not be verified')
+    expect(screen.queryByLabelText('Evidence run ID')).not.toBeInTheDocument()
+  })
+  it.each([null, undefined, ''])('rejects missing dataset identity %s instead of inferring it', async dataset_id => {
+    serve(overview(), call => call.path === '/api/runs/source-1' ? { status: 200, body: { id: 'source-1', goal: 'RMD Asset_ID.csv', state: 'completed', dataset_id } } : undefined)
+    render(<OperationsView sourceRunId="source-1" onOpenRun={vi.fn()} />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('could not be verified')
+    expect(screen.queryByLabelText('Evidence run ID')).not.toBeInTheDocument()
+  })
+  it.each([403, 404])('does not expose foreign or revoked source %s', async status => {
+    serve(overview(), call => call.path === '/api/runs/foreign' ? { status, body: { detail: 'Not available' } } : undefined)
+    render(<OperationsView sourceRunId="foreign" onOpenRun={vi.fn()} />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('Nothing was created')
+    expect(screen.queryByText('Create work order draft')).not.toBeInTheDocument()
+  })
+  it('does not offer creation to an organization viewer even with a valid source', async () => {
+    const data = overview(); data.permissions.write = false
+    serve(data, call => call.path === '/api/runs/source-1' ? { status: 200, body: { id: 'source-1', goal: 'Selected source', state: 'completed', dataset_id: 'dataset-7' } } : undefined)
+    render(<OperationsView sourceRunId="source-1" onOpenRun={vi.fn()} />)
+    await screen.findByText('Records received')
+    expect(screen.queryByText('Create work order draft')).not.toBeInTheDocument()
+  })
+
   it('separates complete registry totals from the displayed work queue', async () => {
     const data = overview()
     data.assets.push({ ...asset, id: 'asset-2', name: 'Standby pump', external_id: 'P-20' })
