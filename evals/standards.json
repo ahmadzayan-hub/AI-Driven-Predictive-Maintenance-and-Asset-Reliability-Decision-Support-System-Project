@@ -1,106 +1,657 @@
 {
- "about": "Whether a reporting standard the project answers to would refuse a sentence: a ranking called an optimum (ISO 55001 Cl. 6), a benefit asserted as realised, a cost total silent on how overhaul is treated (IAS 16 para 12), a count of observations described as assets, or a recommendation carrying no objective, owner or measure (ISO 55001 Cl. 6.2.1). Scored against scripts/standards_lint.refuses. English and Arabic.",
- "labels": [true, false],
+ "about": "Whether a reporting standard the project answers to would refuse a sentence: a ranking called an optimum (ISO 55001 Cl. 6), a benefit asserted as realised, a cost total silent on how overhaul is treated (IAS 16 para 12), a count of observations described as assets, or a recommendation carrying no objective, owner or measure (ISO 55001 Cl. 6.2.1). Scored against scripts/standards_lint.refuses. English and Arabic. On 23 October 2026 blind_v1 (36 cases, on which the first rules scored 0% recall) moved into dev and the rules were rewritten as linguistic families against it; blind_v2 was written independently that day and is the blind split.",
+ "labels": [
+  true,
+  false
+ ],
  "dev": [
-  {"text": "The model produces the optimal maintenance schedule for the fleet.", "label": true},
-  {"text": "Our ranking optimises spend across the 180 assets.", "label": true},
-  {"text": "This approach maximises availability within the current budget.", "label": true},
-  {"text": "النموذج يحدد الجدول الأمثل للصيانة.", "label": true},
-  {"text": "The programme saved USD 4.2 million in the first year.", "label": true},
-  {"text": "Preventive scheduling reduced costs by 12% across the depot.", "label": true},
-  {"text": "The pilot delivered savings of USD 300,000.", "label": true},
-  {"text": "وفّرنا 1.2 مليون درهم خلال الربع الأول.", "label": true},
-  {"text": "Total maintenance cost for the period was USD 50.4 million.", "label": true},
-  {"text": "Maintenance expenditure of USD 50,430,446 is reported below.", "label": true},
-  {"text": "إجمالي تكاليف الصيانة بلغ 50.4 مليون دولار.", "label": true},
-  {"text": "289 high-risk assets require intervention this cycle.", "label": true},
-  {"text": "There are 3,950 overdue work orders on 120 critical assets.", "label": true},
-  {"text": "289 أصول عالية المخاطر تحتاج تدخلاً.", "label": true},
-  {"text": "We recommend replacing the pumping station bearings.", "label": true},
-  {"text": "Compressor 14 should be prioritised.", "label": true},
-  {"text": "نوصي باستبدال المحامل في محطة الضخ.", "label": true},
-  {"text": "It is recommended that the depot defer the overhaul.", "label": true},
-  {"text": "The ranking orders assets by predicted risk and consequence; it is not an optimal allocation.", "label": false},
-  {"text": "A priority order is not an optimum and must not be described as one.", "label": false},
-  {"text": "The programme is expected to save USD 4.2 million, which has not yet been realised.", "label": false},
-  {"text": "Proposed savings are estimates and no saving has been demonstrated.", "label": false},
-  {"text": "الوفورات مقترحة ولم تتحقق بعد.", "label": false},
-  {"text": "Maintenance spend is split between routine servicing, charged to profit or loss, and overhaul capitalised under IAS 16.", "label": false},
-  {"text": "Routine repairs are expensed; the major inspection is treated as a separate component.", "label": false},
-  {"text": "289 high-risk observations were recorded, not 289 distinct assets.", "label": false},
-  {"text": "The 3,950 figure counts overdue status observations rather than assets.", "label": false},
-  {"text": "289 ملاحظة عالية المخاطر، وليست 289 أصلاً.", "label": false},
-  {"text": "We recommend prioritising compressor 14 to protect the 97% availability objective, owned by the depot manager.", "label": false},
-  {"text": "Bearings should be replaced before Q3 to meet the downtime target, with the reliability engineer accountable.", "label": false},
-  {"text": "نوصي بإعطاء الأولوية للضاغط 14 لتحقيق هدف الجاهزية، والمالك هو مدير المستودع.", "label": false},
-  {"text": "Mean availability across the period was 96.8%.", "label": false},
-  {"text": "The dataset holds 5,000 dated observations of 180 assets.", "label": false},
-  {"text": "Downtime totalled 91,074 hours over three calendar years.", "label": false},
-  {"text": "متوسط الجاهزية بلغ 96.8% خلال الفترة.", "label": false},
-  {"text": "This section describes the method, not its results.", "label": false}
+  {
+   "text": "The model produces the optimal maintenance schedule for the fleet.",
+   "label": true
+  },
+  {
+   "text": "Our ranking optimises spend across the 180 assets.",
+   "label": true
+  },
+  {
+   "text": "This approach maximises availability within the current budget.",
+   "label": true
+  },
+  {
+   "text": "النموذج يحدد الجدول الأمثل للصيانة.",
+   "label": true
+  },
+  {
+   "text": "The programme saved USD 4.2 million in the first year.",
+   "label": true
+  },
+  {
+   "text": "Preventive scheduling reduced costs by 12% across the depot.",
+   "label": true
+  },
+  {
+   "text": "The pilot delivered savings of USD 300,000.",
+   "label": true
+  },
+  {
+   "text": "وفّرنا 1.2 مليون درهم خلال الربع الأول.",
+   "label": true
+  },
+  {
+   "text": "Total maintenance cost for the period was USD 50.4 million.",
+   "label": true
+  },
+  {
+   "text": "Maintenance expenditure of USD 50,430,446 is reported below.",
+   "label": true
+  },
+  {
+   "text": "إجمالي تكاليف الصيانة بلغ 50.4 مليون دولار.",
+   "label": true
+  },
+  {
+   "text": "289 high-risk assets require intervention this cycle.",
+   "label": true
+  },
+  {
+   "text": "There are 3,950 overdue work orders on 120 critical assets.",
+   "label": true
+  },
+  {
+   "text": "289 أصول عالية المخاطر تحتاج تدخلاً.",
+   "label": true
+  },
+  {
+   "text": "We recommend replacing the pumping station bearings.",
+   "label": true
+  },
+  {
+   "text": "Compressor 14 should be prioritised.",
+   "label": true
+  },
+  {
+   "text": "نوصي باستبدال المحامل في محطة الضخ.",
+   "label": true
+  },
+  {
+   "text": "It is recommended that the depot defer the overhaul.",
+   "label": true
+  },
+  {
+   "text": "The ranking orders assets by predicted risk and consequence; it is not an optimal allocation.",
+   "label": false
+  },
+  {
+   "text": "A priority order is not an optimum and must not be described as one.",
+   "label": false
+  },
+  {
+   "text": "The programme is expected to save USD 4.2 million, which has not yet been realised.",
+   "label": false
+  },
+  {
+   "text": "Proposed savings are estimates and no saving has been demonstrated.",
+   "label": false
+  },
+  {
+   "text": "الوفورات مقترحة ولم تتحقق بعد.",
+   "label": false
+  },
+  {
+   "text": "Maintenance spend is split between routine servicing, charged to profit or loss, and overhaul capitalised under IAS 16.",
+   "label": false
+  },
+  {
+   "text": "Routine repairs are expensed; the major inspection is treated as a separate component.",
+   "label": false
+  },
+  {
+   "text": "289 high-risk observations were recorded, not 289 distinct assets.",
+   "label": false
+  },
+  {
+   "text": "The 3,950 figure counts overdue status observations rather than assets.",
+   "label": false
+  },
+  {
+   "text": "289 ملاحظة عالية المخاطر، وليست 289 أصلاً.",
+   "label": false
+  },
+  {
+   "text": "We recommend prioritising compressor 14 to protect the 97% availability objective, owned by the depot manager.",
+   "label": false
+  },
+  {
+   "text": "Bearings should be replaced before Q3 to meet the downtime target, with the reliability engineer accountable.",
+   "label": false
+  },
+  {
+   "text": "نوصي بإعطاء الأولوية للضاغط 14 لتحقيق هدف الجاهزية، والمالك هو مدير المستودع.",
+   "label": false
+  },
+  {
+   "text": "Mean availability across the period was 96.8%.",
+   "label": false
+  },
+  {
+   "text": "The dataset holds 5,000 dated observations of 180 assets.",
+   "label": false
+  },
+  {
+   "text": "Downtime totalled 91,074 hours over three calendar years.",
+   "label": false
+  },
+  {
+   "text": "متوسط الجاهزية بلغ 96.8% خلال الفترة.",
+   "label": false
+  },
+  {
+   "text": "This section describes the method, not its results.",
+   "label": false
+  },
+  {
+   "text": "The plan represents the ideal allocation of inspection crews across the network.",
+   "label": true,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "Our risk ordering yields the most efficient spend possible for the fleet.",
+   "label": true,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "The programme has already paid for itself through avoided failures this year.",
+   "label": true,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "Early replacement cut the depot's annual repair bill by AED 2.1 million.",
+   "label": true,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "Overall upkeep spending reached AED 18.7 million across the three years.",
+   "label": true,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "Combined servicing and overhaul spend came to AED 9.3 million.",
+   "label": true,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "The analysis identified 412 assets in the critical band this quarter.",
+   "label": true,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "Fifty-seven assets exceeded the vibration threshold during the period.",
+   "label": true,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "The team should bring forward the gearbox inspection.",
+   "label": true,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "Priority ought to go to the escalators at the interchange stations.",
+   "label": true,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "The list ranks stations by expected consequence of failure and does not claim to be the best allocation.",
+   "label": false,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "Benefits are projected, not realised, and will be verified against next year's invoices.",
+   "label": false,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "Servicing costs are expensed as incurred, while the mid-life overhaul is capitalised and depreciated to the next overhaul.",
+   "label": false,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "The 412 figure counts monthly readings in the critical band, not individual machines.",
+   "label": false,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "We recommend bringing forward the gearbox inspection to hold the 98% availability objective; the rolling stock manager owns the action and the measure is unplanned downtime hours.",
+   "label": false,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "Average time to repair fell to 9.4 hours in the latest quarter.",
+   "label": false,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "The panel contains 7,200 monthly readings from 240 escalators.",
+   "label": false,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "Figures in this report are drawn from the asset register as at 30 June.",
+   "label": false,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "تمثل الخطة التوزيع المثالي لفرق التفتيش على الشبكة.",
+   "label": true,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "ترتيب المخاطر يعطي أكفأ إنفاق ممكن للأسطول.",
+   "label": true,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "حقق البرنامج وفورات فعلية قدرها 2.1 مليون درهم هذا العام.",
+   "label": true,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "خفّض الاستبدال المبكر فاتورة الإصلاح السنوية بنسبة 15%.",
+   "label": true,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "وصل مجموع ما أُنفق على الصيانة إلى 18.7 مليون درهم خلال ثلاث سنوات.",
+   "label": true,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "رصد التحليل 412 أصلاً في النطاق الحرج هذا الربع.",
+   "label": true,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "هناك 1,350 مركبة متأخرة عن الفحص الدوري.",
+   "label": true,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "ينبغي تقديم موعد فحص صناديق التروس.",
+   "label": true,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "يُقترح منح الأولوية للسلالم المتحركة في محطات التبادل.",
+   "label": true,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "القائمة ترتب المحطات حسب أثر العطل المتوقع ولا تدّعي أنها التوزيع الأفضل.",
+   "label": false,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "الفوائد متوقعة وليست محققة، وسيتم التحقق منها مقابل فواتير العام المقبل.",
+   "label": false,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "تُحمَّل تكاليف الخدمة الدورية على الأرباح والخسائر، بينما تُرسمل العمرة النصفية وتُستهلك حتى العمرة التالية.",
+   "label": false,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "الرقم 412 يعد القراءات الشهرية في النطاق الحرج وليس عدد الآلات.",
+   "label": false,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "نوصي بتقديم فحص صناديق التروس للحفاظ على هدف الجاهزية 98%، ويتولى مدير المركبات الإجراء ويقاس بساعات التوقف غير المخطط.",
+   "label": false,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "انخفض متوسط زمن الإصلاح إلى 9.4 ساعة في الربع الأخير.",
+   "label": false,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "تضم البيانات 7,200 قراءة شهرية من 240 سلماً متحركاً.",
+   "label": false,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "الأرقام الواردة في هذا التقرير مأخوذة من سجل الأصول كما في 30 يونيو.",
+   "label": false,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  },
+  {
+   "text": "يعرض القسم الثالث مصادر البيانات وحدودها.",
+   "label": false,
+   "source": "blind v1 (2026-10-22), moved into dev on 2026-10-23 after the rules were fixed against it"
+  }
  ],
  "holdout": [
-  {"text": "The schedule we propose is the best possible use of the crew.", "label": true, "source": "not blind: written by the same session that wrote the patterns"},
-  {"text": "Routing work this way minimises total downtime.", "label": true, "source": "not blind: written by the same session that wrote the patterns"},
-  {"text": "الحل الأمثل هو تقديم صيانة الضواغط.", "label": true, "source": "not blind: written by the same session that wrote the patterns"},
-  {"text": "The depot recovered USD 90,000 through earlier intervention.", "label": true, "source": "not blind: written by the same session that wrote the patterns"},
-  {"text": "Achieved savings across the two sites came to 8%.", "label": true, "source": "not blind: written by the same session that wrote the patterns"},
-  {"text": "تم توفير 400 ألف درهم بفضل البرنامج.", "label": true, "source": "not blind: written by the same session that wrote the patterns"},
-  {"text": "Total repair spend for the year is shown per asset class.", "label": true, "source": "not blind: written by the same session that wrote the patterns"},
-  {"text": "We capitalise the dry-dock work in the year it occurs.", "label": true, "source": "not blind: written by the same session that wrote the patterns"},
-  {"text": "Forty-one critical machines are overdue for inspection.", "label": false, "source": "not blind; a spelled-out count the digit pattern does not reach"},
-  {"text": "120 at-risk units sit in the northern depot.", "label": true, "source": "not blind: written by the same session that wrote the patterns"},
-  {"text": "Overhaul must be prioritised at the pumping station.", "label": true, "source": "not blind: written by the same session that wrote the patterns"},
-  {"text": "يوصى بتأجيل العمرة الكبرى.", "label": true, "source": "not blind: written by the same session that wrote the patterns"},
-  {"text": "The order is a ranking by consequence and does not claim to be optimal.", "label": false, "source": "not blind: written by the same session that wrote the patterns"},
-  {"text": "No saving has been realised and none is claimed.", "label": false, "source": "not blind: written by the same session that wrote the patterns"},
-  {"text": "لم تتحقق أي وفورات حتى الآن.", "label": false, "source": "not blind: written by the same session that wrote the patterns"},
-  {"text": "Spend is reported in two parts: servicing expensed under IAS 16 para 12, and the overhaul component depreciated to the next inspection.", "label": false, "source": "not blind: written by the same session that wrote the patterns"},
-  {"text": "The 289 count is of rows in the panel rather than of equipment.", "label": false, "source": "not blind: written by the same session that wrote the patterns"},
-  {"text": "We recommend deferring the overhaul until Q4 to hold the cost objective, with the finance owner signing off.", "label": false, "source": "not blind: written by the same session that wrote the patterns"},
-  {"text": "Compressor 14 should be replaced to protect the safety objective; the reliability engineer is accountable.", "label": false, "source": "not blind: written by the same session that wrote the patterns"},
-  {"text": "نوصي بتأجيل العمرة لتحقيق هدف التكلفة، والمسؤول هو مدير المالية.", "label": false, "source": "not blind: written by the same session that wrote the patterns"},
-  {"text": "Mean time between failures averaged 342 hours.", "label": false, "source": "not blind: written by the same session that wrote the patterns"},
-  {"text": "The panel covers 25 sites across three calendar years.", "label": false, "source": "not blind: written by the same session that wrote the patterns"},
-  {"text": "This appendix lists the column definitions.", "label": false, "source": "not blind: written by the same session that wrote the patterns"},
-  {"text": "متوسط زمن الإصلاح 11.7 ساعة.", "label": false, "source": "not blind: written by the same session that wrote the patterns"}
+  {
+   "text": "The schedule we propose is the best possible use of the crew.",
+   "label": true,
+   "source": "not blind: written by the same session that wrote the patterns"
+  },
+  {
+   "text": "Routing work this way minimises total downtime.",
+   "label": true,
+   "source": "not blind: written by the same session that wrote the patterns"
+  },
+  {
+   "text": "الحل الأمثل هو تقديم صيانة الضواغط.",
+   "label": true,
+   "source": "not blind: written by the same session that wrote the patterns"
+  },
+  {
+   "text": "The depot recovered USD 90,000 through earlier intervention.",
+   "label": true,
+   "source": "not blind: written by the same session that wrote the patterns"
+  },
+  {
+   "text": "Achieved savings across the two sites came to 8%.",
+   "label": true,
+   "source": "not blind: written by the same session that wrote the patterns"
+  },
+  {
+   "text": "تم توفير 400 ألف درهم بفضل البرنامج.",
+   "label": true,
+   "source": "not blind: written by the same session that wrote the patterns"
+  },
+  {
+   "text": "Total repair spend for the year is shown per asset class.",
+   "label": true,
+   "source": "not blind: written by the same session that wrote the patterns"
+  },
+  {
+   "text": "We capitalise the dry-dock work in the year it occurs.",
+   "label": true,
+   "source": "not blind: written by the same session that wrote the patterns"
+  },
+  {
+   "text": "Forty-one critical machines are overdue for inspection.",
+   "label": false,
+   "source": "not blind; a spelled-out count the digit pattern does not reach"
+  },
+  {
+   "text": "120 at-risk units sit in the northern depot.",
+   "label": true,
+   "source": "not blind: written by the same session that wrote the patterns"
+  },
+  {
+   "text": "Overhaul must be prioritised at the pumping station.",
+   "label": true,
+   "source": "not blind: written by the same session that wrote the patterns"
+  },
+  {
+   "text": "يوصى بتأجيل العمرة الكبرى.",
+   "label": true,
+   "source": "not blind: written by the same session that wrote the patterns"
+  },
+  {
+   "text": "The order is a ranking by consequence and does not claim to be optimal.",
+   "label": false,
+   "source": "not blind: written by the same session that wrote the patterns"
+  },
+  {
+   "text": "No saving has been realised and none is claimed.",
+   "label": false,
+   "source": "not blind: written by the same session that wrote the patterns"
+  },
+  {
+   "text": "لم تتحقق أي وفورات حتى الآن.",
+   "label": false,
+   "source": "not blind: written by the same session that wrote the patterns"
+  },
+  {
+   "text": "Spend is reported in two parts: servicing expensed under IAS 16 para 12, and the overhaul component depreciated to the next inspection.",
+   "label": false,
+   "source": "not blind: written by the same session that wrote the patterns"
+  },
+  {
+   "text": "The 289 count is of rows in the panel rather than of equipment.",
+   "label": false,
+   "source": "not blind: written by the same session that wrote the patterns"
+  },
+  {
+   "text": "We recommend deferring the overhaul until Q4 to hold the cost objective, with the finance owner signing off.",
+   "label": false,
+   "source": "not blind: written by the same session that wrote the patterns"
+  },
+  {
+   "text": "Compressor 14 should be replaced to protect the safety objective; the reliability engineer is accountable.",
+   "label": false,
+   "source": "not blind: written by the same session that wrote the patterns"
+  },
+  {
+   "text": "نوصي بتأجيل العمرة لتحقيق هدف التكلفة، والمسؤول هو مدير المالية.",
+   "label": false,
+   "source": "not blind: written by the same session that wrote the patterns"
+  },
+  {
+   "text": "Mean time between failures averaged 342 hours.",
+   "label": false,
+   "source": "not blind: written by the same session that wrote the patterns"
+  },
+  {
+   "text": "The panel covers 25 sites across three calendar years.",
+   "label": false,
+   "source": "not blind: written by the same session that wrote the patterns"
+  },
+  {
+   "text": "This appendix lists the column definitions.",
+   "label": false,
+   "source": "not blind: written by the same session that wrote the patterns"
+  },
+  {
+   "text": "متوسط زمن الإصلاح 11.7 ساعة.",
+   "label": false,
+   "source": "not blind: written by the same session that wrote the patterns"
+  }
  ],
- "blind_v1": [
-  {"text": "The plan represents the ideal allocation of inspection crews across the network.", "label": true, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "Our risk ordering yields the most efficient spend possible for the fleet.", "label": true, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "The programme has already paid for itself through avoided failures this year.", "label": true, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "Early replacement cut the depot's annual repair bill by AED 2.1 million.", "label": true, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "Overall upkeep spending reached AED 18.7 million across the three years.", "label": true, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "Combined servicing and overhaul spend came to AED 9.3 million.", "label": true, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "The analysis identified 412 assets in the critical band this quarter.", "label": true, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "Fifty-seven assets exceeded the vibration threshold during the period.", "label": true, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "The team should bring forward the gearbox inspection.", "label": true, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "Priority ought to go to the escalators at the interchange stations.", "label": true, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "The list ranks stations by expected consequence of failure and does not claim to be the best allocation.", "label": false, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "Benefits are projected, not realised, and will be verified against next year's invoices.", "label": false, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "Servicing costs are expensed as incurred, while the mid-life overhaul is capitalised and depreciated to the next overhaul.", "label": false, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "The 412 figure counts monthly readings in the critical band, not individual machines.", "label": false, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "We recommend bringing forward the gearbox inspection to hold the 98% availability objective; the rolling stock manager owns the action and the measure is unplanned downtime hours.", "label": false, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "Average time to repair fell to 9.4 hours in the latest quarter.", "label": false, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "The panel contains 7,200 monthly readings from 240 escalators.", "label": false, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "Figures in this report are drawn from the asset register as at 30 June.", "label": false, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "تمثل الخطة التوزيع المثالي لفرق التفتيش على الشبكة.", "label": true, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "ترتيب المخاطر يعطي أكفأ إنفاق ممكن للأسطول.", "label": true, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "حقق البرنامج وفورات فعلية قدرها 2.1 مليون درهم هذا العام.", "label": true, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "خفّض الاستبدال المبكر فاتورة الإصلاح السنوية بنسبة 15%.", "label": true, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "وصل مجموع ما أُنفق على الصيانة إلى 18.7 مليون درهم خلال ثلاث سنوات.", "label": true, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "رصد التحليل 412 أصلاً في النطاق الحرج هذا الربع.", "label": true, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "هناك 1,350 مركبة متأخرة عن الفحص الدوري.", "label": true, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "ينبغي تقديم موعد فحص صناديق التروس.", "label": true, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "يُقترح منح الأولوية للسلالم المتحركة في محطات التبادل.", "label": true, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "القائمة ترتب المحطات حسب أثر العطل المتوقع ولا تدّعي أنها التوزيع الأفضل.", "label": false, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "الفوائد متوقعة وليست محققة، وسيتم التحقق منها مقابل فواتير العام المقبل.", "label": false, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "تُحمَّل تكاليف الخدمة الدورية على الأرباح والخسائر، بينما تُرسمل العمرة النصفية وتُستهلك حتى العمرة التالية.", "label": false, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "الرقم 412 يعد القراءات الشهرية في النطاق الحرج وليس عدد الآلات.", "label": false, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "نوصي بتقديم فحص صناديق التروس للحفاظ على هدف الجاهزية 98%، ويتولى مدير المركبات الإجراء ويقاس بساعات التوقف غير المخطط.", "label": false, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "انخفض متوسط زمن الإصلاح إلى 9.4 ساعة في الربع الأخير.", "label": false, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "تضم البيانات 7,200 قراءة شهرية من 240 سلماً متحركاً.", "label": false, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "الأرقام الواردة في هذا التقرير مأخوذة من سجل الأصول كما في 30 يونيو.", "label": false, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"},
-  {"text": "يعرض القسم الثالث مصادر البيانات وحدودها.", "label": false, "source": "blind v1 (2026-10-22): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py or any of its patterns; the dev and holdout sentences were read only so that none of their phrasings is repeated; scored once against the unchanged lint before being stored; NOT used to fix any rule, so it can judge the next fix"}
+ "blind_v2": [
+  {
+   "text": "Sequencing the workshop visits in this order is the best arrangement the depot can achieve with its present headcount.",
+   "label": true,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "The crew roster below is the solved allocation for the three western garages.",
+   "label": true,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "Condition-triggered servicing has already knocked AED 640,000 off this year's spares invoices at the Marsa yard.",
+   "label": true,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "By the end of the second quarter the sensor rollout had earned back its purchase price.",
+   "label": true,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "Spend on keeping the tram fleet running came to AED 12.6 million for the year, inspections and heavy refits included.",
+   "label": true,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "Across the three depots the all-in repair outlay reached 7.8 million dirhams.",
+   "label": true,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "Two hundred and six units sat above the alarm limit during the summer months.",
+   "label": true,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "The screening flagged 1,048 vehicles as high-risk in the April cycle.",
+   "label": true,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "Ninety-three items of equipment crossed the vibration ceiling, according to the panel.",
+   "label": true,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "Attention needs to move to the ventilation fans at the northern tunnel.",
+   "label": true,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "It would be sensible for the workshop to look again at the bogie lubrication intervals.",
+   "label": true,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "A sorted list of consequences tells the planner where to look first; it does not tell them the cheapest way to look.",
+   "label": false,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "If the condition triggers hold, spares invoices at the Marsa yard would be around AED 640,000 lower next year.",
+   "label": false,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "Of the AED 12.6 million, routine inspections of AED 4.1 million were charged to the period and the heavy refits were carried as a separate depreciable component.",
+   "label": false,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "Overhaul of the chiller plant is recorded as a replacement component and depreciated over its own six-year life.",
+   "label": false,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "Two hundred and six readings above the alarm limit were logged over the summer, drawn from 38 distinct compressors.",
+   "label": false,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "The ventilation fans at the northern tunnel should be inspected by 15 August, with the tunnel services lead accountable and the measure being hours run above 40 degrees.",
+   "label": false,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "Would a second sensor on each gearbox change the ranking?",
+   "label": false,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "Median time between faults on the Marsa escalators was 611 hours.",
+   "label": false,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "The register lists 184 pumps, 72 chillers and 240 escalators as at the end of September.",
+   "label": false,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "ترتيب زيارات الورشة بهذا الشكل هو أفضل ترتيب يمكن للمستودع بلوغه بالعدد الحالي من الفنيين.",
+   "label": true,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "جدول الطواقم أدناه هو التوزيع المحلول لمرائب الغرب الثلاثة.",
+   "label": true,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "خفضت الصيانة المشروطة بالحالة فواتير قطع الغيار في حوض المرسى بمقدار 640 ألف درهم هذا العام.",
+   "label": true,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "استرد نشر الحساسات ثمن شرائه بحلول نهاية الربع الثاني.",
+   "label": true,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "بلغ ما أُنفق على تشغيل أسطول الترام 12.6 مليون درهم للسنة شاملاً الفحوص والترميمات الكبرى.",
+   "label": true,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "وصل مجموع نفقات الإصلاح في المستودعات الثلاثة إلى 7.8 مليون درهم.",
+   "label": true,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "مئتان وست وحدات تجاوزت حد الإنذار خلال أشهر الصيف.",
+   "label": true,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "صنّف الفرز 1,048 مركبة ضمن الفئة عالية الخطورة في دورة أبريل.",
+   "label": true,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "يجب أن ينتقل الاهتمام إلى مراوح التهوية في النفق الشمالي.",
+   "label": true,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "من المستحسن أن تعيد الورشة النظر في فترات تشحيم العربات.",
+   "label": true,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "لا يوجد ترتيب آخر للعمرات يمكنه خفض إجمالي توقف الأسطول أكثر من هذا.",
+   "label": true,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "القائمة المرتبة حسب الأثر تخبر المخطط من أين يبدأ، لكنها لا تخبره بأرخص طريقة للقيام بذلك.",
+   "label": false,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "إذا صمدت شروط التشغيل، فستكون فواتير قطع الغيار في حوض المرسى أقل بنحو 640 ألف درهم في العام المقبل.",
+   "label": false,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "من أصل 12.6 مليون درهم، حُمّلت الفحوص الدورية البالغة 4.1 مليون على الفترة، وسُجّلت الترميمات الكبرى كمكوّن مستقل قابل للإهلاك.",
+   "label": false,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "سُجّلت مئتان وست قراءات فوق حد الإنذار خلال الصيف، من 38 ضاغطاً مختلفاً.",
+   "label": false,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "ينبغي فحص مراوح التهوية في النفق الشمالي قبل 15 أغسطس، ويتحمل قائد خدمات النفق المسؤولية، والمقياس هو ساعات التشغيل فوق 40 درجة.",
+   "label": false,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "هل يغيّر تركيب حساس ثانٍ على كل صندوق تروس الترتيب؟",
+   "label": false,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "بلغ الوسيط لزمن ما بين الأعطال في سلالم المرسى 611 ساعة.",
+   "label": false,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "يضم السجل 184 مضخة و72 مبرداً و240 سلماً متحركاً كما في نهاية سبتمبر.",
+   "label": false,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  },
+  {
+   "text": "تُسجَّل عمرة محطة التبريد كمكوّن بديل وتُهلك على عمرها الخاص البالغ ست سنوات.",
+   "label": false,
+   "source": "blind v2 (2026-10-23): written by an independent agent from the label definitions only, without opening scripts/standards_lint.py; dev, holdout and blind_v1 read only so no phrasing repeats; scored once against the fixed lint before being stored; NOT used to fix any rule"
+  }
  ]
 }

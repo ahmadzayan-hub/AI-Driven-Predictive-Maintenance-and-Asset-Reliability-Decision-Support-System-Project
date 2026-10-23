@@ -21,7 +21,7 @@ holds labelled cases in up to three splits:
   so were their blind_v7 sets (2026-10-23), and the standards holdout was written by the same session that wrote the
   patterns. For those suites a holdout score is a second dev score;
 - `blind`: the split named by the suite's `blind` entry in SUITES
-  (causal and intent blind_v8, jargon blind_v6, standards blind_v1);
+  (causal and intent blind_v8, jargon blind_v6, standards blind_v2);
   blind_v7 moved into the causal and intent dev splits on 2026-10-23.
   Written by an agent from the label definitions only and never looked at
   while fixing a rule, so it is the score to quote. Once a blind set is
@@ -248,7 +248,7 @@ SUITES = {
                "agent": "Claims lint: causal wording in deliverables", "module": "scripts/claims_lint.causal_phrases"},
     "figures": {"file": "figures.json", "predict": _figures, "positive": True, "labels": [True, False],
                 "agent": "Figures check: unsourced or wrong figures", "module": "scripts/figures_check.check"},
-    "standards": {"file": "standards.json", "predict": _standards, "positive": True, "blind": "blind_v1",
+    "standards": {"file": "standards.json", "predict": _standards, "positive": True, "blind": "blind_v2",
                   "agent": "Standards lint: what a reporting standard would refuse",
                   "module": "scripts/standards_lint.refuses"},
 }

@@ -1538,3 +1538,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Decided:** "one", "third" and "quarter" are not read as figures; the speech error mapping stays in place because it carries `Retry-After`; the tool box still drops unknown arguments and reads scalars as text, and only then validates.
 - **Open / next:** U8 and U20 are owner decisions; the standards lint blind score; the model half of G8; PR #24 to merge when green.
 
+## 2026-10-23 · `d9e3f889` · claude/tender-clarke-m4uwgq (standards lint blind score)
+
+**Goal:** the last open item from the backlog that the code can move: the standards lint scored 0% on its blind set.
+
+- **Done:** blind_v1 moved into dev; the five classes rewritten as linguistic families (optimum, realised benefit, cost total without treatment, count as count, recommendation by its line of sight) with number words and Arabic forms; dev and the old blind set 100%, holdout 100% recall with one false alarm. An independent agent wrote blind_v2 (40 cases) from the definitions only, without opening the lint; scored once at 32% recall and stored as the floor, not used to fix anything. [Decision](docs/adr/2026-10-23-standards-lint-families-blind-v2.md).
+- **Verified:** `python scripts/evaluate_agents.py --suite standards`; `tests/test_evals.py` and `tests/test_agent_team.py`; quick verify (counts in README.md#testing).
+- **Decided:** the misses on v2 are the next families, named in the record; v2 moves into dev only when a v3 exists to judge the fix.
+- **Open / next:** U8 and U20 (owner decisions); the model half of G8; PR #24 to merge when green.
+

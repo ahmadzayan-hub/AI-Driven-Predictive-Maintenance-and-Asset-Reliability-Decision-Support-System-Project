@@ -623,6 +623,13 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Standards lint: families and blind set v2 — 23 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-23-standards-lint-families-blind-v2.md)):
+blind_v1 into dev, rules as linguistic families, blind_v2 written
+independently and scored once: dev 100%, holdout 100% recall, blind 32%
+recall (floor 0.31, was 0% on v1).
+
 ### P3 slice seven: the minor findings — 23 October 2026
 
 Behaviour change ([decision](docs/adr/2026-10-23-p3-slice-seven.md)): signed
