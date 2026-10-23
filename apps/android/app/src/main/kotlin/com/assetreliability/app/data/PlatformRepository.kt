@@ -11,9 +11,9 @@ import com.assetreliability.core.api.RunDetail
 import com.assetreliability.core.api.RunSummary
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -27,14 +27,15 @@ class PlatformRepository @Inject constructor(
 ) {
     private suspend fun client(): AssetReliabilityClient {
         val current = settings.current()
-        return AssetReliabilityClient(transport, current.serverUrl) { runBlocking { settings.current().token } }
+        return AssetReliabilityClient(transport, current.serverUrl) { current.token }
     }
 
     suspend fun health(): Health = client().health()
+    suspend fun identity() = client().identity()
     /** "demo", "local" or "jwt": what the server will let this phone do. */
     suspend fun authMode(): String = client().authConfig().mode
     suspend fun isReadOnly(): Boolean = settings.current().token == null && authMode() == "demo"
-    suspend fun runs(): List<RunSummary> = client().runs()
+    suspend fun runs(state: String? = null): List<RunSummary> = client().runs(state)
     suspend fun run(id: String): RunDetail = client().run(id)
     suspend fun datasets(): List<DatasetSummary> = client().datasets()
     suspend fun executive(runId: String): ExecutiveBrief = client().executive(runId, settings.current().language)
@@ -51,7 +52,18 @@ class PlatformRepository @Inject constructor(
             val index = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
             if (cursor.moveToFirst() && index >= 0) cursor.getString(index) else null
         } ?: "upload.csv"
-        val bytes = resolver.openInputStream(uri)?.use { it.readBytes() }
+        val bytes = resolver.openInputStream(uri)?.use { input ->
+            val output = ByteArrayOutputStream()
+            val buffer = ByteArray(8192)
+            while (true) {
+                val read = input.read(buffer)
+                if (read < 0) break
+                if (output.size() + read > 4_000_000)
+                    throw ApiException(413, "The file is larger than the 4 MB the platform accepts.")
+                output.write(buffer, 0, read)
+            }
+            output.toByteArray()
+        }
             ?: throw ApiException(0, "The file could not be read.")
         if (bytes.size > 4_000_000) throw ApiException(413, "The file is larger than the 4 MB the platform accepts.")
         val type = resolver.getType(uri) ?: when (name.substringAfterLast('.', "").lowercase()) {
@@ -63,8 +75,8 @@ class PlatformRepository @Inject constructor(
         client().uploadDataset(name, type, bytes, settings.current().language)
     }
 
-    suspend fun createRun(goal: String, datasetId: String, profile: String?): RunDetail =
-        client().createRun(goal, datasetId, settings.current().language, profile)
+    suspend fun createRun(goal: String, datasetId: String, profile: String?, idempotencyKey: String): RunDetail =
+        client().createRun(goal, datasetId, settings.current().language, profile, idempotencyKey)
 
     /** Downloads the executive report (HTML or DOCX) into the app cache for
      *  the share sheet. The server re-checks the snapshot; a 409 means the

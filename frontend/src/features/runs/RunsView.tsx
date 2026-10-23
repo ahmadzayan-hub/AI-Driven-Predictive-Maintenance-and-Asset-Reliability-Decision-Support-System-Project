@@ -31,6 +31,7 @@ import type {
 import { ApprovalCard } from './ApprovalCard'
 import { DecisionInputs } from './DecisionInputs'
 import { DecisionRecordCard } from './DecisionRecordCard'
+import { CreationAttempt } from './creationAttempt'
 import { EvidencePanel } from './EvidencePanel'
 import { JoinBuilder } from './JoinBuilder'
 import { ModelCards } from './ModelCards'
@@ -208,6 +209,8 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
   const fullReportRef = useRef<HTMLDivElement | null>(null)
   const closeEvidence = useCallback(() => setEvidenceTask(null), [])
   const starting = useRef(false)
+  const creationAttempt = useRef<CreationAttempt | null>(null)
+  if (!creationAttempt.current) creationAttempt.current = new CreationAttempt()
   // Where the data comes from (ADR 0024). A stored dataset and an
   // uploaded file are both analysed by reference: the run sends an id.
   const [source, setSource] = useState<'sample' | 'stored' | 'upload'>(() =>
@@ -359,6 +362,12 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
     try {
       const datasetId = primaryId ?? undefined
       const pasted = source === 'upload' && !uploaded && csvDraft.trim()
+      const idempotencyKey = await creationAttempt.current!.forRequest(draftScope, JSON.stringify([
+        goal.trim(), pasted ? csvDraft : null, pasted ? t('runs.pastedName') : null,
+        profile || null, reportLanguage, datasetId ?? null,
+        datasetId && joins.length ? { joins, breakdown } : null, assumptions ?? null,
+      ]))
+      if (!visible.current) return
       const detail = await api.createRun(
         goal.trim(),
         pasted ? csvDraft : undefined,
@@ -370,7 +379,9 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
         datasetId,
         datasetId && joins.length ? { joins, breakdown } : undefined,
         assumptions ?? undefined,
+        idempotencyKey,
       )
+      creationAttempt.current!.complete(draftScope)
       setRun(detail)
       void refreshList()
     } catch (error) {

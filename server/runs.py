@@ -149,6 +149,10 @@ def model_cards(result):
 # The longest idempotency key a run creation accepts (B14).
 MAX_IDEMPOTENCY_KEY = 200
 
+
+class IdempotencyConflict(ValueError):
+    """The owner reused a creation key for a different request."""
+
 class RunEngine:
     def __init__(self, store, vault_dir, gateway, limits=None, glossary=None,
                  stages=None, profiles=None, execution_mode="client", roles=None,
@@ -384,21 +388,33 @@ class RunEngine:
             idempotency_key = str(idempotency_key).strip()
             if not idempotency_key or len(idempotency_key) > MAX_IDEMPOTENCY_KEY:
                 raise ValueError("An idempotency key is 1 to 200 characters.")
+        request_hash = hashlib.sha256(json.dumps({
+            "goal": goal.strip(), "dataset_id": dataset_id,
+            "dataset_text": None if dataset_id else dataset_text,
+            "dataset_name": None if dataset_id else dataset_name,
+            "profile": profile, "language": language, "joins": joins or None,
+            "breakdown": breakdown, "assumptions": assumptions or None,
+        }, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")).hexdigest() if idempotency_key else None
         with self.store.atomic("owner:" + owner):
             if idempotency_key:
                 existing = self.store.find_run_by_key(owner, idempotency_key)
                 if existing is not None:
+                    if existing.get("request_hash") != request_hash:
+                        raise IdempotencyConflict(
+                            "تخص هوية المحاولة طلبًا مختلفًا أو سابقًا لا يمكن مطابقة مدخلاته. راجع التحليل السابق أو ابدأ محاولة جديدة."
+                            if language == "ar" else
+                            "This attempt key belongs to a different request, or an older request whose inputs cannot be matched. Review the earlier analysis or start a new attempt.")
                     detail = self.get_run(existing["id"])
                     detail["idempotent_replay"] = True
                     return detail
             return self._create_run_atomic(goal, dataset_text, dataset_name, owner,
                                            dataset_id, profile, language, joins, breakdown,
-                                           assumptions, idempotency_key)
+                                           assumptions, idempotency_key, request_hash)
 
     def _create_run_atomic(self, goal, dataset_text=None, dataset_name=None,
                            owner="local-owner", dataset_id=None, profile=None,
                            language="en", joins=None, breakdown=None, assumptions=None,
-                           idempotency_key=None):
+                           idempotency_key=None, request_hash=None):
         # An unknown profile, or a language reports are not written in, is
         # refused before anything is written.
         roles = self.roles_for(profile, joined=bool(joins))
@@ -467,7 +483,7 @@ class RunEngine:
             "mapping_json": mapping_json, "joins_json": joins_json,
             "assumptions_json": (json.dumps(assumptions, ensure_ascii=False)
                                  if assumptions else None),
-            "idempotency_key": idempotency_key or None})
+            "idempotency_key": idempotency_key or None, "request_hash": request_hash})
         titles = analytics.ROLE_TITLES_AR if language == "ar" else analytics.ROLE_TITLES
         for idx, role in enumerate(roles):
             # A plugin may name itself in Arabic too (ADR 0033).

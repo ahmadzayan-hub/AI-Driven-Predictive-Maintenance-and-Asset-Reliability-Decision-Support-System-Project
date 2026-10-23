@@ -32,7 +32,15 @@ export class ApiError extends Error {
 
 /** The server's `detail`: a sentence, or a summary with field errors. */
 function readDetail(body: unknown): { message: string | null; problems: MappingProblem[] } {
-  if (!body || typeof body !== 'object' || !('detail' in body)) return { message: null, problems: [] }
+  if (!body || typeof body !== 'object') return { message: null, problems: [] }
+  if ('error' in body && body.error && typeof body.error === 'object' && 'message' in body.error) {
+    const error = body.error as { message: unknown; problems?: unknown }
+    if (typeof error.message === 'string') return {
+      message: error.message,
+      problems: Array.isArray(error.problems) ? error.problems as MappingProblem[] : [],
+    }
+  }
+  if (!('detail' in body)) return { message: null, problems: [] }
   const detail = (body as { detail: unknown }).detail
   if (typeof detail === 'string') return { message: detail, problems: [] }
   if (detail && typeof detail === 'object' && 'message' in detail) {
@@ -240,11 +248,13 @@ export const api = {
     /** The decision inputs the run states (slice three, A2); the server
      *  validates them before anything is written. */
     assumptions?: RunAssumptions | null,
+    idempotencyKey?: string,
   ) =>
     request<RunDetail>(
       '/api/runs',
       {
         method: 'POST',
+        ...(idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey } } : {}),
         body: JSON.stringify({
           goal,
           dataset_text: datasetId ? null : (datasetText ?? null),
@@ -307,14 +317,17 @@ export const api = {
       { method: 'DELETE' },
       UPLOAD_TIMEOUT_MS,
     ),
-  pipelines: () => request<Pipelines>('/api/pipelines'),
+  pipelines: (signal?: AbortSignal) => request<Pipelines>('/api/pipelines', { signal }),
+  assetEvidence: (signal?: AbortSignal) => request<{
+    run: RunDetail | null; prepared_at: string; scope: 'latest_completed_maintenance_stage'
+  }>('/api/assets/evidence', { signal }, RUN_REQUEST_TIMEOUT_MS),
   listRuns: (state?: string) => request<{ runs: RunSummary[] }>(state ? `/api/runs?state=${encodeURIComponent(state)}` : '/api/runs'),
   usage: () => request<Usage>('/api/usage'),
   getRun: (id: string) => request<RunDetail>(`/api/runs/${id}`, {}, RUN_REQUEST_TIMEOUT_MS),
   /** The maintenance KPI register computed on a run's cleaned table
    *  (ADR 0049). 409 until the run has finished cleaning. */
-  runKpis: (id: string, language: 'en' | 'ar' = 'en') =>
-    request<RunKpis>(`/api/runs/${id}/kpis?language=${language}`),
+  runKpis: (id: string, language: 'en' | 'ar' = 'en', signal?: AbortSignal) =>
+    request<RunKpis>(`/api/runs/${id}/kpis?language=${language}`, { signal }),
   /** Read-only, evidence-linked brief over the same filters as the dashboard. */
   runExecutive: (id: string, language: 'en' | 'ar' = 'en', filters: TableFilter[] = [], signal?: AbortSignal) =>
     request<RunExecutive>(

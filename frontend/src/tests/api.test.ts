@@ -18,6 +18,24 @@ afterEach(() => {
 })
 
 describe('api client', () => {
+  it('prefers canonical errors and retains field problems during the legacy transition', async () => {
+    const problems = [{ column: 'cost', message: 'Synthetic missing amount' }]
+    mockFetchOnce({ ok: false, status: 422, json: async () => ({
+      error: { code: 'mapping_invalid', message: 'Canonical explanation', problems, request_id: 'test-request' },
+      detail: 'Legacy explanation',
+    }) })
+    await expect(api.health()).rejects.toMatchObject({ message: 'Canonical explanation', problems })
+  })
+
+  it('sends a caller-controlled run key without dropping authentication', async () => {
+    localStorage.setItem('aos-token', 'test-token')
+    mockFetchOnce({ json: async () => ({ id: 'run' }) })
+    await api.createRun('Question', undefined, undefined, undefined, 'en', 'dataset', undefined, undefined, 'attempt-key')
+    expect(vi.mocked(fetch).mock.calls[0][1]?.headers).toMatchObject({
+      Authorization: 'Bearer test-token', 'Idempotency-Key': 'attempt-key',
+    })
+    expect(JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body))).not.toHaveProperty('idempotency_key')
+  })
   function delayedRunResponse(delay: number) {
     vi.useFakeTimers()
     vi.stubGlobal('fetch', vi.fn((_url: string, init?: RequestInit) => new Promise<Response>((resolve, reject) => {

@@ -653,7 +653,7 @@ function RelationshipPage({ runId, roles, state, filters, setState }: PageProps)
           title={t('dash.chart.relationship', { measure: m, other: vs })}
           chart={<Scatter points={points} label={t('dash.alt.relationship', { measure: m, other: vs, n: formatNumber(points.length) })} />}
           table={<GroupTable head={[vs, m]}
-            rows={points.slice(0, 100).map((p) => ({ label: formatNumber(p.x), cells: [formatNumber(p.y)] }))} />}
+            rows={points.map((p) => ({ label: formatNumber(p.x), cells: [formatNumber(p.y)] }))} />}
         />
       )}
       {sample.data ? (
