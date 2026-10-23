@@ -32,7 +32,8 @@ SECRET = "tenancy-test-secret-not-used-anywhere-else"
 
 def clear(store):
     for table in reversed(RESTORE_ORDER):
-        store._exec(f"DELETE FROM {table}")
+        if table != "schema_migrations":
+            store._exec(f"DELETE FROM {table}")
 
 
 @unittest.skipUnless(FASTAPI_AVAILABLE, "fastapi is not installed")

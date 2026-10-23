@@ -59,3 +59,13 @@ def scoped_token(secret, subject, role=None, audience=None, issuer=None, **kwarg
     return issue_local_test_token(secret, subject, role=role,
                                   audience=audience or "authenticated",
                                   issuer=issuer or "https://test.supabase.invalid/auth/v1", **kwargs)
+
+
+def prepare_postgres_schema(database_url):
+    """Explicit setup of the caller's disposable PostgreSQL test database.
+
+    Runtime entry points remain verify-only. Tests that drop tables must
+    prepare their own fixture before creating an API or worker instance.
+    """
+    from server.storage import PostgresStore
+    PostgresStore(database_url, schema_mode="migrate").close()

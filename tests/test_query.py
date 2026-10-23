@@ -321,6 +321,9 @@ class TableApiTestCase(unittest.TestCase):
 class TableApiPostgresTestCase(TableApiTestCase):
 
     def database_config(self):
+        # Prepare the disposable fixture before verify-only application startup.
+        from tests.support import prepare_postgres_schema
+        prepare_postgres_schema(PG_TEST_URL)
         return {"database_url": PG_TEST_URL}
 
     def setUp(self):

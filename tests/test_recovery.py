@@ -37,7 +37,8 @@ def fresh_postgres_store():
     store = open_store(PG_TEST_URL)
     # Children before parents, or the foreign keys refuse.
     for table in reversed(RESTORE_ORDER):
-        store._exec(f"DELETE FROM {table}")
+        if table != "schema_migrations":
+            store._exec(f"DELETE FROM {table}")
     return store
 
 
