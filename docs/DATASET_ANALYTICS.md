@@ -61,7 +61,10 @@ changes no rule. `python scripts/agent_loop.py status` shows the trend.
 For API clients, choose a single dataset's grouping through
 `PUT /api/datasets/{id}/mapping` with the desired `dimension` and a role
 for every column, then create a run with that `dataset_id`. The run keeps
-a snapshot of the saved mapping. The `POST /api/runs` field `breakdown`
+a snapshot of the saved mapping. A retried `POST /api/runs` with the same
+`Idempotency-Key` header (or `idempotency_key` in the body) returns the run
+already made, as a 200 marked `idempotent_replay`, instead of a second run.
+The `POST /api/runs` field `breakdown`
 is only for runs with `joins`; a nonblank value without joins returns
 HTTP 422 instead of silently ignoring the choice.
 
@@ -101,7 +104,7 @@ language model. See [known limitations](KNOWN_LIMITATIONS.md) and
 في واجهة API، احفظ تقسيم مجموعة البيانات الواحدة عبر
 `PUT /api/datasets/{id}/mapping` بتحديد `dimension` ودور لكل عمود، ثم
 أنشئ التشغيل باستخدام `dataset_id`. يحتفظ التشغيل بنسخة من التعيين
-المحفوظ. حقل `breakdown` في `POST /api/runs` مخصص للتشغيل مع `joins`؛
+المحفوظ. وإعادة إرسال `POST /api/runs` بالترويسة نفسها `Idempotency-Key` (أو الحقل `idempotency_key` في المتن) تعيد التشغيل الذي أُنشئ من قبل برمز 200 مع العلامة `idempotent_replay` بدلاً من إنشاء تشغيل ثانٍ. حقل `breakdown` في `POST /api/runs` مخصص للتشغيل مع `joins`؛
 وتُرفض القيمة غير الفارغة دون دمج برمز HTTP 422.
 
 الصيغ المدعومة هي CSV وTSV وExcel ‏(.xlsx/.xlsm) وJSON وJSON Lines.

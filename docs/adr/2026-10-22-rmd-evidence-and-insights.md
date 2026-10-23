@@ -100,3 +100,16 @@ New PostgreSQL evidence DDL and direct API grants are protected atomically at
 store startup: enable RLS and revoke PUBLIC/available anon/authenticated roles.
 The committed initial-schema mirror and additive SQL migration carry the same
 tables and restrictions. No production migration is performed by this change.
+
+## Integration on 23 October
+
+Preserve main through 986b168c, including its analytics safeguards, idempotent run
+creation and stage/runtime deadlines. The deadline worker must copy the caller's
+context variables: the merged assistant uses a request-scoped principal for
+knowledge authorization. Without propagation, permitted runtime lookups lose
+their requester and fail closed. A regression first reproduces that failure for
+two principals, then verifies each sees only its own permitted collection and
+the administrator does not inherit the session creator's grant. No permission
+is broadened, and the caller's context is reset after each operation.
+The integration correction is recorded in the
+[23 October context decision](2026-10-23-rmd-runtime-context.md).

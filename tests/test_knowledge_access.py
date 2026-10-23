@@ -11,6 +11,7 @@ from server import knowledge
 from server.assistant import Assistant, redact_reference_turns
 from server.auth import LOCAL_PRINCIPAL, Principal
 from server.operations import Operations
+from server.model_gateway import ModelGateway
 from server.storage import open_store
 
 
@@ -150,6 +151,39 @@ class KnowledgeAccessTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 assistant.handle("question", object(), principal=self.alice)
         self.assertIsNone(assistant._requester.get())
+
+    def test_runtime_deadline_preserves_each_actual_requesters_collection_scope(self):
+        for owner in ("alice", "bob"):
+            self.source(owner + "-public", owner=owner, visibility="public",
+                        data_classification="public", model_context_allowed=True)
+
+        class LookupRuntime:
+            result = None
+
+            def run(self, message, tools, context):
+                self.result = tools.call("search_knowledge", {"query": "evidence"})
+                return ""
+
+        runtime = LookupRuntime()
+        engine = SimpleNamespace(store=self.store, list_runs=lambda **_: [])
+        assistant = Assistant(ModelGateway(env={}), engine, runtime=runtime,
+                              runtime_name="synthetic lookup", identity_mode="jwt",
+                              env={"AGENTIC_OS_KNOWLEDGE_DIR": str(self.root)})
+        session = SimpleNamespace(owner="alice", id="synthetic-session", transcript=[],
+                                  agent=SimpleNamespace(language=lambda: "en",
+                                                        memory_entries=lambda: [], preferences={}))
+        for principal, expected in ((self.alice, "alice-public"), (self.bob, "bob-public"),
+                                    (self.admin, None)):
+            with self.subTest(requester=principal.subject):
+                answer = assistant.handle("sort out this synthetic task", session, principal=principal)
+                self.assertEqual(answer["action"], "runtime")
+                result = runtime.result.get("result")
+                if expected is None:
+                    self.assertIsNone(result)
+                else:
+                    self.assertIsNotNone(result, "authorised lookup lost its requester on the deadline thread")
+                    self.assertEqual({hit["collection"] for hit in result["results"]}, {expected})
+                self.assertIsNone(assistant._requester.get())
 
     def test_legacy_runtime_references_are_redacted_in_snapshot_and_export(self):
         entry = {"id": 3, "role": "agent", "action": "runtime", "text": "PRIVATE_OLD",

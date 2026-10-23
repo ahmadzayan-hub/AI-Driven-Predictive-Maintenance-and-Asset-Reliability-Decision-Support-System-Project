@@ -205,7 +205,7 @@ required local files. Both behaviors are covered by tests
    stating plainly: `python scripts/serve.py` binds to the local network
    so a phone can reach it, and because local mode has no login, every
    device on that network can read and change the saved memory. The
-   launcher prints this at start-up and `--local-only` opts out, but
+   launcher binds to this computer alone unless `--lan` is given, and prints the consequence when it is, but
    nothing enforces it — a laptop on café Wi-Fi is an open app.
 7. The metric glossary (ADR 0011) is a file, not a table: it is
    process-wide, so a hosted install cannot give each tenant its own,
@@ -310,7 +310,10 @@ required local files. Both behaviors are covered by tests
     DuckDB/Polars), so larger-than-memory datasets are out of scope, and
     a dataset cannot yet be deleted from the interface.
 18. Custom stages (ADR 0020) are **trusted Python in this process**, not
-    a sandbox: the contract catches a malformed result, a mis-cited
+    a sandbox. A stage that overruns `AGENTIC_OS_STAGE_TIMEOUT` (default
+    120 s) is abandoned on its thread and its task fails, which keeps a
+    hung stage from hanging a run but stops nothing it does meanwhile
+    (G10, 23 October): the contract catches a malformed result, a mis-cited
     claim or a mutated context, and a plugin that wants to misbehave
     can still import anything. The operator decides what to register.
     The registry is per process and read at start-up — no per-tenant
@@ -367,9 +370,10 @@ required local files. Both behaviors are covered by tests
 22. Uneven periods are read per record (ADR 0026) only in the
     descriptive stage: its headline and a limitation claim give the
     per-record change when the quietest period holds under three
-    quarters of the busiest's records. The segment, diagnostic,
-    predictive and prescriptive stages still work on totals, so a
-    forecast follows the record count, and "protect the leading group"
+    quarters of the busiest's records. The predictive and anomaly
+    stages leave a partial last period out of the trend and say so
+    (A12, 23 October); the segment, diagnostic and prescriptive stages
+    still work on totals, so "protect the leading group"
     can name the group with the most records rather than the largest
     loss per record. The dashboards skill shows per-record charts beside
     the totals; the app's report does not yet.

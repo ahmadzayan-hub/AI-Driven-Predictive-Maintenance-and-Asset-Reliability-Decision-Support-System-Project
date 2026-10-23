@@ -294,13 +294,20 @@ class SqlStore:
         # connector_id: the source a refresh made the run from (ADR 0034).
         # assumptions_json: the decision inputs a run stated (slice three
         # of the release gate, A2 and A13); NULL for every run before it.
+        # idempotency_key: the caller's key for a run creation, unique per
+        # owner, so a retried POST returns the run it already made (B14).
         for column in ("dataset_id", "lease_owner", "lease_expires_at",
                        "report_language", "mapping_json", "joins_json",
-                       "connector_id", "assumptions_json"):
+                       "connector_id", "assumptions_json", "idempotency_key"):
             try:
                 self._exec(f"ALTER TABLE runs ADD COLUMN {column} TEXT")
             except Exception:
                 self._rollback()
+        try:
+            self._exec("CREATE UNIQUE INDEX IF NOT EXISTS runs_idempotency "
+                       "ON runs (owner, idempotency_key)")
+        except Exception:
+            self._rollback()
         try:
             # decided_by: the approver's subject, written by the gate (A13).
             self._exec("ALTER TABLE approvals ADD COLUMN decided_by TEXT")
@@ -396,6 +403,12 @@ class SqlStore:
     # -- domain queries ---------------------------------------------------
     def get_run(self, run_id):
         rows = self._exec("SELECT * FROM runs WHERE id = ?", (run_id,))
+        return rows[0] if rows else None
+
+    def find_run_by_key(self, owner, idempotency_key):
+        """The run an owner already created under this key, or None (B14)."""
+        rows = self._exec("SELECT * FROM runs WHERE owner = ? AND idempotency_key = ? LIMIT 1",
+                          (owner, idempotency_key))
         return rows[0] if rows else None
 
     def list_runs(self, owner=None, limit=50, state=None):

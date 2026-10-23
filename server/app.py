@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
@@ -307,6 +307,9 @@ class RunIn(BaseModel):
     # uplift range the sensitivity stage explores (slice three, A2, A13).
     # Validated in full by analytics.validate_assumptions.
     assumptions: dict | None = None
+    # A caller's key for this creation; the Idempotency-Key header wins
+    # when both are given (B14).
+    idempotency_key: str | None = Field(default=None, max_length=200)
 
 
 class MappingIn(BaseModel):
@@ -1008,19 +1011,28 @@ def create_app(config_path=None, env=None, dist_dir=None):
             raise HTTPException(status_code=409, detail=str(error))
 
     @app.post("/api/runs", status_code=201)
-    def create_run(run: RunIn, principal=Depends(requires("write"))):
+    def create_run(run: RunIn, response: Response, principal=Depends(requires("write")),
+                   idempotency_key: str | None = Header(default=None, alias="Idempotency-Key",
+                                                        max_length=200)):
+        # A retried POST with the same Idempotency-Key (header, or the
+        # body's idempotency_key) returns the run already made, as 200
+        # rather than 201, instead of creating a second one (B14).
         with lock:
             try:
-                return engine.create_run(run.goal, run.dataset_text,
-                                         run.dataset_name,
-                                         owner=principal.subject,
-                                         dataset_id=run.dataset_id,
-                                         profile=run.profile,
-                                         language=run.language,
-                                         joins=([j.model_dump() for j in run.joins]
-                                                if run.joins else None),
-                                         breakdown=run.breakdown,
-                                         assumptions=run.assumptions)
+                detail = engine.create_run(run.goal, run.dataset_text,
+                                           run.dataset_name,
+                                           owner=principal.subject,
+                                           dataset_id=run.dataset_id,
+                                           profile=run.profile,
+                                           language=run.language,
+                                           joins=([j.model_dump() for j in run.joins]
+                                                  if run.joins else None),
+                                           breakdown=run.breakdown,
+                                           assumptions=run.assumptions,
+                                           idempotency_key=idempotency_key or run.idempotency_key)
+                if detail.get("idempotent_replay"):
+                    response.status_code = 200
+                return detail
             except KeyError:
                 raise HTTPException(status_code=404, detail='Dataset not found.')
             except joining.JoinError as error:
