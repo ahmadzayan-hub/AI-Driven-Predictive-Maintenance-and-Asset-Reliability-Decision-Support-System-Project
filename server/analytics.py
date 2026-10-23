@@ -586,6 +586,9 @@ def _period_labels_unmapped(values):
     return None, None, None
 
 
+# How many unreadable values the cleaner records by row and column (A18).
+MAX_UNREADABLE_RECORDED = 200
+
 def cleaner(ctx):
     rows = ctx["collector"]["rows"]
     numeric_columns = ctx["profiler"]["numeric_columns"]
@@ -599,20 +602,30 @@ def cleaner(ctx):
     before = len(rows)
     cleaned, seen, dropped_empty, dropped_dupes, coercion_failures = [], set(), 0, 0, 0
     source_indices = []
+    # Every removal is recorded by source row (assessment A18): the
+    # indices of the empty and the repeated rows, and each value a numeric
+    # column could not read, so the cleaning can be reversed.
+    dropped = {"empty": [], "duplicates": []}
+    unreadable = []
     for source_index, row in enumerate(rows):
         stripped = {k: (str(v).strip() if v is not None else "") for k, v in row.items() if k}
         if not any(stripped.values()):
             dropped_empty += 1
+            dropped["empty"].append(source_index)
             continue
         key = tuple(sorted(stripped.items()))
         if key in seen:
             dropped_dupes += 1
+            dropped["duplicates"].append(source_index)
             continue
         seen.add(key)
         for col in numeric_columns:
             number = to_number(stripped.get(col, ""))
             if number is None and str(stripped.get(col, "")).strip():
                 coercion_failures += 1
+                if len(unreadable) < MAX_UNREADABLE_RECORDED:
+                    unreadable.append({"row": source_index, "column": col,
+                                       "value": str(stripped.get(col, ""))[:80]})
             stripped[col] = number
         cleaned.append(stripped)
         source_indices.append(source_index)
@@ -622,6 +635,9 @@ def cleaner(ctx):
         {"id": "c_rows_after", "name": "rows_after", "value": after, "method": "count"},
         {"id": "c_dropped", "name": "rows_dropped", "value": before - after,
          "method": "empty + exact-duplicate removal"},
+        {"id": "c_coercion", "name": "values_not_read_as_numbers", "value": coercion_failures,
+         "method": "non-empty values in numeric columns that could not be read as a "
+                   "number and were set to empty"},
     ]
     claims = [_claim(ctx, "cl_rowloss", "fact",
                      f"{before - after} of {before} rows were removed during cleaning "
@@ -629,6 +645,16 @@ def cleaner(ctx):
                      f"حُذف {before - after} من أصل {_ar_n(before, 'row')} أثناء التنظيف "
                      f"({dropped_empty} فارغ و{dropped_dupes} مكرر).",
                      ["c_rows_before", "c_rows_after", "c_dropped"])]
+    if coercion_failures:
+        columns_hit = sorted({item["column"] for item in unreadable})
+        claims.append(_claim(
+            ctx, "cl_coercion", "limitation",
+            f"{coercion_failures} value(s) in numeric columns ({', '.join(columns_hit)}) could "
+            "not be read as numbers and were treated as missing; totals and averages leave "
+            "them out.",
+            f"تعذّرت قراءة {coercion_failures} من القيم في الأعمدة الرقمية ({'، '.join(columns_hit)}) "
+            "كأرقام فعُدّت مفقودة؛ ولا تدخل في المجاميع والمتوسطات.",
+            ["c_coercion"]))
     dates = {"date_col": None, "date_grain": None, "date_order": None,
              "dates_unreadable": 0, "dates_missing": 0}
     date_col = colmap.date_of(mapping, ctx["collector"]["columns"]) if mapping else None
@@ -700,7 +726,8 @@ def cleaner(ctx):
              f"(حُذف {dropped_empty} فارغ و{dropped_dupes} مكرر، وعُدّت "
              f"{coercion_failures} قيمة غير رقمية فارغة). يُذكر كل صف محذوف "
              "ولا يُخفى."),
-        output={"rows": cleaned, "source_indices": source_indices,
+        output={"dropped_indices": dropped, "unreadable_values": unreadable,
+                "rows": cleaned, "source_indices": source_indices,
                 "rows_before": before, "rows_after": after,
                 "dropped": before - after, **dates},
         calculations=calcs,

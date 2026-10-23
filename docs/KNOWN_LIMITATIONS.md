@@ -296,9 +296,15 @@ required local files. Both behaviors are covered by tests
     names those gaps rather than hiding them. The gateway's in-process
     ledger (`GET /api/health`, `model_calls`) records every provider
     attempt with its latency and the token counts the provider reported,
-    never an estimate; it is lost on restart and summed across tenants,
-    so a per-tenant token budget is still out of scope. The daily window is calendar-based (midnight UTC), so a
+    never an estimate; it is lost on restart and summed across tenants.
+    Since 23 October the store counts model calls per owner per UTC day
+    and the gateway stops attempting at `model_calls_per_day` (B6), but
+    that is a count of calls, not of tokens: a per-tenant token budget is
+    still out of scope. The daily window is calendar-based (midnight UTC), so a
     burst either side of midnight can exceed the intended daily rate.
+    The request rate limit is counted in the store when it is PostgreSQL,
+    so every instance shares one window; a store outage lets writes
+    through to fail on their own data access rather than refusing them.
 17. Datasets come from a file (CSV, TSV, Excel `.xlsx`, JSON or JSON
     Lines) or pasted CSV (ADR 0024): up to 4 MB as uploaded, the limit
     of the platform the app is deployed to, 50,000 rows, and 10 MB once
@@ -456,6 +462,16 @@ required local files. Both behaviors are covered by tests
     until the stream ends. A connector's error is stored in the
     language it was created in.
 
+20. On PostgreSQL each thread holds its own connection (23 October, B11),
+    so reads no longer queue behind another thread's transaction, but
+    there is no bound on connections per process beyond the server's
+    thread count; put a connection pooler in front of the database on a
+    hosted deployment. Model cards carry a version, the run snapshot and
+    the training window (A14), but no probabilities or calibration: those
+    stay in the registered-window protocol, and the generic regression and
+    classification stages still declare leakage rather than screen their
+    inputs (A11).
+
 30. The maintenance KPI register (`server/maintenance/kpis.py`) is bound
     to cleaned runs through the KPI endpoint and Asset Intelligence view
     (ADRs 0049 and 0051). The separate `?design=maintenance` preview still
@@ -529,7 +545,9 @@ and was not activated by this implementation.
 ## KPI register: what it cannot measure yet
 
 The register ([decision](adr/2026-10-21-register-availability-and-pooled-reliability-measures.md))
-holds 14 controlled measures, each a ratio of sums over a declared population.
+holds 19 controlled measures, each a ratio of sums over a declared population
+(the corrective-only repair time, `mttr_corrective`, was added on 23 October;
+the pooled `mttr` still includes planned downtime and says so).
 These common asset-management measures are **not** in it, because the exports
 this product reads do not carry the fields, and a stand-in would be a guess:
 

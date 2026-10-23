@@ -7,6 +7,7 @@ Last updated: 2026-10-23, Codex RMD evidence implementation and final main integ
 
 ## Now
 
+- **P2 slice three: 2026-10-23, on branch `claude/tender-clarke-m4uwgq`.** A corrective repair time in the register (A7), model cards versioned and bound to the snapshot with the training window and the refused inputs (A14, A11 in part), reversible cleaning with unreadable values claimed (A18), a store-backed write rate limit and a per-owner model budget (B6), one PostgreSQL connection per thread (B11 in part). [Decision](docs/adr/2026-10-23-p2-slice-three.md); counts in README.md#testing. Open: calibration on the card, the screen in the generic stages, a connection bound, the U-items, G5 to G9, the standards lint blind score.
 - **P2 slice two: 2026-10-23, on branch `claude/tender-clarke-m4uwgq`.** The store as publish target (B13), logged failures and 503 on an outage (B9), one error envelope and the contract behind sign-in (B14 closed), a required connector allowlist in production (B16), recorded and locked migrations with a complete base schema (B12), the optional-runtime CI job (G11). [Decision](docs/adr/2026-10-23-p2-slice-two.md); counts in README.md#testing. Brain maintained today. Open: the remaining P2 list and the standards lint blind score.
 - **RMD Evidence and Insights, 2026-10-22:** integrated private ingestion,
   persistence, source/column provenance, reviewed record relationships,

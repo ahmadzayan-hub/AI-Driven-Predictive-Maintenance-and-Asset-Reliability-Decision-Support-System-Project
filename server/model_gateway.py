@@ -202,6 +202,9 @@ class ModelGateway:
         # attempt and running totals per provider. Shared by the copies
         # `with_model` makes, so every role's calls land in one record.
         self._ledger_lock = threading.Lock()
+        # A per-tenant budget the application wires in (assessment B6): an
+        # object with allow(provider) and charge(entry); None means no budget.
+        self.budget = None
         self._ledger_entries = deque(maxlen=LEDGER_ENTRIES)
         self._ledger_totals = {}
         # The task a call serves, per thread, so the completers (which
@@ -347,6 +350,8 @@ class ModelGateway:
             caller = callers.get(name)
             if caller is None:
                 continue
+            if self.budget is not None and not self.budget.allow(name):
+                break  # the owner's model budget is spent (B6): deterministic text
             text = (caller(goal, facts, language=language) if language != "en"
                     else caller(goal, facts))
             if text:
@@ -383,6 +388,10 @@ class ModelGateway:
                    "groq": self._complete_groq,
                    **{name: self._compat_completer(name) for name in self.compat}}
         for name in self._attempts(provider):
+            if self.budget is not None and not self.budget.allow(name):
+                # The owner's model budget for today is spent (B6): no
+                # attempt is made, and the built-in writer answers.
+                return None
             caller = callers.get(name)
             text = caller(system, user, max_tokens) if caller else None
             if text:
@@ -490,6 +499,11 @@ class ModelGateway:
         entry = {"provider": provider, "model": model, "task": task,
                  "outcome": outcome, "latency_ms": latency_ms,
                  "input_tokens": prompt, "output_tokens": done, "total_tokens": total}
+        if self.budget is not None:
+            try:
+                self.budget.charge(entry)
+            except Exception:
+                pass  # a budget that cannot be charged never blocks the answer
         with self._ledger_lock:
             self._ledger_entries.append(entry)
             totals = self._ledger_totals.setdefault(provider, {

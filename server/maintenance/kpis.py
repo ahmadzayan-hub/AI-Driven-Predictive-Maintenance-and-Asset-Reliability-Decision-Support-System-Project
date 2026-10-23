@@ -475,6 +475,20 @@ _add(Kpi("mttr", "Mean time to restore (downtime per failure)",
                     "logistic delay; it is not active repair time.",
          family="reliability"))
 
+_add(Kpi("mttr_corrective", "Mean time to restore, corrective work only",
+         "متوسط زمن الاستعادة، أعمال الإصلاح فقط",
+         "Downtime_Hours", "Failure_Count", corrective_only,
+         "corrective records", contract.HOURS,
+         "Hours of downtime per failure on corrective work orders alone.",
+         edge_cases="The corrective-downtime basis the register's MTTR lacks "
+                    "(assessment A7): planned and preventive work is left out, "
+                    "so where planned downtime is recorded this is the figure to "
+                    "read against an OEM's time-to-restore target. Pooled: all "
+                    "corrective downtime over all corrective failures. Undefined "
+                    "when no corrective failure was recorded. Still includes "
+                    "detection, waiting and logistic delay.",
+         family="reliability"))
+
 _add(Kpi("sla_attainment", "SLA attainment", "نسبة تحقيق مستوى الخدمة",
          Count(met_sla, met_sla.columns, "SLA_Actual_Hours <= SLA_Target_Hours"),
          RECORDS, every_record,

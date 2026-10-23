@@ -23,6 +23,7 @@ outside this repository), **Proposed** (designed, not built).
 | Slice three of the release gate: decision inputs and record (A2, A13), signalling escalation (A8), currency (U4), landing and phone bar (U12), per-session locking, transactional restore and request logging (B4, B5, B10), blind-set floors (G1), model call ledger (G4), browser coverage of demo, Assets and Approvals (U13) | Implemented, Tested | `docs/adr/2026-10-22-release-gate-slice-three.md` |
 | P2 slice one: verdict bound (A9), declared splits (A10), incomplete periods (A12), loopback by default (B8), idempotent run creation (B14, in part), wall-clock limits on custom stages and agent runtimes (G10) | Implemented, Tested | `docs/adr/2026-10-23-p2-slice-one.md`; `tests/test_p2_slice_one.py` |
 | P2 slice two: the store as publish target (B13), logged failures and 503 on an outage (B9), one error envelope and the contract behind sign-in (B14, closed), a required connector allowlist in production (B16), recorded and locked migrations (B12), the optional-runtime CI job (G11) | Implemented, Tested | `docs/adr/2026-10-23-p2-slice-two.md`; `tests/test_p2_slice_two.py` |
+| P2 slice three: a corrective repair time (A7), screened inputs on the maintenance card (A11, in part), versioned cards bound to the snapshot (A14, in part), reversible cleaning (A18), a store-backed rate limit with a per-tenant model budget (B6), one PostgreSQL connection per thread (B11, in part) | Implemented, Tested | `docs/adr/2026-10-23-p2-slice-three.md`; `tests/test_p2_slice_three.py` |
 
 ## 2. Next release gate (P1)
 
@@ -51,10 +52,14 @@ as-of stamps (U16), pack parity and executive hook (U18), font subsetting
 (U19), navy rail (U20, owner decision); structured consultant output and
 deterministic agreement (G5, G6), eval cases for the two unmeasured actions
 (G8), reviewer benchmarks (G9); and the P3 items.
-The first P2 slice (A9, A10, A12, B8, the idempotency half of B14, G10) and
-the second (B9, B12, B13, the rest of B14, B16, G11) were delivered on 23
+The first P2 slice (A9, A10, A12, B8, the idempotency half of B14, G10),
+the second (B9, B12, B13, the rest of B14, B16, G11) and the third (A7,
+A18, B6, and the first halves of A11, A14 and B11) were delivered on 23
 October ([slice one](../adr/2026-10-23-p2-slice-one.md),
-[slice two](../adr/2026-10-23-p2-slice-two.md)).
+[slice two](../adr/2026-10-23-p2-slice-two.md),
+[slice three](../adr/2026-10-23-p2-slice-three.md)). Still open from the
+list: calibration on the pipeline card (A14), the screen in the generic
+stages (A11), a connection bound (B11), the U-items, G5, G6, G8 and G9.
 
 ## 4. The brief's deliverables and their status
 

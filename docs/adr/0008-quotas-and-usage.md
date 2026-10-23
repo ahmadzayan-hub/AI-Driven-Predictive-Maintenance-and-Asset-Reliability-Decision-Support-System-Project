@@ -73,6 +73,12 @@ can do the multiplication.
 `AGENTIC_OS_QUOTA_DATASET_BYTES`. These exist to stop a runaway loop, not
 to ration ordinary use — a normal session does not approach them.
 
+Since 23 October ([P2 slice three](2026-10-23-p2-slice-three.md)) a fourth
+limit, 500 model calls per owner per UTC day
+(`AGENTIC_OS_QUOTA_MODEL_CALLS_PER_DAY`), is counted in the store and read
+by the model gateway before each provider attempt; `/api/usage` reports it
+as `model_calls`.
+
 A malformed or negative value falls back to the default rather than
 failing startup: a typo in a limit must not take the deployment down.
 Zero is honoured as a deliberate stop, because it is a setting somebody

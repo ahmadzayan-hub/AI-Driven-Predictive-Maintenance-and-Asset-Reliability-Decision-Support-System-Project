@@ -141,10 +141,15 @@ class ApiEnvelopeTest(unittest.TestCase):
 
     def test_the_contract_is_served_to_a_reader_and_not_at_the_public_path(self):
         # The public paths are not the contract: with a built interface the
-        # SPA fallback answers them with the app page, otherwise 404.
+        # SPA fallback answers them with the app page, otherwise the JSON
+        # 404 envelope. Neither carries the contract's paths.
         for path in ("/openapi.json", "/docs"):
             public = self.client.get(path)
-            self.assertNotEqual(public.headers.get("content-type", "").split(";")[0], "application/json", path)
+            is_json = public.headers.get("content-type", "").split(";")[0] == "application/json"
+            body = public.json() if is_json else {}
+            self.assertNotIn("paths", body, path)
+            if is_json:
+                self.assertEqual(public.status_code, 404, path)
         response = self.client.get("/api/openapi.json")
         self.assertEqual(response.status_code, 200)
         self.assertIn("/api/runs", response.json()["paths"])

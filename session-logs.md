@@ -1476,3 +1476,13 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified after merging `main`:** `scripts/verify.py`, all 8 steps: 1745 Python tests, 165 skipped (no PostgreSQL in this container); 362 frontend unit tests; type check; native run logic; build; budget js first load 98.6 of 100 KB, js total 219.6 of 220 KB, css first load 10.0 of 10.5 KB, css total 30.5 of 30.5 KB. End-to-end not rerun.
 - **Note:** total JS is 0.4 KB under its limit and total CSS is at it, so the next interface change must trim before it adds.
 - **Open / next:** message-first chart captions; independent domain and manager acceptance; brain maintenance is due.
+
+## 2026-10-23 · `d9e3f889` · claude/tender-clarke-m4uwgq (P2 slice three)
+
+**Goal:** the third P2 slice from the assessment backlog: A7, A11, A14, A18, B6, B11.
+
+- **Found:** the register's repair time pooled planned downtime (A7); model cards had no version, snapshot or training window (A14) and the maintenance card did not show the refused inputs (A11); the cleaner dropped rows and unreadable numbers without a record (A18); the rate limit was per instance with buckets never evicted and chat had no model-call quota (B6); one PostgreSQL connection per process queued every read behind a transaction (B11).
+- **Done:** `mttr_corrective` (19 measures); `version`, `fitted_at`, `snapshot`, `training_window` and `excluded_inputs` on cards; `dropped_indices`, `unreadable_values`, `c_coercion` and a limitation claim; `StoreRateLimiter` in `rate_windows` (automatic on PostgreSQL, `AGENTIC_OS_RATE_LIMIT_STORE=1` otherwise) with the envelope on refusal, idle-bucket eviction in the in-process limiter, `ModelBudget` in `model_calls_daily` per owner per day through `server/tenant.py` with the gateway refusing over `AGENTIC_OS_QUOTA_MODEL_CALLS_PER_DAY`; both tables in the Supabase snapshot under RLS and in backups; a connection, lock and transaction depth per thread in `PostgresStore` with `close()` releasing all. [Decision](docs/adr/2026-10-23-p2-slice-three.md); assessment rows, roadmap, known limitations, quotas ADR, deployment guide, `.env.example` and README updated.
+- **Verified:** `tests/test_p2_slice_three.py` 19 of 19 with PostgreSQL; quick verify with PostgreSQL (counts in README.md#testing).
+- **Decided:** exact duplicates are still removed, with their indices kept; calibration stays in the registered-window protocol; no connection bound beyond the thread count, a pooler is the hosted answer.
+- **Open / next:** PR #24 (slice two) to merge when CI is green, then this slice on its own pull request; the remaining P2 list (A11 and A14 second halves, B11 bound, U-items, G5, G6, G8, G9) and the standards lint blind score.

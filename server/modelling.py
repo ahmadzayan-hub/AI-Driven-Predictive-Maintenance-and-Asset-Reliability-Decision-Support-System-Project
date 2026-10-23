@@ -30,6 +30,7 @@ import statistics
 from collections import Counter
 
 from server import analytics
+from datetime import datetime, timezone
 
 MIN_ROWS = 30
 # A model beats its baseline when it improves on it by at least this much.
@@ -225,13 +226,38 @@ def _section(ctx, title, headline, calculations, lines=()):
     return "\n".join(out)
 
 
+# The model card's version (assessment A14): bumped when the fitting or
+# the evaluation changes, so a stored card says which code scored it.
+CARD_VERSION = "2026-10-23"
+
+
+def _window(rows, date):
+    """The first and last period in the training rows, when a date exists."""
+    if not date:
+        return None
+    periods = sorted({str(row.get(date)) for row in rows if row.get(date) not in (None, "")})
+    return {"first": periods[0], "last": periods[-1]} if periods else None
+
+
 def _card(kind, target, inputs, train, test, split, metric, model, baseline,
-          baseline_name, improvement, beats, details):
-    return {"kind": kind, "target": target, "inputs": inputs, "train_records": train,
+          baseline_name, improvement, beats, details, ctx=None, window=None,
+          excluded=None):
+    """A model card. With `ctx` it carries the snapshot hash the model was
+    fitted on, the card version and the fitting time (A14), so a score can
+    be reproduced or retired; `window` is the training period range and
+    `excluded` the inputs the screen refused with the reason (A11)."""
+    card = {"kind": kind, "target": target, "inputs": inputs, "train_records": train,
             "test_records": test, "split": split,
             "metric": {"name": metric, "model": model, "baseline": baseline,
                        "baseline_name": baseline_name},
-            "improvement": improvement, "beats_baseline": beats, "details": details}
+            "improvement": improvement, "beats_baseline": beats, "details": details,
+            "version": CARD_VERSION,
+            "fitted_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "snapshot": ((ctx or {}).get("collector") or {}).get("snapshot"),
+            "training_window": window}
+    if excluded:
+        card["excluded_inputs"] = excluded
+    return card
 
 
 # ---------------------------------------------------------------------------
@@ -514,7 +540,7 @@ class RegressionModel:
                     "average_error", round(model_error, 4), round(base_error, 4),
                     "training_average", round(improvement, 4), beats,
                     {"weights": [{"input": n, "weight": round(v, 6)} for n, v in ranked],
-                     "held_out_share_explained": round(explained, 4)}),
+                     "held_out_share_explained": round(explained, 4)}, window=_window(train_rows, date), ctx=ctx),
             },
         }
 
@@ -673,7 +699,7 @@ class ClassificationModel:
                     split, "balanced_accuracy", round(model_score, 4), round(base_score, 4),
                     "most_common_class", round(improvement, 4), beats,
                     {"classes": present, "hit_rates": hit_rates, "confusion": confusion,
-                     "accuracy": round(accuracy, 4), "majority": majority}),
+                     "accuracy": round(accuracy, 4), "majority": majority}, window=_window(train_rows, date), ctx=ctx),
             },
         }
 
@@ -784,7 +810,7 @@ class ClusteringModel:
                     {"kind": "none"}, "separation", round(score, 4), SEPARATED,
                     "separation_needed", round(explained, 4), found,
                     {"groups": k, "share_of_spread_explained": round(explained, 4),
-                     "profiles": profiles}),
+                     "profiles": profiles}, ctx=ctx),
             },
         }
 
@@ -889,7 +915,7 @@ class SeasonalForecast:
                     round(base_error, 4), base_name, round(improvement, 4), beats,
                     {"season": season, "grain": grain,
                      "forecast": [{"label": l, "value": round(v, 2)}
-                                  for l, v in zip(ahead_labels, ahead)]}),
+                                  for l, v in zip(ahead_labels, ahead)]}, ctx=ctx),
             },
         }
 

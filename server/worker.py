@@ -31,7 +31,7 @@ import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from server import agent_learning
+from server import agent_learning, tenant
 from server.connectors import Connectors
 from server.model_gateway import ModelGateway
 from server.orchestration import ModelRoles
@@ -129,6 +129,7 @@ class RunWorker:
             for _ in range(MAX_STEPS_PER_CLAIM):
                 self.heartbeat("running")
                 try:
+                    tenant.current_owner.set(self.engine.owner_of(run_id))
                     run = self.engine.advance(run_id, lease_owner=self.worker_id)
                 except ValueError:
                     # The run stopped being ours to advance between the

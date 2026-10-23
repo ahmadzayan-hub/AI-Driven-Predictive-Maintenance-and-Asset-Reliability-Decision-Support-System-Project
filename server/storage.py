@@ -40,6 +40,8 @@ TABLES = (
     # Which migration pass this database has had (B12); in backups so a
     # restored database carries its version.
     "schema_migrations",
+    "rate_windows",
+    "model_calls_daily",
     "runs",
     "tasks",
     "approvals",
@@ -57,6 +59,8 @@ TABLES = (
 # Restore must insert parents before children.
 RESTORE_ORDER = (
     "schema_migrations",
+    "rate_windows",
+    "model_calls_daily",
     "datasets",
     "runs",
     "kpi_policies",
@@ -109,6 +113,14 @@ SCHEMA_STATEMENTS = [
       actor TEXT NOT NULL, request_key TEXT NOT NULL, payload_hash TEXT NOT NULL,
       response_json TEXT NOT NULL, created_at TEXT NOT NULL,
       UNIQUE(org_id, actor, request_key))""",
+    # A store-backed token window per caller (B6), shared by every instance.
+    """CREATE TABLE IF NOT EXISTS rate_windows (
+      key TEXT NOT NULL, window_start INTEGER NOT NULL, count INTEGER NOT NULL,
+      PRIMARY KEY (key, window_start))""",
+    # Model calls per owner per UTC day (B6): the tenant's model budget.
+    """CREATE TABLE IF NOT EXISTS model_calls_daily (
+      owner TEXT NOT NULL, day TEXT NOT NULL, count INTEGER NOT NULL,
+      PRIMARY KEY (owner, day))""",
     # Which migration pass this database has had (B12); read at start-up.
     """CREATE TABLE IF NOT EXISTS schema_migrations (
       version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)""",
@@ -458,6 +470,42 @@ class SqlStore:
         rows = self._exec("SELECT * FROM runs WHERE owner = ? AND idempotency_key = ? LIMIT 1",
                           (owner, idempotency_key))
         return rows[0] if rows else None
+
+
+    def rate_hit(self, key, window_start, keep_from):
+        """Count one request in the caller's window and return the window's
+        count; windows older than `keep_from` are dropped as they are seen
+        (B6). One atomic read-modify-write per request."""
+        with self.atomic("rate:" + key):
+            rows = self._exec("SELECT count FROM rate_windows WHERE key = ? AND window_start = ?",
+                              (key, window_start))
+            count = (rows[0]["count"] if rows else 0) + 1
+            if rows:
+                self._exec("UPDATE rate_windows SET count = ? WHERE key = ? AND window_start = ?",
+                           (count, key, window_start))
+            else:
+                self._exec("INSERT INTO rate_windows (key, window_start, count) VALUES (?, ?, ?)",
+                           (key, window_start, count))
+                self._exec("DELETE FROM rate_windows WHERE key = ? AND window_start < ?",
+                           (key, keep_from))
+            return count
+
+    def model_calls_today(self, owner, day):
+        rows = self._exec("SELECT count FROM model_calls_daily WHERE owner = ? AND day = ?",
+                          (owner, day))
+        return rows[0]["count"] if rows else 0
+
+    def count_model_call(self, owner, day):
+        """One more model call for the owner today; returns the new count."""
+        with self.atomic("model-calls:" + owner):
+            count = self.model_calls_today(owner, day) + 1
+            if count == 1:
+                self._exec("INSERT INTO model_calls_daily (owner, day, count) VALUES (?, ?, 1)",
+                           (owner, day))
+            else:
+                self._exec("UPDATE model_calls_daily SET count = ? WHERE owner = ? AND day = ?",
+                           (count, owner, day))
+            return count
 
     def list_runs(self, owner=None, limit=50, state=None):
         """The newest `limit` runs, or every run in one `state` up to a
@@ -925,6 +973,14 @@ class PostgresStore(SqlStore):
             self._rollback()
 
     def __init__(self, database_url):
+        # Each thread owns a connection, a lock and a transaction depth
+        # (assessment B11): a request thread's read never queues behind
+        # another thread's transaction, and a transaction's statements
+        # all run on the connection that began it. The connections are
+        # tracked so close() releases every one of them.
+        self._local = threading.local()
+        self._pool_lock = threading.Lock()
+        self._connections = []
         super().__init__()
         import psycopg2  # lazy: only hosted mode needs the driver
 
@@ -933,10 +989,61 @@ class PostgresStore(SqlStore):
         self._conn = self._connect()
         self._create_schema()
 
+    @property
+    def _conn(self):
+        conn = getattr(self._local, "conn", None)
+        if conn is None:
+            conn = self._connect()
+            self._local.conn = conn
+        return conn
+
+    @_conn.setter
+    def _conn(self, conn):
+        self._local.conn = conn
+
+    @property
+    def _operation_lock(self):
+        lock = getattr(self._local, "lock", None)
+        if lock is None:
+            lock = self._local.lock = threading.RLock()
+        return lock
+
+    @_operation_lock.setter
+    def _operation_lock(self, lock):
+        self._local.lock = lock
+
+    @property
+    def _transaction_depth(self):
+        return getattr(self._local, "depth", 0)
+
+    @_transaction_depth.setter
+    def _transaction_depth(self, depth):
+        self._local.depth = depth
+
+    def open_connections(self):
+        """How many connections this store holds, for tests and health."""
+        with self._pool_lock:
+            self._connections = [c for c in self._connections if not c.closed]
+            return len(self._connections)
+
     def _connect(self):
         conn = self._psycopg2.connect(self._database_url, connect_timeout=10)
         conn.autocommit = True
+        with self._pool_lock:
+            self._connections = [c for c in self._connections if not c.closed] + [conn]
         return conn
+
+    def close(self):
+        """Release every thread's connection; the next statement on any
+        thread opens a fresh one."""
+        with self._pool_lock:
+            connections, self._connections = self._connections, []
+        for conn in connections:
+            try:
+                conn.close()
+            except Exception:
+                pass
+        self._local.conn = None
 
     def _begin_transaction(self):
         # Reconnection is safe before the transaction has acquired any state.

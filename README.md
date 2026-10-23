@@ -623,6 +623,23 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### P2 slice three: corrective repair time, versioned and screened model cards, reversible cleaning, shared rate limit and model budget, a connection per thread — 23 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-23-p2-slice-three.md)):
+`mttr_corrective` joins the register, which holds 19 measures (A7); every
+model card carries `version`, `fitted_at`, the run `snapshot` and
+`training_window`, and the maintenance card lists `excluded_inputs` with
+reasons (A14, A11); the cleaner records `dropped_indices` and
+`unreadable_values`, reports `c_coercion` and claims the limitation (A18);
+the write rate limit is counted in the store when it is shared and a
+per-owner model budget (`AGENTIC_OS_QUOTA_MODEL_CALLS_PER_DAY`, default 500)
+stops the gateway attempting over budget (B6); `PostgresStore` holds a
+connection per thread (B11). `REQUIRE_PG=1 python scripts/verify.py --quick`
+against PostgreSQL 16: **1,777 Python tests reported, 21 skipped** (optional
+extras only; 19 new), brain check, type check, **353 frontend unit tests**.
+No interface code changed, so the build, budget and browser suites were not
+re-run; the hosted run on the pull request is their record.
+
 ### P2 slice two: store as publish target, logged failures, one error envelope, required allowlist, recorded migrations, optional-runtime job — 23 October 2026
 
 Behaviour change ([decision](docs/adr/2026-10-23-p2-slice-two.md)): approval

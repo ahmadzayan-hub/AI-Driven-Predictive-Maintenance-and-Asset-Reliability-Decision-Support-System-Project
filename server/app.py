@@ -54,9 +54,10 @@ from server.runs import (RunEngine, TableNotReady, dataset_summary,
                          resolve_vault_dir)
 from server import demo
 from server.auth import DEMO_PRINCIPAL, AuthError, build_identity, public_auth_config
-from server.quota import QuotaExceeded, load_limits
+from server.quota import ModelBudget, QuotaExceeded, load_limits
+from server import tenant
 from server.quota import usage as quota_usage
-from server.rate_limit import WRITE_METHODS, RateLimiter
+from server.rate_limit import WRITE_METHODS, RateLimiter, StoreRateLimiter
 from server.storage import DbMemoryBackend, PostgresStore, open_store, is_database_error
 from server.worker import worker_status
 from server.operations_api import install_operations_api
@@ -546,10 +547,17 @@ def create_app(config_path=None, env=None, dist_dir=None):
     # cadence: a client-stepped analytics run issues ~3 advance calls per
     # second, so a 120/min budget (2/s) would throttle a normal run.
     # 600/min leaves headroom while still stopping runaway loops.
-    limiter = RateLimiter(
+    # A shared store counts every instance's requests in one window (B6);
+    # a single SQLite instance keeps the in-process bucket.
+    shared_store = isinstance(store, PostgresStore) or environ.get("AGENTIC_OS_RATE_LIMIT_STORE") == "1"
+    limiter = (StoreRateLimiter if shared_store else RateLimiter)(
+        *([store] if shared_store else []),
         limit=int(environ.get("AGENTIC_OS_RATE_LIMIT", "600")),
         window_seconds=int(environ.get("AGENTIC_OS_RATE_WINDOW", "60")),
     )
+    # The owner's daily model budget, charged through the tenant context.
+    base_gateway.budget = ModelBudget(store, limits)
+    app.state.gateway = base_gateway
 
     @app.middleware("http")
     async def rate_limit(request: Request, call_next):
@@ -565,7 +573,8 @@ def create_app(config_path=None, env=None, dist_dir=None):
             if not allowed:
                 return JSONResponse(
                     status_code=429,
-                    content={"detail": "Too many requests. Please slow down."},
+                    content=error_envelope(429, "Too many requests. Please slow down.",
+                                           "rate_limited"),
                     headers={"Retry-After": str(retry_after)},
                 )
             response = await call_next(request)
@@ -630,6 +639,12 @@ def create_app(config_path=None, env=None, dist_dir=None):
         a hashed subject. No token, body, query string or raw subject."""
         request.state.request_id = request_id_for(request.headers.get("x-request-id"))
         started = time.monotonic()
+        # The owner this request works for, for the model budget (B6).
+        try:
+            subject = identity.authenticate(request.headers.get("authorization")).subject
+        except AuthError:
+            subject = None
+        tenant.current_owner.set(subject)
         try:
             response = await call_next(request)
         except Exception:
