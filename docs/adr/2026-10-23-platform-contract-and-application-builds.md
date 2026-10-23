@@ -57,3 +57,8 @@ contracts, component recovery, run retry and chart alternatives are exercised;
 the hosted Android build must actually pass before an APK is described as built.
 Production deployment, live managed-provider acceptance, physical devices and
 independent maintenance/model acceptance remain separate gates.
+
+Integration retains main's workbook discovery, reviewer/evaluation improvements
+and optional local Motion Studio sources. Remove its unused Overview import to
+keep the repository's strict TypeScript build valid; the retained local panel
+does not become an enabled hosted capability merely through this merge.

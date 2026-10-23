@@ -329,6 +329,7 @@ export const api = {
   listRuns: (state?: string) => request<{ runs: RunSummary[] }>(state ? `/api/runs?state=${encodeURIComponent(state)}` : '/api/runs'),
   usage: () => request<Usage>('/api/usage'),
   getRun: (id: string) => request<RunDetail>(`/api/runs/${id}`, {}, RUN_REQUEST_TIMEOUT_MS),
+  motionStoryboard: (id: string) => request<Record<string, unknown>>(`/api/runs/${encodeURIComponent(id)}/motion-storyboard`),
   /** The maintenance KPI register computed on a run's cleaned table
    *  (ADR 0049). 409 until the run has finished cleaning. */
   runKpis: (id: string, language: 'en' | 'ar' = 'en', signal?: AbortSignal) =>

@@ -1247,6 +1247,117 @@ def create_app(config_path=None, env=None, dist_dir=None):
         with lock:
             return _run_or_404(lambda: engine.get_run(run_id), principal, run_id)
 
+    @app.get("/api/runs/{run_id}/motion-storyboard")
+    def motion_storyboard(run_id: str, principal=Depends(requires("read"))):
+        """Read-only storyboard generated server-side from owned evidence."""
+        from server.motion_storyboard import MotionStoryRefused, from_run
+        with lock:
+            run = _run_or_404(lambda: engine.get_run(run_id), principal, run_id)
+        try:
+            return from_run(run)
+        except MotionStoryRefused as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    # Local-only media rendering. The Vercel serverless runtime is not a durable
+    # media worker or secure object store; disabled unless explicitly configured.
+    motion_enabled = (
+        str((os.environ if env is None else env).get("AGENTIC_MOTION_LOCAL_ENABLED", "")).lower()
+        in ("true", "1", "yes")
+    ) and identity.mode != "demo"
+    if motion_enabled:
+        from server.motion_local import LocalMotion, MotionError, MAX_BYTES
+        from server.motion_storyboard import from_run, MotionStoryRefused
+        motion = LocalMotion()
+
+        @app.post("/api/motion/runs/{run_id}/render", status_code=202)
+        async def create_motion_video(
+            run_id: str, request: Request,
+            narration_suffix: str = Query(default=".wav", pattern=r"^\.(wav|m4a|mp3|aac|flac)$"),
+            principal=Depends(requires("write")),
+        ):
+            # Raw audio bytes; no multipart spooling. Read at most 24MB+1.
+            size = 0
+            audio = bytearray()
+            async for chunk in request.stream():
+                size += len(chunk)
+                if size > MAX_BYTES:
+                    raise HTTPException(413, detail="Narration exceeds 24MB")
+                audio.extend(chunk)
+            with lock:
+                run = _run_or_404(lambda: engine.get_run(run_id), principal, run_id)
+            try:
+                return motion.create(
+                    principal.subject, run_id, run,
+                    bytes(audio) if audio else None, suffix=narration_suffix,
+                )
+            except (MotionError, MotionStoryRefused) as exc:
+                raise HTTPException(409, detail=str(exc)) from exc
+
+        @app.get("/api/motion/jobs/{job_id}")
+        def motion_job(job_id: str, principal=Depends(requires("read"))):
+            try:
+                return motion.view(job_id, principal.subject)
+            except MotionError:
+                raise HTTPException(404, detail="No such owned video")
+
+        @app.get("/api/motion/jobs/{job_id}/preview")
+        def motion_preview(job_id: str, principal=Depends(requires("read"))):
+            try:
+                video = motion.preview(job_id, principal.subject)
+            except MotionError:
+                raise HTTPException(404, detail="No such available owned MP4")
+            return FileResponse(
+                video, media_type="video/mp4",
+                headers={"Cache-Control": "private, no-store", "X-Robots-Tag": "noindex"},
+                filename=f"INTERNAL-DRAFT-{job_id}.mp4",
+            )
+
+        @app.post("/api/motion/jobs/{job_id}/submit")
+        def motion_submit(job_id: str, principal=Depends(requires("write"))):
+            try:
+                return motion.submit(job_id, principal.subject)
+            except MotionError as exc:
+                raise HTTPException(409, detail=str(exc)) from exc
+
+        class VideoDecision(BaseModel):
+            outcome: str = Field(pattern=r"^(approve|return)$")
+            note: str | None = Field(default=None, max_length=2000)
+            watched_full_video: bool = False
+            checked_audio_alignment: bool = False
+            checked_arabic: bool = False
+            checked_evidence: bool = False
+            checked_brand_and_rights: bool = False
+
+        @app.post("/api/motion/jobs/{job_id}/decision")
+        def motion_decide(job_id: str, body: VideoDecision,
+                          principal=Depends(requires("approve"))):
+            # A platform-wide approver is needed to verify a different
+            # account's source. Never infer approval from a local owner.
+            if not principal.crosses_owners or identity.mode == "local":
+                raise HTTPException(403, detail="Independent managed reviewer required")
+            with motion.lock, motion.connect() as con:
+                row = con.execute(
+                    "SELECT run_id,owner,storyboard_sha FROM motion_jobs WHERE id=?",
+                    (job_id,),
+                ).fetchone()
+            if row is None:
+                raise HTTPException(404, detail="No such video")
+            try:
+                run = engine.get_run(row["run_id"])
+                current_story = from_run(run)
+                canonical = json.dumps(current_story, ensure_ascii=False, sort_keys=True)
+                import hashlib
+                if hashlib.sha256(canonical.encode()).hexdigest() != row["storyboard_sha"]:
+                    raise MotionError("Source run was revised; render a new video")
+                return motion.decide(
+                    job_id, principal.subject, body.outcome, body.note,
+                    body.model_dump(exclude={"outcome", "note"}), approval_allowed=True,
+                )
+            except (MotionError, MotionStoryRefused) as exc:
+                raise HTTPException(409, detail=str(exc)) from exc
+            except KeyError:
+                raise HTTPException(404, detail="Source run no longer available")
+
     @app.post("/api/runs/{run_id}/advance")
     def advance_run(run_id: str, principal=Depends(requires("write"))):
         if engine.execution_mode == "worker":
