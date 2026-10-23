@@ -156,7 +156,10 @@ after the main integration. Do not infer it from idle API health.
    against it, a second independent set (`blind_v7`) measured causal wording
    at 60% recall and 88% precision (28% and 70% for the old rules on the same
    sentences) and intent at 61% correct (56% before), a gain within noise (the
-   [decision](adr/2026-10-20-labelled-cases-from-real-use.md)). Hand-written rules generalise only so far: intent
+   [decision](adr/2026-10-20-labelled-cases-from-real-use.md)). On 23 October `blind_v7` moved into dev and the
+   rules were fixed against it (causal 96% recall at 100% precision and intent 100% on those sentences, which are
+   now dev numbers, not blind ones), so causal and intent have no independent score until `blind_v8` is added
+   ([decision](adr/2026-10-23-blind-v7-into-dev-causal-and-intent-fix.md)). Hand-written rules generalise only so far: intent
    scored 80% on the previous blind set and 68% on this one before any
    change. A sentence the causal check passes may still claim a
    cause, and a chat sentence outside the vocabulary is answered as chat. The seeded reviewer memos were nearly too easy for the

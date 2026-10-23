@@ -100,3 +100,4 @@ Every architecture decision record in `docs/adr/`, one line each. A record state
 All seven [[Analytics OS roadmap]] milestones have their records.
 | 2026-10-21-connected-agent-workspace | Responsive connected workflow, bounded zoom and recorded asset inspection; lazy-view allocation | [[Agent collaboration]], [[Design system]] |
 | 2026-10-22-worker-model-role-parity | Background execution honors model roles, concise local briefs and the shared privacy boundary; owner-selected one-model CPU profile | [[Model gateway]], [[Hermes orchestrator]], [[Model privacy]] |
+| 2026-10-23-blind-v7-into-dev-causal-and-intent-fix | blind_v7 moves into dev; causal and intent rules fixed as linguistic families; no blind floor for those two until blind_v8; one contested "accounts for" case set aside | [[Agent evaluation]] |
