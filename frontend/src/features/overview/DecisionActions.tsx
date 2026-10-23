@@ -23,19 +23,7 @@ interface DecisionActionsProps {
 export function DecisionActions({ onUpload, onDashboard, onApprovals, onAgents }: DecisionActionsProps) {
   const { t } = usePack(decisionActionMessages)
   return (
-    <section className="decision-actions" aria-labelledby="decision-actions-title">
-      <div className="decision-actions__intro">
-        <span className="decision-actions__eyebrow">{t('decision.eyebrow')}</span>
-        <h3 id="decision-actions-title">{t('decision.heading')}</h3>
-        <p>{t('decision.subtitle')}</p>
-      </div>
-      <svg className="decision-actions__motif" viewBox="0 0 240 100" aria-hidden="true">
-        <path d="M15 50H65L105 20H170L215 50M65 50L105 80H170L215 50M65 50H215" />
-        <circle cx="15" cy="50" r="6" /><circle cx="65" cy="50" r="10" />
-        <circle cx="105" cy="20" r="6" /><circle cx="105" cy="80" r="6" />
-        <circle cx="170" cy="20" r="6" /><circle cx="170" cy="80" r="6" />
-        <circle cx="215" cy="50" r="10" />
-      </svg>
+    <section className="decision-actions" aria-label={t('decision.heading')}>
       <div className="decision-actions__grid">
         {onUpload ? (
           <button type="button" onClick={onUpload}>

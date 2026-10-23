@@ -110,9 +110,9 @@ test('the phone bar holds five places and More opens the rest', async ({ page })
   const bar = page.getByRole('navigation', { name: 'Primary' })
   await expect(bar.getByRole('button')).toHaveCount(5)
   // The four places a manager opens most, with a short label that fits.
-  await expect(bar.getByRole('button')).toHaveText(['Command Centre', 'Assets', 'Approvals', 'Workspace', 'More'])
-  await bar.getByRole('button', { name: 'Command Centre' }).click()
-  await expect(bar.getByRole('button', { name: 'Command Centre' })).toHaveAttribute('aria-current', 'page')
+  await expect(bar.getByRole('button')).toHaveText(['Home', 'Data', 'Analyses', 'Review', 'More'])
+  await bar.getByRole('button', { name: 'Home' }).click()
+  await expect(bar.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page')
 
   const more = bar.getByRole('button', { name: 'More' })
   await more.click()

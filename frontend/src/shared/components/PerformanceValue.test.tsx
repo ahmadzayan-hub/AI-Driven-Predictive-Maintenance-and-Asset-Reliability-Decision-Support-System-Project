@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -15,7 +15,10 @@ describe('explicit performance assessments', () => {
   it.each(['en', 'ar'] as const)('explains every color and both neutral meanings in %s without a tooltip', (locale) => {
     applyLocale(locale)
     render(<PerformanceLegend />)
-    expect(screen.getByRole('complementary', { name: performanceMessages[locale]['performance.legend'] })).toBeVisible()
+    const summary = screen.getByText(performanceMessages[locale]['performance.legend'])
+    expect(summary.closest('details')).not.toHaveAttribute('open')
+    fireEvent.click(summary)
+    expect(summary.closest('details')).toHaveAttribute('open')
     for (const tone of ['bad', 'okay', 'good', 'unassessed', 'unavailable'] as const) {
       expect(screen.getByText(performanceMessages[locale][`performance.${tone}`])).toBeVisible()
     }
