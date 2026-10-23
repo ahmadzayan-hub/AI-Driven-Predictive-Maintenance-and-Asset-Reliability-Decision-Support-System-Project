@@ -58,14 +58,18 @@ class RateLimiter:
             return True, int(tokens), 0
 
 
+class RateLimitUnavailable(Exception):
+    """A shared write limit could not be established; do not admit writes."""
+
+
 class StoreRateLimiter:
     """A fixed window per caller, counted in the store.
 
     `check` costs one atomic read-modify-write; windows older than two
     back are dropped as a caller's new window opens, so the table stays
-    the size of the active callers. A store outage lets the request
-    through rather than refusing every write while the database is down:
-    the request will fail on its own data access if the outage is real.
+    the size of the active callers. A store outage refuses writes with a
+    distinct unavailable error, not a successful admission or quota claim.
+    Read-only routes remain available.
     """
 
     def __init__(self, store, limit=120, window_seconds=60, clock=time.time):
@@ -79,8 +83,8 @@ class StoreRateLimiter:
         window_start = int(now // self.window) * self.window
         try:
             count = self.store.rate_hit(key, window_start, window_start - 2 * self.window)
-        except Exception:
-            return True, self.limit, 0
+        except Exception as exc:
+            raise RateLimitUnavailable("Shared write limiter unavailable") from exc
         if count > self.limit:
             return False, 0, max(1, int(window_start + self.window - now) + 1)
         return True, self.limit - count, 0

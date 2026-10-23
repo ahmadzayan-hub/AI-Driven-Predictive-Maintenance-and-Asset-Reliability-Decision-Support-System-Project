@@ -58,7 +58,7 @@ from server.auth import DEMO_PRINCIPAL, AuthError, build_identity, public_auth_c
 from server.quota import ModelBudget, QuotaExceeded, load_limits
 from server import tenant
 from server.quota import usage as quota_usage
-from server.rate_limit import WRITE_METHODS, RateLimiter, StoreRateLimiter
+from server.rate_limit import WRITE_METHODS, RateLimiter, RateLimitUnavailable, StoreRateLimiter
 from server.storage import DbMemoryBackend, PostgresStore, open_store, is_database_error
 from server.worker import worker_status
 from server.operations_api import install_operations_api
@@ -573,7 +573,15 @@ def create_app(config_path=None, env=None, dist_dir=None):
                 key = identity.authenticate(header).subject
             except AuthError:
                 key = request.client.host if request.client else "anonymous"
-            allowed, remaining, retry_after = limiter.check(key)
+            try:
+                allowed, remaining, retry_after = limiter.check(key)
+            except RateLimitUnavailable:
+                return error_response(
+                    request, 503, ("الكتابة غير متاحة مؤقتًا. حاول لاحقًا." if
+                        request.headers.get("accept-language", "").startswith("ar") else
+                        "Writes are temporarily unavailable. Please retry later."),
+                    headers={"Retry-After": "5"},
+                )
             if not allowed:
                 return error_response(
                     request, 429, ("طلبات كثيرة جدًا. يرجى التمهل." if

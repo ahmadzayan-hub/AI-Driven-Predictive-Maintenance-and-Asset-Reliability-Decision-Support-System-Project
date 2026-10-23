@@ -1,5 +1,7 @@
 # Project progress
 
+Review wave (23 October): fail-closed shared write limits are prepared for review. Production merge/deployment and hosted acceptance remain separate approval gates. See docs/adr/2026-10-23-fail-closed-write-limiter.md.
+
 Last updated: 2026-10-23, platform/API recovery, transactional publishing and application build delivery. Original RMD sources remain omitted by owner instruction. Measured verification and release limits are recorded in README and docs/implementation/PLATFORM_RELEASE.md.
 
 

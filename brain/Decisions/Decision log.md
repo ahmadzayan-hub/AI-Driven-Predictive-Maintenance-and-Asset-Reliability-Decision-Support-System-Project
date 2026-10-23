@@ -115,3 +115,5 @@ All seven [[Analytics OS roadmap]] milestones have their records.
 | 2026-10-22-decision-inputs-interface | The Analytics form collects an improvement and a cost per group; the run view shows the decision record | [[Governed pipeline]], [[Approval gate]], [[Design system]] |
 | 2026-10-23-p2-slice-one | P2 slice one: a Wilson lower bound on the maintenance-risk verdict, declared splits, incomplete periods left out, loopback by default, idempotent run creation, wall-clock limits on custom stages and agent runtimes | [[Model validation]], [[Run lifecycle]], [[Custom stages]], [[Release acceptance]] |
 | 2026-10-23-blind-v7-into-dev-causal-and-intent-fix | blind_v7 moves into dev; causal and intent rules fixed as linguistic families; no blind floor for those two until blind_v8; one contested "accounts for" case set aside | [[Agent evaluation]] |
+
+| 2026-10-23-fail-closed-write-limiter | Fail-closed shared write limits; model transaction-boundary repair remains separate | [[Model gateway]], [[Tenant isolation]] |

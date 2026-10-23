@@ -18,7 +18,7 @@ The principles every session and every feature answers to. When a request confli
 4. **People approve consequential actions.** Publishing waits at the [[Approval gate]]. Nothing is deployed to production, and nothing is pushed to another branch, without explicit authorisation.
 5. **History is never rewritten.** No force-push, no history rewriting, no deleting branches. A mistake is undone with a new commit.
 6. **Say what is not done.** Limits are named, unverified results are labelled, and a weak model is reported as weak.
-7. **Personal data stays private.** The repository is temporarily private for containment; course files and teammates' details still stay out, as in the [[Team 3 Capstone]]. Any public release requires the owner's approval after remediation.
+7. Preserve intentionally public MBA/course materials as instructed by the owner on 23 October 2026. Do not remove or rewrite those assets based on stale confidentiality claims. Keep secrets and genuinely non-public personal data out; changes to repository visibility, production deployments and merges to main require explicit owner approval.
 8. **Both languages are first-class.** English and Arabic get the same quality and the same accessibility bar.
 9. **Decisions are written down.** A change in behaviour gets a decision record, listed in the [[Decision log]].
 10. **No weak substitutes.** A custom password system is never built just to tick an authentication box; [[Managed identity|managed identity]] providers do that job.

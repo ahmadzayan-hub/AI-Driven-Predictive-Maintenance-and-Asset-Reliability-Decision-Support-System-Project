@@ -18,7 +18,7 @@ from server import analytics, modelling, quota, tenant
 from server.app import create_app
 from server.maintenance import kpis
 from server.model_gateway import ModelGateway
-from server.rate_limit import RateLimiter, StoreRateLimiter
+from server.rate_limit import RateLimiter, RateLimitUnavailable, StoreRateLimiter
 from server.storage import PostgresStore, open_store
 from tests.support import closing, closing_store
 from tests.test_analytics import run_pipeline
@@ -156,12 +156,12 @@ class StoreRateLimiterTest(unittest.TestCase):
         rows = first._exec("SELECT window_start FROM rate_windows WHERE key = ?", ("ip:1",))
         self.assertEqual([r["window_start"] for r in rows], [1200])
 
-    def test_a_store_outage_lets_the_request_through(self):
+    def test_a_store_outage_refuses_the_request(self):
         class Broken:
             def rate_hit(self, *args):
                 raise RuntimeError("down")
-        allowed, remaining, retry_after = StoreRateLimiter(Broken(), limit=3).check("ip:1")
-        self.assertEqual((allowed, remaining, retry_after), (True, 3, 0))
+        with self.assertRaises(RateLimitUnavailable):
+            StoreRateLimiter(Broken(), limit=3).check("ip:1")
 
     def test_the_in_process_limiter_evicts_idle_buckets(self):
         clock = [0.0]
