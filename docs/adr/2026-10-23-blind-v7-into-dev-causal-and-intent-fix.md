@@ -142,3 +142,30 @@ quotes the missed phrases ("the product of", "bred"); it flags one fewer
   service") would be a false alarm; none is in any stored set.
 - Shorthand expansion covers a short list of common tokens, not spelling in
   general.
+
+## Amendment, same day: the blind score on blind_v8
+
+`blind_v8` was written by an independent agent from the label definitions
+only, with no access to the repository, the rules or any earlier set, while
+these fixes were being made. It was added after the fixes were committed and
+scored once. It is the number to quote; the dev figures above are not.
+
+| Suite | Previous blind (blind_v7, rules before this fix) | blind_v8, rules after this fix |
+| --- | --- | --- |
+| Causal wording | recall 60%, precision 88% | recall 80%, precision 92% (60 cases) |
+| Intent | macro recall 61% | macro recall 58.7% (58 cases) |
+
+- **The causal fixes generalise.** General linguistic forms, chosen against
+  dev, raised recall on unseen sentences by 20 points without losing
+  precision.
+- **The intent fixes do not.** Dev rose from 93% to 100% and the blind score
+  did not move. That is overfitting to the phrasings in dev, and it confirms
+  the board's own diagnosis: intent needs a model behind the rules (ADR 0019)
+  or a much larger labelled set, not more patterns. The model path is
+  measurable with `--suite intent_model` and needs a configured provider.
+- **Two blind sentences were not blind.** The first scoring showed two intent
+  sentences already in dev word for word ("what can you actually do for me?"
+  and "هل انتهى التحليل؟"). They were removed and the remaining 58 rescored;
+  a test now fails if any blind_v8 sentence is in dev.
+- **Floors** follow the existing convention, the first score rounded down:
+  causal blind 0.80, intent blind 0.58.

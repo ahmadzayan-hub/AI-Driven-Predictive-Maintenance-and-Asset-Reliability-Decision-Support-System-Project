@@ -1468,3 +1468,15 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified after merging `main`:** `scripts/verify.py`, all 8 steps: 1745 Python tests, 165 skipped (no PostgreSQL in this container); 362 frontend unit tests; type check; native run logic; build; budget js first load 98.6 of 100 KB, js total 219.6 of 220 KB, css first load 10.0 of 10.5 KB, css total 30.5 of 30.5 KB. End-to-end not rerun.
 - **Note:** total JS is 0.4 KB under its limit and total CSS is at it, so the next interface change must trim before it adds.
 - **Open / next:** message-first chart captions; independent domain and manager acceptance; brain maintenance is due.
+
+## 2026-10-23 · `93dbc76b` · ccr-cbf95846-40h8or (Next items 0, 3 and 4)
+
+**Goal:** do every Next item that can be done in this container. Items 1, 2 and 5 need the private assessment, people with real devices, or the owner on GitHub, and item 3's live-host test needs direct egress, so those stay open.
+
+- **Ran as a team of agents in isolated worktrees**, merged here: two authors with no repository access wrote the new blind material (`blind_v8` and memo G), and three engineers built in parallel. Every branch passed `scripts/verify.py` before it was merged.
+- **Workbook cover sheets** ([decision](docs/adr/2026-10-23-workbook-sheet-discovery.md)): sheets are listed without parsing, and an upload whose first sheet is a cover reads the first that looks like a table. 7 reader and API tests, each watched failing first.
+- **Blind score, measured once on `blind_v8`:** causal recall 60% to 80%, precision 88% to 92%; intent 61% to 58.7%, flat while dev reached 100%. The causal fixes generalise; the intent fixes overfit, which is the board's own diagnosis. **Two blind sentences were already in dev word for word**, caught by a new test and removed before the 58 were rescored. Floors are the first score rounded down: 0.80 and 0.58.
+- **Check 7 on held-out memo G:** 9 of 9 method errors in 3 of 3 runs, no false alarm on 11 decoys including a correct run-to-failure. The figures tool falsely flagged two G paragraphs because the register gave figures in millions in its labels; a label naming its scale now sources it, with memos A to F unchanged.
+- **The run-to-failure false alarm came from the figures auditor, not the analytics reviewer** as the board implied. Its instructions now leave failure consequences to check 7; 0 of 2 controlled runs flag memo F P15, where 2 of 2 old runs did. F chose the fix, so this is not a blind measure.
+- **Verified on the merged tree:** `scripts/verify.py`, all 8 steps: 1880 Python tests, 185 skipped (no PostgreSQL here); 369 frontend unit tests; type check; native run logic; build; budget js first load 98.9 of 100 KB, js total 245.0 of 248 KB, css total 32.8 of 33.5 KB. `evaluate_agents.py --check` exits 0. End-to-end not rerun.
+- **Open / next:** a model behind the intent rules; a header under a title row; the picker's fallback call; a third held-out memo; the owner-only items.

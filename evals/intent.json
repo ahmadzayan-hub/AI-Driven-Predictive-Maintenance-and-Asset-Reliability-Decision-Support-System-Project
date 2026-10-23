@@ -2555,5 +2555,297 @@
    "label": "chat",
    "source": "blind v3, written by an independent agent from the label definitions only"
   }
+ ],
+ "blind_v8": [
+  {
+   "text": "How do I use this assistant to look at my maintenance data?",
+   "label": "help",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "Is there a list of commands or something I can type here",
+   "label": "help",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "I'm new here, where do I start?",
+   "label": "help",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "ماذا تستطيع أن تفعل؟",
+   "label": "help",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "كيف أستخدم هذه الأداة لتحليل بياناتي؟",
+   "label": "help",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "Please remember that our fiscal year starts in April.",
+   "label": "remember",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "note for later: depot C is closed for refurbishment until March",
+   "label": "remember",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "Keep in mind that train 3012 belongs to the tram fleet, not metro.",
+   "label": "remember",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "can u remmeber my manager's name is Sara",
+   "label": "remember",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "تذكّر أن موعد التقرير الشهري هو يوم 5 من كل شهر.",
+   "label": "remember",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "احفظ عندك إن خط السير الأحمر هو الأولوية عندنا.",
+   "label": "remember",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "What do you remember about me?",
+   "label": "recall",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "did I tell you which depot is closed? remind me",
+   "label": "recall",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "Show me everything you've saved so far.",
+   "label": "recall",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "what facts have u stored about our fleet",
+   "label": "recall",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "ماذا تتذكر عن مشروعي؟",
+   "label": "recall",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "وش المعلومات اللي حفظتها عني؟",
+   "label": "recall",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "Forget that my manager is Sara, she moved teams.",
+   "label": "forget",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "Please delete the note about depot C being closed.",
+   "label": "forget",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "remove the fact about the fiscal year from your memory",
+   "label": "forget",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "You can drop what I told you about train 3012, it was wrong.",
+   "label": "forget",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "انسَ المعلومة التي أخبرتك بها عن موعد التقرير.",
+   "label": "forget",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "امسح من ذاكرتك اسم المدير اللي قلته لك.",
+   "label": "forget",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "Clear our conversation history.",
+   "label": "clear_history",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "wipe everything, start fresh with no history",
+   "label": "clear_history",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "Can you erase all previous chats and memory?",
+   "label": "clear_history",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "delete this whole conversaton pls",
+   "label": "clear_history",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "امسح سجل المحادثة بالكامل.",
+   "label": "clear_history",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "Reset the chat log, I don't want any of it kept.",
+   "label": "clear_history",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "Switch the language to Arabic.",
+   "label": "set_preference",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "remember to be brief in your answers from now on",
+   "label": "set_preference",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "Use kilometres instead of miles please.",
+   "label": "set_preference",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "Turn on dark mode.",
+   "label": "set_preference",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "غيّر لغة الواجهة إلى الإنجليزية.",
+   "label": "set_preference",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "I'd prefer a more formal tone, if you don't mind.",
+   "label": "set_preference",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "Run an analysis on the work order export I just uploaded.",
+   "label": "start_run",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "analyse the Q3 failure data for the tram fleet",
+   "label": "start_run",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "Could you kick off the reliability pipeline on last month's dataset?",
+   "label": "start_run",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "start a new run with the brake inspection file",
+   "label": "start_run",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "حلّل بيانات الأعطال لشهر سبتمبر.",
+   "label": "start_run",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "I'd like to see MTBF by subsystem for this spreadsheet, go ahead and process it.",
+   "label": "start_run",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "Is the analysis finished yet?",
+   "label": "run_status",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "how's my run going",
+   "label": "run_status",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "Did the job on the Q3 data complete or fail?",
+   "label": "run_status",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "still waiting... what stage is it at now?",
+   "label": "run_status",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "وين وصل التحليل اللي شغلته قبل شوي؟",
+   "label": "run_status",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "Why does the report say door faults are the top issue?",
+   "label": "explain_report",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "explain the second chart in the summary",
+   "label": "explain_report",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "What does the 87% availability figure in the findings mean?",
+   "label": "explain_report",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "Walk me through how you got the MTTR number in that report.",
+   "label": "explain_report",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "اشرح لي النتيجة الثالثة في التقرير.",
+   "label": "explain_report",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "I don't get the red flag on the bogie section, what's it based on?",
+   "label": "explain_report",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "thanks, that's great",
+   "label": "chat",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "forget it, never mind",
+   "label": "chat",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "Good morning!",
+   "label": "chat",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "What's the weather like in Dubai today?",
+   "label": "chat",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "شكرًا جزيلًا على مساعدتك",
+   "label": "chat",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  },
+  {
+   "text": "haha you're pretty quick",
+   "label": "chat",
+   "source": "blind v8 (2026-10-23): written by an independent agent from the label definitions only, with no access to the repository, the rules or any earlier set; scored once against the rules as fixed on dev after blind_v7 moved into it (2026-10-23); NOT used to fix any rule, so it can judge the next fix"
+  }
  ]
 }

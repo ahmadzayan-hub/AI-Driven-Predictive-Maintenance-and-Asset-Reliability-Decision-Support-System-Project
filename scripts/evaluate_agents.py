@@ -21,9 +21,8 @@ holds labelled cases in up to three splits:
   so were their blind_v7 sets (2026-10-23), and the standards holdout was written by the same session that wrote the
   patterns. For those suites a holdout score is a second dev score;
 - `blind`: the split named by the suite's `blind` entry in SUITES
-  (jargon blind_v6, standards blind_v1). Causal and intent have no blind
-  split while their next independent set is pending; blind_v7 moved into
-  their dev splits on 2026-10-23.
+  (causal and intent blind_v8, jargon blind_v6, standards blind_v1);
+  blind_v7 moved into the causal and intent dev splits on 2026-10-23.
   Written by an agent from the label definitions only and never looked at
   while fixing a rule, so it is the score to quote. Once a blind set is
   used to fix rules it moves into dev and a new one is written.
@@ -229,11 +228,10 @@ SUITES = {
     "intent_model": {"file": "intent.json", "predict": _intent_model, "opt_in": True,
                      "agent": "Assistant with a model behind the rules: what a chat sentence asks for",
                      "module": "server/assistant.Assistant.understand"},
-    # intent and causal declare no blind split for now: blind_v7 moved into dev
-    # on 2026-10-23 when the rules were fixed against it, and a new independent
-    # set (blind_v8) is pending. Until it is added these two suites have no
-    # blind score and no blind floor.
-    "intent": {"file": "intent.json", "predict": _intent,
+    # intent and causal are judged on blind_v8 (2026-10-23): blind_v7 moved into
+    # dev that day when the rules were fixed against it, and blind_v8 was
+    # written independently and scored once against the fixed rules.
+    "intent": {"file": "intent.json", "predict": _intent, "blind": "blind_v8",
                "agent": "Assistant: what a chat sentence asks for", "module": "assistant.understand"},
     "column_roles": {"file": "datasets.json", "predict": _roles, "agent": "Column mapping: each column's role",
                      "module": "server/mapping.suggest"},
@@ -246,7 +244,7 @@ SUITES = {
                   "agent": "Raw-data guard: rows that must not reach a model", "module": "scripts/consult.looks_like_raw_rows"},
     "jargon": {"file": "jargon.json", "predict": _jargon, "positive": True, "blind": "blind_v6",
                "agent": "Validator: statistical jargon in claims", "module": "server/analytics._jargon_in"},
-    "causal": {"file": "causal.json", "predict": _causal, "positive": True,
+    "causal": {"file": "causal.json", "predict": _causal, "positive": True, "blind": "blind_v8",
                "agent": "Claims lint: causal wording in deliverables", "module": "scripts/claims_lint.causal_phrases"},
     "figures": {"file": "figures.json", "predict": _figures, "positive": True, "labels": [True, False],
                 "agent": "Figures check: unsourced or wrong figures", "module": "scripts/figures_check.check"},

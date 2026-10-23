@@ -254,16 +254,20 @@ class RecallFixTests(unittest.TestCase):
 
     def test_blind_v7_cases_fixed_against_say_so_in_dev(self):
         """intent and causal blind_v7 were used to fix the rules on 2026-10-23, so
-        those suites declare no blind split and carry no blind floor until the
-        next independent set is added. One causal case was set aside as a
-        contested label and is kept, unscored, under "contested"."""
+        they moved into dev and blind_v8, written independently that day, is
+        the blind split, floored at its first score. No blind_v8 sentence may
+        be in dev, or the blind score stops being blind. One causal case was
+        set aside as a contested label and is kept, unscored, under "contested"."""
         floors = json.loads((ev.EVALS / "floors.json").read_text(encoding="utf-8"))
         for name, in_dev, contested in (("intent", 57, 0), ("causal", 49, 1)):
             with self.subTest(suite=name):
                 data = json.loads((ev.EVALS / f"{name}.json").read_text(encoding="utf-8"))
                 self.assertNotIn("blind_v7", data)
-                self.assertIsNone(ev.SUITES[name].get("blind"))
-                self.assertNotIn("blind", floors[name])
+                self.assertEqual(ev.SUITES[name].get("blind"), "blind_v8")
+                self.assertIn("blind", floors[name])
+                blind_texts = {c["text"] for c in data["blind_v8"]}
+                self.assertFalse(blind_texts & {c["text"] for c in data["dev"]})
+                self.assertTrue(all("blind v8" in c["source"] for c in data["blind_v8"]))
                 moved = [c for c in data["dev"] if "moved into dev on 2026-10-23" in c.get("source", "")]
                 self.assertEqual(len(moved), in_dev)
                 self.assertEqual(len(data.get("contested", [])), contested)
