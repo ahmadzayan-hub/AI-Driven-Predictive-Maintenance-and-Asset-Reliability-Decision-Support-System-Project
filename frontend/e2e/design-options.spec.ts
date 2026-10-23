@@ -15,14 +15,15 @@ for (const [name, v] of Object.entries(variants)) for (const locale of ['en', 'a
   test(`proposal ${name} ${locale} ${width}`, async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop', 'One explicit comparison matrix')
     await page.setViewportSize({ width, height: 1000 })
-    await page.addInitScript((lang) => localStorage.setItem('aos-locale', lang), locale)
+    await page.addInitScript(({ lang, theme }) => { localStorage.setItem('aos-locale', lang); localStorage.setItem('aos-theme', theme) }, { lang: locale, theme: v.theme })
     await page.goto('/')
     await viewLoaded(page)
     await expect(page.locator('.command--pending')).toHaveCount(0)
-    await page.locator('html').evaluate((el, theme) => { el.dataset.theme = theme }, v.theme)
+    await expect(page.locator('html')).toHaveAttribute('data-theme', v.theme)
     const before = await page.locator('.panel:visible').innerText()
     await page.addStyleTag({ content: `
       :root { color-scheme: ${v.theme}; --bg:${v.bg}!important; --workspace-bg:${v.bg}!important; --surface:${v.surface}!important; --surface-raised:${v.surface}!important; --surface-sunken:${v.bg}!important; --surface-glass:${v.surface}!important; --text:${v.text}!important; --text-muted:${v.muted}!important; --text-faint:${v.muted}!important; --accent:${v.accent}!important; --accent-solid:${v.accent}!important; --accent-solid-hover:${v.accent}!important; --accent-soft:${v.soft}!important; --on-accent:${v.on}!important; --border:${v.border}!important; --border-strong:${v.strong}!important; --nav-surface:${v.surface}!important; --nav-text:${v.text}!important; --nav-muted:${v.muted}!important; --nav-active:${v.soft}!important; --nav-accent:${v.accent}!important; --nav-border:${v.border}!important; --panel-fill:${v.surface}!important; --hero-fill:${v.surface}!important; --hero-border:${v.border}!important; --radius-m:10px!important; --radius-l:12px!important; }
+      body { color:${v.text}; background:${v.bg}; }
       .command__hero,.next-action,.overview__evidence { border-inline-start:1px solid var(--border)!important; box-shadow:none!important; }
       .command__headline { font-size:1.125rem!important; line-height:1.55!important; font-weight:500!important; }
       .next-action h3 { font-size:1.25rem!important; font-weight:500!important; }
@@ -32,6 +33,8 @@ for (const [name, v] of Object.entries(variants)) for (const locale of ['en', 'a
       .command__hero { background:var(--surface)!important; }
       .proposal-label { position:fixed; bottom:72px; inset-inline-end:12px; z-index:100; padding:6px 10px; border:1px solid var(--border-strong); border-radius:6px; background:var(--surface); color:var(--text); font:12px/1.4 sans-serif; pointer-events:none; }
     ` })
+    const rgb = `rgb(${[1, 3, 5].map(i => parseInt(v.text.slice(i, i + 2), 16)).join(', ')})`
+    await expect(page.locator('body')).toHaveCSS('color', rgb)
     expect(await page.locator('.panel:visible').innerText()).toBe(before)
     await page.evaluate((label) => { const n = document.createElement('div'); n.className = 'proposal-label'; n.textContent = label; document.body.append(n) }, `DESIGN PROPOSAL · ${name} · SYNTHETIC`)
     await expect(page.locator('.shell__mode')).toBeVisible()
