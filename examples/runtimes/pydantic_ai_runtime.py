@@ -67,4 +67,4 @@ class PydanticAIRuntime:
 
         call.__name__ = name
         return Tool.from_schema(call, name=name, description=spec["description"],
-                                json_schema=spec["inputSchema"])
+                                json_schema=spec["inputSchema"], sequential=True)
