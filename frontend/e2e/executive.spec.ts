@@ -169,7 +169,8 @@ function expectReportScope(document: DocumentContents, snapshot: RunExecutive) {
     [labels.updated, snapshot.run.updated_at], [labels.selected, '3'], [labels.total, '4'],
   ]) expect(rows).toContainEqual(row)
   expect(document.text).toContain(snapshot.headline)
-  expect(document.text).toContain(snapshot.advisory!.title)
+  expect(document.text).toContain('معيار | Miyaar')
+  expect(document.text).toContain(ar ? 'ذكاء صيانة الأصول ودعم القرار' : 'Asset maintenance intelligence and decision support')
   expect(document.text).toContain(snapshot.advisory!.recommendation)
   expect(document.text).toContain(snapshot.advisory!.preservation)
   expect(rows.some((row) => row.includes('Site') && row.some((cell) => cell.includes('North')))).toBe(true)
