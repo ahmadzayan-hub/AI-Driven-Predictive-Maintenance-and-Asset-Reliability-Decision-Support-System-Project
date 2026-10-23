@@ -228,8 +228,7 @@ class RecallFixTests(unittest.TestCase):
             return {case["text"] for key, cases in data.items()
                     if key != skip and isinstance(cases, list)
                     for case in cases if isinstance(case, dict) and "text" in case}
-        for name, key, size in (("jargon", "blind_v6", 40), ("intent", "blind_v7", 57),
-                                ("causal", "blind_v7", 50), ("standards", "blind_v1", 36)):
+        for name, key, size in (("jargon", "blind_v6", 40), ("standards", "blind_v1", 36)):
             data = json.loads((ev.EVALS / f"{name}.json").read_text(encoding="utf-8"))
             if key not in data:
                 continue
@@ -248,10 +247,37 @@ class RecallFixTests(unittest.TestCase):
         for name, count in (("intent", 48), ("causal", 37)):
             data = json.loads((ev.EVALS / f"{name}.json").read_text(encoding="utf-8"))
             self.assertNotIn("blind_v6", data)
-            moved = [c for c in data["dev"] if "moved into dev" in c.get("source", "")]
+            moved = [c for c in data["dev"] if "moved into dev on 2026-10-20" in c.get("source", "")]
             self.assertEqual(len(moved), count, name)
             for case in moved:
                 self.assertIn("no longer independent", case["source"])
+
+    def test_blind_v7_cases_fixed_against_say_so_in_dev(self):
+        """intent and causal blind_v7 were used to fix the rules on 2026-10-23, so
+        they moved into dev and blind_v8, written independently that day, is
+        the blind split, floored at its first score. No blind_v8 sentence may
+        be in dev, or the blind score stops being blind. One causal case was
+        set aside as a contested label and is kept, unscored, under "contested"."""
+        floors = json.loads((ev.EVALS / "floors.json").read_text(encoding="utf-8"))
+        for name, in_dev, contested in (("intent", 57, 0), ("causal", 49, 1)):
+            with self.subTest(suite=name):
+                data = json.loads((ev.EVALS / f"{name}.json").read_text(encoding="utf-8"))
+                self.assertNotIn("blind_v7", data)
+                self.assertEqual(ev.SUITES[name].get("blind"), "blind_v8")
+                self.assertIn("blind", floors[name])
+                blind_texts = {c["text"] for c in data["blind_v8"]}
+                self.assertFalse(blind_texts & {c["text"] for c in data["dev"]})
+                self.assertTrue(all("blind v8" in c["source"] for c in data["blind_v8"]))
+                moved = [c for c in data["dev"] if "moved into dev on 2026-10-23" in c.get("source", "")]
+                self.assertEqual(len(moved), in_dev)
+                self.assertEqual(len(data.get("contested", [])), contested)
+                for case in moved + data.get("contested", []):
+                    self.assertIn("blind v7", case["source"])
+                    self.assertIn("no longer independent", case["source"])
+                dev_texts = {c["text"] for c in data["dev"]}
+                for case in data.get("contested", []):
+                    self.assertNotIn(case["text"], dev_texts)
+                    self.assertIn("contested label", case["source"])
 
     def test_the_causal_lint_catches_the_families_blind_v6_missed(self):
         """Attribution, phrasal and Arabic origin constructions (2026-10-20)."""
@@ -267,6 +293,42 @@ class RecallFixTests(unittest.TestCase):
                      "إن نقص التزييت هو المسؤول عن انهيار علبة التروس."):
             with self.subTest(text=text):
                 self.assertTrue(claims_lint.causal_phrases(text))
+
+    def test_the_causal_lint_catches_the_families_blind_v7_missed(self):
+        """Soft causal verbs, nominal origin, tracing, pseudo-clefts, a reason
+        clause, and the Arabic synonyms of "led to" and "attributed to"
+        (2026-10-23). Each sentence below is new, not a dev case."""
+        for text in ("Poor drainage spawned the mud pumping at the level crossing.",
+                     "Repeated overloads fostered fatigue cracking in the bogie frame.",
+                     "The bearing failure was the direct product of a missed lubrication round.",
+                     "Most door faults were traced back to a single batch of sensors.",
+                     "Water ingress is what finally ruined the junction box.",
+                     "Having been left uncovered, the cable drum corroded over the summer.",
+                     "أفضى ضعف التخطيط إلى تأخر أعمال الصيانة.",
+                     "أسفر انقطاع التيار عن توقف الخط ساعتين.",
+                     "يعزو التقرير ارتفاع الأعطال إلى قدم المعدات.",
+                     "نقص قطع الغيار هو ما جعل الإصلاح يتأخر."):
+            with self.subTest(text=text):
+                self.assertTrue(claims_lint.causal_phrases(text))
+
+    def test_the_causal_lint_keeps_denials_tracing_and_reports_negative(self):
+        """The forms that must stay negative beside the new rules: a denial, a
+        figure traced to its source, a person who cannot be traced, a cleft
+        that only reports, a product of numbers, and paying an amount."""
+        for text in ("Nothing in the logs suggests the new pads were responsible for the noise.",
+                     "There is no evidence that age drives the failures.",
+                     "We make no claim about cause in this section.",
+                     "Every figure can be traced back to its register.",
+                     "Once rewritten, a case cannot be traced to them.",
+                     "That is what happened on the night shift.",
+                     "That is what we measured.",
+                     "The product of the two rates is 0.4.",
+                     "The induced current stayed within limits.",
+                     "Bred in the depot, the team knows the fleet well.",
+                     "لا يوجد ما يشير إلى أن التحديث تسبب في الأعطال.",
+                     "دفع المقاول المبلغ إلى المورد."):
+            with self.subTest(text=text):
+                self.assertEqual(claims_lint.causal_phrases(text), [])
 
     def test_the_causal_lint_does_not_flag_vehicles_test_results_or_lags(self):
         """The false alarms found on the same set, and one found on the project's own docs."""
@@ -365,6 +427,43 @@ class RecallFixTests(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual(assistant.understand(text)["action"], action)
 
+    def test_the_intent_families_blind_v7_missed(self):
+        """Chat shorthand, wanting-you and what-I-told-you phrasing in Arabic,
+        Gulf verbs of removing and cleaning, a started job, and named report
+        sections (2026-10-23). Each sentence below is new, not a dev case."""
+        import assistant
+        for text, action in (("wat can u do for me", "help"),
+                             ("شو اللي تقدر تسويه في بيانات الأعطال؟", "help"),
+                             ("don't let me forget the audit is on Sunday", "remember"),
+                             ("عايزك تفتكر إن المراجعة يوم الأحد", "remember"),
+                             ("وش قلت لك عن المورد؟", "recall"),
+                             ("do you still have that info about the pumps", "recall"),
+                             ("ditch the note about the old supplier", "forget"),
+                             ("شيل الملاحظة اللي عن المورد", "forget"),
+                             ("نظّف المحادثة كلها", "clear_history"),
+                             ("وقف تسجيل المحادثات من اليوم", "set_preference"),
+                             ("سوّ لي تحليل على بيانات الأبواب", "start_run"),
+                             ("is the analysis we kicked off this morning done", "run_status"),
+                             ("the run we started an hour ago, is it stuck?", "run_status"),
+                             ("quote the diagnostic section for me", "explain_report")):
+            with self.subTest(text=text):
+                self.assertEqual(assistant.understand(text)["action"], action)
+
+    def test_the_new_intent_rules_keep_ordinary_sentences_as_chat(self):
+        """Precision beside the new rules: a job interview, a sewing thread, a
+        line's trial operation, cleaning a train, and a weekend plan."""
+        import assistant
+        for text in ("did the job interview finish early",
+                     "reset the thread tension on the sewing machine",
+                     "ايش صار في التشغيل التجريبي للخط",
+                     "نظف القطار قبل الصباح",
+                     "I have no idea where to begin with my weekend"):
+            with self.subTest(text=text):
+                self.assertEqual(assistant.understand(text)["action"], "chat")
+        # Shorthand is read for the rule, but a note keeps the person's own words.
+        note = assistant.understand("remember that u-bolts r due in May")
+        self.assertEqual(note["arguments"]["information"], "u-bolts r due in May")
+
     def sourcing(self, text, register):
         with tempfile.TemporaryDirectory() as tmp:
             doc = Path(tmp) / "doc.md"
@@ -453,6 +552,58 @@ class RecallFixTests(unittest.TestCase):
         result = self.sourcing(text, {"January": "7,104,729", "February": "7,209,458"})
         self.assertEqual(result["wrong_arithmetic"], [])
         self.assertEqual(len(result["unsourced"]), 10)
+
+    def test_counts_written_in_english_words_are_read(self):
+        # Memo F: coverage reported "five" interchange stations and "two"
+        # rectifiers as missing. Fresh sentences, so F stays held out.
+        text = ("The depot has seven hoists, twenty-four wheel lathes, two hundred and fifty bogies, "
+                "a thousand spare bolts and forty two cranes. Two million dirhams were spent.")
+        expected = {"seven": 7, "twenty-four": 24, "two hundred and fifty": 250, "a thousand": 1000,
+                    "forty two": 42, "Two million": 2_000_000}
+        self.assertEqual({p: fc.value_of(p) for p, _, _ in fc.word_figures(text)}, expected)
+        numbers = fc.numbers_in(text, keep_small=True)
+        for value in ("7", "24", "250", "1,000", "42", "2,000,000"):
+            self.assertIn("(in words)", fc.found_in(text, value, numbers) or "", value)
+        # A count in words is whole: "seven" is not a rounded 6.8.
+        self.assertIsNone(fc.found_in(text, "6.8", numbers))
+        # Small counts in words are labels in the sourcing pass, as digits are;
+        # a larger figure in words must be sourced like any other.
+        result = self.sourcing(text, {"Bogies": "250", "Spend": "2,000,000"})
+        self.assertEqual(sorted(u["number"] for u in result["unsourced"]), ["a thousand", "forty two"])
+
+    def test_number_words_that_are_not_counts_are_left_alone(self):
+        text = ("One of the fans failed. It was a one-off. No one was hurt, and the new one is fitted. "
+                "One in five trains ran late. Two-thirds of the staff work the second shift for "
+                "hundreds of hours on a three-phase supply.")
+        self.assertEqual([p for p, _, _ in fc.word_figures(text)], ["three"])
+        for value in ("1", "5", "2"):
+            self.assertIsNone(fc.found_in(text, value), value)
+
+    def test_counts_written_in_arabic_words_are_read(self):
+        text = ("في المستودع خمس محطات وخمسة وعشرون مصعدا وثلاثمئة مضخة واثنتا عشرة رافعة. "
+                "بلغت ساعات العمل ثلاثة آلاف ساعة، وكلفت الصيانة ألفا وخمسمئة. ومئة وعشرون مروحة.")
+        found = {fc._ar(p): v for p, v, _ in fc.word_figures(text)}
+        self.assertEqual(sorted(found.values()), [5, 12, 25, 120, 300, 1500, 3000])
+        numbers = fc.numbers_in(text, keep_small=True)
+        for value in ("5", "25", "300", "12", "3,000", "1,500", "120"):
+            self.assertIn("(in words)", fc.found_in(text, value, numbers) or "", value)
+        # Feminine and masculine forms, and the two spellings of a hundred, are one number.
+        for phrase, value in (("ثلاث", 3), ("ثلاثة", 3), ("مائة", 100), ("مئة", 100), ("إحدى عشرة", 11),
+                              ("أربعون", 40), ("تسعين", 90), ("ألف", 1000)):
+            self.assertEqual(fc.value_of(phrase), value, phrase)
+        # A short feminine form before a definite noun is a fraction: "خمس السكان" is a fifth.
+        self.assertEqual(fc.word_figures("يسكن خمس السكان في المدينة، وكل واحد منهم يعمل."), [])
+
+    def test_a_register_in_millions_sources_figures_written_in_millions(self):
+        # Memo G: the register held "Train-km 2025 (million)" as 1.84, and the
+        # memo wrote "1.84 million", which was read as 1,840,000 and reported
+        # unsourced. A label that names its scale is that scale. Fresh text.
+        text = "Spend was 9.6 million dirhams and the fleet ran 2.05 million km."
+        result = self.sourcing(text, {"Spend (million AED)": "9.6", "Fleet km 2025 (million)": "2.05"})
+        self.assertEqual(result["unsourced"], [])
+        # Without a scale in the label, 2.05 is 2.05, and "2.05 million" is not it.
+        result = self.sourcing(text, {"Spend (million AED)": "9.6", "Fleet km 2025": "2.05"})
+        self.assertEqual([u["number"] for u in result["unsourced"]], ["2.05 million"])
 
     def test_one_figure_written_twice_is_not_two_inputs(self):
         # 75.2% and 0.752 are one quantity: their difference must not source 74.1%.

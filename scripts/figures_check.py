@@ -20,8 +20,10 @@ Tier 0 of docs/AGENT_TEAM.md: no model, no tokens. Three checks:
 3. Arithmetic: a calculation written out ("24.4 h − 16.9 h = 7.5 h") must
    hold. A result that holds is a derived figure, sourced by its inputs.
 
-Figures written in words ("one in five") are not read: the figures-auditor
-reads the text for those.
+Counts written in English or Arabic words ("five", "twenty-four", "two
+hundred and fifty", "خمسة وعشرون", "ثلاثة آلاف") are read like digits. Ratios
+("one in five"), fractions, ordinals and a pronoun "one" are not: the
+figures-auditor reads the text for those.
 
 Reads .md, .txt, .html, .json, .csv and .tsv (cell by cell), .pdf (with pdftotext) and .pptx (slide
 text, alt text and speaker notes). Exits 0 when everything is found, 1
@@ -134,6 +136,196 @@ def normalise(text):
     return " ".join(text.replace("\u00a0", " ").replace("−", "-").split())
 
 
+# Figures written in words (ADR 2026-10-23-number-words-and-run-to-failure):
+# "five", "twenty-four", "two hundred and fifty", "a thousand", "خمسة وعشرون",
+# "ثلاثمئة", "ثلاثة آلاف". Ordinals ("second", "third") are not read: they rank
+# rather than count, and "second" is also a unit of time. Fractions ("a third",
+# "two-thirds", "خمس السكان") and vague plurals ("hundreds of") are not figures.
+EN_UNITS = {w: i for i, w in enumerate(
+    "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen "
+    "sixteen seventeen eighteen nineteen".split())}
+EN_TENS = {w: 10 * i for i, w in enumerate("twenty thirty forty fifty sixty seventy eighty ninety".split(), 2)}
+EN_SCALES = {"thousand": 1e3, "million": 1e6, "billion": 1e9}
+# "one" is a pronoun or an idiom far more often than a count.
+ONE_BEFORE = {"no", "any", "every", "some", "each", "the", "this", "that", "which", "a", "an", "anyone", "everyone"}
+# "the new one is fitted": a pronoun before a verb or a relative.
+ONE_AFTER = {"of", "another", "other", "off", "way", "hand", "by", "is", "was", "has", "had", "that", "which",
+             "who", "will", "can", "would", "should", "must"}
+# "three-phase" keeps its count; "one-off" and "two-thirds" are not counts.
+HYPHEN_NOT_COUNT = {"off", "half", "halves", "third", "thirds", "quarter", "quarters", "fifth", "fifths",
+                    "sixth", "sixths", "tenth", "tenths", "fold", "way", "on", "to"}
+
+
+def _ar(word):
+    """An Arabic word in one spelling: hamza forms of alef, final yaa and taa marbuta unified."""
+    return word.translate(str.maketrans("أإآىة", "ااايه"))
+
+
+_AR_UNIT_STEMS = [("واحد", "واحده", 1), ("اثنان", "اثنين", 2), ("اثنتان", "اثنتين", 2), ("ثلاثه", "ثلاث", 3),
+                  ("اربعه", "اربع", 4), ("خمسه", "خمس", 5), ("سته", "ست", 6), ("سبعه", "سبع", 7),
+                  ("ثمانيه", "ثماني", 8), ("ثمان", "ثمان", 8), ("تسعه", "تسع", 9), ("عشره", "عشر", 10)]
+AR_WORDS = {"صفر": ("unit", 0)}
+for _masc, _fem, _v in _AR_UNIT_STEMS:
+    AR_WORDS[_masc] = AR_WORDS[_fem] = ("unit", _v)
+for _w in ("احد", "احدي", "اثنا", "اثني", "اثنتا", "اثنتي"):  # only before عشر / عشرة
+    AR_WORDS[_w] = ("teen_unit", 1 if _w.startswith("اح") else 2)
+for _stem, _v in (("عشر", 20), ("ثلاث", 30), ("اربع", 40), ("خمس", 50), ("ست", 60), ("سبع", 70), ("ثمان", 80),
+                  ("تسع", 90)):
+    AR_WORDS[_stem + "ون"] = AR_WORDS[_stem + "ين"] = ("ten", _v)
+for _w, _v in (("مئه", 100), ("مائه", 100), ("مئتان", 200), ("مئتين", 200), ("مائتان", 200), ("مائتين", 200),
+                ("مئتا", 200), ("مائتا", 200)):
+    AR_WORDS[_w] = ("hundred", _v)
+for _stem, _v in (("ثلاث", 3), ("اربع", 4), ("خمس", 5), ("ست", 6), ("سبع", 7), ("ثمان", 8), ("ثماني", 8), ("تسع", 9)):
+    AR_WORDS[_stem + "مئه"] = AR_WORDS[_stem + "مائه"] = ("hundred", _v * 100)
+AR_WORDS.update({"الف": ("scale", 1e3), "الفا": ("scale", 1e3), "مليونا": ("scale", 1e6), "الفان": ("scale_n", 2e3), "الفين": ("scale_n", 2e3),
+                 "الاف": ("scales", 1e3), "مليون": ("scale", 1e6), "مليونان": ("scale_n", 2e6),
+                 "مليونين": ("scale_n", 2e6), "ملايين": ("scales", 1e6)})
+# Short feminine forms are also fractions before a definite noun: "خمس السكان" is a fifth.
+AR_FRACTION_FORMS = {"ثلاث", "اربع", "خمس", "ست", "سبع", "ثمان", "تسع", "عشر"}
+WORD = re.compile(r"[^\W\d_]+")
+
+
+def _english(atoms):
+    """(words used, value, scale) of the longest English number at the start of `atoms`."""
+    total = current = 0
+    last, best = None, (0, None, None)
+    for k, word in enumerate(atoms):
+        nxt = atoms[k + 1] if k + 1 < len(atoms) else ""
+        if word == "a" and k == 0 and nxt in ("hundred", *EN_SCALES):
+            current, last = 1, "unit"
+            continue
+        if word in EN_UNITS:
+            v = EN_UNITS[word]
+            if last in (None, "hundred", "scale", "and") or (last == "ten" and 0 < v < 10):
+                current += v
+                last = "unit"
+            else:
+                break
+        elif word in EN_TENS:
+            if last not in (None, "hundred", "scale", "and"):
+                break
+            current += EN_TENS[word]
+            last = "ten"
+        elif word == "hundred" and last == "unit" and 0 < current % 100 < 20:
+            current = current - current % 100 + current % 100 * 100
+            last = "hundred"
+        elif word in EN_SCALES and last in ("unit", "ten", "hundred") and current:
+            total, current, last = total + current * EN_SCALES[word], 0, "scale"
+        elif word == "and" and last in ("hundred", "scale") and (nxt in EN_UNITS or nxt in EN_TENS):
+            last = "and"
+            continue
+        else:
+            break
+        value = total + current
+        scale = EN_SCALES.get(word) if word in ("million", "billion") else None
+        best = (k + 1, value / scale if scale else value, scale)
+    return best
+
+
+def _arabic(words):
+    """(words used, value, scale) of the longest Arabic number at the start of `words`."""
+    total = current = unit = 0
+    last, best = None, (0, None, None)
+    for k, raw in enumerate(words):
+        w, joined = _ar(raw), False
+        if w not in AR_WORDS:
+            prefixes = r"(?:[وبف]?(?:ال)?)" if k == 0 else r"و"
+            m = re.fullmatch(prefixes + r"(.+)", w)
+            if not m or m.group(1) not in AR_WORDS:
+                break
+            joined, w = k > 0, m.group(1)
+        kind, v = AR_WORDS[w]
+        if kind == "unit" and (k == 0 or (joined and last in ("hundred", "scale"))):
+            current, unit, last = current + v, v, "unit"
+        elif kind == "teen_unit" and not joined and k == 0:
+            current, unit, last = current + v, v, "teen_unit"
+            continue
+        elif w in ("عشر", "عشره") and not joined and last in ("unit", "teen_unit") and 1 <= unit <= 9:
+            current, last = current + 10, "teen"
+        elif kind == "ten" and (k == 0 or (joined and (last in ("hundred", "scale") or (last == "unit" and unit < 10)))):
+            current, last = current + v, "ten"
+        elif kind == "hundred" and not joined and w in ("مئه", "مائه") and last == "unit" and 3 <= unit <= 9:
+            current, last = current - unit + unit * 100, "hundred"
+        elif kind == "hundred" and (k == 0 or (joined and last == "scale")):
+            current, last = current + v, "hundred"
+        elif kind == "scale" and k == 0:
+            total, last = total + v, "scale"
+        elif kind == "scale" and not joined and current and last in ("teen", "ten", "hundred", "unit"):
+            total, current, last = total + current * v, 0, "scale"
+        elif kind == "scales" and not joined and last == "unit" and 3 <= unit <= 10:
+            total, current, last = total + current * v, 0, "scale"
+        elif kind == "scale_n" and (k == 0 or joined):
+            total, last = total + v, "scale"
+        else:
+            break
+        best = (k + 1, total + current, None)
+    return best
+
+
+def word_figures(text, context=True):
+    """[(phrase, value, scale)] for each figure the text writes in words.
+
+    With `context`, a lone "one" that is a pronoun or an idiom ("one of the",
+    "a one-off", "no one", "the new one."), a ratio such as "one in five",
+    and a short Arabic feminine form that is a fraction ("خمس السكان") are left out.
+    """
+    words = list(WORD.finditer(text))
+    out, i = [], 0
+    while i < len(words):
+        start = words[i].start()
+        english = bool(re.match(r"[a-z]", words[i].group(0), re.I))
+        # A run of words joined by spaces (or, in English, hyphens): "two hundred
+        # and fifty", "twenty-four", "خمسة وعشرون".
+        gap = r"\s+|-" if english else r"\s+"
+        run = [words[i]]
+        while (i + len(run) < len(words) and len(run) < 12
+               and re.fullmatch(gap, text[run[-1].end():words[i + len(run)].start()])):
+            run.append(words[i + len(run)])
+        if english:
+            used, value, scale = _english([w.group(0).lower() for w in run])
+        else:
+            used, value, scale = _arabic([w.group(0) for w in run])
+        if not used:
+            i += 1
+            continue
+        end = run[used - 1].end()
+        phrase = text[start:end]
+        keep = True
+        if context:
+            before = text[max(0, start - 30):start]
+            after = text[end:end + 40]
+            prev = re.findall(r"[^\W\d_]+", before)
+            prev = prev[-1].lower() if prev else ""
+            nxt = re.match(r"(-|\s+)?([^\W\d_]+)", after)
+            joiner, follower = (nxt.group(1) or "", nxt.group(2).lower()) if nxt else ("", "")
+            if joiner == "-" and follower in HYPHEN_NOT_COUNT:
+                keep = False
+            if phrase.lower() == "one" and (prev in ONE_BEFORE or follower in ONE_AFTER
+                                            or re.match(r"\s*(?:[.,;:!?)]|$)", after)):
+                keep = False
+            if (re.match(r"\s+in\s+(?:\d|" + "|".join(EN_UNITS) + "|" + "|".join(EN_TENS) + r")\b", after, re.I)
+                    or re.search(r"(?:\d|\b(?:" + "|".join(EN_UNITS) + "|" + "|".join(EN_TENS) + r"))\s+in\s+$",
+                                 before, re.I)):
+                keep = False  # "one in five" is a ratio, read by the auditor
+            if used == 1 and _ar(phrase) in AR_FRACTION_FORMS and re.match(r"\s+ال", _ar(after)):
+                keep = False
+            if used == 1 and _ar(phrase) in ("واحد", "واحده") and re.fullmatch(r"و?(كل|اي)", _ar(prev)):
+                keep = False
+        if keep:
+            out.append((phrase, value, scale))
+        i += used
+    return out
+
+
+def _word_value(token):
+    """parse() for a figure written in words: the whole token must be one number."""
+    found = word_figures(token, context=False)
+    if len(found) == 1 and found[0][0] == token:
+        value, scale = found[0][1], found[0][2]
+        return (float(value), 0, scale)
+    return None
+
+
 def rounding_unit(token):
     """How far a written figure can be from the value it rounds: half of its
     last significant place. 6,400 is within 50 of its value; 26.5k within 50."""
@@ -158,7 +350,7 @@ def parse(token):
     token = token.strip().rstrip(",.")
     match = re.fullmatch(r"[-+−]?\$?(\d[\d,]*(?:\.(\d+))?)%?\s?(thousand|million|billion|bn|[MBkmb])?", token)
     if not match:
-        return None
+        return _word_value(token)
     number = float(match.group(1).replace(",", ""))
     if token.lstrip().startswith(("-", "−")):
         number = -number
@@ -216,6 +408,12 @@ def found_in(text, value, numbers=None):
     percent = str(value).strip().endswith("%")
     for token in (numbers if numbers is not None else numbers_in(text, keep_small=True)):
         if percent != token.endswith("%"):
+            continue
+        if not re.search(r"\d", token):
+            # A count in words is a whole number: "five" is 5, never a rounded 4.9.
+            shown = parse(token)
+            if shown and (abs(value_of(token) - target) < 1e-9 or (shown[2] and same_figure(token, target))):
+                return f"{token} (in words)"
             continue
         if same_figure(token, target):
             return f"{token} (rounded or abbreviated)"
@@ -315,6 +513,11 @@ def numbers_in(text, keep_small=False):
         if not keep_small and re.fullmatch(r"(19|20)\d{2}", token):
             continue
         seen.add(token)
+    # Figures in words follow the same rules: "five" is a small count, as "5" is.
+    for phrase, value, scale in word_figures(text):
+        if not keep_small and scale is None and (value <= 31 or 1900 <= value <= 2099):
+            continue
+        seen.add(phrase)
     return sorted(seen)
 
 
@@ -444,6 +647,11 @@ def implied(token, sentence, previous, pool, register):
     return ("wrong", best) if max(written / best, best / written) <= SLIP_FACTOR else None
 
 
+# A register label that states the scale its value is written in.
+LABEL_SCALE = re.compile(r"\b(thousand|million|billion|bn)s?\b", re.I)
+LABEL_SCALES = {"thousand": 1e3, "million": 1e6, "billion": 1e9, "bn": 1e9}
+
+
 def load_register(path, value_column, label_columns):
     with open(path, encoding="utf-8-sig", newline="") as handle:
         rows = list(csv.DictReader(handle))
@@ -470,6 +678,11 @@ def check(register, docs, references=(), sourcing_only=False):
         pool_text = " ".join(read_text(r) for r in references)
         pool = {(value_of(t), unit_of(t)) for t in numbers_in(pool_text, keep_small=True)}
         pool |= {(value_of(r["value"]), unit_of(r["value"])) for r in register}
+        # "Train-km 2025 (million)" holding 1.84 is 1,840,000: a label that names
+        # its scale is that scale, so "1.84 million" in the text is sourced.
+        pool |= {(value_of(r["value"]) * LABEL_SCALES[m.group(1).lower()], unit_of(r["value"]))
+                 for r in register for m in [LABEL_SCALE.search(r.get("label", ""))]
+                 if m and value_of(r["value"]) is not None}
         pool = {(v, u) for v, u in pool if v is not None}
         for name, text in texts.items():
             doc = Path(name).name

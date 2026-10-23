@@ -1,0 +1,47 @@
+FINDING: [P04] Switch reliability compared per track-km instead of per switch, with a monthly-inspection recommendation built on it
+Category: domain_method
+Reasoning: Per switch the rates are 30/112 = 0.27 (mainline) and 9/36 = 0.25 (depot), so the depot is not 2.7 times less reliable.
+
+FINDING: [P05] Point machine MTBF counts only the hours of the 18 failed machines
+Category: domain_method
+Reasoning: The running hours of the 130 machines that did not fail are left out, so the MTBF is understated.
+
+FINDING: [P07] A Weibull shape of 0.6 is read as wear-out
+Category: domain_method
+Reasoning: A shape below 1 with 64% of failures within 90 days indicates infant mortality.
+
+FINDING: [P09] Age-based replacement of all boards despite a constant failure rate
+Category: domain_method
+Reasoning: A shape of 1.0 means no wear-out, so renewing boards every 3 years will not reduce failures.
+
+FINDING: [P11] PIS availability computed over calendar hours although the target is over required service time
+Category: domain_method
+Reasoning: 438/6,570 gives availability 93.3%, below the 95.0% target.
+
+FINDING: [P12] A 12-month measurement interval is kept although the P-F interval is 4 months
+Category: domain_method
+Reasoning: An inspection interval longer than the P-F interval can miss the failure entirely.
+
+FINDING: [P14] The ultrasonic testing programme is said to have eliminated broken-rail risk
+Category: causal_claim
+Reasoning: 0 broken rails in 2025 against 3 in 2024, no controlled comparison; a zero count does not mean zero risk.
+
+FINDING: [P15] Both rectifiers are treated as independent despite a shared incomer cable and cooling fan
+Category: domain_method
+Reasoning: Common-cause failure modes, so 0.0004 and 99.96% understate the unavailability.
+
+FINDING: [P17] Switch MTTR is measured from technician arrival and then used as the full service disruption
+Category: domain_method
+Reasoning: Detection, response and travel time are excluded.
+
+FINDING: [P19] Series reliability is calculated as the average of the three subsystems
+Category: domain_method
+Reasoning: The product is 0.98 x 0.96 x 0.97 = 0.913, below the 0.95 target.
+
+FINDING: [P22] Safety-related emergency help points are moved to run-to-failure on cost and failure count, and their functional test is withdrawn
+Category: domain_method
+Reasoning: An undetected failure is a hidden failure that only the test would reveal.
+
+FINDING: [P23] The memo states that the new drainage caused a 73% reduction in track geometry faults
+Category: causal_claim
+Reasoning: 9 stops against 9 others, no randomisation; the drained stops were due for resurfacing. Association only.

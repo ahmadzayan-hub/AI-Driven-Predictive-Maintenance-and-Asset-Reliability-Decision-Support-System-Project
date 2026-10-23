@@ -1,0 +1,24 @@
+FINDING: [P04] Series reliability is 0.98 × 0.96 × 0.99 = 93.1%, not 97.7%, below the 97.0% target.
+Category: arithmetic
+FINDING: [P05] Downtime and availability use repair time only; restoration is 4.9 h, giving 1,656.2 h and 99.84%.
+Category: domain_method
+FINDING: [P07] Withdrawing the discharge test is justified by a log that cannot see loss of capacity.
+Category: domain_method
+FINDING: [P08] The 0.04% treats both pumps as independent; the shared controller makes it about 0.54%.
+Category: domain_method
+FINDING: [P10] The 13-week survey interval is longer than the 8-week P-F interval.
+Category: domain_method
+FINDING: [P12] A Weibull shape of 3.4 is wear-out, not random failure.
+Category: domain_method
+FINDING: [P14] The backlog target is met by deferring 6,900 h of work, mainly safety-related defects.
+Category: overclaim
+FINDING: [P16] The budget is allocated by total corrective cost rather than avoidable failure.
+Category: domain_method
+FINDING: [P17] An MTBF of 41.2 years is used as a service life to extend the renewal horizon.
+Category: domain_method
+FINDING: [P18] The 18.0% fall in lift failures is attributed to the new contractor with no control.
+Category: causal_claim
+FINDING: [P19] The rate divides 22 failures by 37 sumps; per pump it is 22 / 74 = 29.7%.
+Category: denominator
+FINDING: [P20] Zero failures over 6 sections and 5 months cannot prove elimination.
+Category: overclaim

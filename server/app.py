@@ -1147,6 +1147,41 @@ def create_app(config_path=None, env=None, dist_dir=None):
         with lock:
             return quota_usage(store, principal.subject, limits)
 
+    async def read_body(request, language):
+        """The request body, refused past the upload limit as it arrives."""
+        limit = dataset_reader.MAX_UPLOAD_BYTES
+        declared = request.headers.get("content-length", "")
+        if declared.isdigit() and int(declared) > limit:
+            raise HTTPException(413, detail=dataset_reader.too_large().message(language))
+        chunks, size = [], 0
+        async for chunk in request.stream():
+            size += len(chunk)
+            if size > limit:
+                raise HTTPException(413, detail=dataset_reader.too_large().message(language))
+            chunks.append(chunk)
+        return b"".join(chunks)
+
+    @app.post("/api/datasets/sheets")
+    async def list_workbook_sheets(
+        request: Request,
+        name: str = Query(min_length=1, max_length=100),
+        format: str | None = Query(default=None, pattern="^(csv|tsv|xlsx|json|jsonl)$"),
+        language: str = Query(default="en", pattern="^(en|ar)$"),
+        principal=Depends(requires("write")),
+    ):
+        """A workbook's sheets, described before any of them is parsed, and
+        the one an upload would read by default. Nothing is stored. A file
+        that is not a workbook has no sheets."""
+        body = await read_body(request, language)
+        filename = re.split(r"[\\/]", name)[-1].strip() or "dataset"
+        try:
+            if (format or dataset_reader.detect_format(filename, body)) != "xlsx":
+                return {"sheets": [], "default_sheet": None}
+            sheets = await run_in_threadpool(dataset_reader.list_sheets, body)
+        except dataset_reader.DatasetError as error:
+            raise HTTPException(error.status, detail=error.message(language))
+        return {"sheets": sheets, "default_sheet": dataset_reader.default_sheet(sheets)}
+
     @app.post("/api/datasets", status_code=201)
     async def upload_dataset(
         request: Request,
@@ -1159,21 +1194,12 @@ def create_app(config_path=None, env=None, dist_dir=None):
         """One file as the request body, read into a canonical table and
         stored content-addressed (ADR 0024). 201 when it is new; 200 when
         the same data was already stored, which costs nothing."""
-        limit = dataset_reader.MAX_UPLOAD_BYTES
-        declared = request.headers.get("content-length", "")
-        if declared.isdigit() and int(declared) > limit:
-            raise HTTPException(413, detail=dataset_reader.too_large().message(language))
-        chunks, size = [], 0
-        async for chunk in request.stream():
-            size += len(chunk)
-            if size > limit:
-                raise HTTPException(413, detail=dataset_reader.too_large().message(language))
-            chunks.append(chunk)
+        body = await read_body(request, language)
         # Only the file's own name: a browser sends no path, a script might.
         filename = re.split(r"[\\/]", name)[-1].strip() or "dataset"
         try:
             parsed = await run_in_threadpool(
-                dataset_reader.read, b"".join(chunks), filename, format, sheet)
+                dataset_reader.read, body, filename, format, sheet)
         except dataset_reader.DatasetError as error:
             raise HTTPException(error.status, detail=error.message(language))
 
@@ -1188,7 +1214,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
             "dataset": dataset_summary(dataset), "created": created,
             "columns": parsed.columns, "preview": parsed.preview(),
             "warnings": parsed.warning_texts(language), "sheets": parsed.sheets,
-            "selected_sheet": parsed.selected_sheet})
+            "selected_sheet": parsed.selected_sheet, "sheet_details": parsed.sheet_details})
 
     @app.get("/api/datasets")
     def list_datasets(principal=Depends(requires("read"))):
