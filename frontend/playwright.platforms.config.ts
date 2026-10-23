@@ -6,7 +6,7 @@ import base from './playwright.config'
 const windows = process.platform === 'win32'
 export default defineConfig({
   ...base,
-  testMatch: /(?:platform|intake|workspace)\.spec\.ts/,
+  testMatch: /(?:platform|intake|workspace|models)\.spec\.ts/,
   projects: windows ? [{
     name: 'windows-edge',
     use: { browserName: 'chromium', channel: 'msedge', viewport: { width: 1440, height: 900 } },

@@ -34,6 +34,8 @@ Android reset the read confirmation for the new approval identity. Reopen and
 read the report and destination before approving again.
 The activity view labels a superseded request separately from a human decision.
 Unknown future approval states cannot be inferred as decisions or publication.
+Recovery messages follow the stored report language, including Arabic refusal
+of an unvalidated content change.
 
 Dataset names use JSON-escaped YAML scalar values. Source spelling, quotes,
 Unicode and newlines survive without introducing extra frontmatter fields.

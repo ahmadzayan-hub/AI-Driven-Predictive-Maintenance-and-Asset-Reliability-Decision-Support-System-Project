@@ -1,4 +1,5 @@
 import AxeBuilder from '@axe-core/playwright'
+import { randomUUID } from 'node:crypto'
 import { expect, test } from '@playwright/test'
 import type { APIRequestContext, Page } from '@playwright/test'
 import { skipOnboarding } from './helpers'
@@ -12,7 +13,12 @@ import { skipOnboarding } from './helpers'
 test.use({ contextOptions: { reducedMotion: 'reduce' } })
 
 async function modelledRun(request: APIRequestContext, goal: string, language = 'en') {
-  let run = await (await request.post('/api/runs', { data: { goal, profile: 'models', language } })).json()
+  // Retry only a connection reset. The same key binds every transport attempt
+  // to one exact server request, including a committed-but-lost response.
+  let run = await (await request.post('/api/runs', {
+    headers: { 'Idempotency-Key': randomUUID() }, maxRetries: 1,
+    data: { goal, profile: 'models', language },
+  })).json()
   for (let step = 0; step < 80 && ['queued', 'running'].includes(run.state); step += 1) {
     run = await (await request.post(`/api/runs/${run.id}/advance`)).json()
   }

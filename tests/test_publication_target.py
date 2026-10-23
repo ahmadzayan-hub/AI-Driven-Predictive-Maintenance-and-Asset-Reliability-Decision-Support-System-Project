@@ -108,12 +108,15 @@ class PublicationTargetTests(unittest.TestCase):
         self.assertEqual(published["state"], "completed")
 
     def test_refresh_cannot_legitimize_an_unvalidated_artifact_change(self):
-        run = self.ready()
-        self.store.update("artifacts", run["report"]["id"], {"content": "Unvalidated replacement"})
-        self.engine.publish_target = "vault"
-        with self.assertRaisesRegex(ValueError, "new governed analysis"):
-            self.engine.refresh_publication_review(run["id"])
-        self.assertEqual(len(self.engine.get_run(run["id"])["approvals"]), 1)
+        for language, reason in (("en", "new governed analysis"), ("ar", "تحليلًا جديدًا")):
+            with self.subTest(language=language):
+                self.engine.publish_target = "database"
+                run = self.ready(language)
+                self.store.update("artifacts", run["report"]["id"], {"content": "Unvalidated replacement"})
+                self.engine.publish_target = "vault"
+                with self.assertRaisesRegex(ValueError, reason):
+                    self.engine.refresh_publication_review(run["id"])
+                self.assertEqual(len(self.engine.get_run(run["id"])["approvals"]), 1)
 
     def test_refresh_is_idempotent_and_unavailable_after_a_completed_decision(self):
         run = self.ready()

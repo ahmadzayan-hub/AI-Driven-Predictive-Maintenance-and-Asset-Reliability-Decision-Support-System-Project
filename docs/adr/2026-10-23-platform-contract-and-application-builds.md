@@ -63,3 +63,10 @@ and optional local Motion Studio sources. Remove its unused Overview import to
 keep the repository's strict TypeScript build valid, and render its otherwise
 unused bilingual draft-error state as an accessible alert. The retained local panel
 does not become an enabled hosted capability merely through this merge.
+
+A combined browser run lost its connection during model-card setup. That
+synthetic creation request now carries one random idempotency key and permits
+one Playwright transport retry for a connection reset. Stage advancement and
+human decisions are not retried. Model cards in both languages also run in the
+Windows/WebKit platform job. This is a bounded setup recovery, not a blanket
+browser retry or a relaxed assertion.

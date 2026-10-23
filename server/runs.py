@@ -827,15 +827,19 @@ class RunEngine:
         """
         with self.store.atomic("run:" + run_id):
             run = self._row(run_id)
+            arabic = (run.get("report_language") or "en") == "ar"
             if run["state"] != "awaiting_approval":
-                raise ValueError("A new publication review requires a run awaiting approval.")
+                raise ValueError("تتطلب مراجعة النشر الجديدة تحليلًا بانتظار الموافقة." if arabic
+                                 else "A new publication review requires a run awaiting approval.")
             pending = self.store.pending_approval(run_id)
             artifact = self.store.latest_artifact(run_id)
             if not pending or not artifact:
-                raise ValueError("The pending report review is unavailable.")
+                raise ValueError("مراجعة التقرير المعلّقة غير متاحة." if arabic
+                                 else "The pending report review is unavailable.")
             current_hash = hashlib.sha256(artifact["content"].encode()).hexdigest()
             if current_hash != pending["content_hash"]:
-                raise ValueError("The report changed; start a new governed analysis before requesting approval.")
+                raise ValueError("تغيّر التقرير؛ ابدأ تحليلًا جديدًا خاضعًا للضوابط قبل طلب الموافقة." if arabic
+                                 else "The report changed; start a new governed analysis before requesting approval.")
             if pending["target"] == self.publication_destination():
                 return self.get_run(run_id)
             self.store.update("approvals", pending["id"], {"state": "superseded"})
