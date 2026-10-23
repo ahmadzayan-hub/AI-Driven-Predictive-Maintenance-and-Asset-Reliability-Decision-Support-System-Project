@@ -81,6 +81,6 @@ What each round of brain maintenance changed, newest last. The SessionStart hook
 - Refreshed [[Run lifecycle]] with idempotent creation, the stage and runtime deadlines and the decision record; [[Governed pipeline]] with rates never summed, decision inputs and incomplete periods; [[Approval gate]] with the read-before-approve rule and the completed record; [[Custom stages]] with the wall-clock limit (sources: `server/runs.py`, `server/deadline.py`, `server/analytics.py`, the 22 and 23 October records).
 - Refreshed [[Release acceptance]] with the closed P1 list, the slice rhythm and the hosted CI state (139 passed, 5 skipped on the merged head), and [[Verification and budgets]] with the current allocations (220 KB of scripts, 30.5 KB of CSS in total) (sources: `docs/implementation/DELIVERY_ROADMAP.md`, `README.md`, `.github/workflows/ci.yml`, `scripts/verify.py`).
 - Refreshed [[User]] with the slice-by-slice way of working of 22 and 23 October (sources: session logs).
-- Linked 1 mention (agent runtime in [[Run lifecycle]]). Merged no notes: no duplicate candidates were reported, and today's decisions extend existing concepts rather than introduce new ones.
+- Linked 1 mention ([[Agent runtimes and MCP|agent runtime]] in [[Run lifecycle]]). Merged no notes: no duplicate candidates were reported, and today's decisions extend existing concepts rather than introduce new ones.
 - `scripts/brain_check.py --strict` exits 0 after the edits; [[Home]] still lists every note.
 
