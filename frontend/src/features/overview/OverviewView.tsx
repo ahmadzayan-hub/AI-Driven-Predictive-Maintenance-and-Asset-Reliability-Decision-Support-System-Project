@@ -12,6 +12,7 @@ import { CommandCentre } from './CommandCentre'
 import { DecisionActions } from './DecisionActions'
 import { summarizeRunEvidence } from './evidence'
 import { downloadMotionRun } from './motionEvidence'
+import { LocalMotionPanel } from './LocalMotionPanel'
 
 interface OverviewViewProps {
   onOpenRun: (id: string) => void
@@ -117,6 +118,9 @@ export function OverviewView({ onOpenRun, onStart, onApprovals, onOpenDashboard,
         <div className="panel__inner panel__inner--wide">
           {header}
           {motionError ? <p role="alert" className="statusline statusline--error">{motionError}</p> : null}
+        {import.meta.env.VITE_MOTION_LOCAL_ENABLED === 'true' && latest && evidence.status === 'passed' ? (
+          <LocalMotionPanel runId={latest.id} language={reportLang} />
+        ) : null}
         {actions}
           <div className="card">
             <p className="statusline statusline--error" role="alert" dir="auto">
