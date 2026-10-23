@@ -1026,7 +1026,7 @@ class PostgresStore(SqlStore):
         except Exception:
             self._rollback()
 
-    def __init__(self, database_url):
+    def __init__(self, database_url, schema_mode="migrate"):
         # Each thread owns a connection, a lock and a transaction depth
         # (assessment B11): a request thread's read never queues behind
         # another thread's transaction, and a transaction's statements
@@ -1042,9 +1042,35 @@ class PostgresStore(SqlStore):
         import psycopg2  # lazy: only hosted mode needs the driver
 
         self._psycopg2 = psycopg2
+        if schema_mode not in {"migrate", "verify"}:
+            raise ValueError("schema_mode must be migrate or verify")
+        self.schema_mode = schema_mode
         self._database_url = database_url
         self._conn = self._connect()
-        self._create_schema()
+        try:
+            if schema_mode == "verify":
+                self.validate_schema()
+            else:
+                self._create_schema()
+                self._secure_backend_tables()
+        except Exception:
+            self.close()
+            raise
+
+    def _secure_backend_tables(self):
+        # Explicit development/operator initialization only. Runtime entry
+        # points use verify mode, so they never change hosted permissions.
+        roles = {r["rolname"] for r in self._exec(
+            "SELECT rolname FROM pg_roles WHERE rolname IN ('anon','authenticated')")}
+        grantees = ", ".join(["PUBLIC"] + sorted(roles))
+        with self.atomic("backend-schema-security"):
+            for table in TABLES:
+                self._exec(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY")
+                self._exec(f"REVOKE ALL ON TABLE {table} FROM {grantees}")
+
+    def validate_schema(self):
+        from server.schema_contract import validate_postgres_schema
+        validate_postgres_schema(self)
 
     @property
     def _conn(self):
@@ -1242,8 +1268,8 @@ class PostgresStore(SqlStore):
         return [row["column_name"] for row in rows]
 
 
-def open_store(database_url=None, sqlite_path=None):
+def open_store(database_url=None, sqlite_path=None, *, schema_mode="migrate"):
     """Hosted PostgreSQL when DATABASE_URL is configured; SQLite otherwise."""
     if database_url and str(database_url).startswith(("postgres://", "postgresql://")):
-        return PostgresStore(str(database_url))
+        return PostgresStore(str(database_url), schema_mode=schema_mode)
     return SQLiteStore(sqlite_path)
