@@ -1,0 +1,91 @@
+{
+  "project": "Miyaar / Team3",
+  "reviewed_on": "2026-10-23",
+  "scope": "Source behavior and synthetic tests; not production activation",
+  "code_capabilities": {
+    "configured_provider_families": [
+      "ollama",
+      "anthropic",
+      "openai",
+      "groq",
+      "vercel",
+      "openrouter",
+      "nvidia",
+      "mistral",
+      "cerebras"
+    ],
+    "configuration_states": [
+      "configured",
+      "missing_credential",
+      "missing_model"
+    ],
+    "live_model_availability": "unverified; no provider catalog or completion calls made",
+    "pricing_and_remaining_quota": "unverified; no unlimited-free claim",
+    "default_fallback": "Explicitly labelled deterministic calculations and narration",
+    "automatic_cross_provider_failover": false,
+    "optional_failover": "One explicit directional operator-approved edge; network, timeout or server failure only",
+    "automatic_model_replacement": false,
+    "automatic_upgrade_or_payment": false,
+    "automatic_retry_loop": false,
+    "local_to_hosted_transfer": false,
+    "admission_control": "Existing durable owner/day credits, bounded reservation and fail-closed storage errors",
+    "failure_categories": [
+      "model_retired",
+      "model_unavailable",
+      "not_found",
+      "credential_rejected",
+      "payment_required",
+      "permission_denied",
+      "provider_quota",
+      "rate_limited",
+      "provider_error",
+      "request_rejected",
+      "timeout",
+      "network_error",
+      "invalid_response",
+      "empty_response",
+      "client_unavailable",
+      "client_error"
+    ],
+    "diagnostic_payload": "Fixed categories and aggregate counters only; no response body, prompt, reply, key or URL"
+  },
+  "production_acceptance": {
+    "managed_identity": "Code integrated; provider callback, delivery and owner session acceptance pending",
+    "durable_database": "Startup verifies schema; production backup, approved migration and secure DATABASE_URL configuration pending",
+    "background_worker": "Separate non-activating daemon candidate; container and hosted acceptance tracked independently",
+    "external_models": "Not activated or live-tested by this change"
+  },
+  "known_limits": [
+    "No bundled catalog can certify current model retirement, account access or pricing.",
+    "A generic 404 may mean an endpoint or resource is missing; it does not prove retirement.",
+    "Unrecognized provider error codes remain generic rather than interpreted from potentially sensitive free text.",
+    "Configured model IDs and legacy default IDs may age; an operator must verify and approve a replacement.",
+    "Deterministic fallback does not fulfill work that genuinely requires an unavailable model.",
+    "Per-process failure telemetry resets on process restart; durable admission credits do not."
+  ],
+  "primary_references": [
+    "https://developers.openai.com/api/docs/guides/error-codes",
+    "https://platform.claude.com/docs/en/api/errors",
+    "https://console.groq.com/docs/deprecations",
+    "https://platform.claude.com/docs/en/about-claude/model-deprecations",
+    "https://console.groq.com/docs/models"
+  ],
+  "documented_legacy_defaults": [
+    {
+      "provider": "anthropic",
+      "code_default": "claude-sonnet-4-5",
+      "documented_dated_model": "claude-sonnet-4-5-20250929",
+      "status_at_review": "deprecated",
+      "retirement_date": "2026-11-30",
+      "replacement": "Requires separate operator selection; no automatic switch",
+      "source": "https://platform.claude.com/docs/en/about-claude/model-deprecations"
+    },
+    {
+      "provider": "groq",
+      "code_default": "openai/gpt-oss-120b",
+      "status_at_review": "Listed in provider public catalog with metered pricing",
+      "account_access_and_remaining_quota": "unverified",
+      "source": "https://console.groq.com/docs/models"
+    }
+  ]
+}

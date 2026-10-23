@@ -465,11 +465,15 @@ and returns fresh state snapshots.
 
 - Python 3.10+ (CLI alone needs only the standard library)
 - Node.js 20.19+ or 22+ and npm (web interface only)
-- No API keys, no external services, no credentials required. Optional
-  narration by a local Ollama model (`OLLAMA_MODEL=qwen3:4b`, no key), Claude
-  (`ANTHROPIC_API_KEY`), OpenAI (`OPENAI_API_KEY` + `OPENAI_MODEL`) or Groq
-  (`GROQ_API_KEY`), with one failover between hosted providers — all server-side, see
-  `.env.example`
+- Built-in local calculations need no API key or external model service. Hosted
+  identity and durable storage require their separately configured services.
+  Optional narration can use local Ollama (`OLLAMA_MODEL=qwen3:4b`, no key),
+  Claude (`ANTHROPIC_API_KEY`), OpenAI (`OPENAI_API_KEY` + `OPENAI_MODEL`) or
+  Groq (`GROQ_API_KEY`), all server-side; see `.env.example`.
+  Provider access, pricing, quotas and model lifecycle must be verified for the
+  chosen account. Cross-provider failover is off by default and requires an
+  explicit directional configuration; quota, retired-model and credential errors
+  never trigger another provider. See [model failure boundaries](docs/adr/2026-10-23-model-failure-boundaries.md).
 
 ## Installation
 

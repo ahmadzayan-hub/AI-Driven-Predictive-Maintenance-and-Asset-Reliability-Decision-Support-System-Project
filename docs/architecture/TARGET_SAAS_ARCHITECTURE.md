@@ -18,7 +18,7 @@ FastAPI app  (server/app.py)  ── identity: Local | Demo | JWT (server/auth.p
    │    │    provenance; reporter
    │    ├─ Model gateway (server/model_gateway.py): Ollama local or hosted,
    │    │    Claude, OpenAI, Groq, OpenRouter, NVIDIA, Mistral, Cerebras,
-   │    │    Vercel; one failover; task map; words only
+   │    │    Vercel; explicit opt-in failover; task map; words only
    │    └─ Model roles (server/orchestration.py): Hermes plan and brief,
    │         agent notes, consultants; built-in writer when no model;
    │         grounded; behind the privacy boundary
