@@ -56,7 +56,8 @@ class AdvisoryTests(unittest.TestCase):
             html=render_html(brief).decode('utf-8')
             word=''.join(docx_document(render_docx(brief)).itertext())
             for content in (html,word):
-                self.assertIn(brief['advisory']['title'],content)
+                self.assertIn('معيار | Miyaar',content)
+                self.assertNotIn(brief['advisory']['title'], content)
                 self.assertIn(brief['advisory']['preservation'],content)
                 self.assertIn(brief['advisory']['prediction'],content)
                 self.assertLess(content.index(brief['advisory']['recommendation']),content.index('executive.kpi.first_time_fix'))

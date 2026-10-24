@@ -5,6 +5,8 @@ requests, publishing, office applications or additional dependencies are used.
 """
 
 from dataclasses import dataclass, field
+from base64 import b64encode
+from functools import partial
 from html import escape
 from io import BytesIO
 import math
@@ -13,13 +15,14 @@ import unicodedata
 from xml.etree import ElementTree as ET
 from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
 
+from server.report_fonts import verified_font, obfuscate_font, FONT_KEY
 from server.maintenance import performance
 from server.maintenance.kpis import POPULATION_AR, REGISTER
 
 
 HTML_MIME = "text/html"
 DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-CONTENT_POLICY = "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"
+CONTENT_POLICY = "default-src 'none'; style-src 'unsafe-inline'; font-src data:; base-uri 'none'; form-action 'none'"
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 ET.register_namespace("w", W)
 PERFORMANCE_COLORS = {"good": "0F7A55", "okay": "1D4ED8", "bad": "B3323F",
@@ -64,6 +67,10 @@ class Section:
     title: str
     paragraphs: list = field(default_factory=list)
     tables: list = field(default_factory=list)
+    page_break_before: bool = False
+    compact: bool = False
+    after_paragraphs: list = field(default_factory=list)
+    after_title: str = ""
 
 
 def report_sections(brief):
@@ -296,8 +303,37 @@ def report_sections(brief):
         tr("Value", "القيمة"), tr("Method", "الطريقة")), [(
             item["id"], item["label"] + "\n" + (tr("Selected scope", "النطاق المحدد") if item["scope"] == "filtered" else tr("Whole run", "التشغيل الكامل")),
             value(item["value"]), item["method"]) for item in brief["evidence"]], (22, 22, 20, 36)))
-    title = advisory["title"] if advisory else tr("Maintenance and asset reliability decision brief", "موجز قرارات الصيانة وموثوقية الأصول")
-    return title, [summary, *decision_sections, selected, metadata, questions, limitations, targets, kpis, priorities, findings, models, evidence]
+    title = "معيار | Miyaar"
+    front = Section(tr("Asset maintenance intelligence and decision support", "ذكاء صيانة الأصول ودعم القرار"), compact=True)
+    front.paragraphs.append(tr("Scope", "النطاق") + ": " + str(scope["records"]) + "/" + str(scope["total_records"]) + " · " + value(run["dataset_name"]))
+    front.paragraphs.append(tr("Data period not specified", "فترة البيانات غير محددة"))
+    if scope["filters"]:
+        front.paragraphs.extend(tr("Filter", "المرشح") + ": " + item[0] + " " + item[1] + " " + item[2]
+                                for item in selected.tables[-1].rows)
+    else:
+        front.paragraphs.append(selected.paragraphs[0])
+    if advisory:
+        # Existing source order is retained. This is not a new risk ranking.
+        decisions_front = advisory["decisions"][:3]
+        common_gate = decisions_front[0]["gate"] if decisions_front and len({item["gate"] for item in decisions_front}) == 1 else None
+        if common_gate:
+            front.paragraphs.append(tr("Review gate", "شرط المراجعة") + ": " + common_gate)
+        front.tables.append(Table((tr("Review priority", "أولوية المراجعة"), tr("Proposed role, not assigned", "دور مقترح، غير مكلّف")), [
+            (item["title"], item["owner"] + ("" if common_gate else "\n" + item["gate"])) for item in decisions_front], (65, 35)))
+        measured = [item for item in advisory["domains"] if item["value"] is not None][:3]
+        if measured:
+            front.tables.append(Table((tr("Observed measure", "المؤشر المرصود"), tr("Value / status", "القيمة / الحالة")), [
+                (item["measure"], value(item["value"]) + " " + labelled(item["scale"], scales) + " · " + status_label(item["status"], brief["language"])) for item in measured], (65, 35)))
+        unknown = [item["title"] for item in advisory["domains"] if item["value"] is None]
+        if unknown:
+            front.after_paragraphs.append(tr("Missing critical measurements", "قياسات أساسية مفقودة") + ": " + value(unknown))
+    front.after_title = tr("Reading limits", "حدود القراءة")
+    # Every substantive scope limitation stays visible, not hidden by grouping.
+    front.after_paragraphs.extend(brief["readiness"]["limitations"])
+    front.after_paragraphs.append(tr("Review only. Roles are proposed; no intervention, forecast or savings is approved. Full evidence and remaining priorities follow.",
+                               "للمراجعة فقط. الأدوار مقترحة؛ لم يُعتمد تدخل أو تنبؤ أو وفورات. تلي ذلك الأدلة الكاملة وبقية الأولويات."))
+    appendix = Section(tr("Technical appendix and source audit", "الملحق الفني وتدقيق المصادر"), page_break_before=True)
+    return title, [front, appendix, summary, *decision_sections, selected, metadata, questions, limitations, targets, kpis, priorities, findings, models, evidence]
 
 
 STYLE = """
@@ -313,12 +349,19 @@ th,td { border: 0.6pt solid #d9d9d9; padding: 6pt 8pt; vertical-align: middle; t
 th { background: #eee; font-weight: bold; color: #000; }
 thead { display: table-header-group; } tr { break-inside: avoid; }
 bdi { unicode-bidi: isolate; }
+.compact { font-size: 10pt; line-height: 1.25; }
+.compact p { margin: 4pt 0; }
+.compact td, .compact th { padding: 4pt 6pt; }
 @media print { body { max-width: none; padding: 0; } }
 """
 
 
 def render_html(brief):
     title, sections = report_sections(brief)
+    font = verified_font()
+    font_css = ("@font-face { font-family: Dubai; src: url(data:font/ttf;base64," +
+                b64encode(font).decode("ascii") + ") format('truetype'); } body { font-family: Dubai, Arial, sans-serif; }"
+                if font else "")
     language = brief["language"]
 
     def text(item):
@@ -329,8 +372,9 @@ def render_html(brief):
         return shown
 
     body = [f"<h1>{text(title)}</h1>"]
-    for section in sections:
-        body.append(f"<section><h2>{text(section.title)}</h2>")
+    for index, section in enumerate(sections):
+        attributes = (' class="compact"' if section.compact else '') + (' style="break-before:page"' if section.page_break_before else '')
+        body.append(f'<section id="section-{index}"{attributes}><h2>{text(section.title)}</h2>')
         body.extend(f"<p>{text(p)}</p>" for p in section.paragraphs)
         for table in section.tables:
             body.append("<table><colgroup>" + "".join(f'<col style="width:{w}%">' for w in table.widths) + "</colgroup><thead><tr>")
@@ -338,13 +382,19 @@ def render_html(brief):
             body.append("</tr></thead><tbody>")
             body.extend("<tr>" + "".join(f"<td>{text(cell)}</td>" for cell in row) + "</tr>" for row in table.rows)
             body.append("</tbody></table>")
+        if section.after_title:
+            body.append(f"<h3>{text(section.after_title)}</h3>")
+        body.extend(f"<p>{text(p)}</p>" for p in section.after_paragraphs)
+        if section.compact:
+            body.append('<p><a href="#section-1">' + ("الملحق الفني والأدلة" if language == "ar" else "Technical appendix and evidence") + "</a></p>")
         body.append("</section>")
     language = brief["language"]
     direction = "rtl" if language == "ar" else "ltr"
     return (f'<!doctype html><html lang="{language}" dir="{direction}"><head><meta charset="utf-8">'
             f'<meta name="viewport" content="width=device-width, initial-scale=1">'
+            f'<meta name="miyaar-export-font" content="{"Dubai" if font else "Arial-fallback"}">'
             f'<meta http-equiv="Content-Security-Policy" content="{escape(CONTENT_POLICY, quote=True)}">'
-            f"<title>{escape(title)}</title><style>{STYLE}" +
+            f"<title>{escape(title)}</title><style>{STYLE}{font_css}" +
             "".join(f".performance--{status} {{ color: #{color}; font-weight: 600; }}" for status, color in PERFORMANCE_COLORS.items()) +
             "</style></head><body>" + "".join(body) + "</body></html>").encode("utf-8")
 
@@ -353,7 +403,7 @@ def _w(parent, name, **attrs):
     return ET.SubElement(parent, f"{{{W}}}{name}", {f"{{{W}}}{key}": str(v) for key, v in attrs.items()})
 
 
-def _paragraph(parent, text, ar, style=None, bold=False, auto_direction=False):
+def _paragraph(parent, text, ar, style=None, bold=False, auto_direction=False, font_name="Arial"):
     tone = getattr(text, "status", None)
     cleaned = _clean(text)
     paragraph_ar = ar
@@ -388,7 +438,7 @@ def _paragraph(parent, text, ar, style=None, bold=False, auto_direction=False):
             continue
         r = _w(p, "r")
         rp = _w(r, "rPr")
-        _w(rp, "rFonts", ascii="Arial", hAnsi="Arial", cs="Arial", eastAsia="Arial")
+        _w(rp, "rFonts", ascii=font_name, hAnsi=font_name, cs=font_name, eastAsia=font_name)
         rtl = paragraph_ar and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_./:+%(),<>= -]*", part)
         if bold:
             _w(rp, "b")
@@ -408,15 +458,21 @@ def _paragraph(parent, text, ar, style=None, bold=False, auto_direction=False):
 
 def render_docx(brief):
     """A real Office Open XML package, with internal relationships only."""
+    font = verified_font()
+    font_name = "Dubai" if font else "Arial"
+    add_paragraph = partial(_paragraph, font_name=font_name)
     title, sections = report_sections(brief)
     ar = brief["language"] == "ar"
     document = ET.Element(f"{{{W}}}document")
     body = _w(document, "body")
-    _paragraph(body, title, ar, "Title")
+    add_paragraph(body, title, ar, "Title")
     for section in sections:
-        _paragraph(body, section.title, ar, "Heading1")
+        heading = add_paragraph(body, section.title, ar, "Heading1")
+        if section.page_break_before:
+            _w(heading.find(f"{{{W}}}pPr"), "pageBreakBefore")
+        section_style = "Compact" if section.compact else None
         for paragraph in section.paragraphs:
-            _paragraph(body, paragraph, ar)
+            add_paragraph(body, paragraph, ar, style=section_style)
         for table in section.tables:
             tbl = _w(body, "tbl")
             pr = _w(tbl, "tblPr")
@@ -447,15 +503,19 @@ def render_docx(brief):
                     if index == 0:
                         _w(tcp, "shd", val="clear", fill="EEEEEE")
                     _w(tcp, "vAlign", val="center")
-                    _paragraph(tc, cell, ar, bold=index == 0, auto_direction=True)
+                    add_paragraph(tc, cell, ar, style=section_style, bold=index == 0, auto_direction=True)
             # A following paragraph keeps adjacent tables distinct in Word.
-            _paragraph(body, "", ar)
+            add_paragraph(body, "", ar, style=section_style)
+        if section.after_title:
+            add_paragraph(body, section.after_title, ar, style=section_style, bold=True)
+        for paragraph in section.after_paragraphs:
+            add_paragraph(body, paragraph, ar, style=section_style)
     section = _w(body, "sectPr")
     _w(section, "pgSz", w=12240, h=15840, orient="portrait")
     _w(section, "pgMar", top=1440, right=1440, bottom=1440, left=1440, header=720, footer=720, gutter=0)
     _w(section, "bidi", val="1" if ar else "0")
     styles = ET.Element(f"{{{W}}}styles")
-    for identifier, name, size in (("Normal", "Normal", 22), ("Title", "Title", 36), ("Heading1", "heading 1", 28)):
+    for identifier, name, size in (("Normal", "Normal", 22), ("Title", "Title", 36), ("Heading1", "heading 1", 28), ("Compact", "Compact", 20)):
         style = _w(styles, "style", type="paragraph", styleId=identifier)
         if identifier == "Normal":
             style.set(f"{{{W}}}default", "1")
@@ -464,14 +524,16 @@ def render_docx(brief):
             _w(style, "basedOn", val="Normal")
             _w(style, "next", val="Normal")
         pr = _w(style, "pPr")
-        if identifier != "Normal":
+        if identifier in {"Title", "Heading1"}:
             _w(pr, "keepNext")
             _w(pr, "keepLines")
-        _w(pr, "spacing", before=200 if identifier == "Heading1" else 0, after=140,
-           line=320 if ar else 280, lineRule="auto")
+        if identifier == "Heading1":
+            _w(pr, "outlineLvl", val=0)
+        _w(pr, "spacing", before=200 if identifier == "Heading1" else 0, after=60 if identifier == "Compact" else 140,
+           line=240 if identifier == "Compact" else (320 if ar else 280), lineRule="auto")
         rp = _w(style, "rPr")
-        _w(rp, "rFonts", ascii="Arial", hAnsi="Arial", cs="Arial", eastAsia="Arial")
-        if identifier != "Normal":
+        _w(rp, "rFonts", ascii=font_name, hAnsi=font_name, cs=font_name, eastAsia=font_name)
+        if identifier in {"Title", "Heading1"}:
             _w(rp, "b")
             _w(rp, "bCs")
         _w(rp, "color", val="000000")
@@ -484,6 +546,18 @@ def render_docx(brief):
              "word/document.xml": ET.tostring(document, encoding="utf-8", xml_declaration=True),
              "word/styles.xml": ET.tostring(styles, encoding="utf-8", xml_declaration=True),
              "word/_rels/document.xml.rels": document_rels}
+    if font:
+        rel_base = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/"
+        font_table = ET.Element(f"{{{W}}}fonts")
+        entry = _w(font_table, "font")
+        entry.set(f"{{{W}}}name", "Dubai")
+        embedded = _w(entry, "embedRegular", fontKey=FONT_KEY, subsetted="0")
+        embedded.set("{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id", "rId1")
+        parts["word/fontTable.xml"] = ET.tostring(font_table, encoding="utf-8", xml_declaration=True)
+        parts["word/fonts/Dubai-Regular.odttf"] = obfuscate_font(font)
+        parts["word/_rels/fontTable.xml.rels"] = (f'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="{rel_base}font" Target="fonts/Dubai-Regular.odttf"/></Relationships>').encode()
+        parts["word/_rels/document.xml.rels"] = document_rels.replace(b"</Relationships>", (f'<Relationship Id="rId2" Type="{rel_base}fontTable" Target="fontTable.xml"/></Relationships>').encode())
+        parts["[Content_Types].xml"] = content_types.replace(b"</Types>", b'<Override PartName="/word/fontTable.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml"/><Default Extension="odttf" ContentType="application/vnd.openxmlformats-officedocument.obfuscatedFont"/></Types>')
     stream = BytesIO()
     with ZipFile(stream, "w", compression=ZIP_DEFLATED) as archive:
         for name, content in parts.items():
