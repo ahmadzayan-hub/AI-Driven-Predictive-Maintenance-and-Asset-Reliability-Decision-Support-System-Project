@@ -552,6 +552,42 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+Hermes narrowed-package verification (24 October 2026):
+`tests.test_hermes_package` and `tests.test_mcp.DispatchTestCase` passed
+**16 tests, zero failures/errors/skips, in 3.371 seconds** on Python 3.12.14.
+A task-local standard-library supervisor ran only these suites with `-I -S -B
+-X utf8`, cleared application/provider settings, fixed temporary storage to
+task scratch, and guarded network audit events in the parent and all three
+stdio children. It observed **zero network attempts**; scratch was empty after
+cleanup. Free physical memory was 2.423 GiB before and 2.363 GiB afterward.
+The child wrapper executed the real launcher with its original script arguments;
+no MCP response was mocked. Checks covered initialize/help, refused tools,
+rejected opt-ins, configured memory reads and SQLite schema/WAL effects.
+Configured capabilities remain limited to `help`, `run_status`, `explain_report`.
+The owner authorized branch publication and a draft PR only. Installation and
+activation remain unapproved. Live Hermes command
+resolution/handshake, full web/CI and real-data/model acceptance remain untested.
+The task-local command was `python -I -S -B -X utf8 <task-scratch>/verify_revised.py`;
+its selected unittest modules are listed above. No dependencies were installed.
+
+Earlier Hermes package preparation (24 October 2026): the bounded standard-library
+run of `tests.test_hermes_package`, `tests.test_mcp.DispatchTestCase` and
+`tests.test_docs` passed **26 tests**, using Python 3.12.14 and temporary
+synthetic storage. The first
+attempt encountered Windows sandbox temp-folder permissions; rerunning with
+TEMP/TMP and `tempfile.tempdir` set to the writable task scratch directory
+passed. The installed Hermes portable parser accepted the manifest, skill and
+MCP entry with no diagnostics in an isolated scratch profile. Brain strict
+validation passed (one pre-existing stale-note warning). An optional SDK-client
+probe produced no result and was interrupted; no SDK pass is claimed. This is
+not Desktop activation or full web/pipeline acceptance. See
+[Hermes setup and approval scope](docs/HERMES_DESKTOP.md).
+
+```bash
+python -B -m unittest tests.test_hermes_package tests.test_mcp.DispatchTestCase tests.test_docs -v
+```
+
+
 Phase 1 source checkpoint (24 October 2026): the compact governed-KPI opening,
 comparison/review layout, navigation disclosures and focus/wrapping corrections
 are prepared but not yet built or visually accepted on the laptop. The guarded
@@ -2158,6 +2194,12 @@ what loaded and why anything did not. A plugin is trusted Python, not a
 sandbox. Details: `docs/adr/0020-custom-agents-as-plugins.md`.
 
 ## Agent runtimes and MCP (optional)
+
+For Nous Research **Hermes Desktop**, see [the portable package guide](docs/HERMES_DESKTOP.md).
+Miyaar remains a web application; the package starts as a help-only stdio MCP
+preview. Real workspace access requires separate review of exact paths and
+permitted tools. / يبقى معيار تطبيق ويب؛ تبدأ حزمة Hermes بالمساعدة فقط،
+وربط البيانات والأدوات يحتاج موافقة منفصلة على النطاق.
 
 The chat's rules turn one sentence into one action with no model. A
 sentence that asks for several things needs a loop — decide, call a

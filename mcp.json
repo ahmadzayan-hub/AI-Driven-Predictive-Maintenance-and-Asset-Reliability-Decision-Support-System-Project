@@ -1,0 +1,12 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "miyaar": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["-I", "-B", "-X", "utf8", "${PLUGIN_ROOT}/scripts/hermes_mcp.py"],
+      "cwd": "${PLUGIN_ROOT}",
+      "env": {}
+    }
+  }
+}
