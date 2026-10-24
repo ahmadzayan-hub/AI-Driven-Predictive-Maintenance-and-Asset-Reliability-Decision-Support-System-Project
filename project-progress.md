@@ -13,6 +13,8 @@ Last updated: 2026-10-23, platform/API recovery, transactional publishing and ap
 
 ## Now
 
+- **Period-coverage evidence candidate, 2026-10-24:** truthful cited coverage limitations, raw-total forecast refusal on unequal coverage, correct anomaly citation and conditional scenario labels are prepared for draft review. Actual deterministic API ingestion/report/persistence acceptance succeeded locally; report approval and publication remain gated. Verification limits are in README.md#testing and the dated ADR.
+
 - **Local KPI review-context candidate, 2026-10-24:** source/run inspection, explicit unknown period/freshness/owner, contextual owner question and finite-value rendering are prepared against main 99ca49ab. No backend assignment or release change. Browser acceptance is blocked by the local sandbox; review and integration remain pending. See [decision](docs/adr/2026-10-24-kpi-review-context.md).
 - **Column-grant startup guard, 24 October 2026 (review candidate):** close the gap between table ACLs and effective client column privileges without revocation or migration edits. Existing unit/isolated SQL regressions added; exact-head CI and PostgreSQL17 restore rehearsal remain open. [Decision](docs/adr/2026-10-24-column-grant-preflight.md).
 

@@ -1653,3 +1653,13 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Done:** merged the reviewed KPI branch into main, then preserved both branches’ decision, progress and session entries while incorporating main into the column-grant review branch. Application changes are disjoint and unchanged.
 - **Verified:** both original heads passed hosted checks; combined-head verification is required before completing the second merge. Main automatic deployment remains disabled in the unchanged Vercel configuration.
 - **Next:** finish combined CI and the normal pull-request merge. No production deployment, settings or database write is part of this reconciliation.
+
+## 2026-10-24 · `period-coverage-evidence` · fix/period-coverage-evidence
+
+**Goal:** allow truthful report generation without weakening numerical evidence validation.
+
+- **Done:** separate cited comparison counts, recent-window coverage heuristic, uneven-coverage raw-total forecast refusal, correct anomaly evidence index, and bilingual conditional-scenario wording. Added fabricated regression fixtures and a dated ADR.
+- **Verified:** independent code review found no blocking issue. Focused and full-suite outcomes, environment limits and private actual-API acceptance are recorded in README.md#testing. Main was refreshed through approved PR 56 without altering its schema migration or shared documentation.
+- **Decisions:** record counts do not prove calendar completeness; scenario assumptions are not validated savings. Keep validator, model-grounding limits and approval gates unchanged.
+- **Open / next:** exact-head CI and owner review before any merge or deployment; comparable exposure and prediction timing remain prerequisites for operational forecasts.
+- **Blockers:** cloud environment lacks the PostgreSQL Python driver; no installation or hosted acceptance claimed.
