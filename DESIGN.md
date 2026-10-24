@@ -3,9 +3,9 @@
 **StitchDesign semantic reference • 25 October 2026 • review candidate**
 
 ### Purpose and source of truth
-This is the canonical **Stitch-oriented visual brief** for generating consistent MIYAAR screens. It specifies presentation and interaction, **not** a new backend, production guarantee, engineering finding, or authorization to deploy. The implementation source of truth is the existing application: \`frontend/src/shared/styles/tokens.css\`, \`frontend/src/app/App.tsx\`, \`frontend/src/features/*\`, the FastAPI contracts, persisted run/evidence stores, and \`AGENTS.md\` / \`CLAUDE.md\`. Where this visual brief and working code differ, verify the code and record an ADR before changing behavior.
+This is the canonical **Stitch-oriented visual brief** for generating consistent MIYAAR screens. It specifies presentation and interaction, **not** a new backend, production guarantee, engineering finding, or authorization to deploy. The implementation source of truth is the existing application: `frontend/src/shared/styles/tokens.css`, `frontend/src/app/App.tsx`, `frontend/src/features/*`, the FastAPI contracts, persisted run/evidence stores, and `AGENTS.md` / `CLAUDE.md`. Where this visual brief and working code differ, verify the code and record an ADR before changing behavior.
 
-References inspected: the user's three Stitch screenshots and HTML exports (\`code.html\` for Data & Analysis, \`code(1).html\` for Reports & Outputs, and \`code(2).html\` for Decision), plus the supplied Team 3 Power BI/report reference and the source-to-product mapping in \`docs/design/2026-10-25-stitch-three-screen-reference.md\`. Their embedded people, figures, hash strings, control signals and compliance labels are **illustrations only**. Do not import them as live data.
+References inspected: the user's three Stitch screenshots and HTML exports (`code.html` for Data & Analysis, `code(1).html` for Reports & Outputs, and `code(2).html` for Decision), plus the supplied Team 3 Power BI/report reference and the source-to-product mapping in `docs/design/2026-10-25-stitch-three-screen-reference.md`. Their embedded people, figures, hash strings, control signals and compliance labels are **illustrations only**. Do not import them as live data.
 
 ## 1. Visual Theme & Atmosphere
 A **restrained, evidence-first industrial executive desk**, not a generic admin template and not a sci-fi autonomous control room. Think precise reliability engineering with editorial clarity: one decision at a time, legible charts, explicit evidence and quiet surfaces.
@@ -21,29 +21,29 @@ Use **one action accent** throughout. The status colors below are *semantic exce
 
 | Descriptive name | Light hex | Role and implementation token |
 | --- | --- | --- |
-| Chalk Workspace | \`#F3F5F6\` | Application canvas, \`--bg\` |
-| Document White | \`#FFFFFF\` | Core cards, reports, chart fields, \`--surface\` |
-| Soft Data Shelf | \`#F5F4F0\` | Quiet nested surfaces, \`--surface-sunken\` |
-| Slate Ink | \`#24303B\` | Major text and measured values, \`--text\` |
-| Muted Slate | \`#52616D\` | Metadata, tooltips, explanations, \`--text-muted\` |
-| Division Line | \`#D7DDE1\` | 1px passive separators, \`--border\` |
-| Interaction Border | \`#71808B\` | Focusable inputs and visible controls, \`--border-strong\` |
-| Deep Navigation Slate | \`#163443\` | Navigation background, not an additional CTA accent |
-| Decision Navy | \`#334E68\` | **Sole action accent**: filled primary CTA, active selection and focus, \`--accent\` |
-| Navy Wash | \`#E9EEF1\` | Active selection fill and subtle interactive backgrounds, \`--accent-soft\` |
+| Chalk Workspace | `#F3F5F6` | Application canvas, `--bg` |
+| Document White | `#FFFFFF` | Core cards, reports, chart fields, `--surface` |
+| Soft Data Shelf | `#F5F4F0` | Quiet nested surfaces, `--surface-sunken` |
+| Slate Ink | `#24303B` | Major text and measured values, `--text` |
+| Muted Slate | `#52616D` | Metadata, tooltips, explanations, `--text-muted` |
+| Division Line | `#D7DDE1` | 1px passive separators, `--border` |
+| Interaction Border | `#71808B` | Focusable inputs and visible controls, `--border-strong` |
+| Deep Navigation Slate | `#163443` | Navigation background, not an additional CTA accent |
+| Decision Navy | `#334E68` | **Sole action accent**: filled primary CTA, active selection and focus, `--accent` |
+| Navy Wash | `#E9EEF1` | Active selection fill and subtle interactive backgrounds, `--accent-soft` |
 
-**Status only:** Verifiably passed \`#0F7A55\`, caution/unknown \`#8A6100\`, confirmed failure \`#B3323F\`, with their corresponding existing soft background tokens. Never use green for a hypothetical benefit, red for a mere category, or blue to imply measured performance. Success means a returned and traceable success state, not an attractive color.
+**Status only:** Verifiably passed `#0F7A55`, caution/unknown `#8A6100`, confirmed failure `#B3323F`, with their corresponding existing soft background tokens. Never use green for a hypothetical benefit, red for a mere category, or blue to imply measured performance. Success means a returned and traceable success state, not an attractive color.
 
-**Dark variant:** reuse existing \`--bg: #20252B\`, \`--surface: #2A3038\`, \`--text: #EBEEF2\`, \`--text-muted: #B8C1CC\`, \`--accent: #9EBAD4\`, \`--border: #47515C\`. Check contrast independently. Never use pure black, electric violet, neon cyan, glowing primary buttons, rainbow gradients or glass-card stacks.
+**Dark variant:** reuse existing `--bg: #20252B`, `--surface: #2A3038`, `--text: #EBEEF2`, `--text-muted: #B8C1CC`, `--accent: #9EBAD4`, `--border: #47515C`. Check contrast independently. Never use pure black, electric violet, neon cyan, glowing primary buttons, rainbow gradients or glass-card stacks.
 
 ## 3. Typography Rules
-- **Primary:** the existing bundled **Dubai** typeface only where available and appropriately licensed for this application. If unavailable, keep the current vetted Arabic/English fallbacks \`'Segoe UI', Tahoma, 'Noto Sans Arabic', system-ui, sans-serif\`. Do **not** upload third-party font binaries, add a new CDN dependency, or imply government approval.
+- **Primary:** the existing bundled **Dubai** typeface only where available and appropriately licensed for this application. If unavailable, keep the current vetted Arabic/English fallbacks `'Segoe UI', Tahoma, 'Noto Sans Arabic', system-ui, sans-serif`. Do **not** upload third-party font binaries, add a new CDN dependency, or imply government approval.
 - **Display:** 32px/40px, 650–700 weight, for a report title when space permits. Never a page-height hero.
 - **Section heading:** 24px/32px, 600 weight; subordinate section heading 17px/24px, 600.
 - **Body:** 15–16px, 1.5 line-height English and approximately 1.65 Arabic. Narrative line length about 60–65ch.
 - **Labels:** 13px/18px, 500–600; 12px only for secondary metadata that maintains readable contrast. Avoid tiny 9–10px dense mock labels.
 - **Numbers:** 24–32px tabular figures in KPI cards; system monospace only for asset IDs, timestamps, exact numeric columns and code. Never drop currency code, unit, meaningful precision or negative sign to fit a card.
-- **Arabic:** full RTL text direction from locale, logical spacing/alignment, **zero letter spacing** for Arabic script, readable long phrases, and \`bdi\` / \`dir="auto"\` for mixed identifiers. Do not reverse chronological or technical plot axes merely because the page is RTL.
+- **Arabic:** full RTL text direction from locale, logical spacing/alignment, **zero letter spacing** for Arabic script, readable long phrases, and `bdi` / `dir="auto"` for mixed identifiers. Do not reverse chronological or technical plot axes merely because the page is RTL.
 - **Anti-patterns:** imported Inter from the mockups, dashboard serif typography, all-caps explanatory paragraphs, verbose headings and fabricated branded official seals.
 
 ## 4. Component Stylings
@@ -80,21 +80,21 @@ Professional review desk. On desktop use a **5:7 index/inspector layout**: repor
 ## 6. Motion & Interaction
 The domain is consequential engineering. **No perpetual movement by default**, even though some generic Stitch design systems favor looping motion. A moving status indicator may exist only while a real request/event is in progress and must stop when complete or disconnected.
 
-- Existing \`--motion-fast: 140ms ease\` and \`--motion-medium: 220ms ease\` govern navigation, drawer, selection and load transitions.
-- Limit animation to GPU-friendly \`transform\` and short, non-obscuring opacity on nonessential surfaces; text never temporarily falls below contrast requirements.
+- Existing `--motion-fast: 140ms ease` and `--motion-medium: 220ms ease` govern navigation, drawer, selection and load transitions.
+- Limit animation to GPU-friendly `transform` and short, non-obscuring opacity on nonessential surfaces; text never temporarily falls below contrast requirements.
 - Do not animate a numeric KPI as if data were changing. Do not auto-generate “agent deliberation”, pulses, artificial logs or stage progress.
 - Use reduced-motion and the user's saved motion preference as hard overrides. Keyboard and touch actions must respond synchronously with real state changes or explicit pending feedback.
 - Preserve visible layout geometry while loading; avoid layout shift and oversized hero sequences.
 
 ## 7. Anti-Patterns (Never Do)
 - **Never** present demonstration telemetry, synthetic test rows or Stitch placeholder numbers as live operations. Ban hard-coded “94.8% consensus”, “$1.42M realized savings”, “14/14 certified”, “100% deterministic validation”, “zero hallucinations” unless a real bounded source proves the **exact specific claim**.
-- **Never** import the mocked \`confirmDispatch()\` browser alert as a real work-order/DCS action. No write-endpoint workaround, anonymous authority or simulated authenticated PIN.
+- **Never** import the mocked `confirmDispatch()` browser alert as a real work-order/DCS action. No write-endpoint workaround, anonymous authority or simulated authenticated PIN.
 - **Never** use an imaginary approver name, signature, timestamp, revision, lineaged hash, verified source count, or published state.
 - **Never** label ISO or IEC “certified/compliant” because it is printed in a UI design. Version, asset applicability, licensed limits and verification are separately established.
 - No chat-landing-page hero, enormous orb, orbiting avatars, decorative telemetry, faux live feed, or endless agent spin.
 - No neon gradients, glowing outlines, glassmorphism, excessive shadows, washed-out gray data, serif UI, pure black, or a second decorative action color.
 - No extra large equal-three-card feature grid, filler copy, random inspirational taglines, emojis in controls, or abstract images to replace engineering charts.
-- No CDN Tailwind/Google Fonts transplant, inline \`onclick\`, static backend imitation, new global framework, uncontrolled API/model costs or new dependencies solely for styling.
+- No CDN Tailwind/Google Fonts transplant, inline `onclick`, static backend imitation, new global framework, uncontrolled API/model costs or new dependencies solely for styling.
 - No graphical values without their true units and a table equivalent; no invented comparisons, owner assignments or savings.
 - No hard-coded English-only screen; no reverse of a technical diagram or chronological time axis.
 - No direct rebranding as an RTA or Dubai Government approved/endorsed product.
@@ -107,8 +107,8 @@ For every numerical field and activity log, render a visually neutral **“Data 
 Deliver paired desktop and mobile views with context → 4 KPIs → real-data-chart slot, source-evidence drill-down, and report index/inspector. Motion demonstrations must be optional, bounded, and tied to state. The generated output is a **design specification** until independently integrated and browser tested.
 
 ## 9. React Implementation and Acceptance Contract
-Implementation stays in the existing React 19/TypeScript/Vite frontend and FastAPI backend. Reuse tokens, i18n packs, route parsing, \`ExecutiveOverview\`, \`DashboardView\`, \`RunsView\`, \`ReportDocument\`, \`RunTimeline\`, and existing authorization/report stores. Preserve Hermes Desktop work, Supabase/configuration, source datasets and database schemas. Do not import new APIs merely to match a Stitch screenshot.
+Implementation stays in the existing React 19/TypeScript/Vite frontend and FastAPI backend. Reuse tokens, i18n packs, route parsing, `ExecutiveOverview`, `DashboardView`, `RunsView`, `ReportDocument`, `RunTimeline`, and existing authorization/report stores. Preserve Hermes Desktop work, Supabase/configuration, source datasets and database schemas. Do not import new APIs merely to match a Stitch screenshot.
 
-Required pre-merge proof: same-dataset **before/after running application** screenshots in English and Arabic at 320px, 390px, tablet and desktop; keyboard/accessibility review against WCAG 2.2 AA; \`python scripts/verify.py --quick\` and \`python scripts/verify.py --e2e\` on the final SHA; existing unchanged JS/CSS bundle budgets; test of upload → mapping → analysis → chart → evidence → human review → saved report → reload → export; skipped checks and blockers explicitly disclosed. A passing design review alone is not a passing application test.
+Required pre-merge proof: same-dataset **before/after running application** screenshots in English and Arabic at 320px, 390px, tablet and desktop; keyboard/accessibility review against WCAG 2.2 AA; `python scripts/verify.py --quick` and `python scripts/verify.py --e2e` on the final SHA; existing unchanged JS/CSS bundle budgets; test of upload → mapping → analysis → chart → evidence → human review → saved report → reload → export; skipped checks and blockers explicitly disclosed. A passing design review alone is not a passing application test.
 
 **Delivery state:** design policy for review. This file is neither evidence of UI deployment nor permission to merge or publish. Use a GitHub review branch and an explicitly approved release gate.
