@@ -1774,6 +1774,13 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 ## 2026-10-24 · `hermes-publication-review` · codex/miyaar-hermes-package
 
 - **Done:** received explicit owner approval to publish the isolated package branch and open a draft PR. Rechecked the staged patch against the tested handoff checksum; runtime/test code is unchanged.
-- **Verified:** staged diff contains only the reviewed package, synthetic tests and documentation. Current-main reconciliation and hosted exact-head checks are recorded in the PR; broader local builds remain outside the resource-limited verification scope.
+- **Verified:** staged diff contains only the reviewed package, synthetic tests and documentation. Incorporated main `a647e74e`, retaining both appended session-log entries; upstream UI files match main. The bounded package/MCP suite passed again with network-denial guards; counts are in README. Hosted exact-head checks remain a separate PR gate; broader local builds remain outside the resource-limited verification scope.
 - **Decisions:** this approval covers code publication only. No merge, deployment, plugin installation, activation, profile changes, credentials or real-data/model access.
 - **Open / next:** review the draft and its exact-head checks, then separately approve any installation/profile/executable and workspace scope. The live web checkout remains independent.
+
+## 2026-10-24 - Keep complete monetary values and five groups in the opening
+
+- Done: reduced featured-card spacing and value sizing; allowed the currency separator to wrap without dropping digits or units. The opening fixture now contains five fictional sites, a long source filename and explicit currency mapping, with a card-clipping assertion.
+- Verified: the prior head passed full CI, focused RMD and both platform workflows. Its exact matching CI artifact was verified and served locally with unchanged saved-report hash. Actual project-data rendering then exposed monetary clipping and a fifth bar below the desktop fold; this follow-up still requires exact-head hosted and local visual checks. Diff whitespace checks pass.
+- Decided: keep the real viewport, chart-intersection requirement, evidence and approval controls. No local build or restart during the separate advisory resource window; use the existing hosted CI and reversible static-artifact path.
+- Next: verify this bounded correction on desktop and Arabic phone, then complete the presentation handoff.

@@ -552,6 +552,14 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+Hermes publication candidate (24 October 2026): after incorporating main
+`a647e74e` and retaining both sides of a session-log append conflict, the same
+bounded package/MCP suite passed **16 tests, zero failures/errors/skips, in
+4.618 seconds**. Network audit guards observed zero attempts in the parent and
+three stdio children; synthetic scratch was empty. Free RAM was 2.618 GiB before
+and 2.172 GiB afterward. Reviewed runtime/test files and upstream UI files are
+unchanged. Exact-head hosted checks remain separate from this local result.
+
 Hermes narrowed-package verification (24 October 2026):
 `tests.test_hermes_package` and `tests.test_mcp.DispatchTestCase` passed
 **16 tests, zero failures/errors/skips, in 3.371 seconds** on Python 3.12.14.

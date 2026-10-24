@@ -10,6 +10,7 @@ export async function storeMaintenanceDataset(
   name: string,
   language: 'en' | 'ar',
   lossMeasured = true,
+  currency?: string,
 ) {
   const uploaded = await request.post('/api/datasets', {
     params: { name, language },
@@ -42,6 +43,7 @@ export async function storeMaintenanceDataset(
     dimension: 'Site',
     date_order: 'auto',
     grain: 'month',
+    ...(currency ? { currency } : {}),
   }
   const saved = await request.put(`/api/datasets/${dataset.id}/mapping`, {
     params: { language },

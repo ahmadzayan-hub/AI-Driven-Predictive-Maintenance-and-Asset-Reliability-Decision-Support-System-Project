@@ -252,7 +252,7 @@ function Kpi({ measure, currency, context, evidenceAction, compact = false }: {
   return <article className="exec-kpi" data-family={measure.family} data-source={`kpi.${measure.key}`}>
     <Heading dir="auto">{measure.title}</Heading><p
       className={`exec-kpi-value${measured === null ? ' exec-kpi-value--missing' : ''}`}><PerformanceValue tone={tone} reason={verdict ? measure.assessment?.reason : undefined}><bdi><span
-      className="exec-kpi-n">{value}</span>{unit ? <>{unit.length > 2 ? ' ' : '\u00a0'}<small>{unit}</small></> : null}</bdi></PerformanceValue></p>
+      className="exec-kpi-n">{value.replaceAll('\u00a0', ' ')}</span>{unit ? <>{unit.length > 2 ? ' ' : '\u00a0'}<small>{unit}</small></> : null}</bdi></PerformanceValue></p>
     {share === null ? null : <svg className="exec-kpi-meter" viewBox="0 0 100 4" preserveAspectRatio="none"
       aria-hidden="true" focusable="false"><rect width="100" height="4" rx="2" /><rect width={share} height="4" rx="2" /></svg>}
     {!compact ? <p className="exec-kpi-covered">{t('exec.covered', { n: formatNumber(measure.records) })}</p> : null}
