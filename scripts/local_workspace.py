@@ -51,6 +51,13 @@ def workspace_config(directory):
 
 
 def main(argv=None):
+    # As in scripts/verify.py: Windows redirected stdout may be cp1252.
+    # Bilingual startup must not fail after creating the workspace.
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("start", "backup", "restore"))
     parser.add_argument("--workspace", type=Path, default=DEFAULT_WORKSPACE,

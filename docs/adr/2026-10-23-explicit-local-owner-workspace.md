@@ -44,3 +44,14 @@ cases cover remote peers, DNS rebinding, Host/Origin, forwarded headers, public
 bindings and hosted configuration refusal. Hosted authentication regression
 and existing backup tests remain required. No real-user credentials or model
 provider calls are needed to test this change. See [the local guide](../LOCAL_WORKSPACE.md).
+
+## Windows console compatibility (24 October)
+
+The bilingual launcher configures stdout and stderr as UTF-8 with replacement
+handling, following the existing verifier convention. A redirected Windows
+cp1252 stream otherwise rejects the Arabic startup banner before Uvicorn runs.
+This changes output encoding only, not workspace validation, loopback binding,
+proxy refusal, hosted authentication or durable storage/backup behavior.
+The regression uses a real cp1252 TextIOWrapper and isolates the already-built
+interface prerequisite. The platform workflow includes the launcher and its
+regression path so changes receive native Windows Edge and macOS WebKit checks.

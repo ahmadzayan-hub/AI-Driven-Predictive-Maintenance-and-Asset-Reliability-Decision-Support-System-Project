@@ -1599,3 +1599,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Decisions:** Do not reserve the entire daily budget or top up within a run transaction. A crash conservatively retains the bounded unconsumed allowance. Keep state/lease and human publication approval unchanged.
 - **Open / next:** Review CI PostgreSQL evidence, hosted identity/schema/worker/recovery and domain acceptance before any production change.
 - **Blockers:** Main merge, production migration/configuration and deployment remain approval-gated. No live provider or production database calls performed.
+
+## 2026-10-24 · `windows-local-launcher` · feat/explicit-local-owner-workspace
+
+**Goal:** repair bilingual local startup with redirected Windows output.
+
+- **Done:** follow the verifier's UTF-8 stdout/stderr convention; add a real legacy-encoding regression and platform trigger paths.
+- **Verified:** the fresh remote launcher fails before Uvicorn with cp1252 output; the corrected local launcher serves health and local identity with that environment. Focused auth, local-workspace and backup regressions passed, with PostgreSQL cases skipped locally.
+- **Decisions:** preserve all local-only, hosted-auth, proxy and durable-store guards; no account, key, provider call or deployment.
+- **Open / next:** require exact-head hosted CI, Windows Edge and macOS WebKit acceptance before merge. No main merge performed by this repair.

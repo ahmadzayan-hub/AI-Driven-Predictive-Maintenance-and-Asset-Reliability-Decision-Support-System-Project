@@ -200,6 +200,18 @@ class WorkflowTest(unittest.TestCase):
         self.assertFalse((self.workspace / "agentic.db").exists())
         self.assertFalse((self.root / "missing.json").exists())
 
+    def test_launcher_supports_legacy_windows_output_encoding(self):
+        import io
+        buffer = io.BytesIO()
+        output = io.TextIOWrapper(buffer, encoding="cp1252")
+        self.addCleanup(output.close)
+        with patch.dict(os.environ, {}, clear=True), patch("sys.stdout", output), \
+                patch.object(cli.ROOT.__class__, "is_file", return_value=True), patch("uvicorn.run") as run:
+            self.assertEqual(cli.main(["start", "--workspace", str(self.workspace)]), 0)
+            self.assertEqual(output.encoding, "utf-8")
+            self.assertIn("معيار", buffer.getvalue().decode("utf-8"))
+            run.assert_called_once()
+
     def test_launcher_refuses_hosted_settings_without_mutation(self):
         with patch.dict(os.environ, {"AGENTIC_OS_REQUIRE_AUTH": "1"}, clear=True), patch("uvicorn.run") as run:
             with self.assertRaises(RuntimeError):
