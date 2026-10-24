@@ -406,6 +406,11 @@ class InterfaceGZip:
 
 def create_app(config_path=None, env=None, dist_dir=None):
     config = load_config(config_path or PROJECT_ROOT / "config.json")
+    from server.local_workspace import enabled as local_workspace, validate, verify_local_model, LoopbackOnly
+    local_env = os.environ if env is None else env
+    validate(local_env, config)
+    if local_workspace(local_env):
+        verify_local_model(local_env)
     # Fails closed: declaring production without a managed identity
     # provider raises here rather than serving data unauthenticated.
     identity = build_identity(env)
@@ -456,6 +461,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         (os.environ if env is None else env).get("DATABASE_URL") or config.get("database_url"),
         config.get("database_file") or PROJECT_ROOT / "data" / "agentic.db",
         schema_mode="verify",
+        allow_temporary_fallback=not local_workspace(local_env),
     )
     limits = load_limits(env)
     base_gateway.budget = ModelBudget(store, limits)
@@ -514,7 +520,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
     # single owner the scoping is a no-op; with several it is the whole
     # point.
     multi_tenant = identity.mode != "local"
-    memory_in_database = multi_tenant or isinstance(store, PostgresStore)
+    memory_in_database = multi_tenant or isinstance(store, PostgresStore) or local_workspace(local_env)
 
     def memory_for(owner):
         if not memory_in_database:
@@ -1993,6 +1999,8 @@ def create_app(config_path=None, env=None, dist_dir=None):
                 return FileResponse(candidate)
             return FileResponse(dist / "index.html")
 
+    if local_workspace(local_env):
+        app.add_middleware(LoopbackOnly)
     return app
 
 

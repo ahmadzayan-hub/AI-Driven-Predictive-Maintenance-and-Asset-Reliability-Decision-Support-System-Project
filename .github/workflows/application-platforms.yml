@@ -5,6 +5,8 @@ on:
     paths:
       - 'frontend/**'
       - 'server/**'
+      - 'scripts/local_workspace.py'
+      - 'tests/test_local_workspace.py'
       - 'requirements.txt'
       - '.github/workflows/application-platforms.yml'
   workflow_dispatch:

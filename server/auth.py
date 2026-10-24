@@ -310,6 +310,8 @@ def parse_role_assignments(raw):
 def build_identity(env=None):
     """Select the provider from the environment, failing closed."""
     env = os.environ if env is None else env
+    from server.local_workspace import validate
+    validate(env)
     secret = env.get("AGENTIC_OS_JWT_SECRET") or env.get("SUPABASE_JWT_SECRET")
     jwks_url = env.get("AGENTIC_OS_JWKS_URL")
     if env.get("AGENTIC_OS_DEMO") == "1":

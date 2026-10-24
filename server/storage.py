@@ -990,7 +990,7 @@ class DbMemoryBackend:
 class SQLiteStore(SqlStore):
     placeholder = "?"
 
-    def __init__(self, path):
+    def __init__(self, path, *, allow_temporary_fallback=True):
         super().__init__()
         import os
         import sqlite3
@@ -1001,12 +1001,16 @@ class SQLiteStore(SqlStore):
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
         except OSError:
+            if not allow_temporary_fallback:
+                raise
             # Read-only deployment (e.g. a serverless bundle): fall back to
             # the writable temp directory. State is then per-instance and
             # ephemeral — configure DATABASE_URL for durable hosting.
             path = Path(tempfile.gettempdir()) / "agentic-os" / path.name
             path.parent.mkdir(parents=True, exist_ok=True)
         if not os.access(path.parent, os.W_OK):
+            if not allow_temporary_fallback:
+                raise PermissionError("Local workspace directory is not writable; temporary storage is refused.")
             path = Path(tempfile.gettempdir()) / "agentic-os" / path.name
             path.parent.mkdir(parents=True, exist_ok=True)
         self.path = path
@@ -1286,8 +1290,8 @@ class PostgresStore(SqlStore):
         return [row["column_name"] for row in rows]
 
 
-def open_store(database_url=None, sqlite_path=None, *, schema_mode="migrate"):
+def open_store(database_url=None, sqlite_path=None, *, schema_mode="migrate", allow_temporary_fallback=True):
     """Hosted PostgreSQL when DATABASE_URL is configured; SQLite otherwise."""
     if database_url and str(database_url).startswith(("postgres://", "postgresql://")):
         return PostgresStore(str(database_url), schema_mode=schema_mode)
-    return SQLiteStore(sqlite_path)
+    return SQLiteStore(sqlite_path, allow_temporary_fallback=allow_temporary_fallback)
