@@ -55,6 +55,7 @@ class EvidenceWorkflowTests(unittest.TestCase):
         self.assertEqual(run["tasks"][1]["quality_checks"][0]["name"], "immutable_snapshot_replay")
         self.assertEqual(self.store.get_run(run_id)["dataset_text"], "")
         self.assertIsNone(self.store.get_run(run_id)["dataset_id"])
+        self.assertIsNone(run["dataset_id"])
         self.assertFalse((self.root / "vault" / "Reports").exists())
         self.assertEqual(self.review(analysis), run_id)
         run = self.engine.advance(run_id)
@@ -207,6 +208,8 @@ class EvidenceWorkflowTests(unittest.TestCase):
                 for subject, status in (("alice", 200), ("bob", 200), ("operator", 404)):
                     response = await client.get(f"/api/runs/{run_id}", headers=headers(subject))
                     self.assertEqual(response.status_code, status, response.text)
+                    if status == 200:
+                        self.assertIsNone(response.json()["dataset_id"])
                 denied = await client.post(f"/api/runs/{run_id}/pause", headers=headers("bob"))
                 self.assertEqual(denied.status_code, 404)
                 for subject, expected in (("bob", True), ("operator", False)):

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { hasWorkSource } from '../shared/sourceHandoff'
 import { parseRoute, routeHash } from '../app/routing'
 import { drill, EMPTY, filterCount, pagesFor, readState, rolesOf, toFilters, writeState } from '../features/dashboard/state'
 import type { TableField } from '../shared/types'
@@ -12,6 +13,17 @@ const FIELDS: TableField[] = [
 ]
 
 describe('dashboard addresses (ADR 0032)', () => {
+  it('carries only a validated source run ID to operations, never filters or approval', () => {
+    expect(parseRoute(routeHash({ tab: 'operations', runId: 'run_7' }))).toEqual({ tab: 'operations', runId: 'run_7' })
+    expect(parseRoute('#/operations/../bad')).toEqual({ tab: 'operations' })
+    expect(parseRoute('#/operations/run_7?approved=true&asset=other')).toEqual({ tab: 'operations', runId: 'run_7' })
+  })
+  it('requires explicit dataset identity and an eligible draft state', () => {
+    for (const dataset_id of [null, undefined, '', ' ']) expect(hasWorkSource({ state: 'completed', dataset_id })).toBe(false)
+    for (const state of ['queued', 'running', 'failed', 'cancelled'] as const) expect(hasWorkSource({ state, dataset_id: 'd1' })).toBe(false)
+    for (const state of ['awaiting_approval', 'completed'] as const) expect(hasWorkSource({ state, dataset_id: 'd1' })).toBe(true)
+  })
+
   it('selects only known upload profiles and keeps existing runs unchanged', () => {
     const route = { tab: 'runs' as const, source: 'upload' as const, profile: 'maintenance' as const }
     expect(parseRoute(routeHash(route))).toEqual(route)

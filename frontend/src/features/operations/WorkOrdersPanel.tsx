@@ -11,16 +11,16 @@ import { operationsApi } from './operationsApi'
 import { priorities } from './RegistryPanel'
 import type { Completion, OperationsOverview, OrderChange, OrderStatus, Priority, WorkOrder } from './types'
 
-interface Props { data: OperationsOverview; busy: boolean; mutate: Mutate; onOpenRun: (id: string) => void }
+interface Props { sourceRunId?: string; data: OperationsOverview; busy: boolean; mutate: Mutate; onOpenRun: (id: string) => void }
 
-export function WorkOrdersPanel({ data, busy, mutate, onOpenRun }: Props) {
+export function WorkOrdersPanel({ data, busy, mutate, onOpenRun, sourceRunId }: Props) {
   const { t } = usePack(messages)
   const [filter, setFilter] = useState<OrderStatus | ''>('')
   const [selected, setSelected] = useState('')
   const orders = data.work_orders.filter((order) => !filter || order.status === filter)
   const order = data.work_orders.find((item) => item.id === selected)
   return <section aria-label={t('orders')}>
-    {data.permissions.write && <details className="operations__card operations__draft"><summary>{t('newDraft')}</summary><DraftForm data={data} busy={busy} mutate={mutate} onCreated={setSelected} /></details>}
+    {data.permissions.write && <details className="operations__card operations__draft" open={sourceRunId ? true : undefined}><summary>{t('newDraft')}</summary><DraftForm sourceRunId={sourceRunId} data={data} busy={busy} mutate={mutate} onCreated={setSelected} /></details>}
     <Field label={t('status')}><select value={filter} onChange={(event) => setFilter(event.target.value as OrderStatus | '')}><option value="">{t('all')}</option>{(['draft', 'authorized', 'in_progress', 'completed', 'cancelled'] as const).map((status) => <option key={status} value={status}>{t(status)}</option>)}</select></Field>
     <div className="operations__workgrid">
       <div className="operations__queue">
@@ -37,10 +37,10 @@ export function WorkOrdersPanel({ data, busy, mutate, onOpenRun }: Props) {
   </section>
 }
 
-function DraftForm({ data, busy, mutate, onCreated }: Omit<Props, 'onOpenRun'> & { onCreated: (id: string) => void }) {
+function DraftForm({ data, busy, mutate, onCreated, sourceRunId }: Omit<Props, 'onOpenRun'> & { onCreated: (id: string) => void }) {
   const { t } = usePack(messages)
   const [assetId, setAssetId] = useState(''), [title, setTitle] = useState(''), [rationale, setRationale] = useState('')
-  const [runId, setRunId] = useState(''), [column, setColumn] = useState('Asset_ID')
+  const [runId, setRunId] = useState(sourceRunId ?? ''), [column, setColumn] = useState(sourceRunId ? '' : 'Asset_ID')
   const [priority, setPriority] = useState<Priority>('medium'), [assignee, setAssignee] = useState(''), [due, setDue] = useState('')
   const [runs, setRuns] = useState<RunSummary[]>([])
   useEffect(() => {
@@ -66,7 +66,7 @@ function DraftForm({ data, busy, mutate, onCreated }: Omit<Props, 'onOpenRun'> &
     <Field label={t('rationale')}><textarea required maxLength={2000} rows={3} value={rationale} onChange={(event) => setRationale(event.target.value)} /></Field>
     <p id="operations-evidence-help">{t('evidenceHelp')}</p>
     <div className="operations__forms">
-      <Field label={t('run')}><input required value={runId} onChange={(event) => setRunId(event.target.value)} list="operations-runs" maxLength={64} dir="ltr" aria-describedby="operations-evidence-help" /></Field>
+      <Field label={t('run')}><input required readOnly={!!sourceRunId} value={runId} onChange={(event) => setRunId(event.target.value)} list="operations-runs" maxLength={64} dir="ltr" aria-describedby="operations-evidence-help" /></Field>
       <datalist id="operations-runs">{runs.map((run) => <option key={run.id} value={run.id}>{run.goal}</option>)}</datalist>
       <Field label={t('column')}><input required maxLength={200} value={column} onChange={(event) => setColumn(event.target.value)} dir="auto" /></Field>
     </div>

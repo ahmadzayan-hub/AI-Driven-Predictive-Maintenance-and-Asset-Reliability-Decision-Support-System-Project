@@ -240,6 +240,24 @@ class ApiAuthorizationTestCase(unittest.TestCase):
         self.assertEqual(self.client.get(f"/api/runs/{run['id']}",
                                          headers=alice).json()["state"], "queued")
 
+    def test_run_source_reference_is_explicit_and_owner_scoped(self):
+        alice = self.auth("alice", "analyst")
+        created = self.client.post("/api/runs", headers=alice, json={
+            "goal": "Synthetic source handoff", "dataset_text": "asset,value\nA,1\nB,2\n"})
+        self.assertEqual(created.status_code, 201, created.text)
+        run = created.json()
+        self.assertTrue(run["dataset_id"])
+        detail = self.client.get(f"/api/runs/{run['id']}", headers=alice)
+        self.assertEqual(detail.json()["dataset_id"], run["dataset_id"])
+        dataset = self.client.get(f"/api/datasets/{run['dataset_id']}", headers=alice)
+        self.assertEqual(dataset.status_code, 200, dataset.text)
+        for headers in ({}, self.auth("bob", "analyst")):
+            response = self.client.get(f"/api/runs/{run['id']}", headers=headers)
+            self.assertIn(response.status_code, (401, 404))
+            self.assertNotIn(run["dataset_id"], response.text)
+        self.assertNotIn("dataset_text", detail.json())
+        self.assertNotIn("work_order_authorized", detail.json())
+
     def test_admins_may_act_across_owners(self):
         alice = self.auth("alice", "analyst")
         run = self.client.post("/api/runs", json={"goal": "Shared run"},
