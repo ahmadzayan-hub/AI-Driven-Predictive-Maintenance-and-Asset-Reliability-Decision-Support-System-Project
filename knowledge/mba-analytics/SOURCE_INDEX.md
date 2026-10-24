@@ -4,6 +4,8 @@ Source IDs preserve the local audit identity without publishing file-system path
 
 The bibliography identifies sources of the original summaries. It does not grant rights to republish books, slides or images. Course versions are kept distinct; hash-identical copies in the local inventory were not treated as independent corroboration.
 
+All 23 unique PDFs counted in the coverage report are indexed below, including reviewed sources not cited by a synthesized module. Their page totals and inspected-page locators reconcile to 1,555 extracted pages and 351 pages with reviewed evidence passages; those locators do not imply exhaustive whole-page review.
+
 ## S001
 
 Course application cases, 44-page version; sector examples are illustrative, with unverified benefit figures.
@@ -47,6 +49,12 @@ Business Analytics for Decision Making course syllabus. Five PDF pages; evidence
 Business Analytics for Decisions Making, older introductory lecture.
 
 PDF pages: 21. Reviewed evidence passages: 2, 3, 5, 6, 9, 10, 15, 17, 18, 19, 20. Review is partial, not a claim that every sentence or figure was checked.
+
+## S013
+
+Creating Competitive Advantage through Analytics, older lecture. Reviewed topics include strategic alignment, analytics capability, governance, adoption, skills and KPIs. Company case-study prompts are illustrative, not independently verified outcome evidence.
+
+PDF pages: 27. Reviewed evidence passages: 5, 6, 7, 8, 13, 25. Review is partial, not a claim that every sentence or figure was checked. No visual page checks were recorded for this source.
 
 ## S014
 
