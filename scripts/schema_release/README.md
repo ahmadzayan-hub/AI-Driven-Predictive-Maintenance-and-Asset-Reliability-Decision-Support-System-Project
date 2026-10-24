@@ -31,3 +31,24 @@ Before commit, PostgreSQL rolls the migration back atomically. The tests inject 
 - `python scripts/schema_release/check_validator.py . /path/to/postgresql17/bin /outside/repository/rehearsal` executes the actual Python validator against those catalogs, wrapping every query in a read-only transaction.
 
 The test cases cover fresh/repeated application, the old nine-table schema with one owned sentinel record per table, preserved historical values, wrong type, ownerless records, missing owner column, wrong index, wrong foreign-key action, deferred keys, existing direct/inherited client grants, injected post-DDL rollback and unrelated-table preservation. PUBLIC and authenticated roles are exercised as genuine non-superuser/non-BYPASSRLS roles. These are schema and data-preservation checks, not multi-session concurrency, PostgREST/JWT, provider, browser or production acceptance.
+
+## Column-grant startup gate (24 October 2026)
+
+The SELECT-only runtime preflight additionally checks explicit PUBLIC column
+ACLs and effective anon/authenticated column privileges (SELECT, INSERT, UPDATE,
+REFERENCES), including inherited custom-role grants. A table-level REVOKE does
+not remove column ACLs. Unrelated tables and standalone backend/custom-role
+column grants are not rejected merely for existing. This check covers effective
+INHERIT access, not a general audit of SET ROLE paths or provider policy.
+
+The reviewed migration file and its hash are unchanged. This is a startup
+refusal, not a new pre-migration SQL guard, automatic revocation, or proof of
+migration readiness. Operators must inspect column ACLs before approval as well
+as table grants; the original migration itself can still commit with column ACLs
+present. Snapshot/restore completeness and the PostgreSQL17 drill remain separate.
+
+The existing hosted-schema unit module and disposable PostgreSQL CI test cover
+column access rejection and preservation. The single-user migration/validator
+scripts also include column ACL fixtures; those scripts require PostgreSQL17
+and do not run as part of ordinary CI. Local sparse-source checks are not a full
+suite or real PostgreSQL result.

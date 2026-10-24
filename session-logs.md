@@ -1638,3 +1638,18 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 
 - **Done:** kept full-intersection assertions for collapsed cards at 320 x 812. Expanded source disclosures are taller than the shell scrollport, so actual-phone captures now cover their top and bottom after normal scrolling, asserting the value, disclosure summary, source run and evidence action are fully reachable. Separately labelled expanded-height captures retain the full disclosure/family overview.
 - **Verified:** previous exact-head CI passed desktop captures but rejected the impossible whole-expanded-card phone framing assumption. Typecheck passes for this test-only correction; new hosted execution and image review remain pending. No application changes or relaxed horizontal-overflow checks.
+## 2026-10-24 · `column-grant-preflight` · fix/column-grant-preflight
+
+**Goal:** close the read-only hosted validator's column ACL evidence gap.
+
+- **Done:** inspect explicit PUBLIC and effective client column privileges, preserve backend-only/unrelated ACLs, add unit and disposable PostgreSQL regressions, leave reviewed migration unchanged.
+- **Verified:** sparse-source catalog/SQLite tests and Python compilation passed. Constructor tests could not import missing psycopg2; real PostgreSQL, full verifier and current-data restoration were not run locally. Exact counts belong in the review evidence, not inferred suite totals.
+- **Decided:** refuse startup, never repair permissions implicitly. This does not add a pre-migration SQL guard or audit SET ROLE-only paths.
+- **Open / next:** exact-head CI and the separately approved PostgreSQL17 restore drill before any release; no merge, deploy, credentials or hosted database changes.
+
+
+## 2026-10-24 — Reconcile release candidates
+
+- **Done:** merged the reviewed KPI branch into main, then preserved both branches’ decision, progress and session entries while incorporating main into the column-grant review branch. Application changes are disjoint and unchanged.
+- **Verified:** both original heads passed hosted checks; combined-head verification is required before completing the second merge. Main automatic deployment remains disabled in the unchanged Vercel configuration.
+- **Next:** finish combined CI and the normal pull-request merge. No production deployment, settings or database write is part of this reconciliation.

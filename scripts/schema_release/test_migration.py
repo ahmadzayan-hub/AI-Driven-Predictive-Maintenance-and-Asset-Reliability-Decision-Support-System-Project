@@ -93,6 +93,18 @@ run('unrelated_preserved',legacy_sql+fixture_sql+extra,SQL+checks+legacy_checks+
 run('existing_client_grant',legacy_sql+"GRANT SELECT ON public.runs TO authenticated;",SQL,['Existing client access requires review: runs'],rollback_check+"DO $$ BEGIN IF NOT has_table_privilege('authenticated','public.runs','SELECT') THEN RAISE EXCEPTION 'EXISTING_ACCESS_CHANGED'; END IF; END $$;")
 run('deferred_key',legacy_sql+"ALTER TABLE public.memory_kv DROP CONSTRAINT memory_kv_pkey; ALTER TABLE public.memory_kv ADD PRIMARY KEY(owner,key) DEFERRABLE INITIALLY DEFERRED;",SQL,['Unexpected primary key: memory_kv'],rollback_check)
 run('inherited_client_grant',legacy_sql+"CREATE ROLE app_reader NOLOGIN; GRANT SELECT ON public.runs TO app_reader; GRANT app_reader TO authenticated;",SQL,['Existing client access requires review: runs'],rollback_check)
+# The reviewed migration is intentionally unchanged. These fixtures exercise
+# the strengthened SELECT-only startup validator, not migration rejection.
+# Column grants survive a table-level REVOKE, even with RLS enabled.
+for target in ('PUBLIC', 'anon', 'authenticated'):
+ for privilege in ('SELECT', 'INSERT', 'UPDATE', 'REFERENCES'):
+  grant=f"GRANT {privilege}(goal) ON public.runs TO {target};"
+  run(f'column_{target.lower()}_{privilege.lower()}',legacy_sql,SQL+checks+grant)
+run('column_inherited',legacy_sql,SQL+checks+"CREATE ROLE column_reader NOLOGIN; GRANT SELECT(goal) ON public.runs TO column_reader; GRANT column_reader TO authenticated;")
+# Standalone backend/custom ACLs and unrelated tables are not client access.
+run('column_backend_only',legacy_sql,SQL+checks+"CREATE ROLE column_backend NOLOGIN; GRANT SELECT(goal) ON public.runs TO column_backend;")
+run('column_unrelated',legacy_sql+extra,SQL+checks+"GRANT SELECT(body) ON public.unrelated_system TO PUBLIC;")
 (OUTPUT/'test_results.json').write_text(json.dumps(results,indent=2)+'\n')
 print(json.dumps(results,indent=2))
 raise SystemExit(0 if all(x['passed'] for x in results) else 1)
+

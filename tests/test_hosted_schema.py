@@ -27,6 +27,8 @@ class Catalog:
             self.indexes.extend(dict(table_name=t,columns=list(cols)) for cols in s['unique'])
         self.grants = []
         self.inherited = []
+        self.column_grants = []
+        self.effective_column_grants = []
         self.version = SCHEMA_VERSION
         self.statements = []
 
@@ -37,6 +39,8 @@ class Catalog:
         if 'information_schema.columns' in sql: return self.columns
         if 'pg_catalog.pg_constraint' in sql: return self.keys
         if 'pg_catalog.pg_index' in sql: return self.indexes
+        if 'has_column_privilege' in sql: return self.effective_column_grants
+        if 'aclexplode(a.attacl)' in sql: return self.column_grants
         if 'pg_has_role' in sql: return self.inherited
         if 'aclexplode' in sql: return self.grants
         return self.tables
@@ -74,6 +78,23 @@ class HostedSchemaTest(unittest.TestCase):
         for row in store.keys:
             if row['contype']=='f': row['referenced_schema']='untrusted'
         with self.assertRaises(SchemaNotReady): validate_postgres_schema(store)
+
+    def test_column_access_fails_closed_without_table_grants_or_writes(self):
+        for attribute in ('column_grants', 'effective_column_grants'):
+            with self.subTest(attribute=attribute):
+                store = Catalog()
+                getattr(store, attribute).append({'table_name': 'runs', 'column_name': 'goal'})
+                with self.assertRaisesRegex(SchemaNotReady, 'runs.goal:public_api_column_grant'):
+                    validate_postgres_schema(store)
+                self.assertEqual(store.grants, [])
+                self.assertEqual(store.inherited, [])
+                self.assertTrue(all(sql.startswith('SELECT ') for sql in store.statements))
+
+    def test_column_access_on_unrelated_tables_is_not_rejected(self):
+        store = Catalog()
+        for rows in (store.column_grants, store.effective_column_grants):
+            rows.append({'table_name': 'unrelated_system', 'column_name': 'body'})
+        validate_postgres_schema(store)
 
     def test_cascading_foreign_key_not_accepted(self):
         store=Catalog()
@@ -128,6 +149,63 @@ from tests.test_runs import PG_TEST_URL, _postgres_available
 
 @unittest.skipUnless(_postgres_available(), "test PostgreSQL is not reachable")
 class HostedSchemaPostgresTest(unittest.TestCase):
+    def test_column_grants_fail_closed_in_disposable_database(self):
+        import psycopg2
+        from psycopg2 import sql
+        import uuid
+
+        # Existing CI uses a disposable database. All grants, fixture roles and
+        # extra tables below are rolled back; no hosted URL or commit is used.
+        prepared = PostgresStore(PG_TEST_URL, schema_mode='migrate')
+        prepared.close()
+        connection = psycopg2.connect(PG_TEST_URL, connect_timeout=3)
+        self.addCleanup(connection.close)
+        self.addCleanup(connection.rollback)
+        cursor = connection.cursor()
+        self.addCleanup(cursor.close)
+
+        class TransactionStore:
+            def _exec(self, query):
+                assert query.startswith('SELECT '), query
+                cursor.execute(query)
+                return [dict(zip([d[0] for d in cursor.description], row))
+                        for row in cursor.fetchall()]
+
+            def _schema_version(self):
+                return self._exec('SELECT MAX(version) AS version FROM schema_migrations')[0]['version']
+
+        store = TransactionStore()
+        for role in ('anon', 'authenticated'):
+            cursor.execute('SELECT 1 FROM pg_roles WHERE rolname=%s', (role,))
+            if cursor.fetchone() is None:
+                cursor.execute(sql.SQL('CREATE ROLE {} NOLOGIN NOSUPERUSER NOBYPASSRLS').format(sql.Identifier(role)))
+        validate_postgres_schema(store)
+        for role in ('PUBLIC', 'anon', 'authenticated'):
+            for privilege in ('SELECT', 'INSERT', 'UPDATE', 'REFERENCES'):
+                with self.subTest(role=role, privilege=privilege):
+                    cursor.execute('SAVEPOINT column_grant')
+                    target = sql.SQL('PUBLIC') if role == 'PUBLIC' else sql.Identifier(role)
+                    cursor.execute(sql.SQL('GRANT {} (goal) ON public.runs TO {}').format(sql.SQL(privilege), target))
+                    cursor.execute("SELECT has_table_privilege('authenticated','public.runs',%s)", (privilege,))
+                    self.assertFalse(cursor.fetchone()[0])
+                    with self.assertRaisesRegex(SchemaNotReady, 'runs.goal:public_api_column_grant'):
+                        validate_postgres_schema(store)
+                    cursor.execute('ROLLBACK TO SAVEPOINT column_grant')
+                    validate_postgres_schema(store)
+
+        backend = 'column_backend_' + uuid.uuid4().hex
+        cursor.execute(sql.SQL('CREATE ROLE {} NOLOGIN NOSUPERUSER NOBYPASSRLS').format(sql.Identifier(backend)))
+        cursor.execute(sql.SQL('GRANT SELECT(goal) ON public.runs TO {}').format(sql.Identifier(backend)))
+        validate_postgres_schema(store)  # A standalone backend grant is not client access.
+        cursor.execute(sql.SQL('GRANT {} TO authenticated').format(sql.Identifier(backend)))
+        with self.assertRaisesRegex(SchemaNotReady, 'runs.goal:public_api_column_grant'):
+            validate_postgres_schema(store)
+        cursor.execute(sql.SQL('REVOKE {} FROM authenticated').format(sql.Identifier(backend)))
+        unrelated = 'column_unrelated_' + uuid.uuid4().hex
+        cursor.execute(sql.SQL('CREATE TABLE {} (body text)').format(sql.Identifier(unrelated)))
+        cursor.execute(sql.SQL('GRANT SELECT(body) ON {} TO PUBLIC').format(sql.Identifier(unrelated)))
+        validate_postgres_schema(store)
+
     def test_constructor_and_rmd_validate_in_read_only_session(self):
         # Disposable CI database only. Prepare through the explicit development
         # initializer, then enforce PostgreSQL read-only sessions on runtime.
@@ -145,3 +223,4 @@ class HostedSchemaPostgresTest(unittest.TestCase):
         self.assertEqual(store._exec('SHOW default_transaction_read_only')[0]['default_transaction_read_only'], 'on')
         ensure_schema(store)
         self.assertEqual(store._schema_version(), SCHEMA_VERSION)
+
