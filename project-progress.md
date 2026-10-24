@@ -13,6 +13,8 @@ Last updated: 2026-10-23, platform/API recovery, transactional publishing and ap
 
 ## Now
 
+- **Reviewed MBA reference candidate, 2026-10-24:** original cited summaries, method/validation guidance, safe schema cards and explicit partial coverage are prepared in `knowledge/mba-analytics/`. Existing Markdown lookup includes the reviewed bundle by default while explicit roots remain exclusive and model-context forwarding stays disabled. Source documents, records and private audit paths are excluded. Review/merge and actual analytical-stage invocation remain separate; verification is recorded in README. See [decision](docs/adr/2026-10-24-reviewed-mba-reference-collection.md).
+
 - **Local KPI review-context candidate, 2026-10-24:** source/run inspection, explicit unknown period/freshness/owner, contextual owner question and finite-value rendering are prepared against main 99ca49ab. No backend assignment or release change. Browser acceptance is blocked by the local sandbox; review and integration remain pending. See [decision](docs/adr/2026-10-24-kpi-review-context.md).
 - **Column-grant startup guard, 24 October 2026 (review candidate):** close the gap between table ACLs and effective client column privileges without revocation or migration edits. Existing unit/isolated SQL regressions added; exact-head CI and PostgreSQL17 restore rehearsal remain open. [Decision](docs/adr/2026-10-24-column-grant-preflight.md).
 

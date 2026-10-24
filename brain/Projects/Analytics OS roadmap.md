@@ -3,7 +3,7 @@ type: project
 aliases: [Analytics roadmap, Dashboard roadmap]
 tags: [project, roadmap]
 status: active
-updated: 2026-10-20
+updated: 2026-10-24
 review_every_days: 14
 sources: [project-progress.md, server/analytics.py, server/runs.py, server/joins.py, server/query.py, server/modelling.py, server/connectors.py, server/live.py, frontend/src/app/App.tsx, docs/UI_PLAN.md]
 ---
@@ -25,6 +25,12 @@ The [[User]]'s goal for [[Agentic OS]]: a system that digests several datasets w
 | Live data | Live sources that snapshot into datasets, scheduled refreshes by the worker, and a resumable event stream with a connection badge (A7, ADR 0034) | Sources needing credentials; incremental loads |
 
 ## Order of work
+
+The [[MBA analytics reference]] adds reviewed method guidance to existing
+[[Knowledge retrieval]] as a review candidate. Source coverage is partial;
+model-context forwarding stays disabled. Actual analytical-stage invocation,
+independent review and human acceptance still need their own evidence. This
+reference work does not change the pipeline capabilities listed above.
 
 1. A dataset API and a dataset picker. Done on 2026-10-16.
 2. Column mapping, so the user chooses measures, dimensions and the date. Done on 2026-10-16.

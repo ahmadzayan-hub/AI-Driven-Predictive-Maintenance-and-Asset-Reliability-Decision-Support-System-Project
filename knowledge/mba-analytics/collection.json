@@ -1,0 +1,17 @@
+{
+  "collection_id": "mba-analytics-reference",
+  "title": "MBA analytics reference / مرجع تحليلات الأعمال",
+  "description": "Reviewed original summaries and method guidance; partial semantic coverage; reference knowledge, not runtime execution evidence.",
+  "version": "1.0.0-review",
+  "visibility": "public",
+  "data_classification": "public",
+  "model_context_allowed": false,
+  "applicability": [
+    "method selection",
+    "validation",
+    "decision support",
+    "independent comparison"
+  ],
+  "coverage": "partial; see COVERAGE.md",
+  "source_rights": "Original sources excluded; bibliography does not grant republication rights."
+}

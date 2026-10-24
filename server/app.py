@@ -556,9 +556,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
     def knowledge_store(principal):
         # Authorization is never cached. A manifest edit or membership removal
         # must take effect on the next request, including a formerly warm index.
-        root = Path(environ.get("AGENTIC_OS_KNOWLEDGE_DIR")
-                    or knowledge_module.DEFAULT_ROOT).expanduser()
-        return knowledge_module.load(root).for_principal(
+        return knowledge_module.load(env=environ).for_principal(
             principal, store, local=identity.mode == "local")
 
     streams_lock = threading.Lock()
