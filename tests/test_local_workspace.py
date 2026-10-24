@@ -136,6 +136,45 @@ class WorkflowTest(unittest.TestCase):
         # Recovery restores executable state, not only a static snapshot.
         self.assertEqual(recovered.post(f"/api/runs/{run_id}/advance").status_code, 200)
 
+    def test_restore_preserves_uploaded_source_bytes_report_and_fresh_analysis(self):
+        client = self.client()
+        source = b"team,sales\nA,110\nB,220\nA,330\n"
+        upload = client.post("/api/datasets?name=recovery.csv", content=source,
+                             headers={"Content-Type": "text/csv"})
+        self.assertEqual(upload.status_code, 201, upload.text)
+        dataset_id = upload.json()["dataset"]["id"]
+        self.assertEqual(client.app.state.store.get_dataset(dataset_id)["content"].encode(), source)
+
+        def analyze(api):
+            created = api.post("/api/runs", json={"goal": "Synthetic source recovery", "dataset_id": dataset_id})
+            self.assertEqual(created.status_code, 201, created.text)
+            run_id = created.json()["id"]
+            for _ in range(30):
+                response = api.post(f"/api/runs/{run_id}/advance")
+                self.assertEqual(response.status_code, 200, response.text)
+                run = response.json()
+                if run["state"] == "awaiting_approval":
+                    break
+            self.assertEqual(run["state"], "awaiting_approval")
+            self.assertIn("total_sales | 660.0", run["report"]["content"])
+            self.assertIsNone(run["report"]["published_path"])
+            return run
+
+        original = analyze(client)
+        backup, target = self.root / "source-backup.json", self.root / "source-recovered"
+        with patch.dict(os.environ, {}, clear=True):
+            cli.main(["backup", "--workspace", str(self.workspace), "--out", str(backup)])
+            cli.main(["restore", "--workspace", str(target), "--from-backup", str(backup)])
+        recovered = TestClient(closing(self, create_app(target / "config.json", env=self.env)),
+                               base_url="http://127.0.0.1", client=("127.0.0.1", 50000))
+        self.assertEqual(recovered.app.state.store.get_dataset(dataset_id)["content"].encode(), source)
+        self.assertEqual(recovered.get(f"/api/datasets/{dataset_id}").status_code, 200)
+        restored = recovered.get(f"/api/runs/{original['id']}").json()
+        self.assertEqual(restored["report"]["content"], original["report"]["content"])
+        rerun = analyze(recovered)
+        self.assertNotEqual(rerun["id"], original["id"])
+        self.assertEqual(recovered.get("/api/health").json()["model_calls"]["entries_kept"], 0)
+
     def test_launcher_binds_loopback_and_disables_proxy_trust(self):
         with patch.dict(os.environ, {}, clear=True), patch.object(cli.ROOT.__class__, "is_file", return_value=True), patch("uvicorn.run") as run:
             self.assertEqual(cli.main(["start", "--workspace", str(self.workspace)]), 0)

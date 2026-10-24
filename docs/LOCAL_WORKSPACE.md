@@ -70,8 +70,12 @@ Ollama أو يشغّله. تعذّر النموذج لا يعني نجاح تو�
 Stop the app before recovery. Backups contain private data; keep them out of
 Git and do not upload them publicly. Backup uses the existing database export;
 local-profile memory lives in that database too. This covers datasets, runs,
-sessions, memory and stored report/vault evidence. It does not bundle model
-weights, external knowledge folders or external connector credentials.
+sessions, memory and stored report/vault evidence. Uploaded tables are stored
+as canonical CSV inside the database and can be analyzed again after recovery.
+For workbooks, this means the imported worksheet table, not every original sheet.
+Original binary files (such as workbook formatting), filesystem-only exports,
+model weights, external knowledge folders and external connector credentials
+are not bundled. Keep separate copies of those assets if needed.
 
 ```sh
 python scripts/local_workspace.py backup --out /private/path/miyaar-backup.json
@@ -85,7 +89,12 @@ until the recovered workspace has been checked.
 
 أوقف التطبيق قبل الاستعادة. النسخة الاحتياطية تحتوي بيانات خاصة، فلا تضعها
 في Git أو تنشرها. تشمل البيانات والجلسات والذاكرة والتقارير المخزّنة، ولا
-تشمل أوزان النماذج أو مجلدات المعرفة الخارجية. يجب أن يكون ملف النسخة جديدًا،
+تشمل الملفات الأصلية الثنائية أو تنسيق المصنفات أو التصديرات الموجودة خارج
+قاعدة البيانات أو أوزان النماذج أو مجلدات المعرفة الخارجية أو بيانات اعتماد
+الموصلات الخارجية. تُحفظ الجداول
+المرفوعة بصيغة CSV داخل القاعدة ويمكن تحليلها مجددًا بعد الاستعادة. بالنسبة
+للمصنفات، تُحفظ بيانات الورقة المستوردة وليس جميع أوراق الملف الأصلي. احتفظ
+بنسخ منفصلة من الأصول المستبعدة عند الحاجة. يجب أن يكون ملف النسخة جديدًا،
 وتتم الاستعادة فقط إلى مجلد جديد فارغ. احتفظ بالأصل حتى التحقق من الاستعادة،
 ولا تستعد إلا نسخة موثوقة.
 
