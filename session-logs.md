@@ -1653,3 +1653,10 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Done:** merged the reviewed KPI branch into main, then preserved both branches’ decision, progress and session entries while incorporating main into the column-grant review branch. Application changes are disjoint and unchanged.
 - **Verified:** both original heads passed hosted checks; combined-head verification is required before completing the second merge. Main automatic deployment remains disabled in the unchanged Vercel configuration.
 - **Next:** finish combined CI and the normal pull-request merge. No production deployment, settings or database write is part of this reconciliation.
+
+## 2026-10-24 — isolated Windows local acceptance
+
+- Done: cloned canonical main into the separate task-4/miyaar workspace; built the React interface using copies of already-installed dependencies; started the explicit local-owner profile on loopback port 8017 with fresh local-data. Existing user checkouts, port-8000 process and other workspaces were preserved.
+- Verified: focused local-workspace tests, TypeScript check, production build and interface budget; real browser synthetic upload, saved mapping, calculation/report completion at the approval gate, dashboard, actual HTML download, English/Arabic HTML and DOCX API exports, cleaned CSV, live origin/host/proxy rejection, stale-export refusal, and saved-result reopening after process restart. Detailed evidence is outside this checkout in ../evidence and ../LOCAL-ACCEPTANCE.md.
+- Decided: no package/model installation, inference, Docker, publication, PR, merge or production action. The local frontend build uses older installed Vite/Vitest than the lockfile, disclosed in the handoff. Media rendering remains disabled.
+- Next: incorporate the exact cloud analytics fix SHA when supplied, then test the user-uploaded project CSV stored in the isolated workspace. It was not analyzed in this acceptance session. Preserve original checkouts and inspect active runs before any later restart.
