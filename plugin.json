@@ -1,0 +1,8 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "miyaar",
+  "version": "0.1.0",
+  "description": "Miyaar analytics companion; help-only until a local workspace is explicitly configured. معيار: مساعد التحليلات، يبدأ بالمساعدة فقط حتى اعتماد مساحة عمل محلية.",
+  "repository": "https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project",
+  "keywords": ["analytics", "maintenance", "mcp"]
+}
