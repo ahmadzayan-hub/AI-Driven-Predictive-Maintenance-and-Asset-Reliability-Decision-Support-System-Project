@@ -1608,3 +1608,14 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** the fresh remote launcher fails before Uvicorn with cp1252 output; the corrected local launcher serves health and local identity with that environment. Focused auth, local-workspace and backup regressions passed, with PostgreSQL cases skipped locally.
 - **Decisions:** preserve all local-only, hosted-auth, proxy and durable-store guards; no account, key, provider call or deployment.
 - **Open / next:** require exact-head hosted CI, Windows Edge and macOS WebKit acceptance before merge. No main merge performed by this repair.
+
+
+## 2026-10-24 · `kpi-review-context` · local candidate on 99ca49ab
+
+**Goal:** adapt the reviewed dashboard references into one bounded, source-backed React improvement.
+
+- **Done:** executive KPI context disclosure, scoped evidence navigation, read-only owner question and finite-value rendering; existing Dubai font and backend contracts preserved.
+- **Verified:** component/i18n tests, full frontend tests, typecheck, build and existing bundle limits; exact results in README Testing.
+- **Decisions:** analysis time does not establish reading freshness; proposed roles are not assignments. No fake save or new operational recommendation.
+- **Open / next:** independent review and rendered browser acceptance before coordinated publication. Backend source-bound clarification remains separate.
+- **Blockers:** Chromium socket creation is prohibited by the local sandbox; the escalation attempt failed at sandbox setup. No further retry, visual-pass claim or public write. Full Python/brain checks were not run in this frontend-only source materialization.

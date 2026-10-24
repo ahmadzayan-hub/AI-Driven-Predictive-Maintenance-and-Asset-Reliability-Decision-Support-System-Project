@@ -2,6 +2,8 @@ import { definePack } from '../../i18n/pack'
 
 export const executiveMessages = definePack({
   'exec.title': 'Executive overview',
+  "exec.contextUnconfirmed": "Period/owner unknown; freshness unassessed. Update ≠ observation.",
+  "exec.ownerQuestion": "Who reviews “{metric}”?",
   'exec.about': 'About these figures',
   'exec.family.reliability': 'Reliability',
   'exec.family.execution': 'Work execution',
@@ -86,6 +88,8 @@ export const executiveMessages = definePack({
   'exec.snapshot': 'Snapshot of the cleaned table; no live asset telemetry is implied.',
 }, {
   'exec.title': 'النظرة التنفيذية',
+  "exec.contextUnconfirmed": "الفترة والمسؤول غير محددين. الحداثة غير مقيّمة؛ التحديث ليس قراءة.",
+  "exec.ownerQuestion": "من يراجع «{metric}»؟",
   'exec.about': 'عن هذه الأرقام',
   'exec.family.reliability': 'الموثوقية',
   'exec.family.execution': 'تنفيذ الأعمال',
@@ -169,3 +173,4 @@ export const executiveMessages = definePack({
   'exec.openRun': 'فتح التحليل',
   'exec.snapshot': 'لقطة من الجدول المنظَّف؛ لا تعني وجود قياسات حية من الأصول.',
 })
+
