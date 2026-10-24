@@ -1627,3 +1627,9 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** frontend unit suite, TypeScript check and build pass in the existing materialized workspace (its installed dependency resolution differs from the repository lockfile); Playwright discovers the added cases without starting a browser. Exact existing unit counts remain in README Testing. Browser execution is reserved for hosted CI because the local sandbox cannot launch it; no rendered acceptance is claimed before those results.
 - **Decided:** test-only extension of the KPI review-context decision; no application behavior, dependency, budget, backend, workflow or deployment change.
 - **Next:** inspect exact-head hosted screenshots of the cards and record any genuine clipping or accessibility failures before acceptance. No merge or production deployment.
+
+### KPI capture framing correction
+
+- **Done:** inspected the hosted card images and found that large family locator captures were clipped by the application scrollport, despite successful browser assertions. Each phone card is first centered and captured at the actual 320 x 812 viewport with full-intersection assertions. Separately labelled family capture height then expands to fit the largest family with shell clearance, each target is centered and must fully intersect the viewport, and the original viewport height is restored before layout/accessibility assertions. Width stays unchanged, including 320 px. No app CSS or test assertions were weakened.
+- **Verified:** typecheck and test discovery pass locally. Earlier hosted execution passed the browser cases, but its family captures are not accepted as complete visual evidence. Fresh exact-head CI and image inspection are required for this correction.
+- **Next:** inspect the newly generated family images before accepting screenshot coverage.

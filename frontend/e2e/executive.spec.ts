@@ -533,11 +533,32 @@ for (const language of ['en', 'ar'] as const) {
       // Element captures include the disclosure even when it is below the fold.
       // Keep every KPI family as well as the expanded, source-bound card.
       const prefix = `../docs/screenshots/${testInfo.project.name}-kpi-review-${language}-${theme}`
-      await fix.screenshot({ path: `${prefix}-evidence.png`, animations: 'disabled' })
+      const viewport = page.viewportSize()!
+      if (testInfo.project.name === 'mobile') {
+        // Actual 320 x 812 acceptance evidence, before any height expansion.
+        for (const card of await cards.all()) {
+          await card.evaluate((element) => element.scrollIntoView({ block: 'center', behavior: 'instant' }))
+          await expect(card).toBeInViewport({ ratio: 1 })
+          await card.screenshot({ path: `${prefix}-phone-${await card.getAttribute('data-source')}.png`, animations: 'disabled' })
+        }
+      }
+      // The app scrolls inside its shell. A locator taller than that scrollport
+      // can otherwise capture unrelated content or clipped cards even though
+      // Playwright succeeds. Enlarge only capture height, never tested width;
+      // restore the actual phone height before layout/accessibility assertions.
+      const familyHeight = await page.locator('.exec-family').evaluateAll((families) =>
+        Math.max(...families.map((family) => family.getBoundingClientRect().height)))
+      await page.setViewportSize({ width: viewport.width, height: Math.ceil(familyHeight) + 400 })
+      await fix.evaluate((element) => element.scrollIntoView({ block: 'center', behavior: 'instant' }))
+      await expect(fix).toBeInViewport({ ratio: 1 })
+      await fix.screenshot({ path: `${prefix}-expanded-evidence.png`, animations: 'disabled' })
       for (const family of await page.locator('.exec-family').all()) {
         const name = await family.getAttribute('data-family')
-        await family.screenshot({ path: `${prefix}-${name}.png`, animations: 'disabled' })
+        await family.evaluate((element) => element.scrollIntoView({ block: 'center', behavior: 'instant' }))
+        await expect(family).toBeInViewport({ ratio: 1 })
+        await family.screenshot({ path: `${prefix}-expanded-${name}.png`, animations: 'disabled' })
       }
+      await page.setViewportSize(viewport)
       const clipped = await cards.evaluateAll((elements) => elements.flatMap((card) => {
         const nodes = [card, ...card.querySelectorAll('h5, p, summary, dt, dd, button')]
         return nodes.filter((node) => {
