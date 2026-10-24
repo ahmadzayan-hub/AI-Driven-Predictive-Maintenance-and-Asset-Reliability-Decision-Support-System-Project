@@ -19,4 +19,3 @@ export function pickMeasures(measures: KpiMeasure[]): KpiMeasure[] {
   }
   return chosen.slice(0, MAX_KPIS)
 }
-

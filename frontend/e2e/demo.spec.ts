@@ -140,12 +140,7 @@ test('the demo reads in Arabic, right-to-left, with the same note', async ({ pag
   await expectNoViolations(page, 'command centre (demo, ar)')
 
   // The approval inbox, through the drawer on a phone.
-  const menu = page.getByRole('button', { name: 'فتح قائمة التنقل' })
-  const approvals = page.getByRole('button', { name: /^الموافقات/ }).filter({ visible: true })
-  await menu.or(approvals.first()).first().waitFor()
-  if (await menu.isVisible()) await menu.click()
-  await approvals.first().click()
-  await viewLoaded(page)
+  await openTab(page, /^الموافقات/, 'ar')
   await expect(page.getByRole('heading', { name: 'صندوق الموافقات', level: 2 })).toBeVisible()
   await page.getByRole('button', { name: 'راجِع', exact: true }).first().click()
   const card = page.getByRole('region', { name: 'موافقة مطلوبة' })

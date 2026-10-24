@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
-import { composerInput, lastAgentBubble, sendMessage } from './helpers'
+import { composerInput, lastAgentBubble, openTab, sendMessage } from './helpers'
 
 /** The composer's textbox, by its Arabic label. */
 function arabicComposer(page: Page) {
@@ -29,11 +29,7 @@ async function useArabic(page: Page) {
 
 /** Open a tab by its Arabic name, through the drawer on mobile. */
 async function openArabicTab(page: Page, name: RegExp) {
-  const menu = page.getByRole('button', { name: 'فتح قائمة التنقل' })
-  const target = page.getByRole('button', { name }).filter({ visible: true })
-  await menu.or(target.first()).first().waitFor()
-  if (await menu.isVisible()) await menu.click()
-  await target.first().click()
+  await openTab(page, name, 'ar')
 }
 
 async function expectNoViolations(page: Page, context: string) {

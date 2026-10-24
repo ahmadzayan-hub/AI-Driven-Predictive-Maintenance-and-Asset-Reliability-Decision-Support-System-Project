@@ -273,3 +273,7 @@ The earlier history is in `docs/ROADMAP.md` (tiers and gates) and `docs/adr/`.
 - **Data upload limit:** resolved by A1. The capstone file (2.1 MB, 5,000 rows, 60 columns) is within the new limits; it has not been uploaded here, because course files stay out of this environment's repository.
 - **Production checks:** auth, the database and the model provider are unverified on Vercel; see `docs/KNOWN_LIMITATIONS.md`.
 - **Hooks:** they need `python3`, and they run only after a person trusts the folder in Claude Code.
+
+### Phase 1 navigation verification follow-up — 24 October 2026
+
+Additional bilingual and phone test paths now follow the three-area navigation through native disclosures. These source repairs preserve route, keyboard, reflow, export and approval assertions. Hosted exact-head verification and actual local rendering remain pending; the prior loopback build is still running. No backend behavior changed.

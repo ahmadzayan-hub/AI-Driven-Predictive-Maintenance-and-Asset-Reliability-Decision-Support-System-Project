@@ -1711,3 +1711,10 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Decided:** do not exchange unbuilt assets or stop the local server to force a low-memory build. No process was killed. Presentation and video remain Phase 2; no backend changes are part of this revision.
 - **Next:** obtain memory headroom, run the guarded checks, inspect actual desktop/phone/Arabic pixels and keyboard focus, verify the saved report across a documented restart, then publish the validated draft-PR update. Report the exact final head rather than reusing prior CI evidence.
 
+
+## 2026-10-24 — Bilingual navigation regression follow-up
+
+- Done: reused the disclosure-aware navigation helper for Arabic, joins, mapping, demo approvals and RMD tests. Phone tests now assert the exact three work-area labels plus More in both languages, and retain drawer focus restoration, route and accessibility checks. Included featured-card headings in clipping assertions and removed the extra EOF blank line.
+- Verified: source review and accumulated diff whitespace check pass. The preceding exact head passed hosted frontend units, typecheck, build and fast budget; its full browser suite was still running when these additional stale assumptions were found. This follow-up has not yet passed hosted CI. Local test/build execution remains deferred by measured memory; live assets and saved data are unchanged.
+- Decided: keep semantic UI interaction and every evidence/export/approval boundary; do not skip cases, inflate timeouts or raise size budgets.
+- Next: run existing exact-head CI, inspect its real browser results and only exchange assets from a successful matching artifact. Capture the actual local revision after served-hash and browser checks.

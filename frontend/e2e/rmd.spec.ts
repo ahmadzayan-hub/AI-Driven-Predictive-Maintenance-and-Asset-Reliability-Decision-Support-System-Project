@@ -4,7 +4,7 @@ import type { Page } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { skipOnboarding } from './helpers'
+import { openTab, skipOnboarding } from './helpers'
 
 // Real API-backed ingestion and publication with explicitly synthetic OOXML
 // fixtures. No response interception, RMD originals or operational baselines.
@@ -44,12 +44,7 @@ const labels = {
 } as const
 
 async function navigate(page: Page, locale: 'en' | 'ar', name: RegExp) {
-  const menu = page.getByRole('button', { name: locale === 'ar' ? 'فتح قائمة التنقل' : 'Open navigation' })
-  const target = page.getByRole('button', { name }).filter({ visible: true })
-  await menu.or(target.first()).first().waitFor()
-  if (await menu.isVisible()) await menu.click()
-  await target.first().click()
-  await expect(page.locator('.viewload')).toHaveCount(0)
+  await openTab(page, name, locale)
 }
 async function accessible(page: Page, context: string) {
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze()

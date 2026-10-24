@@ -31,7 +31,9 @@ for (const locale of ['en', 'ar'] as const) {
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
       expect(await page.locator('.brand__name').evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true)
       if (width < 1024) {
-        await expect(page.locator('.tabbar button')).toHaveCount(5)
+        await expect(page.locator('.tabbar button')).toHaveText(locale === 'ar'
+          ? ['القرار', 'البيانات والتحليل', 'التقارير والمخرجات', 'المزيد']
+          : ['Decision', 'Data & analysis', 'Reports & outputs', 'More'])
         const more = page.locator('.tabbar button').last()
         await more.click()
         await expect(page.getByRole('dialog')).toBeVisible()

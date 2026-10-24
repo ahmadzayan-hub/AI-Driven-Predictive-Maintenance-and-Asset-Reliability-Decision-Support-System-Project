@@ -11,12 +11,12 @@ export async function skipOnboarding(page: Page) {
 /** Click a navigation control wherever it currently lives: the sidebar on
  *  desktop, the bottom tab bar on mobile, or the drawer for actions that
  *  only exist in the sidebar. */
-export async function openTab(page: Page, name: RegExp) {
-  const menu = page.getByRole('button', { name: 'Open navigation' })
+export async function openTab(page: Page, name: RegExp, language: 'en' | 'ar' = 'en') {
+  const menu = page.getByRole('button', { name: language === 'ar' ? 'فتح قائمة التنقل' : 'Open navigation' })
   const target = page.getByRole('button', { name }).filter({ visible: true })
   // Wait for the shell before inspecting responsive navigation disclosures.
   await page.locator('.shell').waitFor()
-  if (await menu.isVisible()) {
+  if (await menu.isVisible() && !(await page.locator('.sidebar__group').filter({ visible: true }).count())) {
     await menu.click()
   }
   const group = page.locator('.sidebar__group').filter({ visible: true }).filter({ has: page.getByRole('button', { name, includeHidden: true }) }).first()

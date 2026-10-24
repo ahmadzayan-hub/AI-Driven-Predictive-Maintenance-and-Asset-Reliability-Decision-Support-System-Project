@@ -102,31 +102,30 @@ test('a stored dataset is analysed again by reference', async ({ page }) => {
   await expect(page.getByLabel('Choose a file')).toBeVisible()
 })
 
-test('the phone bar holds five places and More opens the rest', async ({ page }) => {
+test('the phone bar holds three work areas and More opens contextual tools', async ({ page }) => {
   test.skip(test.info().project.name !== 'mobile', 'the bottom bar exists on phones only')
   await skipOnboarding(page)
   await page.goto('/')
 
   const bar = page.getByRole('navigation', { name: 'Primary' })
-  await expect(bar.getByRole('button')).toHaveCount(5)
-  // The four places a manager opens most, with a short label that fits.
-  await expect(bar.getByRole('button')).toHaveText(['Home', 'Data', 'Analyses', 'Review', 'More'])
-  await bar.getByRole('button', { name: 'Home' }).click()
-  await expect(bar.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page')
+  await expect(bar.getByRole('button')).toHaveCount(4)
+  await expect(bar.getByRole('button')).toHaveText(['Decision', 'Data & analysis', 'Reports & outputs', 'More'])
+  await bar.getByRole('button', { name: 'Decision', exact: true }).click()
+  await expect(bar.getByRole('button', { name: 'Decision', exact: true })).toHaveAttribute('aria-current', 'page')
 
   const more = bar.getByRole('button', { name: 'More' })
   await more.click()
   const drawer = page.getByRole('dialog', { name: 'Navigation' })
   await expect(drawer).toBeVisible()
   // Dashboards and Administration remain reachable through More with the manager navigation shortcuts.
-  await drawer.getByRole('button', { name: /^Administration/ }).click()
+  await openTab(page, /^Administration/)
   await expect(drawer).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Maintenance operations', level: 2 })).toBeVisible()
   await expect(more).toBeFocused()
 
   await more.click()
   await expect(drawer).toBeVisible()
-  await drawer.getByRole('button', { name: /^Memory/ }).click()
+  await openTab(page, /^Memory/)
   await expect(drawer).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Saved memory', level: 2 })).toBeVisible()
   // Focus returns to the control that opened the drawer.
@@ -150,9 +149,7 @@ test('the new views do not scroll sideways at 320 px, in either language', async
   await page.getByRole('button', { name: 'Change language' }).click()
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl')
   for (const name of [/^مركز القيادة/, /^مجموعات البيانات/]) {
-    const menu = page.getByRole('button', { name: 'فتح قائمة التنقل' })
-    await menu.click()
-    await page.getByRole('dialog').getByRole('button', { name }).click()
+    await openTab(page, name, 'ar')
     await expect(page.locator('main .panel__title:visible')).toBeVisible()
     await expect(page.locator('main .skeleton:visible')).toHaveCount(0)
     expect(await horizontalOverflow(page), `overflow on ${name}`).toBeLessThanOrEqual(0)

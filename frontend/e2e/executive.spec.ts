@@ -611,7 +611,7 @@ for (const language of ['en', 'ar'] as const) {
       }
       await page.setViewportSize(viewport)
       const clipped = await cards.evaluateAll((elements) => elements.flatMap((card) => {
-        const nodes = [card, ...card.querySelectorAll('h5, p, summary, dt, dd, button')]
+        const nodes = [card, ...card.querySelectorAll('h4, h5, p, summary, dt, dd, button')]
         return nodes.filter((node) => {
           const element = node as HTMLElement
           if (!element.getClientRects().length) return false
