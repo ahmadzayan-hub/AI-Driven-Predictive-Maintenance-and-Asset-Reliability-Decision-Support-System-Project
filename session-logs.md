@@ -1697,3 +1697,10 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 
 - **Additional correction:** retained the named counter-direction contribution outside the top-five display subset, with English/Arabic evidence and tamper regressions. Independent focused tests and the reported mapping pass; combined hosted acceptance is still required.
 
+## 2026-10-24 - local follow-up integration
+
+- **Done:** merged exact reviewed knowledge/analytics commit 392d95cb108c816172725dd28386ed5ddea069f6 into the isolated UI branch. Resolved additive documentation conflicts by preserving both histories. Frontend tree unchanged; no rebuild was needed. Restarted only the manifest-verified acceptance server and retained all existing uploads and runs.
+- **Verified:** focused tests and the fresh actual-CSV run pass as recorded in README.md#testing. The previously uncited category now has its own calculation citation; no validator change was made. Supported bilingual HTML/DOCX exports were checked, with no publication approval.
+- **Decided:** keep the original stopped run as evidence. New results remain awaiting human review. Prior UI-head hosted budget verification passed; combined-head acceptance is distinct.
+- **Next:** complete saved-result restart verification and combined CI. A narrow filename wrap adjustment remains deferred by the local memory budget. No model, media render, production deployment or merge to main.
+

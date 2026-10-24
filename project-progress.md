@@ -13,7 +13,7 @@ Last updated: 2026-10-23, platform/API recovery, transactional publishing and ap
 
 ## Now
 
-- **Executive workspace candidate, 2026-10-24:** implemented compact next-action guidance, prominent sourced measures, existing comparison charts before detailed registers, restrained navigation, bilingual progressive disclosure and reduced-motion-aware entry transitions. Local browser and bounded validation evidence is recorded in README.md#testing. The separate period-coverage patch is incorporated without backend edits. A different local mapping exposed an uncited category-change figure (`cl_decline`); its report remains withheld. This is a local candidate, not a complete release.
+- **Executive workspace candidate, 2026-10-24:** implemented compact next-action guidance, prominent sourced measures, existing comparison charts before detailed registers, restrained navigation, bilingual progressive disclosure and reduced-motion-aware entry transitions. The reviewed knowledge/analytics follow-up is incorporated without local backend edits. The cost/site/month acceptance now passes numerical evidence checks and produces a report awaiting human approval, with supported bilingual document exports verified. Local and hosted validation boundaries are recorded in README.md#testing. Narrow filename wrapping and complete combined CI remain open; this is a local candidate, not a complete release.
 
 
 - **Reviewed MBA reference candidate, 2026-10-24:** original cited summaries, method/validation guidance, safe schema cards and explicit partial coverage are prepared in `knowledge/mba-analytics/`. Existing Markdown lookup includes the reviewed bundle by default while explicit roots remain exclusive and model-context forwarding stays disabled. Source documents, records and private audit paths are excluded. Review/merge and actual analytical-stage invocation remain separate; verification is recorded in README. See [decision](docs/adr/2026-10-24-reviewed-mba-reference-collection.md).
@@ -271,6 +271,3 @@ The earlier history is in `docs/ROADMAP.md` (tiers and gates) and `docs/adr/`.
 - **Data upload limit:** resolved by A1. The capstone file (2.1 MB, 5,000 rows, 60 columns) is within the new limits; it has not been uploaded here, because course files stay out of this environment's repository.
 - **Production checks:** auth, the database and the model provider are unverified on Vercel; see `docs/KNOWN_LIMITATIONS.md`.
 - **Hooks:** they need `python3`, and they run only after a person trusts the folder in Claude Code.
-
-
-

@@ -552,6 +552,17 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+Local follow-up acceptance (24 October 2026): after incorporating reviewed
+knowledge/analytics commit `392d95cb`, the focused period-coverage, knowledge,
+access and documentation command passed **67 tests**. The frontend tree was
+unchanged and reused its matching build. A fresh actual project CSV run with the
+same cost/site/month mapping completed **21 stages**, passed every recorded
+validation check and stopped at `awaiting_approval`. The counter-direction claim
+now cites `c_contrib_6` and its recorded value. English/Arabic HTML and genuine
+DOCX exports were retrieved and checked locally. No approval or publication was
+performed. UI Budget Fast passed on the prior UI head `ca68c24e`; combined-head
+hosted CI and persistence-after-restart remain separate checks at this checkpoint.
+
 Executive workspace candidate (24 October 2026): final isolated frontend checks
 passed 34 executive-overview tests, 20 performance/contrast tests, and 21 routing
 and view tests. An earlier combined run also passed 27 overview tests; it was not
@@ -2375,6 +2386,3 @@ does not create or change a license; existing third-party notices apply.
 - Product: AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project
 - Engine: Agentic OS
 - Version: 1.0.0
-
-
-
