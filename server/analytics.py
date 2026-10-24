@@ -1986,16 +1986,16 @@ def _observational(ctx, values, measure):
     if detectable is not None and scale:
         lines += ["", _say(ctx,
                            f"With the {count:,} observations already here, split evenly, "
-                           f"the smallest change that would stand out from ordinary "
-                           f"variation is about **{detectable / scale:.0%}** of the "
-                           "average. Anything smaller would be invisible in a sample "
-                           "this size — which is worth knowing before commissioning "
-                           "the test.",
-                           f"بالمشاهدات الموجودة هنا وعددها {count:,} مقسومة بالتساوي، "
-                           "فإن أصغر تغير يمكن تمييزه عن التباين المعتاد يبلغ نحو "
-                           f"**{detectable / scale:.0%}** من المتوسط. وأي تغير أصغر لن "
-                           "يظهر في عينة بهذا الحجم، وهذا ما يستحق معرفته قبل تكليف "
-                           "أحد بالاختبار.")]
+                           f"a true change of about **{detectable / scale:.0%}** of the "
+                           "average would be detected about four times in five under "
+                           "these planning assumptions. Smaller effects can still be "
+                           "detected, but with a lower probability; this is not a hard "
+                           "detection limit.",
+                           f"باستخدام المشاهدات المتاحة هنا وعددها {count:,}، مقسمة "
+                           "بالتساوي، يمكن رصد تغير حقيقي بنحو "
+                           f"**{detectable / scale:.0%}** من المتوسط في نحو أربع من كل "
+                           "خمس تجارب، وفق افتراضات التخطيط هذه. قد تُرصد تغيرات أصغر "
+                           "أيضاً، لكن باحتمال أقل؛ فهذا ليس حداً قاطعاً للرصد.")]
     claims = [_claim(
         ctx, "cl_exp_observational", "limitation",
         f"This data records what happened; it contains no controlled "
@@ -4527,15 +4527,20 @@ REPORT_TEXT = {
         "validation": "## Validation",
         "pass": "PASS", "fail": "FAIL",
         "limits": "## Assumptions and limitations",
+        "forecast_limit": "The forecast extends the historical pattern. It assumes "
+                          "the business keeps operating as it has, and it is stated "
+                          "with the error measured by backtesting (or explicitly "
+                          "marked unmeasured).",
+        "no_forecast_limit": "No forecast was produced. The predictive section "
+                             "explains the limitation; historical observations "
+                             "alone are not a validated prediction.",
         "limits_lines": [
             "- Findings describe only the supplied snapshot (sha256:{snapshot}).",
             "- Diagnostic analysis shows where movement came from and what moves "
             "with what. It does not establish cause; the causal section states "
             "whether this dataset supports a causal claim at all, and what design "
             "would settle it.",
-            "- The forecast extends the historical pattern. It assumes the business "
-            "keeps operating as it has, and it is stated with the error measured by "
-            "backtesting (or explicitly marked unmeasured).",
+            "- {forecast_limit}",
             "- The recommendation ranks options by leverage under one stated "
             "improvement assumption applied equally to each. It is not a claim "
             "about cost, feasibility, or certainty of outcome.",
@@ -4567,14 +4572,17 @@ REPORT_TEXT = {
         "validation": "## التحقق",
         "pass": "اجتاز", "fail": "لم يجتز",
         "limits": "## الافتراضات والقيود",
+        "forecast_limit": "يمدّ التوقع النمط التاريخي. ويفترض استمرار النشاط على ما "
+                          "كان عليه، ويُعرض مع الخطأ المقيس بالاختبار على بيانات "
+                          "سابقة (أو مع التصريح بأنه غير مقيس).",
+        "no_forecast_limit": "لم يُنتج أي توقع. يوضح قسم التحليل التنبؤي القيد؛ "
+                             "فالمشاهدات التاريخية وحدها ليست تنبؤاً تم التحقق منه.",
         "limits_lines": [
             "- تصف النتائج لقطة البيانات المقدَّمة وحدها (sha256:{snapshot}).",
             "- يبيّن التحليل التشخيصي من أين جاء التحرك وما الذي يتحرك مع ماذا. "
             "ولا يثبت سبباً؛ ويبيّن القسم السببي هل تدعم هذه البيانات ادعاءً سببياً "
             "أصلاً، وما التصميم الذي يحسم المسألة.",
-            "- يمدّ التوقع النمط التاريخي. ويفترض استمرار النشاط على ما كان عليه، "
-            "ويُعرض مع الخطأ المقيس بالاختبار على بيانات سابقة (أو مع التصريح بأنه "
-            "غير مقيس).",
+            "- {forecast_limit}",
             "- ترتب التوصية الخيارات حسب الأثر في ظل افتراض تحسن واحد معلن ومطبق "
             "بالتساوي على كل خيار. وليست ادعاءً عن التكلفة أو الجدوى أو يقين "
             "النتيجة.",
@@ -4711,7 +4719,10 @@ def reporter(ctx):
                      if arabic else
                      f"- {verdict} — {check['name']}: {check['detail']}")
     lines += ["", text["limits"]]
-    lines += [line.format(snapshot=ctx["collector"]["snapshot"])
+    forecast_limit = text["forecast_limit" if ctx.get("predictive", {}).get("forecast")
+                          else "no_forecast_limit"]
+    lines += [line.format(snapshot=ctx["collector"]["snapshot"],
+                          forecast_limit=forecast_limit)
               for line in text["limits_lines"]]
     lines += ["", text["footer"].format(run_id=ctx.get("run_id", ""),
                                         measure=prep["measure"],

@@ -1784,3 +1784,16 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Verified: the prior head passed full CI, focused RMD and both platform workflows. Its exact matching CI artifact was verified and served locally with unchanged saved-report hash. Actual project-data rendering then exposed monetary clipping and a fifth bar below the desktop fold; this follow-up still requires exact-head hosted and local visual checks. Diff whitespace checks pass.
 - Decided: keep the real viewport, chart-intersection requirement, evidence and approval controls. No local build or restart during the separate advisory resource window; use the existing hosted CI and reversible static-artifact path.
 - Next: verify this bounded correction on desktop and Arabic phone, then complete the presentation handoff.
+
+## 2026-10-24 - Correct planning and forecast limitation wording
+
+- Done: reproduced two current report wording defects and corrected them in an isolated worktree based on merged main. Planning prose now expresses detection probability; the combined forecast caveat follows whether the predictive stage produced a forecast. Both languages are covered. The older counter-direction allegation did not reproduce against the current cited group and total, so its logic is unchanged.
+- Verified: new synthetic regressions failed against the baseline and pass after the correction. `python -m unittest tests.test_report_wording_precision tests.test_analytics.ExperimentAgentTestCase tests.test_period_coverage_evidence tests.test_report_language -v` passes, including an independent check of the unchanged planning arithmetic. `python -m unittest tests.test_docs -v`, `python scripts/brain_check.py --strict` and diff whitespace checks pass; the brain check reports an existing stale project note. Bounded tests passed the existing memory guard. Read-only loopback checks confirm the accepted live source, served index and both saved report hashes are unchanged. No full suite, hosted CI or live activation is claimed.
+- Decided: preserve the accepted UI, calculations, validators, approval gates and existing stored reports. No model, dependency, credential or external service is involved. Record the clarification in the dated ADR rather than overwrite historical decision prose.
+- Next: obtain independent review and exact-head verification before any live source update. Generate a separate new report only after acceptance; retain the original stored output and its provenance.
+
+
+## 2026-10-24 — Hermes and report wording integration
+
+- Combined the independently reviewed source branches, retaining both progress entries and complete session histories. Application and test blobs are unchanged from the reviewed heads.
+- Combined-head hosted verification remains required before the approved normal merge. No Hermes installation, activation, data access, saved-report rewrite, authentication change or production deployment is included.

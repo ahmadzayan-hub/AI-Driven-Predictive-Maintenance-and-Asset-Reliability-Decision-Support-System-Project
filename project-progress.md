@@ -14,6 +14,7 @@ Last updated: 2026-10-23, platform/API recovery, transactional publishing and ap
 ## Now
 
 - **Hermes Desktop package candidate, 2026-10-24:** isolated portable package prepared against main `084e9fc1`, restricted to help/run-status/report-explanation capabilities. Configured startup memory reads and SQLite schema/WAL writes are explicitly disclosed. Revised package/MCP dispatch tests pass in temporary synthetic storage with network-denial guards after memory recovered; commands/counts are in README. The owner authorized branch publication and a draft PR only. Live Hermes handshake remains untested; installation, activation and data/model scope remain unapproved. Phase 1's live checkout is untouched. See [guide](docs/HERMES_DESKTOP.md).
+- **Report wording precision candidate, 2026-10-24:** isolated bilingual corrections describe the existing planning threshold probabilistically and condition the combined forecast caveat on an actual forecast. Synthetic regressions pass; independent review and full verification remain pending. Current saved reports and the accepted local UI are preserved. See [decision](docs/adr/2026-10-24-report-wording-precision.md).
 
 - **Phase 1 source revision, 2026-10-24:** prepared four controlled KPI cards, a real comparison beside the review queue, compact provenance, and three primary work areas with all old routes retained. Keyboard focus and long-filename wrapping are included. Existing interaction assertions are being aligned with the actual disclosures; no checks are skipped. The laptop memory guard deferred validation, so this source is not yet the running UI. The target is Sunday 25 October at noon Dubai; presentation/video are Phase 2. Keep the current local app and uploads intact until guarded tests/build and actual rendered acceptance pass.
 
@@ -279,3 +280,4 @@ The earlier history is in `docs/ROADMAP.md` (tiers and gates) and `docs/adr/`.
 ### Phase 1 navigation verification follow-up — 24 October 2026
 
 Additional bilingual and phone test paths now follow the three-area navigation through native disclosures. These source repairs preserve route, keyboard, reflow, export and approval assertions. Hosted exact-head verification and actual local rendering remain pending; the prior loopback build is still running. No backend behavior changed.
+
