@@ -109,7 +109,7 @@ export function OverviewView({ onOpenRun, onStart, onAddDataset, onApprovals, on
       <div>
         <h2 className="panel__title">{t('overview.title')}</h2>
       </div>
-      {canStart ? <button type="button" className="btn btn--primary" onClick={() => onStart({ kind: 'upload' })}>
+      {canStart ? <button type="button" className="btn btn--ghost" onClick={() => onStart({ kind: 'upload' })}>
         <Icon name="plus" size={16} />
         {t('overview.start')}
       </button> : null}

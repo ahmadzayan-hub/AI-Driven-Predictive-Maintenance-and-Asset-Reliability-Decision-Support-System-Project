@@ -77,12 +77,11 @@ export function NextAction({ runs, canStart, onUpload, onOpenRun }: {
   return <section className="next-action" aria-labelledby="next-action-title">
     <p className="next-action__eyebrow">{t('journey')}</p>
     <h3 id="next-action-title">{t(heading)}</h3>
-    <p>{t(`${heading}Help`)}</p>
-    {run ? <p className="next-action__source"><span dir="auto">{run.dataset_name}</span> · {stateLabel(t, run.state)}</p> : null}
+        {run ? <p className="next-action__source"><span dir="auto">{run.dataset_name}</span> · {stateLabel(t, run.state)}</p> : null}
     {run || canStart ? <button className="btn btn--primary" type="button" onClick={() => run ? onOpenRun(run.id) : onUpload()}>
       {t(run ? (waiting && canStart ? 'reviewAction' : 'view') : 'uploadAction')}
     </button> : null}
-    <details className="next-action__help"><summary>{t('steps')}</summary>
+    <details className="next-action__help"><summary>{t('steps')}</summary><p>{t(`${heading}Help`)}</p>
     <ol className="next-action__steps" aria-label={t('journey')}>
       {(['upload', 'quality', 'analyse', 'review'] as const).map((label, index) => <li key={label} aria-current={index === step ? 'step' : undefined}><span aria-hidden="true">{index + 1}</span>{t(label)}</li>)}
     </ol></details>

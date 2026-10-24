@@ -95,16 +95,7 @@ export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCe
       </div>
 
       <div className="command__grid">
-        <section className="card" aria-labelledby="command-decisions">
-          <h3 className="card__title" id="command-decisions">{t('command.decisions')} <span className="command__count">{formatNumber(decisions.length)}</span></h3>
-          {decisions.length ? <ol className="command__list">{decisions.slice(0, 4).map((d, i) => (
-            <li key={d.id}><span className="command__n" aria-hidden="true">{formatNumber(i + 1)}</span>
-              <div><strong dir="auto">{d.title}</strong><p dir="auto">{d.detail}</p>
-                {d.owner ? <p className="command__owner">{t('command.owner')}: <span dir="auto">{d.owner}</span> · {t('command.gate')}: <span dir="auto">{d.gate}</span></p> : null}</div>
-            </li>))}</ol> : <p className="card__empty">{t('command.decisionsNone')}</p>}
-        </section>
-
-        <section className="card" aria-labelledby="command-kpis">
+        <section className="card command__performance" aria-labelledby="command-kpis">
           <h3 className="card__title" id="command-kpis">{t('command.kpis')}</h3>
           {measures.length ? <dl className="command__kpis">{measures.map((m) => {
             // Money carries the mapping's currency code when the owner stated
@@ -122,24 +113,33 @@ export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCe
           {unavailable ? <p className="card__meta">{t('command.unavailable', { n: formatNumber(unavailable) })}</p> : null}
         </section>
 
-        <section className="card" aria-labelledby="command-models">
-          <h3 className="card__title" id="command-models">{t('command.models')}</h3>
+        <section className="card" aria-labelledby="command-decisions">
+          <h3 className="card__title" id="command-decisions">{t('command.decisions')} <span className="command__count">{formatNumber(decisions.length)}</span></h3>
+          {decisions.length ? <ol className="command__list">{decisions.slice(0, 4).map((d, i) => (
+            <li key={d.id}><span className="command__n" aria-hidden="true">{formatNumber(i + 1)}</span>
+              <div><details><summary><strong dir="auto">{d.title}</strong></summary><p dir="auto">{d.detail}</p>
+                {d.owner ? <p className="command__owner">{t('command.owner')}: <span dir="auto">{d.owner}</span> · {t('command.gate')}: <span dir="auto">{d.gate}</span></p> : null}</details></div>
+            </li>))}</ol> : <p className="card__empty">{t('command.decisionsNone')}</p>}
+        </section>
+
+        <details className="card command__detail" aria-labelledby="command-models">
+          <summary><h3 className="card__title" id="command-models">{t('command.models')}</h3></summary>
           {brief.models.length ? <ul className="command__models">{brief.models.slice(0, 4).map((model, i) => {
             const tone = modelTone(model)
             return <li key={`${model.role}-${i}`}><span dir="auto">{model.target}</span>
               <span className="performance-value" data-performance={tone}><span className="performance-value__status">{t(`command.model.${tone}`)}</span></span></li>
           })}</ul> : <p className="card__empty">{t('command.modelsNone')}</p>}
           {brief.advisory?.prediction ? <p className="card__meta" dir="auto">{brief.advisory.prediction}</p> : null}
-        </section>
+        </details>
 
-        <section className="card" aria-labelledby="command-action">
-          <h3 className="card__title" id="command-action">{t('command.action')}</h3>
+        <details className="card command__detail" aria-labelledby="command-action">
+          <summary><h3 className="card__title" id="command-action">{t('command.action')}</h3></summary>
           {recommendation ? <>
             <p className="command__action" dir="auto">{recommendation.text}</p>
             {assumption ? <p className="card__meta" dir="auto">{assumption.text}</p> : null}
             <p className="command__boundary"><Icon name="shield" size={14} />{t('command.actionNote')}</p>
           </> : <p className="card__empty">{t('command.actionNone')}</p>}
-        </section>
+        </details>
 
         <section className="card" aria-labelledby="command-quality">
           <h3 className="card__title" id="command-quality">{t('command.quality')}</h3>
@@ -150,11 +150,11 @@ export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCe
             <ul>{limitations.map((text) => <li key={text} dir="auto">{text}</li>)}</ul></details> : null}
         </section>
 
-        <section className="card" aria-labelledby="command-questions">
-          <h3 className="card__title" id="command-questions">{t('command.questions')}</h3>
+        <details className="card command__detail" aria-labelledby="command-questions">
+          <summary><h3 className="card__title" id="command-questions">{t('command.questions')}</h3></summary>
           {brief.questions.length ? <ul className="command__questions">{brief.questions.slice(0, 3).map((q) => <li key={q.id} dir="auto">{q.text}</li>)}</ul> : null}
           {onOpenDashboard ? <button type="button" className="evidence-link" onClick={() => onOpenDashboard(run.id)}>{t('command.evidenceLink')}</button> : null}
-        </section>
+        </details>
       </div>
     </section>
   )

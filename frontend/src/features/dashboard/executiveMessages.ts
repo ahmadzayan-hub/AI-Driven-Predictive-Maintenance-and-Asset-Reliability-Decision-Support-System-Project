@@ -35,7 +35,7 @@ export const executiveMessages = definePack({
   'exec.attention': 'Decisions needing attention',
   'exec.noPriorities': 'No priorities were identified by the available rules. This does not establish asset health.',
   'exec.drill': 'Inspect selected records',
-  'exec.agent': 'Executive Analytics Advisory Group',
+  'exec.agent': 'Decision brief',
   'exec.scorecard': 'Maintenance and reliability scorecard',
   'exec.predictive': 'Predictive maintenance readiness',
   'exec.basis': 'Analytical basis and source reconciliation',

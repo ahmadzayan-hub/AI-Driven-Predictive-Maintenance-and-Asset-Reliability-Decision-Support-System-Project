@@ -8,17 +8,17 @@
   --magenta: light-dark(#be185d, #f9a8d4);
   /* Light neutrals (slate). --border is decorative only; anything a person
      operates (inputs, segmented controls) uses --border-strong, >= 3:1. */
-  --bg: #F5F4F0;
+  --bg: #F3F5F6;
   --surface: #ffffff;
   --surface-raised: #ffffff;
   --surface-sunken: #F5F4F0;
   /* Navigation shares the restrained workspace palette. */
-  --nav-surface: #FFFFFF;
-  --nav-text: #24303B;
-  --nav-muted: #52616D;
-  --nav-border: #D7DDE1;
-  --nav-active: #E9EEF1;
-  --nav-accent: #334E68;
+  --nav-surface: #163443;
+  --nav-text: #F3F7F9;
+  --nav-muted: #C2D0D8;
+  --nav-border: #4B6574;
+  --nav-active: #2B4D5E;
+  --nav-accent: #9DDDD3;
   --border: #D7DDE1;
   --border-strong: #71808B;
   --text: #24303B;

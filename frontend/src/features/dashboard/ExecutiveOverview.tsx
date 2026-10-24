@@ -94,7 +94,7 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
     <section className="exec-hero" aria-labelledby="exec-title">
       <div>
         <h3 id="exec-title">{t('exec.title')}</h3>
-        {data.advisory ? <><p className="exec-headline">{data.advisory.title}</p><p className="exec-muted">{data.advisory.subtitle}</p></> : null}
+        <p className="exec-headline" dir="auto">{data.headline}</p>
         <div className="exec-meta">
           <span className={`exec-badge exec-badge--${status}`}><Icon name={status === 'ready' ? 'shield' : 'alert'} size={15} />{t(`exec.${status}`)}</span>
           <span>{t('exec.engine')}</span>
@@ -117,11 +117,11 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
     <div className="exec-decision-grid">
       <section className="exec-card exec-agent" aria-labelledby="exec-agent">
         <div className="exec-section-head"><div className="exec-heading"><Icon name="sparkle" size={22} /><h3
-          id="exec-agent">{t('exec.agent')}</h3></div><span className="exec-badge">{t('exec.engine')}</span></div>
+          id="exec-agent">{t('exec.agent')}</h3></div></div>
         {brief === data ? <div className="exec-brief" role="region" aria-label={t('exec.prepared')}>
           <p className="exec-headline" dir="auto">{data.advisory?.recommendation ?? data.headline}</p>
           {data.advisory ? <>
-            <p className="exec-muted">{data.headline}</p>
+            <details><summary>{data.advisory.title}</summary><p>{data.advisory.subtitle}</p></details>
             <h4>{t('exec.scorecard')}</h4>
             <dl>{data.advisory.domains.map((item) => <div
               key={item.id}><dt>{item.title} · {item.measure}</dt><dd><PerformanceValue tone={item.status} reason={item.reason}>{item.value === null
@@ -194,8 +194,8 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
     <section aria-labelledby="exec-explore"><div className="exec-section-head"><h3 id="exec-explore">{t('exec.explore')}</h3><button type="button"
       className="btn btn--subtle" onClick={onOpenRun}>{t('exec.openRun')}</button></div>{children}</section>
 
-    <section className="exec-card" aria-labelledby="exec-models">
-      <div className="exec-section-head"><h3 id="exec-models">{t('exec.models')}</h3><span className="exec-badge">{t('exec.whole')}</span></div>
+    <details className="exec-card exec-models" aria-labelledby="exec-models">
+      <summary id="exec-models">{t('exec.models')} · {t('exec.whole')}</summary>
       <p className="exec-muted">{t('exec.wholeHelp')}</p>
       {data.models.length ? <div className="evidence__table" role="region" aria-label={t('exec.modelData')} tabIndex={0}><table
         className="datatable"><thead><tr><th scope="col">{t('exec.model')}</th><th scope="col">{t('exec.verdict')}</th>
@@ -212,7 +212,7 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
       {data.findings.length ? <details
         className="exec-findings"><summary>{t('exec.findings')} · {t('exec.whole')}</summary><ul>{data.findings.map((finding) => <li
         key={finding.id}><p dir="auto">{finding.text}</p>{refs(finding.evidence_refs)}</li>)}</ul></details> : null}
-    </section>
+    </details>
 
     <details className="exec-card exec-evidence" ref={evidenceRef} open={evidenceOpen} onToggle={(event) => setEvidenceOpen(event.currentTarget.open)}>
       <summary>{t('exec.evidence')} <span className="exec-count">{formatNumber(data.evidence.length)}</span></summary>
