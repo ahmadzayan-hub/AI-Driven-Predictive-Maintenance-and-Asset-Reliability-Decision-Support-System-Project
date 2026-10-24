@@ -8,18 +8,21 @@ export async function skipOnboarding(page: Page) {
   })
 }
 
-/** Click a navigation control wherever it currently lives: the sidebar on
- *  desktop, the bottom tab bar on mobile, or the drawer for actions that
- *  only exist in the sidebar. */
-export async function openTab(page: Page, name: RegExp, language: 'en' | 'ar' = 'en') {
+/** Wait for rendered navigation, including the asynchronously loaded drawer. */
+export async function revealNavigation(page: Page, language: 'en' | 'ar' = 'en') {
   const menu = page.getByRole('button', { name: language === 'ar' ? 'فتح قائمة التنقل' : 'Open navigation' })
+  const groups = page.locator('.sidebar__group').filter({ visible: true })
+  await menu.or(groups.first()).first().waitFor()
+  if (!(await groups.first().isVisible())) await menu.click()
+  await groups.first().waitFor()
+  return groups
+}
+
+/** Open a preserved route through its actual responsive disclosure controls. */
+export async function openTab(page: Page, name: RegExp, language: 'en' | 'ar' = 'en') {
+  const groups = await revealNavigation(page, language)
   const target = page.getByRole('button', { name }).filter({ visible: true })
-  // Wait for the shell before inspecting responsive navigation disclosures.
-  await page.locator('.shell').waitFor()
-  if (await menu.isVisible() && !(await page.locator('.sidebar__group').filter({ visible: true }).count())) {
-    await menu.click()
-  }
-  const group = page.locator('.sidebar__group').filter({ visible: true }).filter({ has: page.getByRole('button', { name, includeHidden: true }) }).first()
+  const group = groups.filter({ has: page.getByRole('button', { name, includeHidden: true }) }).first()
   if (await group.count() && !(await group.evaluate((element) => (element as HTMLDetailsElement).open))) await group.locator('summary').click()
   await target.first().click()
   await viewLoaded(page)

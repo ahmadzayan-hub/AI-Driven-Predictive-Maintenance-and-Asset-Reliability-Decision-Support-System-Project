@@ -1725,3 +1725,10 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Verified: source review and diff whitespace checks pass. The fixed opening remains at the original desktop/phone viewport; expanded captures still restore that viewport before reflow and accessibility assertions. Hosted verification is required; no local asset replacement or new live screenshot is claimed.
 - Decided: separate a labelled automated test preview from release acceptance. Keep full chart intersection, evidence and approval assertions unchanged.
 - Next: inspect exact-head hosted results, correct any real layout failure, and use only a successful matching artifact for local acceptance.
+
+## 2026-10-24 — Wait for actual navigation after bootstrap
+
+- Done: browser helpers now wait for rendered navigation controls and, on phones, the actual drawer groups before opening a route. The initial bootstrap shell is intentionally present before session navigation, so shell existence was not a readiness signal. Remaining Arabic documentation-capture clicks use the same accessible helper.
+- Verified: completed hosted logs identified the bootstrap/navigation race and stale direct clicks. The prior fixed-size opening test passed in desktop and phone projects; expanded-card capture still needed the already committed measurement correction. Source review confirms App renders the shell before the session. Whitespace checks pass; current exact-head hosted validation remains required.
+- Decided: use existing UI readiness signals without sleeps, timeout inflation, bypasses or removed assertions. Live assets/data remain unchanged.
+- Next: finish exact-head CI and verified local artifact/browser acceptance.

@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
-import { openTab, skipOnboarding } from './helpers'
+import { openTab, revealNavigation, skipOnboarding } from './helpers'
 
 // The Overview and Datasets views (ADR 0023, phase 1): what the
 // workspace found, what waits for approval, and a stored dataset
@@ -184,8 +184,7 @@ test.describe('a view that cannot load', () => {
 test('three work areas preserve routes and disclose contextual tools', async ({ page }) => {
   await skipOnboarding(page)
   await page.goto('/')
-  const menu = page.getByRole('button', { name: 'Open navigation' })
-  if (await menu.isVisible()) await menu.click()
+  await revealNavigation(page)
   const nav = page.getByRole('navigation', { name: 'Main', exact: true }).filter({ visible: true })
   const groups = nav.locator('.sidebar__group')
   await expect(groups).toHaveCount(4)
