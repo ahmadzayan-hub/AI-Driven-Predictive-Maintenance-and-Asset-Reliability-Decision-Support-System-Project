@@ -536,11 +536,27 @@ for (const language of ['en', 'ar'] as const) {
       const viewport = page.viewportSize()!
       if (testInfo.project.name === 'mobile') {
         // Actual 320 x 812 acceptance evidence, before any height expansion.
+        // An expanded disclosure is taller than the shell's scrollport. Keep
+        // collapsed cards whole, then prove both ends are reachable by scrolling
+        // rather than pretending the expanded card fits in one phone screen.
+        await summary.click()
+        await expect(disclosure).not.toHaveAttribute('open', '')
         for (const card of await cards.all()) {
           await card.evaluate((element) => element.scrollIntoView({ block: 'center', behavior: 'instant' }))
           await expect(card).toBeInViewport({ ratio: 1 })
           await card.screenshot({ path: `${prefix}-phone-${await card.getAttribute('data-source')}.png`, animations: 'disabled' })
         }
+        await summary.click()
+        await expect(disclosure).toHaveAttribute('open', '')
+        await fix.locator('.exec-kpi-value').evaluate((element) => element.scrollIntoView({ block: 'center', behavior: 'instant' }))
+        await expect(fix.locator('.exec-kpi-value')).toBeInViewport({ ratio: 1 })
+        await expect(summary).toBeInViewport({ ratio: 1 })
+        await page.screenshot({ path: `${prefix}-phone-disclosure-top.png`, animations: 'disabled' })
+        const action = fix.getByRole('button', { name: language === 'ar' ? 'عرض الأدلة (1)' : 'View evidence (1)', exact: true })
+        await action.evaluate((element) => element.scrollIntoView({ block: 'center', behavior: 'instant' }))
+        await expect(action).toBeInViewport({ ratio: 1 })
+        await expect(fix.getByText(run.id, { exact: true })).toBeInViewport({ ratio: 1 })
+        await page.screenshot({ path: `${prefix}-phone-disclosure-bottom.png`, animations: 'disabled' })
       }
       // The app scrolls inside its shell. A locator taller than that scrollport
       // can otherwise capture unrelated content or clipped cards even though
