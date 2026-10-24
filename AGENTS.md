@@ -26,6 +26,7 @@ Instructions for any coding agent working in this repository: Codex, Copilot, Cu
 - Every user-facing string ships in English and Arabic (`frontend/src/i18n/`). The interface uses the design tokens in `frontend/src/shared/styles/tokens.css`, never raw colours.
 - Docs that state counts or limits are checked by `tests/test_docs.py`. Test counts are kept in one place, `README.md`.
 - The Python core keeps to the standard library. The server uses FastAPI. Do not add a dependency without a recorded reason.
+- `knowledge/` holds reviewed original summaries only. Keep original source material and private records outside tracked files; public readability does not authorize model forwarding. The existing Markdown loader and access checks govern retrieval.
 
 ## Check before you say it works
 

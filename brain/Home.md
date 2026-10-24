@@ -3,7 +3,7 @@ type: index
 aliases: [Brain home, Map of content]
 tags: [core]
 status: active
-updated: 2026-10-21
+updated: 2026-10-24
 review_every_days: 30
 sources: [CLAUDE.md, docs/PLAYBOOK.md]
 ---
@@ -34,6 +34,7 @@ The second brain of [[Agentic OS]]: what the project knows, who it serves and ho
 - [[Model gateway]]: provider routing and fallback.
 - [[Custom stages]] and [[Agent runtimes and MCP]]: extension contracts.
 - [[Knowledge retrieval]]: cited reference material kept outside this curated vault.
+- [[MBA analytics reference]]: reviewed method summaries, source citations and partial-coverage limits.
 - [[Agent evaluation]]: labelled checks and recall floors.
 
 ## Data and maintenance

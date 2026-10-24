@@ -24,6 +24,18 @@ preserved (23 October 2026). Earlier confidentiality/removal claims are not
 authorization to delete those materials or rewrite history. This does not
 authorize publishing secrets or genuinely non-public personal information.
 
+## Reviewed MBA method references (review candidate, 24 October 2026)
+
+The [reference collection](../knowledge/mba-analytics/README.md) has explicit
+[partial semantic and visual coverage](../knowledge/mba-analytics/COVERAGE.md).
+Default keyword lookup makes original summaries available with citations;
+an explicit knowledge root remains exclusive. Individual search passages can
+omit collection-wide caveats, which consumers must preserve. Model-context
+forwarding is disabled for this collection. Reference availability does not
+establish analytical-stage invocation, model execution, independent review or
+validation of the project dataset. Original sources and private records are
+excluded; bibliography entries do not grant redistribution rights.
+
 ## Model admission credits (review candidate, 23 October 2026)
 
 The per-owner daily model_calls usage counter includes in-flight and conservatively

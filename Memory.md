@@ -61,6 +61,8 @@ Full list: [brain/Soul.md](brain/Soul.md).
 
 ## Conventions
 
+- Reviewed public reference summaries live in `knowledge/`; original sources and operator-private collections remain separate. Default lookup combines reviewed and private collections; explicit roots remain exclusive. Collection visibility and model-context permission are independent. See `docs/adr/2026-10-24-reviewed-mba-reference-collection.md`.
+
 - UI handoff (ADR 0029): `docs/design/AGENTIC_UI_SPEC.md`; editable designs at https://www.figma.com/design/nLdKZ5cVOtRMTWEvhCJSEK. Current delivery targets a PWA on Windows, Android and iOS; native signing/store packages are separate. See `docs/design/VALIDATION.md` before claiming runtime verification.
 
 - A behaviour change gets a dated ADR in `docs/adr/` (`YYYY-MM-DD-slug`); the sequential counter is closed at 0060. ADRs are not rewritten to fit later facts.
