@@ -1,5 +1,8 @@
 # Project progress
 
+**Miyaar PBIX reference and phone chart review (25 October 2026, draft branch):** Inspected the supplied eight-page PBIX definitions and Team 3 PDF; recorded two genuine design directions and chose to refine the existing merged decision-first canvas. A targeted CSS change lays out complete bar-category names and real values above full-width bars only under 480px; the existing FastAPI Playwright fixture now contains a long site label and checks the phone rendering. Full exact-SHA CI, actual app screenshot comparison and production acceptance are not yet verified. See [design reference](docs/design/2026-10-25-miyaar-powerbi-reference-ux.md) and [ADR](docs/adr/2026-10-25-mobile-chart-label-legibility.md). No main merge, deployment or Hermes change.
+
+
 KPI review visual acceptance (24 October): additive real-API browser coverage now targets the KPI families and expanded source disclosure in English/Arabic, light/dark and a 320 px phone. Local static/unit checks pass in the materialized workspace; exact-head locked-dependency hosted execution and screenshot inspection remain pending. No application code, merge or deployment changes.
 
 Model-admission review wave (23 October): bounded credits are reserved before run transactions, shared by consultant contexts and settled after commit/rollback. This preserves existing run locks and worker roles; conservative credit/crash semantics and hosted acceptance remain release-review gates. See docs/adr/2026-10-23-bounded-model-admission.md.
