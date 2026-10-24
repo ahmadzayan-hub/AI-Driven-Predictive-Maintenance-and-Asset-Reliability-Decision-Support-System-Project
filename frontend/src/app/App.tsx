@@ -53,32 +53,32 @@ interface NavItem {
   short?: MessageKey
 }
 
-// The sidebar groups the views by what a person is doing (ADR 0023, and the
-// 21 October navigation decision): deciding, preparing the data, and working
-// with the assistant. Each group has one colour and no heading; every view
-// keeps its own icon.
-const NAV_GROUPS: Array<{ id: string; items: NavItem[] }> = [
+// Three primary work areas retain every existing route under native disclosures.
+// The assistant and workspace tools remain available without replacing views.
+const NAV_GROUPS: Array<{ id: string; label: MessageKey; items: NavItem[] }> = [
   {
-    id: 'decide',
+    id: 'decide', label: 'nav.decision',
     items: [
-      { id: 'operations', label: 'nav.operations', icon: 'check' },
       { id: 'overview', label: 'nav.overview', icon: 'dashboard', short: 'nav.homeShort' },
       { id: 'assets', label: 'nav.assets', icon: 'activity', short: 'nav.assetsShort' },
       { id: 'rmd', label: 'nav.rmd', icon: 'search' },
-      { id: 'dashboard', label: 'nav.dashboard', icon: 'chart' },
-      { id: 'approvals', label: 'nav.approvals', icon: 'shield', short: 'nav.reviewShort' },
     ],
   },
   {
-    id: 'prepare',
+    id: 'prepare', label: 'nav.dataAnalysis',
     items: [
       { id: 'datasets', label: 'nav.datasets', icon: 'database', short: 'nav.dataShort' },
       { id: 'runs', label: 'nav.runs', icon: 'sparkle' },
     ],
   },
+  { id: 'report', label: 'nav.reportsOutputs', items: [
+    { id: 'dashboard', label: 'nav.dashboard', icon: 'chart' },
+    { id: 'approvals', label: 'nav.approvals', icon: 'shield', short: 'nav.reviewShort' },
+  ] },
   {
-    id: 'assist',
+    id: 'assist', label: 'nav.tools',
     items: [
+      { id: 'operations', label: 'nav.operations', icon: 'check' },
       { id: 'chat', label: 'nav.workspace', icon: 'chat' },
       { id: 'memory', label: 'nav.memory', icon: 'memory' },
       { id: 'activity', label: 'nav.activity', icon: 'clock' },
@@ -93,11 +93,9 @@ const ALL_ITEMS = NAV_GROUPS.flatMap((group) => group.items)
 const NEEDS_SESSION: ReadonlySet<Tab> = new Set<Tab>(['chat', 'memory', 'preferences', 'operations', 'rmd'])
 const DEMO_GROUPS = NAV_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => !NEEDS_SESSION.has(item.id)) }))
 
-// A phone's bottom bar holds at most five places: the four a manager opens
-// most, and "More", which opens every preserved route. Data, analysis and
-// review follow the work; assets, dashboards and the assistant stay in More.
-const BAR_TABS: Tab[] = ['overview', 'datasets', 'runs', 'approvals']
-const BAR_ITEMS = BAR_TABS.map((id) => ALL_ITEMS.find((item) => item.id === id)!)
+// The phone bar opens the three work areas; More exposes every preserved route.
+const BAR_TABS: Tab[] = ['overview', 'datasets', 'dashboard']
+const BAR_ITEMS = BAR_TABS.map((id, index) => ({ ...ALL_ITEMS.find((item) => item.id === id)!, short: NAV_GROUPS[index].label }))
 const DEMO_BAR_ITEMS = BAR_ITEMS
 
 const ONBOARDING_KEY = 'aos-onboarded'
@@ -367,7 +365,7 @@ export function App() {
       </button>}
       <nav className="sidebar__nav" aria-label={t('nav.main')}>
         {(demo ? DEMO_GROUPS : NAV_GROUPS).map((group) => (
-          <div key={group.id} className="sidebar__group" data-group={group.id}>
+          <details key={group.id} className="sidebar__group" data-group={group.id} open={group.items.some((item) => item.id === tab)}><summary>{t(group.label)}</summary>
             {group.items.map((item) => (
               <button
                 key={item.id}
@@ -383,7 +381,7 @@ export function App() {
                 ) : null}
               </button>
             ))}
-          </div>
+          </details>
         ))}
       </nav>
       <div className="sidebar__footer">

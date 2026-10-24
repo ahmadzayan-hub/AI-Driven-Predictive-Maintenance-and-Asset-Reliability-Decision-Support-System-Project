@@ -1704,3 +1704,10 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Decided:** keep the original stopped run as evidence. New results remain awaiting human review. Prior UI-head hosted budget verification passed; combined-head acceptance is distinct.
 - **Next:** complete saved-result restart verification and combined CI. A narrow filename wrap adjustment remains deferred by the local memory budget. No model, media render, production deployment or merge to main.
 
+## 2026-10-24 - Phase 1 opening and navigation source checkpoint
+
+- **Done:** prepared a bounded opening revision using the existing controlled measure selector, real group comparison and evidence-backed priorities. Consolidated navigation into the requested work areas while retaining the old routes and workspace tools. Source context and the full register remain available. Prepared the actual sidebar focus-token fix and filename wrapping; updated interaction expectations for the disclosures and added above-fold/reduced-motion checks.
+- **Verified:** source whitespace checks pass. Guarded frontend tests were deferred before starting because available physical memory was below the established gate. This checkpoint has not passed typecheck, unit/E2E execution, build/budget or rendered acceptance. The previous build stays live with saved uploads/results untouched.
+- **Decided:** do not exchange unbuilt assets or stop the local server to force a low-memory build. No process was killed. Presentation and video remain Phase 2; no backend changes are part of this revision.
+- **Next:** obtain memory headroom, run the guarded checks, inspect actual desktop/phone/Arabic pixels and keyboard focus, verify the saved report across a documented restart, then publish the validated draft-PR update. Report the exact final head rather than reusing prior CI evidence.
+

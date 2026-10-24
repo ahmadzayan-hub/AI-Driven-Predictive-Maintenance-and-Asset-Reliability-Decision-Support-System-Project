@@ -552,6 +552,18 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+Phase 1 source checkpoint (24 October 2026): the compact governed-KPI opening,
+comparison/review layout, navigation disclosures and focus/wrapping corrections
+are prepared but not yet built or visually accepted on the laptop. The guarded
+focused-unit command deferred before launch for insufficient physical memory;
+no test pass is claimed for this revision. The previous local build remains live.
+
+For the preceding `cdc379c6` candidate, hosted run `40127108162` confirms Python
+and frontend units plus typecheck/build succeeded, but end-to-end/accessibility
+failed and the later bilingual step was skipped. The follow-up updates the
+reported stale heading/disclosure assertions without removing their evidence,
+export or approval checks. Exact new-head execution remains required.
+
 Local follow-up acceptance (24 October 2026): after incorporating reviewed
 knowledge/analytics commit `392d95cb`, the focused period-coverage, knowledge,
 access and documentation command passed **67 tests**. The frontend tree was

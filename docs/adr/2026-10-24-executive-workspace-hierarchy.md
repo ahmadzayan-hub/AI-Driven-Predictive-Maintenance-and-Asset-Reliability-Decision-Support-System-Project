@@ -33,3 +33,34 @@ chart disclosure and the saved reduced-motion override. These checks do not
 constitute a comparison with a rendered Power BI dashboard or physical phone.
 A long unbroken dataset filename still needs a narrow-screen wrap adjustment;
 the local memory guard deferred that follow-up build.
+
+Follow-up source: scope keyboard focus to the navigation accent on dark sidebar
+surfaces, retaining the ordinary accent for controls on the light identity card.
+Contrast checks bind the actual CSS outline tokens to both navigation surfaces
+and the identity-card background in light, dark and system-dark themes. Long
+dataset titles can wrap within their header's available width. These corrections
+require a fresh build and actual keyboard/narrow-layout inspection before being
+reported as live.
+
+The Phase 1 follow-up supersedes the count-led opening above. Reuse the existing
+controlled KPI selection policy for a compact four-card opening, with no new
+metric calculations. Move remaining measures into the full register below. Keep
+missing readings, undefined values and assessed verdict reasons on each card;
+place formula, source, unknown period/owner and freshness context in its evidence
+disclosure. Every measure appears once. A real group comparison and the existing
+review queue precede the full brief. The period trend and its coverage warning
+stay together behind a labelled disclosure. Raw totals imply neither exposure
+normalization nor a valid forecast.
+
+The source filename and selected record count share a secondary provenance line.
+Dashboard pages and filters use contextual disclosures. The sidebar has Decision,
+Data & analysis, and Reports & outputs, plus a secondary Workspace tools
+disclosure; every old route remains reachable. Native disclosure changes do not
+write the hash. The mobile bar opens the three primary work areas and More.
+The existing route parser, browser history, mounted view preservation, security
+and approval boundary remain unchanged.
+
+This follow-up is prepared source only until resource-gated unit tests, typecheck,
+build/budget and actual desktop/mobile/RTL keyboard verification complete. The
+running loopback app continues serving the previous validated build. Presentation
+and video enhancements are deferred to Phase 2.

@@ -13,6 +13,8 @@ Last updated: 2026-10-23, platform/API recovery, transactional publishing and ap
 
 ## Now
 
+- **Phase 1 source revision, 2026-10-24:** prepared four controlled KPI cards, a real comparison beside the review queue, compact provenance, and three primary work areas with all old routes retained. Keyboard focus and long-filename wrapping are included. Existing interaction assertions are being aligned with the actual disclosures; no checks are skipped. The laptop memory guard deferred validation, so this source is not yet the running UI. The target is Sunday 25 October at noon Dubai; presentation/video are Phase 2. Keep the current local app and uploads intact until guarded tests/build and actual rendered acceptance pass.
+
 - **Executive workspace candidate, 2026-10-24:** implemented compact next-action guidance, prominent sourced measures, existing comparison charts before detailed registers, restrained navigation, bilingual progressive disclosure and reduced-motion-aware entry transitions. The reviewed knowledge/analytics follow-up is incorporated without local backend edits. The cost/site/month acceptance now passes numerical evidence checks and produces a report awaiting human approval, with supported bilingual document exports verified. Local and hosted validation boundaries are recorded in README.md#testing. Narrow filename wrapping and complete combined CI remain open; this is a local candidate, not a complete release.
 
 

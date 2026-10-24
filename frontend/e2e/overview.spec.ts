@@ -184,18 +184,32 @@ test.describe('a view that cannot load', () => {
   })
 })
 
-test('the sidebar groups views by task, with colour instead of headings', async ({ page }) => {
-  test.skip(test.info().project.name !== 'desktop', 'the sidebar is fixed on desktop only')
+test('three work areas preserve routes and disclose contextual tools', async ({ page }) => {
   await skipOnboarding(page)
   await page.goto('/')
-  const nav = page.getByRole('navigation', { name: 'Main' })
+  const menu = page.getByRole('button', { name: 'Open navigation' })
+  if (await menu.isVisible()) await menu.click()
+  const nav = page.getByRole('navigation', { name: 'Main', exact: true }).filter({ visible: true })
   const groups = nav.locator('.sidebar__group')
-  await expect(groups).toHaveCount(3)
-  await expect(groups.nth(0).getByRole('button')).toHaveText(['Administration', 'Command Centre', 'Asset Intelligence', 'RMD Evidence', 'Dashboards', 'Approvals'])
-  await expect(groups.nth(1).getByRole('button')).toHaveText(['Datasets', 'Analyses'])
-  await expect(groups.nth(2).getByRole('button')).toHaveText([/^Workspace/, /^Memory/, 'Activity', 'Preferences'])
-  await expect(nav.locator('p, h2, h3')).toHaveCount(0)
-  // Each view keeps its own icon.
-  const icons = await nav.locator('.navbtn svg path').evaluateAll((paths) => paths.map((path) => path.getAttribute('d')))
-  expect(new Set(icons).size).toBe(icons.length)
+  await expect(groups).toHaveCount(4)
+  await expect(groups.locator(':scope > summary')).toHaveText(['Decision', 'Data & analysis', 'Reports & outputs', 'Workspace tools'])
+  const expected = [
+    ['Command Centre', 'Asset Intelligence', 'RMD Evidence'],
+    ['Datasets', 'Analyses'], ['Dashboards', 'Approvals'],
+    [/^Administration/, /^Workspace/, /^Memory/, 'Activity', 'Preferences'],
+  ]
+  const address = page.url()
+  for (let index = 0; index < expected.length; index++) {
+    const group = groups.nth(index)
+    if (!(await group.evaluate((element) => (element as HTMLDetailsElement).open))) await group.locator('summary').click()
+    await expect(group.getByRole('button')).toHaveText(expected[index])
+  }
+  expect(page.url()).toBe(address) // disclosure never changes the route or history
+  await nav.getByRole('button', { name: 'Datasets', exact: true }).click()
+  await expect(page).toHaveURL(/#\/datasets$/)
+  await page.goBack()
+  await expect(page.getByRole('heading', { name: 'Command Centre', level: 2 })).toBeVisible()
+  await openTab(page, /^Analyses/)
+  await openTab(page, /^Datasets/)
+  await expect(page.getByRole('heading', { name: 'Datasets', level: 2 })).toBeVisible()
 })

@@ -9,6 +9,10 @@
 import type { MessageKey, PluralForms, PluralKey } from './en'
 
 export const ar: Record<MessageKey, string> = {
+  'nav.decision': 'القرار',
+  'nav.dataAnalysis': 'البيانات والتحليل',
+  'nav.reportsOutputs': 'التقارير والمخرجات',
+  'nav.tools': 'أدوات مساحة العمل',
   'nav.homeShort': 'الرئيسية',
   'nav.dataShort': 'البيانات',
   'nav.reviewShort': 'المراجعة',

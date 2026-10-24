@@ -53,6 +53,7 @@ describe('executive decision overview', () => {
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: 'Prepare executive brief' }))
     expect(screen.getByText(data.advisory.recommendation)).toBeVisible()
+    await user.click(screen.getByText('Review North work orders'))
     expect(screen.getByText(/Proposed accountable role: Reliability engineer/)).toBeVisible()
     expect(screen.getByText('Future prediction is not validated.')).toBeVisible()
     await user.click(screen.getByText('Analytical basis and source reconciliation'))
@@ -74,10 +75,11 @@ describe('executive decision overview', () => {
     vi.mocked(api.runExecutive).mockResolvedValue(data)
     mount()
     await screen.findByRole('heading', { name: 'Availability' })
-    const families = [...document.querySelectorAll('.exec-family > h4')]
-    expect(families.map((heading) => heading.textContent)).toEqual(['Reliability', 'Work execution'])
+    const featured = [...document.querySelectorAll('.exec-featured > article')]
+    expect(featured.map((card) => card.getAttribute('data-family'))).toEqual(['reliability', 'reliability', 'execution'])
+    expect(featured[0].compareDocumentPosition(screen.getByText('Selected-record chart')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     const availability = screen.getByRole('heading', { name: 'Availability' }).closest('article')!
-    expect(availability.closest('section')).toHaveAttribute('data-family', 'reliability')
+    expect(availability).toHaveAttribute('data-family', 'reliability')
     expect(within(availability).getByText('Below the 95% target.')).toBeVisible()
     expect(availability.querySelector('.exec-kpi-meter rect + rect')).toHaveAttribute('width', '90')
     const fix = screen.getByRole('heading', { name: 'First-time fix' }).closest('article')!
@@ -100,6 +102,7 @@ describe('executive decision overview', () => {
     const { props } = mount(filters)
     await screen.findByRole('heading', { name: 'Executive overview' })
     expect(api.runExecutive).toHaveBeenCalledWith('r1', 'en', filters, expect.any(AbortSignal))
+    await user.click(screen.getByText(/Read with care.*1 limitations/))
     expect(screen.getByText('of 10 cleaned records')).toBeVisible()
     const kpi = screen.getByRole('heading', { name: 'Downtime' }).closest('article')!
     expect(within(kpi).getByText('Not available')).toBeVisible()
@@ -189,7 +192,7 @@ describe('executive decision overview', () => {
     expect(signal.aborted).toBe(true)
     await act(async () => finishOld(snapshot()))
     await userEvent.click(screen.getByRole('button', { name: 'Prepare executive brief' }))
-    expect(screen.getByText('Current South scope')).toBeVisible()
+    expect(within(screen.getByRole('region', { name: 'Brief prepared for the current scope' })).getByText('Current South scope')).toBeVisible()
     expect(screen.queryByText('Review missing downtime before deciding.')).not.toBeInTheDocument()
   })
 
@@ -205,7 +208,7 @@ describe('executive decision overview', () => {
     expect(screen.getByRole('button', { name: 'إعداد الموجز التنفيذي' })).toBeVisible()
     expect(screen.queryByText('Who will verify the missing readings?')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'إعداد الموجز التنفيذي' }))
-    expect(screen.getByText('راجع أدلة التوقف قبل القرار.')).toBeVisible()
+    expect(within(screen.getByRole('region', { name: executiveMessages.ar['exec.prepared'] })).getByText('راجع أدلة التوقف قبل القرار.')).toBeVisible()
     expect(Object.keys(executiveMessages.en)).toEqual(Object.keys(executiveMessages.ar))
   })
 
@@ -226,7 +229,7 @@ describe('executive decision overview', () => {
     expect(container.querySelector('time')).toHaveAttribute('datetime', second.run.updated_at)
     expect(screen.queryByText('Review missing downtime before deciding.')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Prepare executive brief' }))
-    expect(screen.getByText('Refreshed evidence')).toBeVisible()
+    expect(within(screen.getByRole('region', { name: 'Brief prepared for the current scope' })).getByText('Refreshed evidence')).toBeVisible()
   })
 })
 
@@ -490,8 +493,9 @@ describe('KPI review context', () => {
     const { props } = mount()
     const card = (await screen.findByRole('heading', { name: 'Downtime' })).closest('article')!
     const user = userEvent.setup()
-    expect(within(card).getByText('Period/owner unknown; freshness unassessed. Update ≠ observation.')).toBeVisible()
+    expect(within(card).getByText('Period/owner unknown; freshness unassessed. Update ≠ observation.')).not.toBeVisible()
     await user.click(within(card).getByText('Inspect evidence'))
+    expect(within(card).getByText('Period/owner unknown; freshness unassessed. Update ≠ observation.')).toBeVisible()
     expect(within(card).getByText('maintenance.csv')).toBeVisible()
     expect(within(card).getByText(data.run.id)).toBeVisible()
     expect(within(card).getByText(/Who reviews/)).toBeVisible()

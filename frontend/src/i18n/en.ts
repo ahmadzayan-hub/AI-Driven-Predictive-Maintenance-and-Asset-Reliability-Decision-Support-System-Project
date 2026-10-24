@@ -7,6 +7,10 @@
  *  — the server localises its own replies from the session's language
  *  preference (agent.py). */
 export const en = {
+  'nav.decision': 'Decision',
+  'nav.dataAnalysis': 'Data & analysis',
+  'nav.reportsOutputs': 'Reports & outputs',
+  'nav.tools': 'Workspace tools',
   'nav.homeShort': 'Home',
   'nav.dataShort': 'Data',
   'nav.reviewShort': 'Review',

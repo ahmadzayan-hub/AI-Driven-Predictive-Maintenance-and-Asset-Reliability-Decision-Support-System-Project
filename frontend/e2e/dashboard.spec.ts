@@ -47,13 +47,18 @@ test('every page of the dashboard, accessible and without sideways scrolling', a
   await skipOnboarding(page)
   const runId = await finishedRun(page.request, 'Dashboard pages')
   await openDashboard(page, runId)
-  await expect(page.getByRole('heading', { name: 'Dashboard pages' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible()
+  const run = await (await page.request.get(`/api/runs/${runId}`)).json()
+  await expect(page.locator('.dash-provenance > bdi')).toHaveText(run.dataset_name)
   await expect(page.locator('.dash-coverage')).toHaveText('Showing 72 of 72 records.')
-  await expect(page.locator('.dash-kpis .kpi').first()).toContainText('72')
-  await expect(page.locator('.dash-kpis .kpi').nth(3)).toContainText('North')
+  const comparison = page.locator('.dash-overview-charts .card').first()
+  await expect(comparison.getByRole('img')).toBeVisible()
+  await expect(comparison.locator('.dash-bars')).toContainText('North')
 
   const pages = page.getByRole('navigation', { name: 'Dashboard pages' })
   for (const name of ['Overview', 'Breakdown', 'Trend', 'Distribution', 'Relationship', 'Records']) {
+    const menu = page.locator('.dash-navigation')
+    if (!(await menu.evaluate((element) => (element as HTMLDetailsElement).open))) await menu.locator('summary').click()
     await pages.getByRole('link', { name }).click()
     await expect(pages.getByRole('link', { name })).toHaveAttribute('aria-current', 'page')
     await expect(page.locator('.dash-page [role="status"].skeleton')).toHaveCount(0)
@@ -87,7 +92,7 @@ test('a filter survives a reload and a group drills down to its records', async 
 
   // The filter holds on every page, then clears in one step.
   await page.getByRole('link', { name: 'Overview' }).click()
-  await expect(page.locator('.dash-kpis .kpi').first()).toContainText('24')
+  await expect(page.locator('.dash-coverage')).toHaveText('Showing 24 of 72 records.')
   await page.getByRole('button', { name: 'Clear filters (1)' }).click()
   await expect(page.locator('.dash-coverage')).toHaveText('Showing 72 of 72 records.')
 

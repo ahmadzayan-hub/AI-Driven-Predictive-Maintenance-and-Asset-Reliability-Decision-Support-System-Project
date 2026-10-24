@@ -14,12 +14,13 @@ export async function skipOnboarding(page: Page) {
 export async function openTab(page: Page, name: RegExp) {
   const menu = page.getByRole('button', { name: 'Open navigation' })
   const target = page.getByRole('button', { name }).filter({ visible: true })
-  // count() does not auto-wait, so wait for the shell to finish booting
-  // before deciding between the sidebar and the mobile drawer.
-  await menu.or(target.first()).first().waitFor()
+  // Wait for the shell before inspecting responsive navigation disclosures.
+  await page.locator('.shell').waitFor()
   if (await menu.isVisible()) {
     await menu.click()
   }
+  const group = page.locator('.sidebar__group').filter({ visible: true }).filter({ has: page.getByRole('button', { name, includeHidden: true }) }).first()
+  if (await group.count() && !(await group.evaluate((element) => (element as HTMLDetailsElement).open))) await group.locator('summary').click()
   await target.first().click()
   await viewLoaded(page)
 }
