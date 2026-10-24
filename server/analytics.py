@@ -1636,13 +1636,20 @@ def diagnostic(ctx):
         if against:
             worst = max(against, key=lambda c: abs(c["change"]))
             index = contributions.index(worst)
+            if index >= 5:
+                # The named counter-direction group can be outside the display
+                # subset. Preserve its value as evidence, not just the total.
+                calcs.append({"id": f"c_contrib_{index}",
+                              "name": f"change_from_{worst['group']}",
+                              "value": worst["change"],
+                              "method": f"{measure} for “{worst['group']}” in {last} minus {first}"})
             claims.append(_claim(
                 ctx, "cl_decline", "finding",
                 f"“{worst['group']}” moved against the overall direction, changing "
                 f"{worst['change']:,.2f} between the first and last period.",
                 f"تحرك «{worst['group']}» عكس الاتجاه العام، إذ تغير بمقدار "
                 f"{worst['change']:,.2f} بين الفترة الأولى والأخيرة.",
-                [f"c_contrib_{index}", "c_totalchange"] if index < 5 else ["c_totalchange"]))
+                [f"c_contrib_{index}", "c_totalchange"]))
 
     # Which other numeric columns move together with the measure?
     associations = []
@@ -2848,10 +2855,11 @@ def segments(ctx):
 def _complete_periods(prep):
     """The trend's periods with a trailing incomplete one left out.
 
-    A last period holding fewer records than UNEVEN_PERIODS of the busiest
-    earlier period is read as still filling (a partial month), not as a
-    drop: the forecast and the anomaly check leave it out and say so
-    (assessment A12). Returns labels, values and what was dropped."""
+    A sharp fall below the recent record-count range is excluded as a
+    coverage precaution, not proof that a calendar period is incomplete.
+    A sustained lower-density regime must not lose its final period merely
+    because an older regime had more records. Returns labels, values and
+    what was dropped (legacy keys retained for stored-run compatibility)."""
     labels = list(prep["trend"])
     series = list(prep["trend"].values())
     counts = prep.get("trend_counts") or {}
@@ -2859,7 +2867,8 @@ def _complete_periods(prep):
     if len(labels) >= 3 and all(label in counts for label in labels):
         last = labels[-1]
         most = max(counts[label] for label in labels[:-1])
-        if counts[last] < UNEVEN_PERIODS * most:
+        recent = [counts[label] for label in labels[max(0, len(labels) - 4):-1]]
+        if counts[last] < UNEVEN_PERIODS * min(recent):
             dropped = {"period": last, "records": counts[last], "most": most}
             labels, series = labels[:-1], series[:-1]
     return labels, series, dropped
@@ -2869,19 +2878,21 @@ def _incomplete_period_claim(ctx, claim_id, dropped, what_en, what_ar):
     return _claim(
         ctx, claim_id, "limitation",
         f"The last period, {dropped['period']}, holds {dropped['records']:,} record(s) against "
-        f"up to {dropped['most']:,} in earlier periods, so it was treated as incomplete and "
-        f"left out of {what_en}.",
+        f"up to {dropped['most']:,} in earlier periods. Its lower record coverage was "
+        f"left out of {what_en} as a precaution; counts alone do not establish "
+        "calendar incompleteness.",
         f"تضم الفترة الأخيرة، {dropped['period']}، {dropped['records']:,} من السجلات مقابل "
-        f"{dropped['most']:,} على الأكثر في الفترات السابقة، فعُدّت غير مكتملة واستُبعدت من "
-        f"{what_ar}.",
-        ["c_incomplete_period"])
+        f"{dropped['most']:,} على الأكثر في الفترات السابقة. استُبعد انخفاض تغطيتها بالسجلات من "
+        f"{what_ar} احترازيًا؛ فالعدد وحده لا يثبت أن الفترة التقويمية غير مكتملة.",
+        ["c_incomplete_period", "c_earlier_period_max_records"])
 
 
-def _incomplete_period_calc(dropped):
-    return {"id": "c_incomplete_period", "name": "incomplete_last_period_records",
-            "value": dropped["records"],
-            "method": f"records in {dropped['period']}, under {UNEVEN_PERIODS:.0%} of the busiest "
-                      f"earlier period ({dropped['most']})"}
+def _incomplete_period_calcs(dropped):
+    return [{"id": "c_incomplete_period", "name": "lower_coverage_last_period_records",
+             "value": dropped["records"],
+             "method": f"records in {dropped['period']}; lower than the recent coverage range"},
+            {"id": "c_earlier_period_max_records", "name": "busiest_earlier_period_records",
+             "value": dropped["most"], "method": "maximum record count before the final period"}]
 
 
 ANOMALY_MAD_SCALE = 1.4826   # median absolute deviation to a normal spread
@@ -2981,7 +2992,7 @@ def anomaly(ctx):
               "method": "robust spreads a period's gap from the trend fitted on the other "
                         "periods must exceed"}]
     if dropped:
-        calcs.append(_incomplete_period_calc(dropped))
+        calcs.extend(_incomplete_period_calcs(dropped))
     for index, item in enumerate(anomalies[:5]):
         calcs.append({"id": f"c_anom_{index}", "name": f"gap_{item['period']}",
                       "value": item["gap"],
@@ -2989,6 +3000,11 @@ def anomaly(ctx):
     claims = []
     if anomalies:
         worst = max(anomalies, key=lambda a: abs(a["gap"]))
+        worst_index = anomalies.index(worst)
+        if worst_index >= 5:
+            calcs.append({"id": f"c_anom_{worst_index}", "name": f"gap_{worst['period']}",
+                          "value": worst["gap"],
+                          "method": f"{worst['period']} actual minus its trend value"})
         claims.append(_claim(
             ctx, "cl_anom", "finding",
             f"{len(anomalies)} period(s) sit well away from the pattern. "
@@ -3000,7 +3016,7 @@ def anomaly(ctx):
             f"{'أعلى' if worst['gap'] > 0 else 'أدنى'} بمقدار "
             f"{abs(worst['gap']):,.0f} مما يعطيه الاتجاه، ويستحق السؤال عما حدث "
             "حينها.",
-            ["c_anom_spread", "c_anom_0"]))
+            ["c_anom_spread", f"c_anom_{worst_index}"]))
     else:
         claims.append(_claim(
             ctx, "cl_anom_clear", "fact",
@@ -3123,10 +3139,10 @@ def sensitivity(ctx):
     flip_evidence = [f"c_flip_{first_flip['key']}"] if first_flip and first_flip["flip_at_uplift"] is not None else []
     claims = [_claim(
         ctx, "cl_sens", "finding",
-        (f"The recommendation holds inside the stated range: “{winner['title']}” at a "
+        (f"The scenario ranking holds inside the stated range: “{winner['title']}” at a "
          f"{low:.0%} improvement still beats every other option at {high:.0%}."
          if stable else
-         f"The recommendation can change inside the stated range: “{first_flip['title']}” "
+         f"The scenario ranking can change inside the stated range: “{first_flip['title']}” "
          f"overtakes it"
          + (f" at an improvement of {first_flip['flip_at_uplift']:.0%} if “{winner['target']}” "
             f"reaches only {winner_low_uplift:.0%}"
@@ -3135,10 +3151,10 @@ def sensitivity(ctx):
         + (f" It would take a {break_even:.1f}× better result in "
            f"“{runner_up['target']}” than in “{winner['target']}” to change the answer."
            if break_even else ""),
-        (f"تصمد التوصية داخل النطاق المعلن: «{winner.get('title_ar', winner['title'])}» عند "
+        (f"يصمد ترتيب السيناريوهات داخل النطاق المعلن: «{winner.get('title_ar', winner['title'])}» عند "
          f"تحسن {low:.0%} ما زال يتفوق على كل خيار آخر عند {high:.0%}."
          if stable else
-         f"قد تتغير التوصية داخل النطاق المعلن: «{first_flip.get('title_ar') or first_flip['title']}» "
+         f"قد يتغير ترتيب السيناريوهات داخل النطاق المعلن: «{first_flip.get('title_ar') or first_flip['title']}» "
          "يتجاوزها"
          + (f" عند تحسن بنسبة {first_flip['flip_at_uplift']:.0%} إذا لم يحقق "
             f"«{winner.get('target_ar', winner['target'])}» سوى {winner_low_uplift:.0%}"
@@ -3160,13 +3176,13 @@ def sensitivity(ctx):
     return _result(
         "succeeded",
         _say(ctx,
-             ("The recommendation holds across the stated range of improvement."
+             ("The scenario ranking holds across the stated range of improvement."
               if stable else
-              "The recommendation depends on the improvement assumed — treat it as a "
+              "The scenario ranking depends on the improvement assumed — treat it as a "
               "close call."),
-             ("تصمد التوصية عبر نطاق التحسن المعلن."
+             ("يصمد ترتيب السيناريوهات عبر نطاق التحسن المعلن."
               if stable else
-              "تعتمد التوصية على التحسن المفترض، فتعامل معها بوصفها قراراً متقارباً.")),
+              "يعتمد ترتيب السيناريوهات على التحسن المفترض، فتعامل معها بوصفها قراراً متقارباً.")),
         output={"stable": stable, "uniform_stable": uniform_stable, "scenarios": scenarios,
                 "break_even": break_even, "flip_points": flips,
                 "uplift_range": [low, high], "decision": decision or None},
@@ -3367,7 +3383,7 @@ def predictive(ctx):
     labels, series, dropped = _complete_periods(prep)
     calcs, claims = [], []
     if dropped:
-        calcs.append(_incomplete_period_calc(dropped))
+        calcs.extend(_incomplete_period_calcs(dropped))
         claims.append(_incomplete_period_claim(ctx, "cl_forecast_incomplete", dropped,
                                                "the trend and its backtest",
                                                "الاتجاه واختباره"))
@@ -3393,6 +3409,30 @@ def predictive(ctx):
                                    "Predictive", "What will happen?", ctx, [reason], calcs,
                                    headline=headline)},
                        calculations=calcs, claims=claims)
+
+    retained_counts = [prep.get("trend_counts", {}).get(label) for label in labels]
+    if (retained_counts and all(count is not None for count in retained_counts)
+            and min(retained_counts) < UNEVEN_PERIODS * max(retained_counts)):
+        calcs += [{"id": "c_forecast_coverage_min", "name": "minimum_period_records",
+                   "value": min(retained_counts), "method": "minimum count over retained periods"},
+                  {"id": "c_forecast_coverage_max", "name": "maximum_period_records",
+                   "value": max(retained_counts), "method": "maximum count over retained periods"}]
+        reason_en = ("Period totals have materially different record coverage. A raw-total "
+                     "forecast would confound coverage with performance. Define a comparable "
+                     "exposure or per-record target before forecasting; no forecast was produced.")
+        reason_ar = ("تختلف تغطية الفترات بالسجلات بدرجة مؤثرة. سيخلط توقع المجاميع الخام "
+                     "بين التغطية والأداء. يلزم تحديد تعرض قابل للمقارنة أو هدف لكل سجل "
+                     "قبل التنبؤ؛ لم يُنتج توقع.")
+        reason = _say(ctx, reason_en, reason_ar)
+        claims.append(_claim(ctx, "cl_forecast_coverage", "limitation", reason_en, reason_ar,
+                             ["c_forecast_coverage_min", "c_forecast_coverage_max"]))
+        headline = _say(ctx, "No raw-total forecast: period coverage is not comparable.",
+                        "لا توقع للمجاميع الخام: تغطية الفترات غير قابلة للمقارنة.")
+        return _result("succeeded", headline,
+                       output={"headline": headline, "forecast": [], "reason": reason,
+                               "report_markdown": _section_report(
+                                   "Predictive", "What will happen?", ctx, [reason], calcs,
+                                   headline=headline)}, calculations=calcs, claims=claims)
 
     if len(series) < MIN_PERIODS_TO_FORECAST:
         reason_en = (f"Only {len(series)} period(s) of history are available; at least "
@@ -3904,32 +3944,31 @@ def prescriptive(ctx, gateway=None):
     anything_stated = any(o["uplift_source"] == "stated" or o["cost"] is not None
                           for o in options)
     claims.append(_claim(
-        ctx, "cl_recommendation", "recommendation",
-        f"Recommended action: {best['title']}. "
-        + (f"On the uplifts and costs stated for this run, it is worth "
+        ctx, "cl_recommendation", "assumption",
+        f"Unvalidated scenario: {best['title']}. "
+        + (f"Under the supplied/default assumptions and available costs, its illustrative value is "
            f"{best['expected_gain']:,.2f} net in {measure}"
            if anything_stated else
-           f"On the same assumed {PLANNING_UPLIFT:.0%} improvement applied to every "
-           f"option, it is worth an illustrative {best['expected_gain']:,.2f} in {measure}") +
+           f"At an assumed {PLANNING_UPLIFT:.0%} change, its illustrative value is "
+           f"{best['expected_gain']:,.2f} in {measure}") +
         (f", ahead of the next option by {margin:,.2f}." if margin else ".") +
-        " This is a recommendation under a stated assumption, not an observed "
-        "outcome.",
-        f"الإجراء الموصى به: {shown(best, 'title')}. "
-        + (f"وفق نسب التحسن والتكاليف المعلنة لهذا التحليل، تبلغ قيمته الصافية "
+        " This is a scenario, not observed or validated savings.",
+        f"خيار سيناريو، وليس إجراءً معتمدًا: {shown(best, 'title')}. "
+        + (f"وفق الافتراضات المعلنة أو الافتراضية والتكاليف المتاحة، تبلغ قيمته التوضيحية "
            f"{best['expected_gain']:,.2f} في {measure}"
            if anything_stated else
            f"عند تطبيق التحسن المفترض نفسه بنسبة {PLANNING_UPLIFT:.0%} على كل خيار، "
            f"تبلغ قيمته التوضيحية {best['expected_gain']:,.2f} في {measure}") +
         (f"، متقدماً على الخيار التالي بمقدار {margin:,.2f}." if margin else ".") +
-        " وهذه توصية قائمة على افتراض معلن، لا نتيجة مشاهدة.",
+        " وهذه مقارنة سيناريوهات مشروطة، لا نتيجة مشاهدة أو وفورات مثبتة.",
         best["evidence"] + (["c_margin"] if margin is not None else [])))
     claims.append(_claim(
         ctx, "cl_assumption", "assumption",
-        f"Every option is scored with the same {PLANNING_UPLIFT:.0%} improvement "
+        f"Options use the supplied uplifts or a default {PLANNING_UPLIFT:.0%} improvement "
         "applied to its target. The ranking therefore shows where the leverage is "
         "largest, not which option is easiest to achieve — that judgement needs "
         "cost and feasibility data this dataset does not contain.",
-        f"يُقيَّم كل خيار بالتحسن نفسه بنسبة {PLANNING_UPLIFT:.0%} مطبقاً على هدفه. "
+        f"تستخدم الخيارات التحسن المعلن أو الافتراضي بنسبة {PLANNING_UPLIFT:.0%} لهدفها. "
         "لذلك يبيّن الترتيب أين يكون الأثر الأكبر، لا أي الخيارات أسهل تحقيقاً؛ "
         "فهذا الحكم يحتاج إلى بيانات تكلفة وجدوى لا تتضمنها هذه البيانات.",
         [f"c_option_{best['key']}"]))
@@ -3958,7 +3997,7 @@ def prescriptive(ctx, gateway=None):
                          "هذا التحرك.")
         if forecast:
             facts.append(f"التوقع للفترة التالية {forecast[0]['value']:,.2f}.")
-        facts.append(f"الإجراء الموصى به: {shown(best, 'title')}.")
+        facts.append(f"خيار سيناريو فقط، لا وفورات مثبتة أو إجراء معتمد: {shown(best, 'title')}.")
     else:
         facts = [f"Total {measure} is {prep['total']:,.2f}."]
         if desc.get("change") is not None:
@@ -3968,7 +4007,15 @@ def prescriptive(ctx, gateway=None):
                          "part of that movement.")
         if forecast:
             facts.append(f"Next period is forecast at {forecast[0]['value']:,.2f}.")
-        facts.append(f"The recommended action is: {best['title']}.")
+        facts.append(f"Scenario candidate only, not validated savings or an approved action: {best['title']}.")
+    period_counts = list((prep.get("trend_counts") or {}).values())
+    if period_counts and min(period_counts) < UNEVEN_PERIODS * max(period_counts):
+        # Keep the caveat beside the total, including four-fact gateway fallback.
+        facts[0] += " " + _say(ctx,
+                          "Period record coverage differs; the change in totals is not "
+                          "a like-for-like performance change.",
+                          "تختلف تغطية الفترات بالسجلات؛ فتغير المجاميع ليس تغيرًا "
+                          "في الأداء على أساس قابل للمقارنة.")
     goal = ctx.get("goal", "the analysis")
     from server.model_privacy import blocks_model, notice
     private = blocks_model(privacy=ctx.get("privacy"), merged=ctx.get("merge"),
@@ -4003,15 +4050,15 @@ def prescriptive(ctx, gateway=None):
         lines.append(f"| {shown(option, 'title')} | {shown(option, 'target')} | "
                      f"{option['expected_gain']:,.2f} | {shown(option, 'rationale')} |")
     if arabic:
-        lines += ["", f"**التوصية: {shown(best, 'title')}**", "",
+        lines += ["", f"**خيار سيناريو غير مثبت: {shown(best, 'title')}**", "",
                   shown(best, "rationale"), "",
-                  f"*يُقيَّم كل خيار بالتحسن نفسه بنسبة {PLANNING_UPLIFT:.0%} مطبقاً "
+                  f"*تستخدم الخيارات التحسن المعلن أو الافتراضي بنسبة {PLANNING_UPLIFT:.0%} مطبقاً "
                   "على هدفه، فهذا ترتيب لمواضع الأثر الأكبر، لا لأرخص الخيارات أو "
                   "أرجحها نجاحاً. وقد يتغير الترتيب عند إدخال أرقام التكلفة "
                   "والجدوى.*"]
     else:
-        lines += ["", f"**Recommendation: {best['title']}**", "", best["rationale"], "",
-                  f"*Every option is scored with the same {PLANNING_UPLIFT:.0%} "
+        lines += ["", f"**Unvalidated scenario candidate: {best['title']}**", "", best["rationale"], "",
+                  f"*Options use supplied uplifts or a default {PLANNING_UPLIFT:.0%} "
                   "improvement applied to its target, so this ranks where the leverage "
                   "is — not which option is cheapest or most likely to succeed. Supply "
                   "cost and feasibility figures and the ranking can change.*"]
@@ -4095,18 +4142,13 @@ def prescriptive(ctx, gateway=None):
                   "- **Approval:** written by the approval gate, never by a stage"]
 
     headline = _say(ctx,
-                    f"We recommend: {best['title']}. It is worth about "
-                    f"{best['expected_gain']:,.0f} in {measure}, "
-                    + ("on the uplifts and costs stated for this run"
-                       if anything_stated else
-                       f"illustrative at an assumed {PLANNING_UPLIFT:.0%} change")
-                    + " — more than any other option we compared.",
-                    f"نوصي بـ: {shown(best, 'title')}. وقيمته نحو "
-                    f"{best['expected_gain']:,.0f} في {measure}، "
-                    + ("وفق نسب التحسن والتكاليف المعلنة لهذا التحليل"
-                       if anything_stated else
-                       f"قيمةً توضيحية عند تغيّر مفترض بنسبة {PLANNING_UPLIFT:.0%}")
-                    + "، وهي أكبر من أي خيار آخر قارنّاه.")
+                    f"Scenario screening only: {best['title']}. The illustrative "
+                    f"{best['expected_gain']:,.0f} in {measure} uses stated or default "
+                    "assumptions; it is not validated savings or an approved action. "
+                    "Costs and feasibility require review.",
+                    f"مقارنة سيناريوهات فقط: {shown(best, 'title')}. القيمة التوضيحية "
+                    f"{best['expected_gain']:,.0f} في {measure} تستخدم الافتراضات المعلنة أو "
+                    "افتراضية؛ ليست وفورات مثبتة أو إجراءً معتمدًا. تحتاج التكلفة والجدوى إلى مراجعة.")
     return _result(
         "succeeded", headline,
         output={"headline": headline, "options": options, "recommendation": best,
@@ -4793,7 +4835,7 @@ ROLE_TITLES_AR = {
     "predictive": "وكيل التحليل التنبؤي: ماذا سيحدث؟",
     "anomaly": "وكيل رصد الحالات الشاذة",
     "prescriptive": "وكيل التحليل التوجيهي: ماذا ينبغي أن أفعل؟",
-    "sensitivity": "وكيل الحساسية: هل تصمد التوصية أمام افتراض مختلف؟",
+    "sensitivity": "وكيل الحساسية: هل يصمد ترتيب السيناريوهات أمام افتراض مختلف؟",
     "visuals": "خبير التمثيل البصري",
     "lineage": "وكيل سلسلة الإثبات",
     "validator": "خبير التحقق",

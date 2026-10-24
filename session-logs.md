@@ -1660,3 +1660,21 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** focused knowledge/access/documentation checks, strict brain check, source lookup and publication-boundary checks passed; exact results are in README Testing. The full verifier failed with Windows temporary-file cleanup and child-process import errors, plus missing frontend tools in the isolated checkout. Those failures remain open; no dependency installation or full-suite acceptance is claimed.
 - **Decided:** publish only reviewed original summaries and bibliography/schema references under the owner's authorization. Source books/slides, raw extraction, dataset records, private audit paths and private reports remain excluded. Reference availability does not establish model execution, analytical-stage invocation, independent review or human approval.
 - **Next:** open the authorized draft pull request, inspect exact-head CI and obtain human review. No merge, deployment, provider call or production database change is part of this work.
+## 2026-10-24 · `period-coverage-evidence` · fix/period-coverage-evidence
+
+**Goal:** allow truthful report generation without weakening numerical evidence validation.
+
+- **Done:** separate cited comparison counts, recent-window coverage heuristic, uneven-coverage raw-total forecast refusal, correct anomaly evidence index, and bilingual conditional-scenario wording. Added fabricated regression fixtures and a dated ADR.
+- **Verified:** independent code review found no blocking issue. Focused and full-suite outcomes, environment limits and private actual-API acceptance are recorded in README.md#testing. Main was refreshed through approved PR 56 without altering its schema migration or shared documentation.
+- **Decisions:** record counts do not prove calendar completeness; scenario assumptions are not validated savings. Keep validator, model-grounding limits and approval gates unchanged.
+- **Open / next:** exact-head CI and owner review before any merge or deployment; comparable exposure and prediction timing remain prerequisites for operational forecasts.
+- **Blockers:** cloud environment lacks the PostgreSQL Python driver; no installation or hosted acceptance claimed.
+
+
+## 2026-10-24 — Combined knowledge and analytics verification
+
+- **Done:** combined the reviewed knowledge-reference and period-coverage branches preserving the reviewed application changes. Preserved both branches’ README verification records, progress entries and session history.
+- **Verified:** independent reviews found no outstanding blocker; original-head and combined-head hosted checks remain required before the approved normal merges.
+- **Next:** complete combined CI, then verify the final main commit. Login, production activation, settings and database writes remain outside this code-only wave.
+
+- **Additional correction:** retained the named counter-direction contribution outside the top-five display subset, with English/Arabic evidence and tamper regressions. Independent focused tests and the reported mapping pass; combined hosted acceptance is still required.

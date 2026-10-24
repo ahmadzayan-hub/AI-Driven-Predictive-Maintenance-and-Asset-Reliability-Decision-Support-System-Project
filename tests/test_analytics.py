@@ -343,8 +343,8 @@ class FourAnalyticsTypesTestCase(unittest.TestCase):
     def test_a_recommendation_always_carries_its_assumption(self):
         _, results = run_pipeline(analytics.sample_dataset())
         claims = results["prescriptive"]["claims"]
-        self.assertTrue(any(c["type"] == "recommendation" for c in claims))
-        assumption = next(c for c in claims if c["type"] == "assumption")
+        self.assertFalse(any(c["type"] == "recommendation" for c in claims))
+        assumption = next(c for c in claims if c["id"] == "cl_assumption")
         self.assertIn("10%", assumption["text"])
         self.assertIn("not which option is easiest", assumption["text"])
 
@@ -396,7 +396,7 @@ class FourAnalyticsTypesTestCase(unittest.TestCase):
         self.assertRegex(ctx["descriptive"]["headline"], r"(up|down|totals)")
         self.assertIn("accounts for", ctx["diagnostic"]["headline"])
         self.assertTrue(ctx["predictive"]["headline"].startswith("We expect"))
-        self.assertTrue(ctx["prescriptive"]["headline"].startswith("We recommend"))
+        self.assertTrue(ctx["prescriptive"]["headline"].startswith("Scenario screening only"))
 
     def test_headlines_are_checked_for_jargon_too(self):
         """The check must cover the line executives read, not only claims."""

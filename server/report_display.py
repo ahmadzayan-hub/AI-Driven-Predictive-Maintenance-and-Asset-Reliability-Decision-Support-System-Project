@@ -48,7 +48,10 @@ LABELS = {
     "c_period_records_min": ("fewest_records_in_a_period", "أقل عدد من السجلات في فترة"),
     "c_period_records_max": ("most_records_in_a_period", "أكبر عدد من السجلات في فترة"),
     "c_change_per_record": ("period_change_per_record", "التغير بين الفترات لكل سجل"),
-    "c_incomplete_period": ("incomplete_last_period_records", "سجلات الفترة الأخيرة غير المكتملة"),
+    "c_incomplete_period": ("lower_coverage_last_period_records", "سجلات الفترة الأخيرة الأقل تغطية"),
+    "c_earlier_period_max_records": ("busiest_earlier_period_records", "أكبر عدد سجلات في الفترات السابقة"),
+    "c_forecast_coverage_min": ("minimum_period_records", "أقل عدد سجلات في الفترات المحتفظ بها"),
+    "c_forecast_coverage_max": ("maximum_period_records", "أكبر عدد سجلات في الفترات المحتفظ بها"),
     "c_topshare": ("top_group_share", "حصة أكبر فئة"),
     "c_totalchange": ("total_change", "التغير الإجمالي"),
     "c_nodiag": ("diagnosable_structure", "توافر بنية للتحليل التشخيصي"),
@@ -80,6 +83,7 @@ LABELS = {
 }
 
 LABEL_RULES = [
+    (r"c_incomplete_period", r"incomplete_last_period_records", "سجلات الفترة الأخيرة غير المكتملة بحسب التعريف السابق"),
     (r"c_total", r"total_(.+)", "إجمالي {0}"),
     (r"c_contrib_\d+", r"change_from_(.+)", "التغير من {0}"),
     (r"c_share_\d+", r"share_of_change_(.+)", "حصة {0} من التغير"),
@@ -149,6 +153,9 @@ METHODS = {
     "no period column, group column, or second numeric column was available": "لم يتوفر عمود للفترات أو للتجميع أو عمود رقمي آخر",
     "1 − (unexplained variation / total variation) for the fitted line": "1 − (التباين غير المفسر / التباين الإجمالي) لخط الاتجاه الملائم",
     "distinct periods": "عدد الفترات المختلفة",
+    "minimum count over retained periods": "أقل عدد سجلات عبر الفترات المحتفظ بها",
+    "maximum count over retained periods": "أكبر عدد سجلات عبر الفترات المحتفظ بها",
+    "maximum record count before the final period": "أكبر عدد سجلات قبل الفترة الأخيرة",
     "the fewest periods the check needs": "أقل عدد من الفترات يحتاجه الفحص",
     "robust spreads a period's gap from the trend fitted on the other periods must exceed": "عدد الانتشارات المتينة التي يجب أن تتجاوزها فجوة الفترة عن الاتجاه المقدّر من الفترات الأخرى",
     "standard deviation of the gaps between actual and trend": "الجذر التربيعي لتباين الفجوات بين القيم الفعلية وخط الاتجاه",
@@ -173,6 +180,7 @@ METHODS = {
 }
 
 METHOD_RULES = [
+    (r"records in (.+); lower than the recent coverage range", "السجلات في {0}؛ أقل من نطاق التغطية في الفترات القريبة"),
     (r"sum\((.+)\) over cleaned rows", "مجموع {0} في الصفوف المنظفة"),
     (r"distinct values of “(.+)” with at least two rows", "عدد القيم المختلفة في «{0}» التي تضم صفين على الأقل"),
     (r"distinct values of (.+)", "عدد القيم المختلفة في {0}"),
