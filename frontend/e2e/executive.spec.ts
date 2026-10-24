@@ -12,7 +12,7 @@ import { storeMaintenanceDataset } from './maintenance-dataset'
 
 // Fictional records only. The default profile deliberately has no modelling
 // stages: an executive brief must disclose that absence rather than score it.
-// Both configured projects run these cases: desktop and a 375 px phone.
+// Both projects run these cases; KPI review captures also exercise a 320 px phone.
 const CSV = [
   'month,Site,Record_ID,Work_Order_Type,Downtime_Hours,Operating_Hours,Planned_Operating_Hours,Preventive_WO_Count,Corrective_WO_Count,Completed_WO_Count,First_Time_Fix_Count,Repeat_Repair_Count,Overdue_WO_Count,Maintenance_Cost_USD,Production_Loss_USD',
   '2026-02,North,MIYAAR-FICTIONAL-A,Corrective,4,80,100,0,10,10,8,2,1,100,400',
@@ -490,3 +490,83 @@ async function expectScope(page: Page, records: number, total: number, language:
   await expect(scope.getByText(language === 'ar'
     ? `من أصل ${total} سجلًا منظَّفًا` : `of ${total} cleaned records`, { exact: true })).toBeVisible()
 }
+
+// Capture the actual cards, not the header above them. These are real API
+// calculations over the fictional fixture, never production or model data.
+for (const language of ['en', 'ar'] as const) {
+  test(`KPI review context and evidence fit the viewport (${language})`, async ({ page }, testInfo) => {
+    test.setTimeout(60_000)
+    if (testInfo.project.name === 'mobile') await page.setViewportSize({ width: 320, height: 812 })
+    await skipOnboarding(page)
+    await page.addInitScript((locale) => localStorage.setItem('aos-locale', locale), language)
+    const run = await maintenanceRun(page.request, language)
+    await openOverview(page, run.id, 'f.Site=North', language)
+    await expectScope(page, 3, 4, language)
+    await expect(page.locator('html')).toHaveAttribute('dir', language === 'ar' ? 'rtl' : 'ltr')
+    const snapshot = await executive(page.request, run.id, NORTH, language)
+    const cards = page.locator('.exec-kpi')
+    await expect(cards).toHaveCount(snapshot.kpis.measures.length)
+    const unknown = language === 'ar'
+      ? 'الفترة والمسؤول غير محددين. الحداثة غير مقيّمة؛ التحديث ليس قراءة.'
+      : 'Period/owner unknown; freshness unassessed. Update ≠ observation.'
+    for (const card of await cards.all()) {
+      await expect(card.locator(':scope > .exec-muted')).toHaveText(unknown)
+    }
+    const fix = page.locator('[data-source="kpi.first_time_fix"]')
+    const measure = snapshot.kpis.measures.find((item) => item.key === 'first_time_fix')!
+    expect(measure.value).toBeCloseTo(57.5, 12)
+    await expect(fix.locator('.exec-kpi-value .performance-value__number')).toHaveText('57.5 %')
+    const disclosure = fix.locator('details')
+    const summary = disclosure.locator('summary')
+    await summary.focus()
+    await page.keyboard.press('Enter')
+    await expect(disclosure).toHaveAttribute('open', '')
+    await expect(fix).toContainText(snapshot.run.dataset_name)
+    await expect(fix).toContainText(run.id)
+    await expect(fix.getByText(language === 'ar'
+      ? `من يراجع «${measure.title}»؟` : `Who reviews “${measure.title}”?`, { exact: true })).toBeVisible()
+    await expect(fix.locator('input, select, textarea')).toHaveCount(0)
+    await page.evaluate(() => document.fonts.ready)
+
+    for (const theme of ['light', 'dark']) {
+      await page.evaluate((value) => { document.documentElement.dataset.theme = value }, theme)
+      // Element captures include the disclosure even when it is below the fold.
+      // Keep every KPI family as well as the expanded, source-bound card.
+      const prefix = `../docs/screenshots/${testInfo.project.name}-kpi-review-${language}-${theme}`
+      await fix.screenshot({ path: `${prefix}-evidence.png`, animations: 'disabled' })
+      for (const family of await page.locator('.exec-family').all()) {
+        const name = await family.getAttribute('data-family')
+        await family.screenshot({ path: `${prefix}-${name}.png`, animations: 'disabled' })
+      }
+      const clipped = await cards.evaluateAll((elements) => elements.flatMap((card) => {
+        const nodes = [card, ...card.querySelectorAll('h5, p, summary, dt, dd, button')]
+        return nodes.filter((node) => {
+          const element = node as HTMLElement
+          if (!element.getClientRects().length) return false
+          const rect = element.getBoundingClientRect()
+          return rect.left < -1 || rect.right > document.documentElement.clientWidth + 1
+            || element.scrollWidth > element.clientWidth + 1
+        }).map((node) => `${card.getAttribute('data-source')}: ${node.textContent}`)
+      }))
+      expect(clipped, `${language} ${theme}: KPI content must not clip or scroll sideways`).toEqual([])
+    }
+    await expectAccessible(page, `${language} KPI review at ${page.viewportSize()!.width}px`)
+    await fix.getByRole('button', { name: language === 'ar' ? 'عرض الأدلة (1)' : 'View evidence (1)', exact: true }).click()
+    const selected = page.locator('.exec-evidence tr[data-selected="true"]')
+    await expect(selected).toHaveCount(1)
+    await expect(selected).toContainText('executive.kpi.first_time_fix')
+    await expect(selected).toBeFocused()
+    await expectAccessible(page, `${language} open KPI evidence at ${page.viewportSize()!.width}px`)
+    // Returning to a disclosure and reopening it must retain the same context.
+    await summary.focus()
+    await page.keyboard.press('Enter')
+    await expect(disclosure).not.toHaveAttribute('open', '')
+    await page.keyboard.press('Enter')
+    await expect(disclosure).toHaveAttribute('open', '')
+    await expect(fix).toContainText(run.id)
+    const after = await (await page.request.get(`/api/runs/${run.id}`)).json() as RunDetail
+    expect(after.approvals).toEqual(run.approvals)
+    expect(after.report?.published_path).toBeNull()
+  })
+}
+

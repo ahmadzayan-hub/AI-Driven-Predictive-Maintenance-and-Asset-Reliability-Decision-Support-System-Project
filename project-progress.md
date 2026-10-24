@@ -1,5 +1,7 @@
 # Project progress
 
+KPI review visual acceptance (24 October): additive real-API browser coverage now targets the KPI families and expanded source disclosure in English/Arabic, light/dark and a 320 px phone. Local static/unit checks pass in the materialized workspace; exact-head locked-dependency hosted execution and screenshot inspection remain pending. No application code, merge or deployment changes.
+
 Model-admission review wave (23 October): bounded credits are reserved before run transactions, shared by consultant contexts and settled after commit/rollback. This preserves existing run locks and worker roles; conservative credit/crash semantics and hosted acceptance remain release-review gates. See docs/adr/2026-10-23-bounded-model-admission.md.
 
 Review wave (23 October): fail-closed shared write limits are prepared for review. Production merge/deployment and hosted acceptance remain separate approval gates. See docs/adr/2026-10-23-fail-closed-write-limiter.md.

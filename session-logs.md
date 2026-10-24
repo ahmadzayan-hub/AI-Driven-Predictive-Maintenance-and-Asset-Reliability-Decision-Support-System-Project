@@ -1619,3 +1619,11 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Decisions:** analysis time does not establish reading freshness; proposed roles are not assignments. No fake save or new operational recommendation.
 - **Open / next:** independent review and rendered browser acceptance before coordinated publication. Backend source-bound clarification remains separate.
 - **Blockers:** Chromium socket creation is prohibited by the local sandbox; the escalation attempt failed at sandbox setup. No further retry, visual-pass claim or public write. Full Python/brain checks were not run in this frontend-only source materialization.
+
+
+## 2026-10-24 — Capture the KPI review cards, not only the header
+
+- **Done:** extended the existing real-API executive browser suite with English/Arabic card captures in both themes, desktop and a 320 px phone. These are review captures, not pixel-baseline assertions. Tests check the rendered value, explicit unknown period/owner and unassessed freshness, dataset/run context, exact filtered evidence selection, keyboard disclosure reopening, unchanged approval state, accessibility and card content bounds. All inputs are fictional fixtures.
+- **Verified:** frontend unit suite, TypeScript check and build pass in the existing materialized workspace (its installed dependency resolution differs from the repository lockfile); Playwright discovers the added cases without starting a browser. Exact existing unit counts remain in README Testing. Browser execution is reserved for hosted CI because the local sandbox cannot launch it; no rendered acceptance is claimed before those results.
+- **Decided:** test-only extension of the KPI review-context decision; no application behavior, dependency, budget, backend, workflow or deployment change.
+- **Next:** inspect exact-head hosted screenshots of the cards and record any genuine clipping or accessibility failures before acceptance. No merge or production deployment.
