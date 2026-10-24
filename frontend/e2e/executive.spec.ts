@@ -21,7 +21,7 @@ const CSV = [
   '2026-03,South,MIYAAR-FICTIONAL-D,Corrective,20,60,100,0,20,20,10,10,3,900,2000',
 ].join('\n') + '\n'
 const FIVE_SITE_CSV = CSV + [
-  '2026-03,East,MIYAAR-FICTIONAL-E,Corrective,4,80,100,0,10,10,8,2,1,1200,100000',
+  '2026-03,East processing and reliability campus,MIYAAR-FICTIONAL-E,Corrective,4,80,100,0,10,10,8,2,1,1200,100000',
   '2026-03,West,MIYAAR-FICTIONAL-F,Corrective,5,85,100,0,10,10,8,2,1,1500,100000',
   '2026-03,Central,MIYAAR-FICTIONAL-G,Corrective,6,90,100,0,10,10,8,2,1,2000,100000',
 ].join('\n') + '\n'
@@ -104,6 +104,16 @@ test('the opening shows governed KPIs and a real comparison before the detailed 
     expect(await featured.first().evaluate((element) => getComputedStyle(element.parentElement!).gridTemplateColumns.split(' ').length)).toBe(2)
     await chart.scrollIntoViewIfNeeded()
     await expect(chart).toBeInViewport({ ratio: 1 })
+    // A real API-backed, long fictional group name must remain legible at 320px.
+    // Keep the chart labels and exact values visible without reversing the axis.
+    const longLabel = chart.locator('.dash-bars__label').filter({ hasText: 'East processing and reliability campus' })
+    await expect(longLabel).toBeVisible()
+    await expect(longLabel).toHaveCSS('white-space', 'normal')
+    expect(await longLabel.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+    const longRow = longLabel.locator('..')
+    const trackWidth = await longRow.locator('.dash-bars__track').evaluate((element) => element.getBoundingClientRect().width)
+    const rowWidth = await longRow.evaluate((element) => element.getBoundingClientRect().width)
+    expect(trackWidth).toBeGreaterThan(rowWidth / 2)
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
   await expect(page.locator('.dash-provenance > bdi')).toHaveText(snapshot.run.dataset_name)

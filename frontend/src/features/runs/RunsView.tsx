@@ -924,6 +924,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
           {run.reports.length ? (
             <div className="card report-theme report-sheet">
               <h3 className="card__title">{t('runs.reports')}</h3>
+              <div className="report-inspector">
               <div
                 className="reporttabs"
                 role="tablist"
@@ -951,6 +952,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                   </button>
                 ))}
               </div>
+              <div className="report-inspector__preview">
               {run.reports
                 .filter((section) => section.type === openReport)
                 .map((section) => (
@@ -969,6 +971,8 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                       label={t('runs.reportText', { type: typeLabel(t, section.type, section.title) })} />
                   </div>
                 ))}
+              </div>
+              </div>
             </div>
           ) : null}
 

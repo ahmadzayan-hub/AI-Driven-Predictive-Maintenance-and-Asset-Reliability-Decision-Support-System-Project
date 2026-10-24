@@ -3,6 +3,8 @@
 Date: 22 October 2026 · The system is the one in the code. This page names
 where it lives, what the brief asked for, and where they differ.
 
+**Stitch screen-generation brief:** [root `DESIGN.md`](../../DESIGN.md) is the semantic visual contract for the three Miyaar screens. It does not supersede the runtime tokens or grant approval for new features, claims, or deployment.
+
 ## 1. Where it lives
 
 | Part | File |
