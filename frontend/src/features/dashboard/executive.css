@@ -66,3 +66,8 @@
 .exec-evidence tr[data-selected] { background: var(--accent-soft); }
 .exec-evidence tr:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
 @media (max-width: 767px) { .exec-hero, .exec-decision-grid { grid-template-columns: minmax(0, 1fr); } .exec-scope { border-inline-start: 0; border-block-start: 1px solid var(--hero-border); padding-inline-start: 0; padding-block-start: var(--space-3); } .exec-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); } .exec-hero { padding: var(--space-3); gap: var(--space-2); } .exec-meta > span + span { display: none; } .exec-scope { padding-block-start: var(--space-2); } .exec-scope .btn, .exec-section-head .btn { margin-inline-start: auto; min-height: 36px; padding-inline: var(--space-3); font-size: var(--text-s); } .exec-hero h3 { margin: 0; } .exec-meta { gap: var(--space-2); margin-block-start: var(--space-1); } .exec-kpi { padding: var(--space-3); } .exec-kpi .exec-kpi-value { font-size: clamp(1rem, 19cqi, 1.6rem); } }
+
+/* Keep evidence limitations readable without competing with the governed value. */
+.exec-kpi > .exec-muted { font-size: var(--text-s); color: var(--text-muted); overflow-wrap: anywhere; }
+.exec-kpi details > .btn, .exec-kpi .exec-ref { display: flex; width: 100%; min-height: 44px; margin-block-start: var(--space-2); white-space: normal; text-align: start; }
+@media (max-width: 479px) { .exec-kpis { grid-template-columns: minmax(0, 1fr); } }

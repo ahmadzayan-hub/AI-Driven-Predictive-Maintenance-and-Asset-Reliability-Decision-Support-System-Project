@@ -1609,6 +1609,35 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Decisions:** preserve all local-only, hosted-auth, proxy and durable-store guards; no account, key, provider call or deployment.
 - **Open / next:** require exact-head hosted CI, Windows Edge and macOS WebKit acceptance before merge. No main merge performed by this repair.
 
+
+## 2026-10-24 · `kpi-review-context` · local candidate on 99ca49ab
+
+**Goal:** adapt the reviewed dashboard references into one bounded, source-backed React improvement.
+
+- **Done:** executive KPI context disclosure, scoped evidence navigation, read-only owner question and finite-value rendering; existing Dubai font and backend contracts preserved.
+- **Verified:** component/i18n tests, full frontend tests, typecheck, build and existing bundle limits; exact results in README Testing.
+- **Decisions:** analysis time does not establish reading freshness; proposed roles are not assignments. No fake save or new operational recommendation.
+- **Open / next:** independent review and rendered browser acceptance before coordinated publication. Backend source-bound clarification remains separate.
+- **Blockers:** Chromium socket creation is prohibited by the local sandbox; the escalation attempt failed at sandbox setup. No further retry, visual-pass claim or public write. Full Python/brain checks were not run in this frontend-only source materialization.
+
+
+## 2026-10-24 — Capture the KPI review cards, not only the header
+
+- **Done:** extended the existing real-API executive browser suite with English/Arabic card captures in both themes, desktop and a 320 px phone. These are review captures, not pixel-baseline assertions. Tests check the rendered value, explicit unknown period/owner and unassessed freshness, dataset/run context, exact filtered evidence selection, keyboard disclosure reopening, unchanged approval state, accessibility and card content bounds. All inputs are fictional fixtures.
+- **Verified:** frontend unit suite, TypeScript check and build pass in the existing materialized workspace (its installed dependency resolution differs from the repository lockfile); Playwright discovers the added cases without starting a browser. Exact existing unit counts remain in README Testing. Browser execution is reserved for hosted CI because the local sandbox cannot launch it; no rendered acceptance is claimed before those results.
+- **Decided:** test-only extension of the KPI review-context decision; no application behavior, dependency, budget, backend, workflow or deployment change.
+- **Next:** inspect exact-head hosted screenshots of the cards and record any genuine clipping or accessibility failures before acceptance. No merge or production deployment.
+
+### KPI capture framing correction
+
+- **Done:** inspected the hosted card images and found that large family locator captures were clipped by the application scrollport, despite successful browser assertions. Each phone card is first centered and captured at the actual 320 x 812 viewport with full-intersection assertions. Separately labelled family capture height then expands to fit the largest family with shell clearance, each target is centered and must fully intersect the viewport, and the original viewport height is restored before layout/accessibility assertions. Width stays unchanged, including 320 px. No app CSS or test assertions were weakened.
+- **Verified:** typecheck and test discovery pass locally. Earlier hosted execution passed the browser cases, but its family captures are not accepted as complete visual evidence. Fresh exact-head CI and image inspection are required for this correction.
+- **Next:** inspect the newly generated family images before accepting screenshot coverage.
+
+### Actual-phone disclosure scrolling
+
+- **Done:** kept full-intersection assertions for collapsed cards at 320 x 812. Expanded source disclosures are taller than the shell scrollport, so actual-phone captures now cover their top and bottom after normal scrolling, asserting the value, disclosure summary, source run and evidence action are fully reachable. Separately labelled expanded-height captures retain the full disclosure/family overview.
+- **Verified:** previous exact-head CI passed desktop captures but rejected the impossible whole-expanded-card phone framing assumption. Typecheck passes for this test-only correction; new hosted execution and image review remain pending. No application changes or relaxed horizontal-overflow checks.
 ## 2026-10-24 · `column-grant-preflight` · fix/column-grant-preflight
 
 **Goal:** close the read-only hosted validator's column ACL evidence gap.
@@ -1617,3 +1646,10 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** sparse-source catalog/SQLite tests and Python compilation passed. Constructor tests could not import missing psycopg2; real PostgreSQL, full verifier and current-data restoration were not run locally. Exact counts belong in the review evidence, not inferred suite totals.
 - **Decided:** refuse startup, never repair permissions implicitly. This does not add a pre-migration SQL guard or audit SET ROLE-only paths.
 - **Open / next:** exact-head CI and the separately approved PostgreSQL17 restore drill before any release; no merge, deploy, credentials or hosted database changes.
+
+
+## 2026-10-24 — Reconcile release candidates
+
+- **Done:** merged the reviewed KPI branch into main, then preserved both branches’ decision, progress and session entries while incorporating main into the column-grant review branch. Application changes are disjoint and unchanged.
+- **Verified:** both original heads passed hosted checks; combined-head verification is required before completing the second merge. Main automatic deployment remains disabled in the unchanged Vercel configuration.
+- **Next:** finish combined CI and the normal pull-request merge. No production deployment, settings or database write is part of this reconciliation.

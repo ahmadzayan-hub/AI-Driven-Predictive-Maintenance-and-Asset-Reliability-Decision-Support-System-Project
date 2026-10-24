@@ -476,3 +476,75 @@ it('preserves every supported drill filter and refuses unrepresentable scopes', 
   expect(executiveDrill([{ column: 'loss', op: 'ne', value: 5 }], EMPTY, roles)).toBeNull()
   expect(executiveDrill([{ column: 'site', op: 'in', values: ['North'] }, { column: 'site', op: 'in', values: ['South'] }], EMPTY, roles)).toBeNull()
 })
+
+
+describe('KPI review context', () => {
+  it('links the exact scoped evidence without treating analysis time or advisory roles as measurement metadata', async () => {
+    const data = snapshot()
+    data.evidence.push({ id: 'executive.kpi.downtime', kind: 'kpi', label: 'Downtime calculation', value: null, method: 'Verified fixture method', scope: 'filtered' })
+    vi.mocked(api.runExecutive).mockResolvedValue(data)
+    const { props } = mount()
+    const card = (await screen.findByRole('heading', { name: 'Downtime' })).closest('article')!
+    const user = userEvent.setup()
+    expect(within(card).getByText('Period/owner unknown; freshness unassessed. Update ≠ observation.')).toBeVisible()
+    await user.click(within(card).getByText('Inspect evidence'))
+    expect(within(card).getByText('maintenance.csv')).toBeVisible()
+    expect(within(card).getByText(data.run.id)).toBeVisible()
+    expect(within(card).getByText(/Who reviews/)).toBeVisible()
+    await user.click(within(card).getByRole('button', { name: 'View evidence (1)' }))
+    expect(screen.getByRole('row', { name: /executive.kpi.downtime/ })).toHaveFocus()
+    await user.click(screen.getByRole('button', { name: 'Open the analysis' }))
+    expect(props.onOpenRun).toHaveBeenCalledOnce()
+  })
+
+  it.each([NaN, Infinity, -Infinity, undefined])('keeps invalid numeric input %s unavailable without a meter', async (value) => {
+    const data = snapshot()
+    data.kpis.measures[0].value = value as number
+    data.kpis.measures[0].scale = 'percent'
+    vi.mocked(api.runExecutive).mockResolvedValue(data)
+    mount()
+    const card = (await screen.findByRole('heading', { name: 'Downtime' })).closest('article')!
+    expect(within(card).getByText('Not available')).toBeVisible()
+    expect(card.querySelector('.exec-kpi-meter')).toBeNull()
+    expect(card.querySelector('.performance-value')).toHaveAttribute('data-performance', 'unavailable')
+    expect(card.querySelector('.exec-kpi-n')).not.toHaveTextContent(/NaN|Infinity/)
+  })
+
+  it('preserves a measured zero and does not fabricate absent source metadata', async () => {
+    const data = snapshot()
+    data.kpis.measures[0].value = 0
+    data.kpis.measures[0].scale = 'percent'
+    delete data.snapshot_id
+    vi.mocked(api.runExecutive).mockResolvedValue(data)
+    mount()
+    const card = (await screen.findByRole('heading', { name: 'Downtime' })).closest('article')!
+    expect(card.querySelector('.exec-kpi-n')).toHaveTextContent('0')
+    expect(card.querySelector('.exec-kpi-meter rect + rect')).toHaveAttribute('width', '0')
+    await userEvent.setup().click(within(card).getByText('Inspect evidence'))
+    expect(within(card).queryByRole('button', { name: 'View evidence (1)' })).not.toBeInTheDocument()
+    expect(within(card).getByText('Evidence register: Not available')).toBeVisible()
+  })
+
+  it.each([['kpi', 'whole_run'], ['calculation', 'filtered']] as const)('rejects mismatched evidence kind=%s scope=%s independently', async (kind, scope) => {
+    const data = snapshot()
+    data.evidence.push({ id: 'executive.kpi.downtime', kind, label: 'Other scope', value: 1, method: 'Mismatched evidence', scope })
+    vi.mocked(api.runExecutive).mockResolvedValue(data)
+    mount()
+    const card = (await screen.findByRole('heading', { name: 'Downtime' })).closest('article')!
+    await userEvent.setup().click(within(card).getByText('Inspect evidence'))
+    expect(within(card).queryByRole('button', { name: 'View evidence (1)' })).not.toBeInTheDocument()
+  })
+
+  it('renders the same accountable-owner question and honest unknowns in Arabic RTL', async () => {
+    applyLocale('ar')
+    const data = snapshot(); data.kpis.measures[0].title = 'مدة التعطل'
+    vi.mocked(api.runExecutive).mockResolvedValue(data)
+    mount()
+    const card = (await screen.findByRole('heading', { name: 'مدة التعطل' })).closest('article')!
+    expect(card.closest('.exec-overview')).toHaveAttribute('dir', 'rtl')
+    await userEvent.setup().click(within(card).getByText(executiveMessages.ar['exec.sources']))
+    expect(within(card).getByText('من يراجع «مدة التعطل»؟')).toBeVisible()
+    expect(within(card).getByText(executiveMessages.ar['exec.contextUnconfirmed'])).toBeVisible()
+    expect(screen.getByRole('button', { name: 'فتح التحليل' })).toBeVisible()
+  })
+})

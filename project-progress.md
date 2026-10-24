@@ -1,5 +1,7 @@
 # Project progress
 
+KPI review visual acceptance (24 October): additive real-API browser coverage now targets the KPI families and expanded source disclosure in English/Arabic, light/dark and a 320 px phone. Local static/unit checks pass in the materialized workspace; exact-head locked-dependency hosted execution and screenshot inspection remain pending. No application code, merge or deployment changes.
+
 Model-admission review wave (23 October): bounded credits are reserved before run transactions, shared by consultant contexts and settled after commit/rollback. This preserves existing run locks and worker roles; conservative credit/crash semantics and hosted acceptance remain release-review gates. See docs/adr/2026-10-23-bounded-model-admission.md.
 
 Review wave (23 October): fail-closed shared write limits are prepared for review. Production merge/deployment and hosted acceptance remain separate approval gates. See docs/adr/2026-10-23-fail-closed-write-limiter.md.
@@ -11,6 +13,7 @@ Last updated: 2026-10-23, platform/API recovery, transactional publishing and ap
 
 ## Now
 
+- **Local KPI review-context candidate, 2026-10-24:** source/run inspection, explicit unknown period/freshness/owner, contextual owner question and finite-value rendering are prepared against main 99ca49ab. No backend assignment or release change. Browser acceptance is blocked by the local sandbox; review and integration remain pending. See [decision](docs/adr/2026-10-24-kpi-review-context.md).
 - **Column-grant startup guard, 24 October 2026 (review candidate):** close the gap between table ACLs and effective client column privileges without revocation or migration edits. Existing unit/isolated SQL regressions added; exact-head CI and PostgreSQL17 restore rehearsal remain open. [Decision](docs/adr/2026-10-24-column-grant-preflight.md).
 
 - **Standards lint round two, 2026-10-23:** blind_v2 moved into dev, the five families widened against it (dev 112 cases and both old blind sets 100%), and an independent blind_v3 scored once at 14% recall with no false alarms, now the floor (0.13). [Decision](docs/adr/2026-10-23-standards-lint-blind-v3.md). PR #24 merged to main. Next: move v3 into dev, fix the dashboard and slide register families it names, write v4 the same way. Open elsewhere: U8 and U20 (owner decisions), the model half of G8 (needs a provider).
@@ -261,4 +264,5 @@ The earlier history is in `docs/ROADMAP.md` (tiers and gates) and `docs/adr/`.
 - **Data upload limit:** resolved by A1. The capstone file (2.1 MB, 5,000 rows, 60 columns) is within the new limits; it has not been uploaded here, because course files stay out of this environment's repository.
 - **Production checks:** auth, the database and the model provider are unverified on Vercel; see `docs/KNOWN_LIMITATIONS.md`.
 - **Hooks:** they need `python3`, and they run only after a person trusts the folder in Claude Code.
+
 
