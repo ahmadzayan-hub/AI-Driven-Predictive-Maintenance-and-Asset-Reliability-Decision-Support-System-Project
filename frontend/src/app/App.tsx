@@ -531,7 +531,7 @@ export function App() {
 
         <main className="main" id="workspace-main" inert={drawerOpen} tabIndex={-1} key={`${session.session_id}:${store.identity?.principal.subject ?? 'local'}:${store.identity?.principal.role ?? 'local'}`}>
           <ReadOnlyContext.Provider value={demo}>
-          {pane('operations', <OperationsView onOpenRun={openRun} />)}
+          {pane('operations', <OperationsView key={route.tab === 'operations' ? route.runId ?? 'manual' : 'manual'} sourceRunId={route.tab === 'operations' ? route.runId : undefined} onClearSource={() => navigate({ tab: 'operations' })} onOpenRun={openRun} />)}
           {pane('rmd', <RmdView onOpenRun={openRun} onExplain={(packId, analysisId) => {
             setEvidenceContext({ packId, analysisId }); navigate({ tab: 'chat' })
           }} />)}
@@ -587,6 +587,7 @@ export function App() {
               openNonce={runTarget?.nonce ?? 0}
               preset={route.source === 'upload' && !route.runId ? { kind: 'upload', profile: route.profile } : runPreset}
               onOpenDashboard={openDashboard}
+              onDraftWork={(id) => navigate({ tab: 'operations', runId: id })}
             />
           ))}
           {pane('dashboard', (
