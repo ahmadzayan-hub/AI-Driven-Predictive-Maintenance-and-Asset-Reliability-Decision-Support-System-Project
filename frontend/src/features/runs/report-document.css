@@ -25,6 +25,13 @@
   border-radius: var(--radius-s);
   line-height: 1.6;
 }
+/* Stitch reference: source-backed report index beside the actual document.
+   On phones the index precedes the preview; reports and language stay unchanged. */
+.report-inspector { display:grid; grid-template-columns:minmax(11rem,1fr) minmax(0,2fr); gap:var(--space-4); align-items:start; }
+.report-inspector .reporttabs { display:grid; gap:var(--space-2); margin:0; }
+.report-inspector .reporttab { min-width:0; width:100%; min-height:44px; }
+.report-inspector__preview { min-width:0; padding:var(--space-4); background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-s); }
+@media (max-width:899px) { .report-inspector { grid-template-columns:minmax(0,1fr); } .report-inspector .reporttabs { grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr)); } }
 .report-theme .finding-card { border-inline-start: 5px solid var(--report-accent); }
 .report-theme .finding-card:first-child { border-inline-start-color: var(--report-brand); }
 .report-theme .reporthead {
