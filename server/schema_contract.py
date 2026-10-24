@@ -39,6 +39,31 @@ def expected_contract():
         connection.close()
 
 
+def column_privilege_problems(store, expected):
+    """Inspect column ACLs and effective client access without changing grants.
+
+    Table REVOKE does not remove column grants. PUBLIC has no pg_roles row,
+    so check its explicit ACL separately from named roles' effective access.
+    Custom backend roles are allowed unless a client inherits their access.
+    """
+    public = store._exec("SELECT c.relname AS table_name, a.attname AS column_name "
+        "FROM pg_catalog.pg_attribute a JOIN pg_catalog.pg_class c ON c.oid=a.attrelid "
+        "JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace "
+        "CROSS JOIN LATERAL aclexplode(a.attacl) acl "
+        "WHERE n.nspname=current_schema() AND c.relkind='r' "
+        "AND a.attnum>0 AND NOT a.attisdropped AND acl.grantee=0")
+    effective = store._exec("SELECT c.relname AS table_name, a.attname AS column_name "
+        "FROM pg_catalog.pg_attribute a JOIN pg_catalog.pg_class c ON c.oid=a.attrelid "
+        "JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace "
+        "CROSS JOIN pg_catalog.pg_roles r "
+        "WHERE n.nspname=current_schema() AND c.relkind='r' "
+        "AND a.attnum>0 AND NOT a.attisdropped "
+        "AND r.rolname IN ('anon','authenticated') "
+        "AND has_column_privilege(r.oid,c.oid,a.attnum,'SELECT,INSERT,UPDATE,REFERENCES')")
+    return [f"{row['table_name']}.{row['column_name']}:public_api_column_grant"
+            for row in public + effective if row['table_name'] in expected]
+
+
 def validate_postgres_schema(store):
     """SELECT-only validation; never repair, grant, or infer ownership."""
     from server.storage import SCHEMA_VERSION
@@ -116,9 +141,11 @@ def validate_postgres_schema(store):
     for row in inherited:
         if row['table_name'] in expected:
             problems.append(f"{row['table_name']}:public_api_grant")
+    problems.extend(column_privilege_problems(store, expected))
     if 'schema_migrations' in present and 'version' in columns.get('schema_migrations', {}):
         if store._schema_version() != SCHEMA_VERSION:
             problems.append('schema_migrations:version')
     if problems:
         raise SchemaNotReady('Hosted database schema is not ready; reviewed migration required. '
                              + ', '.join(sorted(set(problems))))
+

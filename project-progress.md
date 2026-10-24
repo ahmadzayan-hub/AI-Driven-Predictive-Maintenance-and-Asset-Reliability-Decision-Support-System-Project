@@ -11,6 +11,8 @@ Last updated: 2026-10-23, platform/API recovery, transactional publishing and ap
 
 ## Now
 
+- **Column-grant startup guard, 24 October 2026 (review candidate):** close the gap between table ACLs and effective client column privileges without revocation or migration edits. Existing unit/isolated SQL regressions added; exact-head CI and PostgreSQL17 restore rehearsal remain open. [Decision](docs/adr/2026-10-24-column-grant-preflight.md).
+
 - **Standards lint round two, 2026-10-23:** blind_v2 moved into dev, the five families widened against it (dev 112 cases and both old blind sets 100%), and an independent blind_v3 scored once at 14% recall with no false alarms, now the floor (0.13). [Decision](docs/adr/2026-10-23-standards-lint-blind-v3.md). PR #24 merged to main. Next: move v3 into dev, fix the dashboard and slide register families it names, write v4 the same way. Open elsewhere: U8 and U20 (owner decisions), the model half of G8 (needs a provider).
 - **Standards lint, 2026-10-23:** blind_v1 moved into dev, rules rewritten as linguistic families (dev and old blind 100%), and an independent blind_v2 scored once at 32% recall, now the floor. [Decision](docs/adr/2026-10-23-standards-lint-families-blind-v2.md). Next: move v2 into dev, fix the families it names, write v3 the same way.
 - **P3 slice seven: 2026-10-23, on branch `claude/tender-clarke-m4uwgq`.** The minor findings closed: A16, A17, A19, B17, B18, B19, B20, G12, G13, G14, G15, U17. [Decision](docs/adr/2026-10-23-p3-slice-seven.md). Open: U8 and U20 (owner decisions), the standards lint blind score, the model half of G8.
@@ -259,3 +261,4 @@ The earlier history is in `docs/ROADMAP.md` (tiers and gates) and `docs/adr/`.
 - **Data upload limit:** resolved by A1. The capstone file (2.1 MB, 5,000 rows, 60 columns) is within the new limits; it has not been uploaded here, because course files stay out of this environment's repository.
 - **Production checks:** auth, the database and the model provider are unverified on Vercel; see `docs/KNOWN_LIMITATIONS.md`.
 - **Hooks:** they need `python3`, and they run only after a person trusts the folder in Claude Code.
+

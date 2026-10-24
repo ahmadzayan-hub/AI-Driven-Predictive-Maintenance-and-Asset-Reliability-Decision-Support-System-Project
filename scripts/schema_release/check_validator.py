@@ -27,7 +27,12 @@ for c in json.loads((OUTPUT/'test_results.json').read_text()):
  try:
   validate_postgres_schema(store); ready=True;reason=None
  except SchemaNotReady as e:ready=False;reason=str(e)
- expected=c['case'] in ('fresh','legacy','unrelated_preserved')
- results.append({'case':c['case'],'passed':ready==expected,'ready':ready,'select_count':len(store.statements),'reason':reason})
+ expected=c['case'] in ('fresh','legacy','unrelated_preserved','column_backend_only','column_unrelated')
+ # Column fixtures have the full matching schema and no client table grants.
+ # Require the specific refusal, not merely a failure for unrelated drift.
+ column_case=c['case'].startswith('column_') and not expected
+ column_reason=not column_case or (reason is not None and 'runs.goal:public_api_column_grant' in reason)
+ results.append({'case':c['case'],'passed':ready==expected and column_reason,'ready':ready,'select_count':len(store.statements),'reason':reason})
 print(json.dumps(results,indent=2));(OUTPUT/'validator_results.json').write_text(json.dumps(results,indent=2)+'\n')
 raise SystemExit(0 if all(r['passed'] for r in results) else 1)
+

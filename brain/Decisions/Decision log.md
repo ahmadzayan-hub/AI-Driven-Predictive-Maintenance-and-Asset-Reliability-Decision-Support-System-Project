@@ -121,3 +121,5 @@ All seven [[Analytics OS roadmap]] milestones have their records.
 | 2026-10-23-bounded-model-admission | Bounded admission before run transactions; tenant propagation and conservative settlement | [[Model gateway]], [[Tenant isolation]] |
 
 - `2026-10-23-explicit-local-owner-workspace`: reuse local identity and SQLite only behind an opt-in loopback/browser boundary; never create shared passwords or weaken managed identity.
+
+- `2026-10-24-column-grant-preflight`: SELECT-only PUBLIC and effective client column ACL checks; reviewed catch-up SQL unchanged. See [[Tenant isolation]].

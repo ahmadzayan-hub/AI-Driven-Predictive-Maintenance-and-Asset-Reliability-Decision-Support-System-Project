@@ -1608,3 +1608,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** the fresh remote launcher fails before Uvicorn with cp1252 output; the corrected local launcher serves health and local identity with that environment. Focused auth, local-workspace and backup regressions passed, with PostgreSQL cases skipped locally.
 - **Decisions:** preserve all local-only, hosted-auth, proxy and durable-store guards; no account, key, provider call or deployment.
 - **Open / next:** require exact-head hosted CI, Windows Edge and macOS WebKit acceptance before merge. No main merge performed by this repair.
+
+## 2026-10-24 · `column-grant-preflight` · fix/column-grant-preflight
+
+**Goal:** close the read-only hosted validator's column ACL evidence gap.
+
+- **Done:** inspect explicit PUBLIC and effective client column privileges, preserve backend-only/unrelated ACLs, add unit and disposable PostgreSQL regressions, leave reviewed migration unchanged.
+- **Verified:** sparse-source catalog/SQLite tests and Python compilation passed. Constructor tests could not import missing psycopg2; real PostgreSQL, full verifier and current-data restoration were not run locally. Exact counts belong in the review evidence, not inferred suite totals.
+- **Decided:** refuse startup, never repair permissions implicitly. This does not add a pre-migration SQL guard or audit SET ROLE-only paths.
+- **Open / next:** exact-head CI and the separately approved PostgreSQL17 restore drill before any release; no merge, deploy, credentials or hosted database changes.
