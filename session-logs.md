@@ -1662,6 +1662,14 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Decided: no package/model installation, inference, Docker, publication, PR, merge or production action. The local frontend build uses older installed Vite/Vitest than the lockfile, disclosed in the handoff. Media rendering remains disabled.
 - Next: incorporate the exact cloud analytics fix SHA when supplied, then test the user-uploaded project CSV stored in the isolated workspace. It was not analyzed in this acceptance session. Preserve original checkouts and inspect active runs before any later restart.
 
+
+## 2026-10-24 - Reviewed MBA reference collection
+
+- **Done:** prepared original source-cited summaries, method/validation guidance, safe schema examples and explicit partial coverage. Default source lookup uses the existing Markdown loader; explicit roots remain exclusive, private access checks remain in place and model-context forwarding stays disabled. Existing logs, board entries and original source material are preserved.
+- **Verified:** focused knowledge/access/documentation checks, strict brain check, source lookup and publication-boundary checks passed; exact results are in README Testing. The full verifier failed with Windows temporary-file cleanup and child-process import errors, plus missing frontend tools in the isolated checkout. Those failures remain open; no dependency installation or full-suite acceptance is claimed.
+- **Decided:** publish only reviewed original summaries and bibliography/schema references under the owner's authorization. Source books/slides, raw extraction, dataset records, private audit paths and private reports remain excluded. Reference availability does not establish model execution, analytical-stage invocation, independent review or human approval.
+- **Next:** open the authorized draft pull request, inspect exact-head CI and obtain human review. No merge, deployment, provider call or production database change is part of this work.
+
 ## 2026-10-24 · `period-coverage-evidence` · fix/period-coverage-evidence
 
 **Goal:** allow truthful report generation without weakening numerical evidence validation.
@@ -1678,4 +1686,14 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** bounded unit/type/build/budget and focused analytics outcomes are recorded in README.md#testing. Actual loopback screens, English desktop, Arabic narrow layout, keyboard chart tables and saved reduced motion were inspected. Owned server restart retained existing uploads and saved results.
 - **Decided:** preserve local owner access, human approval, all original checkouts and durable acceptance data. No new dependency, model, container, credential or production action. Keep failed numerical evidence visible and withhold the report.
 - **Next / blocker:** the local project CSV's cost/site/month mapping exposed cl_decline without its category contribution citation when outside the first five contributors. The separate backend task must correct that evidence path before report acceptance can pass. A long unbroken filename still needs narrow-screen wrapping; its build was deferred below the memory guard and the unbuilt change kept outside this candidate. Detailed local run evidence remains outside Git. Native presentation/media export, model review and hosted acceptance remain separate work.
+
+
+
+## 2026-10-24 — Combined knowledge and analytics verification
+
+- **Done:** combined the reviewed knowledge-reference and period-coverage branches preserving the reviewed application changes. Preserved both branches’ README verification records, progress entries and session history.
+- **Verified:** independent reviews found no outstanding blocker; original-head and combined-head hosted checks remain required before the approved normal merges.
+- **Next:** complete combined CI, then verify the final main commit. Login, production activation, settings and database writes remain outside this code-only wave.
+
+- **Additional correction:** retained the named counter-direction contribution outside the top-five display subset, with English/Arabic evidence and tamper regressions. Independent focused tests and the reported mapping pass; combined hosted acceptance is still required.
 
