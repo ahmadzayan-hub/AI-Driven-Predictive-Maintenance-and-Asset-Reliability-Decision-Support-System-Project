@@ -75,12 +75,6 @@
   align-items: end;
 }
 
-/* Exact figures, so they shrink to fit rather than being abbreviated. */
-.dash-kpis .kpi__value {
-  font-size: clamp(var(--text-l), 4vw, var(--text-xl));
-  overflow-wrap: anywhere;
-}
-
 .dash-filter {
   border: 1px solid var(--border);
   border-radius: var(--radius-s);

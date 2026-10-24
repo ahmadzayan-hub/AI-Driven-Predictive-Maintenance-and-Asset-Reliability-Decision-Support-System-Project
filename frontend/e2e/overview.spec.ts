@@ -193,6 +193,9 @@ test('three work areas preserve routes and disclose contextual tools', async ({ 
   const groups = nav.locator('.sidebar__group')
   await expect(groups).toHaveCount(4)
   await expect(groups.locator(':scope > summary')).toHaveText(['Decision', 'Data & analysis', 'Reports & outputs', 'Workspace tools'])
+  // Every preserved route still carries its distinct icon.
+  const icons = await nav.locator('.navbtn svg path').evaluateAll((paths) => paths.map((path) => path.getAttribute('d')))
+  expect(new Set(icons).size).toBe(icons.length)
   const expected = [
     ['Command Centre', 'Asset Intelligence', 'RMD Evidence'],
     ['Datasets', 'Analyses'], ['Dashboards', 'Approvals'],
