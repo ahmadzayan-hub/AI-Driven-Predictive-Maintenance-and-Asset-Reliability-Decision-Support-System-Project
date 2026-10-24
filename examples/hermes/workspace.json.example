@@ -1,0 +1,9 @@
+{
+  "scope": "miyaar-local-workspace-v1",
+  "database_file": "<APPROVED_ABSOLUTE_LOCAL_PATH>/agentic.db",
+  "memory_file": "<APPROVED_ABSOLUTE_LOCAL_PATH>/memory.json",
+  "vault_dir": "<APPROVED_ABSOLUTE_LOCAL_PATH>/vault",
+  "knowledge_dir": "<APPROVED_ABSOLUTE_LOCAL_PATH>/reviewed-knowledge",
+  "enabled_tools": ["help", "run_status", "explain_report"],
+  "language": "en"
+}

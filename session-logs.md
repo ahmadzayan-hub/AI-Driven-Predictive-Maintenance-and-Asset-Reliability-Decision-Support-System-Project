@@ -1747,6 +1747,37 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Decided: keep text readable in every animation frame, preserve reduced motion, and retain the ordinary contrast assertion without a delay or exemption.
 - Next: finish full CI/platform checks, verify the matching artifact and update the local UI reversibly while preserving saved results.
 
+## 2026-10-24 - Prepare Miyaar for Hermes Desktop without changing the website
+
+- Done: inspected installed Nous Research Hermes Desktop/Agent build metadata, local gateway process evidence and official packaging docs. Added portable manifests, a bilingual skill and a scoped launcher around the existing MCP/tool executor in an isolated branch. Added disabled configuration examples and an access approval matrix.
+- Verified: installed portable parser accepted the package in a scratch profile; bounded synthetic transport/executor tests passed after correcting the test runner's sandbox temp location. Commands/counts are in README. No live activation or full web build was attempted.
+- Decided: default to help-only, require exact local paths and permitted tools for workspace access, and enforce the allowlist in the server because the installed parser lacks the latest portable trust extension. Avoid importing the web app and its default store. No new dependency or model call.
+- Next: owner review of code/revision and Python prerequisite; approve publication separately, then approve the target profile and preview activation. Review actual data paths, SQLite initialization, model forwarding and write scopes separately before any workspace connection. Phase 1's live checkout/storage/assets/processes remain untouched.
+
+## 2026-10-24 - Narrow Hermes package after independent review
+
+- Done: restricted configured opt-ins to help, run_status and explain_report; rejected other known tools before storage opens. Documented Agent's configured memory-file read and SQLite startup schema/WAL effects. Excluded knowledge search and agent scorecards without changing their existing implementations.
+- Verified: static-only inspection and patch review for this amendment. Focused tests were revised but not executed under the reported RAM restriction; historical passing results do not clear this revision.
+- Decided: keep the first package narrow. Knowledge symlink containment and scorecard source semantics are separate repair work; the website/default MCP are unchanged.
+- Next: independent review and later resource-safe validation before requesting any publication/installation approval. UI PR60 approval grants no Hermes activation or publication permission. Task-4 remains untouched.
+
+## 2026-10-24 · `hermes-bounded-verification` · codex/miyaar-hermes-package
+
+**Goal:** verify the narrowed package after the owner's delegated resource-safe test authorization.
+
+- **Done:** rechecked physical memory, resolved an installed Python executable/version, and ran only the revised package and existing MCP dispatch tests with task-local synthetic storage. Updated preparation evidence; runtime/test code is unchanged from the reviewed candidate.
+- **Verified:** the selected suites passed; exact counts, runtime and memory evidence are in README. Parent/stdio-child network audit guards observed no attempts, and synthetic scratch was empty after cleanup. The intentionally raised executor-error regression passed. No SDK-client or full-suite rerun.
+- **Decisions:** bounded synthetic success does not establish live backend command resolution, Desktop activation or production parity. No dependencies, profiles or persistent grants changed.
+- **Open / next:** owner review/publication and scoped installation/activation approval remain required. Preserve task4 and separately approve exact storage startup effects and model recipients before any real workspace connection.
+- **Blockers:** no bounded-test blocker remains. Live Hermes integration and real-data/model acceptance remain untested and unapproved.
+
+## 2026-10-24 · `hermes-publication-review` · codex/miyaar-hermes-package
+
+- **Done:** received explicit owner approval to publish the isolated package branch and open a draft PR. Rechecked the staged patch against the tested handoff checksum; runtime/test code is unchanged.
+- **Verified:** staged diff contains only the reviewed package, synthetic tests and documentation. Incorporated main `a647e74e`, retaining both appended session-log entries; upstream UI files match main. The bounded package/MCP suite passed again with network-denial guards; counts are in README. Hosted exact-head checks remain a separate PR gate; broader local builds remain outside the resource-limited verification scope.
+- **Decisions:** this approval covers code publication only. No merge, deployment, plugin installation, activation, profile changes, credentials or real-data/model access.
+- **Open / next:** review the draft and its exact-head checks, then separately approve any installation/profile/executable and workspace scope. The live web checkout remains independent.
+
 ## 2026-10-24 - Keep complete monetary values and five groups in the opening
 
 - Done: reduced featured-card spacing and value sizing; allowed the currency separator to wrap without dropping digits or units. The opening fixture now contains five fictional sites, a long source filename and explicit currency mapping, with a card-clipping assertion.

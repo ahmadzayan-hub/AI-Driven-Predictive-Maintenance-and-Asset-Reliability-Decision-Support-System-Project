@@ -1,0 +1,23 @@
+# Review only. Do not paste into a live profile before scope approval.
+# A native entry with the same name replaces the portable package server.
+# Only help/run_status/explain_report are supported; other opt-ins fail.
+# Startup still reads memory_file and opens SQLite with schema/WAL writes.
+mcp_servers:
+  miyaar:
+    enabled: false
+    command: '<ABSOLUTE_PATH_TO_REVIEWED_PYTHON>'
+    args:
+      - '-I'
+      - '-B'
+      - '-X'
+      - 'utf8'
+      - '<ABSOLUTE_PLUGIN_ROOT>/scripts/hermes_mcp.py'
+      - '--config'
+      - '<APPROVED_ABSOLUTE_LOCAL_PATH>/workspace.json'
+    env: {}
+    trust: untrusted
+    supports_parallel_tool_calls: false
+    tools:
+      include: [help, run_status, explain_report]
+      resources: false
+      prompts: false

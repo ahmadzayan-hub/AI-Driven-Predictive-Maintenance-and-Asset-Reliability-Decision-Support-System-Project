@@ -49,12 +49,22 @@ class RpcError(Exception):
 
 
 class McpServer:
-    def __init__(self, assistant, session, name="agentic-os", version="1.0.0"):
+    def __init__(self, assistant, session, name="agentic-os", version="1.0.0",
+                 *, allowed_tools=None, instructions=None):
         self.assistant = assistant
         self.session = session
         self.name = name
         self.version = version
         self.initialized = False
+        known = {tool["name"] for tool in describe()}
+        if allowed_tools is not None:
+            if isinstance(allowed_tools, str):
+                raise ValueError("allowed_tools must contain known tool names")
+            allowed_tools = frozenset(allowed_tools)
+            if not allowed_tools <= known:
+                raise ValueError("allowed_tools must contain known tool names")
+        self.allowed_tools = allowed_tools
+        self.instructions = INSTRUCTIONS if instructions is None else instructions
 
     # ------------------------------------------------------------------
     # Transport
@@ -123,7 +133,9 @@ class McpServer:
         if method == "ping":
             return {}
         if method == "tools/list":
-            return {"tools": describe()}
+            return {"tools": [tool for tool in describe()
+                              if self.allowed_tools is None
+                              or tool["name"] in self.allowed_tools]}
         if method == "tools/call":
             return self._call(params)
         raise RpcError(METHOD_NOT_FOUND, f"Method not found: {method}")
@@ -135,7 +147,7 @@ class McpServer:
             "protocolVersion": version,
             "capabilities": {"tools": {"listChanged": False}},
             "serverInfo": {"name": self.name, "version": self.version},
-            "instructions": INSTRUCTIONS,
+            "instructions": self.instructions,
         }
 
     def _call(self, params):
@@ -145,6 +157,11 @@ class McpServer:
         arguments = params.get("arguments")
         if arguments is not None and not isinstance(arguments, dict):
             raise RpcError(INVALID_PARAMS, "arguments must be an object")
+        if self.allowed_tools is not None and name not in self.allowed_tools:
+            return {"content": [{"type": "text", "text": (
+                "This tool is outside the approved Miyaar MCP scope. / "
+                "هذه الأداة خارج النطاق المعتمد لمعيار عبر MCP.")}],
+                    "isError": True}
         # One box per call: the step limit is per message, and over MCP
         # every call is its own message.
         outcome = ToolBox(self.assistant, self.session).call(name, arguments or {})
