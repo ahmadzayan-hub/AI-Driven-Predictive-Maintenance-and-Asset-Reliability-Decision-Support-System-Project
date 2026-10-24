@@ -181,7 +181,7 @@ test.describe('a view that cannot load', () => {
   })
 })
 
-test('three work areas preserve routes and disclose contextual tools', async ({ page }) => {
+test('sidebar groups: three work areas preserve routes and disclose contextual tools', async ({ page }) => {
   await skipOnboarding(page)
   await page.goto('/')
   await revealNavigation(page)

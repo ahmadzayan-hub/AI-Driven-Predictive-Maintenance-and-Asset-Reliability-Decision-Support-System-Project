@@ -1732,3 +1732,10 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Verified: completed hosted logs identified the bootstrap/navigation race and stale direct clicks. The prior fixed-size opening test passed in desktop and phone projects; expanded-card capture still needed the already committed measurement correction. Source review confirms App renders the shell before the session. Whitespace checks pass; current exact-head hosted validation remains required.
 - Decided: use existing UI readiness signals without sleeps, timeout inflation, bypasses or removed assertions. Live assets/data remain unchanged.
 - Next: finish exact-head CI and verified local artifact/browser acceptance.
+
+## 2026-10-24 — Preserve the focused workflow test selector
+
+- Done: restored the existing sidebar groups prefix on the intact three-area navigation test title so the focused RMD workflow selects it.
+- Verified: repository workflow inspection found the exact --grep selector; the restored title matches it. Diff whitespace checks pass. Every test assertion and the workflow remain unchanged; exact-head hosted acceptance is still pending.
+- Decided: repair compatibility rather than weaken a selector or skip a check.
+- Next: complete hosted validation and the matching local artifact/browser handoff.
