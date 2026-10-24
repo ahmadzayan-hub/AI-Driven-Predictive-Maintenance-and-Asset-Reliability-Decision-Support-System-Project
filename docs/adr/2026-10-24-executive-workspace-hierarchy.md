@@ -55,6 +55,10 @@ normalization nor a valid forecast.
 If there is no grouping column, the trend is the primary chart and starts open
 with its coverage warning. The existing bilingual omitted-period regression
 guards this fallback; it must not be weakened to accept an empty opening.
+The opening comparison shows the five highest recorded totals, with the actual
+displayed count in its bilingual title. The existing Breakdown page retains the
+broader comparison and per-record option. This keeps the initial comparison
+legible without presenting the subset as the whole population.
 
 The source filename and selected record count share a secondary provenance line.
 Dashboard pages and filters use contextual disclosures. The sidebar has Decision,

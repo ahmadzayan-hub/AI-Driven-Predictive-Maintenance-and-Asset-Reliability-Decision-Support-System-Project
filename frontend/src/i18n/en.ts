@@ -11,9 +11,6 @@ export const en = {
   'nav.dataAnalysis': 'Data & analysis',
   'nav.reportsOutputs': 'Reports & outputs',
   'nav.tools': 'Workspace tools',
-  'nav.homeShort': 'Home',
-  'nav.dataShort': 'Data',
-  'nav.reviewShort': 'Review',
 
   "assistant.name": "Miyaar",
   "assistant.tagline": "AI-Powered Asset Maintenance, Reliability & Decision Support",
@@ -209,7 +206,6 @@ export const en = {
   'nav.overview': 'Command Centre',
   'nav.datasets': 'Datasets',
   'nav.more': 'More',
-  'nav.assetsShort': 'Assets',
   'session.new': 'New session',
   'session.end': 'End session',
   'session.signOut': 'Sign out',

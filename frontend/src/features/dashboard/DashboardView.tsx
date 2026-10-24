@@ -438,7 +438,7 @@ function OverviewPage({ runId, roles, state, filters, setState }: PageProps) {
   const m = roles.measure!
   const top = useQuery(runId, roles.breakdown ? {
     group_by: [roles.breakdown], measures: [{ agg: 'sum', column: m }, { agg: 'count' }], filters,
-    sort: { by: `sum:${m}`, desc: true }, limit: 10,
+    sort: { by: `sum:${m}`, desc: true }, limit: 5,
   } : null)
   const trend = useQuery(runId, roles.date ? {
     group_by: [roles.date], measures: [{ agg: 'sum', column: m }, { agg: 'count' }], filters, limit: 1000,
@@ -454,7 +454,7 @@ function OverviewPage({ runId, roles, state, filters, setState }: PageProps) {
           <div className="card">
             {top.loading ? <Loading /> : (
               <Figure
-                title={t('dash.chart.top', { measure: m, breakdown: roles.breakdown })}
+                title={t('dash.chart.top', { n: formatNumber(topPoints.length), measure: m, breakdown: roles.breakdown })}
                 chart={<Bars items={topPoints} label={t('dash.alt.bars', { measure: m, breakdown: roles.breakdown, n: formatNumber(topPoints.length) })} />}
                 table={<GroupTable head={[roles.breakdown, t('dash.col.total'), t('dash.col.records')]} onDrill
                   rows={(top.data?.groups ?? []).map((g) => ({

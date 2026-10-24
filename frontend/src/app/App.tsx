@@ -49,8 +49,6 @@ interface NavItem {
   id: Tab
   label: MessageKey
   icon: IconName
-  /** A shorter name for the phone bar, where a long one wraps. */
-  short?: MessageKey
 }
 
 // Three primary work areas retain every existing route under native disclosures.
@@ -59,21 +57,21 @@ const NAV_GROUPS: Array<{ id: string; label: MessageKey; items: NavItem[] }> = [
   {
     id: 'decide', label: 'nav.decision',
     items: [
-      { id: 'overview', label: 'nav.overview', icon: 'dashboard', short: 'nav.homeShort' },
-      { id: 'assets', label: 'nav.assets', icon: 'activity', short: 'nav.assetsShort' },
+      { id: 'overview', label: 'nav.overview', icon: 'dashboard' },
+      { id: 'assets', label: 'nav.assets', icon: 'activity' },
       { id: 'rmd', label: 'nav.rmd', icon: 'search' },
     ],
   },
   {
     id: 'prepare', label: 'nav.dataAnalysis',
     items: [
-      { id: 'datasets', label: 'nav.datasets', icon: 'database', short: 'nav.dataShort' },
+      { id: 'datasets', label: 'nav.datasets', icon: 'database' },
       { id: 'runs', label: 'nav.runs', icon: 'sparkle' },
     ],
   },
   { id: 'report', label: 'nav.reportsOutputs', items: [
     { id: 'dashboard', label: 'nav.dashboard', icon: 'chart' },
-    { id: 'approvals', label: 'nav.approvals', icon: 'shield', short: 'nav.reviewShort' },
+    { id: 'approvals', label: 'nav.approvals', icon: 'shield' },
   ] },
   {
     id: 'assist', label: 'nav.tools',
