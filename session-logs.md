@@ -1739,3 +1739,10 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Verified: repository workflow inspection found the exact --grep selector; the restored title matches it. Diff whitespace checks pass. Every test assertion and the workflow remain unchanged; exact-head hosted acceptance is still pending.
 - Decided: repair compatibility rather than weaken a selector or skip a check.
 - Next: complete hosted validation and the matching local artifact/browser handoff.
+
+## 2026-10-24 — Preserve executive text contrast during motion
+
+- Done: executive entrance motion keeps its short translate transition but no longer fades text opacity. The real upload journey checks the applied animation keyframes before its unchanged accessibility audit. The ADR records this cross-browser correction.
+- Verified: exact prior-head RMD evidence and Windows/Edge platform workflows passed. macOS/WebKit reported low contrast on executive metadata and caution text during the entrance fade. Source review confirms the shared executive keyframe caused that fade; diff whitespace checks pass. The correction still requires exact-head hosted verification and actual local rendering.
+- Decided: keep text readable in every animation frame, preserve reduced motion, and retain the ordinary contrast assertion without a delay or exemption.
+- Next: finish full CI/platform checks, verify the matching artifact and update the local UI reversibly while preserving saved results.

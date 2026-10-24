@@ -81,3 +81,10 @@ This follow-up is prepared source only until resource-gated unit tests, typechec
 build/budget and actual desktop/mobile/RTL keyboard verification complete. The
 running loopback app continues serving the previous validated build. Presentation
 and video enhancements are deferred to Phase 2.
+
+Cross-browser follow-up: WebKit's real upload-to-dashboard accessibility audit
+observed low text contrast during the entrance fade. Executive entrance motion
+therefore retains its small transform without changing text opacity. Reduced
+motion still disables it. The upload journey checks the applied animation's
+keyframes and keeps its ordinary contrast audit; no test delay or color-contrast
+exception is introduced.

@@ -1946,7 +1946,7 @@ form.field {
 .brand__descriptor { color: var(--text-muted); font-size: var(--text-xs); max-width: 27ch; line-height: 1.4; }
 @media (max-width: 1023px) { .brand__descriptor { display: none; } }
 
-@keyframes executive-arrive { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes executive-arrive { from { transform: translateY(6px); } to { transform: translateY(0); } }
 
 .sidebar__group > summary { cursor: pointer; min-height: 44px; padding: var(--space-3) var(--space-2); font-weight: 500; }
 .sidebar__group > .navbtn { width: 100%; }
