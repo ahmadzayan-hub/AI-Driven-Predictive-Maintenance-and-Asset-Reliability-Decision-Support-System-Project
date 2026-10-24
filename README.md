@@ -550,6 +550,23 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+Period-coverage evidence candidate (24 October 2026): on main `674260dc` plus
+the reviewed local patch, the focused analytics/mapping/report/worker command
+ran 308 tests successfully (28 skipped). `python3 -m unittest discover tests`
+ran 2,250 tests with 258 skips, one failure and two errors: all three were due
+to this cloud environment lacking `psycopg2-binary` (SBOM and hosted-store
+constructor checks). This is not a full-suite pass. No dependencies were installed.
+A private original-file acceptance used the actual FastAPI upload, mapping,
+run, KPI and reload endpoints with disposable SQLite and outbound connections
+blocked. It reached `awaiting_approval`, retained its report identically after
+reopening, and made no outbound connection attempts. This is deterministic
+application execution, not an LLM, hosted PostgreSQL, browser or Power BI test.
+The patch was subsequently fast-forwarded onto main `e2200274`. The expanded
+post-refresh focused command (including documentation tests) passed 319 tests
+with 28 skips. Exact-head hosted CI remains separate verification.
+No source data or generated private report is included in this repository.
+
+
 Local-only KPI review-context candidate (24 October 2026, base `99ca49ab`): the focused executive/i18n run passes **72 tests**, and the full frontend run passes **487 tests in 48 files**. Typecheck and production frontend build pass. Existing interface caps remain unchanged; total JavaScript is **252,951 bytes of 253,000**, leaving only **49 bytes** of headroom. Python/brain verification and hosted acceptance were not run for this frontend-only materialization. Browser verification is **blocked before navigation** by the execution sandbox, including the attempted escalation; no rendered screenshot, contrast, mobile-browser or production acceptance is claimed. See [the decision](docs/adr/2026-10-24-kpi-review-context.md).
 
 **23 October 2026 · platform and application delivery.** Final source

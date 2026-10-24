@@ -1654,9 +1654,21 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** both original heads passed hosted checks; combined-head verification is required before completing the second merge. Main automatic deployment remains disabled in the unchanged Vercel configuration.
 - **Next:** finish combined CI and the normal pull-request merge. No production deployment, settings or database write is part of this reconciliation.
 
+
 ## 2026-10-24 — isolated Windows local acceptance
 
 - Done: cloned canonical main into the separate task-4/miyaar workspace; built the React interface using copies of already-installed dependencies; started the explicit local-owner profile on loopback port 8017 with fresh local-data. Existing user checkouts, port-8000 process and other workspaces were preserved.
 - Verified: focused local-workspace tests, TypeScript check, production build and interface budget; real browser synthetic upload, saved mapping, calculation/report completion at the approval gate, dashboard, actual HTML download, English/Arabic HTML and DOCX API exports, cleaned CSV, live origin/host/proxy rejection, stale-export refusal, and saved-result reopening after process restart. Detailed evidence is outside this checkout in ../evidence and ../LOCAL-ACCEPTANCE.md.
 - Decided: no package/model installation, inference, Docker, publication, PR, merge or production action. The local frontend build uses older installed Vite/Vitest than the lockfile, disclosed in the handoff. Media rendering remains disabled.
 - Next: incorporate the exact cloud analytics fix SHA when supplied, then test the user-uploaded project CSV stored in the isolated workspace. It was not analyzed in this acceptance session. Preserve original checkouts and inspect active runs before any later restart.
+
+## 2026-10-24 · `period-coverage-evidence` · fix/period-coverage-evidence
+
+**Goal:** allow truthful report generation without weakening numerical evidence validation.
+
+- **Done:** separate cited comparison counts, recent-window coverage heuristic, uneven-coverage raw-total forecast refusal, correct anomaly evidence index, and bilingual conditional-scenario wording. Added fabricated regression fixtures and a dated ADR.
+- **Verified:** independent code review found no blocking issue. Focused and full-suite outcomes, environment limits and private actual-API acceptance are recorded in README.md#testing. Main was refreshed through approved PR 56 without altering its schema migration or shared documentation.
+- **Decisions:** record counts do not prove calendar completeness; scenario assumptions are not validated savings. Keep validator, model-grounding limits and approval gates unchanged.
+- **Open / next:** exact-head CI and owner review before any merge or deployment; comparable exposure and prediction timing remain prerequisites for operational forecasts.
+- **Blockers:** cloud environment lacks the PostgreSQL Python driver; no installation or hosted acceptance claimed.
+
