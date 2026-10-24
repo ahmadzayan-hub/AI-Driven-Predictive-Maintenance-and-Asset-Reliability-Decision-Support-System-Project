@@ -20,3 +20,16 @@ wrapping and existing 44-pixel targets. No decorative charts or fabricated trend
 
 Validation records must distinguish source tests, the local rendered app and any
 future hosted acceptance. A local build does not imply a production release.
+
+The final overview places the existing filtered aggregate KPIs and comparison
+charts before the detailed maintenance register. Dataset names replace repeated
+analysis prompts in dashboard headings. Chart tables,
+drilldowns and approval actions retain their existing routes. Recommendation
+summaries recognize the backend's conditional scenario claim without relabelling
+it as a validated recommendation. Analysis update time is not data freshness.
+
+Actual browser checks covered English desktop, Arabic at 320 pixels, keyboard
+chart disclosure and the saved reduced-motion override. These checks do not
+constitute a comparison with a rendered Power BI dashboard or physical phone.
+A long unbroken dataset filename still needs a narrow-screen wrap adjustment;
+the local memory guard deferred that follow-up build.

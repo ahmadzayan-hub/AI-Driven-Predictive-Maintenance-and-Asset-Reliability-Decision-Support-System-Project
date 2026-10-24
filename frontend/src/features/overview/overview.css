@@ -130,7 +130,7 @@
 .command__meta, .command__owner { color: var(--text-muted); font-size: var(--text-s); margin-top: var(--space-2); }
 .command__grid {
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-4); margin-top: var(--space-4);
+  gap: var(--space-4); margin-top: var(--space-4); align-items: start;
 }
 .command__grid > .card { margin: 0; }
 .command__count { font-size: var(--text-xs); font-weight: 600; color: var(--accent); margin-inline-start: var(--space-2); }
@@ -176,6 +176,7 @@
 .command__performance { grid-column: 1 / -1; }
 .command__kpis > div { padding: var(--space-3); border-inline-start: 2px solid var(--border); min-width: 0; }
 .command__kpis .performance-value__status { font-size: var(--text-xs); }
+.command__kpis small { font-size: var(--text-xs); font-weight: 400; }
 .command__list > li > div { flex: 1; min-width: 0; }
 .command summary { min-height: 44px; cursor: pointer; overflow-wrap: anywhere; }
 .command__detail summary h3 { display: inline; }
@@ -186,7 +187,6 @@
 @media (max-width: 767px) { .command__grid { grid-template-columns: minmax(0, 1fr); } .command__kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .next-action { grid-template-columns: minmax(0, 1fr); } .next-action > .btn { grid-column: 1; grid-row: auto; justify-self: start; margin-block: var(--space-3); } }
 @media (max-width: 359px) { .command__kpis { grid-template-columns: minmax(0, 1fr); } }
 @media (prefers-reduced-motion: no-preference) {
-  .command__hero, .exec-hero { animation: executive-arrive 220ms ease-out both; }
-  .command__grid > .card, .exec-decision-grid > .exec-card { animation: executive-arrive 220ms ease-out 50ms both; }
-  @keyframes executive-arrive { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .command__hero { animation: executive-arrive 220ms ease-out both; }
+  .command__grid > .card { animation: executive-arrive 220ms ease-out 50ms both; }
 }

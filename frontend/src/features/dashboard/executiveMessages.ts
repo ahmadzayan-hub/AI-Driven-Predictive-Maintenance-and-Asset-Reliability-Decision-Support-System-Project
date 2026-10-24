@@ -121,7 +121,7 @@ export const executiveMessages = definePack({
   'exec.attention': 'قرارات تحتاج إلى الاهتمام',
   'exec.noPriorities': 'لم تحدد القواعد المتاحة أولويات. لا يعني ذلك ثبوت سلامة الأصول.',
   'exec.drill': 'فحص السجلات المحددة',
-  'exec.agent': 'المجموعة الاستشارية للتحليلات التنفيذية',
+  'exec.agent': 'موجز القرار',
   'exec.scorecard': 'بطاقة أداء الصيانة والموثوقية',
   'exec.predictive': 'جاهزية الصيانة التنبؤية',
   'exec.basis': 'الأساس التحليلي ومطابقة المصادر',

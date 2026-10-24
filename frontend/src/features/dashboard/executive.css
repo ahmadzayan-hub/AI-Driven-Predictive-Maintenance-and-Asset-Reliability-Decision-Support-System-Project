@@ -75,3 +75,8 @@
 .exec-decision-grid:has(.exec-brief) { grid-template-columns: minmax(0, 1fr); }
 .exec-hero > div, .exec-scope { min-width: 0; overflow-wrap: anywhere; }
 .exec-models > summary { color: var(--accent); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .exec-hero { animation: executive-arrive 220ms ease-out both; }
+  .exec-decision-grid > .exec-card { animation: executive-arrive 220ms ease-out 50ms both; }
+}

@@ -68,8 +68,8 @@ export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCe
     : brief.priorities.map((p) => ({ id: p.id, title: p.title, detail: p.detail, owner: '', gate: '' }))
   const measures = pickMeasures(brief.kpis.measures)
   const unavailable = Object.keys(brief.kpis.unavailable).length
-  const recommendation = brief.findings.find((f) => f.kind === 'recommendation')
-  const assumption = brief.findings.find((f) => f.stage === 'prescriptive' && f.kind === 'assumption')
+  const recommendation = brief.findings.find((f) => f.id === 'cl_recommendation' || f.kind === 'recommendation')
+  const assumption = brief.findings.find((f) => f.stage === 'prescriptive' && f.kind === 'assumption' && f !== recommendation)
   const quality = brief.findings.find((f) => f.stage === 'quality')
   const failedChecks = brief.evidence.find((e) => e.id === 'executive.validation.failed_checks')?.value
   const fullRecommendation = brief.advisory?.recommendation ?? brief.headline
@@ -107,9 +107,10 @@ export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCe
             const verdict = hasVerdict(tone)
             return <div key={m.key} data-source={`kpi.${m.key}`}>
               <dt dir="auto">{m.title}</dt>
-              <dd><PerformanceValue tone={tone} reason={verdict ? m.assessment?.reason : undefined}><bdi>{value === null ? '—' : value}{value === null ? '' : unit}</bdi></PerformanceValue></dd>
+              <dd><PerformanceValue tone={tone} reason={verdict ? m.assessment?.reason : undefined}><bdi>{value ?? '-'}{value === null ? '' : <small>{unit}</small>}</bdi></PerformanceValue></dd>
             </div>
           })}</dl> : <p className="card__empty">{t('command.kpisNone')}</p>}
+          <p className="card__meta">{t('command.context')}</p>
           {unavailable ? <p className="card__meta">{t('command.unavailable', { n: formatNumber(unavailable) })}</p> : null}
         </section>
 
@@ -120,6 +121,14 @@ export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCe
               <div><details><summary><strong dir="auto">{d.title}</strong></summary><p dir="auto">{d.detail}</p>
                 {d.owner ? <p className="command__owner">{t('command.owner')}: <span dir="auto">{d.owner}</span> · {t('command.gate')}: <span dir="auto">{d.gate}</span></p> : null}</details></div>
             </li>))}</ol> : <p className="card__empty">{t('command.decisionsNone')}</p>}
+        </section>
+
+        <section className="card" aria-labelledby="command-quality">
+          <h3 className="card__title" id="command-quality">{t('command.quality')}</h3>
+          {quality ? <p dir="auto">{quality.text}</p> : <p className="card__empty">{t('command.qualityNone')}</p>}
+          {typeof failedChecks === 'number' && failedChecks > 0 ? <p className="command__caution">{t('command.failedChecks', { n: formatNumber(failedChecks) })}</p> : null}
+          {limitations.length ? <details className="command__limits"><summary>{t('command.limitations', { n: formatNumber(limitations.length) })}</summary>
+            <ul>{limitations.map((text) => <li key={text} dir="auto">{text}</li>)}</ul></details> : null}
         </section>
 
         <details className="card command__detail" aria-labelledby="command-models">
@@ -140,15 +149,6 @@ export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCe
             <p className="command__boundary"><Icon name="shield" size={14} />{t('command.actionNote')}</p>
           </> : <p className="card__empty">{t('command.actionNone')}</p>}
         </details>
-
-        <section className="card" aria-labelledby="command-quality">
-          <h3 className="card__title" id="command-quality">{t('command.quality')}</h3>
-          {quality ? <p dir="auto">{quality.text}</p> : <p className="card__empty">{t('command.qualityNone')}</p>}
-          <p className="card__meta">{t('command.asOf', { date: formatDate(brief.run.updated_at ?? run.updated_at) })}</p>
-          {typeof failedChecks === 'number' && failedChecks > 0 ? <p className="command__caution">{t('command.failedChecks', { n: formatNumber(failedChecks) })}</p> : null}
-          {limitations.length ? <details className="command__limits"><summary>{t('command.limitations', { n: formatNumber(limitations.length) })}</summary>
-            <ul>{limitations.map((text) => <li key={text} dir="auto">{text}</li>)}</ul></details> : null}
-        </section>
 
         <details className="card command__detail" aria-labelledby="command-questions">
           <summary><h3 className="card__title" id="command-questions">{t('command.questions')}</h3></summary>

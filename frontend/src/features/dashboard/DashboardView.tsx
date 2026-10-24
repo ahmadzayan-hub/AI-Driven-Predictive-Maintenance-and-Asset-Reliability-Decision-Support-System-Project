@@ -229,8 +229,7 @@ function Dashboard({ runId, page, query, onNavigate, onOpenRun }: {
         <div className="panel__header dash-header">
           <div>
             <p className="eyebrow">{t('dash.title')}</p>
-            <h2 className="panel__title" id="dash-title" dir="auto">{run.data?.goal ?? runId}</h2>
-            {run.data ? <p className="panel__desc" dir="auto">{run.data.dataset_name}</p> : null}
+            <h2 className="panel__title" id="dash-title" dir="auto">{run.data?.dataset_name ?? runId}</h2>
           </div>
           <div className="dash-actions">
             <button type="button" className="btn btn--ghost" onClick={() => onOpenRun(runId)}>

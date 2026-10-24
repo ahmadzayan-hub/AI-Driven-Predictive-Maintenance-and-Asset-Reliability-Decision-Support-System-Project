@@ -49,7 +49,7 @@ describe('executive decision overview', () => {
     }
     vi.mocked(api.runExecutive).mockResolvedValue(data)
     mount()
-    await screen.findByText(data.advisory.title)
+    await screen.findByRole('heading', { name: 'Executive overview' })
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: 'Prepare executive brief' }))
     expect(screen.getByText(data.advisory.recommendation)).toBeVisible()
@@ -104,6 +104,8 @@ describe('executive decision overview', () => {
     const kpi = screen.getByRole('heading', { name: 'Downtime' }).closest('article')!
     expect(within(kpi).getByText('Not available')).toBeVisible()
     expect(within(kpi).getByText('2 records without a reading')).toBeVisible()
+    expect(screen.getByRole('region', { name: 'Model evaluation data' })).not.toBeVisible()
+    await user.click(screen.getByText('Model quality · Whole analysis'))
     const modelTable = within(screen.getByRole('region', { name: 'Model evaluation data' }))
     expect(modelTable.getByText('Not evaluated')).toBeVisible()
     expect(modelTable.getAllByRole('cell', { name: '—' })).toHaveLength(2)
@@ -124,7 +126,9 @@ describe('executive decision overview', () => {
     data.models = [{ kind: 'maintenance_risk', target: 'Failure', fitted: true, beats_baseline: true, metric: { name: 'balanced_accuracy', model: .53, baseline: .5, baseline_name: 'majority' }, details: { verdict: 'weak' }, scope: 'whole_run' }]
     vi.mocked(api.runExecutive).mockResolvedValueOnce(data)
     mount()
-    expect(await screen.findByText('Below evaluation criteria')).toBeVisible()
+    expect(await screen.findByText('Below evaluation criteria')).not.toBeVisible()
+    await userEvent.setup().click(screen.getByText('Model quality · Whole analysis'))
+    expect(screen.getByText('Below evaluation criteria')).toBeVisible()
     expect(screen.queryByText('Meets evaluation criteria')).not.toBeInTheDocument()
   })
 

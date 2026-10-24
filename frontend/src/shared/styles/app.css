@@ -220,6 +220,8 @@
   flex-direction: column;
   gap: var(--space-2);
 }
+.sidebar__footer > .btn { color: var(--nav-text); border-color: var(--nav-border); background: transparent; }
+.sidebar__footer > .btn:hover { background: var(--nav-active); }
 
 .sidebar__identity {
   display: flex;
@@ -1939,3 +1941,5 @@ form.field {
 
 .brand__descriptor { color: var(--text-muted); font-size: var(--text-xs); max-width: 27ch; line-height: 1.4; }
 @media (max-width: 1023px) { .brand__descriptor { display: none; } }
+
+@keyframes executive-arrive { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }

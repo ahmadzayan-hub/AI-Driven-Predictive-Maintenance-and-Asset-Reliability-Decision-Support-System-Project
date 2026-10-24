@@ -114,13 +114,16 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
       <summary>{t('exec.limits', { n: formatNumber(data.readiness.limitations.length) })}</summary><ul>{data.readiness.limitations.map((text, i) => <li key={i} dir="auto">{text}</li>)}</ul>
     </details> : null}
 
+    <section aria-labelledby="exec-explore"><div className="exec-section-head"><h3 id="exec-explore">{t('exec.explore')}</h3><button type="button"
+      className="btn btn--subtle" onClick={onOpenRun}>{t('exec.openRun')}</button></div>{children}</section>
+
     <div className="exec-decision-grid">
       <section className="exec-card exec-agent" aria-labelledby="exec-agent">
         <div className="exec-section-head"><div className="exec-heading"><Icon name="sparkle" size={22} /><h3
           id="exec-agent">{t('exec.agent')}</h3></div></div>
         {brief === data ? <div className="exec-brief" role="region" aria-label={t('exec.prepared')}>
-          <p className="exec-headline" dir="auto">{data.advisory?.recommendation ?? data.headline}</p>
           {data.advisory ? <>
+            <p className="exec-headline" dir="auto">{data.advisory.recommendation}</p>
             <details><summary>{data.advisory.title}</summary><p>{data.advisory.subtitle}</p></details>
             <h4>{t('exec.scorecard')}</h4>
             <dl>{data.advisory.domains.map((item) => <div
@@ -190,9 +193,6 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
         className="exec-unavailable"><summary>{t('exec.unsupported')}</summary><dl>{Object.entries(data.kpis.unavailable).map(([name, reason]) => <div
         key={name}><dt><bdi>{name}</bdi></dt><dd dir="auto">{reason}</dd></div>)}</dl></details> : null}
     </section> : null}
-
-    <section aria-labelledby="exec-explore"><div className="exec-section-head"><h3 id="exec-explore">{t('exec.explore')}</h3><button type="button"
-      className="btn btn--subtle" onClick={onOpenRun}>{t('exec.openRun')}</button></div>{children}</section>
 
     <details className="exec-card exec-models" aria-labelledby="exec-models">
       <summary id="exec-models">{t('exec.models')} · {t('exec.whole')}</summary>

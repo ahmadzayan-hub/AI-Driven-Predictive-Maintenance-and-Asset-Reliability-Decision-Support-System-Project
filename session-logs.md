@@ -1672,3 +1672,10 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Open / next:** exact-head CI and owner review before any merge or deployment; comparable exposure and prediction timing remain prerequisites for operational forecasts.
 - **Blockers:** cloud environment lacks the PostgreSQL Python driver; no installation or hosted acceptance claimed.
 
+## 2026-10-24 - executive workspace local candidate
+
+- **Done:** compact decision and next-action hierarchy, larger sourced measures, restrained navigation, existing aggregate charts before the maintenance register, bilingual disclosure, dataset titles and purposeful entry motion. Incorporated exact period-coverage commit 791077388e2ba105ebd1e7a9245062bea430d57c by merge; own application edits are frontend-only.
+- **Verified:** bounded unit/type/build/budget and focused analytics outcomes are recorded in README.md#testing. Actual loopback screens, English desktop, Arabic narrow layout, keyboard chart tables and saved reduced motion were inspected. Owned server restart retained existing uploads and saved results.
+- **Decided:** preserve local owner access, human approval, all original checkouts and durable acceptance data. No new dependency, model, container, credential or production action. Keep failed numerical evidence visible and withhold the report.
+- **Next / blocker:** the local project CSV's cost/site/month mapping exposed cl_decline without its category contribution citation when outside the first five contributors. The separate backend task must correct that evidence path before report acceptance can pass. A long unbroken filename still needs narrow-screen wrapping; its build was deferred below the memory guard and the unbuilt change kept outside this candidate. Detailed local run evidence remains outside Git. Native presentation/media export, model review and hosted acceptance remain separate work.
+

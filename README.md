@@ -550,6 +550,22 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+Executive workspace candidate (24 October 2026): final isolated frontend checks
+passed 34 executive-overview tests, 20 performance/contrast tests, and 21 routing
+and view tests. An earlier combined run also passed 27 overview tests; it was not
+a clean full-suite run (worker startup and contention failures occurred before
+the bounded isolated retries). TypeScript, Vite production build and existing
+interface budgets pass with no new dependency. Existing installed Vite 8.2.1 and
+Vitest 4.1.11 differ from the declared minimum versions; this is not locked-
+dependency hosted acceptance. The focused Python analytics/coverage run passed
+120 tests. Actual local browser checks covered the English desktop dashboard,
+Arabic 320-pixel layout, keyboard chart disclosure and saved reduced motion.
+The locally uploaded project CSV was processed with cost/site/month mapping:
+forecast refusal and conditional scenarios were correct, but `cl_decline` cited
+only overall change for a category outside the cited contributors. Numerical
+validation withheld its report. No validator bypass, publication, model inference,
+native PPTX/PDF generation or full-suite/production acceptance is claimed.
+
 Period-coverage evidence candidate (24 October 2026): on main `674260dc` plus
 the reviewed local patch, the focused analytics/mapping/report/worker command
 ran 308 tests successfully (28 skipped). `python3 -m unittest discover tests`
