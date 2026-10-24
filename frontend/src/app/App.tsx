@@ -85,16 +85,13 @@ const NAV_GROUPS: Array<{ id: string; label: MessageKey; items: NavItem[] }> = [
   },
 ]
 
-const ALL_ITEMS = NAV_GROUPS.flatMap((group) => group.items)
 // Views the view-only demo leaves out: those that live on a chat session,
 // which the demo does not have, and Administration.
 const NEEDS_SESSION: ReadonlySet<Tab> = new Set<Tab>(['chat', 'memory', 'preferences', 'operations', 'rmd'])
 const DEMO_GROUPS = NAV_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => !NEEDS_SESSION.has(item.id)) }))
 
 // The phone bar opens the three work areas; More exposes every preserved route.
-const BAR_TABS: Tab[] = ['overview', 'datasets', 'dashboard']
-const BAR_ITEMS = BAR_TABS.map((id, index) => ({ ...ALL_ITEMS.find((item) => item.id === id)!, short: NAV_GROUPS[index].label }))
-const DEMO_BAR_ITEMS = BAR_ITEMS
+const BAR_ITEMS = NAV_GROUPS.slice(0, 3).map((group) => ({ ...group.items[0], short: group.label }))
 
 const ONBOARDING_KEY = 'aos-onboarded'
 
@@ -674,7 +671,7 @@ export function App() {
       </div>
 
       <nav className="tabbar" aria-label={t('nav.primary')}>
-        {(demo ? DEMO_BAR_ITEMS : BAR_ITEMS).map((item) => (
+        {BAR_ITEMS.map((item) => (
           <button
             key={item.id}
             type="button"
@@ -688,7 +685,7 @@ export function App() {
         ))}
         <button
           type="button"
-          className={`tabbar__btn ${(demo ? DEMO_BAR_ITEMS : BAR_ITEMS).some((item) => item.id === tab) ? '' : 'tabbar__btn--holding'}`}
+          className={`tabbar__btn ${BAR_ITEMS.some((item) => item.id === tab) ? '' : 'tabbar__btn--holding'}`}
           aria-haspopup="dialog"
           aria-expanded={drawerOpen}
           onClick={(event) => openDrawer(event.currentTarget)}

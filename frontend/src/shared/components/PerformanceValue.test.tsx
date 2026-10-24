@@ -8,6 +8,7 @@ import { performanceMessages } from './performanceMessages'
 
 const tokensCss = readFileSync(resolve('src/shared/styles/tokens.css'), 'utf8')
 const appCss = readFileSync(resolve('src/shared/styles/app.css'), 'utf8')
+const executiveCss = readFileSync(resolve('src/features/dashboard/executive.css'), 'utf8')
 const performanceCss = readFileSync(resolve('src/shared/components/performance.css'), 'utf8')
 
 afterEach(() => { cleanup(); act(() => applyLocale('en')) })
@@ -80,6 +81,10 @@ function foreground(tone: PerformanceTone, theme: Record<string, string>) {
 }
 
 describe('actual semantic source colors', () => {
+  it('gives featured percentage meters a theme token when no family wrapper supplies one', () => {
+    const fill = executiveCss.match(/\.exec-kpi-meter rect \+ rect\s*\{([^}]+)\}/)![1]
+    expect(fill).toMatch(/fill:\s*var\(--fam,\s*var\(--accent\)\)/)
+  })
   const light = colors(tokensCss.split("[data-theme='dark']")[0])
   const dark = { ...light, ...colors(tokensCss.split("[data-theme='dark']")[1].split('@media')[0]) }
   const systemDark = { ...light, ...colors(tokensCss.split('@media (prefers-color-scheme: dark)')[1]) }

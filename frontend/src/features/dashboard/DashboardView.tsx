@@ -449,6 +449,7 @@ function OverviewPage({ runId, roles, state, filters, setState }: PageProps) {
   return (
     <>
       <Problem message={top.error ?? trend.error} />
+      {!roles.breakdown && !roles.date ? <><p className="field__help">{t('dash.numericContext')}</p><DistributionPage {...{ runId, roles, state, filters, setState }} /></> : null}
       <div className="dash-overview-charts">
         {roles.breakdown ? (
           <div className="card">

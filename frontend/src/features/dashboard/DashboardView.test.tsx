@@ -22,6 +22,26 @@ beforeEach(() => {
   vi.mocked(api.tableRecords).mockResolvedValue({ columns: ['label'], rows: [['Owner A fixture']], total: 1 })
 })
 
+it.each(['en', 'ar'] as const)('keeps numeric-only uploads quantitative with an honest distribution (%s)', async (locale) => {
+  applyLocale(locale)
+  vi.mocked(api.tableFields).mockResolvedValue({ records: 3, fields: [
+    { name: 'cost', type: 'number', role: 'analysed', filled: 3, records: 3 },
+  ] })
+  vi.mocked(api.queryTable).mockImplementation(async (_id, spec) => ({
+    groups: spec.group_by?.length ? [
+      { keys: [[0, 10]], values: [1], records: 1 },
+      { keys: [[10, 20]], values: [2], records: 2 },
+    ] : [], group_by: [], measures: [], group_count: 2, truncated: false, records: 3, matched_records: 3,
+  }))
+  const view = render(<DashboardView runId="r1" page="overview" query="" onNavigate={vi.fn()} onOpenRun={vi.fn()} />)
+  expect(await screen.findByRole('img')).toBeVisible()
+  expect(screen.getByText(dashMessages[locale]['dash.numericContext'])).toBeVisible()
+  expect(screen.getByRole('table')).toHaveTextContent('0 - 10')
+  expect(screen.getByRole('table')).toHaveTextContent('10 - 20')
+  expect(vi.mocked(api.queryTable).mock.calls.some(([, spec]) => JSON.stringify(spec.group_by) === JSON.stringify([{ column: 'cost', bins: 12 }]))).toBe(true)
+  view.unmount()
+})
+
 it('does not reuse private answers after the dashboard is unmounted for an identity change', async () => {
   const props = { runId: 'r1', page: 'records', query: '', onNavigate: vi.fn(), onOpenRun: vi.fn() }
   const first = render(<DashboardView {...props} />)

@@ -106,6 +106,7 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
         <ul>{data.readiness.limitations.map((text, i) => <li key={i} dir="auto">{text}</li>)}</ul>
       </details>
     </section>
+    <p className="exec-muted">{t('exec.contextUnconfirmed')}</p>
     <div className="exec-kpis exec-featured">{featured.map((measure) => <Kpi key={measure.key} measure={measure} compact currency={data.currency ?? null} context={data} evidenceAction={refs} />)}</div>
 
     <div className="exec-insights">

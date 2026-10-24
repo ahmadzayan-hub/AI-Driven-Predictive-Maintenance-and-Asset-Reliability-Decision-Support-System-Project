@@ -5,6 +5,7 @@ import { definePack } from '../../i18n/pack'
 export const dashMessages = definePack(
   {
     'dash.title': 'Dashboard',
+    'dash.numericContext': 'Recorded values only; confirm units and performance targets.',
     'dash.pick': 'Choose an analysis to explore. Every figure is computed from its cleaned table.',
     'dash.uploadMaintenance': 'Analyse maintenance data',
     'dash.failed': 'The analyses could not be loaded. Please try again.',
@@ -74,6 +75,7 @@ export const dashMessages = definePack(
   },
   {
     'dash.title': 'لوحة المعلومات',
+    'dash.numericContext': 'قيم مسجّلة فقط؛ تحقّق من الوحدات ومستهدفات الأداء.',
     'dash.pick': 'اختر تحليلاً لاستكشافه. كل رقم محسوب من جدوله المنظَّف.',
     'dash.uploadMaintenance': 'تحليل بيانات الصيانة',
     'dash.failed': 'تعذّر تحميل التحليلات. يرجى المحاولة مجددًا.',
