@@ -248,8 +248,9 @@ function Kpi({ measure, currency, context, evidenceAction, compact = false }: {
   const verdict = tone === 'good' || tone === 'okay' || tone === 'bad'
     || measure.assessment?.reason_code === 'target_outdated'
   const share = measure.scale === 'percent' && measured !== null ? Math.max(0, Math.min(100, measured)) : null
+  const Heading = compact ? 'h4' : 'h5'
   return <article className="exec-kpi" data-family={measure.family} data-source={`kpi.${measure.key}`}>
-    <h5 dir="auto">{measure.title}</h5><p
+    <Heading dir="auto">{measure.title}</Heading><p
       className={`exec-kpi-value${measured === null ? ' exec-kpi-value--missing' : ''}`}><PerformanceValue tone={tone} reason={verdict ? measure.assessment?.reason : undefined}><bdi><span
       className="exec-kpi-n">{value}</span>{unit ? <>{unit.length > 2 ? ' ' : '\u00a0'}<small>{unit}</small></> : null}</bdi></PerformanceValue></p>
     {share === null ? null : <svg className="exec-kpi-meter" viewBox="0 0 100 4" preserveAspectRatio="none"
