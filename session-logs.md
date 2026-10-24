@@ -1654,6 +1654,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** both original heads passed hosted checks; combined-head verification is required before completing the second merge. Main automatic deployment remains disabled in the unchanged Vercel configuration.
 - **Next:** finish combined CI and the normal pull-request merge. No production deployment, settings or database write is part of this reconciliation.
 
+## 2026-10-24 - Reviewed MBA reference collection
+
+- **Done:** prepared original source-cited summaries, method/validation guidance, safe schema examples and explicit partial coverage. Default source lookup uses the existing Markdown loader; explicit roots remain exclusive, private access checks remain in place and model-context forwarding stays disabled. Existing logs, board entries and original source material are preserved.
+- **Verified:** focused knowledge/access/documentation checks, strict brain check, source lookup and publication-boundary checks passed; exact results are in README Testing. The full verifier failed with Windows temporary-file cleanup and child-process import errors, plus missing frontend tools in the isolated checkout. Those failures remain open; no dependency installation or full-suite acceptance is claimed.
+- **Decided:** publish only reviewed original summaries and bibliography/schema references under the owner's authorization. Source books/slides, raw extraction, dataset records, private audit paths and private reports remain excluded. Reference availability does not establish model execution, analytical-stage invocation, independent review or human approval.
+- **Next:** open the authorized draft pull request, inspect exact-head CI and obtain human review. No merge, deployment, provider call or production database change is part of this work.
 ## 2026-10-24 · `period-coverage-evidence` · fix/period-coverage-evidence
 
 **Goal:** allow truthful report generation without weakening numerical evidence validation.
@@ -1663,3 +1669,12 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Decisions:** record counts do not prove calendar completeness; scenario assumptions are not validated savings. Keep validator, model-grounding limits and approval gates unchanged.
 - **Open / next:** exact-head CI and owner review before any merge or deployment; comparable exposure and prediction timing remain prerequisites for operational forecasts.
 - **Blockers:** cloud environment lacks the PostgreSQL Python driver; no installation or hosted acceptance claimed.
+
+
+## 2026-10-24 — Combined knowledge and analytics verification
+
+- **Done:** combined the reviewed knowledge-reference and period-coverage branches preserving the reviewed application changes. Preserved both branches’ README verification records, progress entries and session history.
+- **Verified:** independent reviews found no outstanding blocker; original-head and combined-head hosted checks remain required before the approved normal merges.
+- **Next:** complete combined CI, then verify the final main commit. Login, production activation, settings and database writes remain outside this code-only wave.
+
+- **Additional correction:** retained the named counter-direction contribution outside the top-five display subset, with English/Arabic evidence and tamper regressions. Independent focused tests and the reported mapping pass; combined hosted acceptance is still required.

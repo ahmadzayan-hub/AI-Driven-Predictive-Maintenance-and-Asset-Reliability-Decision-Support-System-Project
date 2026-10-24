@@ -62,3 +62,7 @@ as evidence. The figure validator and privacy/model-grounding guards remain
 unchanged; a longer scenario claim was shortened to keep existing built-in
 notes inside their unchanged bound. Legacy Arabic evidence labels remain
 supported when old calculations are re-rendered.
+
+## Counter-direction evidence follow-up
+
+The named counter-direction contribution may fall outside the top-five display subset. Retain its calculation and cite it alongside the total instead of citing only the total. English/Arabic regressions cover both outside and inside the subset, unique evidence IDs and rejection of tampered values. Numerical validation and approval gates remain unchanged. Independent focused tests and the reported mapping passed; combined-head hosted CI remains required.

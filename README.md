@@ -16,6 +16,8 @@ Python · FastAPI · React · TypeScript · English / العربية
 
 ## What this workspace helps you do
 
+- **Consult reviewed method references.** The [MBA analytics reference](knowledge/mba-analytics/README.md) contains original source-cited summaries and validation guidance, with [partial coverage](knowledge/mba-analytics/COVERAGE.md). Existing source lookup includes it by default; model-context forwarding remains disabled. Reference availability is not evidence that an analytical agent has used it.
+
 - **Find what needs attention.** Explore downtime, maintenance cost and asset observations within a defined dataset and period.
 - **Understand the finding.** Follow the analysis, inspect calculations, compare models with baselines, and read the limitations.
 - **Make the decision.** Review the exact report before approving publication; preserve its evidence for the next conversation.
@@ -550,6 +552,24 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+Reviewed MBA reference candidate (24 October 2026, base `e2200274`):
+`python -m unittest tests.test_mba_knowledge tests.test_knowledge tests.test_knowledge_access tests.test_docs`
+passes **57 tests**, including default API lookup, Arabic/English citations,
+exclusive root overrides, private-access isolation, collection-ID collisions
+and model-context exclusion. Brain strict check passes with **47 notes** and
+no broken links, stale notes, duplicate candidates, unlinked mentions or orphans.
+
+The full local verifier **did not pass**: Python discovery ran **2,254 tests**
+with **248 skipped, 3 failures and 21 errors**; a repeat with complete diagnostics
+reproduced those counts. Errors were Windows `WinError 32` cleanup failures on
+temporary motion SQLite files; failures were fresh-process `WinError 10106`
+imports of `_overlapped`. These remain unresolved full-suite failures, not
+passing acceptance. Server dependency checks and native run logic passed.
+Frontend typecheck, unit tests and production build could not run successfully
+because this isolated checkout has no installed `tsc`/`vitest`; the interface
+budget did not run after the build failure. No dependencies were installed.
+PostgreSQL and browser end-to-end acceptance are not established locally;
+exact-head hosted CI and review remain required. See [the decision](docs/adr/2026-10-24-reviewed-mba-reference-collection.md).
 Period-coverage evidence candidate (24 October 2026): on main `674260dc` plus
 the reviewed local patch, the focused analytics/mapping/report/worker command
 ran 308 tests successfully (28 skipped). `python3 -m unittest discover tests`
@@ -2337,5 +2357,6 @@ does not create or change a license; existing third-party notices apply.
 - Product: AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project
 - Engine: Agentic OS
 - Version: 1.0.0
+
 
 

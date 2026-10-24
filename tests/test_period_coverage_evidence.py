@@ -105,3 +105,33 @@ class PeriodCoverageEvidenceTests(unittest.TestCase):
             _, results = run_pipeline(linear_dataset().replace('Alpha','A'*width), mapping=explicit_grouping())
             facts = [c['text'] for c in results['prescriptive']['claims']]
             self.assertIsNotNone(grounded(built_in_agent_note('prescriptive',facts),facts))
+
+
+class DiagnosticContributionEvidenceTests(unittest.TestCase):
+    def test_counter_direction_group_outside_top_five_retains_cited_value(self):
+        names = ("Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta")
+        for deltas, expected_index in (((1000, 900, 800, 700, 600, -123), 5),
+                                       ((1000, 900, 800, 700, 600, -723), 3)):
+            lines = ["month,team,sales"]
+            for month in range(6):
+                for name, delta in zip(names, deltas):
+                    lines.append(f"2025-{month + 1:02d},{name},{2000 + delta * month / 5}")
+            for language in ("en", "ar"):
+                with self.subTest(index=expected_index, language=language):
+                    ctx, results = run_pipeline("\n".join(lines), language=language,
+                                                mapping=explicit_grouping())
+                    diag = results["diagnostic"]
+                    claim = next(c for c in diag["claims"] if c["id"] == "cl_decline")
+                    calcs = {c["id"]: c for c in diag["calculations"]}
+                    selected = f"c_contrib_{expected_index}"
+                    self.assertEqual(claim["evidence"], [selected, "c_totalchange"])
+                    self.assertEqual(calcs[selected]["value"], deltas[-1])
+                    self.assertTrue(analytics.claim_figures_match(claim, calcs))
+                    self.assertEqual(results["validator"]["status"], "succeeded")
+                    self.assertEqual(results["reporter"]["status"], "succeeded")
+                    contribution_ids = [c["id"] for c in diag["calculations"]
+                                        if c["id"].startswith("c_contrib_")]
+                    self.assertEqual(len(contribution_ids), 6 if expected_index == 5 else 5)
+                    self.assertEqual(len(contribution_ids), len(set(contribution_ids)))
+                    tampered = {**calcs, selected: {**calcs[selected], "value": 42}}
+                    self.assertFalse(analytics.claim_figures_match(claim, tampered))

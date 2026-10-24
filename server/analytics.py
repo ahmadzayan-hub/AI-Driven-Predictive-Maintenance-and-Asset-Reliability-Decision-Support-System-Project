@@ -1636,13 +1636,20 @@ def diagnostic(ctx):
         if against:
             worst = max(against, key=lambda c: abs(c["change"]))
             index = contributions.index(worst)
+            if index >= 5:
+                # The named counter-direction group can be outside the display
+                # subset. Preserve its value as evidence, not just the total.
+                calcs.append({"id": f"c_contrib_{index}",
+                              "name": f"change_from_{worst['group']}",
+                              "value": worst["change"],
+                              "method": f"{measure} for “{worst['group']}” in {last} minus {first}"})
             claims.append(_claim(
                 ctx, "cl_decline", "finding",
                 f"“{worst['group']}” moved against the overall direction, changing "
                 f"{worst['change']:,.2f} between the first and last period.",
                 f"تحرك «{worst['group']}» عكس الاتجاه العام، إذ تغير بمقدار "
                 f"{worst['change']:,.2f} بين الفترة الأولى والأخيرة.",
-                [f"c_contrib_{index}", "c_totalchange"] if index < 5 else ["c_totalchange"]))
+                [f"c_contrib_{index}", "c_totalchange"]))
 
     # Which other numeric columns move together with the measure?
     associations = []

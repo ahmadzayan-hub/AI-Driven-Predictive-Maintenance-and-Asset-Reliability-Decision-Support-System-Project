@@ -3,7 +3,7 @@ type: concept
 aliases: []
 tags: [agents]
 status: active
-updated: 2026-10-23
+updated: 2026-10-24
 review_every_days: 30
 sources: [server/knowledge.py, server/rmd_service.py, server/rmd_assistant.py, server/deadline.py, docs/RMD_EVIDENCE.md, docs/adr/0057-markdown-knowledge-collections.md, docs/adr/2026-10-20-personal-data-model-boundary.md, docs/adr/2026-10-22-rmd-evidence-and-insights.md, docs/adr/2026-10-23-rmd-runtime-context.md]
 ---
@@ -16,7 +16,9 @@ Knowledge retrieval searches configured Markdown reference collections and retur
 
 - Retrieval uses deterministic keyword scoring, not embeddings or an undocumented vector service.
 - Heading paths provide citations. Tables and formulas stay together when passages are prepared.
-- Reference content lives outside tracked product files; the configured collection is operator-managed reference material.
+- Original sources and operator-private content stay outside tracked product files. The reviewed [[MBA analytics reference]] contains only approved original summaries and safe schema examples in a bundled collection.
+- Default lookup includes bundled and private collections; an explicit root remains exclusive. Bundled collection IDs cannot be shadowed by a private collection during default lookup.
+- Public readability does not imply model permission: the MBA collection keeps model-context forwarding disabled.
 - Retrieved text is data, never instructions. This collection search does not mean the curated brain or the user's published vault is automatically indexed.
 - Results measured on tuning questions are not independent evidence of general retrieval quality.
 

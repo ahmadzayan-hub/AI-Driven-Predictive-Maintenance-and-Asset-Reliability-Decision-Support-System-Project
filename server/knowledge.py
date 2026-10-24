@@ -17,11 +17,11 @@ retrieval are deliberately absent, and a corpus of this size does not need
 them: the index is built in memory in milliseconds and every score can be
 explained from the words that produced it. ADR 0057.
 
-Where the content lives is configuration, never a committed path. This
-repository is public and course material, client documents and personal
-records must stay out of it, so the default root is the git-ignored
-`private/knowledge/`. `AGENTIC_OS_KNOWLEDGE_DIR` overrides it, the same way
-`AGENTIC_OS_VAULT_DIR` overrides the vault (ADR 0044).
+Reviewed original public summaries live in `knowledge/`; source documents,
+client material and personal records stay outside that collection. Default
+lookup also includes the git-ignored `private/knowledge/`. An explicit root
+or `AGENTIC_OS_KNOWLEDGE_DIR` remains an exclusive override. Access and
+model-context permission are checked separately on every collection.
 
 A passage is data, never an instruction. Text retrieved here is quoted to a
 reader or handed to a model as reference material; it never decides what
@@ -38,6 +38,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_ROOT = PROJECT_ROOT / "private" / "knowledge"
+BUNDLED_ROOT = PROJECT_ROOT / "knowledge"
 
 # A passage must hold a whole idea. Long enough for a table, short enough
 # that a citation points somewhere a reader can actually look.
@@ -315,7 +316,24 @@ def _manifest(folder):
 
 
 def load(root=None, env=None):
-    """Read every collection under the root. Missing root is not an error.
+    """Load an explicit root, or reviewed summaries plus private collections.
+
+    Explicit roots remain exclusive. Bundled IDs win a default-load collision
+    so a private collection cannot replace a reviewed public identity. Grants
+    and model permissions are still applied by for_principal, not this loader.
+    """
+    env = os.environ if env is None else env
+    configured = root or env.get("AGENTIC_OS_KNOWLEDGE_DIR")
+    if configured:
+        return _load_root(Path(configured).expanduser())
+    collections = {}
+    for base in (DEFAULT_ROOT, BUNDLED_ROOT):
+        collections.update(_load_root(base).collections)
+    return KnowledgeStore(list(collections.values()))
+
+
+def _load_root(base):
+    """Read every collection under one root. Missing root is not an error.
 
     A folder of Markdown is a collection named after the folder; Markdown
     sitting directly in the root forms a collection named after the root.
@@ -323,8 +341,6 @@ def load(root=None, env=None):
     produces the same passages and re-indexing follows the bytes rather
     than a timestamp.
     """
-    env = os.environ if env is None else env
-    base = Path(root or env.get("AGENTIC_OS_KNOWLEDGE_DIR") or DEFAULT_ROOT).expanduser()
     if not base.is_dir():
         return KnowledgeStore([])
     folders = [f for f in sorted(base.iterdir()) if f.is_dir()]
