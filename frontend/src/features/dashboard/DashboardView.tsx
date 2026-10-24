@@ -466,7 +466,7 @@ function OverviewPage({ runId, roles, state, filters, setState }: PageProps) {
           </div>
         ) : null}
         {roles.date ? (
-          <details className="card"><summary>{t('dash.page.trend')}</summary>
+          <details className="card" open={!roles.breakdown}><summary>{t('dash.page.trend')}</summary>
             {trend.loading ? <Loading /> : (
               <Figure
                 title={t('dash.chart.trend', { measure: m, date: roles.date })}

@@ -52,6 +52,10 @@ review queue precede the full brief. The period trend and its coverage warning
 stay together behind a labelled disclosure. Raw totals imply neither exposure
 normalization nor a valid forecast.
 
+If there is no grouping column, the trend is the primary chart and starts open
+with its coverage warning. The existing bilingual omitted-period regression
+guards this fallback; it must not be weakened to accept an empty opening.
+
 The source filename and selected record count share a secondary provenance line.
 Dashboard pages and filters use contextual disclosures. The sidebar has Decision,
 Data & analysis, and Reports & outputs, plus a secondary Workspace tools
