@@ -78,6 +78,9 @@ test('the opening shows governed KPIs and a real comparison before the detailed 
   }
   const chart = page.locator('.dash-overview-charts').getByRole('img').first()
   await expect(chart).toBeVisible()
+  // Capture the actual opening before layout assertions, including failures.
+  // This remains a synthetic test preview, never live-data acceptance evidence.
+  await page.screenshot({ path: `../docs/screenshots/${testInfo.project.name}-phase1-executive-opening.png`, animations: 'disabled' })
   if (testInfo.project.name === 'desktop') {
     await expect(featured.first()).toBeInViewport({ ratio: 1 })
     await expect(chart).toBeInViewport({ ratio: 1 })
@@ -597,9 +600,9 @@ for (const language of ['en', 'ar'] as const) {
       // can otherwise capture unrelated content or clipped cards even though
       // Playwright succeeds. Enlarge only capture height, never tested width;
       // restore the actual phone height before layout/accessibility assertions.
-      const familyHeight = await page.locator('.exec-family').evaluateAll((families) =>
-        Math.max(...families.map((family) => family.getBoundingClientRect().height)))
-      await page.setViewportSize({ width: viewport.width, height: Math.ceil(familyHeight) + 400 })
+      const captureHeight = await page.locator('.exec-family, .exec-featured').evaluateAll((groups) =>
+        Math.max(...groups.map((group) => group.getBoundingClientRect().height)))
+      await page.setViewportSize({ width: viewport.width, height: Math.ceil(captureHeight) + 400 })
       await fix.evaluate((element) => element.scrollIntoView({ block: 'center', behavior: 'instant' }))
       await expect(fix).toBeInViewport({ ratio: 1 })
       await fix.screenshot({ path: `${prefix}-expanded-evidence.png`, animations: 'disabled' })

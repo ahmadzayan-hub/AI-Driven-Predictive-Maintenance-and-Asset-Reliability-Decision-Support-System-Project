@@ -1718,3 +1718,10 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Verified: source review and accumulated diff whitespace check pass. The preceding exact head passed hosted frontend units, typecheck, build and fast budget; its full browser suite was still running when these additional stale assumptions were found. This follow-up has not yet passed hosted CI. Local test/build execution remains deferred by measured memory; live assets and saved data are unchanged.
 - Decided: keep semantic UI interaction and every evidence/export/approval boundary; do not skip cases, inflate timeouts or raise size budgets.
 - Next: run existing exact-head CI, inspect its real browser results and only exchange assets from a successful matching artifact. Capture the actual local revision after served-hash and browser checks.
+
+## 2026-10-24 — Exact-viewport and expanded-evidence capture repair
+
+- Done: expanded KPI captures now measure both the featured row and the detailed families. Added a fresh synthetic opening capture before viewport assertions, so a failed layout remains visible in test evidence.
+- Verified: source review and diff whitespace checks pass. The fixed opening remains at the original desktop/phone viewport; expanded captures still restore that viewport before reflow and accessibility assertions. Hosted verification is required; no local asset replacement or new live screenshot is claimed.
+- Decided: separate a labelled automated test preview from release acceptance. Keep full chart intersection, evidence and approval assertions unchanged.
+- Next: inspect exact-head hosted results, correct any real layout failure, and use only a successful matching artifact for local acceptance.
