@@ -201,3 +201,79 @@ class ToolBox:
                     "text": model_privacy.notice(language)}
         return {"ok": True, "arguments": arguments,
                 "result": outcome.get("result"), "text": outcome["text"]}
+
+
+def specialist_model_view(value):
+    """Losslessly encode server-generated SHA metadata without phone-like digits.
+
+    Actual source/artifact hashes stay unchanged in durable checkpoints. Only
+    documented hash fields with exact lowercase SHA-256 shape are transformed
+    for the model transport. A generated report's duplicate human markdown is
+    omitted: its text, claims and calculations are still scanned and sent.
+    Arbitrary content fields, source text and numbers are never exempted.
+    """
+    import re
+    if isinstance(value, dict):
+        # Only the installed draft_report handler emits this full shape. The
+        # human markdown duplicates the retained text/calculations and appends
+        # server-generated SHA provenance; scanning that duplicate would treat
+        # valid digit-heavy hashes as personal phone numbers. Do not strip an
+        # arbitrary content field or exempt draft text/claims from inspection.
+        human_draft = (isinstance(value.get("claim_refs"), list)
+                       and isinstance(value.get("text"), str)
+                       and isinstance(value.get("claims"), list)
+                       and isinstance(value.get("calculations"), list)
+                       and isinstance(value.get("hash"), str)
+                       and re.fullmatch(r"[a-f0-9]{64}", value["hash"]))
+        return {key: ("sha256-ap:" + "".join("abcdefghijklmnop"[int(c, 16)] for c in item)
+                      if key in {"sha256", "analysis_sha256", "hash", "draft_hash"} and isinstance(item, str)
+                      and re.fullmatch(r"[a-f0-9]{64}", item)
+                      else specialist_model_view(item)) for key, item in value.items()
+                if not (human_draft and key == "content")}
+    if isinstance(value, list):
+        return [specialist_model_view(item) for item in value]
+    return value
+
+
+class ScopedToolBox(ToolBox):
+    """A bounded subset of a trusted catalogue, with the same call transcript.
+
+    Specialist tools are pure/read-only computations. Their handlers are code,
+    never names or callables supplied by a model. Unlike the conversational
+    compatibility path, extra arguments are rejected rather than discarded.
+    """
+
+    def __init__(self, catalogue, handlers, allowed, max_steps=MAX_STEPS):
+        super().__init__(None, None, max_steps=max(1, min(MAX_STEPS, max_steps)))
+        self.catalogue = {item["name"]: item for item in catalogue}
+        self.handlers = dict(handlers)
+        self.allowed = frozenset(allowed)
+        if not self.allowed <= self.catalogue.keys() or not self.allowed <= self.handlers.keys():
+            raise ValueError("A tool grant must name an installed catalogue handler.")
+        if self.allowed & (DESTRUCTIVE | {"publish", "approve", "delete", "shell"}):
+            raise ValueError("Specialist grants cannot include consequential actions.")
+
+    def describe(self):
+        import copy
+        return [copy.deepcopy(self.catalogue[name]) for name in sorted(self.allowed)]
+
+    def _call(self, name, given):
+        failure = {"ok": False, "arguments": {}, "result": None,
+                   "text": "Tool request rejected / رُفض طلب الأداة"}
+        if len(self.steps) >= self.max_steps or name not in self.allowed:
+            return failure
+        if not schema.valid(self.catalogue[name]["inputSchema"], given):
+            return failure
+        if len(json.dumps(given, ensure_ascii=False).encode()) > 24000:
+            return failure
+        try:
+            result = self.handlers[name](**given)
+            encoded = json.dumps(result, ensure_ascii=False, allow_nan=False)
+            outgoing = json.dumps(specialist_model_view(result), ensure_ascii=False, allow_nan=False)
+            if len(encoded.encode()) > 32768 or model_privacy.blocks_model(texts=[outgoing]):
+                return failure
+        except Exception:
+            # A handler's exception can contain source data or a local path.
+            return failure
+        return {"ok": True, "arguments": given, "result": result,
+                "text": encoded[:MAX_STEP_TEXT]}

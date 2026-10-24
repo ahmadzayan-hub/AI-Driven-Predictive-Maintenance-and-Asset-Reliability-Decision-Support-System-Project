@@ -40,6 +40,16 @@ Its only daemon has zero instances; do not copy it into production automatically
   calculations, maintenance rules and governed reports work without paid models;
   they are labelled built-in, not represented as a live external LLM.
 
+Optional specialist activation is a separate reviewed mode, never the default:
+`AGENTIC_OS_SPECIALISTS_ENABLED=1`, an explicit matching
+`AGENTIC_OS_SPECIALIST_MODEL=provider:model`, and an explicit positive existing
+`AGENTIC_OS_QUOTA_MODEL_CALLS_PER_DAY` are additionally required on API and worker.
+The selected provider must already be configured and separately approved for
+the exact recipient, cost and data scope. No router, role-to-provider map or
+cross-provider fallback is accepted for this mode. A matching worker heartbeat
+is only recent configuration activity; live-model verification is still pending.
+See the [wiring decision](../adr/2026-10-23-specialist-runtime-wiring.md).
+
 Configuring these settings is a separate approved action. The activation string
 is only an accidental-start guard and does not grant permissions. The container
 starts `python -m server.daemon`; it does not run migrations, publish automatically

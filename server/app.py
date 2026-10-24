@@ -435,7 +435,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
                     del session_locks[stale]
             return session_locks.setdefault(session_id, threading.Lock())
 
-    gateway = ModelGateway()
+    gateway = ModelGateway(os.environ if env is None else env)
     # The unwrapped gateway keeps the model call ledger (finding G4);
     # a router wraps it without replacing it.
     base_gateway = gateway
@@ -453,11 +453,18 @@ def create_app(config_path=None, env=None, dist_dir=None):
     # Hosted PostgreSQL (DATABASE_URL / config "database_url") when
     # configured; local SQLite otherwise. See docs/adr/0001-database.md.
     store = open_store(
-        os.environ.get("DATABASE_URL") or config.get("database_url"),
+        (os.environ if env is None else env).get("DATABASE_URL") or config.get("database_url"),
         config.get("database_file") or PROJECT_ROOT / "data" / "agentic.db",
         schema_mode="verify",
     )
     limits = load_limits(env)
+    base_gateway.budget = ModelBudget(store, limits)
+    from server.specialist_config import configure_specialists, pipeline_metadata, worker_prefix
+    specialist_driver, specialist_capability = configure_specialists(
+        gateway, store, os.environ if env is None else env, identity_mode=identity.mode,
+        execution_mode=(os.environ if env is None else env).get("AGENTIC_OS_RUN_EXECUTION", "client"),
+        publish_target=resolve_publish_target(env, config))
+    app.state.specialist_capability = specialist_capability
     # Custom stages (ADR 0020). A stage that fails to load leaves the
     # pipeline as it was; the problem is reported, not raised.
     stage_registry, stage_problems = load_stages(env, config)
@@ -472,6 +479,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         execution_mode=(os.environ if env is None else env).get("AGENTIC_OS_RUN_EXECUTION", "client"),
         roles=model_roles if model_roles.active else None,
         publish_target=resolve_publish_target(env, config),
+        specialist_driver=specialist_driver,
     )
     app.state.engine = engine
     app.state.store = store
@@ -561,7 +569,6 @@ def create_app(config_path=None, env=None, dist_dir=None):
         window_seconds=int(environ.get("AGENTIC_OS_RATE_WINDOW", "60")),
     )
     # The owner's daily model budget, charged through the tenant context.
-    base_gateway.budget = ModelBudget(store, limits)
     app.state.gateway = base_gateway
 
     @app.middleware("http")
@@ -813,6 +820,10 @@ def create_app(config_path=None, env=None, dist_dir=None):
             **liveness,
             "model_provider": gateway.status(),
             "model_configuration": base_gateway.configuration_report(),
+            "specialist_execution": {**specialist_capability,
+                "worker_capable": specialist_capability["configured"] and
+                    worker_status(store, engine.execution_mode,
+                        expected_prefix=worker_prefix(specialist_capability))["ready"]},
             "model_roles": model_roles.status(),
             "model_map": model_roles.model_map(),
             # A misconfigured router is the operator's to fix, and they
@@ -1122,6 +1133,10 @@ def create_app(config_path=None, env=None, dist_dir=None):
         # A retried POST with the same Idempotency-Key (header, or the
         # body's idempotency_key) returns the run already made, as 200
         # rather than 201, instead of creating a second one (B14).
+        if run.profile == "specialist_evidence" and not specialist_capability["configured"]:
+            raise HTTPException(503, detail={"code": "specialist_unavailable",
+                "reason": specialist_capability["reason"],
+                "message": specialist_capability["message_ar" if run.language == "ar" else "message"]})
         with lock:
             try:
                 detail = engine.create_run(run.goal, run.dataset_text,
@@ -1180,8 +1195,11 @@ def create_app(config_path=None, env=None, dist_dir=None):
         """The registered custom stages, the profiles that choose among
         them, what a run gets by default, and why any stage could not
         be loaded."""
-        return {"stages": [describe(d) for d in engine.stages.values()],
-                "profiles": engine.profiles,
+        specialist_plan = pipeline_metadata(specialist_capability)
+        return {"stages": [describe(d) for d in engine.stages.values()] + specialist_plan["stages"],
+                "profiles": {**engine.profiles, **specialist_plan["profiles"]},
+                "explicit_plans": specialist_plan["explicit_plans"],
+                "specialist_execution": specialist_capability,
                 "default": engine.custom_roles_for(None),
                 "problems": app.state.stage_problems}
 
@@ -1339,14 +1357,26 @@ def create_app(config_path=None, env=None, dist_dir=None):
         with lock:
             return _run_or_404(lambda: engine.get_run(run_id), principal, run_id)
 
+    @app.middleware("http")
+    async def private_motion_responses(request: Request, call_next):
+        response = await call_next(request)
+        if (request.url.path.startswith("/api/motion/")
+                or request.url.path.endswith("/motion-storyboard")):
+            response.headers.update({"Cache-Control": "private, no-store, max-age=0",
+                                     "Pragma": "no-cache", "Vary": "Authorization"})
+        return response
+
     @app.get("/api/runs/{run_id}/motion-storyboard")
     def motion_storyboard(run_id: str, principal=Depends(requires("read"))):
         """Read-only storyboard generated server-side from owned evidence."""
-        from server.motion_storyboard import MotionStoryRefused, from_run
+        from server.motion_storyboard import MotionStoryRefused, from_evidence_run
+        from server.rmd_service import RmdError
         with lock:
             run = _run_or_404(lambda: engine.get_run(run_id), principal, run_id)
         try:
-            return from_run(run)
+            return from_evidence_run(rmd, principal, run)
+        except RmdError:
+            raise HTTPException(status_code=404, detail="Run not found.") from None
         except MotionStoryRefused as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
 
@@ -1358,8 +1388,54 @@ def create_app(config_path=None, env=None, dist_dir=None):
     ) and identity.mode != "demo"
     if motion_enabled:
         from server.motion_local import LocalMotion, MotionError, MAX_BYTES
-        from server.motion_storyboard import from_run, MotionStoryRefused
+        from server.motion_storyboard import from_evidence_run, MotionStoryRefused
+        from server.rmd_service import RmdError
         motion = LocalMotion()
+
+        def media_source(job_id, principal, *, write=False, review=False, allow_stale=False):
+            """Existing source grants are checked live; a job is not a grant."""
+            try:
+                try:
+                    row = motion._record(job_id)
+                except MotionError:
+                    raise KeyError(job_id) from None
+                is_author = row["owner"] == principal.subject
+                if write and not is_author:
+                    raise KeyError(job_id)
+                run = _run_or_404(lambda: engine.get_run(row["run_id"]), principal, row["run_id"],
+                                  permission="write" if write else "read")
+                if review or not is_author:
+                    if (identity.mode == "local" or not principal.can("approve")
+                            or (not is_author and row["status"] not in {"REVIEW_REQUESTED", "INTERNAL_APPROVED", "RETURNED", "SCRIPT_REVIEW_REQUESTED", "SCRIPT_APPROVED"})):
+                        raise KeyError(job_id)
+                    scoped = authorize_evidence_run(rmd, principal, row["run_id"], "authorize")
+                    if scoped is False or (scoped is None and not principal.can("admin")):
+                        raise KeyError(job_id)
+                try:
+                    story = from_evidence_run(rmd, principal, run)
+                except MotionStoryRefused:
+                    if allow_stale:
+                        return dict(row, needs_update=True)
+                    raise
+                flow = motion.workflow(row)
+                if flow:
+                    story["format"] = flow["format"]
+                canonical_story = json.dumps(story, ensure_ascii=False, sort_keys=True)
+                import hashlib
+                if (hashlib.sha256(canonical_story.encode()).hexdigest() != row["storyboard_sha"]
+                        or hashlib.sha256(row["storyboard"].encode()).hexdigest() != row["storyboard_sha"]):
+                    if allow_stale:
+                        return dict(row, needs_update=True)
+                    raise MotionError("Source report changed; create a new video draft / تغير التقرير؛ أنشئ مسودة فيديو جديدة")
+                return row
+            except HTTPException as exc:
+                if exc.status_code == 404:
+                    raise HTTPException(404, detail="Video unavailable / الفيديو غير متاح") from None
+                raise
+            except (KeyError, RmdError):
+                raise HTTPException(404, detail="Video unavailable / الفيديو غير متاح") from None
+            except (MotionError, MotionStoryRefused) as exc:
+                raise HTTPException(409, detail=str(exc)) from None
 
         @app.post("/api/motion/runs/{run_id}/render", status_code=202)
         async def create_motion_video(
@@ -1367,6 +1443,8 @@ def create_app(config_path=None, env=None, dist_dir=None):
             narration_suffix: str = Query(default=".wav", pattern=r"^\.(wav|m4a|mp3|aac|flac)$"),
             principal=Depends(requires("write")),
         ):
+            with lock:
+                _run_or_404(lambda: engine.get_run(run_id), principal, run_id, permission="write")
             # Raw audio bytes; no multipart spooling. Read at most 24MB+1.
             size = 0
             audio = bytearray()
@@ -1376,26 +1454,125 @@ def create_app(config_path=None, env=None, dist_dir=None):
                     raise HTTPException(413, detail="Narration exceeds 24MB")
                 audio.extend(chunk)
             with lock:
-                run = _run_or_404(lambda: engine.get_run(run_id), principal, run_id)
+                run = _run_or_404(lambda: engine.get_run(run_id), principal, run_id, permission="write")
             try:
+                story = from_evidence_run(rmd, principal, run)
                 return motion.create(
                     principal.subject, run_id, run,
-                    bytes(audio) if audio else None, suffix=narration_suffix,
+                    bytes(audio) if audio else None, suffix=narration_suffix, storyboard=story,
                 )
+            except RmdError:
+                raise HTTPException(404, detail="Run not found.") from None
             except (MotionError, MotionStoryRefused) as exc:
                 raise HTTPException(409, detail=str(exc)) from exc
+
+        @app.post("/api/motion/runs/{run_id}/draft", status_code=201)
+        async def create_motion_draft(
+            run_id: str, request: Request,
+            narration_suffix: str = Query(default=".wav", pattern=r"^\.(wav|m4a|mp3|aac|flac)$"),
+            audience: str = Query(default="internal", pattern=r"^(internal|leadership|maintenance)$"),
+            video_format: str = Query(default="wide", pattern=r"^(wide|vertical)$"),
+            parent_id: str | None = Query(default=None, max_length=80),
+            repair_note: str = Query(default="", max_length=2000),
+            principal=Depends(requires("write")),
+        ):
+            with lock:
+                _run_or_404(lambda: engine.get_run(run_id), principal, run_id, permission="write")
+            attempt = 0
+            root_id = None
+            if parent_id:
+                parent = media_source(parent_id, principal, write=True, allow_stale=True)
+                flow = motion.workflow(parent)
+                if (parent["run_id"] != run_id or not flow or parent["status"] not in {"FAILED", "RETURNED"}
+                        or not repair_note.strip()):
+                    raise HTTPException(409, detail="Repair requires a failed/returned workflow draft and an explanation")
+                root_id = flow["root_id"]
+                attempt = flow["repair_attempt"] + 1
+                if attempt > 2:
+                    raise HTTPException(409, detail="Two repair attempts exhausted; unresolved issues require human escalation")
+            # Raw audio bytes; no multipart spooling. Read at most 24MB+1.
+            size = 0
+            audio = bytearray()
+            async for chunk in request.stream():
+                size += len(chunk)
+                if size > MAX_BYTES:
+                    raise HTTPException(413, detail="Narration exceeds 24MB")
+                audio.extend(chunk)
+            with lock:
+                run = _run_or_404(lambda: engine.get_run(run_id), principal, run_id, permission="write")
+            try:
+                story = from_evidence_run(rmd, principal, run)
+                story["format"] = video_format
+                return motion.create(
+                    principal.subject, run_id, run,
+                    bytes(audio) if audio else None, suffix=narration_suffix, storyboard=story,
+                    workflow={"audience": audience, "format": video_format, "parent_id": parent_id,
+                              "repair_attempt": attempt, "repair_note": repair_note.strip(), "root_id": root_id,
+                              "creative_generation": "deterministic_evidence_template_not_llm_specialists"},
+                )
+            except RmdError:
+                raise HTTPException(404, detail="Run not found.") from None
+            except (MotionError, MotionStoryRefused) as exc:
+                raise HTTPException(409, detail=str(exc)) from exc
+
+        @app.get("/api/motion/jobs/{job_id}/script")
+        def motion_script(job_id: str, principal=Depends(requires("read"))):
+            row = media_source(job_id, principal)
+            try:
+                return motion.script(job_id, row["owner"])
+            except MotionError as exc:
+                raise HTTPException(409, detail=str(exc)) from None
+
+        @app.get("/api/motion/jobs/{job_id}/narration")
+        def motion_narration(job_id: str, principal=Depends(requires("read"))):
+            from server.motion_local import file_digest
+            row = media_source(job_id, principal)
+            audio = motion.base / row["audio_name"] if row["audio_name"] else None
+            if audio is None or not audio.is_file() or file_digest(audio) != row["audio_sha"]:
+                raise HTTPException(404, detail="Narration unavailable")
+            return FileResponse(audio, headers={"Cache-Control": "private, no-store", "X-Robots-Tag": "noindex"})
+
+        class ScriptApproval(BaseModel):
+            binding: str = Field(min_length=64, max_length=64)
+            reviewed_script: bool = False
+            checked_evidence: bool = False
+            checked_audience_format: bool = False
+            checked_narration_rights: bool = False
+
+        @app.post("/api/motion/jobs/{job_id}/script-approval")
+        def motion_script_approve(job_id: str, body: ScriptApproval,
+                                  principal=Depends(requires("approve"))):
+            media_source(job_id, principal, review=True)
+            try:
+                return motion.approve_script(job_id, principal.subject, body.binding,
+                    body.model_dump(exclude={"binding"}))
+            except MotionError as exc:
+                raise HTTPException(409, detail=str(exc)) from None
+
+        @app.post("/api/motion/jobs/{job_id}/render-approved", status_code=202)
+        def motion_render_approved(job_id: str, principal=Depends(requires("write"))):
+            media_source(job_id, principal, write=True)
+            try:
+                return motion.render_approved(job_id, principal.subject)
+            except MotionError as exc:
+                raise HTTPException(409, detail=str(exc)) from None
 
         @app.get("/api/motion/jobs/{job_id}")
         def motion_job(job_id: str, principal=Depends(requires("read"))):
             try:
-                return motion.view(job_id, principal.subject)
+                row = media_source(job_id, principal, allow_stale=True)
+                if row.get("needs_update"):
+                    return {"id": job_id, "needs_update": True, "status": "SOURCE_STALE",
+                            "next_action": "create_new_reviewed_draft", "publication_allowed": False}
+                return motion.view(job_id, row["owner"])
             except MotionError:
                 raise HTTPException(404, detail="No such owned video")
 
         @app.get("/api/motion/jobs/{job_id}/preview")
         def motion_preview(job_id: str, principal=Depends(requires("read"))):
             try:
-                video = motion.preview(job_id, principal.subject)
+                row = media_source(job_id, principal)
+                video = motion.preview(job_id, row["owner"])
             except MotionError:
                 raise HTTPException(404, detail="No such available owned MP4")
             return FileResponse(
@@ -1407,6 +1584,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         @app.post("/api/motion/jobs/{job_id}/submit")
         def motion_submit(job_id: str, principal=Depends(requires("write"))):
             try:
+                media_source(job_id, principal, write=True)
                 return motion.submit(job_id, principal.subject)
             except MotionError as exc:
                 raise HTTPException(409, detail=str(exc)) from exc
@@ -1423,24 +1601,9 @@ def create_app(config_path=None, env=None, dist_dir=None):
         @app.post("/api/motion/jobs/{job_id}/decision")
         def motion_decide(job_id: str, body: VideoDecision,
                           principal=Depends(requires("approve"))):
-            # A platform-wide approver is needed to verify a different
-            # account's source. Never infer approval from a local owner.
-            if not principal.crosses_owners or identity.mode == "local":
-                raise HTTPException(403, detail="Independent managed reviewer required")
-            with motion.lock, motion.connect() as con:
-                row = con.execute(
-                    "SELECT run_id,owner,storyboard_sha FROM motion_jobs WHERE id=?",
-                    (job_id,),
-                ).fetchone()
-            if row is None:
-                raise HTTPException(404, detail="No such video")
+            # Reviewer authority AND live source access; never grant membership.
+            row = media_source(job_id, principal, review=True)
             try:
-                run = engine.get_run(row["run_id"])
-                current_story = from_run(run)
-                canonical = json.dumps(current_story, ensure_ascii=False, sort_keys=True)
-                import hashlib
-                if hashlib.sha256(canonical.encode()).hexdigest() != row["storyboard_sha"]:
-                    raise MotionError("Source run was revised; render a new video")
                 return motion.decide(
                     job_id, principal.subject, body.outcome, body.note,
                     body.model_dump(exclude={"outcome", "note"}), approval_allowed=True,

@@ -177,9 +177,10 @@ interface RunsViewProps {
 // A profile's key is an identifier, not a label. Every shipped one gets a
 // translated name; an operator's own profile falls back to its key, which
 // is better than hiding it.
-const PROFILE_LABELS: Record<string, 'runs.profileModels' | 'runs.profileMaintenance'> = {
+const PROFILE_LABELS: Record<string, 'runs.profileModels' | 'runs.profileMaintenance' | 'runs.profileSpecialists'> = {
   models: 'runs.profileModels',
   maintenance: 'runs.profileMaintenance',
+  specialist_evidence: 'runs.profileSpecialists',
 }
 
 function stageTitles(pipelines: Pipelines, profile: string, locale: string): string[] {
@@ -242,7 +243,9 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
   // request failed (local to this tab, cleared on the next action).
   // Which analytics type's report is on screen. Descriptive is the floor
   // of the maturity ladder, so it opens first.
-  const [openReport, setOpenReport] = useState('descriptive')
+  const [preferredReport, setOpenReport] = useState('descriptive')
+  const openReport = run?.reports.some((section) => section.type === preferredReport)
+    ? preferredReport : run?.reports[0]?.type ?? ''
   const [localBusy, setBusy] = useState(false)
   const busy = localBusy || snapshot.pending
   const [localError, setErrorMessage] = useState<string | null>(null)
@@ -672,10 +675,10 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                     {t('runs.profile')}
                   </label>
                   <span className="field__help">
-                    {t('runs.profileHelp')}{' '}
-                    {stageTitles(pipelines, profile, locale).length > 0
+                    {t(pipelines.explicit_plans?.[profile] ? 'runs.profileExplicitHelp' : 'runs.profileHelp')}{' '}
+                    {!pipelines.explicit_plans?.[profile] && (stageTitles(pipelines, profile, locale).length > 0
                       ? t('runs.profileStages', { list: stageTitles(pipelines, profile, locale).join(', ') })
-                      : t('runs.profileNone')}
+                      : t('runs.profileNone'))}
                   </span>
                   <select
                     id="run-profile"

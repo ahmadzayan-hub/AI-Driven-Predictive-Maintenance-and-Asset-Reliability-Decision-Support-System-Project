@@ -52,7 +52,7 @@ Integrate a governed composition registry, upload validation, protected drafts, 
 
 ## 22 October 2026: implementation status and real-data handoff
 
-**Implemented in this draft PR (not merged):**
+**Implemented in the source tree (deployment remains separately verified):**
 - Standalone responsive HTML editor: `frontend/public/motion-studio/index.html`.
 - CSP-compatible local assets: `studio.js`, `studio.css`. No external audio/media upload.
 - UI lets authorized users export a **source-linked** `motion-evidence-v1` JSON manifest, load it in Motion Studio, edit three scene texts, and export it for local rendering.
@@ -94,3 +94,7 @@ For an established frame renderer, replace `--font` with `--frames "/path/to/fra
 **Hosting constraint:** SaaS Vercel serverless requests cannot be assumed to perform long-running motion rendering; use a separately provisioned authorized worker. RMD Vercel preview is static frontend only; local RMD FastAPI/backend must be available for live data.
 
 This is an integrated draft workflow and runnable local renderer, not a claim that a hosted one-click MP4 render or formal publication approval has been delivered.
+
+## Additive script gate
+
+The explicitly requested post-report draft branch and two-repair limit are described in [Motion script gates](adr/2026-10-23-motion-script-gates.md). This is a safety/workflow foundation over the existing local renderer, not a claim that multi-agent creative generation or real Arabic audiovisual quality is finished. New assistant integrations must use draft → independent script approval → approved render, not the retained legacy direct-render endpoint.

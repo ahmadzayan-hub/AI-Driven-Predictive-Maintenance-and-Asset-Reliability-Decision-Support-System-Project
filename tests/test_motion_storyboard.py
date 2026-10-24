@@ -16,7 +16,7 @@ def run():
              "quality_checks": [{"passed": True, "name": "source grounded"}]},
             {"role": "publish", "state": "awaiting_approval", "quality_checks": []},
         ],
-        "report": {"id": "REP-TEST-001", "version": 2},
+        "report": {"id": "REP-TEST-001", "version": 2, "content": "Synthetic report body"},
         "reports": [{"headline": "ارتفاع عدد الأعطال المسجلة في العينة"}],
     }
 
