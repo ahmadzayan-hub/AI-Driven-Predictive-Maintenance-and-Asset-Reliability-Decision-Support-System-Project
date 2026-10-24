@@ -16,6 +16,7 @@ from xml.etree import ElementTree as ET
 from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
 
 from server.report_fonts import verified_font, obfuscate_font, FONT_KEY
+from server.report_contract import model_audit
 from server.maintenance import performance
 from server.maintenance.kpis import POPULATION_AR, REGISTER
 
@@ -267,7 +268,8 @@ def report_sections(brief):
                    "clearly_above_chance", "positive_rate_held_out", "baseline_majority",
                    "baseline_best_rule", "baseline_rule_column", "groups",
                    "share_of_spread_explained", "separation", "period", "season_length"}
-        details = {k: v for k, v in (card.get("details") or {}).items()
+        saved_details = card.get("details") if isinstance(card.get("details"), dict) else {}
+        details = {k: v for k, v in saved_details.items()
                    if k in allowed and (v is None or isinstance(v, (str, int, float, bool)))}
         unsupported = card.get("fitted") is False or details.get("verdict") == "not_supported"
         verdict = tr("Not fitted / unsupported", "غير مدرّب / غير مدعوم") if unsupported else (
@@ -293,6 +295,7 @@ def report_sections(brief):
                     rows.append((tr(en, arabic), item))
         if details:
             rows.append((tr("Decision, horizon and limitations", "القرار والأفق والحدود"), details))
+        rows.extend((item["label_ar" if ar else "label_en"], item["value"]) for item in model_audit(card))
         models.tables.append(properties(rows))
     if not brief["models"]:
         models.paragraphs.append(tr("No model evaluation is available; predictive performance is not claimed.", "لا يتوفر تقييم نموذج؛ ولا يُدّعى وجود أداء تنبؤي."))
@@ -303,6 +306,41 @@ def report_sections(brief):
         tr("Value", "القيمة"), tr("Method", "الطريقة")), [(
             item["id"], item["label"] + "\n" + (tr("Selected scope", "النطاق المحدد") if item["scope"] == "filtered" else tr("Whole run", "التشغيل الكامل")),
             value(item["value"]), item["method"]) for item in brief["evidence"]], (22, 22, 20, 36)))
+    contract_sections = []
+    report_contract = brief.get("report_contract")
+    if report_contract:
+        coverage = Section(tr("Analysis coverage and review status", "تغطية التحليل وحالة المراجعة"), [tr(
+            "This is an unapproved projection of existing evidence, not a completed expert-agent assessment. Missing sections remain explicit; no new analytical claims or financial estimates are added.",
+            "هذا عرض غير معتمد للأدلة الموجودة، وليس تقييماً مكتملاً من وكلاء خبراء. تُذكر الأقسام غير المدعومة صراحةً؛ ولا تُضاف ادعاءات تحليلية أو تقديرات مالية جديدة.")])
+        labels = {
+            "business_context": ("Business context and questions", "سياق العمل والأسئلة", "Existing decision questions only; organizational context is not recorded.", "أسئلة القرار الموجودة فقط؛ لم يُسجل السياق المؤسسي."),
+            "dataset_scope": ("Dataset scope", "نطاق البيانات", "Filtered scope is recorded; grain, period and source fingerprint are not recorded in this brief.", "النطاق المرشح مسجل؛ لم تُسجل وحدة السجل أو الفترة أو بصمة المصدر في هذا الموجز."),
+            "methodology": ("Methodology and governance", "المنهجية والحوكمة", "Controlled KPI definitions are recorded; detailed cleaning and quality checks are not projected here.", "تعريفات المؤشرات المضبوطة مسجلة؛ لا تُعرض هنا تفاصيل التنظيف وفحوص الجودة."),
+            "analytical_findings": ("Analytical findings", "النتائج التحليلية", "Only verified saved findings are included; absent findings remain unavailable.", "تُعرض النتائج المخزنة المتحقق منها فقط؛ وتظل النتائج الغائبة غير متاحة."),
+            "model_evaluation": ("Model evaluation", "تقييم النماذج", "Only recorded cards and known audit fields are included; absence is not model success.", "تُعرض البطاقات المسجلة وحقول تدقيقها المعروفة فقط؛ ولا يعني غيابها نجاح النموذج."),
+            "executive_actions": ("Executive actions", "الإجراءات التنفيذية", "Evidence-linked review proposals only; roles are not assigned and actions are not approved.", "مقترحات مراجعة مرتبطة بالأدلة فقط؛ لم تُكلّف الأدوار ولم تُعتمد الإجراءات."),
+            "financial_scenarios": ("Financial scenarios", "السيناريوهات المالية", "Not evaluated in this brief; no savings, ROI or intervention cost is inferred.", "لم تُقيّم في هذا الموجز؛ ولا تُستنتج وفورات أو عوائد استثمار أو تكلفة تدخل."),
+            "implementation_plan": ("Implementation plan", "خطة التنفيذ", "No approved schedule, operational constraints or assigned owner is recorded.", "لم يُسجل جدول معتمد أو قيود تشغيلية أو مسؤول مكلّف."),
+            "ai_participation": ("AI participation and expert review", "مشاركة الذكاء الاصطناعي ومراجعة الخبراء", "Deterministic evidence projection; completed expert-agent review is not demonstrated by this view.", "عرض حتمي للأدلة؛ لا يثبت هذا العرض اكتمال مراجعة وكلاء خبراء."),
+        }
+        coverage.tables.append(Table((tr("Report section", "قسم التقرير"), tr("Evidence coverage / missing support", "تغطية الأدلة / الدعم المفقود")),
+            [(tr(*labels[item["section"]][:2]), tr(*labels[item["section"]][2:])) for item in report_contract["coverage"]]))
+        records = Section(tr("Evidence-bound decision records", "سجلات القرار المرتبطة بالأدلة"))
+        for item in report_contract["decisions"]:
+            records.tables.append(properties([
+                (tr("Problem", "المشكلة"), item["problem"]),
+                (tr("Recorded evidence", "الأدلة المسجلة"), [fact["label"] + ": " + value(fact["value"]) + " · " + tr("Selected scope", "النطاق المحدد") if fact["scope"] == "filtered" else fact["label"] + ": " + value(fact["value"]) + " · " + tr("Whole run", "التشغيل الكامل") for fact in item["demonstrated_finding"]]),
+                (tr("Review rationale", "مبرر المراجعة"), item["review_rationale"]),
+                (tr("Proposed next action", "الإجراء التالي المقترح"), item["proposed_action"]),
+                (tr("Proposed role, not assigned", "دور مقترح، غير مكلّف"), item["proposed_owner"]),
+                (tr("Review gate", "شرط المراجعة"), item["next_step"]),
+                (tr("Controlled KPI references", "مراجع المؤشرات المضبوطة"), item["controlled_kpis"]),
+                (tr("Evidence references", "مراجع الأدلة"), item["evidence_refs"]),
+                (tr("Evidence limits", "حدود الأدلة"), tr("See Reading limits and Decision boundaries; all apply to this proposal.", "راجع حدود القراءة وحدود القرار؛ تنطبق جميعها على هذا المقترح.")),
+                (tr("Operational constraints / schedule", "القيود التشغيلية / الجدول"), tr("Not recorded; requires independent review.", "غير مسجلة؛ تتطلب مراجعة مستقلة.")),
+                (tr("Impact estimate", "تقدير الأثر"), tr("Not evaluated; no financial or forecast assumption is approved.", "غير مقيّم؛ لم يُعتمد افتراض مالي أو تنبؤي.")),
+            ]))
+        contract_sections = [coverage, records]
     title = "معيار | Miyaar"
     front = Section(tr("Asset maintenance intelligence and decision support", "ذكاء صيانة الأصول ودعم القرار"), compact=True)
     front.paragraphs.append(tr("Scope", "النطاق") + ": " + str(scope["records"]) + "/" + str(scope["total_records"]) + " · " + value(run["dataset_name"]))
@@ -333,7 +371,7 @@ def report_sections(brief):
     front.after_paragraphs.append(tr("Review only. Roles are proposed; no intervention, forecast or savings is approved. Full evidence and remaining priorities follow.",
                                "للمراجعة فقط. الأدوار مقترحة؛ لم يُعتمد تدخل أو تنبؤ أو وفورات. تلي ذلك الأدلة الكاملة وبقية الأولويات."))
     appendix = Section(tr("Technical appendix and source audit", "الملحق الفني وتدقيق المصادر"), page_break_before=True)
-    return title, [front, appendix, summary, *decision_sections, selected, metadata, questions, limitations, targets, kpis, priorities, findings, models, evidence]
+    return title, [front, appendix, summary, *decision_sections, selected, metadata, questions, limitations, targets, kpis, priorities, findings, models, *contract_sections, evidence]
 
 
 STYLE = """

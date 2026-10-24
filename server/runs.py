@@ -1229,6 +1229,7 @@ class RunEngine:
                  for item in declared.get("joins") or []]
         return {"id": run["id"], "goal": run["goal"],
                 "execution": {"mode": self.execution_mode, "poll_after_ms": 2500},
+                "dataset_id": run.get("dataset_id"),
                 "dataset_name": run["dataset_name"], "state": run["state"],
                 "joins": joins, "breakdown": declared.get("breakdown"),
                 "report_language": run.get("report_language") or "en",

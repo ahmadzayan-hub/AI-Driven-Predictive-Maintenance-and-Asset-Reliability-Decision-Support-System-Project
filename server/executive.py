@@ -12,6 +12,7 @@ import math
 from server import mapping as colmap
 from server import query
 from server.executive_advisory import advisory
+from server.report_contract import build_contract
 from server.maintenance import contract, kpis, performance
 from server.runs import model_cards
 
@@ -343,6 +344,7 @@ class ExecutiveDashboardAgent:
         # Task results may change without advancing the run row's timestamp.
         # Bind downloads to every fact in the prepared response, including its
         # language, filters, metadata and evidence, without trusting client data.
+        brief["report_contract"] = build_contract(brief)
         canonical = json.dumps(brief, sort_keys=True, separators=(",", ":"),
                                ensure_ascii=True, allow_nan=False).encode("utf-8")
         brief["snapshot_id"] = hashlib.sha256(canonical).hexdigest()

@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test'
 import { skipOnboarding } from './helpers'
 import { messages } from '../src/features/operations/messages'
 import { validationMessages } from '../src/features/operations/validationMessages'
+import { workflowMessages } from '../src/features/runs/workflowMessages'
 import { performanceMessages } from '../src/shared/components/performanceMessages'
 
 test.use({ serviceWorkers: 'block', contextOptions: { reducedMotion: 'reduce' } })
@@ -13,20 +14,27 @@ for (const language of ['en', 'ar'] as const) {
     const t = messages[language]
     await skipOnboarding(page)
     await page.addInitScript((locale) => localStorage.setItem('aos-locale', locale), language)
-    // Fictional evidence is processed by the actual pipeline; no external model or CMMS.
-    const uploaded = await page.request.post('/api/datasets', { params: { name: `operations-${language}-${info.project.name}.csv` }, headers: { 'Content-Type': 'text/csv' }, data: 'Asset_ID,cost\nP-10,10\nP-10,14\nP-20,7\n' })
-    await expect(uploaded).toBeOK()
-    const dataset = (await uploaded.json()).dataset
-    const created = await page.request.post('/api/runs', { data: { goal: 'Review fictional pump cost evidence', dataset_id: dataset.id, profile: 'default', language } })
-    await expect(created).toBeOK()
-    let run = await created.json()
-    for (let step = 0; step < 80 && ['queued', 'running'].includes(run.state); step++) {
-      const advanced = await page.request.post(`/api/runs/${run.id}/advance`)
-      await expect(advanced).toBeOK()
-      run = await advanced.json()
-    }
-    expect(run.state).toBe('awaiting_approval')
-    await page.goto('/#/operations')
+    // UI-led synthetic intake, quality, analysis and report inspection. No API-seeded analysis.
+    const name = `operations-${language}-${info.project.name}.csv`
+    await page.goto('/#/datasets')
+    const uploadResponse = page.waitForResponse(response => response.url().includes('/api/datasets?') && response.request().method() === 'POST')
+    await page.locator('input[type="file"]').setInputFiles({ name, mimeType: 'text/csv', buffer: Buffer.from('Asset_ID,cost\nP-10,10\nP-10,14\nP-20,7\n') })
+    const dataset = (await (await uploadResponse).json()).dataset
+    await page.getByRole('button', { name: `${language === 'ar' ? 'حلّل' : 'Analyse'} ${dataset.name}`, exact: true }).click()
+    const createResponse = page.waitForResponse(response => response.url().endsWith('/api/runs') && response.request().method() === 'POST')
+    await page.getByRole('button', { name: language === 'ar' ? 'بدء التحليل' : 'Start run', exact: true }).click()
+    const run = await (await createResponse).json()
+    expect(run.dataset_id).toBe(dataset.id)
+    await expect(page.locator('.runreport--full')).toContainText(dataset.name, { timeout: 45_000 })
+    const review = page.locator('.decision__preview')
+    await review.locator('summary').click()
+    await expect(review).toHaveAttribute('open', '')
+    let workWrites = 0
+    page.on('request', request => { if (request.method() === 'POST' && request.url().includes('/work-orders')) workWrites++ })
+    await page.getByRole('button', { name: workflowMessages[language]['workflow.draftWork'], exact: true }).click()
+    await expect(page).toHaveURL(new RegExp(`#/operations/${run.id}$`))
+    await expect(page.getByText(dataset.id, { exact: true })).toBeVisible()
+    expect(workWrites).toBe(0)
     await expect(page.getByRole('heading', { name: t.title, exact: true })).toBeVisible()
     const setup = page.locator('.operations__setup')
     if (!await setup.getAttribute('open')) {
@@ -61,11 +69,13 @@ for (const language of ['en', 'ar'] as const) {
     await page.getByRole('button', { name: t.addAsset, exact: true }).click()
     await expect(page.getByRole('region', { name: t.registry, exact: true }).locator('.operations__asset-list')).toContainText('Fictional cooling pump')
     await page.getByRole('button', { name: t.orders, exact: true }).click()
-    await page.locator('.operations__draft > summary').click()
+    await expect(page.locator('.operations__draft')).toHaveAttribute('open', '')
     await page.getByLabel(t.asset, { exact: true }).selectOption({ label: 'Fictional cooling pump · P-10' })
     await page.getByLabel(t.titleField, { exact: true }).fill('Inspect pump bearing')
     await page.getByLabel(t.rationale, { exact: true }).fill('Review fictional evidence before inspection')
-    await page.getByLabel(t.run, { exact: true }).fill(run.id)
+    await expect(page.getByLabel(t.run, { exact: true })).toHaveValue(run.id)
+    await expect(page.getByLabel(t.run, { exact: true })).toHaveAttribute('readonly')
+    await page.getByLabel(t.column, { exact: true }).fill('Asset_ID')
     await page.getByLabel(t.assignee, { exact: true }).selectOption({ index: 1 })
     await page.getByLabel(t.due, { exact: true }).fill('2026-12-01')
     await page.getByRole('button', { name: t.createDraft, exact: true }).click()
@@ -86,6 +96,8 @@ for (const language of ['en', 'ar'] as const) {
     const after = await (await page.request.get(`/api/operations/organizations/${organization.id}/overview`)).json()
     expect(after.work_orders[0]).toMatchObject({ status: 'completed', version: 4, completion: { outcome: 'Wear observed', labor_hours: 2 } })
     expect(after.work_orders[0].audit).toHaveLength(4)
+    expect(after.work_orders[0].evidence).toMatchObject({ run_id: run.id, asset_column: 'Asset_ID', source_asset_id: 'P-10', matching_records: 2 })
+    expect(after.work_orders[0].evidence.dataset_sha256).toMatch(/^[a-f0-9]{64}$/)
     // Maintenance authorization never publishes the source analytics report.
     expect((await (await page.request.get(`/api/runs/${run.id}`)).json()).state).toBe('awaiting_approval')
     await page.getByRole('button', { name: t.registry, exact: true }).click()

@@ -1,6 +1,7 @@
 import { definePack } from '../../i18n/pack'
 
 export const workflowMessages = definePack({
+  'workflow.draftWork': 'Draft maintenance work using this analysis source',
   'workflow.datasetsLoading': 'Loading stored datasets…',
   'workflow.datasetsFailed': 'Stored datasets could not be refreshed. Any choices shown are from the last successful load; your selection and question are unchanged.',
   'workflow.retryDatasets': 'Retry loading datasets',
@@ -12,6 +13,7 @@ export const workflowMessages = definePack({
   'workflow.confirmRead': 'Next: confirm that you have read this exact report. Opening it alone does not approve publication.',
   'workflow.readyReview': 'Ready for your decision. Nothing is published until you choose Approve and publish and the server confirms it.',
 }, {
+  'workflow.draftWork': 'إنشاء مسودة صيانة من مصدر هذا التحليل',
   'workflow.datasetsLoading': 'جارٍ تحميل مجموعات البيانات المحفوظة…',
   'workflow.datasetsFailed': 'تعذّر تحديث مجموعات البيانات المحفوظة. الخيارات المعروضة، إن وجدت، من آخر تحميل ناجح؛ لم يتغير اختيارك أو سؤالك.',
   'workflow.retryDatasets': 'إعادة محاولة تحميل البيانات',

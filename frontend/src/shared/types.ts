@@ -198,6 +198,8 @@ export interface ChartSpec {
 }
 
 export interface RunDetail {
+  /** Source reference only, not a work-order/assignment authorization. Missing on older servers. */
+  dataset_id?: string | null
   execution?: { mode: 'client' | 'worker'; poll_after_ms: number }
   id: string
   goal: string

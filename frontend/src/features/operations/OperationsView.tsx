@@ -1,7 +1,9 @@
 import { cloneElement, lazy, Suspense, useCallback, useEffect, useId, useRef, useState } from 'react'
 import type { FormEvent, ReactElement } from 'react'
 import { usePack } from '../../i18n/pack'
-import { ApiError } from '../../shared/api'
+import { hasWorkSource } from '../../shared/sourceHandoff'
+import type { RunDetail } from '../../shared/types'
+import { api, ApiError } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
 import { PerformanceLegend, PerformanceValue } from '../../shared/components/PerformanceValue'
 import { messages } from './messages'
@@ -28,8 +30,20 @@ function errorKey(error: unknown, loading = false) {
   return loading ? 'loadFailed' : 'failed'
 }
 
-export function OperationsView({ onOpenRun }: { onOpenRun: (id: string) => void }) {
+export function OperationsView({ onOpenRun, sourceRunId, onClearSource }: { onOpenRun: (id: string) => void; sourceRunId?: string; onClearSource?: () => void }) {
   const { t } = usePack(messages)
+  const [source, setSource] = useState<RunDetail | null>(null)
+  const [sourceError, setSourceError] = useState(false)
+  useEffect(() => {
+    let alive = true
+    setSource(null); setSourceError(false)
+    if (sourceRunId) api.getRun(sourceRunId).then(run => {
+      if (!alive) return
+      if (run.id === sourceRunId && hasWorkSource(run)) setSource(run)
+      else setSourceError(true)
+    }).catch(() => { if (alive) setSourceError(true) })
+    return () => { alive = false }
+  }, [sourceRunId])
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [selected, setSelected] = useState('')
   const [name, setName] = useState('')
@@ -66,9 +80,13 @@ export function OperationsView({ onOpenRun }: { onOpenRun: (id: string) => void 
 
   return <section className="operations view" aria-labelledby="operations-title">
     <header className="operations__heading">
-      <div><p className="operations__eyebrow">{t('workspaceLabel')}</p><h2 id="operations-title">{t('title')}</h2><p>{t('intro')}</p></div>
+      <div><h2 id="operations-title">{t('title')}</h2></div>
       <span className="operations__emblem"><Icon name="activity" size={28} /></span>
     </header>
+    {sourceRunId && <div className="operations__card">
+      {source ? <><strong dir="auto">{source.goal}</strong><p>{t('sourceScope')}</p><p>{t('run')}: <bdi>{source.id}</bdi> · {t('sourceDataset')}: <bdi>{source.dataset_id}</bdi></p></> : <p role={sourceError ? 'alert' : 'status'}>{t(sourceError ? 'sourceFailed' : 'loading')}</p>}
+      <button type="button" className="btn btn--ghost" onClick={onClearSource}>{t('clearSource')}</button>
+    </div>}
     <div className="operations__workspace">
       {organizations.length > 0 && <Field label={t('organization')}><select value={selected} onChange={(event) => setSelected(event.target.value)} disabled={creating || loading}>
         {organizations.map((organization) => <option value={organization.id} key={organization.id}>{organization.name}</option>)}
@@ -87,11 +105,11 @@ export function OperationsView({ onOpenRun }: { onOpenRun: (id: string) => void 
       <Icon name="database" size={32} /><h3>{t('emptyOrganization')}</h3><p>{t('workspaceEmptyHelp')}</p>
       <ol className="operations__steps"><li>{t('setupRegistry')}</li><li>{t('setupEvidence')}</li><li>{t('setupOutcome')}</li></ol>
     </div>}
-    {selected && <OperationsWorkspace key={selected} organizationId={selected} onOpenRun={onOpenRun} />}
+    {selected && (!sourceRunId || source?.id === sourceRunId) && <OperationsWorkspace key={`${selected}:${sourceRunId ?? ''}`} organizationId={selected} sourceRunId={sourceRunId ? source?.id : undefined} onOpenRun={onOpenRun} />}
   </section>
 }
 
-function OperationsWorkspace({ organizationId, onOpenRun }: { organizationId: string; onOpenRun: (id: string) => void }) {
+function OperationsWorkspace({ organizationId, onOpenRun, sourceRunId }: { organizationId: string; onOpenRun: (id: string) => void; sourceRunId?: string }) {
   const { t, formatNumber } = usePack(messages)
   const [data, setData] = useState<OperationsOverview | null>(null)
   const [readiness, setReadiness] = useState<Readiness | null>(null)
@@ -196,7 +214,7 @@ function OperationsWorkspace({ organizationId, onOpenRun }: { organizationId: st
       </nav>
       {!data.permissions.write && <p>{t('readOnly')}</p>}
       {/* Keep unsaved forms in this open workspace when switching sections. */}
-      <div hidden={tab !== 'orders'}><WorkOrdersPanel data={data} busy={busy || loading} mutate={mutate} onOpenRun={onOpenRun} /></div>
+      <div hidden={tab !== 'orders'}><WorkOrdersPanel sourceRunId={sourceRunId} data={data} busy={busy || loading} mutate={mutate} onOpenRun={onOpenRun} /></div>
       <div id="operations-registry-panel" ref={registry} tabIndex={-1} hidden={tab !== 'registry'}><RegistryPanel data={data} busy={busy || loading} mutate={mutate} onOpenRun={onOpenRun} /></div>
       <div hidden={tab !== 'team'}><TeamPanel data={data} busy={busy || loading} mutate={mutate} /></div>
       {validationVisited && <div hidden={tab !== 'validation'}><Suspense fallback={<p role="status">{t('loading')}</p>}><ValidationPanel data={data} /></Suspense></div>}
