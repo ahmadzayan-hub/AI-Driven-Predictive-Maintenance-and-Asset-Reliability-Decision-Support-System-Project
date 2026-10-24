@@ -183,7 +183,7 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
         const items = data.kpis.measures.filter((measure) => (FAMILIES.includes(measure.family as Family) ? measure.family : 'other') === family)
         return items.length ? <section key={family} className="exec-family" data-family={family} aria-labelledby={`exec-family-${family}`}>
           <h4 id={`exec-family-${family}`}><Icon name={FAMILY_ICON[family]} size={16} />{t(`exec.family.${family}`)}</h4>
-          <div className="exec-kpis">{items.map((measure) => <Kpi key={measure.key} measure={measure} currency={data.currency ?? null} />)}</div>
+          <div className="exec-kpis">{items.map((measure) => <Kpi key={measure.key} measure={measure} currency={data.currency ?? null} context={data} evidenceAction={refs} />)}</div>
         </section> : null
       })}
       {Object.keys(data.kpis.unavailable).length ? <details
@@ -234,33 +234,44 @@ const FAMILY_ICON = { reliability: 'activity', execution: 'check', cost: 'databa
 
 /** `currency` is the code the column mapping states, or null: money then
  *  reads "currency not stated" rather than being given a default. */
-function Kpi({ measure, currency }: { measure: KpiMeasure; currency: string | null }) {
+function Kpi({ measure, currency, context, evidenceAction }: {
+  measure: KpiMeasure; currency: string | null; context: RunExecutive
+  evidenceAction: (ids: string[]) => ReactNode
+}) {
   const { t, locale, formatNumber } = usePack(executiveMessages)
+  const measured = Number.isFinite(measure.value) ? measure.value : null
+  const evidence = context.evidence.find((entry) => entry.id === `executive.kpi.${measure.key}` && entry.kind === 'kpi' && entry.scope === 'filtered')
   const stated = measure.scale === 'money' && currency ? currency : null
-  const value = measure.value === null ? t('exec.unavailable') : stated ? formatMoney(measure.value, stated, locale) : formatNumber(measure.value, { maximumFractionDigits: 2 })
-  const unit = measure.value === null ? '' : measure.scale === 'percent' ? '%' : measure.scale === 'hours' ? t('exec.hours')
+  const value = measured === null ? t('exec.unavailable') : stated ? formatMoney(measured, stated, locale) : formatNumber(measured, { maximumFractionDigits: 2 })
+  const unit = measured === null ? '' : measure.scale === 'percent' ? '%' : measure.scale === 'hours' ? t('exec.hours')
     : measure.scale === 'money' ? (stated ? '' : t('exec.money')) : measure.scale === 'ratio' ? t('exec.ratio') : measure.scale === 'count' ? ''
     : measure.scale
-  const tone = performanceTone(measure.value, measure.assessment)
+  const tone = performanceTone(measured, measure.assessment)
   // A verdict's reason stays on the card, and so does a target held for review;
   // "no target is set" moves into the evidence.
   const verdict = tone === 'good' || tone === 'okay' || tone === 'bad'
     || measure.assessment?.reason_code === 'target_outdated'
-  const share = measure.scale === 'percent' && measure.value !== null ? Math.max(0, Math.min(100, measure.value)) : null
+  const share = measure.scale === 'percent' && measured !== null ? Math.max(0, Math.min(100, measured)) : null
   return <article className="exec-kpi" data-source={`kpi.${measure.key}`}>
     <h5 dir="auto">{measure.title}</h5><p
-      className={`exec-kpi-value${measure.value === null ? ' exec-kpi-value--missing' : ''}`}><PerformanceValue tone={tone} reason={verdict ? measure.assessment?.reason : undefined}><bdi><span
+      className={`exec-kpi-value${measured === null ? ' exec-kpi-value--missing' : ''}`}><PerformanceValue tone={tone} reason={verdict ? measure.assessment?.reason : undefined}><bdi><span
       className="exec-kpi-n">{value}</span>{unit ? <>{unit.length > 2 ? ' ' : '\u00a0'}<small>{unit}</small></> : null}</bdi></PerformanceValue></p>
     {share === null ? null : <svg className="exec-kpi-meter" viewBox="0 0 100 4" preserveAspectRatio="none"
       aria-hidden="true" focusable="false"><rect width="100" height="4" rx="2" /><rect width={share} height="4" rx="2" /></svg>}
     <p className="exec-kpi-covered">{t('exec.covered', { n: formatNumber(measure.records) })}</p>
     {measure.records_unmeasured > 0 ? <p className="exec-kpi-caution">{t('exec.unmeasured', { n: formatNumber(measure.records_unmeasured) })}</p> : null}
     {measure.undefined_reason ? <p className="exec-kpi-caution" dir="auto">{measure.undefined_reason}</p> : null}
+    <p className="exec-muted">{t('exec.contextUnconfirmed')}</p>
     <details><summary>{t('exec.sources')}</summary>{!verdict && measure.assessment?.reason ? <p
       dir="auto">{measure.assessment.reason}</p> : null}<dl><div><dt>{t('exec.formula')}</dt><dd
       dir="auto">{measure.formula} · <bdi>{formatNumber(measure.numerator)} / {formatNumber(measure.denominator)}</bdi></dd></div><div><dt>{t('exec.population')}</dt><dd
       dir="auto">{measure.population_label ?? measure.population}</dd></div><div><dt>{t('exec.missing')}</dt><dd
-      dir="auto">{measure.missing_policy}</dd></div></dl><TargetEvidence measure={measure} currency={currency} />{measure.records_excluded > 0
+      dir="auto">{measure.missing_policy}</dd></div>
+      <div><dt>{t('exec.reference')}</dt><dd><span dir="auto">{context.run.dataset_name}</span> · <bdi>{context.run.id}</bdi></dd></div>
+      </dl>
+      <p>{t('exec.ownerQuestion', { metric: measure.title })}</p>
+      {evidence ? evidenceAction([evidence.id]) : <p className="exec-muted">{t('exec.evidence')}: {t('exec.unavailable')}</p>}
+      <TargetEvidence measure={measure} currency={currency} />{measure.records_excluded > 0
         ? <p>{t('exec.excluded', { n: formatNumber(measure.records_excluded) })}</p> : null}</details>
   </article>
 }
@@ -281,3 +292,4 @@ function TargetEvidence({ measure, currency }: { measure: KpiMeasure; currency: 
       key={key}><dt>{t(`policy.${key}` as 'policy.good_at')}</dt><dd><bdi>{formatNumber(number, { maximumSignificantDigits: 12 })} {unit}</bdi></dd></div>)}
     <div><dt>{t('policy.sourceLabel')}</dt><dd dir="auto">{assessment.source_ref}</dd></div></dl>
 }
+

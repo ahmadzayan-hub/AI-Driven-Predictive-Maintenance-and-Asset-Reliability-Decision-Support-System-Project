@@ -550,6 +550,8 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+Local-only KPI review-context candidate (24 October 2026, base `99ca49ab`): the focused executive/i18n run passes **72 tests**, and the full frontend run passes **487 tests in 48 files**. Typecheck and production frontend build pass. Existing interface caps remain unchanged; total JavaScript is **252,951 bytes of 253,000**, leaving only **49 bytes** of headroom. Python/brain verification and hosted acceptance were not run for this frontend-only materialization. Browser verification is **blocked before navigation** by the execution sandbox, including the attempted escalation; no rendered screenshot, contrast, mobile-browser or production acceptance is claimed. See [the decision](docs/adr/2026-10-24-kpi-review-context.md).
+
 **23 October 2026 · platform and application delivery.** Final source
 `c8d2ccf1` preserves incoming main through `ca71c14f`, including workbook
 sheet discovery, reviewer/evaluation improvements and optional Motion Studio.
@@ -2318,4 +2320,5 @@ does not create or change a license; existing third-party notices apply.
 - Product: AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project
 - Engine: Agentic OS
 - Version: 1.0.0
+
 
