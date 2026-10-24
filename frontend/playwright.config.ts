@@ -125,6 +125,18 @@ export default defineConfig({
       timeout: 30_000,
     },
     {
+      // Explicit isolated local-owner profile, no account/key/model is created.
+      command: `${PYTHON} -c "import shutil; shutil.rmtree('frontend/e2e/.tmp/local-workspace', ignore_errors=True)" && ` +
+        `${PYTHON} scripts/local_workspace.py start --port 8127 --workspace frontend/e2e/.tmp/local-workspace`,
+      cwd: '..',
+      url: 'http://127.0.0.1:8127/api/health',
+      // A user's optional local-model settings must not enable generation in tests.
+      env: { OLLAMA_MODEL: '', OLLAMA_HOST: '', AGENTIC_OS_TASK_MODELS: '',
+        AGENTIC_OS_HERMES_MODEL: '', AGENTIC_OS_AGENT_MODEL: '', AGENTIC_OS_CONSULTANTS: '' },
+      reuseExistingServer: false,
+      timeout: 30_000,
+    },
+    {
       // Real API + worker + durable checkpoints; scripted model transport only.
       // This disposable fixture is never imported by the production factory.
       command: `${PYTHON} -m uvicorn tests.specialist_browser_app:app --host 127.0.0.1 --port 8126`,

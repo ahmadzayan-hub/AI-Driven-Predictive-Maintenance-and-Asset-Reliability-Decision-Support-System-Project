@@ -119,3 +119,5 @@ All seven [[Analytics OS roadmap]] milestones have their records.
 | 2026-10-23-fail-closed-write-limiter | Fail-closed shared write limits; model transaction-boundary repair remains separate | [[Model gateway]], [[Tenant isolation]] |
 
 | 2026-10-23-bounded-model-admission | Bounded admission before run transactions; tenant propagation and conservative settlement | [[Model gateway]], [[Tenant isolation]] |
+
+- `2026-10-23-explicit-local-owner-workspace`: reuse local identity and SQLite only behind an opt-in loopback/browser boundary; never create shared passwords or weaken managed identity.
