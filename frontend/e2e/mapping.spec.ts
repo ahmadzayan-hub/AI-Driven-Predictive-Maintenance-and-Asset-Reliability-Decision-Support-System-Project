@@ -132,11 +132,7 @@ test('the columns read right to left in Arabic, with the same checks', async ({ 
     localStorage.setItem('aos-onboarded', '1')
   })
   await page.goto('/')
-  const menu = page.getByRole('button', { name: 'فتح قائمة التنقل' })
-  const tab = page.getByRole('button', { name: /^مجموعات البيانات/ }).filter({ visible: true })
-  await menu.or(tab.first()).first().waitFor()
-  if (await menu.isVisible()) await menu.click()
-  await tab.first().click()
+  await openTab(page, /^مجموعات البيانات/, 'ar')
 
   const panel = await openColumns(page, 'أضف مجموعة بيانات', 'استخدام الاكتشاف التلقائي')
   await expect(panel.getByRole('heading', { name: `أعمدة ${NAME}` })).toBeVisible()

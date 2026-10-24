@@ -9,9 +9,10 @@
 import type { MessageKey, PluralForms, PluralKey } from './en'
 
 export const ar: Record<MessageKey, string> = {
-  'nav.homeShort': 'الرئيسية',
-  'nav.dataShort': 'البيانات',
-  'nav.reviewShort': 'المراجعة',
+  'nav.decision': 'القرار',
+  'nav.dataAnalysis': 'البيانات والتحليل',
+  'nav.reportsOutputs': 'التقارير والمخرجات',
+  'nav.tools': 'أدوات مساحة العمل',
   "assistant.name": "معيار",
   "assistant.tagline": "ذكاء صيانة الأصول ودعم القرار",
   "miyaar.eyebrow": "مساحتك لاتخاذ قرارات موثوقية الأصول",
@@ -71,9 +72,7 @@ export const ar: Record<MessageKey, string> = {
   'nav.operations': 'الإدارة',
   'nav.rmd': 'أدلة RMD',
   'nav.assets': 'ذكاء الأصول',
-  'decision.eyebrow': 'قرارك القادم',
   'decision.heading': 'مركز قيادة ذكاء القرار',
-  'decision.subtitle': 'تتبّع الأدلة من التحليل إلى القرار. استعرض سير العمل أو النتائج أو راجع تقريراً.',
   'decision.upload': 'تحليل مجموعة بيانات',
   'decision.uploadHelp': 'استيراد البيانات والتحقق منها وتشغيل التحليلات الموثقة',
   'decision.dashboard': 'استعراض لوحة المعلومات',
@@ -204,7 +203,6 @@ export const ar: Record<MessageKey, string> = {
   'nav.preferences': 'التفضيلات',
   'nav.overview': 'مركز القيادة',
   'nav.datasets': 'مجموعات البيانات',
-  'nav.assetsShort': 'الأصول',
   'nav.more': 'المزيد',
   'session.new': 'جلسة جديدة',
   'session.end': 'إنهاء الجلسة',

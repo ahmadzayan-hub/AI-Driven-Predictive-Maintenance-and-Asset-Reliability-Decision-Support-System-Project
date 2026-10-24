@@ -1,6 +1,9 @@
 /* Dashboard pages (ADR 0032). Fetched with the dashboard's chunk, not on
    the first load. Tokens only, no raw colours. */
 
+.dash-header > div { min-width: 0; max-width: 100%; }
+.dash-header .panel__title { overflow-wrap: anywhere; }
+
 .dash-actions {
   display: flex;
   gap: var(--space-2);
@@ -14,7 +17,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1);
-  border-bottom: 1px solid var(--border);
+  padding-block: var(--space-2);
 }
 
 .dash-pages__link {
@@ -24,7 +27,8 @@
   padding: 0 var(--space-3);
   color: var(--text-muted);
   text-decoration: none;
-  border-bottom: 2px solid transparent;
+  border: 1px solid transparent;
+  border-radius: 99px;
   font-weight: 500;
 }
 
@@ -34,7 +38,8 @@
 
 .dash-pages__link[aria-current='page'] {
   color: var(--text);
-  border-bottom-color: var(--accent-solid);
+  background: var(--accent-soft);
+  border-color: var(--accent);
 }
 
 .dash-filters summary { cursor: pointer; list-style-position: inside; }
@@ -68,12 +73,6 @@
   grid-template-columns: repeat(2, minmax(0, 12rem));
   gap: var(--space-2);
   align-items: end;
-}
-
-/* Exact figures, so they shrink to fit rather than being abbreviated. */
-.dash-kpis .kpi__value {
-  font-size: clamp(var(--text-l), 4vw, var(--text-xl));
-  overflow-wrap: anywhere;
 }
 
 .dash-filter {
@@ -196,3 +195,17 @@
   .dash-header .panel__title { font-size: var(--text-l); }
   .dash-actions .btn { min-height: 40px; padding-inline: var(--space-3); font-size: var(--text-s); }
 }
+
+.dash-provenance { color: var(--text-muted); font-size: var(--text-xs); overflow-wrap: anywhere; margin-block: var(--space-1) 0; }
+.dash-header { margin-block-end: var(--space-3); }
+.dash-navigation > summary { cursor: pointer; min-height: 44px; padding-block: var(--space-2); font-size: var(--text-s); }
+.dash-overview-charts { display: grid; gap: var(--space-3); }
+.dash-filters.card { padding: var(--space-2) var(--space-3); }
+.dash-coverage { margin-block: var(--space-2); }
+
+.dash-toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); align-items: start; }
+.dash-toolbar .dash-filters:has(details[open]), .dash-navigation[open] { grid-column: 1 / -1; }
+.dash-toolbar .dash-filters { margin: 0; }
+.dash-toolbar .dash-navigation > summary { padding-inline: var(--space-3); }
+.dash-provenance .dash-coverage { font: inherit; margin: 0; }
+@media (max-width: 479px) { .dash-toolbar { gap: var(--space-1); } }

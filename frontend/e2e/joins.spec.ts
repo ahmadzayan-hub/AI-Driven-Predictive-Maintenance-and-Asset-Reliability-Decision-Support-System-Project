@@ -53,12 +53,7 @@ async function horizontalOverflow(page: Page) {
 
 /** openTab, with the Arabic name of the phone's navigation button. */
 async function openArabicTab(page: Page, name: RegExp) {
-  const menu = page.getByRole('button', { name: 'فتح قائمة التنقل' })
-  const target = page.getByRole('button', { name }).filter({ visible: true })
-  await menu.or(target.first()).first().waitFor()
-  if (await menu.isVisible()) await menu.click()
-  await target.first().click()
-  await expect(page.locator('.viewload')).toHaveCount(0)
+  await openTab(page, name, 'ar')
 }
 
 /** Store this spec's tables and reload, so the run form lists them. */

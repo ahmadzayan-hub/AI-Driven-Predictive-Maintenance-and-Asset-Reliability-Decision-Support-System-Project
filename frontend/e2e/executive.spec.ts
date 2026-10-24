@@ -61,6 +61,39 @@ async function openOverview(page: Page, runId: string, query = '', language: 'en
   })).toBeVisible()
 }
 
+test('the opening shows governed KPIs and a real comparison before the detailed register', async ({ page }, testInfo) => {
+  await skipOnboarding(page)
+  await page.setViewportSize(testInfo.project.name === 'mobile'
+    ? { width: 320, height: 812 } : { width: 1280, height: 720 })
+  const run = await maintenanceRun(page.request)
+  await openOverview(page, run.id)
+  const snapshot = await executive(page.request, run.id, [])
+  const featured = page.locator('.exec-featured .exec-kpi')
+  await expect(featured).toHaveCount(Math.min(4, snapshot.kpis.measures.length))
+  for (const card of await featured.all()) {
+    const source = await card.getAttribute('data-source')
+    expect(snapshot.kpis.measures.some((measure) => source === `kpi.${measure.key}`)).toBe(true)
+    const duration = await card.evaluate((element) => getComputedStyle(element).animationDuration)
+    expect(parseFloat(duration)).toBeLessThanOrEqual(0.00001)
+  }
+  const chart = page.locator('.dash-overview-charts').getByRole('img').first()
+  await expect(chart).toBeVisible()
+  // Capture the actual opening before layout assertions, including failures.
+  // This remains a synthetic test preview, never live-data acceptance evidence.
+  await page.screenshot({ path: `../docs/screenshots/${testInfo.project.name}-phase1-executive-opening.png`, animations: 'disabled' })
+  if (testInfo.project.name === 'desktop') {
+    await expect(featured.first()).toBeInViewport({ ratio: 1 })
+    await expect(chart).toBeInViewport({ ratio: 1 })
+  } else {
+    expect(await featured.first().evaluate((element) => getComputedStyle(element.parentElement!).gridTemplateColumns.split(' ').length)).toBe(2)
+    await chart.scrollIntoViewIfNeeded()
+    await expect(chart).toBeInViewport({ ratio: 1 })
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
+  await expect(page.locator('.dash-provenance > bdi')).toHaveText(snapshot.run.dataset_name)
+  await expect(page.locator('.exec-meta')).toContainText('Deterministic')
+})
+
 async function chooseNorth(page: Page) {
   await openFilters(page)
   const filter = page.locator('details.dash-filter').filter({
@@ -303,8 +336,8 @@ test('filtered executive measures, evidence and downloaded reports share the exa
   })
   const fix = page.locator('[data-source="kpi.first_time_fix"]')
   await expect(fix.locator('.exec-kpi-value .performance-value__number')).toHaveText('57.5 %')
-  await expect(fix.getByText('3 measured records', { exact: true })).toBeVisible()
   await fix.locator('summary').click()
+  await expect(fix.getByText('3 measured records', { exact: true })).toBeVisible()
   await expect(fix.locator('dd').first()).toContainText('23 / 40')
   await expect(fix).not.toContainText('outside this measure’s population')
 
@@ -318,13 +351,15 @@ test('filtered executive measures, evidence and downloaded reports share the exa
   await expect(selected).toHaveAttribute('data-selected', 'true')
   await expect(selected).toContainText('6.67')
 
-  const models = page.getByRole('region', { name: 'Model quality', exact: true })
+  const models = page.locator('.exec-models')
+  await models.locator(':scope > summary').click()
   await expect(models).toContainText('No evaluated models in this analysis. A performance score is not available.')
   await expect(models.getByRole('table')).toHaveCount(0)
   expect(expected.models).toEqual([])
   await page.getByRole('button', { name: 'Prepare executive brief', exact: true }).click()
   const prepared = page.getByRole('region', { name: 'Brief prepared for the current scope', exact: true })
-  await expect(prepared).toContainText(expected.headline)
+  await expect(page.locator('.exec-hero')).toContainText(expected.headline)
+  await expect(prepared).toContainText(expected.advisory?.recommendation ?? expected.headline)
   for (const question of expected.questions) await expect(prepared).toContainText(question.text)
   await expect(prepared.getByRole('option', { name: /JSON/ })).toHaveCount(0)
   await downloadReport(page, prepared, expected, 'html')
@@ -406,7 +441,7 @@ test('Arabic RTL business reports and PDF print preview retain evidence in both 
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl')
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
   await expect(page.locator('.exec-overview')).toHaveAttribute('dir', 'rtl')
-  await expect(page.getByRole('heading', { name: 'المجموعة الاستشارية للتحليلات التنفيذية', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'موجز القرار', exact: true })).toBeVisible()
   await expectScope(page, 3, 4, 'ar')
   const fix = page.locator('[data-source="kpi.first_time_fix"]')
   await expect(fix.getByRole('heading', { name: 'معدل الإصلاح من المرة الأولى' })).toBeVisible()
@@ -433,9 +468,10 @@ test('Arabic RTL business reports and PDF print preview retain evidence in both 
   await page.getByRole('button', { name: 'إعداد الموجز التنفيذي', exact: true }).click()
   const prepared = page.getByRole('region', { name: 'أُعدّ الموجز للنطاق الحالي', exact: true })
   const expected = await executive(page.request, run.id, NORTH, 'ar')
-  await expect(prepared).toContainText(expected.headline)
-  await expect(page.getByRole('region', { name: 'جودة النماذج', exact: true }))
-    .toContainText('لا توجد نماذج مقيّمة في هذا التحليل. لا تتوفر درجة أداء.')
+  await expect(page.locator('.exec-hero')).toContainText(expected.headline)
+  await expect(prepared).toContainText(expected.advisory?.recommendation ?? expected.headline)
+  await page.locator('.exec-models > summary').click()
+  await expect(page.locator('.exec-models')).toContainText('لا توجد نماذج مقيّمة في هذا التحليل. لا تتوفر درجة أداء.')
   await downloadReport(page, prepared, expected, 'html')
   await downloadReport(page, prepared, expected, 'docx')
   await printReport(page, prepared, expected)
@@ -485,6 +521,8 @@ test('a stale export reports the snapshot conflict without downloading a documen
 // The compact scope presents the selected count and total in separate elements.
 // Assert both rather than relying on whitespace between adjacent DOM nodes.
 async function expectScope(page: Page, records: number, total: number, language: 'en' | 'ar' = 'en') {
+  const disclosure = page.locator('.exec-limitations')
+  if (!(await disclosure.evaluate((element) => (element as HTMLDetailsElement).open))) await disclosure.locator('summary').click()
   const scope = page.locator('.exec-scope')
   await expect(scope.locator('strong')).toHaveText(String(records))
   await expect(scope.getByText(language === 'ar'
@@ -510,7 +548,7 @@ for (const language of ['en', 'ar'] as const) {
       ? 'الفترة والمسؤول غير محددين. الحداثة غير مقيّمة؛ التحديث ليس قراءة.'
       : 'Period/owner unknown; freshness unassessed. Update ≠ observation.'
     for (const card of await cards.all()) {
-      await expect(card.locator(':scope > .exec-muted')).toHaveText(unknown)
+      await expect(card.locator(':scope > details > .exec-muted')).toHaveText(unknown)
     }
     const fix = page.locator('[data-source="kpi.first_time_fix"]')
     const measure = snapshot.kpis.measures.find((item) => item.key === 'first_time_fix')!
@@ -562,9 +600,9 @@ for (const language of ['en', 'ar'] as const) {
       // can otherwise capture unrelated content or clipped cards even though
       // Playwright succeeds. Enlarge only capture height, never tested width;
       // restore the actual phone height before layout/accessibility assertions.
-      const familyHeight = await page.locator('.exec-family').evaluateAll((families) =>
-        Math.max(...families.map((family) => family.getBoundingClientRect().height)))
-      await page.setViewportSize({ width: viewport.width, height: Math.ceil(familyHeight) + 400 })
+      const captureHeight = await page.locator('.exec-family, .exec-featured').evaluateAll((groups) =>
+        Math.max(...groups.map((group) => group.getBoundingClientRect().height)))
+      await page.setViewportSize({ width: viewport.width, height: Math.ceil(captureHeight) + 400 })
       await fix.evaluate((element) => element.scrollIntoView({ block: 'center', behavior: 'instant' }))
       await expect(fix).toBeInViewport({ ratio: 1 })
       await fix.screenshot({ path: `${prefix}-expanded-evidence.png`, animations: 'disabled' })
@@ -576,7 +614,7 @@ for (const language of ['en', 'ar'] as const) {
       }
       await page.setViewportSize(viewport)
       const clipped = await cards.evaluateAll((elements) => elements.flatMap((card) => {
-        const nodes = [card, ...card.querySelectorAll('h5, p, summary, dt, dd, button')]
+        const nodes = [card, ...card.querySelectorAll('h4, h5, p, summary, dt, dd, button')]
         return nodes.filter((node) => {
           const element = node as HTMLElement
           if (!element.getClientRects().length) return false

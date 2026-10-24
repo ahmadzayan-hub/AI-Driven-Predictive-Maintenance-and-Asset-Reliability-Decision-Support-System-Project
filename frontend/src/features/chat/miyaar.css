@@ -6,7 +6,8 @@
 .miyaar-sidebar { display: flex; align-items: center; gap: var(--space-3); text-align: start; margin-block-end: var(--space-6); padding: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-m); }
 .miyaar-sidebar:hover { border-color: var(--accent); }
 .miyaar-sidebar strong, .miyaar-sidebar small { display: block; }
-.miyaar-sidebar small { color: var(--text-muted); font-size: var(--text-xs); margin-block-start: 2px; }
+.miyaar-sidebar { color: var(--nav-text); border-color: var(--nav-border); }
+.miyaar-sidebar small { color: var(--nav-muted); font-size: var(--text-xs); margin-block-start: 2px; }
 .miyaar-mark { display: inline-flex; inline-size: 36px; block-size: 36px; flex-shrink: 0; border-radius: 50%; color: var(--accent); background: var(--accent-soft); }
 .miyaar-mark svg { inline-size: 100%; block-size: 100%; }
 .miyaar-mark--large { inline-size: 64px; block-size: 64px; margin-block-end: var(--space-5); box-shadow: 0 0 30px var(--accent-haze); }

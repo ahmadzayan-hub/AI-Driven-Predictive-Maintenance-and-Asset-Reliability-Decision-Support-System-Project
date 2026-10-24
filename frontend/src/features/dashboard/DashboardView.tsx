@@ -10,7 +10,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useReadOnly } from '../../shared/readOnly'
 import { useI18n } from '../../i18n'
 import { usePack } from '../../i18n/pack'
-import { PerformanceLegend, PerformanceValue, performanceTone } from '../../shared/components/PerformanceValue'
 import { dashMessages, type DashKey } from './messages'
 import { LiveFollow } from '../live/LiveFollow'
 import { api, ApiError } from '../../shared/api'
@@ -228,9 +227,12 @@ function Dashboard({ runId, page, query, onNavigate, onOpenRun }: {
       <div className="panel__inner panel__inner--wide">
         <div className="panel__header dash-header">
           <div>
-            <p className="eyebrow">{t('dash.title')}</p>
-            <h2 className="panel__title" id="dash-title" dir="auto">{run.data?.goal ?? runId}</h2>
-            {run.data ? <p className="panel__desc" dir="auto">{run.data.dataset_name}</p> : null}
+            <h2 className="panel__title" id="dash-title">{t('dash.title')}</h2>
+            <div className="dash-provenance"><bdi>{run.data?.dataset_name ?? runId}</bdi> · <span className="dash-coverage" role="status" aria-live="polite">
+          {matched === undefined
+            ? t('dash.counting')
+            : t('dash.coverage', { matched: formatNumber(matched), total: formatNumber(fields.data.records) })}
+        </span></div>
           </div>
           <div className="dash-actions">
             <button type="button" className="btn btn--ghost" onClick={() => onOpenRun(runId)}>
@@ -250,6 +252,7 @@ function Dashboard({ runId, page, query, onNavigate, onOpenRun }: {
           />
         ) : null}
 
+        <div className="dash-toolbar"><details className="dash-navigation" open={current !== 'overview'}><summary>{t('dash.pages')} · {t(`dash.page.${current}` as DashKey)}</summary>
         <nav className="dash-pages" aria-label={t('dash.pages')}>
           <ul>
             {pages.map((name) => (
@@ -264,14 +267,10 @@ function Dashboard({ runId, page, query, onNavigate, onOpenRun }: {
               </li>
             ))}
           </ul>
-        </nav>
+        </nav></details>
 
-        <FilterBar fields={fields.data.fields} roles={roles} state={state} setState={setState} />
-        <p className="dash-coverage" role="status" aria-live="polite">
-          {matched === undefined
-            ? t('dash.counting')
-            : t('dash.coverage', { matched: formatNumber(matched), total: formatNumber(fields.data.records) })}
-        </p>
+        <FilterBar fields={fields.data.fields} roles={roles} state={state} setState={setState} /></div>
+
 
         <div className="dash-page">
           <h3 className="visually-hidden">{t(`dash.page.${current}` as DashKey)}</h3>
@@ -437,43 +436,38 @@ function GroupTable({ head, rows, onDrill }: {
 function OverviewPage({ runId, roles, state, filters, setState }: PageProps) {
   const { t, formatNumber } = usePack(dashMessages)
   const m = roles.measure!
-  const totals = useQuery(runId, {
-    measures: [{ agg: 'count' }, { agg: 'sum', column: m }, { agg: 'mean', column: m }], filters, limit: 1,
-  })
   const top = useQuery(runId, roles.breakdown ? {
     group_by: [roles.breakdown], measures: [{ agg: 'sum', column: m }, { agg: 'count' }], filters,
-    sort: { by: `sum:${m}`, desc: true }, limit: 10,
+    sort: { by: `sum:${m}`, desc: true }, limit: 5,
   } : null)
   const trend = useQuery(runId, roles.date ? {
     group_by: [roles.date], measures: [{ agg: 'sum', column: m }, { agg: 'count' }], filters, limit: 1000,
   } : null)
-  const values = totals.data?.groups[0]?.values ?? [null, null, null]
-  const total = values[1]
-  const leader = top.data?.groups[0]
   const trendPoints: Point[] = (trend.data?.groups ?? []).map((g) => ({ label: keyText(g.keys[0]), value: g.values[0] }))
   const topPoints: Point[] = (top.data?.groups ?? []).map((g) => ({ label: keyText(g.keys[0]), value: g.values[0] }))
   const number = (value: number | null | undefined) => (value === null || value === undefined ? '—' : formatNumber(value, { maximumFractionDigits: 2 }))
   return (
     <>
-      <Problem message={totals.error ?? top.error ?? trend.error} />
-      <PerformanceLegend />
-      <div className="kpis dash-kpis">
-        <div className="kpi"><span className="kpi__label">{t('dash.kpi.records')}</span><span className="kpi__value"><PerformanceValue tone={performanceTone(values[0])}><bdi>{number(values[0])}</bdi></PerformanceValue></span></div>
-        <div className="kpi"><span className="kpi__label" dir="auto">{t('dash.kpi.total', { measure: m })}</span><span className="kpi__value"><PerformanceValue tone={performanceTone(total)}><bdi>{number(total)}</bdi></PerformanceValue></span></div>
-        <div className="kpi"><span className="kpi__label" dir="auto">{t('dash.kpi.perRecord', { measure: m })}</span><span className="kpi__value"><PerformanceValue tone={performanceTone(values[2])}><bdi>{number(values[2])}</bdi></PerformanceValue></span></div>
-        {leader && roles.breakdown ? (
-          <div className="kpi">
-            <span className="kpi__label" dir="auto">{t('dash.kpi.largest', { breakdown: roles.breakdown })}</span>
-            <span className="kpi__value" dir="auto">{keyText(leader.keys[0]) || t('dash.blank')}</span>
-            <span className="kpi__sub">
-              {total && leader.values[0] !== null ? t('dash.kpi.share', { share: formatNumber(leader.values[0] / total, { style: 'percent', maximumFractionDigits: 1 }) }) : null}
-            </span>
+      <Problem message={top.error ?? trend.error} />
+      {!roles.breakdown && !roles.date ? <><p className="field__help">{t('dash.numericContext')}</p><DistributionPage {...{ runId, roles, state, filters, setState }} /></> : null}
+      <div className="dash-overview-charts">
+        {roles.breakdown ? (
+          <div className="card">
+            {top.loading ? <Loading /> : (
+              <Figure
+                title={t('dash.chart.top', { n: formatNumber(topPoints.length), measure: m, breakdown: roles.breakdown })}
+                chart={<Bars items={topPoints} label={t('dash.alt.bars', { measure: m, breakdown: roles.breakdown, n: formatNumber(topPoints.length) })} />}
+                table={<GroupTable head={[roles.breakdown, t('dash.col.total'), t('dash.col.records')]} onDrill
+                  rows={(top.data?.groups ?? []).map((g) => ({
+                    label: keyText(g.keys[0]), cells: [number(g.values[0]), number(g.records)],
+                    drill: () => setState(drill(state, roles.breakdown!, keyText(g.keys[0]), roles.date), 'records'),
+                  }))} />}
+              />
+            )}
           </div>
         ) : null}
-      </div>
-      <div className="dash-grid">
         {roles.date ? (
-          <div className="card">
+          <details className="card" open={!roles.breakdown}><summary>{t('dash.page.trend')}</summary>
             {trend.loading ? <Loading /> : (
               <Figure
                 title={t('dash.chart.trend', { measure: m, date: roles.date })}
@@ -486,22 +480,7 @@ function OverviewPage({ runId, roles, state, filters, setState }: PageProps) {
               />
             )}
             <TrendCoverage answer={trend.data} />
-          </div>
-        ) : null}
-        {roles.breakdown ? (
-          <div className="card">
-            {top.loading ? <Loading /> : (
-              <Figure
-                title={t('dash.chart.top', { measure: m, breakdown: roles.breakdown })}
-                chart={<Bars items={topPoints} label={t('dash.alt.bars', { measure: m, breakdown: roles.breakdown, n: formatNumber(topPoints.length) })} />}
-                table={<GroupTable head={[roles.breakdown, t('dash.col.total'), t('dash.col.records')]} onDrill
-                  rows={(top.data?.groups ?? []).map((g) => ({
-                    label: keyText(g.keys[0]), cells: [number(g.values[0]), number(g.records)],
-                    drill: () => setState(drill(state, roles.breakdown!, keyText(g.keys[0]), roles.date), 'records'),
-                  }))} />}
-              />
-            )}
-          </div>
+          </details>
         ) : null}
       </div>
     </>

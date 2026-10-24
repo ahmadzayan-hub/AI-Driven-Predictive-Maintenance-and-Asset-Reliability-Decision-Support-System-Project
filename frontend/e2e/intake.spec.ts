@@ -34,6 +34,14 @@ test('maintenance preview leads to a real upload, agents, approval gate and dash
   await page.goto(`/#/dashboard/${run.id}/overview`)
   await expect(page.locator('main')).toContainText('maintenance_cost')
   await expect(page.locator('main')).toContainText('963')
+  // Reading contrast must hold throughout the applied entrance motion, not
+  // only after its final frame. Reduced motion may correctly remove it entirely.
+  const opacities = await page.locator('.exec-hero, .exec-featured .exec-kpi').evaluateAll((elements) =>
+    elements.flatMap((element) => element.getAnimations().flatMap((animation) =>
+      animation.effect instanceof KeyframeEffect
+        ? animation.effect.getKeyframes().flatMap((frame) => frame.opacity === undefined ? [] : [Number(frame.opacity)])
+        : [])))
+  expect(opacities.every((opacity) => opacity === 1), 'Executive text remains opaque in every entrance frame').toBe(true)
   const audit = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()
   expect(audit.violations).toEqual([])
 })

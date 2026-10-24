@@ -1654,12 +1654,22 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** both original heads passed hosted checks; combined-head verification is required before completing the second merge. Main automatic deployment remains disabled in the unchanged Vercel configuration.
 - **Next:** finish combined CI and the normal pull-request merge. No production deployment, settings or database write is part of this reconciliation.
 
+
+## 2026-10-24 — isolated Windows local acceptance
+
+- Done: cloned canonical main into the separate task-4/miyaar workspace; built the React interface using copies of already-installed dependencies; started the explicit local-owner profile on loopback port 8017 with fresh local-data. Existing user checkouts, port-8000 process and other workspaces were preserved.
+- Verified: focused local-workspace tests, TypeScript check, production build and interface budget; real browser synthetic upload, saved mapping, calculation/report completion at the approval gate, dashboard, actual HTML download, English/Arabic HTML and DOCX API exports, cleaned CSV, live origin/host/proxy rejection, stale-export refusal, and saved-result reopening after process restart. Detailed evidence is outside this checkout in ../evidence and ../LOCAL-ACCEPTANCE.md.
+- Decided: no package/model installation, inference, Docker, publication, PR, merge or production action. The local frontend build uses older installed Vite/Vitest than the lockfile, disclosed in the handoff. Media rendering remains disabled.
+- Next: incorporate the exact cloud analytics fix SHA when supplied, then test the user-uploaded project CSV stored in the isolated workspace. It was not analyzed in this acceptance session. Preserve original checkouts and inspect active runs before any later restart.
+
+
 ## 2026-10-24 - Reviewed MBA reference collection
 
 - **Done:** prepared original source-cited summaries, method/validation guidance, safe schema examples and explicit partial coverage. Default source lookup uses the existing Markdown loader; explicit roots remain exclusive, private access checks remain in place and model-context forwarding stays disabled. Existing logs, board entries and original source material are preserved.
 - **Verified:** focused knowledge/access/documentation checks, strict brain check, source lookup and publication-boundary checks passed; exact results are in README Testing. The full verifier failed with Windows temporary-file cleanup and child-process import errors, plus missing frontend tools in the isolated checkout. Those failures remain open; no dependency installation or full-suite acceptance is claimed.
 - **Decided:** publish only reviewed original summaries and bibliography/schema references under the owner's authorization. Source books/slides, raw extraction, dataset records, private audit paths and private reports remain excluded. Reference availability does not establish model execution, analytical-stage invocation, independent review or human approval.
 - **Next:** open the authorized draft pull request, inspect exact-head CI and obtain human review. No merge, deployment, provider call or production database change is part of this work.
+
 ## 2026-10-24 · `period-coverage-evidence` · fix/period-coverage-evidence
 
 **Goal:** allow truthful report generation without weakening numerical evidence validation.
@@ -1670,6 +1680,14 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Open / next:** exact-head CI and owner review before any merge or deployment; comparable exposure and prediction timing remain prerequisites for operational forecasts.
 - **Blockers:** cloud environment lacks the PostgreSQL Python driver; no installation or hosted acceptance claimed.
 
+## 2026-10-24 - executive workspace local candidate
+
+- **Done:** compact decision and next-action hierarchy, larger sourced measures, restrained navigation, existing aggregate charts before the maintenance register, bilingual disclosure, dataset titles and purposeful entry motion. Incorporated exact period-coverage commit 791077388e2ba105ebd1e7a9245062bea430d57c by merge; own application edits are frontend-only.
+- **Verified:** bounded unit/type/build/budget and focused analytics outcomes are recorded in README.md#testing. Actual loopback screens, English desktop, Arabic narrow layout, keyboard chart tables and saved reduced motion were inspected. Owned server restart retained existing uploads and saved results.
+- **Decided:** preserve local owner access, human approval, all original checkouts and durable acceptance data. No new dependency, model, container, credential or production action. Keep failed numerical evidence visible and withhold the report.
+- **Next / blocker:** the local project CSV's cost/site/month mapping exposed cl_decline without its category contribution citation when outside the first five contributors. The separate backend task must correct that evidence path before report acceptance can pass. A long unbroken filename still needs narrow-screen wrapping; its build was deferred below the memory guard and the unbuilt change kept outside this candidate. Detailed local run evidence remains outside Git. Native presentation/media export, model review and hosted acceptance remain separate work.
+
+
 
 ## 2026-10-24 — Combined knowledge and analytics verification
 
@@ -1678,3 +1696,53 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Next:** complete combined CI, then verify the final main commit. Login, production activation, settings and database writes remain outside this code-only wave.
 
 - **Additional correction:** retained the named counter-direction contribution outside the top-five display subset, with English/Arabic evidence and tamper regressions. Independent focused tests and the reported mapping pass; combined hosted acceptance is still required.
+
+## 2026-10-24 - local follow-up integration
+
+- **Done:** merged exact reviewed knowledge/analytics commit 392d95cb108c816172725dd28386ed5ddea069f6 into the isolated UI branch. Resolved additive documentation conflicts by preserving both histories. Frontend tree unchanged; no rebuild was needed. Restarted only the manifest-verified acceptance server and retained all existing uploads and runs.
+- **Verified:** focused tests and the fresh actual-CSV run pass as recorded in README.md#testing. The previously uncited category now has its own calculation citation; no validator change was made. Supported bilingual HTML/DOCX exports were checked, with no publication approval.
+- **Decided:** keep the original stopped run as evidence. New results remain awaiting human review. Prior UI-head hosted budget verification passed; combined-head acceptance is distinct.
+- **Next:** complete saved-result restart verification and combined CI. A narrow filename wrap adjustment remains deferred by the local memory budget. No model, media render, production deployment or merge to main.
+
+## 2026-10-24 - Phase 1 opening and navigation source checkpoint
+
+- **Done:** prepared a bounded opening revision using the existing controlled measure selector, real group comparison and evidence-backed priorities. Consolidated navigation into the requested work areas while retaining the old routes and workspace tools. Source context and the full register remain available. Prepared the actual sidebar focus-token fix and filename wrapping; updated interaction expectations for the disclosures and added above-fold/reduced-motion checks.
+- **Verified:** source whitespace checks pass. Guarded frontend tests were deferred before starting because available physical memory was below the established gate. This checkpoint has not passed typecheck, unit/E2E execution, build/budget or rendered acceptance. The previous build stays live with saved uploads/results untouched.
+- **Decided:** do not exchange unbuilt assets or stop the local server to force a low-memory build. No process was killed. Presentation and video remain Phase 2; no backend changes are part of this revision.
+- **Next:** obtain memory headroom, run the guarded checks, inspect actual desktop/phone/Arabic pixels and keyboard focus, verify the saved report across a documented restart, then publish the validated draft-PR update. Report the exact final head rather than reusing prior CI evidence.
+
+
+## 2026-10-24 — Bilingual navigation regression follow-up
+
+- Done: reused the disclosure-aware navigation helper for Arabic, joins, mapping, demo approvals and RMD tests. Phone tests now assert the exact three work-area labels plus More in both languages, and retain drawer focus restoration, route and accessibility checks. Included featured-card headings in clipping assertions and removed the extra EOF blank line.
+- Verified: source review and accumulated diff whitespace check pass. The preceding exact head passed hosted frontend units, typecheck, build and fast budget; its full browser suite was still running when these additional stale assumptions were found. This follow-up has not yet passed hosted CI. Local test/build execution remains deferred by measured memory; live assets and saved data are unchanged.
+- Decided: keep semantic UI interaction and every evidence/export/approval boundary; do not skip cases, inflate timeouts or raise size budgets.
+- Next: run existing exact-head CI, inspect its real browser results and only exchange assets from a successful matching artifact. Capture the actual local revision after served-hash and browser checks.
+
+## 2026-10-24 — Exact-viewport and expanded-evidence capture repair
+
+- Done: expanded KPI captures now measure both the featured row and the detailed families. Added a fresh synthetic opening capture before viewport assertions, so a failed layout remains visible in test evidence.
+- Verified: source review and diff whitespace checks pass. The fixed opening remains at the original desktop/phone viewport; expanded captures still restore that viewport before reflow and accessibility assertions. Hosted verification is required; no local asset replacement or new live screenshot is claimed.
+- Decided: separate a labelled automated test preview from release acceptance. Keep full chart intersection, evidence and approval assertions unchanged.
+- Next: inspect exact-head hosted results, correct any real layout failure, and use only a successful matching artifact for local acceptance.
+
+## 2026-10-24 — Wait for actual navigation after bootstrap
+
+- Done: browser helpers now wait for rendered navigation controls and, on phones, the actual drawer groups before opening a route. The initial bootstrap shell is intentionally present before session navigation, so shell existence was not a readiness signal. Remaining Arabic documentation-capture clicks use the same accessible helper.
+- Verified: completed hosted logs identified the bootstrap/navigation race and stale direct clicks. The prior fixed-size opening test passed in desktop and phone projects; expanded-card capture still needed the already committed measurement correction. Source review confirms App renders the shell before the session. Whitespace checks pass; current exact-head hosted validation remains required.
+- Decided: use existing UI readiness signals without sleeps, timeout inflation, bypasses or removed assertions. Live assets/data remain unchanged.
+- Next: finish exact-head CI and verified local artifact/browser acceptance.
+
+## 2026-10-24 — Preserve the focused workflow test selector
+
+- Done: restored the existing sidebar groups prefix on the intact three-area navigation test title so the focused RMD workflow selects it.
+- Verified: repository workflow inspection found the exact --grep selector; the restored title matches it. Diff whitespace checks pass. Every test assertion and the workflow remain unchanged; exact-head hosted acceptance is still pending.
+- Decided: repair compatibility rather than weaken a selector or skip a check.
+- Next: complete hosted validation and the matching local artifact/browser handoff.
+
+## 2026-10-24 — Preserve executive text contrast during motion
+
+- Done: executive entrance motion keeps its short translate transition but no longer fades text opacity. The real upload journey checks the applied animation keyframes before its unchanged accessibility audit. The ADR records this cross-browser correction.
+- Verified: exact prior-head RMD evidence and Windows/Edge platform workflows passed. macOS/WebKit reported low contrast on executive metadata and caution text during the entrance fade. Source review confirms the shared executive keyframe caused that fade; diff whitespace checks pass. The correction still requires exact-head hosted verification and actual local rendering.
+- Decided: keep text readable in every animation frame, preserve reduced motion, and retain the ordinary contrast assertion without a delay or exemption.
+- Next: finish full CI/platform checks, verify the matching artifact and update the local UI reversibly while preserving saved results.

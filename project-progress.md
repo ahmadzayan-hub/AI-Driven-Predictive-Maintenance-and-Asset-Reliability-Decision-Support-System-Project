@@ -13,7 +13,13 @@ Last updated: 2026-10-23, platform/API recovery, transactional publishing and ap
 
 ## Now
 
+- **Phase 1 source revision, 2026-10-24:** prepared four controlled KPI cards, a real comparison beside the review queue, compact provenance, and three primary work areas with all old routes retained. Keyboard focus and long-filename wrapping are included. Existing interaction assertions are being aligned with the actual disclosures; no checks are skipped. The laptop memory guard deferred validation, so this source is not yet the running UI. The target is Sunday 25 October at noon Dubai; presentation/video are Phase 2. Keep the current local app and uploads intact until guarded tests/build and actual rendered acceptance pass.
+
+- **Executive workspace candidate, 2026-10-24:** implemented compact next-action guidance, prominent sourced measures, existing comparison charts before detailed registers, restrained navigation, bilingual progressive disclosure and reduced-motion-aware entry transitions. The reviewed knowledge/analytics follow-up is incorporated without local backend edits. The cost/site/month acceptance now passes numerical evidence checks and produces a report awaiting human approval, with supported bilingual document exports verified. Local and hosted validation boundaries are recorded in README.md#testing. Narrow filename wrapping and complete combined CI remain open; this is a local candidate, not a complete release.
+
+
 - **Reviewed MBA reference candidate, 2026-10-24:** original cited summaries, method/validation guidance, safe schema cards and explicit partial coverage are prepared in `knowledge/mba-analytics/`. Existing Markdown lookup includes the reviewed bundle by default while explicit roots remain exclusive and model-context forwarding stays disabled. Source documents, records and private audit paths are excluded. Review/merge and actual analytical-stage invocation remain separate; verification is recorded in README. See [decision](docs/adr/2026-10-24-reviewed-mba-reference-collection.md).
+
 - **Period-coverage evidence candidate, 2026-10-24:** truthful cited coverage limitations, raw-total forecast refusal on unequal coverage, correct anomaly citation and conditional scenario labels are prepared for draft review. Actual deterministic API ingestion/report/persistence acceptance succeeded locally; report approval and publication remain gated. Verification limits are in README.md#testing and the dated ADR.
 
 - **Local KPI review-context candidate, 2026-10-24:** source/run inspection, explicit unknown period/freshness/owner, contextual owner question and finite-value rendering are prepared against main 99ca49ab. No backend assignment or release change. Browser acceptance is blocked by the local sandbox; review and integration remain pending. See [decision](docs/adr/2026-10-24-kpi-review-context.md).
@@ -268,5 +274,6 @@ The earlier history is in `docs/ROADMAP.md` (tiers and gates) and `docs/adr/`.
 - **Production checks:** auth, the database and the model provider are unverified on Vercel; see `docs/KNOWN_LIMITATIONS.md`.
 - **Hooks:** they need `python3`, and they run only after a person trusts the folder in Claude Code.
 
+### Phase 1 navigation verification follow-up — 24 October 2026
 
-
+Additional bilingual and phone test paths now follow the three-area navigation through native disclosures. These source repairs preserve route, keyboard, reflow, export and approval assertions. Hosted exact-head verification and actual local rendering remain pending; the prior loopback build is still running. No backend behavior changed.

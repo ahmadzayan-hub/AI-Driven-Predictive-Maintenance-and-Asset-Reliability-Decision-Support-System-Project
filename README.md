@@ -552,6 +552,46 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+Phase 1 source checkpoint (24 October 2026): the compact governed-KPI opening,
+comparison/review layout, navigation disclosures and focus/wrapping corrections
+are prepared but not yet built or visually accepted on the laptop. The guarded
+focused-unit command deferred before launch for insufficient physical memory;
+no test pass is claimed for this revision. The previous local build remains live.
+
+For the preceding `cdc379c6` candidate, hosted run `40127108162` confirms Python
+and frontend units plus typecheck/build succeeded, but end-to-end/accessibility
+failed and the later bilingual step was skipped. The follow-up updates the
+reported stale heading/disclosure assertions without removing their evidence,
+export or approval checks. Exact new-head execution remains required.
+
+Local follow-up acceptance (24 October 2026): after incorporating reviewed
+knowledge/analytics commit `392d95cb`, the focused period-coverage, knowledge,
+access and documentation command passed **67 tests**. The frontend tree was
+unchanged and reused its matching build. A fresh actual project CSV run with the
+same cost/site/month mapping completed **21 stages**, passed every recorded
+validation check and stopped at `awaiting_approval`. The counter-direction claim
+now cites `c_contrib_6` and its recorded value. English/Arabic HTML and genuine
+DOCX exports were retrieved and checked locally. No approval or publication was
+performed. UI Budget Fast passed on the prior UI head `ca68c24e`; combined-head
+hosted CI and persistence-after-restart remain separate checks at this checkpoint.
+
+Executive workspace candidate (24 October 2026): final isolated frontend checks
+passed 34 executive-overview tests, 20 performance/contrast tests, and 21 routing
+and view tests. An earlier combined run also passed 27 overview tests; it was not
+a clean full-suite run (worker startup and contention failures occurred before
+the bounded isolated retries). TypeScript, Vite production build and existing
+interface budgets pass with no new dependency. Existing installed Vite 8.2.1 and
+Vitest 4.1.11 differ from the declared minimum versions; this is not locked-
+dependency hosted acceptance. The focused Python analytics/coverage run passed
+120 tests. Actual local browser checks covered the English desktop dashboard,
+Arabic 320-pixel layout, keyboard chart disclosure and saved reduced motion.
+The locally uploaded project CSV was processed with cost/site/month mapping:
+forecast refusal and conditional scenarios were correct, but `cl_decline` cited
+only overall change for a category outside the cited contributors. Numerical
+validation withheld its report. No validator bypass, publication, model inference,
+native PPTX/PDF generation or full-suite/production acceptance is claimed.
+
+
 Reviewed MBA reference candidate (24 October 2026, base `e2200274`):
 `python -m unittest tests.test_mba_knowledge tests.test_knowledge tests.test_knowledge_access tests.test_docs`
 passes **57 tests**, including default API lookup, Arabic/English citations,
@@ -570,6 +610,7 @@ because this isolated checkout has no installed `tsc`/`vitest`; the interface
 budget did not run after the build failure. No dependencies were installed.
 PostgreSQL and browser end-to-end acceptance are not established locally;
 exact-head hosted CI and review remain required. See [the decision](docs/adr/2026-10-24-reviewed-mba-reference-collection.md).
+
 Period-coverage evidence candidate (24 October 2026): on main `674260dc` plus
 the reviewed local patch, the focused analytics/mapping/report/worker command
 ran 308 tests successfully (28 skipped). `python3 -m unittest discover tests`
@@ -2357,6 +2398,3 @@ does not create or change a license; existing third-party notices apply.
 - Product: AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project
 - Engine: Agentic OS
 - Version: 1.0.0
-
-
-

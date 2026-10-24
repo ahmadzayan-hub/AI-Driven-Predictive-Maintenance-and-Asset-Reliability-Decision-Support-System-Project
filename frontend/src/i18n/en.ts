@@ -7,9 +7,10 @@
  *  — the server localises its own replies from the session's language
  *  preference (agent.py). */
 export const en = {
-  'nav.homeShort': 'Home',
-  'nav.dataShort': 'Data',
-  'nav.reviewShort': 'Review',
+  'nav.decision': 'Decision',
+  'nav.dataAnalysis': 'Data & analysis',
+  'nav.reportsOutputs': 'Reports & outputs',
+  'nav.tools': 'Workspace tools',
 
   "assistant.name": "Miyaar",
   "assistant.tagline": "AI-Powered Asset Maintenance, Reliability & Decision Support",
@@ -70,9 +71,7 @@ export const en = {
   "nav.operations": "Administration",
   "nav.rmd": "RMD Evidence",
   "nav.assets": "Asset Intelligence",
-  'decision.eyebrow': 'Your next decision',
   'decision.heading': 'Decision Intelligence Command Centre',
-  'decision.subtitle': 'Follow the evidence from analysis to a decision. Open a workflow, explore findings or review a report.',
   'decision.upload': 'Analyze a dataset',
   'decision.uploadHelp': 'Import, validate and run governed analytics',
   'decision.dashboard': 'Explore a dashboard',
@@ -205,7 +204,6 @@ export const en = {
   'nav.overview': 'Command Centre',
   'nav.datasets': 'Datasets',
   'nav.more': 'More',
-  'nav.assetsShort': 'Assets',
   'session.new': 'New session',
   'session.end': 'End session',
   'session.signOut': 'Sign out',

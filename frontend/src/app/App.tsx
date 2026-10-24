@@ -49,36 +49,34 @@ interface NavItem {
   id: Tab
   label: MessageKey
   icon: IconName
-  /** A shorter name for the phone bar, where a long one wraps. */
-  short?: MessageKey
 }
 
-// The sidebar groups the views by what a person is doing (ADR 0023, and the
-// 21 October navigation decision): deciding, preparing the data, and working
-// with the assistant. Each group has one colour and no heading; every view
-// keeps its own icon.
-const NAV_GROUPS: Array<{ id: string; items: NavItem[] }> = [
+// Three primary work areas retain every existing route under native disclosures.
+// The assistant and workspace tools remain available without replacing views.
+const NAV_GROUPS: Array<{ id: string; label: MessageKey; items: NavItem[] }> = [
   {
-    id: 'decide',
+    id: 'decide', label: 'nav.decision',
     items: [
-      { id: 'operations', label: 'nav.operations', icon: 'check' },
-      { id: 'overview', label: 'nav.overview', icon: 'dashboard', short: 'nav.homeShort' },
-      { id: 'assets', label: 'nav.assets', icon: 'activity', short: 'nav.assetsShort' },
+      { id: 'overview', label: 'nav.overview', icon: 'dashboard' },
+      { id: 'assets', label: 'nav.assets', icon: 'activity' },
       { id: 'rmd', label: 'nav.rmd', icon: 'search' },
-      { id: 'dashboard', label: 'nav.dashboard', icon: 'chart' },
-      { id: 'approvals', label: 'nav.approvals', icon: 'shield', short: 'nav.reviewShort' },
     ],
   },
   {
-    id: 'prepare',
+    id: 'prepare', label: 'nav.dataAnalysis',
     items: [
-      { id: 'datasets', label: 'nav.datasets', icon: 'database', short: 'nav.dataShort' },
+      { id: 'datasets', label: 'nav.datasets', icon: 'database' },
       { id: 'runs', label: 'nav.runs', icon: 'sparkle' },
     ],
   },
+  { id: 'report', label: 'nav.reportsOutputs', items: [
+    { id: 'dashboard', label: 'nav.dashboard', icon: 'chart' },
+    { id: 'approvals', label: 'nav.approvals', icon: 'shield' },
+  ] },
   {
-    id: 'assist',
+    id: 'assist', label: 'nav.tools',
     items: [
+      { id: 'operations', label: 'nav.operations', icon: 'check' },
       { id: 'chat', label: 'nav.workspace', icon: 'chat' },
       { id: 'memory', label: 'nav.memory', icon: 'memory' },
       { id: 'activity', label: 'nav.activity', icon: 'clock' },
@@ -87,18 +85,13 @@ const NAV_GROUPS: Array<{ id: string; items: NavItem[] }> = [
   },
 ]
 
-const ALL_ITEMS = NAV_GROUPS.flatMap((group) => group.items)
 // Views the view-only demo leaves out: those that live on a chat session,
 // which the demo does not have, and Administration.
 const NEEDS_SESSION: ReadonlySet<Tab> = new Set<Tab>(['chat', 'memory', 'preferences', 'operations', 'rmd'])
 const DEMO_GROUPS = NAV_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => !NEEDS_SESSION.has(item.id)) }))
 
-// A phone's bottom bar holds at most five places: the four a manager opens
-// most, and "More", which opens every preserved route. Data, analysis and
-// review follow the work; assets, dashboards and the assistant stay in More.
-const BAR_TABS: Tab[] = ['overview', 'datasets', 'runs', 'approvals']
-const BAR_ITEMS = BAR_TABS.map((id) => ALL_ITEMS.find((item) => item.id === id)!)
-const DEMO_BAR_ITEMS = BAR_ITEMS
+// The phone bar opens the three work areas; More exposes every preserved route.
+const BAR_ITEMS = NAV_GROUPS.slice(0, 3).map((group) => ({ ...group.items[0], short: group.label }))
 
 const ONBOARDING_KEY = 'aos-onboarded'
 
@@ -367,7 +360,7 @@ export function App() {
       </button>}
       <nav className="sidebar__nav" aria-label={t('nav.main')}>
         {(demo ? DEMO_GROUPS : NAV_GROUPS).map((group) => (
-          <div key={group.id} className="sidebar__group" data-group={group.id}>
+          <details key={group.id} className="sidebar__group" data-group={group.id} open={group.items.some((item) => item.id === tab)}><summary>{t(group.label)}</summary>
             {group.items.map((item) => (
               <button
                 key={item.id}
@@ -383,7 +376,7 @@ export function App() {
                 ) : null}
               </button>
             ))}
-          </div>
+          </details>
         ))}
       </nav>
       <div className="sidebar__footer">
@@ -504,7 +497,7 @@ export function App() {
           </button>
         </div>
       </header>
-      <div className="shell__mode" inert={drawerOpen}>{demo ? <strong title={t('demo.note')}>{t('demo.badge')}</strong> : <StatusBadge status={status} />}</div>
+      <div className={`shell__mode${!demo && status === 'ready' && tab !== 'chat' ? ' visually-hidden' : ''}`} inert={drawerOpen}>{demo ? <strong title={t('demo.note')}>{t('demo.badge')}</strong> : <StatusBadge status={status} />}</div>
 
       <div className="shell__body">
         {sidebar}
@@ -678,7 +671,7 @@ export function App() {
       </div>
 
       <nav className="tabbar" aria-label={t('nav.primary')}>
-        {(demo ? DEMO_BAR_ITEMS : BAR_ITEMS).map((item) => (
+        {BAR_ITEMS.map((item) => (
           <button
             key={item.id}
             type="button"
@@ -692,7 +685,7 @@ export function App() {
         ))}
         <button
           type="button"
-          className={`tabbar__btn ${(demo ? DEMO_BAR_ITEMS : BAR_ITEMS).some((item) => item.id === tab) ? '' : 'tabbar__btn--holding'}`}
+          className={`tabbar__btn ${BAR_ITEMS.some((item) => item.id === tab) ? '' : 'tabbar__btn--holding'}`}
           aria-haspopup="dialog"
           aria-expanded={drawerOpen}
           onClick={(event) => openDrawer(event.currentTarget)}

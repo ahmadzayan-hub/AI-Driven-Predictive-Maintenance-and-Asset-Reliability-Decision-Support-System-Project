@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
-import { openTab, skipOnboarding } from './helpers'
+import { openTab, revealNavigation, skipOnboarding } from './helpers'
 
 // The Overview and Datasets views (ADR 0023, phase 1): what the
 // workspace found, what waits for approval, and a stored dataset
@@ -102,31 +102,30 @@ test('a stored dataset is analysed again by reference', async ({ page }) => {
   await expect(page.getByLabel('Choose a file')).toBeVisible()
 })
 
-test('the phone bar holds five places and More opens the rest', async ({ page }) => {
+test('the phone bar holds three work areas and More opens contextual tools', async ({ page }) => {
   test.skip(test.info().project.name !== 'mobile', 'the bottom bar exists on phones only')
   await skipOnboarding(page)
   await page.goto('/')
 
   const bar = page.getByRole('navigation', { name: 'Primary' })
-  await expect(bar.getByRole('button')).toHaveCount(5)
-  // The four places a manager opens most, with a short label that fits.
-  await expect(bar.getByRole('button')).toHaveText(['Home', 'Data', 'Analyses', 'Review', 'More'])
-  await bar.getByRole('button', { name: 'Home' }).click()
-  await expect(bar.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page')
+  await expect(bar.getByRole('button')).toHaveCount(4)
+  await expect(bar.getByRole('button')).toHaveText(['Decision', 'Data & analysis', 'Reports & outputs', 'More'])
+  await bar.getByRole('button', { name: 'Decision', exact: true }).click()
+  await expect(bar.getByRole('button', { name: 'Decision', exact: true })).toHaveAttribute('aria-current', 'page')
 
   const more = bar.getByRole('button', { name: 'More' })
   await more.click()
   const drawer = page.getByRole('dialog', { name: 'Navigation' })
   await expect(drawer).toBeVisible()
   // Dashboards and Administration remain reachable through More with the manager navigation shortcuts.
-  await drawer.getByRole('button', { name: /^Administration/ }).click()
+  await openTab(page, /^Administration/)
   await expect(drawer).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Maintenance operations', level: 2 })).toBeVisible()
   await expect(more).toBeFocused()
 
   await more.click()
   await expect(drawer).toBeVisible()
-  await drawer.getByRole('button', { name: /^Memory/ }).click()
+  await openTab(page, /^Memory/)
   await expect(drawer).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Saved memory', level: 2 })).toBeVisible()
   // Focus returns to the control that opened the drawer.
@@ -150,9 +149,7 @@ test('the new views do not scroll sideways at 320 px, in either language', async
   await page.getByRole('button', { name: 'Change language' }).click()
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl')
   for (const name of [/^مركز القيادة/, /^مجموعات البيانات/]) {
-    const menu = page.getByRole('button', { name: 'فتح قائمة التنقل' })
-    await menu.click()
-    await page.getByRole('dialog').getByRole('button', { name }).click()
+    await openTab(page, name, 'ar')
     await expect(page.locator('main .panel__title:visible')).toBeVisible()
     await expect(page.locator('main .skeleton:visible')).toHaveCount(0)
     expect(await horizontalOverflow(page), `overflow on ${name}`).toBeLessThanOrEqual(0)
@@ -184,18 +181,34 @@ test.describe('a view that cannot load', () => {
   })
 })
 
-test('the sidebar groups views by task, with colour instead of headings', async ({ page }) => {
-  test.skip(test.info().project.name !== 'desktop', 'the sidebar is fixed on desktop only')
+test('sidebar groups: three work areas preserve routes and disclose contextual tools', async ({ page }) => {
   await skipOnboarding(page)
   await page.goto('/')
-  const nav = page.getByRole('navigation', { name: 'Main' })
+  await revealNavigation(page)
+  const nav = page.getByRole('navigation', { name: 'Main', exact: true }).filter({ visible: true })
   const groups = nav.locator('.sidebar__group')
-  await expect(groups).toHaveCount(3)
-  await expect(groups.nth(0).getByRole('button')).toHaveText(['Administration', 'Command Centre', 'Asset Intelligence', 'RMD Evidence', 'Dashboards', 'Approvals'])
-  await expect(groups.nth(1).getByRole('button')).toHaveText(['Datasets', 'Analyses'])
-  await expect(groups.nth(2).getByRole('button')).toHaveText([/^Workspace/, /^Memory/, 'Activity', 'Preferences'])
-  await expect(nav.locator('p, h2, h3')).toHaveCount(0)
-  // Each view keeps its own icon.
+  await expect(groups).toHaveCount(4)
+  await expect(groups.locator(':scope > summary')).toHaveText(['Decision', 'Data & analysis', 'Reports & outputs', 'Workspace tools'])
+  // Every preserved route still carries its distinct icon.
   const icons = await nav.locator('.navbtn svg path').evaluateAll((paths) => paths.map((path) => path.getAttribute('d')))
   expect(new Set(icons).size).toBe(icons.length)
+  const expected = [
+    ['Command Centre', 'Asset Intelligence', 'RMD Evidence'],
+    ['Datasets', 'Analyses'], ['Dashboards', 'Approvals'],
+    [/^Administration/, /^Workspace/, /^Memory/, 'Activity', 'Preferences'],
+  ]
+  const address = page.url()
+  for (let index = 0; index < expected.length; index++) {
+    const group = groups.nth(index)
+    if (!(await group.evaluate((element) => (element as HTMLDetailsElement).open))) await group.locator('summary').click()
+    await expect(group.getByRole('button')).toHaveText(expected[index])
+  }
+  expect(page.url()).toBe(address) // disclosure never changes the route or history
+  await nav.getByRole('button', { name: 'Datasets', exact: true }).click()
+  await expect(page).toHaveURL(/#\/datasets$/)
+  await page.goBack()
+  await expect(page.getByRole('heading', { name: 'Command Centre', level: 2 })).toBeVisible()
+  await openTab(page, /^Analyses/)
+  await openTab(page, /^Datasets/)
+  await expect(page.getByRole('heading', { name: 'Datasets', level: 2 })).toBeVisible()
 })

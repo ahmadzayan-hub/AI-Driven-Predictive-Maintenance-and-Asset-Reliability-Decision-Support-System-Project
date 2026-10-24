@@ -1,9 +1,11 @@
+import { pickMeasures } from '../../shared/pickMeasures'
+export { pickMeasures } from '../../shared/pickMeasures'
 import { usePack } from '../../i18n/pack'
 import { Icon } from '../../shared/components/Icon'
 import { PerformanceValue, hasVerdict, performanceTone } from '../../shared/components/PerformanceValue'
 import { formatMoney } from '../../shared/format'
 import { modelTone } from '../../shared/modelTone'
-import type { KpiMeasure, RunExecutive, RunSummary } from '../../shared/types'
+import type { RunExecutive, RunSummary } from '../../shared/types'
 import { formatValue } from '../assets/kpiDisplay'
 import { commandMessages } from './commandMessages'
 
@@ -12,26 +14,6 @@ interface CommandCentreProps {
   brief: RunExecutive | null
   failed: boolean
   onOpenDashboard?: (runId: string) => void
-}
-
-const MAX_KPIS = 6
-const FAMILY_ORDER = ['reliability', 'execution', 'cost']
-
-/** The measures worth a tile: every one with a verdict first, then the
- *  first of each family, so a reader sees reliability, work and cost
- *  even when no target is set. Never more than six. */
-export function pickMeasures(measures: KpiMeasure[]): KpiMeasure[] {
-  const assessed = measures.filter((m) => ['good', 'okay', 'bad'].includes(m.assessment?.status ?? ''))
-  const chosen = [...assessed]
-  for (const family of FAMILY_ORDER) {
-    const first = measures.find((m) => m.family === family && !chosen.includes(m))
-    if (first) chosen.push(first)
-  }
-  for (const measure of measures) {
-    if (chosen.length >= MAX_KPIS) break
-    if (!chosen.includes(measure)) chosen.push(measure)
-  }
-  return chosen.slice(0, MAX_KPIS)
 }
 
 /** Literal source lead only: never synthesize, clip a sentence or drop the full text. */
@@ -68,8 +50,8 @@ export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCe
     : brief.priorities.map((p) => ({ id: p.id, title: p.title, detail: p.detail, owner: '', gate: '' }))
   const measures = pickMeasures(brief.kpis.measures)
   const unavailable = Object.keys(brief.kpis.unavailable).length
-  const recommendation = brief.findings.find((f) => f.kind === 'recommendation')
-  const assumption = brief.findings.find((f) => f.stage === 'prescriptive' && f.kind === 'assumption')
+  const recommendation = brief.findings.find((f) => f.id === 'cl_recommendation' || f.kind === 'recommendation')
+  const assumption = brief.findings.find((f) => f.stage === 'prescriptive' && f.kind === 'assumption' && f !== recommendation)
   const quality = brief.findings.find((f) => f.stage === 'quality')
   const failedChecks = brief.evidence.find((e) => e.id === 'executive.validation.failed_checks')?.value
   const fullRecommendation = brief.advisory?.recommendation ?? brief.headline
@@ -95,16 +77,7 @@ export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCe
       </div>
 
       <div className="command__grid">
-        <section className="card" aria-labelledby="command-decisions">
-          <h3 className="card__title" id="command-decisions">{t('command.decisions')} <span className="command__count">{formatNumber(decisions.length)}</span></h3>
-          {decisions.length ? <ol className="command__list">{decisions.slice(0, 4).map((d, i) => (
-            <li key={d.id}><span className="command__n" aria-hidden="true">{formatNumber(i + 1)}</span>
-              <div><strong dir="auto">{d.title}</strong><p dir="auto">{d.detail}</p>
-                {d.owner ? <p className="command__owner">{t('command.owner')}: <span dir="auto">{d.owner}</span> · {t('command.gate')}: <span dir="auto">{d.gate}</span></p> : null}</div>
-            </li>))}</ol> : <p className="card__empty">{t('command.decisionsNone')}</p>}
-        </section>
-
-        <section className="card" aria-labelledby="command-kpis">
+        <section className="card command__performance" aria-labelledby="command-kpis">
           <h3 className="card__title" id="command-kpis">{t('command.kpis')}</h3>
           {measures.length ? <dl className="command__kpis">{measures.map((m) => {
             // Money carries the mapping's currency code when the owner stated
@@ -116,45 +89,54 @@ export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCe
             const verdict = hasVerdict(tone)
             return <div key={m.key} data-source={`kpi.${m.key}`}>
               <dt dir="auto">{m.title}</dt>
-              <dd><PerformanceValue tone={tone} reason={verdict ? m.assessment?.reason : undefined}><bdi>{value === null ? '—' : value}{value === null ? '' : unit}</bdi></PerformanceValue></dd>
+              <dd><PerformanceValue tone={tone} reason={verdict ? m.assessment?.reason : undefined}><bdi>{value ?? '-'}{value === null ? '' : <small>{unit}</small>}</bdi></PerformanceValue></dd>
             </div>
           })}</dl> : <p className="card__empty">{t('command.kpisNone')}</p>}
+          <p className="card__meta">{t('command.context')}</p>
           {unavailable ? <p className="card__meta">{t('command.unavailable', { n: formatNumber(unavailable) })}</p> : null}
         </section>
 
-        <section className="card" aria-labelledby="command-models">
-          <h3 className="card__title" id="command-models">{t('command.models')}</h3>
+        <section className="card" aria-labelledby="command-decisions">
+          <h3 className="card__title" id="command-decisions">{t('command.decisions')} <span className="command__count">{formatNumber(decisions.length)}</span></h3>
+          {decisions.length ? <ol className="command__list">{decisions.slice(0, 4).map((d, i) => (
+            <li key={d.id}><span className="command__n" aria-hidden="true">{formatNumber(i + 1)}</span>
+              <div><details><summary><strong dir="auto">{d.title}</strong></summary><p dir="auto">{d.detail}</p>
+                {d.owner ? <p className="command__owner">{t('command.owner')}: <span dir="auto">{d.owner}</span> · {t('command.gate')}: <span dir="auto">{d.gate}</span></p> : null}</details></div>
+            </li>))}</ol> : <p className="card__empty">{t('command.decisionsNone')}</p>}
+        </section>
+
+        <section className="card" aria-labelledby="command-quality">
+          <h3 className="card__title" id="command-quality">{t('command.quality')}</h3>
+          {quality ? <p dir="auto">{quality.text}</p> : <p className="card__empty">{t('command.qualityNone')}</p>}
+          {typeof failedChecks === 'number' && failedChecks > 0 ? <p className="command__caution">{t('command.failedChecks', { n: formatNumber(failedChecks) })}</p> : null}
+          {limitations.length ? <details className="command__limits"><summary>{t('command.limitations', { n: formatNumber(limitations.length) })}</summary>
+            <ul>{limitations.map((text) => <li key={text} dir="auto">{text}</li>)}</ul></details> : null}
+        </section>
+
+        <details className="card command__detail" aria-labelledby="command-models">
+          <summary><h3 className="card__title" id="command-models">{t('command.models')}</h3></summary>
           {brief.models.length ? <ul className="command__models">{brief.models.slice(0, 4).map((model, i) => {
             const tone = modelTone(model)
             return <li key={`${model.role}-${i}`}><span dir="auto">{model.target}</span>
               <span className="performance-value" data-performance={tone}><span className="performance-value__status">{t(`command.model.${tone}`)}</span></span></li>
           })}</ul> : <p className="card__empty">{t('command.modelsNone')}</p>}
           {brief.advisory?.prediction ? <p className="card__meta" dir="auto">{brief.advisory.prediction}</p> : null}
-        </section>
+        </details>
 
-        <section className="card" aria-labelledby="command-action">
-          <h3 className="card__title" id="command-action">{t('command.action')}</h3>
+        <details className="card command__detail" aria-labelledby="command-action">
+          <summary><h3 className="card__title" id="command-action">{t('command.action')}</h3></summary>
           {recommendation ? <>
             <p className="command__action" dir="auto">{recommendation.text}</p>
             {assumption ? <p className="card__meta" dir="auto">{assumption.text}</p> : null}
             <p className="command__boundary"><Icon name="shield" size={14} />{t('command.actionNote')}</p>
           </> : <p className="card__empty">{t('command.actionNone')}</p>}
-        </section>
+        </details>
 
-        <section className="card" aria-labelledby="command-quality">
-          <h3 className="card__title" id="command-quality">{t('command.quality')}</h3>
-          {quality ? <p dir="auto">{quality.text}</p> : <p className="card__empty">{t('command.qualityNone')}</p>}
-          <p className="card__meta">{t('command.asOf', { date: formatDate(brief.run.updated_at ?? run.updated_at) })}</p>
-          {typeof failedChecks === 'number' && failedChecks > 0 ? <p className="command__caution">{t('command.failedChecks', { n: formatNumber(failedChecks) })}</p> : null}
-          {limitations.length ? <details className="command__limits"><summary>{t('command.limitations', { n: formatNumber(limitations.length) })}</summary>
-            <ul>{limitations.map((text) => <li key={text} dir="auto">{text}</li>)}</ul></details> : null}
-        </section>
-
-        <section className="card" aria-labelledby="command-questions">
-          <h3 className="card__title" id="command-questions">{t('command.questions')}</h3>
+        <details className="card command__detail" aria-labelledby="command-questions">
+          <summary><h3 className="card__title" id="command-questions">{t('command.questions')}</h3></summary>
           {brief.questions.length ? <ul className="command__questions">{brief.questions.slice(0, 3).map((q) => <li key={q.id} dir="auto">{q.text}</li>)}</ul> : null}
           {onOpenDashboard ? <button type="button" className="evidence-link" onClick={() => onOpenDashboard(run.id)}>{t('command.evidenceLink')}</button> : null}
-        </section>
+        </details>
       </div>
     </section>
   )

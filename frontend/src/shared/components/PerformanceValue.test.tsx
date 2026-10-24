@@ -7,6 +7,8 @@ import { PerformanceLegend, PerformanceValue, performanceTone, type PerformanceT
 import { performanceMessages } from './performanceMessages'
 
 const tokensCss = readFileSync(resolve('src/shared/styles/tokens.css'), 'utf8')
+const appCss = readFileSync(resolve('src/shared/styles/app.css'), 'utf8')
+const executiveCss = readFileSync(resolve('src/features/dashboard/executive.css'), 'utf8')
 const performanceCss = readFileSync(resolve('src/shared/components/performance.css'), 'utf8')
 
 afterEach(() => { cleanup(); act(() => applyLocale('en')) })
@@ -79,9 +81,23 @@ function foreground(tone: PerformanceTone, theme: Record<string, string>) {
 }
 
 describe('actual semantic source colors', () => {
+  it('gives featured percentage meters a theme token when no family wrapper supplies one', () => {
+    const fill = executiveCss.match(/\.exec-kpi-meter rect \+ rect\s*\{([^}]+)\}/)![1]
+    expect(fill).toMatch(/fill:\s*var\(--fam,\s*var\(--accent\)\)/)
+  })
   const light = colors(tokensCss.split("[data-theme='dark']")[0])
   const dark = { ...light, ...colors(tokensCss.split("[data-theme='dark']")[1].split('@media')[0]) }
   const systemDark = { ...light, ...colors(tokensCss.split('@media (prefers-color-scheme: dark)')[1]) }
+  it.each([['light', light], ['dark', dark], ['system dark', systemDark]] as const)('keeps keyboard focus distinct on both navigation surfaces and identity controls in %s', (_name, theme) => {
+    const rule = (selector: string) => appCss.match(new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]+)`))![1]
+    const outline = (selector: string) => rule(selector).match(/outline(?:-color)?:[^;]*var\(--([\w-]+)\)/)![1]
+    const navFocus = outline('.sidebar :focus-visible')
+    for (const surface of ['nav-surface', 'nav-active']) {
+      expect(contrast(theme[navFocus], theme[surface]), `focus on ${surface}`).toBeGreaterThanOrEqual(3)
+    }
+    const identitySurface = rule('.sidebar__identity').match(/background:\s*var\(--([\w-]+)\)/)![1]
+    expect(contrast(theme[outline('.sidebar__identity :focus-visible')], theme[identitySurface])).toBeGreaterThanOrEqual(3)
+  })
   it.each([['light', light], ['dark', dark], ['system dark', systemDark]] as const)('keeps small metric text readable on %s card surfaces', (_name, theme) => {
     for (const tone of ['good', 'okay', 'bad', 'unassessed', 'unavailable'] as const) {
       for (const background of ['surface', 'surface-raised', 'surface-sunken']) {

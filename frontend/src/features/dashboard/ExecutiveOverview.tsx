@@ -1,3 +1,4 @@
+import { pickMeasures } from '../../shared/pickMeasures'
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
 import { usePack } from '../../i18n/pack'
 import { formatMoney } from '../../shared/format'
@@ -89,39 +90,49 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
         className="skeleton skeleton--title" /><div className="skeleton skeleton--line" /></div>}
   </section>
 
+  const featured = pickMeasures(data.kpis.measures).slice(0, 4)
+  const remaining = data.kpis.measures.filter((measure) => !featured.includes(measure))
   const status = data.readiness.status
   return <div className="exec-overview" dir={isRtl ? 'rtl' : 'ltr'}>
     <section className="exec-hero" aria-labelledby="exec-title">
-      <div>
-        <h3 id="exec-title">{t('exec.title')}</h3>
-        {data.advisory ? <><p className="exec-headline">{data.advisory.title}</p><p className="exec-muted">{data.advisory.subtitle}</p></> : null}
-        <div className="exec-meta">
-          <span className={`exec-badge exec-badge--${status}`}><Icon name={status === 'ready' ? 'shield' : 'alert'} size={15} />{t(`exec.${status}`)}</span>
-          <span>{t('exec.engine')}</span>
-          {data.run.updated_at
-            ? <time dateTime={data.run.updated_at}>{t('exec.updated')}: <bdi>{new Date(data.run.updated_at).toLocaleString(locale === 'ar'
-            ? 'ar-u-nu-latn' : 'en', { dateStyle: 'medium', timeStyle: 'short' })}</bdi></time> : null}
-        </div>
+      <div className="exec-section-head"><h3 id="exec-title">{t('exec.title')}</h3>
+        <button type="button" className="btn btn--subtle" onClick={() => setRevision((v) => v + 1)}><Icon name="refresh" size={15} />{t('exec.refresh')}</button></div>
+      <div className="exec-meta"><span>{t('exec.engine')}</span>
+        {data.run.updated_at ? <time dateTime={data.run.updated_at}>{t('exec.updated')}: <bdi>{new Date(data.run.updated_at).toLocaleString(locale === 'ar'
+          ? 'ar-u-nu-latn' : 'en', { dateStyle: 'medium', timeStyle: 'short' })}</bdi></time> : null}
       </div>
-      <div className="exec-scope">
-        <strong>{formatNumber(data.scope.records)}</strong>
-        <span>{t('exec.totalCoverage', { total: formatNumber(data.scope.total_records) })}</span>
-        <button type="button" className="btn btn--ghost" onClick={() => setRevision((v) => v + 1)}><Icon name="refresh" size={15} />{t('exec.refresh')}</button>
-      </div>
+      <details className="exec-limitations"><summary>{data.readiness.limitations.length ? t('exec.limits', { n: formatNumber(data.readiness.limitations.length) }) : t(`exec.${status}`)}<span className="exec-caution-context">{t('exec.contextUnconfirmed')}</span></summary>
+        <p dir="auto">{data.headline}</p><p className="exec-scope"><strong>{formatNumber(data.scope.records)}</strong> <span>{t('exec.totalCoverage', { total: formatNumber(data.scope.total_records) })}</span></p>
+        <ul>{data.readiness.limitations.map((text, i) => <li key={i} dir="auto">{text}</li>)}</ul>
+      </details>
     </section>
+    <div className="exec-kpis exec-featured">{featured.map((measure) => <Kpi key={measure.key} measure={measure} compact currency={data.currency ?? null} context={data} evidenceAction={refs} />)}</div>
 
-    {data.readiness.limitations.length ? <details className="exec-limitations">
-      <summary>{t('exec.limits', { n: formatNumber(data.readiness.limitations.length) })}</summary><ul>{data.readiness.limitations.map((text, i) => <li key={i} dir="auto">{text}</li>)}</ul>
-    </details> : null}
+    <div className="exec-insights">
+      <section aria-labelledby="exec-explore"><div className="exec-section-head"><h3 id="exec-explore">{t('exec.explore')}</h3><button type="button"
+        className="btn btn--subtle" onClick={onOpenRun}>{t('exec.openRun')}</button></div>{children}</section>
+      <section className="exec-card" aria-labelledby="exec-attention">
+        <div className="exec-section-head"><h3 id="exec-attention">{t('exec.attention')}</h3><span className="exec-count">{formatNumber(data.priorities.length)}</span></div>
+        {data.priorities.length ? <ol className="exec-priorities">{data.priorities.map((priority, index) => {
+          const drilldown = data.drilldowns.find((item) => item.id === priority.drilldown_id)
+          const decision = data.advisory?.decisions.find((item) => item.id === priority.id)
+          return <li key={priority.id}><span className="exec-priority-number" aria-hidden="true">{formatNumber(index + 1)}</span><div><details><summary><h4 dir="auto">{priority.title}</h4></summary><p
+            dir="auto">{priority.detail}</p>{decision ? <p>{t('exec.proposedRole')}: {decision.owner} · {decision.gate}</p> : null}</details>{refs(priority.evidence_refs)}
+            {drilldown && canDrill(drilldown.filters) ? <button type="button" className="btn btn--subtle exec-drill"
+              onClick={() => onDrill(drilldown.filters)}>{drilldown.label || t('exec.drill')}<Icon name="search" size={14} /></button> : null}
+          </div></li>
+        })}</ol> : <p className="exec-muted">{t('exec.noPriorities')}</p>}
+      </section>
+    </div>
 
     <div className="exec-decision-grid">
       <section className="exec-card exec-agent" aria-labelledby="exec-agent">
         <div className="exec-section-head"><div className="exec-heading"><Icon name="sparkle" size={22} /><h3
-          id="exec-agent">{t('exec.agent')}</h3></div><span className="exec-badge">{t('exec.engine')}</span></div>
+          id="exec-agent">{t('exec.agent')}</h3></div></div>
         {brief === data ? <div className="exec-brief" role="region" aria-label={t('exec.prepared')}>
-          <p className="exec-headline" dir="auto">{data.advisory?.recommendation ?? data.headline}</p>
           {data.advisory ? <>
-            <p className="exec-muted">{data.headline}</p>
+            <p className="exec-headline" dir="auto">{data.advisory.recommendation}</p>
+            <details><summary>{data.advisory.title}</summary><p>{data.advisory.subtitle}</p></details>
             <h4>{t('exec.scorecard')}</h4>
             <dl>{data.advisory.domains.map((item) => <div
               key={item.id}><dt>{item.title} · {item.measure}</dt><dd><PerformanceValue tone={item.status} reason={item.reason}>{item.value === null
@@ -135,7 +146,7 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
             <details><summary>{t('exec.basis')}</summary><p>{data.advisory.new_findings}</p><dl>{data.advisory.sources.map((source) => <div
               key={source.id}><dt>{source.title}</dt><dd><PerformanceValue tone={source.status}>{source.detail}</PerformanceValue></dd></div>)}</dl>
                 <p>{data.advisory.preservation}</p><p>{data.advisory.escalation}</p></details>
-          </> : null}
+          </> : <p dir="auto">{data.headline}</p>}
           <h4>{t('exec.questions')}</h4>
           {data.questions.length ? <ol>{data.questions.map((question) => <li key={question.id}><p
             dir="auto">{question.text}</p>{refs(question.evidence_refs)}</li>)}</ol> : <p>{t('exec.noQuestions')}</p>}
@@ -156,19 +167,7 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
         <p className="exec-boundary"><Icon name="shield" size={16} />{t('exec.human')}</p>
       </section>
 
-      <section className="exec-card" aria-labelledby="exec-attention">
-        <div className="exec-section-head"><h3 id="exec-attention">{t('exec.attention')}</h3><span className="exec-count">{formatNumber(data.priorities.length)}</span></div>
-        {data.priorities.length ? <ol className="exec-priorities">{data.priorities.map((priority, index) => {
-          const drilldown = data.drilldowns.find((item) => item.id === priority.drilldown_id)
-          const decision = data.advisory?.decisions.find((item) => item.id === priority.id)
-          return <li key={priority.id}><span className="exec-priority-number" aria-hidden="true">{formatNumber(index + 1)}</span><div><h4
-            dir="auto">{priority.title}</h4><p
-            dir="auto">{priority.detail}</p>{decision ? <p>{t('exec.proposedRole')}: {decision.owner} · {decision.gate}</p> : null}{refs(priority.evidence_refs)}
-            {drilldown && canDrill(drilldown.filters) ? <button type="button" className="btn btn--subtle exec-drill"
-              onClick={() => onDrill(drilldown.filters)}>{drilldown.label || t('exec.drill')}<Icon name="search" size={14} /></button> : null}
-          </div></li>
-        })}</ol> : <p className="exec-muted">{t('exec.noPriorities')}</p>}
-      </section>
+
     </div>
 
     {(data.kpis.measures.length > 0 || Object.keys(data.kpis.unavailable).length > 0) ? <section aria-labelledby="exec-kpis">
@@ -180,7 +179,7 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
         key={`${runId}:${locale}`} runId={runId} measures={data.kpis.measures} currency={data.currency ?? null} onClose={() => setPolicyOpen(false)} onSaved={() => setRevision((v) => v + 1)} />
           </Suspense> : null}
       {FAMILIES.map((family) => {
-        const items = data.kpis.measures.filter((measure) => (FAMILIES.includes(measure.family as Family) ? measure.family : 'other') === family)
+        const items = remaining.filter((measure) => (FAMILIES.includes(measure.family as Family) ? measure.family : 'other') === family)
         return items.length ? <section key={family} className="exec-family" data-family={family} aria-labelledby={`exec-family-${family}`}>
           <h4 id={`exec-family-${family}`}><Icon name={FAMILY_ICON[family]} size={16} />{t(`exec.family.${family}`)}</h4>
           <div className="exec-kpis">{items.map((measure) => <Kpi key={measure.key} measure={measure} currency={data.currency ?? null} context={data} evidenceAction={refs} />)}</div>
@@ -191,11 +190,8 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
         key={name}><dt><bdi>{name}</bdi></dt><dd dir="auto">{reason}</dd></div>)}</dl></details> : null}
     </section> : null}
 
-    <section aria-labelledby="exec-explore"><div className="exec-section-head"><h3 id="exec-explore">{t('exec.explore')}</h3><button type="button"
-      className="btn btn--subtle" onClick={onOpenRun}>{t('exec.openRun')}</button></div>{children}</section>
-
-    <section className="exec-card" aria-labelledby="exec-models">
-      <div className="exec-section-head"><h3 id="exec-models">{t('exec.models')}</h3><span className="exec-badge">{t('exec.whole')}</span></div>
+    <details className="exec-card exec-models" aria-labelledby="exec-models">
+      <summary id="exec-models">{t('exec.models')} · {t('exec.whole')}</summary>
       <p className="exec-muted">{t('exec.wholeHelp')}</p>
       {data.models.length ? <div className="evidence__table" role="region" aria-label={t('exec.modelData')} tabIndex={0}><table
         className="datatable"><thead><tr><th scope="col">{t('exec.model')}</th><th scope="col">{t('exec.verdict')}</th>
@@ -212,7 +208,7 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
       {data.findings.length ? <details
         className="exec-findings"><summary>{t('exec.findings')} · {t('exec.whole')}</summary><ul>{data.findings.map((finding) => <li
         key={finding.id}><p dir="auto">{finding.text}</p>{refs(finding.evidence_refs)}</li>)}</ul></details> : null}
-    </section>
+    </details>
 
     <details className="exec-card exec-evidence" ref={evidenceRef} open={evidenceOpen} onToggle={(event) => setEvidenceOpen(event.currentTarget.open)}>
       <summary>{t('exec.evidence')} <span className="exec-count">{formatNumber(data.evidence.length)}</span></summary>
@@ -234,8 +230,8 @@ const FAMILY_ICON = { reliability: 'activity', execution: 'check', cost: 'databa
 
 /** `currency` is the code the column mapping states, or null: money then
  *  reads "currency not stated" rather than being given a default. */
-function Kpi({ measure, currency, context, evidenceAction }: {
-  measure: KpiMeasure; currency: string | null; context: RunExecutive
+function Kpi({ measure, currency, context, evidenceAction, compact = false }: {
+  measure: KpiMeasure; currency: string | null; context: RunExecutive; compact?: boolean
   evidenceAction: (ids: string[]) => ReactNode
 }) {
   const { t, locale, formatNumber } = usePack(executiveMessages)
@@ -252,17 +248,17 @@ function Kpi({ measure, currency, context, evidenceAction }: {
   const verdict = tone === 'good' || tone === 'okay' || tone === 'bad'
     || measure.assessment?.reason_code === 'target_outdated'
   const share = measure.scale === 'percent' && measured !== null ? Math.max(0, Math.min(100, measured)) : null
-  return <article className="exec-kpi" data-source={`kpi.${measure.key}`}>
-    <h5 dir="auto">{measure.title}</h5><p
+  const Heading = compact ? 'h4' : 'h5'
+  return <article className="exec-kpi" data-family={measure.family} data-source={`kpi.${measure.key}`}>
+    <Heading dir="auto">{measure.title}</Heading><p
       className={`exec-kpi-value${measured === null ? ' exec-kpi-value--missing' : ''}`}><PerformanceValue tone={tone} reason={verdict ? measure.assessment?.reason : undefined}><bdi><span
       className="exec-kpi-n">{value}</span>{unit ? <>{unit.length > 2 ? ' ' : '\u00a0'}<small>{unit}</small></> : null}</bdi></PerformanceValue></p>
     {share === null ? null : <svg className="exec-kpi-meter" viewBox="0 0 100 4" preserveAspectRatio="none"
       aria-hidden="true" focusable="false"><rect width="100" height="4" rx="2" /><rect width={share} height="4" rx="2" /></svg>}
-    <p className="exec-kpi-covered">{t('exec.covered', { n: formatNumber(measure.records) })}</p>
+    {!compact ? <p className="exec-kpi-covered">{t('exec.covered', { n: formatNumber(measure.records) })}</p> : null}
     {measure.records_unmeasured > 0 ? <p className="exec-kpi-caution">{t('exec.unmeasured', { n: formatNumber(measure.records_unmeasured) })}</p> : null}
     {measure.undefined_reason ? <p className="exec-kpi-caution" dir="auto">{measure.undefined_reason}</p> : null}
-    <p className="exec-muted">{t('exec.contextUnconfirmed')}</p>
-    <details><summary>{t('exec.sources')}</summary>{!verdict && measure.assessment?.reason ? <p
+    <details><summary>{t('exec.sources')}</summary><p className="exec-muted">{t('exec.contextUnconfirmed')}</p>{compact ? <p>{t('exec.covered', { n: formatNumber(measure.records) })}</p> : null}{!verdict && measure.assessment?.reason ? <p
       dir="auto">{measure.assessment.reason}</p> : null}<dl><div><dt>{t('exec.formula')}</dt><dd
       dir="auto">{measure.formula} · <bdi>{formatNumber(measure.numerator)} / {formatNumber(measure.denominator)}</bdi></dd></div><div><dt>{t('exec.population')}</dt><dd
       dir="auto">{measure.population_label ?? measure.population}</dd></div><div><dt>{t('exec.missing')}</dt><dd

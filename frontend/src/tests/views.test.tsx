@@ -332,7 +332,14 @@ describe('Command Centre', () => {
     expect(await screen.findByText('Endorse a scoped maintenance and reliability review.')).toBeInTheDocument()
     expect(screen.getByText('Read with care')).toBeInTheDocument()
     expect(screen.getByText('Review overdue work')).toBeInTheDocument()
-    expect(screen.getByText(/Maintenance planner/)).toBeInTheDocument()
+    expect(screen.getByText(/Maintenance planner/)).not.toBeVisible()
+    await user.click(screen.getByText('Review overdue work'))
+    expect(screen.getByText(/Maintenance planner/)).toBeVisible()
+    expect(screen.getByText(/Before approving a maintenance intervention/)).toBeVisible()
+    const performance = screen.getByRole('heading', { name: 'Maintenance performance' }).closest('section')!
+    const queue = screen.getByRole('heading', { name: /Decisions requiring attention/ }).closest('section')!
+    expect(performance.compareDocumentPosition(queue) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByText(/Period, owner and trend unconfirmed/)).toBeVisible()
     expect(screen.getByText('95.8%')).toBeInTheDocument()
     // Money carries the currency the column mapping states, by its code.
     expect(screen.getByText('AED 4,332.03')).toBeInTheDocument()
@@ -355,7 +362,7 @@ describe('Command Centre', () => {
   it('keeps the counts and lists when the brief cannot be loaded', async () => {
     serve({ '/api/runs': RUNS, '/api/usage': USAGE, '/api/runs/r2': { ...DETAIL, state: 'awaiting_approval', tasks: [] } })
     render(<OverviewView onOpenRun={vi.fn()} onStart={vi.fn()} />)
-    expect(await screen.findByRole('alert')).toHaveTextContent('The decision brief for the latest analysis is not available')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Decision brief unavailable')
     expect(screen.getAllByText('Why did revenue change?').length).toBeGreaterThan(0)
   })
 
