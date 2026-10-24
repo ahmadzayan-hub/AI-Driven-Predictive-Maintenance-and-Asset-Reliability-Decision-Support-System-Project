@@ -20,12 +20,17 @@ const CSV = [
   '2026-03,North,MIYAAR-FICTIONAL-C,Preventive,6,90,100,5,0,5,0,0,0,200,600',
   '2026-03,South,MIYAAR-FICTIONAL-D,Corrective,20,60,100,0,20,20,10,10,3,900,2000',
 ].join('\n') + '\n'
+const FIVE_SITE_CSV = CSV + [
+  '2026-03,East,MIYAAR-FICTIONAL-E,Corrective,4,80,100,0,10,10,8,2,1,1200,100000',
+  '2026-03,West,MIYAAR-FICTIONAL-F,Corrective,5,85,100,0,10,10,8,2,1,1500,100000',
+  '2026-03,Central,MIYAAR-FICTIONAL-G,Corrective,6,90,100,0,10,10,8,2,1,2000,100000',
+].join('\n') + '\n'
 const NORTH: TableFilter[] = [{ column: 'Site', op: 'in', values: ['North'] }]
 
 test.use({ serviceWorkers: 'block', contextOptions: { reducedMotion: 'reduce' } })
 
-async function maintenanceRun(request: APIRequestContext, language: 'en' | 'ar' = 'en') {
-  const datasetId = await storeMaintenanceDataset(request, CSV, 'executive-fictional.csv', language)
+async function maintenanceRun(request: APIRequestContext, language: 'en' | 'ar' = 'en', csv = CSV, name = 'executive-fictional.csv', currency?: string) {
+  const datasetId = await storeMaintenanceDataset(request, csv, name, language, true, currency)
   const created = await request.post('/api/runs', {
     data: {
       goal: 'Review fictional maintenance evidence', dataset_id: datasetId,
@@ -65,7 +70,7 @@ test('the opening shows governed KPIs and a real comparison before the detailed 
   await skipOnboarding(page)
   await page.setViewportSize(testInfo.project.name === 'mobile'
     ? { width: 320, height: 812 } : { width: 1280, height: 720 })
-  const run = await maintenanceRun(page.request)
+  const run = await maintenanceRun(page.request, 'en', FIVE_SITE_CSV, 'executive-five-sites-long-currency-fixture.csv', 'USD')
   await openOverview(page, run.id)
   const snapshot = await executive(page.request, run.id, [])
   const featured = page.locator('.exec-featured .exec-kpi')
@@ -81,6 +86,17 @@ test('the opening shows governed KPIs and a real comparison before the detailed 
   // Capture the actual opening before layout assertions, including failures.
   // This remains a synthetic test preview, never live-data acceptance evidence.
   await page.screenshot({ path: `../docs/screenshots/${testInfo.project.name}-phase1-executive-opening.png`, animations: 'disabled' })
+  await expect(chart.locator('.dash-bars__row')).toHaveCount(5)
+  await expect(page.locator('[data-source="kpi.loss_per_record"] .exec-kpi-n')).toHaveText('USD 43,428.57')
+  const clipped = await featured.evaluateAll((cards) => cards.flatMap((card) => {
+    const bounds = card.getBoundingClientRect()
+    return [...card.querySelectorAll('h4, p, .performance-value__number, summary')].filter((node) => {
+      if (!node.getClientRects().length) return false
+      const rect = node.getBoundingClientRect()
+      return rect.left < bounds.left || rect.right > bounds.right || node.scrollWidth > node.clientWidth + 1
+    }).map((node) => node.textContent)
+  }))
+  expect(clipped, 'Complete values and units must fit their governed cards').toEqual([])
   if (testInfo.project.name === 'desktop') {
     await expect(featured.first()).toBeInViewport({ ratio: 1 })
     await expect(chart).toBeInViewport({ ratio: 1 })

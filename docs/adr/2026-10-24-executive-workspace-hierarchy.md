@@ -88,3 +88,12 @@ therefore retains its small transform without changing text opacity. Reduced
 motion still disables it. The upload journey checks the applied animation's
 keyframes and keeps its ordinary contrast audit; no test delay or color-contrast
 exception is introduced.
+
+The real project-data viewport check found that a currency-prefixed value could
+clip inside its card, and the fifth comparison bar extended below the desktop
+opening. Governed values now scale more conservatively and may wrap at the
+currency separator; digits and units are preserved. Featured-card spacing is
+compact without removing verdicts, source access or the visible caution. The
+fixed-size opening regression now uses five fictional sites, a long filename
+and an explicitly mapped currency value, and checks card clipping as well as
+the full chart intersection. It does not enlarge the opening viewport.

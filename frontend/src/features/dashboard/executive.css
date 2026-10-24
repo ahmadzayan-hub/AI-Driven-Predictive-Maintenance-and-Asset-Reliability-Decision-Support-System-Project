@@ -1,5 +1,5 @@
 /* Scoped, lazy-loaded executive workspace. All colors come from Miyaar tokens. */
-.exec-overview { display: grid; gap: var(--space-4); min-width: 0; }
+.exec-overview { display: grid; gap: var(--space-3); min-width: 0; }
 .exec-hero { min-width: 0; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: var(--space-1) var(--space-3); }
 .exec-hero .exec-section-head { grid-column: 2; grid-row: 1; }
 .exec-hero .exec-section-head h3 { position: absolute; clip-path: inset(50%); width: 1px; height: 1px; overflow: hidden; }
@@ -33,8 +33,8 @@
 .exec-kpi h4, .exec-kpi h5 { font-size: var(--text-s); font-weight: 500; color: var(--text-muted); margin: 0; }
 .exec-kpi > p { margin-block: var(--space-1); font-size: var(--text-xs); }
 .exec-kpi { container-type: inline-size; }
-.exec-kpi .exec-kpi-value { font: 600 clamp(1.15rem, 19cqi, 2.1rem)/1.3 var(--font-mono); color: var(--text); }
-.exec-kpi-n { white-space: nowrap; }
+.exec-kpi .exec-kpi-value { font: 600 clamp(1rem, 14cqi, 1.65rem)/1.3 var(--font-mono); color: var(--text); }
+.exec-kpi-n { white-space: normal; overflow-wrap: anywhere; }
 .exec-kpi-value small { font: 400 var(--text-xs) var(--font-sans); color: var(--text-muted); }
 .exec-kpi .exec-kpi-value--missing { font: 500 var(--text-l)/1.5 var(--font-sans); color: var(--text-muted); }
 .exec-kpi-caution { color: var(--warning); }
@@ -45,7 +45,10 @@
 .exec-overview dd { margin: 0 0 var(--space-2); color: var(--text-muted); overflow-wrap: anywhere; }
 .exec-insights { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(16rem, 1fr); gap: var(--space-4); align-items: start; }
 .exec-featured { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.exec-featured .exec-kpi { border-block-start: 3px solid var(--accent); }
+.exec-featured .exec-kpi { border-block-start: 3px solid var(--accent); padding: var(--space-3); }
+.exec-featured .exec-kpi details { margin-block-start: var(--space-1); }
+.exec-featured .performance-value { gap: var(--space-1); }
+.exec-featured .exec-kpi-meter { margin-block-end: var(--space-1); }
 .exec-agent { border-block-start: 3px solid var(--accent); }
 .exec-agent > .btn { margin-block: var(--space-4); }
 .exec-count { font: 500 var(--text-s) var(--font-mono); padding: var(--space-1) var(--space-2); background: var(--surface-sunken); border-radius: var(--radius-s); }
@@ -71,7 +74,7 @@
   .exec-insights { grid-template-columns: minmax(0, 1fr); }
   .exec-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
   .exec-kpi { padding: var(--space-3); }
-  .exec-kpi .exec-kpi-value { font-size: clamp(1rem, 19cqi, 1.6rem); }
+  .exec-kpi .exec-kpi-value { font-size: clamp(1rem, 14cqi, 1.6rem); }
 }
 
 /* Keep evidence limitations readable without competing with the governed value. */

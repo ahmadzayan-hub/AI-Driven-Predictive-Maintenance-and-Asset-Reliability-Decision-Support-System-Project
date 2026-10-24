@@ -1746,3 +1746,10 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Verified: exact prior-head RMD evidence and Windows/Edge platform workflows passed. macOS/WebKit reported low contrast on executive metadata and caution text during the entrance fade. Source review confirms the shared executive keyframe caused that fade; diff whitespace checks pass. The correction still requires exact-head hosted verification and actual local rendering.
 - Decided: keep text readable in every animation frame, preserve reduced motion, and retain the ordinary contrast assertion without a delay or exemption.
 - Next: finish full CI/platform checks, verify the matching artifact and update the local UI reversibly while preserving saved results.
+
+## 2026-10-24 - Keep complete monetary values and five groups in the opening
+
+- Done: reduced featured-card spacing and value sizing; allowed the currency separator to wrap without dropping digits or units. The opening fixture now contains five fictional sites, a long source filename and explicit currency mapping, with a card-clipping assertion.
+- Verified: the prior head passed full CI, focused RMD and both platform workflows. Its exact matching CI artifact was verified and served locally with unchanged saved-report hash. Actual project-data rendering then exposed monetary clipping and a fifth bar below the desktop fold; this follow-up still requires exact-head hosted and local visual checks. Diff whitespace checks pass.
+- Decided: keep the real viewport, chart-intersection requirement, evidence and approval controls. No local build or restart during the separate advisory resource window; use the existing hosted CI and reversible static-artifact path.
+- Next: verify this bounded correction on desktop and Arabic phone, then complete the presentation handoff.
