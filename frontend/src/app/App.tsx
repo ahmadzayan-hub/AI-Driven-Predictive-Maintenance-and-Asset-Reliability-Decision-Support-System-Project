@@ -497,7 +497,7 @@ export function App() {
           </button>
         </div>
       </header>
-      <div className="shell__mode" inert={drawerOpen}>{demo ? <strong title={t('demo.note')}>{t('demo.badge')}</strong> : <StatusBadge status={status} />}</div>
+      <div className={`shell__mode${!demo && status === 'ready' && tab !== 'chat' ? ' visually-hidden' : ''}`} inert={drawerOpen}>{demo ? <strong title={t('demo.note')}>{t('demo.badge')}</strong> : <StatusBadge status={status} />}</div>
 
       <div className="shell__body">
         {sidebar}

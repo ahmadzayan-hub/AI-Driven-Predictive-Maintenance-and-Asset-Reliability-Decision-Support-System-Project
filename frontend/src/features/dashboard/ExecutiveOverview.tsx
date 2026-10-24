@@ -101,12 +101,11 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
         {data.run.updated_at ? <time dateTime={data.run.updated_at}>{t('exec.updated')}: <bdi>{new Date(data.run.updated_at).toLocaleString(locale === 'ar'
           ? 'ar-u-nu-latn' : 'en', { dateStyle: 'medium', timeStyle: 'short' })}</bdi></time> : null}
       </div>
-      <details className="exec-limitations"><summary>{data.readiness.limitations.length ? t('exec.limits', { n: formatNumber(data.readiness.limitations.length) }) : t(`exec.${status}`)}</summary>
+      <details className="exec-limitations"><summary>{data.readiness.limitations.length ? t('exec.limits', { n: formatNumber(data.readiness.limitations.length) }) : t(`exec.${status}`)}<span className="exec-caution-context">{t('exec.contextUnconfirmed')}</span></summary>
         <p dir="auto">{data.headline}</p><p className="exec-scope"><strong>{formatNumber(data.scope.records)}</strong> <span>{t('exec.totalCoverage', { total: formatNumber(data.scope.total_records) })}</span></p>
         <ul>{data.readiness.limitations.map((text, i) => <li key={i} dir="auto">{text}</li>)}</ul>
       </details>
     </section>
-    <p className="exec-muted">{t('exec.contextUnconfirmed')}</p>
     <div className="exec-kpis exec-featured">{featured.map((measure) => <Kpi key={measure.key} measure={measure} compact currency={data.currency ?? null} context={data} evidenceAction={refs} />)}</div>
 
     <div className="exec-insights">

@@ -64,6 +64,10 @@ group nor a date is available, with a visible units/targets caution. One concise
 period/owner/freshness caution stays above the governed cards; details are not a
 substitute for that boundary. Featured percentage meters use the existing accent
 token when no family wrapper supplies the family token.
+The idle chat-connection Ready strip is visually hidden outside the assistant,
+while its accessible status announcement remains. Working, offline, error and
+demo states retain their visible feedback. The metadata caution shares the
+limitations disclosure summary, avoiding a second warning paragraph.
 
 The source filename and selected record count share a secondary provenance line.
 Dashboard pages and filters use contextual disclosures. The sidebar has Decision,
