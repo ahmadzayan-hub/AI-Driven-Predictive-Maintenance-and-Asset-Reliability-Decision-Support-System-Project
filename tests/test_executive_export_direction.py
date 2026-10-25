@@ -90,7 +90,7 @@ class ExecutiveExportDirectionTests(unittest.TestCase):
     def test_arabic_titles_labels_and_table_order_remain_explicitly_rtl(self):
         method = "(95.5) الجاهزية مقارنة بالهدف Availability_Pct"
         root = document("ar", [method])
-        for value in ("معيار | Miyaar", "بيانات الموجز", "الطريقة", method):
+        for value in ("معيار | Miyaar", "4. مصدر البيانات وتتبع اللقطة", "الطريقة", method):
             with self.subTest(value=value):
                 self.assertEqual(paragraph_with(root, value).find("w:pPr/w:bidi", NS).get(W + "val"), "1")
         self.assertTrue(all(table.find("w:tblPr/w:bidiVisual", NS).get(W + "val") == "1"

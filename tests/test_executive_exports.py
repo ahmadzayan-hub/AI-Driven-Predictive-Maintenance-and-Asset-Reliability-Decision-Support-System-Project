@@ -124,7 +124,11 @@ class ExecutiveDocumentTests(unittest.TestCase):
                             and "default-src 'none'" in attrs["content"] for tag, attrs in parsed.tags))
         word = docx_document(render_docx(brief))
         self.assertIn(payload, "".join(word.itertext()))
-        self.assertEqual(len(word.findall(".//w:hyperlink", NS)), 0)
+        # Navigation is internal only; untrusted prose cannot create links.
+        links = word.findall(".//w:hyperlink", NS)
+        self.assertTrue(links)
+        bookmarks = {x.get(f"{{{W}}}name") for x in word.findall('.//w:bookmarkStart', NS)}
+        self.assertTrue(all(link.get(f"{{{W}}}anchor") in bookmarks for link in links))
 
     def test_docx_is_deterministic_real_ooxml_with_internal_relationships_and_print_layout(self):
         brief = self.brief()

@@ -85,7 +85,8 @@ button { min-inline-size: 44px; min-block-size: 44px; }
 .result-card__icon { display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); border-radius: var(--radius-s); inline-size: 40px; block-size: 40px; }
 .result-card__body { flex: 1; min-inline-size: 160px; overflow-wrap: anywhere; }
 .result-label { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--text-faint); margin-block-start: var(--space-2); }
-.tool-cards { margin-block-start: var(--space-3); }
+.tool-cards { margin-block-start: var(--space-3); overflow-wrap: anywhere; }
+.tool-cards select { inline-size: 100%; min-inline-size: 0; min-block-size: 44px; font: inherit; }
 .tool-cards summary, .tool-card summary { min-block-size: 44px; padding-block: var(--space-3); cursor: pointer; font-size: var(--text-s); }
 .tool-card { padding: var(--space-3); margin-block: var(--space-2); background: var(--surface-sunken); border-radius: var(--radius-s); overflow-wrap: anywhere; }
 .tool-card > div { display: flex; gap: var(--space-3); justify-content: space-between; }

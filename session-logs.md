@@ -1784,3 +1784,11 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Verified: the prior head passed full CI, focused RMD and both platform workflows. Its exact matching CI artifact was verified and served locally with unchanged saved-report hash. Actual project-data rendering then exposed monetary clipping and a fifth bar below the desktop fold; this follow-up still requires exact-head hosted and local visual checks. Diff whitespace checks pass.
 - Decided: keep the real viewport, chart-intersection requirement, evidence and approval controls. No local build or restart during the separate advisory resource window; use the existing hosted CI and reversible static-artifact path.
 - Next: verify this bounded correction on desktop and Arabic phone, then complete the presentation handoff.
+
+
+## 2026-10-25 — `report-main-integration` — codex/miyaar-report-integration-20261025
+
+- Done: selected the report-only patch after reviewing the ancestor/dependency diff. Resolved exporter section ordering explicitly; preserved main documentation and appended only this report record. No bulk ancestor merge.
+- Verified: integration checks and exact counts are recorded in README after execution.
+- Decisions: retain optional method-glossary rendering without importing its producer or any chat/model configuration; no changed analytics, auth, data or runtime settings.
+- Next: separately reviewed remote action; no push, PR or merge is performed by this task. Reference-image redesign remains separate and blocked on metadata-preserving pixel access in Windows.
