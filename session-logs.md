@@ -1822,3 +1822,10 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Decided: preserve domain features, report controls, original data and model
   status; count invalid model output as an evaluation miss.
 - Next: final route evidence, guarded local activation and reviewed PR checks.
+
+## 2026-10-25 - Shared identity and phone reflow
+
+- Done: navy/cyan navigation, blue primary actions, light evidence surfaces and a larger shared type scale. Preserve explicit dark and system themes. Contain phone shell overflow, reserve bottom-navigation space and retain complete accessible filenames with single-line display.
+- Verified: affected components and TypeScript; final budget and real-browser evidence are recorded separately. No model calls or changes to data, analytical definitions or report generation.
+- Decided: share semantic styles across existing routes; do not claim individual page redesign from shared-token coverage. Remove unused glows instead of raising budgets.
+- Next: actual bilingual phone/desktop verification and guarded local activation. Remote integration remains held for review.

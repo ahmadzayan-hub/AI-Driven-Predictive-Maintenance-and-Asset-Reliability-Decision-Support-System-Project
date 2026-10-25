@@ -2,10 +2,8 @@
 .shell__header { --text: var(--header-text); --text-muted: var(--header-muted); --text-faint: var(--header-muted); --surface-sunken: var(--header-field); --border-strong: var(--header-border); --accent: var(--header-text); min-height: 68px; padding-inline: var(--space-5); color: var(--header-text); background: var(--header-bg); border-color: var(--header-bg); }
 .brand__mark { background: var(--surface); }
 .sidebar__footer .miyaar-mobile-help { display: none; }
-.miyaar-sidebar { display: flex; align-items: center; gap: var(--space-3); text-align: start; margin-block-end: var(--space-6); padding: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-m); }
-.miyaar-sidebar:hover { border-color: var(--accent); }
+.miyaar-sidebar { display: flex; align-items: center; gap: var(--space-3); text-align: start; margin-block-end: var(--space-6); padding: var(--space-2); border: 1px solid var(--nav-border); border-radius: var(--radius-m); color: var(--nav-text); }
 .miyaar-sidebar strong, .miyaar-sidebar small { display: block; }
-.miyaar-sidebar { color: var(--nav-text); border-color: var(--nav-border); }
 .miyaar-sidebar small { color: var(--nav-muted); font-size: var(--text-xs); margin-block-start: 2px; }
 .miyaar-mark { display: inline-flex; inline-size: 36px; block-size: 36px; flex-shrink: 0; border-radius: 50%; color: var(--accent); background: var(--accent-soft); }
 .miyaar-mark svg { inline-size: 100%; block-size: 100%; }
@@ -32,11 +30,11 @@
 .miyaar-hero__art { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--accent); min-inline-size: 0; }
 .miyaar-hero__art > span { color: var(--text-faint); font-size: .625rem; text-align: center; }
 .miyaar-hero__motif { inline-size: 130%; max-inline-size: 340px; }
-.miyaar-hero__motif svg { inline-size: 100%; display: block; filter: drop-shadow(0 0 12px var(--accent-glow)); }
+.miyaar-hero__motif svg { inline-size: 100%; display: block; }
 .miyaar-welcome__heading { font-weight: 500; font-size: var(--text-m); margin-block: var(--space-5) var(--space-4); }
 .miyaar-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: var(--space-3); }
-.miyaar-action { display: flex; align-items: center; gap: var(--space-3); min-inline-size: 0; text-align: start; padding: var(--space-4); border: 1px solid var(--border-strong); border-radius: var(--radius-m); background: var(--panel-fill); transition: border-color var(--motion-fast), background var(--motion-fast), box-shadow var(--motion-fast); }
-.miyaar-action:hover { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 20px var(--accent-haze); }
+.miyaar-action { display: flex; align-items: center; gap: var(--space-3); min-inline-size: 0; text-align: start; padding: var(--space-4); border: 1px solid var(--border-strong); border-radius: var(--radius-m); background: var(--panel-fill); transition: border-color var(--motion-fast), background var(--motion-fast); }
+.miyaar-action:hover { border-color: var(--accent); background: var(--accent-soft); }
 .miyaar-action:last-child { grid-column: 1 / -1; }
 .miyaar-action__icon { padding: 10px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); border-radius: var(--radius-s); flex-shrink: 0; }
 .miyaar-action strong { display: block; font-size: var(--text-s); font-weight: 500; }
@@ -46,7 +44,7 @@
 .miyaar-welcome__note { display: flex; align-items: center; gap: var(--space-2); color: var(--text-faint); font-size: var(--text-xs); margin-block-start: var(--space-5); }
 .composer { background: var(--surface-glass); padding: var(--space-3) var(--space-5) var(--space-4); }
 .composer__inner { align-items: center; padding: var(--space-2); border: 1px solid var(--border-strong); border-radius: var(--radius-l); background: var(--surface-sunken); }
-.composer__inner:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-haze); }
+.composer__inner:focus-within { border-color: var(--accent); }
 .composer__input, .composer__input:focus { min-inline-size: 0; border: none; background: transparent; box-shadow: none; }
 .composer__send { border-radius: var(--radius-m); }
 .voice-console { max-inline-size: 780px; margin: 0 auto var(--space-3); font-size: var(--text-xs); }

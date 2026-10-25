@@ -298,3 +298,5 @@ README. Remote publication/merge remains separately authorized.
 Shared route alignment and direct Command Centre navigation implemented; Datasets
 has source cards and a separate usage/connectors column. Live browser acceptance
 and remote merge remain distinct gates. Existing report features are retained.
+
+**Shared visual identity and phone reflow, 25 October 2026:** Distinct navy navigation and blue/cyan action hierarchy now use the same tokens across existing routes, with larger body type and separate light evidence surfaces. Phone shell containment and accessible filename ellipsis address observed overflow. Component and TypeScript checks passed; local activation and browser acceptance remain separately recorded gates. See [decision](docs/adr/2026-10-25-shared-visual-identity-and-mobile-reflow.md).

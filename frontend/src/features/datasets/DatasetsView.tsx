@@ -113,7 +113,7 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
   }, [attempt])
 
   return (
-    <section className="panel dataset-page" aria-label={t('datasets.aria')}>
+    <section className="panel dataset-page" aria-label={t('datasets.title')}>
       <div className="panel__inner panel__inner--wide">
         <div className="panel__header">
           <div>
@@ -238,16 +238,12 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
                     <Icon name="database" size={18} />
                   </span>
                   <span className="dataset__body">
-                    <span className="dataset__name" dir="auto">
-                      {dataset.name}
-                      {dataset.mapped ? (
-                        <span className="dataset__tag">{t('mapping.mapped')}</span>
-                      ) : null}
-                    </span>
+                    <bdi className="dataset__name" title={dataset.name}>{dataset.name}</bdi>
+                    {dataset.mapped ? (
+                      <span className="dataset__tag">{t('mapping.mapped')}</span>
+                    ) : null}
                     <span className="dataset__meta">
-                      {dataset.source_format ? (
-                        <>{formatLabel(t, dataset.source_format)} · </>
-                      ) : null}
+                      {dataset.source_format ? `${formatLabel(t, dataset.source_format)} · ` : null}
                       {dataset.row_count != null ? (
                         <>
                           <span className="dataset__figure">

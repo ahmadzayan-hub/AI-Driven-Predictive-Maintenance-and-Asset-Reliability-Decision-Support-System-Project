@@ -2505,3 +2505,7 @@ an invalid scripted model response is counted as a miss, not credited as recall.
 Production builds retain the existing bundle limits. Synthetic route screenshots
 do not establish live browser acceptance. See
 [composition decision](docs/adr/2026-10-25-dataset-workspace-composition.md).
+
+### Shared identity and phone reflow verification
+
+The focused component checks passed: **93 tests** across navigation, datasets, executive overview and translations. TypeScript and unchanged production bundle budgets passed. Actual bilingual browser evidence is recorded separately; no full-suite or hosted-CI claim is made for this increment.

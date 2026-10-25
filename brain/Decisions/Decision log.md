@@ -142,3 +142,7 @@ All seven [[Analytics OS roadmap]] milestones have their records.
 Use navigation-aligned shared panels and a responsive source/context split.
 Validate the Datasets route itself, not only Assistant or Overview fixtures.
 See the composition decision in docs/adr/2026-10-25-dataset-workspace-composition.md.
+
+### 2026-10-25 - Shared visual identity and phone reflow
+
+Separate navigation from evidence with semantic navy/blue/cyan tokens; retain dark mode and accessibility. Contain the phone shell without suppressing content scrolling. Full filenames remain available through bidirectional text and accessible actions. See docs/adr/2026-10-25-shared-visual-identity-and-mobile-reflow.md.

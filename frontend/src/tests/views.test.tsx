@@ -219,6 +219,8 @@ describe('DatasetsView', () => {
     render(<DatasetsView onAnalyse={onAnalyse} />)
 
     const row = (await screen.findByText('quarterly-sales.csv')).closest('li')!
+    expect(within(row).getByTitle(dataset.name)).toHaveTextContent(dataset.name)
+    expect(within(row).getByTitle(dataset.name).tagName).toBe('BDI')
     expect(within(row).getByText('48.3 kB')).toBeInTheDocument()
     expect(within(row).getByText('fingerprint 1a2b3c4d')).toBeInTheDocument()
     // The allowance reads as coloured tiles, and the file limits wait in a fold.
