@@ -1792,3 +1792,10 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Verified: integration checks and exact counts are recorded in README after execution.
 - Decisions: retain optional method-glossary rendering without importing its producer or any chat/model configuration; no changed analytics, auth, data or runtime settings.
 - Next: separately reviewed remote action; no push, PR or merge is performed by this task. Reference-image redesign remains separate and blocked on metadata-preserving pixel access in Windows.
+
+## 2026-10-25 — `report-ci-frontmatter` — codex/miyaar-report-integration-20261025
+
+- Done: published the reviewed report-only commit in PR #64. Hosted browser tests exposed an assertion that rejected the newly required LOT/LOF anchors; corrected the assertion and added explicit frontmatter order checking.
+- Verified: focused navigation/documentation and actual Chromium DOM checks passed, including missing, duplicate and self-link negatives. Counts are recorded in README. Production renderer and runtime configuration are unchanged.
+- Decided: preserve destination uniqueness and the full hosted acceptance gate; no test suppression or merge override.
+- Next: rerun CI on this bounded follow-up and merge only after checks pass.

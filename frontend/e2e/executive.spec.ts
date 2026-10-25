@@ -154,9 +154,11 @@ async function inspectHtml(page: Page, html: string, language: 'en' | 'ar') {
         Array.from(table.rows, (row) => Array.from(row.cells, text))),
       executable: doc.querySelectorAll('script,iframe,object,embed,form').length,
       contentsCount: doc.querySelectorAll('nav#contents').length,
+      frontmatterTargets: Array.from(doc.querySelectorAll('nav#contents a'))
+        .slice(0, 3).map((link) => link.getAttribute('href')),
       destinationsValid: Array.from(doc.querySelectorAll('nav#contents a')).every((link) => {
         const href = link.getAttribute('href') ?? ''
-        return /^#section-\d+$/.test(href) && doc.querySelectorAll(href).length === 1
+        return /^#(?:section-\d+|list-of-(?:tables|figures))$/.test(href) && doc.querySelectorAll(href).length === 1
       }),
     }
   }, html)
@@ -164,6 +166,7 @@ async function inspectHtml(page: Page, html: string, language: 'en' | 'ar') {
   expect(document.dir).toBe(language === 'ar' ? 'rtl' : 'ltr')
   expect(document.executable).toBe(0)
   expect(document.contentsCount).toBe(1)
+  expect(document.frontmatterTargets).toEqual(['#list-of-tables', '#list-of-figures', '#section-0'])
   expect(document.destinationsValid).toBe(true)
   expect(document.text).not.toContain('MIYAAR-FICTIONAL-')
   return document

@@ -2463,3 +2463,8 @@ chat/model branches. Native Office rendering and full hosted/browser E2E are not
 verified. Word uses refreshable PAGEREF fields; browser PDF retains destinations
 and page footers without claiming printed TOC/LOT page references.
 See [decision](docs/adr/2026-10-25-navigable-business-reports.md).
+
+Report CI follow-up: **17 navigation/documentation tests and 8 Chromium DOM
+checks passed** after aligning the browser assertion with the real LOT/LOF
+frontmatter. Missing, duplicate and self-referencing destinations are still
+rejected. The full hosted suite must pass on the follow-up commit before merge.
