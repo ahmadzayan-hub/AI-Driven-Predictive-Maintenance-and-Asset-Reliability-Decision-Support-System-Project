@@ -225,6 +225,10 @@ describe('DatasetsView', () => {
     const storage = (await screen.findByText('Storage used')).closest<HTMLElement>('.kpi')!
     expect(storage).toHaveAttribute('data-hue', 'violet')
     expect(within(storage).getByText('48.3 kB')).toBeVisible()
+    expect(storage.closest('aside')).toHaveAccessibleName('Source workspace')
+    expect(row.closest('.panel__inner')).toHaveClass('panel__inner--wide')
+    expect(row.closest('.panel__column')).not.toBe(storage.closest('.panel__column'))
+    expect(screen.getByText(/Choose a source, review its columns/)).toBeVisible()
     expect(within(screen.getByText('Datasets stored').closest<HTMLElement>('.kpi')!).getByText('of 20')).toBeVisible()
     expect(screen.queryByText(/Every dataset you have added/)).not.toBeInTheDocument()
     expect(screen.getByText(/Up to 4 MB/).closest('details')).not.toHaveAttribute('open')

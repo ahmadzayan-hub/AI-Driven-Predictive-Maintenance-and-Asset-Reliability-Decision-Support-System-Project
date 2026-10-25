@@ -198,7 +198,8 @@ class SessionLanguageTestCase(unittest.TestCase):
 
         reply = self.client.post(f"/api/sessions/{session_id}/messages",
                                  json={"text": "مرحبا"}).json()
-        self.assertIn("يسعدني المساعدة", reply["reply"]["text"])
+        self.assertIn("النموذج اللغوي غير مفعّل", reply["reply"]["text"])
+        self.assertEqual(reply["reply"]["why"], "not_configured")
 
     def test_arabic_input_round_trips_through_the_transcript_intact(self):
         state = self.client.post("/api/sessions", json={"language": "Arabic"}).json()

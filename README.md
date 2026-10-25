@@ -2496,3 +2496,12 @@ inspection remains restricted; no browser denial was retried. Remote publication
 and merge require separate scoped authorization and successful required CI.
 See the [design](docs/adr/2026-10-25-reference-workspace-layout.md) and
 [data-context](docs/adr/2026-10-25-selected-data-chat.md) decisions.
+
+### Dataset layout correction verification
+
+The focused navigation, dataset and bilingual component checks passed (63 tests).
+The CI fallback/language modules were checked separately (67 distinct tests);
+an invalid scripted model response is counted as a miss, not credited as recall.
+Production builds retain the existing bundle limits. Synthetic route screenshots
+do not establish live browser acceptance. See
+[composition decision](docs/adr/2026-10-25-dataset-workspace-composition.md).

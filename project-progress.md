@@ -292,3 +292,9 @@ readiness and bounded failure replies support honest status; no model is enabled
 Excluded report-review/model experiments, KPI-method changes, unrelated inspector
 work, generated outputs, private logs and ancestor history. Verification is in
 README. Remote publication/merge remains separately authorized.
+
+### Dataset composition correction
+
+Shared route alignment and direct Command Centre navigation implemented; Datasets
+has source cards and a separate usage/connectors column. Live browser acceptance
+and remote merge remain distinct gates. Existing report features are retained.

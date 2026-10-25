@@ -477,6 +477,8 @@ export const ar: Record<MessageKey, string> = {
   'overview.addDataset': 'أضف مجموعة بيانات',
 
   // مجموعات البيانات
+  'datasets.nextStep': 'اختر مصدرًا، راجع أعمدته، ثم ابدأ التحليل. يظل الملف الأصلي دون تغيير.',
+  'datasets.context': 'مساحة مصادر البيانات',
   'datasets.aria': 'مجموعات البيانات',
   'datasets.title': 'مجموعات البيانات',
   'datasets.add': 'أضف مجموعة بيانات',

@@ -14,7 +14,6 @@ export const WORKFLOW: { label: MessageKey; items: Destination[] }[] = [
     { id: 'rmd', label: 'nav.rmd', icon: 'search' },
   ] },
   { label: 'nav.priorities', items: [
-    { id: 'overview', label: 'nav.overview', icon: 'dashboard' },
     { id: 'approvals', label: 'nav.approvals', icon: 'shield' },
     { id: 'operations', label: 'nav.operations', icon: 'check' },
   ] },
@@ -34,6 +33,7 @@ export function WorkflowNav({ tab, demo, onGo }: { tab: Tab; demo: boolean; onGo
     <Icon name={item.icon} size={18} />{t(item.label)}
   </button>
   return <nav className="sidebar__nav" aria-label={t('nav.main')}>
+    {button({ id: 'overview', label: 'nav.overview', icon: 'dashboard' })}
     {WORKFLOW.map((stage, index) => {
       const items = stage.items.filter(item => !demo || !NEEDS_SESSION.has(item.id))
       const active = items.some(item => item.id === tab)

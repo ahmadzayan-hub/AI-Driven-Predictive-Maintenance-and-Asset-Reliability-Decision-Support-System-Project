@@ -136,3 +136,9 @@ All seven [[Analytics OS roadmap]] milestones have their records.
 - `2026-10-25-selected-data-chat`: owned report context and bounded deterministic calculations.
 - `2026-10-25-value-led-workflow`: task-stage navigation with preserved routes and human review.
 - `2026-10-25-reference-workspace-layout`: shared reference-led shell and contextual source panel.
+
+### 2026-10-25 — Dataset workspace composition
+
+Use navigation-aligned shared panels and a responsive source/context split.
+Validate the Datasets route itself, not only Assistant or Overview fixtures.
+See the composition decision in docs/adr/2026-10-25-dataset-workspace-composition.md.

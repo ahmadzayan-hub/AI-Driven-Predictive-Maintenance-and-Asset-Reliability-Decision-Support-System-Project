@@ -496,6 +496,8 @@ export const en = {
   'overview.addDataset': 'Add a dataset',
 
   // Datasets
+  'datasets.nextStep': 'Choose a source, review its columns, then open an analysis. Your original file stays unchanged.',
+  'datasets.context': 'Source workspace',
   'datasets.aria': 'Datasets',
   'datasets.title': 'Datasets',
   'datasets.add': 'Add a dataset',

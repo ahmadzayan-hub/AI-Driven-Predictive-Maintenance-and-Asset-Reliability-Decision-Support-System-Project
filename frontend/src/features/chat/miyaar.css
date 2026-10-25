@@ -2,7 +2,6 @@
 .shell__header { --text: var(--header-text); --text-muted: var(--header-muted); --text-faint: var(--header-muted); --surface-sunken: var(--header-field); --border-strong: var(--header-border); --accent: var(--header-text); min-height: 68px; padding-inline: var(--space-5); color: var(--header-text); background: var(--header-bg); border-color: var(--header-bg); }
 .brand__mark { background: var(--surface); }
 .sidebar__footer .miyaar-mobile-help { display: none; }
-.navbtn[aria-current='page'] { box-shadow: inset 0 0 20px var(--accent-haze); }
 .miyaar-sidebar { display: flex; align-items: center; gap: var(--space-3); text-align: start; margin-block-end: var(--space-6); padding: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-m); }
 .miyaar-sidebar:hover { border-color: var(--accent); }
 .miyaar-sidebar strong, .miyaar-sidebar small { display: block; }
@@ -10,11 +9,9 @@
 .miyaar-sidebar small { color: var(--nav-muted); font-size: var(--text-xs); margin-block-start: 2px; }
 .miyaar-mark { display: inline-flex; inline-size: 36px; block-size: 36px; flex-shrink: 0; border-radius: 50%; color: var(--accent); background: var(--accent-soft); }
 .miyaar-mark svg { inline-size: 100%; block-size: 100%; }
-.miyaar-mark--large { inline-size: 64px; block-size: 64px; margin-block-end: var(--space-5); box-shadow: 0 0 30px var(--accent-haze); }
+.miyaar-mark--large { inline-size: 64px; block-size: 64px; margin-block-end: var(--space-5); }
 .card, .kpi, .finding-card, .decision-actions { background: var(--panel-fill); }
-.card, .kpi { border-radius: var(--radius-l); }
 .btn:active:not(:disabled), .composer__send:active:not(:disabled) { transform: translateY(1px); }
-.btn--primary { box-shadow: 0 3px 16px var(--accent-haze); }
 .miyaar-toolbar { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-4) var(--space-5); border-block-end: 1px solid var(--border); background: var(--surface-glass); }
 .miyaar-toolbar strong, .miyaar-toolbar span { display: block; }
 .miyaar-toolbar strong { font-size: var(--text-m); }

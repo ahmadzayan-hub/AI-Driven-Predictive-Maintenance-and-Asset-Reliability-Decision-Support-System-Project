@@ -1812,3 +1812,13 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
   user data and runtime files stay outside Git.
 - Next: separate narrow remote approval and hosted CI; restricted browser review
   remains pending. Local live acceptance belongs to its separately recorded build.
+
+## 2026-10-25 — Dataset composition and CI expectations
+
+- Done: corrected the centered narrow Datasets layout, shared panel alignment,
+  direct overview navigation and compact source metadata/actions.
+- Verified: focused components, TypeScript and production budgets; synthetic
+  route fixtures are recorded separately from live browser evidence.
+- Decided: preserve domain features, report controls, original data and model
+  status; count invalid model output as an evaluation miss.
+- Next: final route evidence, guarded local activation and reviewed PR checks.
