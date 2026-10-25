@@ -3,6 +3,7 @@
 import json
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from server import analytics, model_privacy
@@ -84,6 +85,10 @@ class NarrationPrivacyTests(unittest.TestCase):
 
 class ModelContextPrivacyTests(unittest.TestCase):
     def setUp(self):
+        # Reach the privacy boundary with a fake available provider on any host.
+        memory = patch("server.assistant_availability.free_memory_bytes", return_value=8 * 1024 ** 3)
+        memory.start()
+        self.addCleanup(memory.stop)
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         root = Path(directory.name)

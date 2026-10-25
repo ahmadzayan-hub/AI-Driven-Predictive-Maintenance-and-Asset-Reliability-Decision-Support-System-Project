@@ -8,17 +8,22 @@
   --magenta: light-dark(#be185d, #f9a8d4);
   /* Light neutrals (slate). --border is decorative only; anything a person
      operates (inputs, segmented controls) uses --border-strong, >= 3:1. */
-  --bg: #F3F5F6;
+  --bg: #F3F6FA;
   --surface: #ffffff;
   --surface-raised: #ffffff;
-  --surface-sunken: #F5F4F0;
+  --surface-sunken: #F0F4F7;
   /* Navigation shares the restrained workspace palette. */
-  --nav-surface: #163443;
-  --nav-text: #F3F7F9;
-  --nav-muted: #C2D0D8;
-  --nav-border: #4B6574;
-  --nav-active: #2B4D5E;
-  --nav-accent: #9DDDD3;
+  --header-bg: #142D40;
+  --header-text: #F3F7F9;
+  --header-muted: #C2D0D8;
+  --header-field: #254456;
+  --header-border: #8BA6B8;
+  --nav-surface: #FFFFFF;
+  --nav-text: #163443;
+  --nav-muted: #52616D;
+  --nav-border: #D7E1E8;
+  --nav-active: #E7F0F6;
+  --nav-accent: #17628A;
   --border: #D7DDE1;
   --border-strong: #71808B;
   --text: #24303B;
@@ -28,10 +33,10 @@
   /* Accent (restrained navy for decision actions):
      --accent for text/icons/outlines/focus, --accent-solid for filled
      controls. */
-  --accent: #334E68;
-  --accent-solid: #334E68;
+  --accent: #17628A;
+  --accent-solid: #17628A;
   --accent-solid-hover: #243D53;
-  --accent-soft: #E9EEF1;
+  --accent-soft: #E7F0F6;
   --on-accent: #ffffff;
   --accent-glow: rgb(51 78 104 / .10);
 
@@ -105,7 +110,7 @@
   --radius-xl: 24px;
   --surface-glass: rgb(255 255 255 / .94);
   --accent-haze: rgb(51 78 104 / .04);
-  --workspace-bg: #F5F4F0;
+  --workspace-bg: #F3F6FA;
   --panel-fill: #FFFFFF;
   --hero-fill: #FFFFFF;
   --hero-border: #D7DDE1;

@@ -106,7 +106,7 @@ test.describe('main user journey', () => {
     await page.getByRole('button', { name: 'Save', exact: true }).first().click()
     await expect(page.getByText('Preference updated: user_name = Ahmad.')).toBeVisible()
 
-    await openTab(page, /^Workspace/)
+    await openTab(page, /^Ask Miyaar/)
     // A sentence the assistant cannot act on gets an honest, tone-shaped
     // answer that says what can be asked — concise here.
     await sendMessage(page, 'Ping')
@@ -125,7 +125,7 @@ test.describe('main user journey', () => {
     await confirmClear.getByRole('button', { name: 'Clear history' }).click()
     await expect(confirmClear).toBeHidden()
 
-    await openTab(page, /^Workspace/)
+    await openTab(page, /^Ask Miyaar/)
     await sendMessage(page, '/history')
     await expect(lastAgentBubble(page)).toHaveText('No conversation history is available.')
 
@@ -142,7 +142,7 @@ test.describe('main user journey', () => {
     await confirmEnd.getByRole('button', { name: 'End session' }).click()
     await expect(page.getByRole('status').filter({ hasText: 'Session ended' })).toBeVisible()
 
-    await openTab(page, /^Workspace/)
+    await openTab(page, /^Ask Miyaar/)
     await expect(page.getByText('This session has ended.', { exact: false }).first()).toBeVisible()
     await expect(composerInput(page)).toBeDisabled()
 

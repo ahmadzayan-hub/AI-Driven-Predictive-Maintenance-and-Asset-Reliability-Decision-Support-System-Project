@@ -131,3 +131,8 @@ All seven [[Analytics OS roadmap]] milestones have their records.
 
 
 - `2026-10-25-navigable-business-reports`: shared HTML navigation, bounded executive summaries and Word page fields; browser and Office verification kept distinct.
+
+- `2026-10-25-explicit-chat-availability`: truthful model-readiness and bounded failure replies.
+- `2026-10-25-selected-data-chat`: owned report context and bounded deterministic calculations.
+- `2026-10-25-value-led-workflow`: task-stage navigation with preserved routes and human review.
+- `2026-10-25-reference-workspace-layout`: shared reference-led shell and contextual source panel.

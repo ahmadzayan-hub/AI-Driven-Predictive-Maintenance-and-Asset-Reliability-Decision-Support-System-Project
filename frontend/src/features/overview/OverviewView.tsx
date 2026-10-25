@@ -334,8 +334,7 @@ export function OverviewView({ onOpenRun, onStart, onAddDataset, onApprovals, on
 
         <details className="overview__disclosure"><summary>{j('tools')}</summary>{actions}</details>
         <div className="overview__grid">
-          <div className="card">
-            <h3 className="card__title">{t('overview.findings')}</h3>
+          <details className="card overview__findings"><summary>{t('overview.findings')}</summary>
             {latest ? (
               <>
                 <p className="card__meta">
@@ -382,7 +381,7 @@ export function OverviewView({ onOpenRun, onStart, onAddDataset, onApprovals, on
                 <div className="skeleton skeleton--line skeleton--short" />
               </>
             )}
-          </div>
+          </details>
 
           <div className="card">
             <h3 className="card__title">{t('overview.waiting')}</h3>

@@ -9,6 +9,7 @@ import type { ConnectionStatus, SessionState } from '../../shared/types'
 import { Composer } from './Composer'
 import type { ComposerHandle } from './Composer'
 import { MessageBubble } from './MessageBubble'
+import { DataChatContext } from './DataChatContext'
 
 export interface Suggestion { label: MessageKey; icon: IconName; insert: MessageKey }
 export const SUGGESTIONS: Suggestion[] = [
@@ -84,7 +85,14 @@ export function ChatView({
     if (container) setPinnedToBottom(container.scrollHeight - container.scrollTop - container.clientHeight < 48)
   }
   const empty = transcriptLength === 0 && !failedText && !sending
-  return <section className="chat" aria-label={t('chat.aria')}>
+  return <div className="assistant-workspace">
+    <aside className="assistant-context" aria-label={session.data_chat_labels?.title ?? t('miyaar.workspace')}>
+      <div className="assistant-context__state"><strong>{t('miyaar.session')}</strong><StatusBadge status={status} announce={false} /></div>
+      {session.assistant_status && <p className="miyaar-notice" role="status" dir="auto">{session.assistant_status.message}</p>}
+      <DataChatContext key={session.session_id} session={session} disabled={session.ended || offline || sending} />
+      <p className="assistant-context__boundary"><Icon name="shield" size={18} />{t('miyaar.review')}</p>
+    </aside>
+    <section className="chat" aria-label={t('chat.aria')}>
     <div className="miyaar-toolbar">
       <MiyaarMark />
       <div><strong>{t('assistant.name')}</strong><span>{t('assistant.tagline')}</span></div>
@@ -106,11 +114,6 @@ export function ChatView({
           </div>
           <div className="miyaar-hero__art"><IndustrialMotif /><span>{t('miyaar.art')}</span></div>
         </div>
-        <dl className="miyaar-status">
-          <div><dt><Icon name="activity" size={16} />{t('miyaar.session')}</dt><dd><StatusBadge status={status} announce={false} /></dd></div>
-          <div><dt><Icon name="chat" size={16} />{t('miyaar.mode')}</dt><dd>{t('miyaar.noReply')}</dd></div>
-          <div><dt><Icon name="shield" size={16} />{t('miyaar.governance')}</dt><dd>{t('miyaar.review')}</dd></div>
-        </dl>
         <h3 className="miyaar-welcome__heading">{t('miyaar.start')}</h3>
         <div className="miyaar-actions">
           {ACTIONS.map((action) => <button key={action.id} type="button" className="miyaar-action"
@@ -159,5 +162,5 @@ export function ChatView({
     }}><Icon name="arrowDown" size={14} />{t('chat.latest')}</button> : null}
     <Composer sessionId={session.session_id} draftKey={`${session.session_id}:composer`} ref={composerRef} onSend={onSend}
       busy={sending} disabled={session.ended || offline} offline={offline} />
-  </section>
+  </section></div>
 }

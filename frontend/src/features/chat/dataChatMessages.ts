@@ -1,0 +1,31 @@
+import { definePack } from '../../i18n/pack'
+
+export const dataChatMessages = definePack({
+  'dataChat.title': 'Data for this chat',
+  'dataChat.none': 'No report selected',
+  'dataChat.choose': 'Choose a completed analysis',
+  'dataChat.load': 'Show my reports',
+  'dataChat.use': 'Use this report',
+  'dataChat.clear': 'Clear selection',
+  'dataChat.empty': 'No completed analyses available. Analyze a dataset first.',
+  'dataChat.help': 'Selection is saved for this conversation. Ask total maintenance cost, availability, recorded failures, or railway signaling age. Answers are calculated from the selected data, with formulas and source references; unsupported questions ask for clarification.',
+  'dataChat.scope': '{n} selected records / {total} total records',
+  'dataChat.error': 'Could not confirm the data selection. Reload reports and try again.',
+  'dataChat.busy': 'Checking data selection…',
+  'dataChat.filters': 'Filters',
+  'dataChat.limit': 'Up to 25 completed reports are listed. Choosing a report here selects all its records.',
+}, {
+  'dataChat.title': 'بيانات هذه المحادثة',
+  'dataChat.none': 'لم يُحدد تقرير',
+  'dataChat.choose': 'اختر تحليلاً مكتملاً',
+  'dataChat.load': 'عرض تقاريري',
+  'dataChat.use': 'استخدام هذا التقرير',
+  'dataChat.clear': 'إلغاء التحديد',
+  'dataChat.empty': 'لا توجد تحليلات مكتملة متاحة. حلل مجموعة بيانات أولاً.',
+  'dataChat.help': 'يُحفظ اختيارك لهذه المحادثة. اسأل عن إجمالي تكلفة الصيانة أو الإتاحة أو عدد الأعطال المسجلة أو عمر إشارات السكك الحديدية. تُحسب الإجابات من البيانات المحددة مع الصيغ ومراجع المصدر؛ والأسئلة غير المدعومة تحتاج إلى توضيح.',
+  'dataChat.scope': '{n} سجلاً محدداً / {total} سجلاً إجمالياً',
+  'dataChat.error': 'تعذر تأكيد اختيار البيانات. أعد تحميل التقارير وحاول مجدداً.',
+  'dataChat.busy': 'جارٍ التحقق من اختيار البيانات…',
+  'dataChat.filters': 'المرشحات',
+  'dataChat.limit': 'تُعرض حتى 25 تقريراً مكتملاً. اختيار تقرير هنا يحدد جميع سجلاته.',
+})

@@ -1799,3 +1799,16 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Verified: focused navigation/documentation and actual Chromium DOM checks passed, including missing, duplicate and self-link negatives. Counts are recorded in README. Production renderer and runtime configuration are unchanged.
 - Decided: preserve destination uniqueness and the full hosted acceptance gate; no test suppression or merge override.
 - Next: rerun CI on this bounded follow-up and merge only after checks pass.
+
+# 2026-10-25 - Clean visual UI integration
+- Done: ported the reviewed visual/workflow changes and required selected-data
+  context API onto the merged report baseline, without unrelated ancestor history.
+  Preserved source permissions, session ownership, deterministic provenance and
+  explicit model-unavailable states. No model/configuration/data changes.
+- Verified: isolated temporary-store API/security regressions, component/language
+  checks, TypeScript and unchanged production budgets; exact results in README.
+- Decided: report review, KPI-method experiments, model-specific memory work and
+  unrelated report-inspector changes stay outside this patch. Generated evidence,
+  user data and runtime files stay outside Git.
+- Next: separate narrow remote approval and hosted CI; restricted browser review
+  remains pending. Local live acceptance belongs to its separately recorded build.

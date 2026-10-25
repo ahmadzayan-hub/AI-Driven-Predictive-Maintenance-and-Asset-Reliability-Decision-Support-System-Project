@@ -21,6 +21,17 @@ export async function revealNavigation(page: Page, language: 'en' | 'ar' = 'en')
 /** Open a preserved route through its actual responsive disclosure controls. */
 export async function openTab(page: Page, name: RegExp, language: 'en' | 'ar' = 'en') {
   const groups = await revealNavigation(page, language)
+  const stage = page.locator('.workflow-stage').filter({ visible: true }).filter({ has: page.getByRole('button', { name, includeHidden: true }) }).first()
+  if (await stage.count()) {
+    const target = stage.getByRole('button', { name, includeHidden: true }).first()
+    const entry = stage.locator('.workflow-stage__entry')
+    const primary = await target.getAttribute('data-route') === await entry.getAttribute('data-route')
+    if (!(await target.isVisible())) {
+      await entry.click()
+      if (primary) { await viewLoaded(page); return }
+      await revealNavigation(page, language)
+    }
+  }
   const target = page.getByRole('button', { name }).filter({ visible: true })
   const group = groups.filter({ has: page.getByRole('button', { name, includeHidden: true }) }).first()
   if (await group.count() && !(await group.evaluate((element) => (element as HTMLDetailsElement).open))) await group.locator('summary').click()

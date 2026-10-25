@@ -102,16 +102,16 @@ test('a stored dataset is analysed again by reference', async ({ page }) => {
   await expect(page.getByLabel('Choose a file')).toBeVisible()
 })
 
-test('the phone bar holds three work areas and More opens contextual tools', async ({ page }) => {
+test('the phone bar holds four work stages and More opens contextual tools', async ({ page }) => {
   test.skip(test.info().project.name !== 'mobile', 'the bottom bar exists on phones only')
   await skipOnboarding(page)
   await page.goto('/')
 
   const bar = page.getByRole('navigation', { name: 'Primary' })
-  await expect(bar.getByRole('button')).toHaveCount(4)
-  await expect(bar.getByRole('button')).toHaveText(['Decision', 'Data & analysis', 'Reports & outputs', 'More'])
-  await bar.getByRole('button', { name: 'Decision', exact: true }).click()
-  await expect(bar.getByRole('button', { name: 'Decision', exact: true })).toHaveAttribute('aria-current', 'page')
+  await expect(bar.getByRole('button')).toHaveCount(5)
+  await expect(bar.getByRole('button')).toHaveText(['Data sources', 'Analysis & evidence', 'Priorities & actions', 'Reports', 'More'])
+  await bar.getByRole('button', { name: 'Priorities & actions', exact: true }).click()
+  await expect(bar.getByRole('button', { name: 'Priorities & actions', exact: true })).toHaveAttribute('aria-current', 'step')
 
   const more = bar.getByRole('button', { name: 'More' })
   await more.click()
@@ -181,34 +181,24 @@ test.describe('a view that cannot load', () => {
   })
 })
 
-test('sidebar groups: three work areas preserve routes and disclose contextual tools', async ({ page }) => {
+test('four work stages preserve routes, history and secondary tools', async ({ page }) => {
   await skipOnboarding(page)
   await page.goto('/')
   await revealNavigation(page)
   const nav = page.getByRole('navigation', { name: 'Main', exact: true }).filter({ visible: true })
-  const groups = nav.locator('.sidebar__group')
-  await expect(groups).toHaveCount(4)
-  await expect(groups.locator(':scope > summary')).toHaveText(['Decision', 'Data & analysis', 'Reports & outputs', 'Workspace tools'])
-  // Every preserved route still carries its distinct icon.
-  const icons = await nav.locator('.navbtn svg path').evaluateAll((paths) => paths.map((path) => path.getAttribute('d')))
-  expect(new Set(icons).size).toBe(icons.length)
-  const expected = [
-    ['Command Centre', 'Asset Intelligence', 'RMD Evidence'],
-    ['Datasets', 'Analyses'], ['Dashboards', 'Approvals'],
-    [/^Administration/, /^Workspace/, /^Memory/, 'Activity', 'Preferences'],
-  ]
+  await expect(nav.locator('.workflow-stage__entry')).toHaveText(['1Data sources', '2Analysis & evidence', '3Priorities & actions', '4Reports'])
+  const tools = nav.locator('.sidebar__group')
   const address = page.url()
-  for (let index = 0; index < expected.length; index++) {
-    const group = groups.nth(index)
-    if (!(await group.evaluate((element) => (element as HTMLDetailsElement).open))) await group.locator('summary').click()
-    await expect(group.getByRole('button')).toHaveText(expected[index])
-  }
-  expect(page.url()).toBe(address) // disclosure never changes the route or history
-  await nav.getByRole('button', { name: 'Datasets', exact: true }).click()
+  await tools.locator('summary').click()
+  await expect(tools.getByRole('button')).toHaveText([/^Memory/, 'Activity', 'Preferences'])
+  expect(page.url()).toBe(address)
+  await openTab(page, /^Datasets/)
   await expect(page).toHaveURL(/#\/datasets$/)
   await page.goBack()
   await expect(page.getByRole('heading', { name: 'Command Centre', level: 2 })).toBeVisible()
   await openTab(page, /^Analyses/)
-  await openTab(page, /^Datasets/)
-  await expect(page.getByRole('heading', { name: 'Datasets', level: 2 })).toBeVisible()
+  await openTab(page, /^Asset Intelligence/)
+  await expect(page).toHaveURL(/#\/assets$/)
+  await openTab(page, /^Ask Miyaar/)
+  await expect(page).toHaveURL(/#\/assistant$/)
 })

@@ -190,3 +190,5 @@
   .command__hero { animation: executive-arrive 220ms ease-out both; }
   .command__grid > .card { animation: executive-arrive 220ms ease-out 50ms both; }
 }
+
+.overview__findings > summary { cursor: pointer; min-height: 44px; font-weight: 600; }

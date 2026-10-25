@@ -2468,3 +2468,31 @@ Report CI follow-up: **17 navigation/documentation tests and 8 Chromium DOM
 checks passed** after aligning the browser assertion with the real LOT/LOF
 frontmatter. Missing, duplicate and self-referencing destinations are still
 rejected. The full hosted suite must pass on the follow-up commit before merge.
+
+### Clean reference-led UI integration — 25 October 2026
+
+The UI patch starts on the merged report baseline without importing unrelated
+ancestor commits. A navy header, grouped task navigation, clearer action cards and
+contextual report selector preserve existing routes and human-review boundaries.
+The selector requires its owner-scoped persisted data-context API and bounded
+deterministic calculations; those dependencies are included explicitly. Actual
+model readiness is shown separately from server connectivity. No model activation,
+runtime configuration, report-review experiment, new KPI methodology, generated
+report, dataset or private log is included.
+
+Executed on this clean candidate: **188 distinct backend checks passed** across
+selected-data, assistant/API, concurrency, authorization, privacy and runtime
+dispatch batches. The static-file check initially skipped before the build and
+then passed against the built assets. **137 component/language checks passed**.
+TypeScript, production build and unchanged interface budgets passed. Resource
+conditions are mocked in tests of fake model gateways so privacy and concurrency
+assertions do not depend on host RAM; dedicated admission/refusal tests retain
+coverage of the unchanged application guard.
+
+The earlier local visual release has separate bilingual desktop/phone light/dark
+synthetic screenshots and live HTTP/hash/persistence evidence. This clean candidate
+has not undergone a new full application/browser or hosted CI run. Live browser
+inspection remains restricted; no browser denial was retried. Remote publication
+and merge require separate scoped authorization and successful required CI.
+See the [design](docs/adr/2026-10-25-reference-workspace-layout.md) and
+[data-context](docs/adr/2026-10-25-selected-data-chat.md) decisions.

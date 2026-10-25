@@ -284,3 +284,11 @@ Additional bilingual and phone test paths now follow the three-area navigation t
 **Report-only main integration, 25 October 2026:** Reconciles the reviewed report renderer and focused export controls onto verified main. Excludes the separate local chat/model/UI ancestor branches; no remote write or live replacement. Native Office pagination and arbitrary-browser printed TOC page references remain limitations.
 
 **Report CI assertion follow-up:** PR #64 exposed a stale numbered-section-only browser assertion. It now accepts the actual LOT/LOF destinations, checks their order before the unnumbered summary, and still requires exactly one target per link. Hosted acceptance remains a merge gate; production code is unchanged.
+
+**Reference-led UI integration:** Prepared a clean patch on the merged report
+baseline. It includes four-stage navigation, shared visual styling, one contextual
+report selector and its necessary owner-scoped persistence/calculation API. Model
+readiness and bounded failure replies support honest status; no model is enabled.
+Excluded report-review/model experiments, KPI-method changes, unrelated inspector
+work, generated outputs, private logs and ancestor history. Verification is in
+README. Remote publication/merge remains separately authorized.

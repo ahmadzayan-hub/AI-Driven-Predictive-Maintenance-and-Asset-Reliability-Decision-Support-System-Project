@@ -38,7 +38,7 @@ test('plain language in the chat saves, analyses, explains, and confirms before 
     timeout: 40_000,
   })
 
-  await openTab(page, /^Workspace/)
+  await openTab(page, /^Ask Miyaar/)
   await expect(lastAgentBubble(page)).toContainText('Started analysis')
   await sendMessage(page, 'What should we do?')
   await expect(lastAgentBubble(page)).toContainText('What should I do?')
@@ -54,7 +54,7 @@ test('plain language in the chat saves, analyses, explains, and confirms before 
   await expect(savedItem).toBeVisible()
   await expect(savedItem.locator('.memory__text')).toHaveText(memoryText)
 
-  await openTab(page, /^Workspace/)
+  await openTab(page, /^Ask Miyaar/)
   await sendMessage(page, 'Forget everything')
   // Wait for the question: the composer holds a message sent while the
   // previous one is still in flight, so an early "yes" would never go.
