@@ -1829,3 +1829,10 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Verified: affected components and TypeScript; final budget and real-browser evidence are recorded separately. No model calls or changes to data, analytical definitions or report generation.
 - Decided: share semantic styles across existing routes; do not claim individual page redesign from shared-token coverage. Remove unused glows instead of raising budgets.
 - Next: actual bilingual phone/desktop verification and guarded local activation. Remote integration remains held for review.
+
+## 2026-10-25 - RTL root scroll and keyboard focus follow-up
+
+- Done: removed the negative margin that placed clipped accessible text outside the RTL viewport; strengthened the browser regression to compare client dimensions and hidden-element bounds. Restored explicit identity-control focus styling using the existing navigation token.
+- Verified: 45 affected component/source-color checks; corrected isolated runtime checks showed equal client/scroll dimensions at 390px in both languages and on Arabic overview/chat, and at 1440px in both languages. Production build and unchanged budgets passed. No live data or model calls were used.
+- Decided: retain accessible content, content-area scrolling and existing contrast assertions; do not conceal the fault with root overflow suppression.
+- Next: hosted CI on the reviewed follow-up before normal merge; the live release remains unchanged.

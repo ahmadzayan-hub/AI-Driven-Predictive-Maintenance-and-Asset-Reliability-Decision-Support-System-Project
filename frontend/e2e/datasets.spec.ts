@@ -27,14 +27,17 @@ test('dataset workspace aligns to navigation in both reading directions', async 
       const rtl = getComputedStyle(element).direction === 'rtl'
       return { gap: rtl ? outer.right - inner.right : inner.left - outer.left,
         inset: parseFloat(getComputedStyle(element).paddingInlineStart),
-        overflow: document.documentElement.scrollWidth - innerWidth,
-        outerScroll: document.documentElement.scrollHeight - innerHeight,
+        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        outerScroll: document.documentElement.scrollHeight - document.documentElement.clientHeight,
+        hiddenLeft: Math.min(...Array.from(document.querySelectorAll('.visually-hidden')).map(node => node.getBoundingClientRect().left)),
         tabbarBottom: element.ownerDocument.querySelector('.tabbar')?.getBoundingClientRect().bottom ?? 0 }
     })
     expect(Math.abs(layout.gap - layout.inset)).toBeLessThan(1)
     expect(layout.gap).toBeLessThanOrEqual(32)
     expect(layout.overflow).toBeLessThanOrEqual(1)
     expect(layout.outerScroll).toBeLessThanOrEqual(1)
+    expect(Number.isFinite(layout.hiddenLeft)).toBe(true)
+    expect(layout.hiddenLeft).toBeGreaterThanOrEqual(0)
     expect(layout.tabbarBottom).toBeLessThanOrEqual(await page.evaluate(() => innerHeight))
     await expect(page.locator('.dataset-page aside')).toBeVisible()
   }

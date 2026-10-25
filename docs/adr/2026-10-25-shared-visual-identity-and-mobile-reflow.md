@@ -26,3 +26,13 @@ Remove redundant style overrides and decorative glows to retain unchanged
 bundle budgets. Component assertions cover the full filename and analysis
 binding. Browser layout assertions cover root overflow and bottom navigation;
 actual bilingual phone and desktop inspection is a separate release gate.
+
+RTL follow-up: a negative margin on an origin-anchored visually hidden element
+places its left edge at -1px. In RTL this creates an outer horizontal scrollbar,
+which reduces the client height and induces a second vertical scrollbar. Use a
+zero margin while preserving clipping and accessible content. Compare scroll
+dimensions with document client dimensions in browser tests; innerWidth and
+innerHeight include scrollbar space and can conceal this regression. Retain an
+explicit identity-control focus rule with the existing navigation contrast token.
+The source-color regression reads the last equal-specificity rule, matching the
+CSS cascade; its existing 3:1 focus and 4.5:1 text thresholds are unchanged.

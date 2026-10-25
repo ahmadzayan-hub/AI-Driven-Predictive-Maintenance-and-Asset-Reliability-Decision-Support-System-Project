@@ -300,3 +300,7 @@ has source cards and a separate usage/connectors column. Live browser acceptance
 and remote merge remain distinct gates. Existing report features are retained.
 
 **Shared visual identity and phone reflow, 25 October 2026:** Distinct navy navigation and blue/cyan action hierarchy now use the same tokens across existing routes, with larger body type and separate light evidence surfaces. Phone shell containment and accessible filename ellipsis address observed overflow. Component and TypeScript checks passed; local activation and browser acceptance remain separately recorded gates. See [decision](docs/adr/2026-10-25-shared-visual-identity-and-mobile-reflow.md).
+
+RTL phone follow-up: remove the negative hidden-element margin and strengthen
+root-scroll assertions to use client dimensions. Restore explicit identity-control
+focus styling without changing contrast thresholds. Verification recorded separately.

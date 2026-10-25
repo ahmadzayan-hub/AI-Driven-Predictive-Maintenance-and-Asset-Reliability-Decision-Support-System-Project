@@ -1905,6 +1905,7 @@ form.field {
 
 /* Shared executive identity: navigation is separate from evidence surfaces. */
 .sidebar__identity { background: var(--nav-active); border-color: var(--nav-border); color: var(--nav-text); }
+.sidebar__identity :focus-visible { outline: 2px solid var(--nav-accent); outline-offset: 2px; }
 .sidebar__identity .muted, .sidebar__identity small { color: var(--nav-muted); }
 .sidebar .miyaar-mark { background: var(--nav-active); color: var(--nav-accent); }
 .navbtn[aria-current] > svg { color: var(--nav-accent); }
