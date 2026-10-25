@@ -64,6 +64,7 @@
 .exec-brief ol, .exec-findings ul { padding-inline-start: var(--space-5); display: grid; gap: var(--space-3); }
 .exec-export { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: end; margin-block-start: var(--space-4); }
 .exec-export .field { min-width: 0; flex: 1 1 10rem; }
+.exec-export .btn { flex: 1; white-space: normal; min-block-size: 44px; }
 .exec-overview td small, .exec-overview th small { display: block; margin-block-start: var(--space-1); font-size: var(--text-xs); font-weight: 400; }
 .exec-evidence { overflow-wrap: anywhere; }
 .exec-evidence .evidence__table { margin-block-start: var(--space-3); }
@@ -80,7 +81,7 @@
 /* Keep evidence limitations readable without competing with the governed value. */
 .exec-kpi > .exec-muted { font-size: var(--text-s); color: var(--text-muted); overflow-wrap: anywhere; }
 .exec-kpi details > .btn, .exec-kpi .exec-ref { display: flex; width: 100%; min-height: 44px; margin-block-start: var(--space-2); white-space: normal; text-align: start; }
-@media (max-width: 479px) { .exec-kpis:not(.exec-featured) { grid-template-columns: minmax(0, 1fr); } .exec-hero { grid-template-columns: minmax(0, 1fr); } .exec-hero .exec-section-head { grid-column: 1; grid-row: 2; } }
+@media (max-width: 479px) { .exec-export .field { flex-basis: 100%; } .exec-kpis:not(.exec-featured) { grid-template-columns: minmax(0, 1fr); } .exec-hero { grid-template-columns: minmax(0, 1fr); } .exec-hero .exec-section-head { grid-column: 1; grid-row: 2; } }
 
 .exec-models > summary { color: var(--accent); }
 

@@ -129,3 +129,5 @@ All seven [[Analytics OS roadmap]] milestones have their records.
 - `2026-10-24-column-grant-preflight`: SELECT-only PUBLIC and effective client column ACL checks; reviewed catch-up SQL unchanged. See [[Tenant isolation]].
 - `2026-10-24-hermes-desktop-portable-package`: proposed portable Hermes package with a help-only preview and explicit local data/tool scope; preserves the web app and [[Agent runtimes and MCP]]. Activation remains separate.
 
+
+- `2026-10-25-navigable-business-reports`: shared HTML navigation, bounded executive summaries and Word page fields; browser and Office verification kept distinct.

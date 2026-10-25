@@ -56,11 +56,20 @@ def _clean(value):
                    else "\ufffd" for c in str(value))
 
 
+def _synopsis(value, limit):
+    """Bound front-page prose only. Full facts remain in the following sections."""
+    text = " ".join(_clean(value).split())
+    if len(text) <= limit:
+        return text
+    return text[:limit - 1].rsplit(" ", 1)[0] + "…"
+
+
 @dataclass
 class Table:
     headers: tuple
     rows: list
     widths: tuple = (32, 68)
+    caption: str = ""
 
 
 @dataclass
@@ -161,12 +170,12 @@ def report_sections(brief):
         selected.tables.append(Table((tr("Field", "الحقل"), tr("Condition", "الشرط"), tr("Selected values", "القيم المحددة")), rows, (30, 30, 40)))
     else:
         selected.paragraphs.append(tr("No filters; all cleaned records are selected.", "لا توجد مرشحات؛ يشمل النطاق جميع السجلات المنظفة."))
-    summary = Section(tr("Executive summary", "الملخص التنفيذي"), [brief["headline"],
+    summary = Section(tr("Decision context", "سياق القرار"), [brief["headline"],
         tr("This document supports qualified human review. Exporting does not approve or publish the run.",
            "يدعم هذا المستند المراجعة البشرية المؤهلة. لا يعني التصدير اعتماد التشغيل أو نشره.")])
     limitations = Section(tr("Decision boundaries and unresolved issues", "حدود القرار والمسائل غير المحسومة"), brief["readiness"]["limitations"])
     advisory = brief.get("advisory")
-    decision_sections = []
+    scorecards, decisions_requested, readiness_sections, source_sections = [], [], [], []
     if advisory:
         summary.paragraphs = [advisory["role"], advisory["subtitle"], advisory["recommendation"], brief["headline"], summary.paragraphs[-1]]
         scorecard = Section(tr("Maintenance and reliability scorecard", "بطاقة أداء الصيانة والموثوقية"))
@@ -187,7 +196,8 @@ def report_sections(brief):
         sources.tables.append(Table((tr("Required source", "المصدر المطلوب"), tr("Verification status", "حالة التحقق")), [
             (item["title"], status_label(item["status"], brief["language"]) + " — " + item["detail"]) for item in advisory["sources"]]))
         sources.paragraphs.extend([advisory["preservation"], advisory["escalation"]])
-        decision_sections = [scorecard, decisions, prediction, sources]
+        scorecards, decisions_requested = [scorecard], [decisions]
+        readiness_sections, source_sections = [prediction], [sources]
     targets = Section(tr("Configured display targets", "أهداف العرض المحددة"), [tr(
         "Colours compare measured values with targets configured for this run: green means good, blue okay, red needs attention. Grey means no target or unavailable evidence. Configured targets are not approved standards or engineering authorizations.",
         "تقارن الألوان القيم المقاسة بأهداف محددة لهذا التشغيل: الأخضر جيد، والأزرق مقبول، والأحمر يحتاج إلى متابعة. يعني الرمادي عدم تحديد هدف أو عدم توفر الأدلة. الأهداف المحددة ليست معايير معتمدة أو تفويضات هندسية.")])
@@ -342,12 +352,11 @@ def report_sections(brief):
             ]))
         contract_sections = [coverage, records]
     title = "معيار | Miyaar"
-    front = Section(tr("Asset maintenance intelligence and decision support", "ذكاء صيانة الأصول ودعم القرار"), compact=True)
-    front.paragraphs.append(tr("Scope", "النطاق") + ": " + str(scope["records"]) + "/" + str(scope["total_records"]) + " · " + value(run["dataset_name"]))
+    front = Section(tr("Executive summary", "الملخص التنفيذي"), compact=True)
+    front.paragraphs.append(tr("Scope", "النطاق") + ": " + str(scope["records"]) + "/" + str(scope["total_records"]) + " · " + _synopsis(run["dataset_name"], 90))
     front.paragraphs.append(tr("Data period not specified", "فترة البيانات غير محددة"))
     if scope["filters"]:
-        front.paragraphs.extend(tr("Filter", "المرشح") + ": " + item[0] + " " + item[1] + " " + item[2]
-                                for item in selected.tables[-1].rows)
+        front.paragraphs.append(tr("Filtered selection; exact filters follow in Scope and filters.", "نطاق مرشح؛ ترد المرشحات الدقيقة في قسم النطاق والمرشحات."))
     else:
         front.paragraphs.append(selected.paragraphs[0])
     if advisory:
@@ -355,52 +364,126 @@ def report_sections(brief):
         decisions_front = advisory["decisions"][:3]
         common_gate = decisions_front[0]["gate"] if decisions_front and len({item["gate"] for item in decisions_front}) == 1 else None
         if common_gate:
-            front.paragraphs.append(tr("Review gate", "شرط المراجعة") + ": " + common_gate)
+            front.paragraphs.append(tr("Review gate", "شرط المراجعة") + ": " + _synopsis(common_gate, 100))
         front.tables.append(Table((tr("Review priority", "أولوية المراجعة"), tr("Proposed role, not assigned", "دور مقترح، غير مكلّف")), [
-            (item["title"], item["owner"] + ("" if common_gate else "\n" + item["gate"])) for item in decisions_front], (65, 35)))
+            (_synopsis(item["title"], 90), _synopsis(item["owner"], 55)) for item in decisions_front], (65, 35)))
         measured = [item for item in advisory["domains"] if item["value"] is not None][:3]
         if measured:
             front.tables.append(Table((tr("Observed measure", "المؤشر المرصود"), tr("Value / status", "القيمة / الحالة")), [
-                (item["measure"], value(item["value"]) + " " + labelled(item["scale"], scales) + " · " + status_label(item["status"], brief["language"])) for item in measured], (65, 35)))
+                (_synopsis(item["measure"], 85), value(item["value"]) + " " + labelled(item["scale"], scales) + " · " + status_label(item["status"], brief["language"])) for item in measured], (55, 45)))
         unknown = [item["title"] for item in advisory["domains"] if item["value"] is None]
         if unknown:
-            front.after_paragraphs.append(tr("Missing critical measurements", "قياسات أساسية مفقودة") + ": " + value(unknown))
+            front.after_paragraphs.append(tr("Some decision areas lack measurements; see the scorecard.", "تفتقر بعض مجالات القرار إلى قياسات؛ راجع بطاقة الأداء."))
     front.after_title = tr("Reading limits", "حدود القراءة")
-    # Every substantive scope limitation stays visible, not hidden by grouping.
-    front.after_paragraphs.extend(brief["readiness"]["limitations"])
+    # Keep the cover bounded without shrinking type or hiding overflow. The
+    # complete limitations, exact filters and unabridged proposals follow.
+    front.after_paragraphs.append(tr("Selected-scope measurements and whole-run models have different populations. Historical associations are not future failures or causal effects. Read all decision boundaries before acting.",
+        "تختلف مجتمعات القياسات المرشحة عن نماذج التشغيل الكامل. الارتباطات التاريخية ليست أعطالاً مستقبلية أو آثاراً سببية. راجع جميع حدود القرار قبل التصرف."))
     front.after_paragraphs.append(tr("Review only. Roles are proposed; no intervention, forecast or savings is approved. Full evidence and remaining priorities follow.",
                                "للمراجعة فقط. الأدوار مقترحة؛ لم يُعتمد تدخل أو تنبؤ أو وفورات. تلي ذلك الأدلة الكاملة وبقية الأولويات."))
-    appendix = Section(tr("Technical appendix and source audit", "الملحق الفني وتدقيق المصادر"), page_break_before=True)
-    return title, [front, appendix, summary, *decision_sections, selected, metadata, questions, limitations, targets, kpis, priorities, findings, models, *contract_sections, evidence]
+    definitions = []
+    if glossary := brief.get("method_glossary"):
+        definitions.append(Section(glossary["title"], [glossary["caution"]], tables=[Table(
+            (tr("Term", "المصطلح"), tr("Definition", "التعريف")),
+            [(entry["term"], entry["definition"]) for entry in glossary["entries"]])]))
+    # Order the actual evidence, not a decorative list of promised methods.
+    # Missing governance/model support stays explicit in its recorded status.
+    summary.page_break_before = True
+    models.title = tr("Recorded model evidence and limitations", "أدلة النماذج المسجلة وحدودها")
+    metadata.title = tr("Source and snapshot provenance", "مصدر البيانات وتتبع اللقطة")
+    coverage_sections = contract_sections[:1]
+    decision_records = contract_sections[1:]
+    sections = [front, summary, questions, selected, metadata, *source_sections,
+                *coverage_sections, *definitions, targets, kpis, *scorecards,
+                findings, models, *readiness_sections, priorities,
+                *decisions_requested, *decision_records, limitations, evidence]
+    return title, _present_sections(sections)
+
+
+def _present_sections(sections):
+    """Do not advertise empty headings; explicit unavailable statements remain."""
+    return [section for section in sections if
+            any(str(p).strip() for p in section.paragraphs + section.after_paragraphs)
+            or any(table.rows for table in section.tables)]
+
+
+def _section_label(index, section):
+    return section.title if index == 0 else f"{index}. {section.title}"
+
+
+def _table_catalog(sections, language):
+    catalog = {}
+    for section_index, section in enumerate(sections):
+        for table_index, table in enumerate(section.tables):
+            if not table.rows:
+                continue
+            number = len(catalog) + 1
+            detail = ""
+            if len(table.headers) == 2 and table.rows[0][0] in {
+                    "Measure", "Priority", "Problem", "Target measure", "Model",
+                    "المؤشر", "الأولوية", "المشكلة", "مؤشر الهدف", "النموذج"}:
+                detail = " — " + _synopsis(table.rows[0][1], 70)
+            elif table.headers and table.headers[0] not in {"Item", "البند"}:
+                detail = " — " + _synopsis(table.headers[0], 70)
+            title = table.caption or section.title + detail
+            catalog[section_index, table_index] = {
+                "anchor": f"table-{number}", "number": number,
+                "caption": ("جدول" if language == "ar" else "Table") + f" {number}. " + title}
+    return catalog
+
+
+def _frontmatter_labels(language):
+    return (("قائمة الجداول", "قائمة الأشكال", "لا توجد أشكال في هذا التقرير؛ تُعرض الأدلة التحليلية المتاحة في جداول.")
+            if language == "ar" else
+            ("List of Tables", "List of Figures", "No figures are included in this report; available analytical evidence is presented in tables."))
 
 
 STYLE = """
 @page { size: Letter portrait; margin: 0.75in; }
+@page { @bottom-center { content: counter(page); font: 10pt Dubai, Arial, sans-serif; color: #475467; } }
 * { box-sizing: border-box; }
-body { margin: 0 auto; max-width: 8.5in; padding: 0.75in; color: #111; background: #fff; font: 11pt/1.5 Arial, Calibri, sans-serif; }
+body { margin: 0 auto; max-width: 8.5in; padding: 0.75in; color: #111; background: #fff; font: 11pt/1.45 Arial, Calibri, sans-serif; text-align: start; }
 h1,h2 { color: #000; line-height: 1.25; break-after: avoid; }
-h1 { font-size: 20pt; margin: 0 0 20pt; border-bottom: 2pt solid #000; padding-bottom: 10pt; }
+h1 { font-size: 20pt; margin: 0 0 12pt; border-bottom: 1pt solid #475467; padding-bottom: 8pt; }
 h2 { font-size: 14pt; margin: 24pt 0 10pt; }
-p { margin: 6pt 0 10pt; overflow-wrap: anywhere; }
+p { margin: 6pt 0 10pt; overflow-wrap: break-word; orphans: 3; widows: 3; }
 table { border-collapse: collapse; table-layout: fixed; width: 100%; margin: 10pt 0 18pt; }
-th,td { border: 0.6pt solid #d9d9d9; padding: 6pt 8pt; vertical-align: middle; text-align: start; overflow-wrap: anywhere; word-break: break-word; }
+th,td { border: 0.6pt solid #d9d9d9; padding: 6pt 8pt; vertical-align: top; text-align: start; overflow-wrap: anywhere; word-break: normal; hyphens: none; }
 th { background: #eee; font-weight: bold; color: #000; }
 thead { display: table-header-group; } tr { break-inside: avoid; }
 bdi { unicode-bidi: isolate; }
-.compact { font-size: 10pt; line-height: 1.25; }
+.compact { font-size: 11pt; line-height: 1.25; }
 .compact p { margin: 4pt 0; }
 .compact td, .compact th { padding: 4pt 6pt; }
-@media print { body { max-width: none; padding: 0; } }
+.compact h2 { margin-top: 6pt; }
+.contents { break-before: page; break-after: page; }
+.contents ol { padding-inline-start: 22pt; }
+.contents ol, .catalog ol { list-style: none; padding-inline-start: 0; }
+.contents li { margin: 4pt 0; break-inside: avoid; }
+.catalog { break-before: page; break-after: page; }
+.catalog li { margin: 4pt 0; break-inside: avoid; }
+caption { text-align: start; font-weight: bold; margin-bottom: 5pt; break-after: avoid; }
+a { color: #1d4ed8; text-decoration: underline; text-underline-offset: 2pt; }
+.back { font-size: 10pt; margin-top: 18pt; }
+@media screen and (max-width: 700px) { body { padding: 18px; } table { table-layout: auto; } }
+@media print { body { max-width: none; padding: 0; } .back { display: none; } }
 """
 
 
 def render_html(brief):
     title, sections = report_sections(brief)
+    return render_sections_html(title, sections, brief["language"])
+
+
+def render_sections_html(title, sections, language):
+    """Common offline typography/navigation for executive and RMD HTML exports."""
+    sections = _present_sections(sections)
+    catalog = _table_catalog(sections, language)
+    lot, lof, no_figures = _frontmatter_labels(language)
     font = verified_font()
     font_css = ("@font-face { font-family: Dubai; src: url(data:font/ttf;base64," +
                 b64encode(font).decode("ascii") + ") format('truetype'); } body { font-family: Dubai, Arial, sans-serif; }"
                 if font else "")
-    language = brief["language"]
 
     def text(item):
         shown = '<bdi dir="auto">' + escape(_clean(item)).replace("\n", "<br>") + "</bdi>"
@@ -411,11 +494,28 @@ def render_html(brief):
 
     body = [f"<h1>{text(title)}</h1>"]
     for index, section in enumerate(sections):
-        attributes = (' class="compact"' if section.compact else '') + (' style="break-before:page"' if section.page_break_before else '')
-        body.append(f'<section id="section-{index}"{attributes}><h2>{text(section.title)}</h2>')
+        if index == 1:
+            # No guessed printed page numbers: these destinations survive PDF printing.
+            body.append('<nav class="contents" id="contents" aria-label="' +
+                        ("المحتويات" if language == "ar" else "Contents") + '"><h2>' +
+                        ("المحتويات" if language == "ar" else "Contents") + '</h2><ol>')
+            body.extend(f'<li><a href="#{anchor}">{text(label)}</a></li>' for anchor, label in
+                        [("list-of-tables", lot), ("list-of-figures", lof)] +
+                        [(f"section-{i}", _section_label(i, s)) for i, s in enumerate(sections)])
+            body.append('</ol></nav>')
+            body.append(f'<section class="catalog" id="list-of-tables"><h2>{text(lot)}</h2><ol>')
+            body.extend(f'<li><a href="#{item["anchor"]}">{text(item["caption"])}</a></li>' for item in catalog.values())
+            body.append('</ol>' + ('' if catalog else '<p>' + text("لا توجد جداول في هذا التقرير." if language == 'ar' else "No tables are included in this report.") + '</p>') + '</section>')
+            body.append(f'<section class="catalog" id="list-of-figures"><h2>{text(lof)}</h2><p>{text(no_figures)}</p></section>')
+        attributes = (' class="compact"' if section.compact else '') + (' style="break-before:page"' if section.page_break_before and index != 1 else '')
+        body.append(f'<section id="section-{index}"{attributes}><h2>{text(_section_label(index, section))}</h2>')
         body.extend(f"<p>{text(p)}</p>" for p in section.paragraphs)
-        for table in section.tables:
-            body.append("<table><colgroup>" + "".join(f'<col style="width:{w}%">' for w in table.widths) + "</colgroup><thead><tr>")
+        for table_index, table in enumerate(section.tables):
+            if not table.rows:
+                continue
+            entry = catalog[index, table_index]
+            widths = table.widths if len(table.widths) == len(table.headers) else [100 / len(table.headers)] * len(table.headers)
+            body.append(f'<table id="{entry["anchor"]}"><caption>{text(entry["caption"])}</caption><colgroup>' + "".join(f'<col style="width:{w}%">' for w in widths) + "</colgroup><thead><tr>")
             body.extend(f'<th scope="col">{text(h)}</th>' for h in table.headers)
             body.append("</tr></thead><tbody>")
             body.extend("<tr>" + "".join(f"<td>{text(cell)}</td>" for cell in row) + "</tr>" for row in table.rows)
@@ -423,10 +523,8 @@ def render_html(brief):
         if section.after_title:
             body.append(f"<h3>{text(section.after_title)}</h3>")
         body.extend(f"<p>{text(p)}</p>" for p in section.after_paragraphs)
-        if section.compact:
-            body.append('<p><a href="#section-1">' + ("الملحق الفني والأدلة" if language == "ar" else "Technical appendix and evidence") + "</a></p>")
+        body.append('<p class="back"><a href="#contents">' + ("المحتويات" if language == "ar" else "Contents") + "</a></p>")
         body.append("</section>")
-    language = brief["language"]
     direction = "rtl" if language == "ar" else "ltr"
     return (f'<!doctype html><html lang="{language}" dir="{direction}"><head><meta charset="utf-8">'
             f'<meta name="viewport" content="width=device-width, initial-scale=1">'
@@ -494,6 +592,50 @@ def _paragraph(parent, text, ar, style=None, bold=False, auto_direction=False, f
     return p
 
 
+def _bookmark(paragraph, index, name=None):
+    start = ET.Element(f"{{{W}}}bookmarkStart", {f"{{{W}}}id": str(index), f"{{{W}}}name": name or f"section_{index}"})
+    paragraph.insert(1, start)
+    _w(paragraph, "bookmarkEnd", id=index)
+
+
+def _contents(body, sections, catalog, ar, add_paragraph):
+    heading = add_paragraph(body, "المحتويات" if ar else "Contents", ar, "ContentsTitle")
+    _w(heading.find(f"{{{W}}}pPr"), "pageBreakBefore")
+    add_paragraph(body, "روابط الأقسام أدناه. يحدّث Word أرقام الصفحات عند فتح الملف؛ يمكن تحديثها أيضاً بتحديد الكل ثم F9." if ar else
+                  "Section links below. Word updates page references on opening; Select All then F9 also refreshes them.", ar)
+    def entry(label, anchor):
+        p = add_paragraph(body, label, ar, "ContentsEntry")
+        link = _w(p, "hyperlink", anchor=anchor, history="1")
+        for run in list(p.findall(f"{{{W}}}r")):
+            p.remove(run)
+            _w(run.find(f"{{{W}}}rPr"), "color", val="1D4ED8")
+            _w(run.find(f"{{{W}}}rPr"), "u", val="single")
+            link.append(run)
+        # Dirty PAGEREF fields are calculated by the actual pagination engine.
+        # An em dash is deliberately not a cached, invented page number.
+        field = _w(p, "fldSimple", instr=f" PAGEREF {anchor} \\h ", dirty="true")
+        temporary = add_paragraph(body, " — ", ar)
+        for run in list(temporary.findall(f"{{{W}}}r")):
+            field.append(run)
+        body.remove(temporary)
+    lot, lof, no_figures = _frontmatter_labels("ar" if ar else "en")
+    for label, anchor in [(lot, "list_of_tables"), (lof, "list_of_figures")]:
+        entry(label, anchor)
+    for index, section in enumerate(sections):
+        entry(_section_label(index, section), f"section_{index}")
+    heading = add_paragraph(body, lot, ar, "Heading1")
+    _w(heading.find(f"{{{W}}}pPr"), "pageBreakBefore")
+    _bookmark(heading, len(sections), "list_of_tables")
+    for item in catalog.values():
+        entry(item["caption"], item["anchor"].replace("-", "_"))
+    if not catalog:
+        add_paragraph(body, "لا توجد جداول في هذا التقرير." if ar else "No tables are included in this report.", ar)
+    heading = add_paragraph(body, lof, ar, "Heading1")
+    _w(heading.find(f"{{{W}}}pPr"), "pageBreakBefore")
+    _bookmark(heading, len(sections) + 1, "list_of_figures")
+    add_paragraph(body, no_figures, ar)
+
+
 def render_docx(brief):
     """A real Office Open XML package, with internal relationships only."""
     font = verified_font()
@@ -501,17 +643,26 @@ def render_docx(brief):
     add_paragraph = partial(_paragraph, font_name=font_name)
     title, sections = report_sections(brief)
     ar = brief["language"] == "ar"
+    catalog = _table_catalog(sections, brief["language"])
     document = ET.Element(f"{{{W}}}document")
     body = _w(document, "body")
     add_paragraph(body, title, ar, "Title")
-    for section in sections:
-        heading = add_paragraph(body, section.title, ar, "Heading1")
+    for section_index, section in enumerate(sections):
+        if section_index == 1:
+            _contents(body, sections, catalog, ar, add_paragraph)
+        heading = add_paragraph(body, _section_label(section_index, section), ar, "Heading1")
+        _bookmark(heading, section_index)
         if section.page_break_before:
             _w(heading.find(f"{{{W}}}pPr"), "pageBreakBefore")
         section_style = "Compact" if section.compact else None
         for paragraph in section.paragraphs:
             add_paragraph(body, paragraph, ar, style=section_style)
-        for table in section.tables:
+        for table_index, table in enumerate(section.tables):
+            if not table.rows:
+                continue
+            entry = catalog[section_index, table_index]
+            caption = add_paragraph(body, entry["caption"], ar, "Caption")
+            _bookmark(caption, len(sections) + 1 + entry["number"], entry["anchor"].replace("-", "_"))
             tbl = _w(body, "tbl")
             pr = _w(tbl, "tblPr")
             _w(pr, "bidiVisual", val="1" if ar else "0")
@@ -549,11 +700,14 @@ def render_docx(brief):
         for paragraph in section.after_paragraphs:
             add_paragraph(body, paragraph, ar, style=section_style)
     section = _w(body, "sectPr")
+    footer_ref = _w(section, "footerReference", type="default")
+    footer_ref.set("{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id", "rIdFooter")
     _w(section, "pgSz", w=12240, h=15840, orient="portrait")
     _w(section, "pgMar", top=1440, right=1440, bottom=1440, left=1440, header=720, footer=720, gutter=0)
     _w(section, "bidi", val="1" if ar else "0")
     styles = ET.Element(f"{{{W}}}styles")
-    for identifier, name, size in (("Normal", "Normal", 22), ("Title", "Title", 36), ("Heading1", "heading 1", 28), ("Compact", "Compact", 20)):
+    for identifier, name, size in (("Normal", "Normal", 22), ("Title", "Title", 36), ("Heading1", "heading 1", 28), ("Compact", "Compact", 22),
+                                  ("ContentsTitle", "Contents title", 28), ("ContentsEntry", "Contents entry", 22), ("Caption", "Caption", 22)):
         style = _w(styles, "style", type="paragraph", styleId=identifier)
         if identifier == "Normal":
             style.set(f"{{{W}}}default", "1")
@@ -562,7 +716,8 @@ def render_docx(brief):
             _w(style, "basedOn", val="Normal")
             _w(style, "next", val="Normal")
         pr = _w(style, "pPr")
-        if identifier in {"Title", "Heading1"}:
+        _w(pr, "widowControl")
+        if identifier in {"Title", "Heading1", "ContentsTitle", "Caption"}:
             _w(pr, "keepNext")
             _w(pr, "keepLines")
         if identifier == "Heading1":
@@ -571,7 +726,7 @@ def render_docx(brief):
            line=240 if identifier == "Compact" else (320 if ar else 280), lineRule="auto")
         rp = _w(style, "rPr")
         _w(rp, "rFonts", ascii=font_name, hAnsi=font_name, cs=font_name, eastAsia=font_name)
-        if identifier in {"Title", "Heading1"}:
+        if identifier in {"Title", "Heading1", "ContentsTitle"}:
             _w(rp, "b")
             _w(rp, "bCs")
         _w(rp, "color", val="000000")
@@ -584,6 +739,14 @@ def render_docx(brief):
              "word/document.xml": ET.tostring(document, encoding="utf-8", xml_declaration=True),
              "word/styles.xml": ET.tostring(styles, encoding="utf-8", xml_declaration=True),
              "word/_rels/document.xml.rels": document_rels}
+    settings = ET.Element(f"{{{W}}}settings")
+    _w(settings, "updateFields", val="true")
+    _w(settings, "doNotHyphenateCaps")
+    parts["word/settings.xml"] = ET.tostring(settings, encoding="utf-8", xml_declaration=True)
+    footer = ET.Element(f"{{{W}}}ftr")
+    footer_p = add_paragraph(footer, "", ar)
+    _w(footer_p, "fldSimple", instr=" PAGE ")
+    parts["word/footer.xml"] = ET.tostring(footer, encoding="utf-8", xml_declaration=True)
     if font:
         rel_base = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/"
         font_table = ET.Element(f"{{{W}}}fonts")
@@ -596,6 +759,10 @@ def render_docx(brief):
         parts["word/_rels/fontTable.xml.rels"] = (f'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="{rel_base}font" Target="fonts/Dubai-Regular.odttf"/></Relationships>').encode()
         parts["word/_rels/document.xml.rels"] = document_rels.replace(b"</Relationships>", (f'<Relationship Id="rId2" Type="{rel_base}fontTable" Target="fontTable.xml"/></Relationships>').encode())
         parts["[Content_Types].xml"] = content_types.replace(b"</Types>", b'<Override PartName="/word/fontTable.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml"/><Default Extension="odttf" ContentType="application/vnd.openxmlformats-officedocument.obfuscatedFont"/></Types>')
+    parts["word/_rels/document.xml.rels"] = parts["word/_rels/document.xml.rels"].replace(b"</Relationships>",
+        b'<Relationship Id="rIdSettings" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/><Relationship Id="rIdFooter" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer.xml"/></Relationships>')
+    parts["[Content_Types].xml"] = parts["[Content_Types].xml"].replace(b"</Types>",
+        b'<Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/><Override PartName="/word/footer.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/></Types>')
     stream = BytesIO()
     with ZipFile(stream, "w", compression=ZIP_DEFLATED) as archive:
         for name, content in parts.items():

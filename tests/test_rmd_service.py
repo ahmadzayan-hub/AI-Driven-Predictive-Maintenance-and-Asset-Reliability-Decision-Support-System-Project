@@ -283,6 +283,15 @@ class RmdServiceTests(unittest.TestCase):
         self.assertIn(result["fingerprint"], page)
         self.assertIn("=FICTIONAL_JUNCTION()", page)
         self.assertIn("default-src", page)
+        self.assertIn('id="contents"', page)
+        self.assertIn('miyaar-export-font" content="Dubai"', page)
+        from tests.test_executive_exports import HtmlDocument
+        parsed = HtmlDocument(page)
+        ids = [attrs['id'] for _, attrs in parsed.tags if 'id' in attrs]
+        links = [attrs['href'][1:] for tag, attrs in parsed.tags if tag == 'a']
+        self.assertTrue(links)
+        self.assertTrue(all(ids.count(destination) == 1 for destination in links))
+        self.assertIn('الملخص التنفيذي', page)
         self.error("stale_snapshot", self.service.export, self.alice, self.pid, result["id"], fingerprint="other")
         self.error("pack_not_found", self.service.export, self.bob, self.pid, result["id"])
 

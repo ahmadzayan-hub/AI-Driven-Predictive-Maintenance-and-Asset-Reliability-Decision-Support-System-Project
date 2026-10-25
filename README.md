@@ -2448,3 +2448,23 @@ does not create or change a license; existing third-party notices apply.
 - Product: AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project
 - Engine: Agentic OS
 - Version: 1.0.0
+
+
+Report integration (25 October 2026): the isolated main-based candidate contains
+only shared report navigation/typography, actual table indexes, an unnumbered
+summary and export-control improvements. **77 affected backend/documentation
+tests passed in 24.970 seconds; 55 component tests passed in 32.20 seconds.**
+TypeScript, structural brain checks, production compilation and unchanged bundle
+budgets passed using main's original build settings (no imported chunk grouping).
+Both report renderer files are byte-identical to the locally verified report
+release; its English/Arabic PDF links, one-page summaries and embedded fonts were
+inspected independently. The main integration does not import the separate local
+chat/model branches. Native Office rendering and full hosted/browser E2E are not
+verified. Word uses refreshable PAGEREF fields; browser PDF retains destinations
+and page footers without claiming printed TOC/LOT page references.
+See [decision](docs/adr/2026-10-25-navigable-business-reports.md).
+
+Report CI follow-up: **17 navigation/documentation tests and 8 Chromium DOM
+checks passed** after aligning the browser assertion with the real LOT/LOF
+frontmatter. Missing, duplicate and self-referencing destinations are still
+rejected. The full hosted suite must pass on the follow-up commit before merge.

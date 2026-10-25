@@ -279,3 +279,8 @@ The earlier history is in `docs/ROADMAP.md` (tiers and gates) and `docs/adr/`.
 ### Phase 1 navigation verification follow-up — 24 October 2026
 
 Additional bilingual and phone test paths now follow the three-area navigation through native disclosures. These source repairs preserve route, keyboard, reflow, export and approval assertions. Hosted exact-head verification and actual local rendering remain pending; the prior loopback build is still running. No backend behavior changed.
+
+
+**Report-only main integration, 25 October 2026:** Reconciles the reviewed report renderer and focused export controls onto verified main. Excludes the separate local chat/model/UI ancestor branches; no remote write or live replacement. Native Office pagination and arbitrary-browser printed TOC page references remain limitations.
+
+**Report CI assertion follow-up:** PR #64 exposed a stale numbered-section-only browser assertion. It now accepts the actual LOT/LOF destinations, checks their order before the unnumbered summary, and still requires exactly one target per link. Hosted acceptance remains a merge gate; production code is unchanged.

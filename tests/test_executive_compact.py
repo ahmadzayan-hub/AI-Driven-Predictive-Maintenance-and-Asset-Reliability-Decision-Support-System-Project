@@ -17,11 +17,11 @@ class CompactExecutiveTests(unittest.TestCase):
             front = sections[0]
             self.assertEqual(title, 'معيار | Miyaar')
             self.assertEqual([row[0] for row in front.tables[0].rows], [item['title'] for item in brief['advisory']['decisions'][:3]])
-            self.assertIn('North', ' '.join(front.paragraphs))
+            self.assertIn('North', str(sections))
             self.assertNotIn(brief['run']['updated_at'], ' '.join(front.paragraphs))
             self.assertIn('فترة البيانات غير محددة' if language == 'ar' else 'Data period not specified', front.paragraphs)
             self.assertEqual(front.after_title, 'حدود القراءة' if language == 'ar' else 'Reading limits')
-            self.assertTrue(all(item in front.after_paragraphs for item in brief['readiness']['limitations']))
+            self.assertTrue(all(item in str(sections[1:]) for item in brief['readiness']['limitations']))
             expected = [item['value'] for item in brief['advisory']['domains'] if item['value'] is not None][:3]
             self.assertEqual(len(front.tables[1].rows), len(expected))
             for value, row in zip(expected, front.tables[1].rows):
@@ -42,7 +42,8 @@ class CompactExecutiveTests(unittest.TestCase):
         self.assertNotIn('predicted savings', text.lower())
         html = export.render_html(brief).decode()
         self.assertIn('href="#section-1"', html)
-        self.assertIn('id="section-1" style="break-before:page"', html)
+        self.assertIn('id="section-1"', html)
+        self.assertIn('.contents { break-before: page; break-after: page; }', html)
         with ZipFile(BytesIO(export.render_docx(brief))) as archive:
             root = ET.fromstring(archive.read('word/document.xml'))
             self.assertIsNotNone(root.find('.//w:pageBreakBefore', {'w': export.W}))
