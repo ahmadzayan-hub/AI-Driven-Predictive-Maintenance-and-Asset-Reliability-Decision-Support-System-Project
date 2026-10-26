@@ -1878,3 +1878,13 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
   The failed browser run was stopped after identifying actual regressions.
 - Decided: use semantic text color and compact spacing, without hiding content.
 - Next: focused reproduction, full browser suites and final evidence review.
+
+## 2026-10-26 - Browser fixture and font-failure verification
+
+- Done: replaced an indirect font readiness assertion with direct failed-request
+  and FontFace error-state checks, retaining readable-action/overflow coverage.
+  Corrected the external local runner's fixture path to match the test suite.
+- Verified: browser trace records the font request failing while the readiness
+  boolean returns true. The broad run reached its bounded duration; outcomes and
+  unfinished cases remain in local evidence rather than being called a pass.
+- Next: rerun affected specifications, remaining workspace cases and Miyaar suite.

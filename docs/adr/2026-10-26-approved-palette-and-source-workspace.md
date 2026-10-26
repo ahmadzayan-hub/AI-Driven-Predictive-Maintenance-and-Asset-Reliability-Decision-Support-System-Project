@@ -31,3 +31,8 @@ the main text token so small labels remain readable. Short desktop dashboards
 compact header/chart spacing to keep the first evidence comparison visible;
 figures, caveats, labels and minimum touch targets remain unchanged. Preserve
 the existing contrast and whole-chart viewport assertions.
+
+Font-failure verification observes the actual rejected font request and the
+registered Dubai face's error state. The readiness boolean alone returned true
+after an observed network failure in Chromium. Readability, original-font
+integrity, normal loading and overflow checks remain required.
