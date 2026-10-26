@@ -13,6 +13,8 @@ Last updated: 2026-10-23, platform/API recovery, transactional publishing and ap
 
 ## Now
 
+- **PR65 browser contract follow-up, 2026-10-26:** corrected legacy greeting/fallback expectations to verify explicit model-unavailable provenance and localized replies. Demo/overview tests now open the actual Latest findings disclosure before checking content. The previously failing desktop/mobile cases, separate Miyaar bilingual/voice/accessibility suite and TypeScript pass locally; full hosted CI remains a release gate. No application behavior or live data changed.
+
 - **Hermes Desktop package candidate, 2026-10-24:** isolated portable package prepared against main `084e9fc1`, restricted to help/run-status/report-explanation capabilities. Configured startup memory reads and SQLite schema/WAL writes are explicitly disclosed. Revised package/MCP dispatch tests pass in temporary synthetic storage with network-denial guards after memory recovered; commands/counts are in README. The owner authorized branch publication and a draft PR only. Live Hermes handshake remains untested; installation, activation and data/model scope remain unapproved. Phase 1's live checkout is untouched. See [guide](docs/HERMES_DESKTOP.md).
 
 - **Phase 1 source revision, 2026-10-24:** prepared four controlled KPI cards, a real comparison beside the review queue, compact provenance, and three primary work areas with all old routes retained. Keyboard focus and long-filename wrapping are included. Existing interaction assertions are being aligned with the actual disclosures; no checks are skipped. The laptop memory guard deferred validation, so this source is not yet the running UI. The target is Sunday 25 October at noon Dubai; presentation/video are Phase 2. Keep the current local app and uploads intact until guarded tests/build and actual rendered acceptance pass.
@@ -284,3 +286,23 @@ Additional bilingual and phone test paths now follow the three-area navigation t
 **Report-only main integration, 25 October 2026:** Reconciles the reviewed report renderer and focused export controls onto verified main. Excludes the separate local chat/model/UI ancestor branches; no remote write or live replacement. Native Office pagination and arbitrary-browser printed TOC page references remain limitations.
 
 **Report CI assertion follow-up:** PR #64 exposed a stale numbered-section-only browser assertion. It now accepts the actual LOT/LOF destinations, checks their order before the unnumbered summary, and still requires exactly one target per link. Hosted acceptance remains a merge gate; production code is unchanged.
+
+**Reference-led UI integration:** Prepared a clean patch on the merged report
+baseline. It includes four-stage navigation, shared visual styling, one contextual
+report selector and its necessary owner-scoped persistence/calculation API. Model
+readiness and bounded failure replies support honest status; no model is enabled.
+Excluded report-review/model experiments, KPI-method changes, unrelated inspector
+work, generated outputs, private logs and ancestor history. Verification is in
+README. Remote publication/merge remains separately authorized.
+
+### Dataset composition correction
+
+Shared route alignment and direct Command Centre navigation implemented; Datasets
+has source cards and a separate usage/connectors column. Live browser acceptance
+and remote merge remain distinct gates. Existing report features are retained.
+
+**Shared visual identity and phone reflow, 25 October 2026:** Distinct navy navigation and blue/cyan action hierarchy now use the same tokens across existing routes, with larger body type and separate light evidence surfaces. Phone shell containment and accessible filename ellipsis address observed overflow. Component and TypeScript checks passed; local activation and browser acceptance remain separately recorded gates. See [decision](docs/adr/2026-10-25-shared-visual-identity-and-mobile-reflow.md).
+
+RTL phone follow-up: remove the negative hidden-element margin and strengthen
+root-scroll assertions to use client dimensions. Restore explicit identity-control
+focus styling without changing contrast thresholds. Verification recorded separately.

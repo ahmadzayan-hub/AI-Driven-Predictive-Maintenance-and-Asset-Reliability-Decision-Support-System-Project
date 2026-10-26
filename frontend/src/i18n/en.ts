@@ -7,9 +7,11 @@
  *  — the server localises its own replies from the session's language
  *  preference (agent.py). */
 export const en = {
-  'nav.decision': 'Decision',
-  'nav.dataAnalysis': 'Data & analysis',
-  'nav.reportsOutputs': 'Reports & outputs',
+  'nav.sources': 'Data sources',
+  'nav.evidence': 'Analysis & evidence',
+  'nav.priorities': 'Priorities & actions',
+  'nav.outputs': 'Reports',
+  'nav.assistant': 'Ask Miyaar',
   'nav.tools': 'Workspace tools',
 
   "assistant.name": "Miyaar",
@@ -228,14 +230,7 @@ export const en = {
   'language.ar': 'Arabic',
 
   // Context rail
-  'rail.aria': 'Session overview',
-  'rail.agent': 'Agent',
   'rail.messages': 'Messages',
-  'rail.memoryEntries': 'Memory entries',
-  'rail.tone': 'Tone',
-  'rail.language': 'Language',
-  'rail.recent': 'Recent activity',
-  'rail.none': 'No activity yet.',
 
   // Connection status
   'status.ready': 'Ready',
@@ -501,7 +496,8 @@ export const en = {
   'overview.addDataset': 'Add a dataset',
 
   // Datasets
-  'datasets.aria': 'Datasets',
+  'datasets.nextStep': 'Choose a source, review its columns, then open an analysis. Your original file stays unchanged.',
+  'datasets.context': 'Source workspace',
   'datasets.title': 'Datasets',
   'datasets.add': 'Add a dataset',
   'datasets.loading': 'Loading your datasets',

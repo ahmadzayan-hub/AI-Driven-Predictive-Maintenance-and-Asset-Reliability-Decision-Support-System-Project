@@ -73,7 +73,7 @@ test('capture interface screenshots', async ({ page }, testInfo) => {
     await page.getByRole('region', { name: 'موافقة مطلوبة' }).waitFor()
     await shot('runs-arabic-dark')
 
-    await openTab(page, /^مساحة العمل/, 'ar')
+    await openTab(page, /^اسأل معيار/, 'ar')
     await lastAgentBubble(page).waitFor()
     await shot('chat-arabic-dark')
     await theme('light')

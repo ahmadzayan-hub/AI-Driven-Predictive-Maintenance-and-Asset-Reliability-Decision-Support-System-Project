@@ -21,6 +21,17 @@ export async function revealNavigation(page: Page, language: 'en' | 'ar' = 'en')
 /** Open a preserved route through its actual responsive disclosure controls. */
 export async function openTab(page: Page, name: RegExp, language: 'en' | 'ar' = 'en') {
   const groups = await revealNavigation(page, language)
+  const stage = page.locator('.workflow-stage').filter({ visible: true }).filter({ has: page.getByRole('button', { name, includeHidden: true }) }).first()
+  if (await stage.count()) {
+    const target = stage.getByRole('button', { name, includeHidden: true }).first()
+    const entry = stage.locator('.workflow-stage__entry')
+    const primary = await target.getAttribute('data-route') === await entry.getAttribute('data-route')
+    if (!(await target.isVisible())) {
+      await entry.click()
+      if (primary) { await viewLoaded(page); return }
+      await revealNavigation(page, language)
+    }
+  }
   const target = page.getByRole('button', { name }).filter({ visible: true })
   const group = groups.filter({ has: page.getByRole('button', { name, includeHidden: true }) }).first()
   if (await group.count() && !(await group.evaluate((element) => (element as HTMLDetailsElement).open))) await group.locator('summary').click()
@@ -57,6 +68,22 @@ export async function sendMessage(page: Page, text: string) {
 
 export function lastAgentBubble(page: Page) {
   return page.locator('.msg--agent .msg__bubble').last()
+}
+
+/** A disabled test provider must be explicit, localized and never credited as a model reply. */
+export async function expectModelUnavailable(page: Page, submit: () => Promise<void>, language: 'en' | 'ar' = 'en') {
+  const response = page.waitForResponse(r => /\/api\/sessions\/[^/]+\/messages$/.test(r.url()) && r.request().method() === 'POST')
+  await submit()
+  const received = await response
+  expect(received.ok()).toBe(true)
+  const result = await received.json()
+  expect(result.reply).toMatchObject({ action: 'chat', source: 'rules', why: 'not_configured' })
+  expect(result.state.assistant_status.code).toBe('not_configured')
+  await expect(lastAgentBubble(page)).toHaveText(result.reply.text)
+  await expect(lastAgentBubble(page)).toContainText(language === 'ar'
+    ? 'النموذج اللغوي غير مفعّل'
+    : 'The language model is not enabled')
+  return result
 }
 
 /** Phones fold the dashboard filters away until asked; desktop shows them open. */

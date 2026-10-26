@@ -131,3 +131,18 @@ All seven [[Analytics OS roadmap]] milestones have their records.
 
 
 - `2026-10-25-navigable-business-reports`: shared HTML navigation, bounded executive summaries and Word page fields; browser and Office verification kept distinct.
+
+- `2026-10-25-explicit-chat-availability`: truthful model-readiness and bounded failure replies.
+- `2026-10-25-selected-data-chat`: owned report context and bounded deterministic calculations.
+- `2026-10-25-value-led-workflow`: task-stage navigation with preserved routes and human review.
+- `2026-10-25-reference-workspace-layout`: shared reference-led shell and contextual source panel.
+
+### 2026-10-25 — Dataset workspace composition
+
+Use navigation-aligned shared panels and a responsive source/context split.
+Validate the Datasets route itself, not only Assistant or Overview fixtures.
+See the composition decision in docs/adr/2026-10-25-dataset-workspace-composition.md.
+
+### 2026-10-25 - Shared visual identity and phone reflow
+
+Separate navigation from evidence with semantic navy/blue/cyan tokens; retain dark mode and accessibility. Contain the phone shell without suppressing content scrolling. Full filenames remain available through bidirectional text and accessible actions. See docs/adr/2026-10-25-shared-visual-identity-and-mobile-reflow.md.

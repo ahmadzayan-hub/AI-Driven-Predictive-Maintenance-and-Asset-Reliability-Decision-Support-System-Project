@@ -9,9 +9,11 @@
 import type { MessageKey, PluralForms, PluralKey } from './en'
 
 export const ar: Record<MessageKey, string> = {
-  'nav.decision': 'القرار',
-  'nav.dataAnalysis': 'البيانات والتحليل',
-  'nav.reportsOutputs': 'التقارير والمخرجات',
+  'nav.sources': 'مصادر البيانات',
+  'nav.evidence': 'التحليل والأدلة',
+  'nav.priorities': 'الأولويات والإجراءات',
+  'nav.outputs': 'التقارير',
+  'nav.assistant': 'اسأل معيار',
   'nav.tools': 'أدوات مساحة العمل',
   "assistant.name": "معيار",
   "assistant.tagline": "ذكاء صيانة الأصول ودعم القرار",
@@ -224,14 +226,7 @@ export const ar: Record<MessageKey, string> = {
   'language.en': 'الإنجليزية',
   'language.ar': 'العربية',
 
-  'rail.aria': 'نظرة عامة على الجلسة',
-  'rail.agent': 'الوكيل',
   'rail.messages': 'الرسائل',
-  'rail.memoryEntries': 'عناصر الذاكرة',
-  'rail.tone': 'الأسلوب',
-  'rail.language': 'اللغة',
-  'rail.recent': 'النشاط الأخير',
-  'rail.none': 'لا يوجد نشاط بعد.',
 
   'status.ready': 'جاهز',
   'status.working': 'يعمل',
@@ -482,7 +477,8 @@ export const ar: Record<MessageKey, string> = {
   'overview.addDataset': 'أضف مجموعة بيانات',
 
   // مجموعات البيانات
-  'datasets.aria': 'مجموعات البيانات',
+  'datasets.nextStep': 'اختر مصدرًا، راجع أعمدته، ثم ابدأ التحليل. يظل الملف الأصلي دون تغيير.',
+  'datasets.context': 'مساحة مصادر البيانات',
   'datasets.title': 'مجموعات البيانات',
   'datasets.add': 'أضف مجموعة بيانات',
   'datasets.loading': 'جارٍ تحميل مجموعات بياناتك',

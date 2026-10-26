@@ -1799,3 +1799,47 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Verified: focused navigation/documentation and actual Chromium DOM checks passed, including missing, duplicate and self-link negatives. Counts are recorded in README. Production renderer and runtime configuration are unchanged.
 - Decided: preserve destination uniqueness and the full hosted acceptance gate; no test suppression or merge override.
 - Next: rerun CI on this bounded follow-up and merge only after checks pass.
+
+# 2026-10-25 - Clean visual UI integration
+- Done: ported the reviewed visual/workflow changes and required selected-data
+  context API onto the merged report baseline, without unrelated ancestor history.
+  Preserved source permissions, session ownership, deterministic provenance and
+  explicit model-unavailable states. No model/configuration/data changes.
+- Verified: isolated temporary-store API/security regressions, component/language
+  checks, TypeScript and unchanged production budgets; exact results in README.
+- Decided: report review, KPI-method experiments, model-specific memory work and
+  unrelated report-inspector changes stay outside this patch. Generated evidence,
+  user data and runtime files stay outside Git.
+- Next: separate narrow remote approval and hosted CI; restricted browser review
+  remains pending. Local live acceptance belongs to its separately recorded build.
+
+## 2026-10-25 — Dataset composition and CI expectations
+
+- Done: corrected the centered narrow Datasets layout, shared panel alignment,
+  direct overview navigation and compact source metadata/actions.
+- Verified: focused components, TypeScript and production budgets; synthetic
+  route fixtures are recorded separately from live browser evidence.
+- Decided: preserve domain features, report controls, original data and model
+  status; count invalid model output as an evaluation miss.
+- Next: final route evidence, guarded local activation and reviewed PR checks.
+
+## 2026-10-25 - Shared identity and phone reflow
+
+- Done: navy/cyan navigation, blue primary actions, light evidence surfaces and a larger shared type scale. Preserve explicit dark and system themes. Contain phone shell overflow, reserve bottom-navigation space and retain complete accessible filenames with single-line display.
+- Verified: affected components and TypeScript; final budget and real-browser evidence are recorded separately. No model calls or changes to data, analytical definitions or report generation.
+- Decided: share semantic styles across existing routes; do not claim individual page redesign from shared-token coverage. Remove unused glows instead of raising budgets.
+- Next: actual bilingual phone/desktop verification and guarded local activation. Remote integration remains held for review.
+
+## 2026-10-25 - RTL root scroll and keyboard focus follow-up
+
+- Done: removed the negative margin that placed clipped accessible text outside the RTL viewport; strengthened the browser regression to compare client dimensions and hidden-element bounds. Restored explicit identity-control focus styling using the existing navigation token.
+- Verified: 45 affected component/source-color checks; corrected isolated runtime checks showed equal client/scroll dimensions at 390px in both languages and on Arabic overview/chat, and at 1440px in both languages. Production build and unchanged budgets passed. No live data or model calls were used.
+- Decided: retain accessible content, content-area scrolling and existing contrast assertions; do not conceal the fault with root overflow suppression.
+- Next: hosted CI on the reviewed follow-up before normal merge; the live release remains unchanged.
+
+## 2026-10-26 - PR65 browser contract alignment
+
+- Done: verify explicit localized disabled-model responses, API provenance and session status in Arabic/English conversation, retry and runtime journeys. Open the actual Latest findings disclosure in demo/overview tests and retain initial hidden-state assertions.
+- Verified: all 14 previously failing desktop/mobile cases and all 12 separate Miyaar bilingual, simulated-voice and accessibility cases passed locally with one worker; TypeScript passed. Existing memory, preferences, session lifecycle, retry and accessibility checks remain. No real model calls or user records were used.
+- Decided: keep honest unavailable behavior; do not restore misleading general replies or remove visibility assertions for CI.
+- Next: full hosted CI, then normal merge only if all required checks pass. The live release is unchanged.

@@ -55,7 +55,10 @@ test('opens on the Command Centre without sign-in and shows the seeded fictional
   // The seeded analysis waits at the gate and is the brief on screen.
   await expect(page.locator('.kpi--attention')).toContainText('Waiting for approval')
   await expect(page.getByRole('region', { name: 'Executive decision intelligence' })).toBeVisible()
-  await expect(page.getByText(GOAL).first()).toBeVisible()
+  const findings = page.locator('.overview__findings')
+  await expect(findings.getByText(GOAL, { exact: true })).toBeHidden()
+  await findings.locator('summary').click()
+  await expect(findings.getByText(GOAL, { exact: true })).toBeVisible()
   // Nothing that would start an analysis is offered.
   for (const name of ['Start an analysis', 'Try the sample data', 'Add a dataset', 'Analyze a dataset']) {
     await expect(page.getByRole('button', { name })).toHaveCount(0)

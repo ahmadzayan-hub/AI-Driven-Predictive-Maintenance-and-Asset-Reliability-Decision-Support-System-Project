@@ -35,6 +35,10 @@ export interface CommandInfo {
 export type PreferenceValue = string | boolean
 
 export interface SessionState {
+  data_context?: DataContext | null
+  data_chat_labels?: Record<'title' | 'none' | 'choose' | 'load' | 'use' | 'clear' | 'empty' | 'help' | 'scope' | 'error' | 'busy' | 'filters' | 'limit', string>
+  /** Configuration/resource preflight; never proof of successful inference. */
+  assistant_status?: { code: string; message: string; inference_verified: false }
   session_id: string
   agent_name: string
   version: string
@@ -48,6 +52,17 @@ export interface SessionState {
   history: string[]
   memory_persisted: boolean
   commands: CommandInfo[]
+}
+
+export interface DataContext {
+  run_id: string; dataset_id: string; dataset_name: string
+  source_sha256: string; analysis_revision: string
+  filters: TableFilter[]; records: number; total_records: number
+}
+
+export interface DataContextChoices {
+  selected: DataContext | null
+  choices: Array<{ run_id: string; dataset_name: string; state: string }>
 }
 
 export interface MemoryEntry {

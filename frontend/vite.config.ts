@@ -23,6 +23,16 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
+    // These modules are already required at first paint. Keeping them together
+    // avoids duplicate compression dictionaries across initial shared chunks.
+    // Feature routes retain their existing dynamic imports.
+    rolldownOptions: { output: { codeSplitting: { groups: [{
+      name: 'app-core',
+      test: /(?:node_modules\/(?:react|react-dom|scheduler)\/|src\/(?:main\.tsx|i18n\/(?:index|ar|en)\.ts)$)/,
+    }, {
+      name: 'display-helpers',
+      test: /src\/(?:i18n\/pack|shared\/(?:sourceHandoff|format|modelTone)|features\/assets\/kpiDisplay)\.ts$/,
+    }] } } },
   },
   test: {
     environment: 'jsdom',

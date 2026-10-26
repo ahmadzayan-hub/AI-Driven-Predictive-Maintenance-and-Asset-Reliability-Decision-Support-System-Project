@@ -6,12 +6,9 @@ import { ChatView } from '../features/chat/ChatView'
 import type { ComposerHandle } from '../features/chat/Composer'
 import type { RunPreset } from '../features/runs/RunsView'
 import { useI18n } from '../i18n'
-import type { MessageKey } from '../i18n'
 import { ConfirmDialog } from '../shared/components/ConfirmDialog'
 import { Icon } from '../shared/components/Icon'
-import type { IconName } from '../shared/components/Icon'
 import { StatusBadge } from '../shared/components/StatusBadge'
-import { languageLabel, toneLabel } from '../shared/labels'
 import type { CommandInfo } from '../shared/types'
 import {
   ActivityView,
@@ -45,53 +42,7 @@ import type { Route, Tab } from './routing'
 // Command key on Apple hardware, Control elsewhere.
 const MODIFIER_KEY = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform) ? '⌘' : 'Ctrl'
 
-interface NavItem {
-  id: Tab
-  label: MessageKey
-  icon: IconName
-}
-
-// Three primary work areas retain every existing route under native disclosures.
-// The assistant and workspace tools remain available without replacing views.
-const NAV_GROUPS: Array<{ id: string; label: MessageKey; items: NavItem[] }> = [
-  {
-    id: 'decide', label: 'nav.decision',
-    items: [
-      { id: 'overview', label: 'nav.overview', icon: 'dashboard' },
-      { id: 'assets', label: 'nav.assets', icon: 'activity' },
-      { id: 'rmd', label: 'nav.rmd', icon: 'search' },
-    ],
-  },
-  {
-    id: 'prepare', label: 'nav.dataAnalysis',
-    items: [
-      { id: 'datasets', label: 'nav.datasets', icon: 'database' },
-      { id: 'runs', label: 'nav.runs', icon: 'sparkle' },
-    ],
-  },
-  { id: 'report', label: 'nav.reportsOutputs', items: [
-    { id: 'dashboard', label: 'nav.dashboard', icon: 'chart' },
-    { id: 'approvals', label: 'nav.approvals', icon: 'shield' },
-  ] },
-  {
-    id: 'assist', label: 'nav.tools',
-    items: [
-      { id: 'operations', label: 'nav.operations', icon: 'check' },
-      { id: 'chat', label: 'nav.workspace', icon: 'chat' },
-      { id: 'memory', label: 'nav.memory', icon: 'memory' },
-      { id: 'activity', label: 'nav.activity', icon: 'clock' },
-      { id: 'preferences', label: 'nav.preferences', icon: 'settings' },
-    ],
-  },
-]
-
-// Views the view-only demo leaves out: those that live on a chat session,
-// which the demo does not have, and Administration.
-const NEEDS_SESSION: ReadonlySet<Tab> = new Set<Tab>(['chat', 'memory', 'preferences', 'operations', 'rmd'])
-const DEMO_GROUPS = NAV_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => !NEEDS_SESSION.has(item.id)) }))
-
-// The phone bar opens the three work areas; More exposes every preserved route.
-const BAR_ITEMS = NAV_GROUPS.slice(0, 3).map((group) => ({ ...group.items[0], short: group.label }))
+import { WorkflowNav, WORKFLOW, NEEDS_SESSION } from './WorkflowNav'
 
 const ONBOARDING_KEY = 'aos-onboarded'
 
@@ -343,7 +294,6 @@ export function App() {
     )
   }
 
-  const memoryCount = Object.keys(session.memory).length
   const rawName = session.preferences.user_name
   const userName = typeof rawName === 'string' && rawName.trim() ? rawName.trim() : null
 
@@ -355,30 +305,10 @@ export function App() {
 
   const sidebar = (
     <div className="sidebar">
-      {demo ? null : <button type="button" className="miyaar-sidebar" onClick={() => go('chat')}>
+      {demo ? null : <button type="button" className="miyaar-sidebar" onClick={() => go('overview')}>
         <MiyaarMark /><span><strong>{t('assistant.name')}</strong><small>{t('miyaar.workspace')}</small></span>
       </button>}
-      <nav className="sidebar__nav" aria-label={t('nav.main')}>
-        {(demo ? DEMO_GROUPS : NAV_GROUPS).map((group) => (
-          <details key={group.id} className="sidebar__group" data-group={group.id} open={group.items.some((item) => item.id === tab)}><summary>{t(group.label)}</summary>
-            {group.items.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className="navbtn"
-                aria-current={tab === item.id ? 'page' : undefined}
-                onClick={() => go(item.id)}
-              >
-                <Icon name={item.icon} size={18} />
-                {t(item.label)}
-                {item.id === 'memory' && memoryCount > 0 ? (
-                  <span className="navbtn__badge">{memoryCount}</span>
-                ) : null}
-              </button>
-            ))}
-          </details>
-        ))}
-      </nav>
+      <WorkflowNav tab={tab} demo={demo} onGo={go} />
       <div className="sidebar__footer">
         <button type="button" className="btn btn--subtle miyaar-mobile-help"
           onClick={() => { setDrawerOpen(false); setHelpOpen(true) }}>
@@ -625,67 +555,25 @@ export function App() {
           </ReadOnlyContext.Provider>
         </main>
 
-        {tab === 'chat' && !demo && !evidenceContext ? (
-          <aside className="rail" aria-label={t('rail.aria')}>
-            <div className="rail__section">
-              <MiyaarMark large />
-              <h2 className="rail__title">{t('miyaar.context')}</h2>
-              <dl>
-                <div className="rail__row">
-                  <dt>{t('rail.agent')}</dt>
-                  <dd dir="auto">{t('assistant.name')}</dd>
-                </div>
-                <div className="rail__row">
-                  <dt>{t('rail.messages')}</dt>
-                  <dd>{session.transcript.length}</dd>
-                </div>
-                <div className="rail__row">
-                  <dt>{t('rail.memoryEntries')}</dt>
-                  <dd>{memoryCount}</dd>
-                </div>
-                <div className="rail__row">
-                  <dt>{t('rail.tone')}</dt>
-                  <dd>{toneLabel(t, String(session.preferences.tone ?? 'friendly'))}</dd>
-                </div>
-                <div className="rail__row">
-                  <dt>{t('rail.language')}</dt>
-                  <dd>{languageLabel(t, session.preferences.language ?? 'English')}</dd>
-                </div>
-              </dl>
-            </div>
-            <div className="rail__section">
-              <h2 className="rail__title">{t('rail.recent')}</h2>
-              {store.events.length === 0 ? (
-                <p className="rail__event">{t('rail.none')}</p>
-              ) : (
-                store.events.slice(0, 6).map((event) => (
-                  <p key={event.id} className="rail__event">
-                    <span className={`dot dot--${event.kind}`} aria-hidden="true" />
-                    {t(event.code, event.vars)}
-                  </p>
-                ))
-              )}
-            </div>
-          </aside>
-        ) : null}
+
       </div>
 
       <nav className="tabbar" aria-label={t('nav.primary')}>
-        {BAR_ITEMS.map((item) => (
+        {WORKFLOW.map((stage) => (
           <button
-            key={item.id}
+            key={stage.label}
             type="button"
             className="tabbar__btn"
-            aria-current={tab === item.id ? 'page' : undefined}
-            onClick={() => go(item.id)}
+            aria-current={stage.items.some(item => item.id === tab) ? 'step' : undefined}
+            onClick={() => go(stage.items[0].id)}
           >
-            <Icon name={item.icon} size={20} />
-            <span>{t(item.short ?? item.label)}</span>
+            <Icon name={stage.items[0].icon} size={20} />
+            <span>{t(stage.label)}</span>
           </button>
         ))}
         <button
           type="button"
-          className={`tabbar__btn ${BAR_ITEMS.some((item) => item.id === tab) ? '' : 'tabbar__btn--holding'}`}
+          className={`tabbar__btn ${WORKFLOW.some(stage => stage.items.some(item => item.id === tab)) ? '' : 'tabbar__btn--holding'}`}
           aria-haspopup="dialog"
           aria-expanded={drawerOpen}
           onClick={(event) => openDrawer(event.currentTarget)}

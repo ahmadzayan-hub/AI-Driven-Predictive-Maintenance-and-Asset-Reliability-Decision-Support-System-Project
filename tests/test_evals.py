@@ -358,7 +358,8 @@ class RecallFixTests(unittest.TestCase):
 
     def test_the_model_suite_scores_the_whole_assistant_through_a_scripted_provider(self):
         """What the number would mean once a real provider is configured: the model
-        decides first, and the rules decide when its answer is not a valid intent."""
+        decides first, and an invalid answer is an explicit chat failure rather
+        than a fabricated successful memory action."""
         answers = {"save this for me": "remember", "how is the run": "run_status",
                    "show the notes": "recall", "hello there friend": "chat"}
 
@@ -368,7 +369,7 @@ class RecallFixTests(unittest.TestCase):
 
             def ask_json(self, system, user, **options):
                 text = user.rsplit("Message: ", 1)[1]
-                if text == "show the notes":       # an invalid answer: the rules decide
+                if text == "show the notes":       # invalid: fail explicitly, do not claim recall
                     return "not json"
                 action = answers[text]
                 arguments = {"information": "the user's note"} if action == "remember" else {}
@@ -376,11 +377,12 @@ class RecallFixTests(unittest.TestCase):
                                    "reply": "Hi!" if action == "chat" else ""})
         cases = [{"text": t, "label": a} for t, a in answers.items()]
         pairs = ev._intent_model(cases, Scripted())
-        self.assertEqual([p[1] for p in pairs], ["remember", "run_status", "recall", "chat"])
-        # "show the notes" got an invalid answer and the rules placed it correctly;
-        # the suite says how many sentences the model did not decide.
+        self.assertEqual([p[1] for p in pairs], ["remember", "run_status", "chat", "chat"])
+        # The suite exposes the invalid response instead of crediting it as
+        # successful model understanding through an unrelated fallback.
         self.assertIn("1 of 4", ev.NOTES["intent_model"])
-        self.assertEqual(sum(1 for t, p, _ in pairs if t == p), 4)
+        # The invalid model answer is correctly counted as a miss.
+        self.assertEqual(sum(1 for t, p, _ in pairs if t == p), 3)
 
     def test_the_claims_lint_cli_exits_by_result(self):
         with tempfile.TemporaryDirectory() as tmp:
