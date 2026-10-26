@@ -1868,3 +1868,13 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Decided: keep this repair separate from the 13-file palette/layout commit.
 - Next: complete clean integration regression and separately authorized synthetic
   browser inspection. No publication or activation while gates remain unresolved.
+
+## 2026-10-26 - Palette browser regression repair
+
+- Done: corrected low-contrast memory category labels and excessive dashboard
+  spacing on short desktop displays. Kept all accessibility/viewport assertions.
+- Verified: the full Python/component, TypeScript and budget gates passed before
+  this CSS-only follow-up; rebuilt assets retain the unchanged byte budgets.
+  The failed browser run was stopped after identifying actual regressions.
+- Decided: use semantic text color and compact spacing, without hiding content.
+- Next: focused reproduction, full browser suites and final evidence review.

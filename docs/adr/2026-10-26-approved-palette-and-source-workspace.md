@@ -25,3 +25,9 @@ permitted; no live screenshot upload or external data transfer is authorized.
 No model inference, security change, Vercel deployment or data mutation is part
 of this design increment. Executed evidence is recorded separately from claims
 about deployment or visual acceptance.
+
+Browser regression follow-up: category chips retain their group tint but use
+the main text token so small labels remain readable. Short desktop dashboards
+compact header/chart spacing to keep the first evidence comparison visible;
+figures, caveats, labels and minimum touch targets remain unchanged. Preserve
+the existing contrast and whole-chart viewport assertions.
