@@ -1,5 +1,19 @@
 # Session logs
 
+## 2026-10-26 - Approved palette and source workspace
+
+- Done: isolated visual refinement from the accepted local source; approved
+  palette, shared hierarchy, responsive source-card action footers, compact exact
+  storage figures and overview/assistant styling. No backend or data changes.
+- Verified: affected component suite, TypeScript, bilingual desktop/phone route
+  and dataset browser checks, production build and unchanged budgets. Exact
+  results are recorded in README. A sandbox worker startup produced no results;
+  the normal sequential synthetic run completed successfully.
+- Decided: keep all source/provenance/accessibility controls and dark preferences;
+  do not transfer live screenshots. Tests are not a claim of reference fidelity.
+- Next: local visual acceptance and separately scoped activation/integration.
+  Existing data, rollback and model configuration remain untouched.
+
 One entry per working session, oldest first. The session-end skill appends each entry; the SessionEnd hook adds a short automatic one if the skill never ran. Every entry names its session as a backticked id, which is how the hooks tell whether a session was logged. Write facts only: commits, verified results, decisions, what is next.
 
 Entry shape:

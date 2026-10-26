@@ -1,5 +1,15 @@
 # Project progress
 
+## 26 October - Approved visual palette and source workspace
+
+- Done: exact approved light palette, shared hierarchy and card treatment across
+  routes, responsive source cards with separate actions, compact storage facts,
+  and aligned overview/assistant composition. Existing capabilities preserved.
+- Verified: component, TypeScript, browser and production-budget results are in
+  README. Browser coverage includes every route in both languages and sizes.
+- Next: local visual acceptance and separately authorized activation/integration.
+  No live screenshot transfer, model activation or Vercel deployment occurred.
+
 KPI review visual acceptance (24 October): additive real-API browser coverage now targets the KPI families and expanded source disclosure in English/Arabic, light/dark and a 320 px phone. Local static/unit checks pass in the materialized workspace; exact-head locked-dependency hosted execution and screenshot inspection remain pending. No application code, merge or deployment changes.
 
 Model-admission review wave (23 October): bounded credits are reserved before run transactions, shared by consultant contexts and settled after commit/rollback. This preserves existing run locks and worker roles; conservative credit/crash semantics and hosted acceptance remain release-review gates. See docs/adr/2026-10-23-bounded-model-admission.md.

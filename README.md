@@ -552,6 +552,22 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+### Approved palette and source workspace - 26 October 2026
+
+The isolated palette/layout candidate passed 168 frontend component tests,
+TypeScript checking, and 12 browser tests against disposable local storage.
+The browser checks exercise all 12 existing routes in English and Arabic at
+1440 x 900 and 375 x 812, asserting the rendered palette, meaningful loaded
+content and absence of outer-page overflow. Existing source upload, rejection,
+mapping/analysis and accessibility checks remain. This is functional/layout
+verification, not a screenshot-based claim of reference fidelity.
+
+Production build and unchanged byte budgets passed: first-load JS 99,311 bytes,
+total JS 252,928, largest JS chunk 18,180, first-load CSS 10,076, total CSS 33,494,
+fonts 139,928. No dependency, backend, model configuration, data or remote
+deployment changed. The candidate is not activated; no screenshots were captured
+or uploaded for sharing. Full hosted CI is a separate integration gate.
+
 Hermes publication candidate (24 October 2026): after incorporating main
 `a647e74e` and retaining both sides of a session-log append conflict, the same
 bounded package/MCP suite passed **16 tests, zero failures/errors/skips, in

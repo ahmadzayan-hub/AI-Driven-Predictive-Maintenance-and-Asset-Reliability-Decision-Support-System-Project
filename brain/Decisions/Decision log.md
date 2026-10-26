@@ -10,6 +10,11 @@ sources: [docs/adr]
 
 # Decision log
 
+- `2026-10-26-approved-palette-and-source-workspace`: approved navy/blue/cyan
+  palette, shared page hierarchy and responsive source cards; exact allowances
+  remain visible without oversized KPI tiles. Runtime and image-sharing gates
+  remain separate from synthetic layout tests.
+
 - `2026-10-24-reviewed-mba-reference-collection`: reviewed original reference summaries use existing [[Knowledge retrieval]], retain partial coverage and model-context exclusion, and link the [[MBA analytics reference]].
 
 Every architecture decision record in `docs/adr/`, one line each. A record states what was true and what was decided on its date. It is never edited to fit later facts; a superseded record points forward instead. A new behaviour change gets a new record, as [[Soul]] requires.
