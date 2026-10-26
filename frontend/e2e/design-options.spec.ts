@@ -18,7 +18,12 @@ for (const [name, v] of Object.entries(variants)) for (const locale of ['en', 'a
     await page.addInitScript(({ lang, theme }) => { localStorage.setItem('aos-locale', lang); localStorage.setItem('aos-theme', theme) }, { lang: locale, theme: v.theme })
     await page.goto('/')
     await viewLoaded(page)
+    // The lazy chunk can render before either API response. Require positive
+    // evidence of the settled report before comparing text across fixture styles.
+    await expect(page.locator('.next-action')).toBeVisible()
+    await expect(page.locator('.command__headline')).toBeVisible()
     await expect(page.locator('.command--pending')).toHaveCount(0)
+    await page.evaluate(() => document.fonts.ready.then(() => undefined))
     await expect(page.locator('html')).toHaveAttribute('data-theme', v.theme)
     const before = await page.locator('.panel:visible').innerText()
     await page.addStyleTag({ content: `

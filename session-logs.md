@@ -1972,3 +1972,13 @@ correction was applied and the focused/documentation checks rerun successfully.
 - Verified: full local Backend, final frontend unit tests, TypeScript/build, clean bundle budgets, brain and media integration checks passed. Counts/skips are in README. Independent review identified the vertical-tab keyboard gap, now corrected. Local Playwright installation failed; no local browser success is claimed. Published-head hosted gates remain pending at commit preparation.
 - Decided: owner approval covers branch publication and merging all six open Miyaar PRs. Preserve histories using a combined candidate; no force-push, branch deletion, production deployment, live data modification or model invocation.
 - Next: publish the exact verified tree, require fresh hosted CI, merge via #63 and verify all six original heads are ancestors of main and PR statuses reflect the integration.
+
+
+### Integration CI follow-up: settled design-fixture evidence
+
+Hosted RMD detected a race in PR45's old comparison fixture: absence of the pending
+command selector was true before the command component mounted, so the baseline
+captured loading text. Require the actual next action and report headline before
+capturing text, and wait for font readiness. Keep unchanged-text, axe and overflow
+assertions intact. This corrects test synchronization, not product data or styling.
+Fresh final-head hosted checks are required; the failed run is retained as evidence.
