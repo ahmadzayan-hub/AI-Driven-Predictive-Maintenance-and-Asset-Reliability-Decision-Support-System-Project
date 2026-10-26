@@ -20,3 +20,10 @@ form a secondary column. Keep one upload CTA, quiet mapping/analysis actions,
 compact units, semantic focus states and no decorative control glows. The same
 shell, title scale and card tokens apply across routes in English and Arabic.
 Do not add fictional operational metrics or illustrations to fill empty space.
+
+## Stitch reference and report inspector
+
+The [dated Stitch brief](docs/design/STITCH_REFERENCE_2026-10-25.md) preserves the
+reference study and evidence safeguards. Its older proposed palette is historical;
+the approved current tokens remain authoritative. Adopt the source-backed mobile
+category labels and responsive report inspector without replacing the current shell.

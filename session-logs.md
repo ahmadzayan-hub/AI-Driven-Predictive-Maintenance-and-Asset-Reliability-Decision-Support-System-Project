@@ -1810,6 +1810,18 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Decided: keep the real viewport, chart-intersection requirement, evidence and approval controls. No local build or restart during the separate advisory resource window; use the existing hosted CI and reversible static-artifact path.
 - Next: verify this bounded correction on desktop and Arabic phone, then complete the presentation handoff.
 
+## 2026-10-24 - Correct planning and forecast limitation wording
+
+- Done: reproduced two current report wording defects and corrected them in an isolated worktree based on merged main. Planning prose now expresses detection probability; the combined forecast caveat follows whether the predictive stage produced a forecast. Both languages are covered. The older counter-direction allegation did not reproduce against the current cited group and total, so its logic is unchanged.
+- Verified: new synthetic regressions failed against the baseline and pass after the correction. `python -m unittest tests.test_report_wording_precision tests.test_analytics.ExperimentAgentTestCase tests.test_period_coverage_evidence tests.test_report_language -v` passes, including an independent check of the unchanged planning arithmetic. `python -m unittest tests.test_docs -v`, `python scripts/brain_check.py --strict` and diff whitespace checks pass; the brain check reports an existing stale project note. Bounded tests passed the existing memory guard. Read-only loopback checks confirm the accepted live source, served index and both saved report hashes are unchanged. No full suite, hosted CI or live activation is claimed.
+- Decided: preserve the accepted UI, calculations, validators, approval gates and existing stored reports. No model, dependency, credential or external service is involved. Record the clarification in the dated ADR rather than overwrite historical decision prose.
+- Next: obtain independent review and exact-head verification before any live source update. Generate a separate new report only after acceptance; retain the original stored output and its provenance.
+
+
+## 2026-10-24 — Hermes and report wording integration
+
+- Combined the independently reviewed source branches, retaining both progress entries and complete session histories. Application and test blobs are unchanged from the reviewed heads.
+- Combined-head hosted verification remains required before the approved normal merge. No Hermes installation, activation, data access, saved-report rewrite, authentication change or production deployment is included.
 
 ## 2026-10-25 — `report-main-integration` — codex/miyaar-report-integration-20261025
 
@@ -1914,3 +1926,59 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
   model call, remote write or live source replacement occurred.
 - Next: reviewed clean-branch publication/hosted CI and a separately validated
   local release that retains existing local-only report functionality.
+
+
+## 2026-10-26 - PR63 current-main statistical wording verification
+
+- Done: integrated main `9fa13b4240c64be78669ed09b630ad5929ea26d4` into the existing review branch, preserving both parents and all session/progress entries. Clarified normal planning power, differentiated absent/unmeasured/backtested forecasts, and explained zero holdout values without claiming insufficient history. Exact-branch Vercel deployment is disabled to honor the owner's no-deployment instruction.
+- Verified: focused bilingual statistics tests, final full Python suite, full verifier, documentation, brain and whitespace checks; commands, counts and skip boundaries are in README. Two-source synthetic acceptance matched all numerical calculations, forecasts, snapshots and evidence IDs; historical synthetic database rows and saved notes retained identical hashes after reopening and creating new reports. Baseline and deliberately inverted forecast predicates fail the regressions. Independent read-only review reproduced focused tests and detected a backtest-state mutation; no blocking finding. One existing stale brain note and an end-of-process unclosed-socket warning are disclosed.
+- Decided: preserve mathematical formulas, evidence identifiers, validators, approval controls and storage code. Use isolated synthetic storage only, never rewrite live or prior reports. The owner's request authorizes this Draft PR update, not a merge or deployment.
+- Next: inspect exact-head hosted CI after the branch update; obtain owner approval before any merge, deployment or local activation. Live historical-report audit is not claimed.
+
+### Remote update blocked by automatic approval review
+
+The completed local candidate is retained on the review branch. Automatic approval
+review rejected its GitHub push, interpreting the owner's no-publication instruction
+as excluding the remote branch update. No alternate publication path was attempted.
+The remote PR and exact-head hosted CI remain unupdated; explicit permission for
+the branch push is required. The independent review's optional forecast-docstring
+correction was applied and the focused/documentation checks rerun successfully.
+
+## 2026-10-25 — Power BI reference and focused phone analytics legibility
+
+- Done: inspected the provided Team 3 eight-page PBIX package and 31-page report; confirmed PRs #59/#60 already merged into main before branching at a647e74ea8a7e8c5035160993acbafebc3860d35. Compared two layout directions and retained the working decision-first canvas. Changed the phone-only horizontal bar layout to show complete category names, full numerical values and usable bar width. Extended the existing real-FastAPI Playwright fixture with a long fictional category; added a design crosswalk, dated ADR, draft PR #61 and progress entry.
+- Verified: GitHub source comparison shows five focused files before this log entry; PR is draft, no merge or deploy. The UI Budget Fast workflow on the preceding commit completed successfully; full CI on its exact changed SHA is still in progress. No local checkout, running-app comparison, Power BI Desktop execution or end-to-end revalidation completed in this session.
+- Decided: preserve all existing features, data calculations, evidence, gates, native tables, deep links, licensed-font boundaries and separate Hermes integration. Do not raise size budgets or claim savings/preview/production success without tests.
+- Next: require final-head CI, inspect failing job logs if any, collect actual before/after English and Arabic captures at identical datasets/viewports and verify the whole saved-report journey. Do not merge/deploy until owner approves.
+
+## 2026-10-25 — Integrate actual Stitch design references while retaining governed data
+
+- Done: inspected the three uploaded screenshots and their source HTML, including report-tab content, telemetry sample, simulated agent graph, mock controls and hardcoded sign-offs. Created the source-backed three-screen implementation map and separate ADR. Reused actual `run.reports` and safe `ReportDocument` to build a desktop split inspector / mobile stacked index; preserved the existing report control and approval state. Added a selection/responsiveness E2E regression in the real pipeline journey. Updated draft PR #61.
+- Verified: all references are static mockups rather than actual operating data. ISO official references confirm the source mockups contain retired ISO 10816-3 and ISO 55001:2014 citations. GitHub UI Budget Fast detected a test TypeScript mismatch (`string | null` id), which was corrected in a subsequent branch commit. Final-head CI/build, responsive visual capture and E2E acceptance remain to be verified.
+- Decided: do not claim model/SCADA operation, achieved savings, DCS dispatch, signatures or 100% compliance from static HTML. No service, backend, schema, Hermes, source calculations, authentication, external font, deployment or main merge change.
+- Next: complete final-head CI, read any failed jobs, run real English/Arabic browser acceptance at 320/390/tablet/desktop using the same persisted report and capture before/after evidence. Merge and deployment require explicit authorization.
+
+## 2026-10-25 — StitchDesign semantic visual contract
+
+- Done: invoked the selected StitchDesign entry and taste workflows and authored root DESIGN.md as the semantic source for future three-screen Stitch generation. It ties the previously inspected HTML/screenshots to current React tokens, official-versus-fallback font boundaries, RTL, screen grids, safe motion, full-value charts, real evidence and saved approval. Linked the design brief from docs/design/DESIGN_SYSTEM.md and Draft PR #61.
+- Verified: root DESIGN.md exists on the review branch, uses actual token values, and contains explicit prohibitions on invented agent quorum, achieved savings, signed reports, standards compliance and DCS controls. No additional code, model provider, credentials or deployment was changed by this design-spec wave; no UI screenshot or full E2E pass is claimed.
+- Decided: StitchDesign's generic perpetual micro-animation advice is intentionally overridden by Miyaar's evidence-first engineering requirement and the owner's reduced-motion/no-fake-activity constraints. Existing code is authoritative for behavior.
+- Next: require exact-head CI and same-data bilingual visual/browser checks before code merge. This document itself is a design instruction, not an operational result or production release.
+
+
+## 2026-10-26 — Approved integration of remaining Miyaar PRs
+
+- Done: reconciled all six open PR histories on current main; retained newer API/storage/publication safeguards, current design tokens and statistical corrections. Kept older portfolio/design notes explicitly historical. Added explicit media CI, responsive tab orientation and bilingual keyboard/resize E2E assertions; consolidated duplicate CSS without raising budgets.
+- Verified: full local Backend, final frontend unit tests, TypeScript/build, clean bundle budgets, brain and media integration checks passed. Counts/skips are in README. Independent review identified the vertical-tab keyboard gap, now corrected. Local Playwright installation failed; no local browser success is claimed. Published-head hosted gates remain pending at commit preparation.
+- Decided: owner approval covers branch publication and merging all six open Miyaar PRs. Preserve histories using a combined candidate; no force-push, branch deletion, production deployment, live data modification or model invocation.
+- Next: publish the exact verified tree, require fresh hosted CI, merge via #63 and verify all six original heads are ancestors of main and PR statuses reflect the integration.
+
+
+### Integration CI follow-up: settled design-fixture evidence
+
+Hosted RMD detected a race in PR45's old comparison fixture: absence of the pending
+command selector was true before the command component mounted, so the baseline
+captured loading text. Require the actual next action and report headline before
+capturing text, and wait for font readiness. Keep unchanged-text, axe and overflow
+assertions intact. This corrects test synchronization, not product data or styling.
+Fresh final-head hosted checks are required; the failed run is retained as evidence.

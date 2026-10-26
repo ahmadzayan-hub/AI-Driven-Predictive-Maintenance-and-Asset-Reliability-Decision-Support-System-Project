@@ -208,7 +208,15 @@
 .dash-toolbar .dash-filters { margin: 0; }
 .dash-toolbar .dash-navigation > summary { padding-inline: var(--space-3); }
 .dash-provenance .dash-coverage { font: inherit; margin: 0; }
-@media (max-width: 479px) { .dash-toolbar { gap: var(--space-1); } }
+/* Keep source-backed categories readable on narrow screens without shrinking
+   full values or reversing the chart's technical left-to-right scale. */
+@media (max-width: 479px) {
+  .dash-toolbar { gap: var(--space-1); }
+  .dash-bars__row { grid-template-columns: minmax(0, 1fr) auto; row-gap: var(--space-1); }
+  .dash-bars__label { overflow: visible; white-space: normal; text-overflow: clip; overflow-wrap: anywhere; }
+  .dash-bars__track { grid-column: 1 / -1; grid-row: 2; }
+  .dash-bars__value { grid-column: 2; grid-row: 1; overflow-wrap: anywhere; text-align: end; }
+}
 
 /* Keep the first evidence comparison in view on short desktop displays.
    Compact spacing, never the figures, labels, caveats or touch targets. */

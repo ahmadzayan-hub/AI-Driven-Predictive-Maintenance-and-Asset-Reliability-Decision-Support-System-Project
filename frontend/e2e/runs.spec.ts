@@ -25,6 +25,38 @@ test('analytics run: goal to approved, published, evidence-backed report', async
     page.locator('.runtasks').getByText('All validation checks passed', { exact: false }),
   ).toBeVisible()
   await expect(page.locator('.runchart__svg')).toHaveCount(4)
+  // The Stitch-inspired index is a view over the real run reports, not a
+  // fabricated dossier. Selecting another section keeps the same run and gate.
+  const inspector = page.locator('.report-inspector')
+  const tabs = inspector.getByRole('tab')
+  expect(await tabs.count()).toBeGreaterThan(1)
+  await expect(inspector.getByRole('tabpanel')).toHaveCount(1)
+  await tabs.nth(1).click()
+  await expect(tabs.nth(1)).toHaveAttribute('aria-selected', 'true')
+  const selectedTabId = await tabs.nth(1).getAttribute('id')
+  expect(selectedTabId).not.toBeNull()
+  await expect(inspector.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', selectedTabId!)
+  await tabs.first().click()
+  const originalViewport = page.viewportSize()!
+  // Resizing must change both the visual orientation and keyboard contract.
+  for (const width of [1280, 390]) {
+    await page.setViewportSize({ width, height: originalViewport.height })
+    await expect(inspector.getByRole('tablist')).toHaveAttribute('aria-orientation', width >= 900 ? 'vertical' : 'horizontal')
+    await tabs.first().focus()
+    await page.keyboard.press(width >= 900 ? 'ArrowDown' : 'ArrowRight')
+    await expect(tabs.nth(1)).toBeFocused()
+    await expect(tabs.nth(1)).toHaveAttribute('aria-selected', 'true')
+    await page.keyboard.press(width >= 900 ? 'ArrowUp' : 'ArrowLeft')
+    await expect(tabs.first()).toBeFocused()
+    await page.keyboard.press('End')
+    await expect(tabs.last()).toBeFocused()
+    await page.keyboard.press('Home')
+    await expect(tabs.first()).toBeFocused()
+  }
+  await page.setViewportSize(originalViewport)
+  const inspectorGrid = await inspector.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)
+  expect(inspectorGrid).toBe(page.viewportSize()!.width < 900 ? 1 : 2)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
   const fullReport = page.locator('.runreport--full.report-document')
   await expect(fullReport.getByRole('heading', { name: 'Every claim in this report', exact: true })).toBeVisible()
   await expect(fullReport.getByRole('cell', { name: 'verified', exact: true }).first()).toBeVisible()
@@ -36,6 +68,16 @@ test('analytics run: goal to approved, published, evidence-backed report', async
   // adjacent evidence/decision text retain their language-of-parts tags.
   await page.getByRole('button', { name: 'Change language' }).click()
   await expect(page.locator('html')).toHaveAttribute('lang', 'ar')
+  for (const width of [1280, 390]) {
+    await page.setViewportSize({ width, height: originalViewport.height })
+    await expect(inspector.getByRole('tablist')).toHaveAttribute('aria-orientation', width >= 900 ? 'vertical' : 'horizontal')
+    await tabs.first().focus()
+    await page.keyboard.press(width >= 900 ? 'ArrowDown' : 'ArrowLeft')
+    await expect(tabs.nth(1)).toBeFocused()
+    await page.keyboard.press(width >= 900 ? 'ArrowUp' : 'ArrowRight')
+    await expect(tabs.first()).toBeFocused()
+  }
+  await page.setViewportSize(originalViewport)
   await expect(page.locator('.runreport--full')).toHaveAttribute('lang', 'en')
   await expect(page.locator('.decision__facts dd').first()).toHaveAttribute('lang', 'en')
   await page.getByRole('button', { name: /^ما الدليل على ذلك؟/ }).first().click()

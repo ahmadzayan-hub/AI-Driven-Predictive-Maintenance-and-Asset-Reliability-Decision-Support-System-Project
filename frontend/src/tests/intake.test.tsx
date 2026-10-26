@@ -17,6 +17,7 @@ const upload: UploadResult = {
 }
 
 beforeEach(() => {
+  vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })))
   applyLocale('en')
   vi.spyOn(api, 'listRuns').mockResolvedValue({ runs: [] })
   vi.spyOn(api, 'assetEvidence').mockResolvedValue({ run: null, prepared_at: '2026-10-23T08:00:00Z', scope: 'latest_completed_maintenance_stage' })
@@ -28,6 +29,7 @@ afterEach(() => {
   act(() => applyLocale('en'))
   sessionStorage.clear()
   vi.restoreAllMocks()
+  vi.unstubAllGlobals()
 })
 
 describe('real data intake', () => {
