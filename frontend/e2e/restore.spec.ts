@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { composerInput, lastAgentBubble, sendMessage, skipOnboarding } from './helpers'
+import { composerInput, expectModelUnavailable, lastAgentBubble, sendMessage, skipOnboarding } from './helpers'
 
 // These tests inject transport failures; service-worker ownership must not bypass routing.
 test.use({ serviceWorkers: 'block' })
@@ -37,7 +37,7 @@ test('offline mode clears after a confirmed successful request', async ({ page }
   // Backend recovers WITHOUT a browser online event. A successful retry
   // must clear the offline badge (regression: it used to stay stuck).
   await page.unroute('**/api/**')
-  await page.getByRole('button', { name: 'Retry' }).click()
+  await expectModelUnavailable(page, () => page.getByRole('button', { name: 'Retry' }).click())
   await expect(page.getByRole('status').filter({ hasText: 'Ready' })).toBeVisible()
-  await expect(page.locator('.msg--agent .msg__bubble').last()).toContainText('This one fails')
+  await expect(page.locator('.msg--user .msg__bubble').filter({ hasText: 'This one fails' })).toHaveCount(1)
 })

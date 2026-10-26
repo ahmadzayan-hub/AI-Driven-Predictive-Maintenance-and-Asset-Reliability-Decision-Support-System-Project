@@ -70,6 +70,22 @@ export function lastAgentBubble(page: Page) {
   return page.locator('.msg--agent .msg__bubble').last()
 }
 
+/** A disabled test provider must be explicit, localized and never credited as a model reply. */
+export async function expectModelUnavailable(page: Page, submit: () => Promise<void>, language: 'en' | 'ar' = 'en') {
+  const response = page.waitForResponse(r => /\/api\/sessions\/[^/]+\/messages$/.test(r.url()) && r.request().method() === 'POST')
+  await submit()
+  const received = await response
+  expect(received.ok()).toBe(true)
+  const result = await received.json()
+  expect(result.reply).toMatchObject({ action: 'chat', source: 'rules', why: 'not_configured' })
+  expect(result.state.assistant_status.code).toBe('not_configured')
+  await expect(lastAgentBubble(page)).toHaveText(result.reply.text)
+  await expect(lastAgentBubble(page)).toContainText(language === 'ar'
+    ? 'النموذج اللغوي غير مفعّل'
+    : 'The language model is not enabled')
+  return result
+}
+
 /** Phones fold the dashboard filters away until asked; desktop shows them open. */
 export async function openFilters(page: Page) {
   const fold = page.locator('.dash-filters > details')

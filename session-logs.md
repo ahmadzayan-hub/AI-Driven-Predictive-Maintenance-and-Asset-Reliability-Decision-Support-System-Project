@@ -1836,3 +1836,10 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Verified: 45 affected component/source-color checks; corrected isolated runtime checks showed equal client/scroll dimensions at 390px in both languages and on Arabic overview/chat, and at 1440px in both languages. Production build and unchanged budgets passed. No live data or model calls were used.
 - Decided: retain accessible content, content-area scrolling and existing contrast assertions; do not conceal the fault with root overflow suppression.
 - Next: hosted CI on the reviewed follow-up before normal merge; the live release remains unchanged.
+
+## 2026-10-26 - PR65 browser contract alignment
+
+- Done: verify explicit localized disabled-model responses, API provenance and session status in Arabic/English conversation, retry and runtime journeys. Open the actual Latest findings disclosure in demo/overview tests and retain initial hidden-state assertions.
+- Verified: all 14 previously failing desktop/mobile cases and all 12 separate Miyaar bilingual, simulated-voice and accessibility cases passed locally with one worker; TypeScript passed. Existing memory, preferences, session lifecycle, retry and accessibility checks remain. No real model calls or user records were used.
+- Decided: keep honest unavailable behavior; do not restore misleading general replies or remove visibility assertions for CI.
+- Next: full hosted CI, then normal merge only if all required checks pass. The live release is unchanged.

@@ -36,3 +36,13 @@ innerHeight include scrollbar space and can conceal this regression. Retain an
 explicit identity-control focus rule with the existing navigation contrast token.
 The source-color regression reads the last equal-specificity rule, matching the
 CSS cascade; its existing 3:1 focus and 4.5:1 text thresholds are unchanged.
+
+End-to-end contract follow-up: a test server without a configured language model
+must return a localized unavailable message with `action=chat`, `source=rules`
+and `why=not_configured`. Assert that provenance and the session status together
+with the rendered reply, rather than expecting a fabricated greeting or echoed
+general answer. Keep the existing memory, preferences, retry, session lifecycle
+and scripted-runtime checks. Latest findings are an intentional disclosure:
+assert the content starts hidden, open its actual summary control and then check
+the findings. Do not drop visibility checks or change the production behavior to
+satisfy stale expectations.

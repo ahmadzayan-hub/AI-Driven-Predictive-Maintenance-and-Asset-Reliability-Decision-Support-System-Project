@@ -50,8 +50,11 @@ test('the overview shows the figures, the latest findings and what waits for app
   await expect(page.locator('.kpi')).toHaveCount(4)
   // A run is at the gate, so the one amber tile is lit.
   await expect(page.locator('.kpi--attention')).toContainText('Waiting for approval')
-  await expect(page.locator('.finding').first()).toBeVisible()
-  await expect(page.locator('.finding__type').first()).toHaveText('Descriptive')
+  const findings = page.locator('.overview__findings')
+  await expect(findings.locator('.finding').first()).toBeHidden()
+  await findings.locator('summary').click()
+  await expect(findings.locator('.finding').first()).toBeVisible()
+  await expect(findings.locator('.finding__type').first()).toHaveText('Descriptive')
   await expectNoViolations(page, 'overview')
 
   // Review opens the waiting run on its approval card.

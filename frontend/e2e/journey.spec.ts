@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
 import type { MessageResult, OperationResult } from '../src/shared/api'
-import { clickQuickAction, composerInput, lastAgentBubble, openTab, sendMessage, skipOnboarding } from './helpers'
+import { clickQuickAction, composerInput, expectModelUnavailable, lastAgentBubble, openTab, sendMessage, skipOnboarding } from './helpers'
 
 test.describe('main user journey', () => {
   const consoleErrors: string[] = []
@@ -34,9 +34,8 @@ test.describe('main user journey', () => {
     await expect(page.getByRole('heading', { name: 'Every asset. A clearer decision.' })).toBeVisible()
 
     // 2. Send a message.
-    await sendMessage(page, 'Hello there')
+    await expectModelUnavailable(page, () => sendMessage(page, 'Hello there'))
     await expect(page.locator('.msg--user .msg__bubble').last()).toHaveText('Hello there')
-    await expect(lastAgentBubble(page)).toContainText('Happy to help')
 
     // 3. Save a memory with a slash command.
     const remember = `/remember ${profileText}`
@@ -107,10 +106,10 @@ test.describe('main user journey', () => {
     await expect(page.getByText('Preference updated: user_name = Ahmad.')).toBeVisible()
 
     await openTab(page, /^Ask Miyaar/)
-    // A sentence the assistant cannot act on gets an honest, tone-shaped
-    // answer that says what can be asked — concise here.
-    await sendMessage(page, 'Ping')
-    await expect(lastAgentBubble(page)).toContainText('Not sure what to do with “Ping”')
+    // Preferences persist, but cannot turn a disabled model into a general answer.
+    const unavailable = await expectModelUnavailable(page, () => sendMessage(page, 'Ping'))
+    expect(unavailable.state.preferences.tone).toBe('concise')
+    expect(unavailable.state.preferences.user_name).toBe('Ahmad')
 
     // 6. View history.
     await sendMessage(page, '/history')

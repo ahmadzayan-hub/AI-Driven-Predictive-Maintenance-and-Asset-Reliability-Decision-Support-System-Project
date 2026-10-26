@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
-import { composerInput, lastAgentBubble, openTab, sendMessage } from './helpers'
+import { composerInput, expectModelUnavailable, lastAgentBubble, openTab, sendMessage } from './helpers'
 
 /** The composer's textbox, by its Arabic label. */
 function arabicComposer(page: Page) {
@@ -71,8 +71,7 @@ test.describe('Arabic interface', () => {
     // welcome message needed no second request to be in Arabic.
     await expect(page.getByRole('heading', { name: 'لكل أصل، قرار أوضح.' })).toBeVisible()
 
-    await sendArabic(page, 'مرحبا')
-    await expect(lastAgentBubble(page)).toContainText('يسعدني المساعدة')
+    await expectModelUnavailable(page, () => sendArabic(page, 'مرحبا'), 'ar')
 
     // A slash command still works; its confirmation is Arabic.
     await sendArabic(page, '/remember لغتي المفضلة هي العربية')
@@ -182,14 +181,12 @@ test.describe('Arabic interface', () => {
     await expect(composerInput(page)).toBeVisible()
 
     // The agent was told: its next reply is English.
-    await sendMessage(page, 'hello')
-    await expect(lastAgentBubble(page)).toContainText('Happy to help')
+    await expectModelUnavailable(page, () => sendMessage(page, 'hello'))
 
     // And back, from the English side.
     await page.getByRole('button', { name: 'Change language' }).click()
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl')
-    await sendArabic(page, 'مرحبا')
-    await expect(lastAgentBubble(page)).toContainText('يسعدني المساعدة')
+    await expectModelUnavailable(page, () => sendArabic(page, 'مرحبا'), 'ar')
 
     // The choice survives a reload with no left-to-right flash: the
     // direction is already right-to-left on the first paint.
