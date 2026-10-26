@@ -1,6 +1,6 @@
 # Project progress
 
-Local regression repair: explicit transaction connection closure and minimal Windows child-process bootstrap are implemented separately from the palette changes. Focused checks pass; full clean-branch validation is pending.
+Local regression repair is verified: explicit transaction connection closure, minimal Windows child-process bootstrap, category contrast and short-desktop chart spacing. Full Python/component/build gates and reconciled browser coverage pass; README records the bounded broad-run interruption and complete affected-case reruns. Local synthetic pixel inspection is complete within its recorded scope. Hosted CI and a local release preserving existing local-only report features remain separate gates; the running app is unchanged.
 
 ## 26 October - Approved visual palette and source workspace
 

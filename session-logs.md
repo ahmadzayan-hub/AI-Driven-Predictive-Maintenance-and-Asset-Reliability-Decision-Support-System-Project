@@ -1888,3 +1888,18 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
   boolean returns true. The broad run reached its bounded duration; outcomes and
   unfinished cases remain in local evidence rather than being called a pass.
 - Next: rerun affected specifications, remaining workspace cases and Miyaar suite.
+
+## 2026-10-26 - Regression repair verification closed
+
+- Done: reran the complete affected browser specifications and remaining workspace
+  cases; reconciled every catalogued case against executed results. Preserved
+  the interrupted broad-run log and synthetic captures outside tracked source.
+- Verified: README records exact full Python/component/build and combined browser
+  outcomes, including all skips and the bounded broad-run interruption. Local
+  English/Arabic desktop/phone pixel inspection completed. Owned test services
+  stopped; the unchanged live application returned healthy status.
+- Decided: do not describe combined executed coverage as a single full-run pass;
+  no assertions, guards or tests were weakened. No private screenshot upload,
+  model call, remote write or live source replacement occurred.
+- Next: reviewed clean-branch publication/hosted CI and a separately validated
+  local release that retains existing local-only report functionality.

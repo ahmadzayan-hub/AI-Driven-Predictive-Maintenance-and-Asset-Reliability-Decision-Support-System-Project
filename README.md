@@ -562,6 +562,27 @@ guards were relaxed. Full-suite and browser acceptance remain separate gates.
 
 ### Approved palette and source workspace - 26 October 2026
 
+Clean-main follow-up verification: **2,304 Python tests reported, 248 skipped,
+zero failures/errors**; **505 component tests** and **5 native tests passed**.
+TypeScript, strict brain checks, production build and unchanged byte budgets
+passed. Existing nonfatal resource warnings remain in the Python log.
+
+Browser coverage was reconciled by project/file/test identity: **203 passed,
+23 skipped**, plus **12 separate Miyaar checks passed**. This is combined executed
+coverage, not one uninterrupted green run. The broad run reached its 1,500-second
+bound with 196 passes, six diagnosed failures, 22 skips and two unfinished cases.
+After fixing the external fixture path and the font-failure assertion, the whole
+affected specifications and remaining workspace cases passed (36 passes, 20
+existing viewport-duplicate skips). No test was disabled to obtain a pass.
+Corrected contrast and short-desktop chart cases also passed their focused checks.
+
+The clean integration build measures first-load JS 99,236 bytes, total JS
+252,393, total CSS 33,306 and fonts 139,928. Representative English/Arabic
+desktop/phone synthetic layouts were inspected locally; no screenshots were
+uploaded. This does not establish live activation or hosted CI. The clean public
+branch must not replace local-only report features without preserving and
+revalidating them.
+
 The isolated palette/layout candidate passed 168 frontend component tests,
 TypeScript checking, and 12 browser tests against disposable local storage.
 The browser checks exercise all 12 existing routes in English and Arabic at
