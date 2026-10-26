@@ -1,5 +1,16 @@
 # Session logs
 
+## 2026-10-26 - `palette-ci-navigation` - PR66 follow-up
+
+- Done: replaced a stale RMD workflow test-title filter with the full existing
+  desktop overview specification. No application source, assertions, skip rules,
+  workflow permissions or protection settings changed.
+- Verified: local desktop overview/navigation/recovery selection passes; exact
+  counts and its existing phone-only exclusion are recorded in README.
+- Decided: do not merge while an additional push-only workflow is failing, even
+  when the main pull-request checks are green.
+- Next: normal branch update and terminal hosted verification before merge.
+
 ## 2026-10-26 - Approved palette and source workspace
 
 - Done: isolated visual refinement from the accepted local source; approved

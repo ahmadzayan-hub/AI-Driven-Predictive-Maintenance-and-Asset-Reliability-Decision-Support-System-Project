@@ -1,5 +1,10 @@
 # Project progress
 
+RMD CI selector repair: the old navigation-title grep selected no tests. Run the
+complete desktop overview file instead; local navigation/recovery cases pass
+with existing viewport conditions preserved. No runtime or permission changes.
+Hosted verification of this correction remains the final integration gate.
+
 Local regression repair is verified: explicit transaction connection closure, minimal Windows child-process bootstrap, category contrast and short-desktop chart spacing. Full Python/component/build gates and reconciled browser coverage pass; README records the bounded broad-run interruption and complete affected-case reruns. Local synthetic pixel inspection is complete within its recorded scope. Hosted CI and a local release preserving existing local-only report features remain separate gates; the running app is unchanged.
 
 ## 26 October - Approved visual palette and source workspace

@@ -552,6 +552,17 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+### RMD navigation selector repair - 26 October 2026
+
+Hosted main CI, the interface budget and application-platform journeys passed
+for `5abe922`. The separate RMD workflow failed with `No tests found`: its stale
+title filter still searched for `sidebar groups`, while the retained navigation
+case is now named `four work stages preserve routes, history and secondary tools`.
+The workflow now runs the entire existing desktop overview specification, without
+changing assertions, application code or permissions. Local verification passed
+**5 tests**, with **1 existing phone-only skip** in that desktop selection.
+The corrected head still requires successful hosted checks before merge.
+
 ### Local resource lifecycle — 26 October 2026
 
 On the clean integration branch, the focused regression set reproduced 3 failures
