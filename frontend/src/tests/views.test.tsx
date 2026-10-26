@@ -223,15 +223,15 @@ describe('DatasetsView', () => {
     expect(within(row).getByTitle(dataset.name).tagName).toBe('BDI')
     expect(within(row).getByText('48.3 kB')).toBeInTheDocument()
     expect(within(row).getByText('fingerprint 1a2b3c4d')).toBeInTheDocument()
-    // The allowance reads as coloured tiles, and the file limits wait in a fold.
-    const storage = (await screen.findByText('Storage used')).closest<HTMLElement>('.kpi')!
-    expect(storage).toHaveAttribute('data-hue', 'violet')
+    // Exact allowance values remain visible in a compact definition list.
+    const storage = (await screen.findByText('Storage used')).closest<HTMLElement>('div')!
+    expect(storage.parentElement?.tagName).toBe('DL')
     expect(within(storage).getByText('48.3 kB')).toBeVisible()
-    expect(storage.closest('aside')).toHaveAccessibleName('Source workspace')
+    expect(screen.getByRole('complementary')).toHaveAccessibleName('Source workspace')
     expect(row.closest('.panel__inner')).toHaveClass('panel__inner--wide')
-    expect(row.closest('.panel__column')).not.toBe(storage.closest('.panel__column'))
+    expect(storage.closest('.dataset-usage')).toBeInTheDocument()
     expect(screen.getByText(/Choose a source, review its columns/)).toBeVisible()
-    expect(within(screen.getByText('Datasets stored').closest<HTMLElement>('.kpi')!).getByText('of 20')).toBeVisible()
+    expect(within(screen.getByText('Datasets stored').closest<HTMLElement>('div')!).getByText('of 20')).toBeVisible()
     expect(screen.queryByText(/Every dataset you have added/)).not.toBeInTheDocument()
     expect(screen.getByText(/Up to 4 MB/).closest('details')).not.toHaveAttribute('open')
     await user.click(screen.getByRole('button', { name: 'Analyse quarterly-sales.csv' }))

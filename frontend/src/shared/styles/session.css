@@ -253,7 +253,7 @@
   border-radius: 999px;
   padding: 1px 8px;
   background: color-mix(in srgb, var(--h, var(--accent)) 15%, transparent);
-  color: var(--h, var(--accent));
+  color: var(--text);
 }
 
 /* A hue names a group (a kind of memory, a usage meter), never a verdict. */

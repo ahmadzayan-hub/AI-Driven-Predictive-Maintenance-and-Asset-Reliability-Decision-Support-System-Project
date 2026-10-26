@@ -144,12 +144,23 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
             }}
           />
         </div>
+        {usage ? (
+          <dl className="dataset-usage">
+            <div>
+              <dt>{t('usage.datasets')}</dt>
+              <dd>{formatNumber(usage.datasets.used)}</dd>
+              <dd>{t('overview.ofLimit', { limit: formatNumber(usage.datasets.limit) })}</dd>
+            </div>
+            <div>
+              <dt>{t('usage.storage')}</dt>
+              <dd>{formatBytes(usage.dataset_bytes.used, formatNumber)}</dd>
+              <dd>{t('overview.ofLimit', { limit: formatBytes(usage.dataset_bytes.limit, formatNumber) })}</dd>
+            </div>
+          </dl>
+        ) : null}
         <div className="panel__inner--split">
         <div className="panel__column">
-        <details className="run-more">
-          <summary>{t('datasets.limits')}</summary>
-          <p className="panel__note">{t('runs.fileHelp')}</p>
-        </details>
+
         <div role="status" aria-live="polite">
           {uploading ? (
             <p className="statusline">{t('datasets.uploading', { name: uploading })}</p>
@@ -296,20 +307,12 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
 
         </div>
         <aside className="panel__column" aria-label={t('datasets.context')}>
-        {usage ? (
-          <dl className="kpis">
-            <div className="kpi" data-hue="teal">
-              <dt className="kpi__label">{t('usage.datasets')}</dt>
-              <dd className="kpi__value">{formatNumber(usage.datasets.used)}</dd>
-              <dd className="kpi__sub">{t('overview.ofLimit', { limit: formatNumber(usage.datasets.limit) })}</dd>
-            </div>
-            <div className="kpi" data-hue="violet">
-              <dt className="kpi__label">{t('usage.storage')}</dt>
-              <dd className="kpi__value">{formatBytes(usage.dataset_bytes.used, formatNumber)}</dd>
-              <dd className="kpi__sub">{t('overview.ofLimit', { limit: formatBytes(usage.dataset_bytes.limit, formatNumber) })}</dd>
-            </div>
-          </dl>
-        ) : null}
+
+
+        <details className="run-more">
+          <summary>{t('datasets.limits')}</summary>
+          <p className="panel__note">{t('runs.fileHelp')}</p>
+        </details>
 
         {/* Live sources are written through the connector API: not in the demo. */}
         {readOnly ? null : <ConnectorsPanel />}

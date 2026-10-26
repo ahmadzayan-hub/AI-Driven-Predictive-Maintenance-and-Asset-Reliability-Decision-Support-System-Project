@@ -12,6 +12,22 @@ helpers close the connection first, in the order `addCleanup` runs
 (last registered, first executed).
 """
 
+import os
+
+
+def isolated_process_env():
+    """Minimal child environment, with Windows' required OS bootstrap path.
+
+    Do not inherit model/provider credentials or application configuration.
+    SystemRoot lets Windows initialize its system DLLs; it changes no policy.
+    """
+    env = {"PATH": os.environ.get("PATH", ""),
+           "PYTHONPATH": os.environ.get("PYTHONPATH", ""),
+           "PYTHONDONTWRITEBYTECODE": "1"}
+    if os.environ.get("SystemRoot"):
+        env["SystemRoot"] = os.environ["SystemRoot"]
+    return env
+
 
 def closing(case, app):
     """Register the app's store to close before the test's other cleanups.

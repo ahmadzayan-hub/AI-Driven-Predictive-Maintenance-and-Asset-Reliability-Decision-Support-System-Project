@@ -552,6 +552,62 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+### RMD navigation selector repair - 26 October 2026
+
+Hosted main CI, the interface budget and application-platform journeys passed
+for `5abe922`. The separate RMD workflow failed with `No tests found`: its stale
+title filter still searched for `sidebar groups`, while the retained navigation
+case is now named `four work stages preserve routes, history and secondary tools`.
+The workflow now runs the entire existing desktop overview specification, without
+changing assertions, application code or permissions. Local verification passed
+**5 tests**, with **1 existing phone-only skip** in that desktop selection.
+The corrected head still requires successful hosted checks before merge.
+
+### Local resource lifecycle — 26 October 2026
+
+On the clean integration branch, the focused regression set reproduced 3 failures
+and 21 cleanup errors across 62 tests. After explicit SQLite connection closure
+and retaining SystemRoot in isolated test-child environments, all 66 checks passed
+(including four new transaction/environment regressions). No assertions or model
+guards were relaxed. Full-suite and browser acceptance remain separate gates.
+
+### Approved palette and source workspace - 26 October 2026
+
+Clean-main follow-up verification: **2,304 Python tests reported, 248 skipped,
+zero failures/errors**; **505 component tests** and **5 native tests passed**.
+TypeScript, strict brain checks, production build and unchanged byte budgets
+passed. Existing nonfatal resource warnings remain in the Python log.
+
+Browser coverage was reconciled by project/file/test identity: **203 passed,
+23 skipped**, plus **12 separate Miyaar checks passed**. This is combined executed
+coverage, not one uninterrupted green run. The broad run reached its 1,500-second
+bound with 196 passes, six diagnosed failures, 22 skips and two unfinished cases.
+After fixing the external fixture path and the font-failure assertion, the whole
+affected specifications and remaining workspace cases passed (36 passes, 20
+existing viewport-duplicate skips). No test was disabled to obtain a pass.
+Corrected contrast and short-desktop chart cases also passed their focused checks.
+
+The clean integration build measures first-load JS 99,236 bytes, total JS
+252,393, total CSS 33,306 and fonts 139,928. Representative English/Arabic
+desktop/phone synthetic layouts were inspected locally; no screenshots were
+uploaded. This does not establish live activation or hosted CI. The clean public
+branch must not replace local-only report features without preserving and
+revalidating them.
+
+The isolated palette/layout candidate passed 168 frontend component tests,
+TypeScript checking, and 12 browser tests against disposable local storage.
+The browser checks exercise all 12 existing routes in English and Arabic at
+1440 x 900 and 375 x 812, asserting the rendered palette, meaningful loaded
+content and absence of outer-page overflow. Existing source upload, rejection,
+mapping/analysis and accessibility checks remain. This is functional/layout
+verification, not a screenshot-based claim of reference fidelity.
+
+Production build and unchanged byte budgets passed: first-load JS 99,311 bytes,
+total JS 252,928, largest JS chunk 18,180, first-load CSS 10,076, total CSS 33,494,
+fonts 139,928. No dependency, backend, model configuration, data or remote
+deployment changed. The candidate is not activated; no screenshots were captured
+or uploaded for sharing. Full hosted CI is a separate integration gate.
+
 Hermes publication candidate (24 October 2026): after incorporating main
 `a647e74e` and retaining both sides of a session-log append conflict, the same
 bounded package/MCP suite passed **16 tests, zero failures/errors/skips, in

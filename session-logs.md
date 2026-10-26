@@ -1,5 +1,30 @@
 # Session logs
 
+## 2026-10-26 - `palette-ci-navigation` - PR66 follow-up
+
+- Done: replaced a stale RMD workflow test-title filter with the full existing
+  desktop overview specification. No application source, assertions, skip rules,
+  workflow permissions or protection settings changed.
+- Verified: local desktop overview/navigation/recovery selection passes; exact
+  counts and its existing phone-only exclusion are recorded in README.
+- Decided: do not merge while an additional push-only workflow is failing, even
+  when the main pull-request checks are green.
+- Next: normal branch update and terminal hosted verification before merge.
+
+## 2026-10-26 - Approved palette and source workspace
+
+- Done: isolated visual refinement from the accepted local source; approved
+  palette, shared hierarchy, responsive source-card action footers, compact exact
+  storage figures and overview/assistant styling. No backend or data changes.
+- Verified: affected component suite, TypeScript, bilingual desktop/phone route
+  and dataset browser checks, production build and unchanged budgets. Exact
+  results are recorded in README. A sandbox worker startup produced no results;
+  the normal sequential synthetic run completed successfully.
+- Decided: keep all source/provenance/accessibility controls and dark preferences;
+  do not transfer live screenshots. Tests are not a claim of reference fidelity.
+- Next: local visual acceptance and separately scoped activation/integration.
+  Existing data, rollback and model configuration remain untouched.
+
 One entry per working session, oldest first. The session-end skill appends each entry; the SessionEnd hook adds a short automatic one if the skill never ran. Every entry names its session as a backticked id, which is how the hooks tell whether a session was logged. Write facts only: commits, verified results, decisions, what is next.
 
 Entry shape:
@@ -1843,3 +1868,49 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Verified: all 14 previously failing desktop/mobile cases and all 12 separate Miyaar bilingual, simulated-voice and accessibility cases passed locally with one worker; TypeScript passed. Existing memory, preferences, session lifecycle, retry and accessibility checks remain. No real model calls or user records were used.
 - Decided: keep honest unavailable behavior; do not restore misleading general replies or remove visibility assertions for CI.
 - Next: full hosted CI, then normal merge only if all required checks pass. The live release is unchanged.
+
+## 2026-10-26 — Local resource lifecycle regression repair
+
+- Done: diagnosed stale local tests against clean main; closed Motion SQLite
+  connections after both committed and failed transactions; preserved required
+  Windows OS bootstrap path in credential-free test child environments.
+- Verified: focused reproduction and repaired regression counts are in README.
+  No new skips, weakened assertions, live source changes or OS settings changes.
+- Decided: keep this repair separate from the 13-file palette/layout commit.
+- Next: complete clean integration regression and separately authorized synthetic
+  browser inspection. No publication or activation while gates remain unresolved.
+
+## 2026-10-26 - Palette browser regression repair
+
+- Done: corrected low-contrast memory category labels and excessive dashboard
+  spacing on short desktop displays. Kept all accessibility/viewport assertions.
+- Verified: the full Python/component, TypeScript and budget gates passed before
+  this CSS-only follow-up; rebuilt assets retain the unchanged byte budgets.
+  The failed browser run was stopped after identifying actual regressions.
+- Decided: use semantic text color and compact spacing, without hiding content.
+- Next: focused reproduction, full browser suites and final evidence review.
+
+## 2026-10-26 - Browser fixture and font-failure verification
+
+- Done: replaced an indirect font readiness assertion with direct failed-request
+  and FontFace error-state checks, retaining readable-action/overflow coverage.
+  Corrected the external local runner's fixture path to match the test suite.
+- Verified: browser trace records the font request failing while the readiness
+  boolean returns true. The broad run reached its bounded duration; outcomes and
+  unfinished cases remain in local evidence rather than being called a pass.
+- Next: rerun affected specifications, remaining workspace cases and Miyaar suite.
+
+## 2026-10-26 - Regression repair verification closed
+
+- Done: reran the complete affected browser specifications and remaining workspace
+  cases; reconciled every catalogued case against executed results. Preserved
+  the interrupted broad-run log and synthetic captures outside tracked source.
+- Verified: README records exact full Python/component/build and combined browser
+  outcomes, including all skips and the bounded broad-run interruption. Local
+  English/Arabic desktop/phone pixel inspection completed. Owned test services
+  stopped; the unchanged live application returned healthy status.
+- Decided: do not describe combined executed coverage as a single full-run pass;
+  no assertions, guards or tests were weakened. No private screenshot upload,
+  model call, remote write or live source replacement occurred.
+- Next: reviewed clean-branch publication/hosted CI and a separately validated
+  local release that retains existing local-only report functionality.

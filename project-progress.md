@@ -1,5 +1,22 @@
 # Project progress
 
+RMD CI selector repair: the old navigation-title grep selected no tests. Run the
+complete desktop overview file instead; local navigation/recovery cases pass
+with existing viewport conditions preserved. No runtime or permission changes.
+Hosted verification of this correction remains the final integration gate.
+
+Local regression repair is verified: explicit transaction connection closure, minimal Windows child-process bootstrap, category contrast and short-desktop chart spacing. Full Python/component/build gates and reconciled browser coverage pass; README records the bounded broad-run interruption and complete affected-case reruns. Local synthetic pixel inspection is complete within its recorded scope. Hosted CI and a local release preserving existing local-only report features remain separate gates; the running app is unchanged.
+
+## 26 October - Approved visual palette and source workspace
+
+- Done: exact approved light palette, shared hierarchy and card treatment across
+  routes, responsive source cards with separate actions, compact storage facts,
+  and aligned overview/assistant composition. Existing capabilities preserved.
+- Verified: component, TypeScript, browser and production-budget results are in
+  README. Browser coverage includes every route in both languages and sizes.
+- Next: local visual acceptance and separately authorized activation/integration.
+  No live screenshot transfer, model activation or Vercel deployment occurred.
+
 KPI review visual acceptance (24 October): additive real-API browser coverage now targets the KPI families and expanded source disclosure in English/Arabic, light/dark and a 320 px phone. Local static/unit checks pass in the materialized workspace; exact-head locked-dependency hosted execution and screenshot inspection remain pending. No application code, merge or deployment changes.
 
 Model-admission review wave (23 October): bounded credits are reserved before run transactions, shared by consultant contexts and settled after commit/rollback. This preserves existing run locks and worker roles; conservative credit/crash semantics and hosted acceptance remain release-review gates. See docs/adr/2026-10-23-bounded-model-admission.md.

@@ -18,7 +18,7 @@ from server.specialist_config import configure_specialists, PROFILE, worker_pref
 from server.specialists import ROLE_NAMES, ScopedToolBox, CATALOGUE
 from server.storage import open_store, RESTORE_ORDER
 from server.worker import build_worker, worker_status
-from tests.support import closing, scoped_token
+from tests.support import closing, scoped_token, isolated_process_env
 from tests.test_specialists import ScriptedDecisions
 from tests.test_runs import PG_TEST_URL, _postgres_available
 
@@ -240,8 +240,7 @@ try:
 finally:
     worker.store.close()
 '''
-        env = {"PATH": os.environ.get("PATH", ""), "PYTHONPATH": os.environ.get("PYTHONPATH", ""),
-               "PYTHONDONTWRITEBYTECODE": "1"}
+        env = isolated_process_env()
         if self.database_url:
             env["PG_TEST_URL"] = self.database_url
         child = subprocess.run([sys.executable, "-c", script, str(self.config)],
@@ -337,7 +336,7 @@ with patch.object(ModelGateway, '_post', side_effect=AssertionError('No model ca
 """
         child = subprocess.run([sys.executable, "-c", script, str(self.config)],
             input=json.dumps(self.env), text=True, capture_output=True, timeout=25,
-            env={"PATH": os.environ.get("PATH", ""), "PYTHONPATH": os.environ.get("PYTHONPATH", "")})
+            env=isolated_process_env())
         self.assertEqual(child.returncode, 0, child.stderr)
         self.assertEqual(json.loads(child.stdout), [ordinary["id"], None])
         self.assertIsNone(app.state.store.get_run(specialist["id"])["lease_owner"])

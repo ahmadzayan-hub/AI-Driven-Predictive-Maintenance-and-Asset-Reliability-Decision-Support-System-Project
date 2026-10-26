@@ -8,35 +8,36 @@
   --magenta: light-dark(#be185d, #f9a8d4);
   /* Light neutrals (slate). --border is decorative only; anything a person
      operates (inputs, segmented controls) uses --border-strong, >= 3:1. */
-  --bg: #F4F7FC;
+  --bg: #F3F6FA;
   --surface: #ffffff;
   --surface-raised: #ffffff;
-  --surface-sunken: #EDF2FA;
+  --surface-sunken: #EAF0F6;
   /* Navigation shares the restrained workspace palette. */
-  --header-bg: #0C1930;
+  --header-bg: #10243A;
   --header-text: #F2F7FF;
   --header-muted: #C5D8EF;
   --header-field: #1C3150;
   --header-border: #829CBF;
-  --nav-surface: #142640;
+  --nav-surface: #10243A;
   --nav-text: #EAF3FF;
   --nav-muted: #C0D2EA;
   --nav-border: #344A68;
-  --nav-active: #254A70;
+  --nav-active: #1B3A56;
   --nav-accent: #72D7EA;
-  --border: #D8E2F0;
-  --border-strong: #687C98;
-  --text: #182C48;
+  --border: #D7E0EB;
+  --border-strong: #64748B;
+  --text: #1E293B;
   --text-muted: #50617A;
   --text-faint: #50617A;
 
   /* Accent (restrained navy for decision actions):
      --accent for text/icons/outlines/focus, --accent-solid for filled
      controls. */
-  --accent: #245EC7;
-  --accent-solid: #245EC7;
-  --accent-solid-hover: #194AA5;
-  --accent-soft: #E8F0FD;
+  --accent: #2563EB;
+  --accent-solid: #2563EB;
+  --accent-solid-hover: #1D4ED8;
+  --accent-soft: #EAF1FF;
+  --detail-accent: #0891B2;
   --on-accent: #ffffff;
 
   /* Highlight (amber): what needs a person — an approval waiting, a
@@ -56,7 +57,7 @@
   --on-danger: #ffffff;
 
   /* Elevation */
-  --shadow-1: 0 3px 12px rgb(24 44 72 / .05);
+  --shadow-1: 0 4px 20px rgb(16 36 58 / .04);
   --shadow-2: 0 4px 12px rgb(20 22 31 / 0.08);
   --shadow-3: 0 16px 40px rgb(20 22 31 / 0.18);
 
@@ -69,8 +70,8 @@
 
   /* Shape */
   --radius-s: 8px;
-  --radius-m: 10px;
-  --radius-l: 12px;
+  --radius-m: 12px;
+  --radius-l: 18px;
 
   /* Spacing (8-point grid) */
   --space-1: 4px;
@@ -109,10 +110,10 @@
   --radius-xl: 24px;
   --surface-glass: rgb(255 255 255 / .94);
   --accent-haze: rgb(51 78 104 / .04);
-  --workspace-bg: #F4F7FC;
+  --workspace-bg: #F3F6FA;
   --panel-fill: #FFFFFF;
   --hero-fill: #FFFFFF;
-  --hero-border: #D8E2F0;
+  --hero-border: #D7E0EB;
   --user-message: #E8F0FD;
 }
 
@@ -171,7 +172,7 @@
   --nav-text: #EDF4FF;
   --nav-muted: #B6C7DE;
   --nav-border: #3C506D;
-  --nav-active: #254A70;
+  --nav-active: #1B3A56;
   --nav-accent: #72D7EA;
   --accent-haze: rgb(158 186 212 / .04);
   --surface-glass: #17263D;
@@ -223,7 +224,7 @@
   --nav-text: #EDF4FF;
   --nav-muted: #B6C7DE;
   --nav-border: #3C506D;
-  --nav-active: #254A70;
+  --nav-active: #1B3A56;
   --nav-accent: #72D7EA;
   --accent-haze: rgb(158 186 212 / .04);
   --surface-glass: #17263D;
