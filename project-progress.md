@@ -1,5 +1,7 @@
 # Project progress
 
+Local regression repair: explicit transaction connection closure and minimal Windows child-process bootstrap are implemented separately from the palette changes. Focused checks pass; full clean-branch validation is pending.
+
 ## 26 October - Approved visual palette and source workspace
 
 - Done: exact approved light palette, shared hierarchy and card treatment across

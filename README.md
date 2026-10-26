@@ -552,6 +552,14 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+### Local resource lifecycle — 26 October 2026
+
+On the clean integration branch, the focused regression set reproduced 3 failures
+and 21 cleanup errors across 62 tests. After explicit SQLite connection closure
+and retaining SystemRoot in isolated test-child environments, all 66 checks passed
+(including four new transaction/environment regressions). No assertions or model
+guards were relaxed. Full-suite and browser acceptance remain separate gates.
+
 ### Approved palette and source workspace - 26 October 2026
 
 The isolated palette/layout candidate passed 168 frontend component tests,

@@ -18,6 +18,7 @@ from server.specialists import (PROFILE, ROLE_NAMES, LoopLimits, GatewayDecision
                                 ScopedToolBox, CATALOGUE, canonical, digest, specialist_model_view)
 from server.storage import open_store, RESTORE_ORDER
 from tests.test_runs import PG_TEST_URL, _postgres_available
+from tests.support import isolated_process_env
 
 
 class ScriptedDecisions:
@@ -265,7 +266,8 @@ for _ in range(100):
 print(json.dumps({'state':r['state'], 'first_role':d.calls[0]['role'], 'first_observations':d.calls[0]['observations']}))
 s.close()
 """
-        env = {"PATH": os.environ["PATH"], "PYTHONPATH": os.pathsep.join([str(Path(__file__).resolve().parents[1]), os.environ.get("PYTHONPATH", "")])}
+        env = isolated_process_env()
+        env["PYTHONPATH"] = os.pathsep.join([str(Path(__file__).resolve().parents[1]), os.environ.get("PYTHONPATH", "")])
         if self.database_url:
             env["SPECIALIST_TEST_DB"] = self.database_url
         completed = subprocess.run([sys.executable, "-c", script, str(self.path), run["id"]],

@@ -1857,3 +1857,14 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Verified: all 14 previously failing desktop/mobile cases and all 12 separate Miyaar bilingual, simulated-voice and accessibility cases passed locally with one worker; TypeScript passed. Existing memory, preferences, session lifecycle, retry and accessibility checks remain. No real model calls or user records were used.
 - Decided: keep honest unavailable behavior; do not restore misleading general replies or remove visibility assertions for CI.
 - Next: full hosted CI, then normal merge only if all required checks pass. The live release is unchanged.
+
+## 2026-10-26 — Local resource lifecycle regression repair
+
+- Done: diagnosed stale local tests against clean main; closed Motion SQLite
+  connections after both committed and failed transactions; preserved required
+  Windows OS bootstrap path in credential-free test child environments.
+- Verified: focused reproduction and repaired regression counts are in README.
+  No new skips, weakened assertions, live source changes or OS settings changes.
+- Decided: keep this repair separate from the 13-file palette/layout commit.
+- Next: complete clean integration regression and separately authorized synthetic
+  browser inspection. No publication or activation while gates remain unresolved.
