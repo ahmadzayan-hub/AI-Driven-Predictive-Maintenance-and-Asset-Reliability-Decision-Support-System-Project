@@ -28,6 +28,8 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from server.data_chat import DataContextIn, DataQueryIn, DataChatError, text_for as data_chat_text
+from server.data_chat_labels import labels as data_chat_labels
 from starlette.concurrency import run_in_threadpool
 
 from agent import Agent, language_code
@@ -193,6 +195,7 @@ class Session:
     def __init__(self, config, memory_backend=None, row=None, owner="local-owner"):
         self.agent = Agent(config, memory_backend=memory_backend)
         self.owner = (row or {}).get("owner") or owner
+        self.data_context = None
         if row is None:
             self.id = uuid.uuid4().hex
             self.transcript = []
@@ -207,6 +210,7 @@ class Session:
                                                     json.loads(row["preferences_json"]).get("language", "en"))
             self._next_entry_id = row["next_entry_id"]
             self.agent.preferences.update(json.loads(row["preferences_json"]))
+            self.data_context = self.agent.preferences.pop("_data_context", None)
             self.agent.history = json.loads(row["history_json"])
 
     def to_row(self):
@@ -216,7 +220,7 @@ class Session:
             "created_at": self.created_at,
             "updated_at": now_iso(),
             "ended": 1 if self.ended else 0,
-            "preferences_json": json.dumps(self.agent.preferences),
+            "preferences_json": json.dumps({**self.agent.preferences, "_data_context": self.data_context}),
             "history_json": json.dumps(self.agent.history),
             "transcript_json": json.dumps(self.transcript),
             "next_entry_id": self._next_entry_id,
@@ -252,6 +256,7 @@ class Session:
             "memory_entries": self.agent.memory_entries(),
             "history": list(self.agent.history),
             "memory_persisted": self.agent.memory_persistent,
+            "data_context": self.data_context,
             "commands": commands_for(self.agent.preferences.get("language")),
         }
 
@@ -264,6 +269,7 @@ class SessionIn(BaseModel):
 
 class MessageIn(BaseModel):
     text: str = Field(min_length=1, max_length=MAX_TEXT_LENGTH)
+    data_query: DataQueryIn | None = None
 
 
 class MemoryIn(BaseModel):
@@ -844,6 +850,11 @@ def create_app(config_path=None, env=None, dist_dir=None):
             "model_calls": base_gateway.ledger(),
         }
 
+    def session_snapshot(session):
+        return {**session.snapshot(),
+                "data_chat_labels": data_chat_labels(session.agent.language()),
+                "assistant_status": assistant.status(session.agent.language())}
+
     @app.post("/api/sessions", status_code=201)
     def create_session(body: SessionIn | None = None,
                        principal=Depends(requires("write"))):
@@ -854,12 +865,12 @@ def create_app(config_path=None, env=None, dist_dir=None):
                 session.agent.set_preference("language", body.language)
             save_session(session)
             store.trim_sessions(MAX_SESSIONS, principal.subject)
-            return session.snapshot()
+            return session_snapshot(session)
 
     @app.get("/api/sessions/{session_id}")
     def read_session(session_id: str, principal=Depends(requires("read"))):
         with lock:
-            return get_session(session_id, principal).snapshot()
+            return session_snapshot(get_session(session_id, principal))
 
     @app.delete("/api/sessions/{session_id}")
     def end_session(session_id: str, principal=Depends(requires("write"))):
@@ -869,7 +880,34 @@ def create_app(config_path=None, env=None, dist_dir=None):
             reply = session.agent.process_input("/exit")
             session.add_entry("agent", reply)
             save_session(session)
-            return session.snapshot()
+            return session_snapshot(session)
+
+    @app.get("/api/sessions/{session_id}/data-context")
+    def read_data_context(session_id: str, principal=Depends(requires("read"))):
+        with lock:
+            session = get_session(session_id, principal)
+            try:
+                choices = assistant.data_chat.choices(session.owner, principal)
+            except DataChatError as error:
+                raise HTTPException(404, detail=data_chat_text(error.code, session.agent.language())) from None
+            return {"selected": session.data_context, "choices": choices}
+
+    @app.put("/api/sessions/{session_id}/data-context")
+    def select_data_context(session_id: str, body: DataContextIn, principal=Depends(requires("write"))):
+        with session_lock_for(session_id):
+            with lock:
+                session = get_session(session_id, principal)
+                if session.ended:
+                    raise HTTPException(409, detail="Session ended.")
+            try:
+                selected = assistant.data_chat.bind(body, session, principal)
+            except DataChatError as error:
+                status = 404 if error.code == "unavailable" else 422 if error.code == "invalid_request" else 409
+                raise HTTPException(status, detail=data_chat_text(error.code, session.agent.language())) from None
+            with lock:
+                session.data_context = selected
+                save_session(session)
+                return session_snapshot(session)
 
     # ------------------------------------------------------------------
     # Conversation
@@ -931,6 +969,8 @@ def create_app(config_path=None, env=None, dist_dir=None):
         text = message.text.strip()
         if not text:
             raise HTTPException(status_code=422, detail="Message text is empty.")
+        if message.data_query is not None and text.startswith("/"):
+            raise HTTPException(status_code=422, detail="A data query cannot execute a command.")
         # The session lock orders this conversation's turns; the global
         # lock covers only the load and the save, so the assistant's
         # model call holds up nobody else (finding B4).
@@ -951,9 +991,13 @@ def create_app(config_path=None, env=None, dist_dir=None):
                     if text.split()[0].lower() == "/exit":
                         session.ended = True
                     save_session(session)
-                    return {"reply": entry, "state": session.snapshot()}
+                    return {"reply": entry, "state": session_snapshot(session)}
                 session.agent.record_request(text)
-            outcome = assistant.handle(text, session, principal=principal)
+            if message.data_query is not None:
+                assistant._take_pending(session)
+                outcome = assistant.data_chat.answer(message.data_query, session, principal)
+            else:
+                outcome = assistant.handle(text, session, principal=principal)
             with lock:
                 entry = session.add_entry(
                     "agent", outcome["text"], source=outcome.get("source"),
@@ -961,7 +1005,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
                     result=outcome.get("result"), pending=outcome.get("pending"),
                     steps=outcome.get("steps"), why=outcome.get("why"))
                 save_session(session)
-                return {"reply": entry, "state": session.snapshot()}
+                return {"reply": entry, "state": session_snapshot(session)}
 
     @app.delete("/api/sessions/{session_id}/history")
     def clear_history(session_id: str, principal=Depends(requires("write"))):
@@ -971,7 +1015,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
             save_session(session)
             return {
                 "reply_text": "Conversation history cleared.",
-                "state": session.snapshot(),
+                "state": session_snapshot(session),
             }
 
     # ------------------------------------------------------------------
@@ -990,7 +1034,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
             session = get_session(session_id, principal)
             reply = session.agent.set_preference(key, value)
             save_session(session)
-            return {"reply_text": reply, "state": session.snapshot()}
+            return {"reply_text": reply, "state": session_snapshot(session)}
 
     # ------------------------------------------------------------------
     # Memory
@@ -1005,7 +1049,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
             session.agent.reload_memory()
             reply = session.agent.add_memory(information, memory.category)
             save_session(session)
-            return {"reply_text": reply, "state": session.snapshot()}
+            return {"reply_text": reply, "state": session_snapshot(session)}
 
     @app.put("/api/sessions/{session_id}/memory/{key}")
     def update_memory(session_id: str, key: str, memory: MemoryIn, principal=Depends(requires("write"))):
@@ -1017,7 +1061,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
                 raise HTTPException(status_code=404, detail=f"No memory named {key}.")
             reply = session.agent.update_memory(key, information, memory.category)
             save_session(session)
-            return {"reply_text": reply, "state": session.snapshot()}
+            return {"reply_text": reply, "state": session_snapshot(session)}
 
     @app.get("/api/sessions/{session_id}/export")
     def export_data(session_id: str, principal=Depends(requires("read"))):
@@ -1047,7 +1091,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
                 raise HTTPException(status_code=404, detail=f"No memory named {key}.")
             reply = session.agent.remove_memory(key)
             save_session(session)
-            return {"reply_text": reply, "state": session.snapshot()}
+            return {"reply_text": reply, "state": session_snapshot(session)}
 
     @app.delete("/api/sessions/{session_id}/memory")
     def clear_memory(session_id: str, principal=Depends(requires("write"))):
@@ -1056,7 +1100,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
             session.agent.reload_memory()
             reply = session.agent.clear_all_memory()
             save_session(session)
-            return {"reply_text": reply, "state": session.snapshot()}
+            return {"reply_text": reply, "state": session_snapshot(session)}
 
     # ------------------------------------------------------------------
     # Vault: durable record of approved, published knowledge

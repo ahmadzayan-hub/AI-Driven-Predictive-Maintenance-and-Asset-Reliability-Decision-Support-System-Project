@@ -36,7 +36,7 @@ test('no horizontal overflow at 320, 768, and 1024 px', async ({ page }) => {
   for (const viewport of WIDTHS) {
     await page.setViewportSize(viewport)
 
-    await openTab(page, /^Workspace/)
+    await openTab(page, /^Ask Miyaar/)
     await expect(composerInput(page)).toBeVisible()
     expect(await horizontalOverflow(page), `overflow at ${viewport.width}px (workspace)`).toBeLessThanOrEqual(0)
 

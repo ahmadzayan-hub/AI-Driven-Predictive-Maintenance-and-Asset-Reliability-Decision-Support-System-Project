@@ -552,6 +552,112 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+### Approved integration of all six open PRs, 26 October 2026
+
+The final candidate incorporates #29, #30, #31, #45, #61 and #63 on main `9fa13b4`.
+Backend execution passed **2,316 collected tests: 2,059 executed, 257 skipped**
+(PostgreSQL and optional dependencies unavailable locally). After the responsive
+keyboard correction, **505 frontend tests** and the TypeScript/production build
+passed. A clean sequential build passed all existing bundle ceilings, including
+252.5 KB total JavaScript and 33.5 KB rounded total CSS (the exact byte checks pass).
+The initial CSS overage was repaired by consolidating duplicate tab styles, without
+raising a ceiling. The isolated Arabic frame/audio-video test passed **1 test** with
+real RAQM and FFmpeg. It uses a synthetic tone, not spoken Arabic evaluation.
+
+The statistical/saved-history acceptance below remains the dedicated evidence for
+#63. Local Playwright browser installation failed on the downloaded archive, so no
+local browser pass is claimed. Exact published-head hosted CI, PostgreSQL, optional
+runtimes and browser evidence are required before merge. Owner approval now covers
+branch publication and merges; production deployment remains excluded. See the
+[integration decision](docs/adr/2026-10-26-approved-pr-integration.md).
+
+### PR63 statistical wording review on current main, 26 October 2026
+
+Review branch incorporates main `9fa13b4240c64be78669ed09b630ad5929ea26d4` without
+rewriting either history. Final local Python execution passed **2,316 tests with
+257 skips** (unavailable PostgreSQL and optional extras); **2,059 executed tests
+passed**, with no failure or error. The focused bilingual/statistical selection
+passed **78 tests**. Its new file contains **12 tests**, including the normal
+power curve and forecast/backtest boundaries. Running those against unmodified
+main fails; an inverted forecast-state predicate is also detected.
+
+The full `python scripts/verify.py` run passed all **8 gates**, including **505
+frontend tests**, TypeScript, native run logic, build and unchanged interface
+budgets. That initial run preceded the last wording-only clarification and had
+259 Python skips before a frontend build existed; the final verbose Python run
+above rechecked the final application source after the build. No frontend code
+changed. Brain verification retains one existing stale note. The final Python
+process emits an unclosed-socket ResourceWarning after its successful result;
+no failure is suppressed. Local browser E2E and PostgreSQL were not run.
+
+Isolated two-source acceptance generated **34 reports per revision** (17 synthetic
+cases in both languages). Every calculation, input snapshot, forecast and claim
+evidence identifier matched main. Reopening **4 historical synthetic runs**
+(English/Arabic, draft/approved), then producing new pending reports preserved
+all historical run/task/artifact/approval/note row hashes and **4 saved-file
+hashes**. This does not claim access to or an audit of the owner's live data.
+No provider was invoked. Final-head hosted CI remains separate evidence; older
+PR successes are not treated as verification of this update. Merge, activation
+and deployment require owner approval. The exact review branch has automatic
+Vercel deployment disabled. See the
+[decision](docs/adr/2026-10-26-report-wording-current-main.md).
+
+### RMD navigation selector repair - 26 October 2026
+
+Hosted main CI, the interface budget and application-platform journeys passed
+for `5abe922`. The separate RMD workflow failed with `No tests found`: its stale
+title filter still searched for `sidebar groups`, while the retained navigation
+case is now named `four work stages preserve routes, history and secondary tools`.
+The workflow now runs the entire existing desktop overview specification, without
+changing assertions, application code or permissions. Local verification passed
+**5 tests**, with **1 existing phone-only skip** in that desktop selection.
+The corrected head still requires successful hosted checks before merge.
+
+### Local resource lifecycle — 26 October 2026
+
+On the clean integration branch, the focused regression set reproduced 3 failures
+and 21 cleanup errors across 62 tests. After explicit SQLite connection closure
+and retaining SystemRoot in isolated test-child environments, all 66 checks passed
+(including four new transaction/environment regressions). No assertions or model
+guards were relaxed. Full-suite and browser acceptance remain separate gates.
+
+### Approved palette and source workspace - 26 October 2026
+
+Clean-main follow-up verification: **2,304 Python tests reported, 248 skipped,
+zero failures/errors**; **505 component tests** and **5 native tests passed**.
+TypeScript, strict brain checks, production build and unchanged byte budgets
+passed. Existing nonfatal resource warnings remain in the Python log.
+
+Browser coverage was reconciled by project/file/test identity: **203 passed,
+23 skipped**, plus **12 separate Miyaar checks passed**. This is combined executed
+coverage, not one uninterrupted green run. The broad run reached its 1,500-second
+bound with 196 passes, six diagnosed failures, 22 skips and two unfinished cases.
+After fixing the external fixture path and the font-failure assertion, the whole
+affected specifications and remaining workspace cases passed (36 passes, 20
+existing viewport-duplicate skips). No test was disabled to obtain a pass.
+Corrected contrast and short-desktop chart cases also passed their focused checks.
+
+The clean integration build measures first-load JS 99,236 bytes, total JS
+252,393, total CSS 33,306 and fonts 139,928. Representative English/Arabic
+desktop/phone synthetic layouts were inspected locally; no screenshots were
+uploaded. This does not establish live activation or hosted CI. The clean public
+branch must not replace local-only report features without preserving and
+revalidating them.
+
+The isolated palette/layout candidate passed 168 frontend component tests,
+TypeScript checking, and 12 browser tests against disposable local storage.
+The browser checks exercise all 12 existing routes in English and Arabic at
+1440 x 900 and 375 x 812, asserting the rendered palette, meaningful loaded
+content and absence of outer-page overflow. Existing source upload, rejection,
+mapping/analysis and accessibility checks remain. This is functional/layout
+verification, not a screenshot-based claim of reference fidelity.
+
+Production build and unchanged byte budgets passed: first-load JS 99,311 bytes,
+total JS 252,928, largest JS chunk 18,180, first-load CSS 10,076, total CSS 33,494,
+fonts 139,928. No dependency, backend, model configuration, data or remote
+deployment changed. The candidate is not activated; no screenshots were captured
+or uploaded for sharing. Full hosted CI is a separate integration gate.
+
 Hermes publication candidate (24 October 2026): after incorporating main
 `a647e74e` and retaining both sides of a session-log append conflict, the same
 bounded package/MCP suite passed **16 tests, zero failures/errors/skips, in
@@ -2448,3 +2554,64 @@ does not create or change a license; existing third-party notices apply.
 - Product: AI-Driven Predictive Maintenance and Asset Reliability Decision-Support System SaaS Project
 - Engine: Agentic OS
 - Version: 1.0.0
+
+
+Report integration (25 October 2026): the isolated main-based candidate contains
+only shared report navigation/typography, actual table indexes, an unnumbered
+summary and export-control improvements. **77 affected backend/documentation
+tests passed in 24.970 seconds; 55 component tests passed in 32.20 seconds.**
+TypeScript, structural brain checks, production compilation and unchanged bundle
+budgets passed using main's original build settings (no imported chunk grouping).
+Both report renderer files are byte-identical to the locally verified report
+release; its English/Arabic PDF links, one-page summaries and embedded fonts were
+inspected independently. The main integration does not import the separate local
+chat/model branches. Native Office rendering and full hosted/browser E2E are not
+verified. Word uses refreshable PAGEREF fields; browser PDF retains destinations
+and page footers without claiming printed TOC/LOT page references.
+See [decision](docs/adr/2026-10-25-navigable-business-reports.md).
+
+Report CI follow-up: **17 navigation/documentation tests and 8 Chromium DOM
+checks passed** after aligning the browser assertion with the real LOT/LOF
+frontmatter. Missing, duplicate and self-referencing destinations are still
+rejected. The full hosted suite must pass on the follow-up commit before merge.
+
+### Clean reference-led UI integration — 25 October 2026
+
+The UI patch starts on the merged report baseline without importing unrelated
+ancestor commits. A navy header, grouped task navigation, clearer action cards and
+contextual report selector preserve existing routes and human-review boundaries.
+The selector requires its owner-scoped persisted data-context API and bounded
+deterministic calculations; those dependencies are included explicitly. Actual
+model readiness is shown separately from server connectivity. No model activation,
+runtime configuration, report-review experiment, new KPI methodology, generated
+report, dataset or private log is included.
+
+Executed on this clean candidate: **188 distinct backend checks passed** across
+selected-data, assistant/API, concurrency, authorization, privacy and runtime
+dispatch batches. The static-file check initially skipped before the build and
+then passed against the built assets. **137 component/language checks passed**.
+TypeScript, production build and unchanged interface budgets passed. Resource
+conditions are mocked in tests of fake model gateways so privacy and concurrency
+assertions do not depend on host RAM; dedicated admission/refusal tests retain
+coverage of the unchanged application guard.
+
+The earlier local visual release has separate bilingual desktop/phone light/dark
+synthetic screenshots and live HTTP/hash/persistence evidence. This clean candidate
+has not undergone a new full application/browser or hosted CI run. Live browser
+inspection remains restricted; no browser denial was retried. Remote publication
+and merge require separate scoped authorization and successful required CI.
+See the [design](docs/adr/2026-10-25-reference-workspace-layout.md) and
+[data-context](docs/adr/2026-10-25-selected-data-chat.md) decisions.
+
+### Dataset layout correction verification
+
+The focused navigation, dataset and bilingual component checks passed (63 tests).
+The CI fallback/language modules were checked separately (67 distinct tests);
+an invalid scripted model response is counted as a miss, not credited as recall.
+Production builds retain the existing bundle limits. Synthetic route screenshots
+do not establish live browser acceptance. See
+[composition decision](docs/adr/2026-10-25-dataset-workspace-composition.md).
+
+### Shared identity and phone reflow verification
+
+The focused component checks passed: **93 tests** across navigation, datasets, executive overview and translations. TypeScript and unchanged production bundle budgets passed. Actual bilingual browser evidence is recorded separately; no full-suite or hosted-CI claim is made for this increment.

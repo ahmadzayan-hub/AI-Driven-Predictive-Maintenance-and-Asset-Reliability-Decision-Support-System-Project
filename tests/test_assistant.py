@@ -14,7 +14,7 @@ Three layers, tested separately because they fail separately:
 import json
 import tempfile
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 from pathlib import Path
 
 import assistant
@@ -423,6 +423,9 @@ class ModelPathTestCase(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.engine = engine_in(self.tmp.name, case=self)
         self.session = FakeSession(make_agent())
+        memory = patch("server.assistant_availability.free_memory_bytes", return_value=8 * 1024 ** 3)
+        memory.start()
+        self.addCleanup(memory.stop)
 
     def handle(self, answer, text):
         gateway = FakeGateway(answer)
@@ -562,7 +565,7 @@ class ModelPathTestCase(unittest.TestCase):
                                          "Suggest a pump reliability checklist")
                 self.assertEqual(outcome["source"], "rules")
                 self.assertNotIn("provider", outcome)
-                self.assertIn("the rules decided instead", outcome["why"])
+                self.assertEqual("invalid_model_output", outcome["why"])
                 self.assertNotIn("Not a top-level answer", outcome["text"])
 
     def test_nonchat_actions_still_accept_an_empty_reply_and_use_the_agents_text(self):
@@ -588,11 +591,13 @@ class ModelPathTestCase(unittest.TestCase):
                 self.assertIn("Miyaar", gateway.asked[0][0])
                 self.assertIn("at the TOP LEVEL", gateway.asked[0][0])
 
-    def test_an_answer_that_is_not_an_intent_hands_over_to_the_rules(self):
+    def test_an_invalid_model_intent_reports_failure_without_executing_a_guessed_action(self):
         outcome, _ = self.handle("I think you want me to remember something.",
                                  "remember that the review is on Monday")
         self.assertEqual(outcome["source"], "rules")
-        self.assertEqual(outcome["text"], "Information saved.")
+        self.assertEqual(outcome["action"], "chat")
+        self.assertEqual(outcome["why"], "invalid_model_output")
+        self.assertEqual(self.session.agent.memory, {})
 
     def test_an_action_outside_the_catalogue_is_refused(self):
         outcome, _ = self.handle(

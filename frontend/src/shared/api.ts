@@ -1,5 +1,5 @@
 import { translate } from '../i18n'
-import type { AuthConfig, ColumnMapping, DatasetDetail, DatasetSummary, ExportPayload, IdentityInfo, JoinPreview, JoinSpec,
+import type { AuthConfig, ColumnMapping, DataContextChoices, DatasetDetail, DatasetSummary, ExportPayload, IdentityInfo, JoinPreview, JoinSpec,
   KpiPolicy, MappingProblem, Pipelines, QueryAnswer, QuerySpec, RecordsPage, RecordsSpec, RunAssumptions, RunDetail, RunExecutive, RunKpis, RunSummary, SessionState, TableField, TableFilter, TranscriptEntry, UploadResult, Usage } from './types'
 
 export const API_BASE = import.meta.env.VITE_API_BASE ?? ''
@@ -207,6 +207,10 @@ export const api = {
       body: JSON.stringify({ language: language ?? null }),
     }),
   getSession: (id: string) => request<SessionState>(`/api/sessions/${id}`),
+  dataContext: (id: string) => request<DataContextChoices>(`/api/sessions/${id}/data-context`),
+  selectDataContext: (id: string, runId: string | null) => request<SessionState>(`/api/sessions/${id}/data-context`, {
+    method: 'PUT', body: JSON.stringify({ run_id: runId, filters: [] }),
+  }),
   endSession: (id: string) => request<SessionState>(`/api/sessions/${id}`, { method: 'DELETE' }),
   // Leave transport headroom around the server's bounded 60-second local inference.
   sendMessage: (id: string, text: string) =>

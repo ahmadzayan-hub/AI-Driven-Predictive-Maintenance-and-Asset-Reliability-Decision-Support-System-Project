@@ -11,6 +11,7 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 try:
@@ -60,6 +61,10 @@ class SlowGateway:
 @unittest.skipUnless(FASTAPI_AVAILABLE, "fastapi is not installed")
 class ConcurrencyTestCase(unittest.TestCase):
     def setUp(self):
+        # This fake gateway tests locking, independently of host RAM.
+        memory = patch("server.assistant_availability.free_memory_bytes", return_value=8 * 1024 ** 3)
+        memory.start()
+        self.addCleanup(memory.stop)
         self.temp_dir = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp_dir.cleanup)
         root = Path(self.temp_dir.name)

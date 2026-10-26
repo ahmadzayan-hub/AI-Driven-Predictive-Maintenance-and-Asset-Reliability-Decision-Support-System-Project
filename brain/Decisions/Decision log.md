@@ -10,6 +10,13 @@ sources: [docs/adr]
 
 # Decision log
 
+- `2026-10-26-local-resource-lifecycle`: explicitly release Motion SQLite connections; retain only required OS bootstrap values in isolated test processes.
+
+- `2026-10-26-approved-palette-and-source-workspace`: approved navy/blue/cyan
+  palette, shared page hierarchy and responsive source cards; exact allowances
+  remain visible without oversized KPI tiles. Runtime and image-sharing gates
+  remain separate from synthetic layout tests.
+
 - `2026-10-24-reviewed-mba-reference-collection`: reviewed original reference summaries use existing [[Knowledge retrieval]], retain partial coverage and model-context exclusion, and link the [[MBA analytics reference]].
 
 Every architecture decision record in `docs/adr/`, one line each. A record states what was true and what was decided on its date. It is never edited to fit later facts; a superseded record points forward instead. A new behaviour change gets a new record, as [[Soul]] requires.
@@ -129,3 +136,27 @@ All seven [[Analytics OS roadmap]] milestones have their records.
 - `2026-10-24-column-grant-preflight`: SELECT-only PUBLIC and effective client column ACL checks; reviewed catch-up SQL unchanged. See [[Tenant isolation]].
 - `2026-10-24-hermes-desktop-portable-package`: proposed portable Hermes package with a help-only preview and explicit local data/tool scope; preserves the web app and [[Agent runtimes and MCP]]. Activation remains separate.
 
+
+- `2026-10-25-navigable-business-reports`: shared HTML navigation, bounded executive summaries and Word page fields; browser and Office verification kept distinct.
+
+- `2026-10-25-explicit-chat-availability`: truthful model-readiness and bounded failure replies.
+- `2026-10-25-selected-data-chat`: owned report context and bounded deterministic calculations.
+- `2026-10-25-value-led-workflow`: task-stage navigation with preserved routes and human review.
+- `2026-10-25-reference-workspace-layout`: shared reference-led shell and contextual source panel.
+
+### 2026-10-25 — Dataset workspace composition
+
+Use navigation-aligned shared panels and a responsive source/context split.
+Validate the Datasets route itself, not only Assistant or Overview fixtures.
+See the composition decision in docs/adr/2026-10-25-dataset-workspace-composition.md.
+
+### 2026-10-25 - Shared visual identity and phone reflow
+
+Separate navigation from evidence with semantic navy/blue/cyan tokens; retain dark mode and accessibility. Contain the phone shell without suppressing content scrolling. Full filenames remain available through bidirectional text and accessible actions. See docs/adr/2026-10-25-shared-visual-identity-and-mobile-reflow.md.
+
+### 2026-10-26 - Report planning probability and forecast validity
+
+Preserve numerical results and historical artifacts while making planning power
+probabilistic and distinguishing no forecast, an unmeasured projection and a
+backtested forecast. Review-branch automatic deployment is disabled pending owner
+approval. See docs/adr/2026-10-26-report-wording-current-main.md and [[Approval gate]].

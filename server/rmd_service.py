@@ -10,7 +10,6 @@ from copy import deepcopy
 import csv
 from datetime import date, datetime, timezone
 import hashlib
-from html import escape
 import io
 import json
 import os
@@ -779,20 +778,19 @@ class RmdService:
             (tr("Proposed action", "الإجراء المقترح"), tr("Suggested role", "الدور المقترح"), tr("Due-date basis", "أساس الموعد"), tr("State", "الحالة")),
             [(bi(a.get("proposed_action"), language), bi(a.get("owner_role"), language), bi(a.get("due_date_basis"), language), a["state"]) for a in actions])]))
         sections.append(executive_export.Section(tr("Limitations", "القيود"), paragraphs=[bi(x, language) for x in result.get("limitations", [])]))
-        def shown(value):
-            return '<bdi dir="auto">' + escape(executive_export._clean(value)).replace("\n", "<br>") + "</bdi>"
-        body = ["<h1>" + shown(tr("RMD Evidence and Insights", "أدلة ورؤى الصيانة")) + "</h1>"]
-        for section in sections:
-            body.append("<section><h2>" + shown(section.title) + "</h2>")
-            body.extend("<p>" + shown(p) + "</p>" for p in section.paragraphs)
-            for table in section.tables:
-                body.append("<table><thead><tr>" + "".join('<th scope="col">' + shown(h) + "</th>" for h in table.headers) + "</tr></thead><tbody>")
-                body.extend("<tr>" + "".join("<td>" + shown(c) + "</td>" for c in cells) + "</tr>" for cells in table.rows)
-                body.append("</tbody></table>")
-            body.append("</section>")
-        direction = "rtl" if language == "ar" else "ltr"
-        page = (f'<!doctype html><html lang="{language}" dir="{direction}"><head><meta charset="utf-8">'
-            '<meta name="viewport" content="width=device-width, initial-scale=1">'
-            '<meta http-equiv="Content-Security-Policy" content="' + escape(executive_export.CONTENT_POLICY, quote=True) + '">'
-            '<title>' + escape(tr("Evidence review brief", "موجز مراجعة الأدلة")) + '</title><style>' + executive_export.STYLE + '</style></head><body>' + "".join(body) + '</body></html>')
-        return page.encode("utf-8"), "text/html; charset=utf-8", f"evidence-{analysis_id}-{language}.html"
+        synopsis = executive_export._synopsis
+        front = executive_export.Section(tr("Executive summary", "الملخص التنفيذي"), compact=True,
+            paragraphs=[tr("Draft for qualified human review. Recorded evidence only; no maintenance instruction or achieved saving is approved.",
+                "مسودة للمراجعة البشرية المؤهلة. أدلة مسجلة فقط؛ لم تُعتمد تعليمات صيانة أو وفورات محققة."),
+                tr("Snapshot", "اللقطة") + ": " + analysis_id,
+                tr("Exact scope, filters, source revisions and limitations follow.", "يلي ذلك النطاق الدقيق والمرشحات وإصدارات المصادر والقيود.")])
+        front.tables = [executive_export.Table(
+            (tr("Observed measure", "المؤشر المرصود"), tr("Value / unit", "القيمة / الوحدة")),
+            [(synopsis(bi(k.get("title"), language), 85), str(k.get("value")) + " " + bi(k.get("unit"), language))
+             for k in result.get("kpis", [])[:3]], (55, 45))]
+        front.after_title = tr("Review priorities", "أولويات المراجعة")
+        front.after_paragraphs = [synopsis(bi(p.get("proposed_action"), language), 120) for p in result.get("priorities", [])[:3]]
+        front.after_paragraphs.append(tr("Associations do not establish causal effects or future failure. Review the full evidence and limitations before acting.",
+            "لا تثبت الارتباطات آثاراً سببية أو أعطالاً مستقبلية. راجع الأدلة والقيود الكاملة قبل التصرف."))
+        page = executive_export.render_sections_html(tr("RMD Evidence and Insights", "أدلة ورؤى الصيانة"), [front, *sections], language)
+        return page, "text/html; charset=utf-8", f"evidence-{analysis_id}-{language}.html"

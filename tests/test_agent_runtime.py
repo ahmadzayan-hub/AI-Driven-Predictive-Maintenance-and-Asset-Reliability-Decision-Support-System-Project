@@ -17,6 +17,7 @@ Three layers, each with its own tests:
 import json
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 import assistant as rules
@@ -252,6 +253,9 @@ class ToolBoxTestCase(unittest.TestCase):
 
 class AssistantRuntimeTestCase(unittest.TestCase):
     def setUp(self):
+        memory = patch("server.assistant_availability.free_memory_bytes", return_value=8 * 1024 ** 3)
+        memory.start()
+        self.addCleanup(memory.stop)
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.engine = engine_in(self.tmp.name, case=self)
@@ -363,8 +367,8 @@ class AssistantRuntimeTestCase(unittest.TestCase):
         self.assertEqual(outcome["source"], "rules")
         self.assertEqual(outcome["action"], "chat")
         self.assertNotIn("steps", outcome)
-        self.assertNotIn("why", outcome)
-        self.assertIn("not sure what", outcome["text"].lower())
+        self.assertEqual(outcome["why"], "not_configured")
+        self.assertIn("model is not enabled", outcome["text"].lower())
         outcome = self.say(assistant, "please sort out the three things")
         self.assertEqual(outcome["source"], "runtime")
         # Declining hands the sentence to the model when one is configured.

@@ -89,7 +89,12 @@ describe('actual semantic source colors', () => {
   const dark = { ...light, ...colors(tokensCss.split("[data-theme='dark']")[1].split('@media')[0]) }
   const systemDark = { ...light, ...colors(tokensCss.split('@media (prefers-color-scheme: dark)')[1]) }
   it.each([['light', light], ['dark', dark], ['system dark', systemDark]] as const)('keeps keyboard focus distinct on both navigation surfaces and identity controls in %s', (_name, theme) => {
-    const rule = (selector: string) => appCss.match(new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]+)`))![1]
+    const rule = (selector: string) => {
+      // Equal-specificity rules later in the stylesheet win the CSS cascade.
+      const matches = [...appCss.matchAll(new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]+)`, 'g'))]
+      expect(matches.length, `Missing rule: ${selector}`).toBeGreaterThan(0)
+      return matches.at(-1)![1]
+    }
     const outline = (selector: string) => rule(selector).match(/outline(?:-color)?:[^;]*var\(--([\w-]+)\)/)![1]
     const navFocus = outline('.sidebar :focus-visible')
     for (const surface of ['nav-surface', 'nav-active']) {

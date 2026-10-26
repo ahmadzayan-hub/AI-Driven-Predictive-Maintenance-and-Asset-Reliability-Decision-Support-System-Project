@@ -30,6 +30,7 @@ do everything, and the reply says so (`source: "rules"`).
 import json
 import re
 from contextvars import ContextVar
+from server.data_chat import DataChat, question_metrics, natural_request
 from datetime import datetime, timezone
 
 from assistant import (ACTIONS, DESTRUCTIVE, PREFERENCE_KEYS, RUN_STATES,
@@ -38,6 +39,7 @@ from assistant import (ACTIONS, DESTRUCTIVE, PREFERENCE_KEYS, RUN_STATES,
                        understand)
 from server import agent_learning, knowledge, model_privacy, quota, deadline, schema
 from server.tools import ToolBox
+from server import assistant_availability
 
 # Enough passages that the answer is usually among them, few enough that a
 # large collection costs a few hundred tokens rather than being injected
@@ -160,6 +162,7 @@ class Assistant:
     def __init__(self, gateway, engine, runtime=None, runtime_name=None, identity_mode="local", env=None):
         self.gateway = gateway
         self.engine = engine
+        self.data_chat = DataChat(engine)
         # Optional (ADR 0021): a loop that may call several tools for one
         # sentence. It gets the sentences the rules cannot place, and
         # nothing the rules can — one exact action stays one exact action.
@@ -177,6 +180,22 @@ class Assistant:
     # ------------------------------------------------------------------
     # Entry point
     # ------------------------------------------------------------------
+    def status(self, language="en"):
+        code = assistant_availability.availability(self.gateway)
+        return {"code": code, "message": assistant_availability.message(code, language),
+                "inference_verified": False}
+
+    def _unavailable(self, text, session, code):
+        # A failed model must not reinterpret negated/contextual words as a
+        # workspace action (e.g. "do not quote reports" -> explain_report).
+        # Slash commands and exact read-only shortcuts have their own path.
+        outcome = (intent("chat") if code in {"model_unavailable", "invalid_model_output"}
+                   else understand(text))
+        outcome["why"] = code
+        if outcome["action"] == "chat":
+            outcome["reply"] = assistant_availability.message(code, session.agent.language())
+        return outcome
+
     def handle(self, text, session, principal=None):
         # The real requester is distinct from a session's creator: an admin
         # viewing another conversation must not inherit its collection grants.
@@ -192,6 +211,14 @@ class Assistant:
         agent = session.agent
         language = agent.language()
 
+        # Data questions have an explicit, read-only path before personal memory,
+        # runtime dispatch or model inference. Unsupported questions abstain.
+        metrics = question_metrics(text, bool(getattr(session, "data_context", None)))
+        if metrics is not None:
+            self._take_pending(session)
+            return self.data_chat.answer(natural_request(text, metrics) if metrics else None,
+                                         session, self._requester.get())
+
         pending = self._take_pending(session)
         if pending is not None:
             if is_yes(text):
@@ -203,7 +230,9 @@ class Assistant:
             # Anything else is a new request; the earlier one is dropped
             # rather than executed on the strength of an unrelated sentence.
 
-        if self.runtime is not None and understand(text)["action"] == "chat":
+        if (self.runtime is not None and understand(text)["action"] == "chat"
+                and assistant_availability.availability(self.gateway) not in
+                {"low_memory", "memory_unavailable"}):
             outcome = self._via_runtime(text, session)
             if outcome is not None:
                 return outcome
@@ -243,8 +272,9 @@ class Assistant:
             if known["action"] in ("help", "run_status"):
                 return known
         status = self.gateway.status()
-        if not status.get("configured"):
-            return understand(text)
+        readiness = assistant_availability.availability(self.gateway)
+        if readiness != "configured":
+            return self._unavailable(text, session, readiness)
         privacy_reason = self._model_privacy_reason(session, text)
         if privacy_reason:
             outcome = understand(text)
@@ -261,19 +291,22 @@ class Assistant:
                    else HOSTED_TOKENS}
         if structured:
             options["schema"] = INTENT_SCHEMA
-        raw = ask(
-            SYSTEM_PROMPT.replace("{language}",
-                                  "Arabic" if session.agent.language() == "ar"
-                                  else "English"),
-            self._context(session, current_message=text) + "\nMessage: " + text,
-            **options,
-        )
+        try:
+            raw = ask(
+                SYSTEM_PROMPT.replace("{language}",
+                                      "Arabic" if session.agent.language() == "ar"
+                                      else "English"),
+                self._context(session, current_message=text) + "\nMessage: " + text,
+                **options,
+            )
+        except Exception:
+            # Provider details may contain credentials or prompts. The safe
+            # code is all that reaches a transcript; no automatic retry.
+            return self._unavailable(text, session, "model_unavailable")
         parsed = self._parse(raw, session)
         if parsed is None:
-            fallback = understand(text)
-            fallback["why"] = ("the model's answer was not a valid intent; "
-                               "the rules decided instead")
-            return fallback
+            return self._unavailable(text, session,
+                                     "invalid_model_output" if raw else "model_unavailable")
         parsed["provider"] = status.get("provider")
         return parsed
 
@@ -323,7 +356,7 @@ class Assistant:
                 if section.get("headline"):
                     lines.append(f"  {section['type']}: {section['headline']}")
         turns = [e for e in session.transcript if e.get("role") in ("user", "agent")
-                 and not reference_turn(e)]
+                 and not reference_turn(e) and e.get("action") != "data_query"]
         if (current_message is not None and turns and turns[-1].get("role") == "user"
                 and turns[-1].get("text") == current_message):
             # The API appends the current turn before asking. It is sent

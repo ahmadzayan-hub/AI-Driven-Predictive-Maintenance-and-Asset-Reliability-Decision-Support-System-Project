@@ -130,6 +130,19 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
         <div className="exec-section-head"><div className="exec-heading"><Icon name="sparkle" size={22} /><h3
           id="exec-agent">{t('exec.agent')}</h3></div></div>
         {brief === data ? <div className="exec-brief" role="region" aria-label={t('exec.prepared')}>
+          <div className="exec-export" aria-busy={exportBusy}>
+            <div className="field"><label className="field__label" htmlFor="exec-format">{t('exec.format')}</label><select className="field__select"
+              id="exec-format" value={exportFormat} disabled={exportBusy}
+              onChange={(event) => setExportFormat(event.target.value as 'html' | 'docx')}><option value="html">{t('exec.html')}</option><option
+              value="docx">{t('exec.word')}</option></select></div>
+            <button type="button" className="btn btn--ghost" disabled={exportBusy} onClick={() => void exportReport(false)}><Icon name="download" size={16} />{t('exec.download')}</button>
+            <button type="button" className="btn btn--ghost" disabled={exportBusy} aria-describedby="exec-pdf-help" onClick={() => void exportReport(true)}>{t('exec.print')}</button>
+            {exportBusy ? <button type="button" className="btn btn--subtle" onClick={cancelExport}>{t('exec.cancelExport')}</button> : null}
+          </div>
+          <p className="exec-muted" id="exec-pdf-help">{t('exec.pdfHelp')}</p>
+          {exportError ? <div><p role="alert">{t(exportError)}</p>{exportError === 'exec.exportStale' ? <button type="button"
+            className="btn btn--subtle" onClick={() => setRevision((v) => v + 1)}>{t('exec.refresh')}</button> : null}</div> : null}
+          <p className="exec-muted" role="status">{exportStatus ? t(exportStatus) : exportBusy ? t('exec.exportBusy') : ''}</p>
           {data.advisory ? <>
             <p className="exec-headline" dir="auto">{data.advisory.recommendation}</p>
             <details><summary>{data.advisory.title}</summary><p>{data.advisory.subtitle}</p></details>
@@ -150,19 +163,7 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
           <h4>{t('exec.questions')}</h4>
           {data.questions.length ? <ol>{data.questions.map((question) => <li key={question.id}><p
             dir="auto">{question.text}</p>{refs(question.evidence_refs)}</li>)}</ol> : <p>{t('exec.noQuestions')}</p>}
-          <div className="exec-export" aria-busy={exportBusy}>
-            <div className="field"><label className="field__label" htmlFor="exec-format">{t('exec.format')}</label><select className="field__select"
-              id="exec-format" value={exportFormat} disabled={exportBusy}
-              onChange={(event) => setExportFormat(event.target.value as 'html' | 'docx')}><option value="html">{t('exec.html')}</option><option
-              value="docx">{t('exec.word')}</option></select></div>
-            <button type="button" className="btn btn--ghost" disabled={exportBusy} onClick={() => void exportReport(false)}><Icon name="download" size={16} />{t('exec.download')}</button>
-            <button type="button" className="btn btn--ghost" disabled={exportBusy} aria-describedby="exec-pdf-help" onClick={() => void exportReport(true)}>{t('exec.print')}</button>
-            {exportBusy ? <button type="button" className="btn btn--subtle" onClick={cancelExport}>{t('exec.cancelExport')}</button> : null}
-          </div>
-          <p className="exec-muted" id="exec-pdf-help">{t('exec.pdfHelp')}</p>
-          {exportError ? <div><p role="alert">{t(exportError)}</p>{exportError === 'exec.exportStale' ? <button type="button"
-            className="btn btn--subtle" onClick={() => setRevision((v) => v + 1)}>{t('exec.refresh')}</button> : null}</div> : null}
-          <p className="exec-muted" role="status">{exportStatus ? t(exportStatus) : exportBusy ? t('exec.exportBusy') : ''}</p>
+
         </div> : <button type="button" className="btn btn--primary" onClick={() => setBrief(data)}><Icon name="sparkle" size={16} />{t('exec.prepare')}</button>}
         <p className="exec-boundary"><Icon name="shield" size={16} />{t('exec.human')}</p>
       </section>

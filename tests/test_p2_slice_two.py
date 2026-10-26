@@ -119,6 +119,7 @@ class ApiEnvelopeTest(unittest.TestCase):
         self.assertEqual(body["detail"], "Note not found.")
         self.assertEqual(body["error"]["code"], "not_found")
         self.assertEqual(body["error"]["message"], "Note not found.")
+        self.assertEqual(body["error"]["problems"], [])
         self.assertEqual(body["error"]["request_id"], response.headers["X-Request-ID"])
         self.assertTrue(response.headers.get("X-Request-ID"))
 

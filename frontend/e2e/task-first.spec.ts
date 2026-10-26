@@ -32,8 +32,8 @@ for (const locale of ['en', 'ar'] as const) {
       expect(await page.locator('.brand__name').evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true)
       if (width < 1024) {
         await expect(page.locator('.tabbar button')).toHaveText(locale === 'ar'
-          ? ['القرار', 'البيانات والتحليل', 'التقارير والمخرجات', 'المزيد']
-          : ['Decision', 'Data & analysis', 'Reports & outputs', 'More'])
+          ? ['مصادر البيانات', 'التحليل والأدلة', 'الأولويات والإجراءات', 'التقارير', 'المزيد']
+          : ['Data sources', 'Analysis & evidence', 'Priorities & actions', 'Reports', 'More'])
         const more = page.locator('.tabbar button').last()
         await more.click()
         await expect(page.getByRole('dialog')).toBeVisible()
@@ -91,13 +91,21 @@ for (const locale of ['en', 'ar']) test(`font failure keeps ${locale} actions re
   test.skip(info.project.name !== 'desktop', 'Explicit fallback test')
   await page.setViewportSize({ width: 320, height: 900 })
   await page.addInitScript(lang => localStorage.setItem('aos-locale', lang), locale)
+  const failedFonts: string[] = []
+  page.on('requestfailed', request => {
+    if (/Dubai-Regular.*\.ttf(?:$|\?)/.test(request.url())) failedFonts.push(request.url())
+  })
   await page.route('**/*.ttf', route => route.abort())
   await page.goto('/')
   await viewLoaded(page)
   await page.evaluate(() => document.fonts.ready)
   await expect(page.locator('.brand__name')).toHaveText(locale === 'ar' ? 'معيار' : 'Miyaar')
   await expect(page.locator('.next-action button')).toBeVisible()
-  expect(await page.evaluate(() => document.fonts.check('16px Dubai', 'معيار Asset maintenance'))).toBe(false)
+  // check() can report that no load is pending after a font has failed.
+  // Prove the intended failure directly, not an indirect readiness boolean.
+  await expect.poll(() => failedFonts.length).toBeGreaterThan(0)
+  await expect.poll(() => page.evaluate(() => Array.from(document.fonts)
+    .filter(face => face.family === 'Dubai').map(face => face.status))).toEqual(['error'])
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
   await mkdir('../docs/screenshots', { recursive: true })
   await page.screenshot({ path: `../docs/screenshots/miyaar-task-first-synthetic-fallback-${locale}-320.png` })

@@ -113,11 +113,12 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
   }, [attempt])
 
   return (
-    <section className="panel" aria-label={t('datasets.aria')}>
-      <div className="panel__inner">
+    <section className="panel dataset-page" aria-label={t('datasets.title')}>
+      <div className="panel__inner panel__inner--wide">
         <div className="panel__header">
           <div>
             <h2 className="panel__title">{t('datasets.title')}</h2>
+            <p className="panel__desc">{t('datasets.nextStep')}</p>
           </div>
           {readOnly ? null : <button
             type="button"
@@ -143,10 +144,23 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
             }}
           />
         </div>
-        <details className="run-more">
-          <summary>{t('datasets.limits')}</summary>
-          <p className="panel__note">{t('runs.fileHelp')}</p>
-        </details>
+        {usage ? (
+          <dl className="dataset-usage">
+            <div>
+              <dt>{t('usage.datasets')}</dt>
+              <dd>{formatNumber(usage.datasets.used)}</dd>
+              <dd>{t('overview.ofLimit', { limit: formatNumber(usage.datasets.limit) })}</dd>
+            </div>
+            <div>
+              <dt>{t('usage.storage')}</dt>
+              <dd>{formatBytes(usage.dataset_bytes.used, formatNumber)}</dd>
+              <dd>{t('overview.ofLimit', { limit: formatBytes(usage.dataset_bytes.limit, formatNumber) })}</dd>
+            </div>
+          </dl>
+        ) : null}
+        <div className="panel__inner--split">
+        <div className="panel__column">
+
         <div role="status" aria-live="polite">
           {uploading ? (
             <p className="statusline">{t('datasets.uploading', { name: uploading })}</p>
@@ -179,21 +193,6 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
           </p>
         ) : null}
         {outcome && sourceFile.current && <WorkbookSheetPicker result={outcome} onSelect={(sheet) => { if (sourceFile.current) void addFile(sourceFile.current, sheet) }} />}
-
-        {usage ? (
-          <dl className="kpis">
-            <div className="kpi" data-hue="teal">
-              <dt className="kpi__label">{t('usage.datasets')}</dt>
-              <dd className="kpi__value">{formatNumber(usage.datasets.used)}</dd>
-              <dd className="kpi__sub">{t('overview.ofLimit', { limit: formatNumber(usage.datasets.limit) })}</dd>
-            </div>
-            <div className="kpi" data-hue="violet">
-              <dt className="kpi__label">{t('usage.storage')}</dt>
-              <dd className="kpi__value">{formatBytes(usage.dataset_bytes.used, formatNumber)}</dd>
-              <dd className="kpi__sub">{t('overview.ofLimit', { limit: formatBytes(usage.dataset_bytes.limit, formatNumber) })}</dd>
-            </div>
-          </dl>
-        ) : null}
 
         {mapping ? (
           <MappingPanel
@@ -241,7 +240,7 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
             </div>
           </div>
         ) : (
-          <div className="card">
+          <div className="dataset-library">
             <h3 className="card__title">{t('datasets.listTitle')}</h3>
             <ul className="datasets">
               {datasets.map((dataset) => (
@@ -250,16 +249,12 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
                     <Icon name="database" size={18} />
                   </span>
                   <span className="dataset__body">
-                    <span className="dataset__name" dir="auto">
-                      {dataset.name}
-                      {dataset.mapped ? (
-                        <span className="dataset__tag">{t('mapping.mapped')}</span>
-                      ) : null}
-                    </span>
+                    <bdi className="dataset__name" title={dataset.name}>{dataset.name}</bdi>
+                    {dataset.mapped ? (
+                      <span className="dataset__tag">{t('mapping.mapped')}</span>
+                    ) : null}
                     <span className="dataset__meta">
-                      {dataset.source_format ? (
-                        <>{formatLabel(t, dataset.source_format)} · </>
-                      ) : null}
+                      {dataset.source_format ? `${formatLabel(t, dataset.source_format)} · ` : null}
                       {dataset.row_count != null ? (
                         <>
                           <span className="dataset__figure">
@@ -292,7 +287,7 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
                     </button>
                     {readOnly ? null : <button
                       type="button"
-                      className="btn btn--ghost dataset__action"
+                      className="btn dataset__action"
                       aria-label={t('datasets.analyseAria', { name: dataset.name })}
                       onClick={() => onAnalyse(dataset)}
                     >
@@ -310,8 +305,19 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
           </div>
         )}
 
+        </div>
+        <aside className="panel__column" aria-label={t('datasets.context')}>
+
+
+        <details className="run-more">
+          <summary>{t('datasets.limits')}</summary>
+          <p className="panel__note">{t('runs.fileHelp')}</p>
+        </details>
+
         {/* Live sources are written through the connector API: not in the demo. */}
         {readOnly ? null : <ConnectorsPanel />}
+        </aside>
+        </div>
       </div>
     </section>
   )

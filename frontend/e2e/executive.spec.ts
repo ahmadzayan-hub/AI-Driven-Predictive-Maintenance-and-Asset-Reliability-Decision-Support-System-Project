@@ -21,7 +21,7 @@ const CSV = [
   '2026-03,South,MIYAAR-FICTIONAL-D,Corrective,20,60,100,0,20,20,10,10,3,900,2000',
 ].join('\n') + '\n'
 const FIVE_SITE_CSV = CSV + [
-  '2026-03,East,MIYAAR-FICTIONAL-E,Corrective,4,80,100,0,10,10,8,2,1,1200,100000',
+  '2026-03,East processing and reliability campus,MIYAAR-FICTIONAL-E,Corrective,4,80,100,0,10,10,8,2,1,1200,100000',
   '2026-03,West,MIYAAR-FICTIONAL-F,Corrective,5,85,100,0,10,10,8,2,1,1500,100000',
   '2026-03,Central,MIYAAR-FICTIONAL-G,Corrective,6,90,100,0,10,10,8,2,1,2000,100000',
 ].join('\n') + '\n'
@@ -104,6 +104,16 @@ test('the opening shows governed KPIs and a real comparison before the detailed 
     expect(await featured.first().evaluate((element) => getComputedStyle(element.parentElement!).gridTemplateColumns.split(' ').length)).toBe(2)
     await chart.scrollIntoViewIfNeeded()
     await expect(chart).toBeInViewport({ ratio: 1 })
+    // A real API-backed, long fictional group name must remain legible at 320px.
+    // Keep the chart labels and exact values visible without reversing the axis.
+    const longLabel = chart.locator('.dash-bars__label').filter({ hasText: 'East processing and reliability campus' })
+    await expect(longLabel).toBeVisible()
+    await expect(longLabel).toHaveCSS('white-space', 'normal')
+    expect(await longLabel.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+    const longRow = longLabel.locator('..')
+    const trackWidth = await longRow.locator('.dash-bars__track').evaluate((element) => element.getBoundingClientRect().width)
+    const rowWidth = await longRow.evaluate((element) => element.getBoundingClientRect().width)
+    expect(trackWidth).toBeGreaterThan(rowWidth / 2)
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
   await expect(page.locator('.dash-provenance > bdi')).toHaveText(snapshot.run.dataset_name)
@@ -153,11 +163,21 @@ async function inspectHtml(page: Page, html: string, language: 'en' | 'ar') {
       tables: Array.from(doc.querySelectorAll('table'), (table) =>
         Array.from(table.rows, (row) => Array.from(row.cells, text))),
       executable: doc.querySelectorAll('script,iframe,object,embed,form').length,
+      contentsCount: doc.querySelectorAll('nav#contents').length,
+      frontmatterTargets: Array.from(doc.querySelectorAll('nav#contents a'))
+        .slice(0, 3).map((link) => link.getAttribute('href')),
+      destinationsValid: Array.from(doc.querySelectorAll('nav#contents a')).every((link) => {
+        const href = link.getAttribute('href') ?? ''
+        return /^#(?:section-\d+|list-of-(?:tables|figures))$/.test(href) && doc.querySelectorAll(href).length === 1
+      }),
     }
   }, html)
   expect(document.lang).toBe(language)
   expect(document.dir).toBe(language === 'ar' ? 'rtl' : 'ltr')
   expect(document.executable).toBe(0)
+  expect(document.contentsCount).toBe(1)
+  expect(document.frontmatterTargets).toEqual(['#list-of-tables', '#list-of-figures', '#section-0'])
+  expect(document.destinationsValid).toBe(true)
   expect(document.text).not.toContain('MIYAAR-FICTIONAL-')
   return document
 }
@@ -219,7 +239,7 @@ function expectReportScope(document: DocumentContents, snapshot: RunExecutive) {
   ]) expect(rows).toContainEqual(row)
   expect(document.text).toContain(snapshot.headline)
   expect(document.text).toContain('معيار | Miyaar')
-  expect(document.text).toContain(ar ? 'ذكاء صيانة الأصول ودعم القرار' : 'Asset maintenance intelligence and decision support')
+  expect(document.text).toContain(ar ? 'الملخص التنفيذي' : 'Executive summary')
   expect(document.text).toContain(snapshot.advisory!.recommendation)
   expect(document.text).toContain(snapshot.advisory!.preservation)
   expect(rows.some((row) => row.includes('Site') && row.some((cell) => cell.includes('North')))).toBe(true)
@@ -237,7 +257,7 @@ function expectReportScope(document: DocumentContents, snapshot: RunExecutive) {
   ]) expect(properties).toContainEqual(row)
   for (const question of snapshot.questions) expect(document.text).toContain(question.text)
   for (const evidence of snapshot.evidence) expect(document.text).toContain(evidence.id)
-  expect(document.text).toContain(ar ? 'تقييمات نماذج التشغيل الكامل' : 'Whole-run model evaluations')
+  expect(document.text).toContain(ar ? 'أدلة النماذج المسجلة وحدودها' : 'Recorded model evidence and limitations')
   expect(document.text).toContain(ar
     ? 'لا يتوفر تقييم نموذج؛ ولا يُدّعى وجود أداء تنبؤي.'
     : 'No model evaluation is available; predictive performance is not claimed.')
@@ -301,6 +321,16 @@ async function printReport(page: Page, prepared: Locator, snapshot: RunExecutive
   const document = await inspectHtml(page, await popup.content(), snapshot.language)
   expectReportScope(document, snapshot)
   expect(downloads, 'printing requests a browser dialog, not a direct PDF download').toEqual([])
+  await popup.setViewportSize({ width: 816, height: 1056 })
+  await popup.emulateMedia({ media: 'print' })
+  await popup.evaluate(() => window.document.fonts.ready)
+  const printLayout = await popup.evaluate(() => ({
+    frontBottom: window.document.querySelector('.compact')!.getBoundingClientRect().bottom,
+    overflowingCells: Array.from(window.document.querySelectorAll<HTMLElement>('th,td'))
+      .filter((cell) => cell.scrollWidth > cell.clientWidth + 2).length,
+  }))
+  expect(printLayout.frontBottom, 'summary fits the Letter page inside its print margins').toBeLessThanOrEqual(912)
+  expect(printLayout.overflowingCells).toBe(0)
   page.off('download', recordDownload)
   await popup.close()
   await expect(prepared.getByRole('button', {

@@ -1,5 +1,28 @@
 # Project progress
 
+RMD CI selector repair: the old navigation-title grep selected no tests. Run the
+complete desktop overview file instead; local navigation/recovery cases pass
+with existing viewport conditions preserved. No runtime or permission changes.
+Hosted verification of this correction remains the final integration gate.
+
+Local regression repair is verified: explicit transaction connection closure, minimal Windows child-process bootstrap, category contrast and short-desktop chart spacing. Full Python/component/build gates and reconciled browser coverage pass; README records the bounded broad-run interruption and complete affected-case reruns. Local synthetic pixel inspection is complete within its recorded scope. Hosted CI and a local release preserving existing local-only report features remain separate gates; the running app is unchanged.
+
+## 26 October - Approved visual palette and source workspace
+
+- Done: exact approved light palette, shared hierarchy and card treatment across
+  routes, responsive source cards with separate actions, compact storage facts,
+  and aligned overview/assistant composition. Existing capabilities preserved.
+- Verified: component, TypeScript, browser and production-budget results are in
+  README. Browser coverage includes every route in both languages and sizes.
+- Next: local visual acceptance and separately authorized activation/integration.
+  No live screenshot transfer, model activation or Vercel deployment occurred.
+
+**Three Stitch references, 25 October 2026 (draft PR #61):** Inspected all three screenshot/HTML exports instead of treating mock telemetry, signatures, $1.42M savings and agent quorum as facts. Adapted the real `RunsView` report tabs into a source-backed two-column report inspector with responsive stacking, plus existing API chart label legibility; added tests to the real-run journey. [Design audit](docs/design/2026-10-25-stitch-three-screen-reference.md) · [ADR](docs/adr/2026-10-25-governed-report-inspector.md). CI and same-run screenshots remain release gates; no live agent or DCS control was added, and no deployment/merge is authorized.
+
+
+**Miyaar PBIX reference and phone chart review (25 October 2026, draft branch):** Inspected the supplied eight-page PBIX definitions and Team 3 PDF; recorded two genuine design directions and chose to refine the existing merged decision-first canvas. A targeted CSS change lays out complete bar-category names and real values above full-width bars only under 480px; the existing FastAPI Playwright fixture now contains a long site label and checks the phone rendering. Full exact-SHA CI, actual app screenshot comparison and production acceptance are not yet verified. See [design reference](docs/design/2026-10-25-miyaar-powerbi-reference-ux.md) and [ADR](docs/adr/2026-10-25-mobile-chart-label-legibility.md). No main merge, deployment or Hermes change.
+
+
 KPI review visual acceptance (24 October): additive real-API browser coverage now targets the KPI families and expanded source disclosure in English/Arabic, light/dark and a 320 px phone. Local static/unit checks pass in the materialized workspace; exact-head locked-dependency hosted execution and screenshot inspection remain pending. No application code, merge or deployment changes.
 
 Model-admission review wave (23 October): bounded credits are reserved before run transactions, shared by consultant contexts and settled after commit/rollback. This preserves existing run locks and worker roles; conservative credit/crash semantics and hosted acceptance remain release-review gates. See docs/adr/2026-10-23-bounded-model-admission.md.
@@ -13,8 +36,10 @@ Last updated: 2026-10-23, platform/API recovery, transactional publishing and ap
 
 ## Now
 
+- **PR65 browser contract follow-up, 2026-10-26:** corrected legacy greeting/fallback expectations to verify explicit model-unavailable provenance and localized replies. Demo/overview tests now open the actual Latest findings disclosure before checking content. The previously failing desktop/mobile cases, separate Miyaar bilingual/voice/accessibility suite and TypeScript pass locally; full hosted CI remains a release gate. No application behavior or live data changed.
+
 - **Hermes Desktop package candidate, 2026-10-24:** isolated portable package prepared against main `084e9fc1`, restricted to help/run-status/report-explanation capabilities. Configured startup memory reads and SQLite schema/WAL writes are explicitly disclosed. Revised package/MCP dispatch tests pass in temporary synthetic storage with network-denial guards after memory recovered; commands/counts are in README. The owner authorized branch publication and a draft PR only. Live Hermes handshake remains untested; installation, activation and data/model scope remain unapproved. Phase 1's live checkout is untouched. See [guide](docs/HERMES_DESKTOP.md).
-- **Report wording precision candidate, 2026-10-24:** isolated bilingual corrections describe the existing planning threshold probabilistically and condition the combined forecast caveat on an actual forecast. Synthetic regressions pass; independent review and full verification remain pending. Current saved reports and the accepted local UI are preserved. See [decision](docs/adr/2026-10-24-report-wording-precision.md).
+- **Report wording precision candidate, updated 2026-10-26:** PR #63 incorporates current main while retaining both histories. Bilingual output separates absent forecasts, unmeasured projections and backtested forecasts, and describes planning power probabilistically. Synthetic comparisons preserve calculations and evidence; reopening historical synthetic reports and generating new ones preserves stored hashes. Verification counts and execution limits are in README. The review branch explicitly disables automatic Vercel deployment. Exact-head hosted checks and owner approval remain release gates. See [decision](docs/adr/2026-10-26-report-wording-current-main.md).
 
 - **Phase 1 source revision, 2026-10-24:** prepared four controlled KPI cards, a real comparison beside the review queue, compact provenance, and three primary work areas with all old routes retained. Keyboard focus and long-filename wrapping are included. Existing interaction assertions are being aligned with the actual disclosures; no checks are skipped. The laptop memory guard deferred validation, so this source is not yet the running UI. The target is Sunday 25 October at noon Dubai; presentation/video are Phase 2. Keep the current local app and uploads intact until guarded tests/build and actual rendered acceptance pass.
 
@@ -281,3 +306,34 @@ The earlier history is in `docs/ROADMAP.md` (tiers and gates) and `docs/adr/`.
 
 Additional bilingual and phone test paths now follow the three-area navigation through native disclosures. These source repairs preserve route, keyboard, reflow, export and approval assertions. Hosted exact-head verification and actual local rendering remain pending; the prior loopback build is still running. No backend behavior changed.
 
+
+**Report-only main integration, 25 October 2026:** Reconciles the reviewed report renderer and focused export controls onto verified main. Excludes the separate local chat/model/UI ancestor branches; no remote write or live replacement. Native Office pagination and arbitrary-browser printed TOC page references remain limitations.
+
+**Report CI assertion follow-up:** PR #64 exposed a stale numbered-section-only browser assertion. It now accepts the actual LOT/LOF destinations, checks their order before the unnumbered summary, and still requires exactly one target per link. Hosted acceptance remains a merge gate; production code is unchanged.
+
+**Reference-led UI integration:** Prepared a clean patch on the merged report
+baseline. It includes four-stage navigation, shared visual styling, one contextual
+report selector and its necessary owner-scoped persistence/calculation API. Model
+readiness and bounded failure replies support honest status; no model is enabled.
+Excluded report-review/model experiments, KPI-method changes, unrelated inspector
+work, generated outputs, private logs and ancestor history. Verification is in
+README. Remote publication/merge remains separately authorized.
+
+### Dataset composition correction
+
+Shared route alignment and direct Command Centre navigation implemented; Datasets
+has source cards and a separate usage/connectors column. Live browser acceptance
+and remote merge remain distinct gates. Existing report features are retained.
+
+**Shared visual identity and phone reflow, 25 October 2026:** Distinct navy navigation and blue/cyan action hierarchy now use the same tokens across existing routes, with larger body type and separate light evidence surfaces. Phone shell containment and accessible filename ellipsis address observed overflow. Component and TypeScript checks passed; local activation and browser acceptance remain separately recorded gates. See [decision](docs/adr/2026-10-25-shared-visual-identity-and-mobile-reflow.md).
+
+RTL phone follow-up: remove the negative hidden-element margin and strengthen
+root-scroll assertions to use client dimensions. Restore explicit identity-control
+focus styling without changing contrast thresholds. Verification recorded separately.
+
+
+**Approved open-PR integration, 26 October 2026:** Integrated #29/#30/#31/#45/#61/#63
+on current main in a review candidate, retaining newer guards and current design.
+Added explicit Arabic-media CI and responsive report-tab keyboard semantics. Local
+backend, frontend, build and unchanged byte budgets pass; exact published-head
+hosted gates remain required. Owner approved publication/merges, not deployment.

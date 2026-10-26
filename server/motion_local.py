@@ -14,6 +14,7 @@ import tempfile
 import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -61,11 +62,17 @@ class LocalMotion:
         except OSError:
             pass
 
+    @contextmanager
     def connect(self):
         con = sqlite3.connect(str(self.database), timeout=10)
-        con.row_factory = sqlite3.Row
-        con.execute("PRAGMA busy_timeout=10000")
-        return con
+        try:
+            con.row_factory = sqlite3.Row
+            con.execute("PRAGMA busy_timeout=10000")
+            # Connection.__exit__ commits/rolls back but does not close SQLite.
+            with con:
+                yield con
+        finally:
+            con.close()
 
     def _initialize(self):
         with self.lock, self.connect() as con:

@@ -58,6 +58,9 @@ jobs:
       - name: Install browser
         run: npx playwright install --with-deps chromium
         working-directory: frontend
+      - name: Design proposal comparison (fixture styles only)
+        run: npx playwright test design-options.spec.ts --project=desktop
+        working-directory: frontend
       - name: Task-first Miyaar responsive and accessibility evidence
         run: npx playwright test task-first.spec.ts --project=desktop
         working-directory: frontend
@@ -65,7 +68,7 @@ jobs:
         run: npx playwright test rmd.spec.ts platform.spec.ts --max-failures=1
         working-directory: frontend
       - name: Sidebar navigation contract
-        run: npx playwright test overview.spec.ts --grep "sidebar groups" --project=desktop
+        run: npx playwright test overview.spec.ts --project=desktop
         working-directory: frontend
       - name: Existing Miyaar bilingual, voice and accessibility
         run: npx playwright test --config=playwright.miyaar.config.ts
@@ -80,6 +83,7 @@ jobs:
           path: |
             frontend/dist
             docs/screenshots/miyaar-task-first-synthetic-*.png
+            docs/screenshots/miyaar-design-proposal-*.png
             frontend/test-results
             frontend/playwright-report
           retention-days: 7

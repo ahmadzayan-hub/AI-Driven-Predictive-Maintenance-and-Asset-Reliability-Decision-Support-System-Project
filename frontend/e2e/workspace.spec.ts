@@ -44,7 +44,7 @@ test('drafts, deep links, evidence and exact-report keyboard approval', async ({
   await page.goto('/#/assistant')
   await composerInput(page).fill('Keep my unsent question')
   await openTab(page, /^Datasets/)
-  await openTab(page, /^Workspace/)
+  await openTab(page, /^Ask Miyaar/)
   await expect(composerInput(page)).toHaveValue('Keep my unsent question')
   await page.reload()
   await expect(composerInput(page)).toHaveValue('Keep my unsent question')

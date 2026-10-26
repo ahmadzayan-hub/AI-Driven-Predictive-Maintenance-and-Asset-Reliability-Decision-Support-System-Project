@@ -1852,8 +1852,9 @@ def _sample_size_per_arm(variance, delta):
 
 
 def _smallest_detectable_change(variance, rows_available):
-    """The smallest difference the rows already in hand could detect, if
-    they were split evenly into two arms."""
+    """Approximate effect size for 80% power at two-sided 5% significance,
+    planning an equal split of the available rows; not a hard detection limit.
+    """
     per_arm = rows_available / 2
     if per_arm < 2 or variance <= 0:
         return None
@@ -1990,12 +1991,15 @@ def _observational(ctx, values, measure):
                            "average would be detected about four times in five under "
                            "these planning assumptions. Smaller effects can still be "
                            "detected, but with a lower probability; this is not a hard "
-                           "detection limit.",
+                           "detection limit. This normal-approximation calculation "
+                           "does not give the probability that a particular finding is true.",
                            f"باستخدام المشاهدات المتاحة هنا وعددها {count:,}، مقسمة "
                            "بالتساوي، يمكن رصد تغير حقيقي بنحو "
                            f"**{detectable / scale:.0%}** من المتوسط في نحو أربع من كل "
                            "خمس تجارب، وفق افتراضات التخطيط هذه. قد تُرصد تغيرات أصغر "
-                           "أيضاً، لكن باحتمال أقل؛ فهذا ليس حداً قاطعاً للرصد.")]
+                           "أيضاً، لكن باحتمال أقل؛ فهذا ليس حداً قاطعاً للرصد. "
+                           "يعتمد الحساب على التقريب الطبيعي ولا يحدد احتمال صحة "
+                           "نتيجة بعينها.")]
     claims = [_claim(
         ctx, "cl_exp_observational", "limitation",
         f"This data records what happened; it contains no controlled "
@@ -3373,10 +3377,10 @@ def predictive(ctx):
     """Type 3 — What will happen?
 
     A trend line fitted to the historical periods, extended forward, with
-    its accuracy measured by backtesting rather than asserted. A forecast
-    that has not been checked against held-out history is a guess with a
-    decimal point, so when there is too little history to check, this
-    stage says so instead of forecasting.
+    its accuracy measured by backtesting when usable held-out history exists.
+    Histories below the fitting minimum are refused. Histories that permit
+    fitting but not backtesting produce projections explicitly marked as
+    having unmeasured accuracy, as do unusable zero-valued holdout periods.
     """
     prep = ctx["preparer"]
     measure, date_col = prep["measure"], prep["date_col"]
@@ -3435,11 +3439,12 @@ def predictive(ctx):
                                    headline=headline)}, calculations=calcs, claims=claims)
 
     if len(series) < MIN_PERIODS_TO_FORECAST:
-        reason_en = (f"Only {len(series)} period(s) of history are available; at least "
-                     f"{MIN_PERIODS_TO_FORECAST} are needed before a forecast means "
-                     "anything.")
+        reason_en = (f"Only {len(series)} period(s) of history are available; this trend "
+                     f"model requires at least {MIN_PERIODS_TO_FORECAST} to produce "
+                     "a forecast. Meeting that minimum alone does not establish accuracy.")
         reason_ar = (f"المتاح من التاريخ {len(series)} من الفترات فقط، ويلزم "
-                     f"{MIN_PERIODS_TO_FORECAST} على الأقل قبل أن يكون للتوقع معنى.")
+                     f"{MIN_PERIODS_TO_FORECAST} على الأقل كي ينتج نموذج الاتجاه هذا "
+                     "توقعاً. بلوغ هذا الحد وحده لا يثبت الدقة.")
         reason = _say(ctx, reason_en, reason_ar)
         calcs.append({"id": "c_periods", "name": "periods_available",
                       "value": len(series), "method": f"distinct values of {date_col or '—'}"})
@@ -3551,13 +3556,21 @@ def predictive(ctx):
                 "لا يتفوق عليه، فالتوقع ضعيف: اعتبره ليس أفضل من الفترة الأخيرة.")),
             ["c_backtest", "c_naive"]))
     if error is None:
+        if len(series) < MIN_PERIODS_TO_BACKTEST:
+            unmeasured_en = (f"Backtesting requires at least {MIN_PERIODS_TO_BACKTEST} "
+                             f"periods and this dataset has {len(series)}.")
+            unmeasured_ar = (f"يتطلب الاختبار على بيانات سابقة "
+                             f"{_ar_n(MIN_PERIODS_TO_BACKTEST, 'period')} على الأقل، "
+                             f"وفي هذه البيانات {len(series)}.")
+        else:
+            unmeasured_en = ("The selected backtest holdout periods all have zero actual values, "
+                             "so percentage error cannot be measured.")
+            unmeasured_ar = ("القيم الفعلية في جميع فترات الاختبار المختارة تساوي "
+                             "صفراً، لذا لا يمكن قياس نسبة الخطأ.")
         claims.append(_claim(
             ctx, "cl_nobacktest", "limitation",
-            f"The forecast could not be backtested — that needs at least "
-            f"{MIN_PERIODS_TO_BACKTEST} periods — so its accuracy is unmeasured.",
-            f"تعذّر اختبار التوقع على بيانات سابقة، إذ يتطلب ذلك "
-            f"{_ar_n(MIN_PERIODS_TO_BACKTEST, 'period')} على الأقل، فدقته غير "
-            "مقيسة.",
+            "The forecast's accuracy is unmeasured. " + unmeasured_en,
+            "دقة التوقع غير مقيسة. " + unmeasured_ar,
             ["c_slope"]))
 
     if report_language(ctx) == "ar":
@@ -3575,9 +3588,7 @@ def predictive(ctx):
                   (f"الدقة المقيسة: عند توقع آخر {_ar_n(holdout, 'period')} من "
                    f"البيانات الأسبق وحدها، أخطأت هذه الطريقة بمتوسط {error:.1%}."
                    if error is not None else
-                   f"الدقة غير مقيسة: الاختبار على بيانات سابقة يتطلب "
-                   f"{_ar_n(MIN_PERIODS_TO_BACKTEST, 'period')} على الأقل، وفي هذه "
-                   f"البيانات {len(series)}."),
+                   "الدقة غير مقيسة: " + unmeasured_ar),
                   "",
                   f"يفسّر خط الاتجاه {explained:.0%} من التحرك بين الفترات.",
                   "",
@@ -3590,9 +3601,7 @@ def predictive(ctx):
                    f"from earlier data only, this method was off by {error:.1%} on "
                    "average."
                    if error is not None else
-                   f"Accuracy is unmeasured: backtesting needs at least "
-                   f"{MIN_PERIODS_TO_BACKTEST} periods and this dataset has "
-                   f"{len(series)}."),
+                   "Accuracy is unmeasured: " + unmeasured_en),
                   "",
                   f"The trend line explains {explained:.0%} of the movement between "
                   "periods.",
@@ -4529,8 +4538,12 @@ REPORT_TEXT = {
         "limits": "## Assumptions and limitations",
         "forecast_limit": "The forecast extends the historical pattern. It assumes "
                           "the business keeps operating as it has, and it is stated "
-                          "with the error measured by backtesting (or explicitly "
-                          "marked unmeasured).",
+                          "with the error measured by backtesting. This historical "
+                          "error does not guarantee future accuracy.",
+        "unmeasured_forecast_limit": "The forecast extends the historical pattern, "
+                                     "assuming unchanged operations, but its accuracy "
+                                     "is unmeasured: no usable backtest error is "
+                                     "available. Treat it as an unvalidated projection.",
         "no_forecast_limit": "No forecast was produced. The predictive section "
                              "explains the limitation; historical observations "
                              "alone are not a validated prediction.",
@@ -4574,7 +4587,11 @@ REPORT_TEXT = {
         "limits": "## الافتراضات والقيود",
         "forecast_limit": "يمدّ التوقع النمط التاريخي. ويفترض استمرار النشاط على ما "
                           "كان عليه، ويُعرض مع الخطأ المقيس بالاختبار على بيانات "
-                          "سابقة (أو مع التصريح بأنه غير مقيس).",
+                          "سابقة. هذا الخطأ التاريخي لا يضمن الدقة المستقبلية.",
+        "unmeasured_forecast_limit": "يمدّ التوقع النمط التاريخي بافتراض استمرار "
+                                     "النشاط، لكن دقته غير مقيسة لعدم توافر خطأ "
+                                     "اختبار رجعي صالح. يُعامل بوصفه إسقاطاً "
+                                     "لم يتم التحقق من دقته.",
         "no_forecast_limit": "لم يُنتج أي توقع. يوضح قسم التحليل التنبؤي القيد؛ "
                              "فالمشاهدات التاريخية وحدها ليست تنبؤاً تم التحقق منه.",
         "limits_lines": [
@@ -4719,8 +4736,13 @@ def reporter(ctx):
                      if arabic else
                      f"- {verdict} — {check['name']}: {check['detail']}")
     lines += ["", text["limits"]]
-    forecast_limit = text["forecast_limit" if ctx.get("predictive", {}).get("forecast")
-                          else "no_forecast_limit"]
+    prediction = ctx.get("predictive", {})
+    if not prediction.get("forecast"):
+        forecast_limit = text["no_forecast_limit"]
+    elif prediction.get("backtest_error") is None:
+        forecast_limit = text["unmeasured_forecast_limit"]
+    else:
+        forecast_limit = text["forecast_limit"]
     lines += [line.format(snapshot=ctx["collector"]["snapshot"],
                           forecast_limit=forecast_limit)
               for line in text["limits_lines"]]

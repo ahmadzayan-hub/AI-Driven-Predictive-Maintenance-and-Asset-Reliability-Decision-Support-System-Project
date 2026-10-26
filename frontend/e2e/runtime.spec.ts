@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { lastAgentBubble, sendMessage, skipOnboarding } from './helpers'
+import { expectModelUnavailable, lastAgentBubble, sendMessage, skipOnboarding } from './helpers'
 
 // An agent runtime (ADR 0021) gets the sentences the rules cannot place.
 // What it called is in the bubble verbatim, its closing line after, and
@@ -20,8 +20,7 @@ test('a sentence the rules cannot place goes to the agent runtime, and its calls
   await expect(lastAgentBubble(page)).toHaveText('Information saved.')
   await expect(page.getByText(/run by Scripted/)).toHaveCount(1)
 
-  // A sentence the runtime declines is answered the ordinary way.
-  await sendMessage(page, 'Ping')
-  await expect(lastAgentBubble(page)).toContainText('not sure what')
+  // A declined request cannot masquerade as a model reply when no provider is enabled.
+  await expectModelUnavailable(page, () => sendMessage(page, 'Ping'))
   await expect(page.getByText(/run by Scripted/)).toHaveCount(1)
 })

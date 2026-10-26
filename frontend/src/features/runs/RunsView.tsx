@@ -148,9 +148,9 @@ function LineChart({ chart, language }: { chart: ChartSpec; language: Locale }) 
  *  follows focus, which is the expected behaviour when switching panels
  *  is cheap — here it only swaps already-loaded text. In a right-to-left
  *  layout the tabs run the other way, so the arrows do too (WAI-ARIA). */
-function nextTabIndex(key: string, current: number, count: number, rtl: boolean): number | null {
-  const forward = rtl ? 'ArrowLeft' : 'ArrowRight'
-  const backward = rtl ? 'ArrowRight' : 'ArrowLeft'
+function nextTabIndex(key: string, current: number, count: number, rtl: boolean, vertical: boolean): number | null {
+  const forward = vertical ? 'ArrowDown' : rtl ? 'ArrowLeft' : 'ArrowRight'
+  const backward = vertical ? 'ArrowUp' : rtl ? 'ArrowRight' : 'ArrowLeft'
   if (key === forward) return (current + 1) % count
   if (key === backward) return (current - 1 + count) % count
   if (key === 'Home') return 0
@@ -246,6 +246,14 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
   // Which analytics type's report is on screen. Descriptive is the floor
   // of the maturity ladder, so it opens first.
   const [preferredReport, setOpenReport] = useState('descriptive')
+  const [verticalTabs, setVerticalTabs] = useState(() => window.matchMedia('(min-width: 900px)').matches)
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 900px)')
+    const update = () => setVerticalTabs(media.matches)
+    media.addEventListener('change', update)
+    update()
+    return () => media.removeEventListener('change', update)
+  }, [])
   const openReport = run?.reports.some((section) => section.type === preferredReport)
     ? preferredReport : run?.reports[0]?.type ?? ''
   const [localBusy, setBusy] = useState(false)
@@ -453,7 +461,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
   }
 
   function moveTabFocus(event: React.KeyboardEvent, types: string[]) {
-    const target = nextTabIndex(event.key, types.indexOf(openReport), types.length, isRtl)
+    const target = nextTabIndex(event.key, types.indexOf(openReport), types.length, isRtl, verticalTabs)
     if (target === null) return
     event.preventDefault()
     const type = types[target]
@@ -924,9 +932,11 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
           {run.reports.length ? (
             <div className="card report-theme report-sheet">
               <h3 className="card__title">{t('runs.reports')}</h3>
+              <div className="report-inspector">
               <div
                 className="reporttabs"
                 role="tablist"
+                aria-orientation={verticalTabs ? 'vertical' : 'horizontal'}
                 aria-label={t('runs.reportSection')}
                 onKeyDown={(event) => moveTabFocus(event, run.reports.map((s) => s.type))}
               >
@@ -951,6 +961,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                   </button>
                 ))}
               </div>
+              <div className="report-inspector__preview">
               {run.reports
                 .filter((section) => section.type === openReport)
                 .map((section) => (
@@ -969,6 +980,8 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                       label={t('runs.reportText', { type: typeLabel(t, section.type, section.title) })} />
                   </div>
                 ))}
+              </div>
+              </div>
             </div>
           ) : null}
 
