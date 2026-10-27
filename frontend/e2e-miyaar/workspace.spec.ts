@@ -62,6 +62,15 @@ for(const locale of ['en','ar'] as const) for(const size of ['desktop','phone','
     await page.keyboard.press('Enter')
     await expect(context).not.toHaveAttribute('open')
     expect(await page.locator('.chat__scroll').evaluate(el => el.scrollTop)).toBe(0)
+    if (size === 'phone') {
+      const action = await page.locator('.miyaar-action--primary').boundingBox()
+      const viewport = await page.locator('.chat__scroll').boundingBox()
+      expect(action).not.toBeNull()
+      expect(viewport).not.toBeNull()
+      expect(action!.y).toBeGreaterThanOrEqual(viewport!.y)
+      expect(action!.y + action!.height).toBeLessThanOrEqual(viewport!.y + viewport!.height)
+      await expect(page.locator('.composer__input')).toBeInViewport()
+    }
     await noOverflow(page)
     await a11y(page)
     if(size === 'desktop' || size === 'phone') await page.screenshot({ path: `../docs/screenshots/miyaar-${locale}-${size}.png`, fullPage: true })
@@ -175,4 +184,52 @@ test('a new session stays usable while an obsolete reply is still pending', asyn
     await obsolete
     await expect(page.locator('.msg--agent .msg__bubble')).toHaveText('Current session reply')
   } finally { release() }
+})
+
+for (const locale of ['en', 'ar'] as const) test(`phone report selection, clear and failed save ${locale}`, async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 })
+  const state = await boot(page, locale)
+  const labels = dataChatMessages[locale]
+  const selected = { run_id: 'synthetic-owned-report', dataset_id: 'synthetic-data',
+    dataset_name: 'synthetic-maintenance.csv', source_sha256: 'a'.repeat(64),
+    analysis_revision: 'b'.repeat(64), filters: [], records: 3, total_records: 3 }
+  let fail = false
+  let writes = 0
+  await page.route('**/api/sessions/*/data-context', async route => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({ json: { selected: state.data_context ?? null,
+        choices: [{ run_id: selected.run_id, dataset_name: selected.dataset_name, state: 'completed' }] } })
+      return
+    }
+    writes++
+    if (fail) { await route.fulfill({ status: 409, json: { detail: 'Synthetic stale report' } }); return }
+    state.data_context = route.request().postDataJSON().run_id ? selected : null
+    await route.fulfill({ json: state })
+  })
+  const details = page.locator('.assistant-context details')
+  const summary = details.locator('summary')
+  await summary.click()
+  await details.getByRole('button', { name: labels['dataChat.load'], exact: true }).click()
+  await details.getByRole('combobox').selectOption(selected.run_id)
+  expect(writes).toBe(0)
+  await details.getByRole('button', { name: labels['dataChat.use'], exact: true }).click()
+  await expect(summary).toContainText(selected.dataset_name)
+  await summary.focus()
+  await page.keyboard.press('Enter')
+  await expect(details).not.toHaveAttribute('open')
+  await expect(summary).toBeInViewport()
+  await expect(page.locator('.composer__input')).toBeInViewport()
+  await noOverflow(page)
+  await a11y(page)
+  await page.screenshot({ path: `../docs/screenshots/miyaar-selected-${locale}-phone.png`, fullPage: true })
+  await summary.focus()
+  await page.keyboard.press('Enter')
+  await expect(details.getByRole('combobox')).toHaveValue(selected.run_id)
+  await details.getByRole('button', { name: labels['dataChat.clear'], exact: true }).click()
+  await expect(summary).toContainText(labels['dataChat.none'])
+  fail = true
+  await details.getByRole('button', { name: labels['dataChat.use'], exact: true }).click()
+  await expect(details.getByRole('alert')).toContainText(labels['dataChat.error'])
+  await expect(summary).toContainText(labels['dataChat.none'])
+  expect(writes).toBe(3)
 })

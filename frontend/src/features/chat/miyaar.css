@@ -95,7 +95,7 @@
   .miyaar-toolbar__count { display: none !important; }
   .chat__scroll { padding: var(--space-3); }
   .miyaar-hero { grid-template-columns: minmax(0,1fr); padding: var(--space-4); }
-  .miyaar-hero__art { display: none; }
+  .miyaar-hero__art, .miyaar-hero .eyebrow, .miyaar-hero__steps { display: none; }
   .miyaar-hero h2 { max-inline-size: none; }
   .miyaar-actions { grid-template-columns: minmax(0,1fr); }
   .miyaar-action { padding: var(--space-3); }
