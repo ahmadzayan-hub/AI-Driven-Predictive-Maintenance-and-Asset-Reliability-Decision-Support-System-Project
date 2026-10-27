@@ -291,8 +291,9 @@ class KeyPairIn(BaseModel):
 
 class JoinIn(BaseModel):
     dataset_id: str = Field(min_length=1, max_length=32)
-    keys: list[KeyPairIn] = Field(min_length=1, max_length=joining.MAX_KEYS)
-    how: str = Field(default="left", pattern="^(left|inner)$")
+    # A stack needs no key; `normalise` refuses a left or inner join without one.
+    keys: list[KeyPairIn] = Field(default_factory=list, max_length=joining.MAX_KEYS)
+    how: str = Field(default="left", pattern="^(left|inner|stack)$")
     alias: str | None = Field(default=None, max_length=24)
 
 

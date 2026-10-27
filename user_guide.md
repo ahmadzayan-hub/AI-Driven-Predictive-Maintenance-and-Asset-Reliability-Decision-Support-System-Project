@@ -229,13 +229,22 @@ other datasets*:
   was and leaves the joined columns empty for unmatched rows; *Keep only
   matched rows* drops them, and the report says how many.
 
+- **Stack its rows underneath** — for another export of the same table,
+  such as the next quarter's extract. The dataset must have exactly the
+  same columns; no key is needed. Its rows are added below the main ones,
+  read with the main dataset's column mapping, and a new **source** column
+  says which dataset each row came from, so you can break totals down by
+  export. A row already present in the table is dropped and the run says
+  how many, so an overlap between two exports is never counted twice.
+
 **Preview the merge** shows the rows in and out, how many rows found a
-match in each dataset, the keys that found none, and the first rows of
-the merged table. A joined dataset whose key appears more than once is
-refused, because a row would otherwise be counted twice. After a
-preview you can choose a column from a joined dataset under *Break
-totals down by*. Up to four datasets can be joined; the run then shows a
-Data Merge Agent right after cleaning.
+match in each dataset (or how many rows a stack added), the keys that
+found none, and the first rows of the merged table. A joined dataset whose
+key appears more than once is refused, because a row would otherwise be
+counted twice, and a stacked dataset whose columns differ is refused with
+the columns named. After a preview you can choose a column from a joined
+dataset under *Break totals down by*. Up to four datasets can be joined or
+stacked; the run then shows a Data Merge Agent right after cleaning.
 
 ### Downloading the cleaned data
 

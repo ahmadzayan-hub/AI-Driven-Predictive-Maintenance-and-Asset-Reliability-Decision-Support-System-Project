@@ -14,6 +14,7 @@ import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from server import analytics
 from server import joins as j
@@ -42,6 +43,15 @@ P4_TOTAL = float(sum(v for _, p, _, v in SALES_ROWS if p == "P4"))
 PRODUCTS_CSV = ("code,category,list_price\nP1,Hardware,10\nP2,Software,20\n"
                 "P3,Hardware,15\nP9,Services,5\n")
 DUPLICATED_CSV = "code,category\nP1,Hardware\nP1,Software\nP2,Software\n"
+# The next quarter's export of the same table (a stack, 27 October 2026):
+# the same four columns, three more months, plus one row that repeats the
+# last row of the first half.
+Q3_MONTHS = [f"2025-{m:02d}" for m in range(7, 10)]
+Q3_ROWS = [(month, product, "North" if i % 2 else "South", 200 + 10 * i + 5 * p)
+           for i, month in enumerate(Q3_MONTHS) for p, product in enumerate(PRODUCTS)]
+Q3_CSV = "month,product,region,revenue\n" + "\n".join(
+    f"{m},{p},{r},{v}" for m, p, r, v in Q3_ROWS + [SALES_ROWS[-1]]) + "\n"
+Q3_TOTAL = float(sum(v for *_, v in Q3_ROWS))
 # Monthly targets, written the way a planning sheet writes months.
 TARGETS_CSV = "month,target\n" + "\n".join(
     f"{name} 2025,{1000 + 100 * i}"
@@ -80,6 +90,17 @@ class DeclarationTests(unittest.TestCase):
         self.assertTrue(detail["message"].startswith("لا يمكن دمج البيانات"))
         self.assertEqual(len(detail["errors"]), 4)
         self.assertTrue(all(e["join"] == 0 for e in detail["errors"]))
+
+    def test_a_stack_needs_no_key_and_keeps_none(self):
+        spec = j.normalise([{"dataset_id": "d1", "how": "stack",
+                             "keys": [{"left": "a", "right": "b"}]}])
+        self.assertEqual(spec["joins"][0], {"dataset_id": "d1", "how": "stack",
+                                            "alias": None, "keys": []})
+        with self.assertRaises(j.JoinError) as caught:
+            j.normalise([{"dataset_id": "d1", "how": "left"}])
+        self.assertEqual(caught.exception.problems[0].field, "keys")
+        # A stacked table may not grow past what one dataset may hold.
+        self.assertEqual(j.STACK_MAX_ROWS, analytics.MAX_ROWS)
 
     def test_too_many_joins(self):
         many = [{"dataset_id": f"d{i}", "keys": [{"left": "a", "right": "a"}]}
@@ -233,6 +254,79 @@ class MergeTests(unittest.TestCase):
             j.merge(main.columns, main.rows, main.numeric,
                     [joined(wide, [{"left": "k", "right": "k"}])])
 
+    def stack(self, text=Q3_CSV, **kw):
+        return joined(text, [], how="stack", alias=kw.pop("alias", "q3"),
+                      name=kw.pop("name", "q3.csv"), **kw)
+
+    def test_a_stack_appends_rows_under_the_same_columns_with_a_source(self):
+        columns, rows, numeric = base()
+        result = j.merge(columns, rows, numeric, [self.stack()], source_name="h1.csv")
+        record = result["joins"][0]
+        self.assertEqual(result["columns"], columns + ["source"])
+        self.assertEqual(result["numeric_columns"], numeric)
+        self.assertEqual((record["rows_in"], record["rows_added"], record["rows_out"],
+                          record["duplicates_dropped"]), (24, 12, 36, 1))
+        self.assertEqual((record["how"], record["keys"], record["added_columns"],
+                          record["source_column"], record["source_label"]),
+                         ("stack", [], ["source"], "source", "q3"))
+        self.assertEqual(len(result["rows"]), 36)
+        self.assertEqual([r["source"] for r in result["rows"]], ["h1.csv"] * 24 + ["q3"] * 12)
+        # The stacked measures are numbers, so the totals add up.
+        self.assertEqual(sum(r["revenue"] for r in result["rows"]), SALES_TOTAL + Q3_TOTAL)
+        self.assertEqual(result["rows"][24]["month"], "2025-07")
+
+    def test_a_table_with_different_columns_is_refused_and_the_columns_named(self):
+        columns, rows, numeric = base()
+        other = "month,product,revenue,channel\n2025-07,P1,1,Web\n"
+        with self.assertRaises(j.JoinError) as caught:
+            j.merge(columns, rows, numeric, [self.stack(other)])
+        problem = caught.exception.problems[0]
+        self.assertEqual((problem.field, problem.column), ("columns", "region, channel"))
+        self.assertIn("it lacks “region” and it adds “channel”", problem.en)
+        self.assertIn("ينقصه «region» ويزيد فيه «channel»", problem.ar)
+
+    def test_stacked_dates_are_read_at_the_main_grain(self):
+        main = table("month,revenue\n2025-01,100\n2025-02,200\n")
+        result = j.merge(main.columns, main.rows, main.numeric,
+                         [self.stack("month,revenue\nMar 2025,300\n2025-04-14,400\n")],
+                         date={"column": "month", "order": "auto", "grain": "month"})
+        self.assertEqual([r["month"] for r in result["rows"]],
+                         ["2025-01", "2025-02", "2025-03", "2025-04"])
+        # Without a readable grain the dates are kept as written.
+        kept = j.merge(main.columns, main.rows, main.numeric,
+                       [self.stack("month,revenue\nMar 2025,300\n")],
+                       date={"column": "month", "order": "as-recorded", "grain": None})
+        self.assertEqual(kept["rows"][-1]["month"], "Mar 2025")
+
+    def test_a_taken_source_name_is_not_overwritten(self):
+        main = table("source,amount\nA,1\nB,2\n")
+        result = j.merge(main.columns, main.rows, main.numeric,
+                         [self.stack("source,amount\nC,3\n")], source_name="main.csv")
+        self.assertEqual(result["columns"], ["source", "amount", "source_2"])
+        self.assertEqual([(r["source"], r["source_2"]) for r in result["rows"]],
+                         [("A", "main.csv"), ("B", "main.csv"), ("C", "q3")])
+
+    def test_two_stacks_share_one_source_column_and_a_join_can_follow(self):
+        columns, rows, numeric = base()
+        q4 = "month,product,region,revenue\n2025-10,P1,North,500\n"
+        result = j.merge(columns, rows, numeric, [
+            self.stack(), self.stack(q4, alias="q4", name="q4.csv"),
+            joined(PRODUCTS_CSV, [{"left": "product", "right": "code"}])])
+        self.assertEqual(result["columns"], columns + ["source", "category", "list_price"])
+        self.assertEqual(result["joins"][1]["added_columns"], [])
+        self.assertEqual(result["joins"][1]["source_column"], "source")
+        self.assertEqual(len(result["rows"]), 37)
+        self.assertEqual(result["rows"][-1]["category"], "Hardware")
+        # The second stack is compared against the table without the source column.
+        self.assertEqual(result["joins"][1]["rows_added"], 1)
+
+    def test_the_row_ceiling(self):
+        columns, rows, numeric = base()
+        with mock.patch.object(j, "STACK_MAX_ROWS", 30):
+            with self.assertRaises(j.JoinError) as caught:
+                j.merge(columns, rows, numeric, [self.stack()])
+        self.assertIn("36 rows; the limit is 30", caught.exception.problems[0].en)
+
     def test_a_breakdown_must_be_a_text_column_of_the_merged_table(self):
         self.assertIsNone(j.breakdown_problem(None, ["a"], []))
         self.assertIsNone(j.breakdown_problem("a", ["a"], []))
@@ -264,6 +358,24 @@ class PreviewTests(unittest.TestCase):
         with self.assertRaises(j.JoinError) as caught:
             analytics.preview_merge(SALES_CSV, None, self.inputs(), "list_price")
         self.assertEqual(caught.exception.problems[0].field, "breakdown")
+
+    def test_a_stacked_table_is_read_with_the_main_mapping(self):
+        mapping = {"roles": {"month": "date", "product": "dimension", "region": "dimension",
+                             "revenue": "measure"}, "measure": "revenue",
+                   "dimension": "product", "date_order": "auto", "grain": "month"}
+        # The stacked export writes months and amounts its own way; the
+        # main mapping reads both, so the rows line up with the main ones.
+        q3 = "month,product,region,revenue\nJul 2025,P1,South,\"AED 1,200\"\n"
+        stacked = {"dataset_id": "q", "name": "q3.csv", "alias": "q3", "content": q3,
+                   "snapshot": "abc", "how": "stack", "keys": [],
+                   "mapping": {"roles": {"revenue": "ignore"}}}
+        preview = analytics.preview_merge(SALES_CSV, mapping, [stacked], None,
+                                          dataset_name="sales.csv")
+        self.assertEqual((preview["rows_before"], preview["rows_after"]), (24, 25))
+        self.assertEqual(preview["added_columns"], ["source"])
+        self.assertIn("source", preview["breakdown_choices"])
+        self.assertEqual(preview["preview"][0][-1], "sales.csv")
+        self.assertEqual(preview["joins"][0]["rows_added"], 1)
 
     def test_personal_data_in_a_joined_dataset_is_found(self):
         people = "code,owner_email\nP1,a.person@example.com\nP2,b.person@example.com\n"
@@ -371,6 +483,46 @@ class JoinApiTestCase(unittest.TestCase):
         ids = {c["id"] for c in self.task(run, "merge")["claims"]}
         self.assertIn("cl_merge_0_inner", ids)
         self.assertIn("18 analyzed rows", run["report"]["content"])
+
+    def test_a_stacked_export_is_counted_once_and_told_apart_by_source(self):
+        h1 = self.upload(SALES_CSV, "h1.csv")
+        q3 = self.upload(Q3_CSV, "q3.csv")
+        run = self.run_to_gate(dataset_id=h1, joins=[{"dataset_id": q3, "how": "stack"}],
+                               breakdown="source")
+        merged = self.output(run, "merge")
+        self.assertEqual((merged["rows_before"], merged["rows_after"]), (24, 36))
+        self.assertEqual(merged["joins"][0]["duplicates_dropped"], 1)
+        self.assertEqual(merged["source_indices"][24:], [None] * 12)
+        self.assertTrue(self.check(run, "merge", "stack_q3_adds_up")["passed"])
+        ids = {c["id"] for c in self.task(run, "merge")["claims"]}
+        self.assertEqual({"cl_merge_0", "cl_merge_0_dupes"}, ids)
+        prep = self.output(run, "preparer")
+        self.assertEqual(prep["groups"], {"h1.csv": SALES_TOTAL, "q3": Q3_TOTAL})
+        self.assertTrue(self.check(run, "validator", "group_totals_reconcile")["passed"])
+        self.assertEqual(run["joins"][0]["how"], "stack")
+        # The cleaned table carries the source column.
+        table = self.client.get(f"/api/runs/{run['id']}/data.csv")
+        self.assertEqual(table.status_code, 200, table.text)
+        self.assertEqual(table.text.lstrip("\ufeff").splitlines()[0],
+                         "month,product,region,revenue,source")
+        self.assertEqual(len(table.text.splitlines()), 37)
+
+    def test_a_stack_whose_columns_differ_is_refused_before_the_run(self):
+        h1 = self.upload(SALES_CSV, "h1.csv")
+        other = self.upload(PRODUCTS_CSV, "products.csv")
+        response = self.client.post("/api/runs", json={
+            "goal": "Half year", "dataset_id": h1, "language": "ar",
+            "joins": [{"dataset_id": other, "how": "stack"}]})
+        self.assertEqual(response.status_code, 422, response.text)
+        error = response.json()["detail"]["errors"][0]
+        self.assertEqual(error["field"], "columns")
+        self.assertIn("لا يمكن رصّ products.csv", error["message"])
+        preview = self.client.post("/api/joins/preview", json={
+            "dataset_id": h1, "joins": [{"dataset_id": self.upload(Q3_CSV, "q3.csv"),
+                                         "how": "stack"}]})
+        self.assertEqual(preview.status_code, 200, preview.text)
+        self.assertEqual(preview.json()["rows_after"], 36)
+        self.assertEqual(preview.json()["joins"][0]["source_label"], "q3")
 
     def test_a_monthly_target_joins_daily_sales_by_month(self):
         daily = "day,revenue\n" + "\n".join(

@@ -195,3 +195,4 @@ One line per record, read from its title and decision; the record itself is the 
 | 2026-10-24-period-coverage-evidence | Period coverage evidence and bounded scenario claims | [[Evidence and claims]], [[Governed pipeline]] |
 | 2026-10-24-undici-development-audit-patch | A compatible undici security floor for the development DOM runtime | [[Verification and budgets]] |
 | 2026-10-27-dataset-deletion | A stored dataset can be removed unless an analysis reads it; the analyses are named, runs are never deleted, a live source forgets the snapshot | [[Column mapping]], [[Dataset joins]], [[Tenant isolation]] |
+| 2026-10-27-stacked-datasets | A declared join may stack an export with the same columns under the main table, read with the main mapping, repeats dropped and counted, a source column for the breakdown; the script ceiling moves to 254 KB after trimming | [[Dataset joins]], [[Column mapping]] |

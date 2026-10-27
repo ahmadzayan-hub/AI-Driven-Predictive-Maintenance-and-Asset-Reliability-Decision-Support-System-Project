@@ -439,9 +439,14 @@ required local files. Both behaviors are covered by tests
     Lighthouse mobile scored 98 against 99 before, with the same largest
     paint (2.13 s). What it saves is the unused script, which halved.
     Both dictionaries still ship on the first load.
-25. Several datasets per run (ADR 0030) are joined, not stacked: up to
-    four lookups, each on one to three key columns, onto one main
-    dataset of the same owner. Keys match as trimmed text, as numbers
+25. Several datasets per run (ADR 0030) are joined on keys or, since 27
+    October 2026, stacked underneath: up to four lookups or exports, a
+    lookup on one to three key columns, onto one main dataset of the
+    same owner. A stacked export must have exactly the main table's
+    columns (a renamed column is refused, not mapped), is read with the
+    main mapping, and may not take the table past 50,000 rows; its
+    repeats of rows already present are dropped and counted. Keys match
+    as trimmed text, as numbers
     when the main key is numeric, or as periods when it is the mapped
     date; there is no case-insensitive or fuzzy matching, so `north`
     and `North` do not match and the coverage figure is how the owner
