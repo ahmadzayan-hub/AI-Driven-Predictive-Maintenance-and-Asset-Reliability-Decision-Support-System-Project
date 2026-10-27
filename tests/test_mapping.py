@@ -109,6 +109,11 @@ class DateTests(unittest.TestCase):
             ("sept 2024", "month", "2024-09"), ("يناير 2025", "month", "2025-01"),
             ("١٥ مارس ٢٠٢٥", "day", "2025-03-15"), ("كانون الثاني 2025", "month", "2025-01"),
             ("1/2/99", "day", "1999-02-01"), ("1/2/05", "day", "2005-02-01"),
+            # ISO weeks (27 October 2026): a week value, and a day placed in
+            # its week; the week of 30 December 2024 is 2025-W01.
+            ("2025-W03", "week", "2025-W03"), ("2025w3", "week", "2025-W03"),
+            ("2025-01-15", "week", "2025-W03"), ("2024-12-30", "week", "2025-W01"),
+            ("2024-12-30", "year", "2024"),
         ]
         for text, grain, expected in cases:
             with self.subTest(text=text):
@@ -116,7 +121,8 @@ class DateTests(unittest.TestCase):
 
     def test_what_is_not_a_date(self):
         for text in ("2025-02-30", "2025-13", "13/13/2025", "1234.5", "2025.03", "26.5",
-                     "9999-01-01", "hello", "", "Q5 2025", "Jan Feb 2025"):
+                     "9999-01-01", "hello", "", "Q5 2025", "Jan Feb 2025", "2025-W54",
+                     "2025-W00"):
             with self.subTest(text=text):
                 self.assertIsNone(m.parse_date(text))
 
@@ -152,11 +158,30 @@ class DateTests(unittest.TestCase):
         # A stray year among days does not drag the whole column to years.
         self.assertEqual(m.period_labels(["2025-01-01"] * 20 + ["2025"])[1], "day")
 
+    def test_a_week_rolls_up_to_the_month_of_its_thursday_and_never_down_to_a_day(self):
+        # 2024-W01 runs 1 to 7 January 2024; 2025-W01 runs 30 December 2024 to
+        # 5 January 2025 and belongs to January 2025, as its Thursday does.
+        week = m.parse_date("2025-W01")
+        self.assertEqual((week.label("month"), week.label("quarter"), week.label("year")),
+                         ("2025-01", "2025-Q1", "2025"))
+        self.assertIsNone(week.label("day"))
+        self.assertIsNone(m.parse_date("2025-03").label("week"))
+
+    def test_the_week_grain_is_chosen_never_guessed(self):
+        days = [f"2025-{mo:02d}-{d:02d}" for mo in (1, 2) for d in range(1, 29)]
+        self.assertEqual(m.period_labels(days)[1], "month")
+        labels, grain, _ = m.period_labels(days, grain="week")
+        self.assertEqual((grain, labels[0], labels[-1], len(set(labels))),
+                         ("week", "2025-W01", "2025-W09", 9))
+        self.assertEqual(m.AUTO_GRAINS, tuple(g for g in m.FINEST_FIRST if g != "week"))
+
     def test_forecast_labels_continue_the_calendar(self):
         self.assertEqual(m.next_period_labels("2025-Q4", 2), ["2026-Q1", "2026-Q2"])
         self.assertEqual(m.next_period_labels("2025", 2), ["2026", "2027"])
         self.assertEqual(m.next_period_labels("2024-02-28", 2), ["2024-02-29", "2024-03-01"])
         self.assertIsNone(m.next_period_labels("week 3", 1))
+        self.assertEqual(m.next_period_labels("2024-W51", 3), ["2024-W52", "2025-W01", "2025-W02"])
+        self.assertEqual(analytics._next_labels(["2025-W09"], 1), ["2025-W10"])
         self.assertEqual(analytics._next_labels(["2025-Q3"], 1), ["2025-Q4"])
         self.assertEqual(analytics._next_labels(["2025-11"], 2), ["2025-12", "2026-01"])
         self.assertEqual(analytics._next_labels(["Spring"], 1), ["next period +1"])
@@ -285,6 +310,18 @@ class ValidationTests(unittest.TestCase):
     def test_unknown_order_and_grain(self):
         error = self.problems(dict(SHOP_MAPPING, date_order="sideways", grain="fortnight"))
         self.assertEqual({p.field for p in error.problems}, {"date_order", "grain"})
+        self.assertIn("day, week, month, quarter or year", error.problems[1].en)
+
+    def test_a_week_grain_sums_days_by_iso_week(self):
+        text = "day,amount\n" + "\n".join(
+            f"2025-01-{d:02d},{d}" for d in range(1, 15)) + "\n2025-01,5\n"
+        columns, rows = rows_of(text)
+        mapping = mapping_for({"day": "date", "amount": "measure"}, "amount", grain="week")
+        self.assertEqual(m.validate(mapping, columns, rows)["grain"], "week")
+        labels, grain, _ = m.period_labels([r["day"] for r in rows], grain="week")
+        self.assertEqual(grain, "week")
+        self.assertEqual(sorted(set(labels) - {None}), ["2025-W01", "2025-W02", "2025-W03"])
+        self.assertIsNone(labels[-1])  # a month cannot be placed in a week
 
     def test_a_currency_is_optional_and_saved_as_an_upper_case_code(self):
         # Absent, or stated as nothing, means "not stated": never a guess.
@@ -320,6 +357,119 @@ class ValidationTests(unittest.TestCase):
 
 
 @unittest.skipUnless(FASTAPI_AVAILABLE, "fastapi is not installed")
+class FiscalYearTests(unittest.TestCase):
+    """A fiscal year starting in a month other than January (27 October 2026)."""
+
+    def test_quarters_and_years_follow_the_fiscal_calendar(self):
+        april = 4
+        cases = [("2025-03-15", "quarter", "FY2025-Q4"), ("2025-03-15", "year", "FY2025"),
+                 ("2025-04-01", "quarter", "FY2026-Q1"), ("2025-04-01", "year", "FY2026"),
+                 ("2025-12-31", "quarter", "FY2026-Q3"), ("2026-01-10", "quarter", "FY2026-Q4"),
+                 ("2025-05", "quarter", "FY2026-Q1"), ("2025-W18", "quarter", "FY2026-Q1"),
+                 ("2025-04-01", "month", "2025-04"), ("2025-04-01", "day", "2025-04-01")]
+        for text, grain, expected in cases:
+            with self.subTest(text=text, grain=grain):
+                self.assertEqual(m.parse_date(text).label(grain, april), expected)
+        # A calendar quarter fits a fiscal quarter only on a shared boundary;
+        # a calendar year never fits a fiscal year that is not the calendar.
+        self.assertEqual(m.parse_date("2025-Q2").label("quarter", april), "FY2026-Q1")
+        self.assertIsNone(m.parse_date("2025-Q2").label("quarter", 2))
+        self.assertIsNone(m.parse_date("2025").label("year", april))
+        self.assertEqual(m.parse_date("2025").label("year", 1), "2025")
+
+    def test_forecast_labels_continue_the_fiscal_calendar(self):
+        self.assertEqual(m.next_period_labels("FY2026-Q3", 3), ["FY2026-Q4", "FY2027-Q1", "FY2027-Q2"])
+        self.assertEqual(m.next_period_labels("FY2026", 2), ["FY2027", "FY2028"])
+        self.assertEqual(analytics._next_labels(["FY2026-Q4"], 1), ["FY2027-Q1"])
+
+    def test_the_mapping_keeps_a_valid_start_month_only(self):
+        columns, rows = rows_of(SHOP_CSV)
+        clean = m.validate(dict(SHOP_MAPPING, fiscal_start=4, grain="quarter"), columns, rows)
+        self.assertEqual(clean["fiscal_start"], 4)
+        self.assertEqual(m.validate(SHOP_MAPPING, columns, rows)["fiscal_start"], 1)
+        self.assertEqual(m.fiscal_start_of({"fiscal_start": 7}), 7)
+        self.assertEqual(m.fiscal_start_of({}), 1)
+        self.assertEqual(m.fiscal_start_of({"fiscal_start": "4"}), 1)
+        for bad in (0, 13, "April", True):
+            with self.subTest(bad=bad):
+                with self.assertRaises(m.MappingError) as caught:
+                    m.validate(dict(SHOP_MAPPING, fiscal_start=bad), columns, rows)
+                self.assertEqual(caught.exception.problems[0].field, "fiscal_start")
+                self.assertIn("1 (January) to 12", caught.exception.problems[0].en)
+        labels, grain, _ = m.period_labels(["15/11/2024", "20/11/2024", "09/01/2025", "13/03/2025", "27/03/2025"],
+                                           "day-first", "quarter", 4)
+        self.assertEqual((grain, labels), ("quarter", ["FY2025-Q3", "FY2025-Q3", "FY2025-Q4", "FY2025-Q4", "FY2025-Q4"]))
+
+
+class DerivedColumnTests(unittest.TestCase):
+    """Derived columns (27 October 2026): arithmetic over the measures."""
+
+    def test_a_formula_reads_with_the_usual_precedence(self):
+        row = {"cost": 120.0, "hours": 8.0, "units": 3.0}
+        for formula, expected in (("cost / hours", 15.0), ("cost + hours * units", 144.0),
+                                  ("(cost + hours) * units", 384.0), ("-cost / -hours", 15.0),
+                                  ("cost / hours / units", 5.0), ("2.5 * units", 7.5),
+                                  ("`cost` - `hours`", 112.0)):
+            with self.subTest(formula=formula):
+                self.assertAlmostEqual(m.evaluate_formula(m.parse_formula(formula), row), expected)
+        self.assertEqual(m.formula_refs(m.parse_formula("cost / hours + cost")), ["cost", "hours"])
+
+    def test_a_missing_value_or_a_zero_divisor_leaves_the_cell_empty(self):
+        tree = m.parse_formula("cost / hours")
+        self.assertIsNone(m.evaluate_formula(tree, {"cost": 10.0, "hours": 0.0}))
+        self.assertIsNone(m.evaluate_formula(tree, {"cost": None, "hours": 2.0}))
+        self.assertIsNone(m.evaluate_formula(tree, {"cost": "10", "hours": 2.0}))
+
+    def test_a_formula_that_cannot_be_read_says_why_in_both_languages(self):
+        for text, needle in (("cost +", "ends too early"), ("(cost", "not closed"), ("cost ^ 2", "Unexpected"),
+                             ("", "empty"), ("cost hours", "after the formula")):
+            with self.subTest(text=text):
+                with self.assertRaises(m.FormulaError) as caught:
+                    m.parse_formula(text)
+                self.assertIn(needle, caught.exception.en)
+                self.assertTrue(caught.exception.ar)
+
+    def problems(self, derived, extra_roles=None):
+        columns, rows = rows_of(SHOP_CSV)
+        mapping = dict(SHOP_MAPPING, derived=derived)
+        if extra_roles:
+            mapping = dict(mapping, roles=dict(mapping["roles"], **extra_roles))
+        try:
+            return m.validate(mapping, columns, rows), []
+        except m.MappingError as error:
+            return None, error.problems
+
+    def test_a_derived_column_is_saved_and_may_be_the_measure(self):
+        columns, rows = rows_of(SHOP_CSV)
+        mapping = dict(SHOP_MAPPING, derived=[{"name": "amount_k", "formula": "amount / 1000"},
+                                              {"name": "double_k", "formula": "amount_k * 2"}],
+                       measure="double_k")
+        clean = m.validate(mapping, columns, rows)
+        self.assertEqual(clean["derived"], [{"name": "amount_k", "formula": "amount / 1000"},
+                                            {"name": "double_k", "formula": "amount_k * 2"}])
+        self.assertEqual(clean["measure"], "double_k")
+        self.assertEqual(m.measures_of(clean, columns + ["amount_k"]), ["amount", "amount_k"])
+        self.assertEqual(m.validate(SHOP_MAPPING, columns, rows)["derived"], [])
+
+    def test_a_derived_column_is_refused_for_the_right_reason(self):
+        cases = [
+            ([{"name": "amount", "formula": "amount * 2"}], "already a column"),
+            ([{"name": "2x", "formula": "amount * 2"}], "not a usable column name"),
+            ([{"name": "per_store", "formula": "amount / store_id"}], "not a measure"),
+            ([{"name": "bad", "formula": "amount +"}], "ends too early"),
+            ([{"name": "later", "formula": "earlier * 2"}, {"name": "earlier", "formula": "amount"}], "not a measure"),
+            ([{"name": f"d{i}", "formula": "amount"} for i in range(m.MAX_DERIVED + 1)], "At most"),
+        ]
+        for derived, needle in cases:
+            with self.subTest(needle=needle):
+                clean, problems = self.problems(derived)
+                self.assertIsNone(clean)
+                found = [p for p in problems if p.field == "derived"]
+                self.assertTrue(found, [p.en for p in problems])
+                self.assertIn(needle, found[0].en)
+                self.assertTrue(found[0].ar)
+
+
 class MappingApiTestCase(unittest.TestCase):
     """The mapping API and mapped runs, against SQLite."""
 
@@ -480,6 +630,42 @@ class MappingApiTestCase(unittest.TestCase):
                          ("month", "region", None))
         self.assertFalse(self.output(run, "collector")["mapped"])
         self.assertNotIn("cl_mapping", self.claim_ids(run))
+
+    def test_a_fiscal_year_trends_by_fiscal_quarter(self):
+        dataset_id = self.upload(SHOP_CSV)
+        mapping = dict(SHOP_MAPPING, grain="quarter", fiscal_start=4)
+        saved = self.client.put(f"/api/datasets/{dataset_id}/mapping", json=mapping)
+        self.assertEqual(saved.status_code, 200, saved.text)
+        self.assertEqual(saved.json()["mapping"]["fiscal_start"], 4)
+        run = self.run_to_gate(dataset_id=dataset_id)
+        cleaner = self.output(run, "cleaner")
+        self.assertEqual((cleaner["date_grain"], cleaner["fiscal_start"]), ("quarter", 4))
+        self.assertEqual(list(self.output(run, "preparer")["trend"]), ["FY2025-Q3", "FY2025-Q4"])
+        refused = self.client.put(f"/api/datasets/{dataset_id}/mapping", json=dict(mapping, fiscal_start=13))
+        self.assertEqual(refused.status_code, 422)
+
+    def test_a_derived_measure_is_computed_and_analysed(self):
+        dataset_id = self.upload(SHOP_CSV)
+        mapping = dict(SHOP_MAPPING, derived=[{"name": "amount_k", "formula": "amount / 1000"}],
+                       measure="amount_k")
+        saved = self.client.put(f"/api/datasets/{dataset_id}/mapping", json=mapping)
+        self.assertEqual(saved.status_code, 200, saved.text)
+        self.assertEqual(saved.json()["mapping"]["derived"][0]["name"], "amount_k")
+        run = self.run_to_gate(dataset_id=dataset_id)
+        collector = self.output(run, "collector")
+        self.assertEqual(collector["columns"][-1], "amount_k")
+        self.assertIn("amount_k", self.output(run, "profiler")["numeric_columns"])
+        cleaner = self.output(run, "cleaner")
+        self.assertEqual(cleaner["derived"], ["amount_k"])
+        self.assertAlmostEqual(cleaner["rows"][0]["amount_k"], 1.2)
+        self.assertAlmostEqual(self.output(run, "preparer")["total"],
+                               sum(r["amount"] for r in cleaner["rows"]) / 1000)
+        self.assertIn("cl_derived", {c["id"] for c in self.task(run, "cleaner")["claims"]})
+        refused = self.client.put(f"/api/datasets/{dataset_id}/mapping?language=ar", json=dict(
+            mapping, derived=[{"name": "amount_k", "formula": "amount / notes"}]))
+        self.assertEqual(refused.status_code, 422)
+        self.assertEqual(refused.json()["detail"]["errors"][0]["field"], "derived")
+        self.assertIn("«amount_k»", refused.json()["detail"]["errors"][0]["message"])
 
     def test_pasted_data_ignores_a_saved_mapping_of_the_same_content(self):
         dataset_id = self.upload(SHOP_CSV)

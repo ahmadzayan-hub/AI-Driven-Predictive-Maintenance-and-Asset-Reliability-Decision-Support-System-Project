@@ -290,7 +290,7 @@ export interface DatasetSummary {
 /** What a column is, in a mapping (ADR 0025). */
 export type ColumnRole = 'measure' | 'dimension' | 'date' | 'ignore'
 export type DateOrder = 'auto' | 'day-first' | 'month-first'
-export type Grain = 'auto' | 'day' | 'month' | 'quarter' | 'year'
+export type Grain = 'auto' | 'day' | 'week' | 'month' | 'quarter' | 'year'
 
 /** A column mapping: one role per column, the measure analysed, the
  *  breakdown, and how dates are read and summed. */
@@ -304,6 +304,17 @@ export interface ColumnMapping {
   /** The ISO 4217 code of money columns, as the owner stated it; null or
    *  absent means not stated, and the interface says so. Never guessed. */
   currency?: string | null
+  /** Columns computed from the measures by arithmetic (27 October 2026):
+   *  `cost / hours`, in order, so a later one may read an earlier one. */
+  derived?: DerivedColumn[]
+  /** The month the fiscal year starts in, 1 to 12; 1 or absent means the
+   *  calendar year. Quarter and year labels then read FY2026-Q1, FY2026. */
+  fiscal_start?: number
+}
+
+export interface DerivedColumn {
+  name: string
+  formula: string
 }
 
 /** What the server read in one column, and the role it suggests. */
@@ -338,7 +349,7 @@ export interface DatasetDetail {
  *  column; a join's problems also say which join (ADR 0030). */
 export interface MappingProblem {
   field:
-    | 'roles' | 'measure' | 'dimension' | 'date_order' | 'grain' | 'currency'
+    | 'roles' | 'measure' | 'dimension' | 'date_order' | 'grain' | 'currency' | 'derived' | 'fiscal_start'
     | 'joins' | 'keys' | 'how' | 'alias' | 'breakdown' | 'dataset'
   column: string | null
   message: string

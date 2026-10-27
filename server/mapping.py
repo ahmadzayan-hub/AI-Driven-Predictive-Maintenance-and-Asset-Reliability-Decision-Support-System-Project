@@ -20,9 +20,18 @@ from datetime import date
 
 ROLES = ("measure", "dimension", "date", "ignore")
 DATE_ORDERS = ("auto", "day-first", "month-first")
-GRAINS = ("auto", "day", "month", "quarter", "year")
-FINEST_FIRST = ("day", "month", "quarter", "year")
+GRAINS = ("auto", "day", "week", "month", "quarter", "year")
+FINEST_FIRST = ("day", "week", "month", "quarter", "year")
+# The grains "auto" may choose. A week is a choice the owner makes (27
+# October 2026): the automatic roll-up goes from days to months as before,
+# so no earlier analysis changes its periods.
+AUTO_GRAINS = ("day", "month", "quarter", "year")
 MAPPING_VERSION = 1
+# Derived columns (27 October 2026): at most this many per mapping, named
+# like identifiers, computed from the measures by arithmetic alone.
+MAX_DERIVED = 5
+DERIVED_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,39}$")
+FORMULA_TOKEN = re.compile(r"\s*(?:(\d+(?:\.\d*)?|\.\d+)|`([^`]+)`|([A-Za-z_][A-Za-z0-9_]*)|([-+*/()]))")
 # The currency of money columns, as the owner states it: an ISO 4217 code,
 # three upper-case letters. Absent means "not stated", which the interface
 # then says in so many words; nothing ever guesses one from the data.
@@ -109,6 +118,8 @@ ISO_MONTH = re.compile(r"(\d{4})[-/](\d{1,2})")
 MONTH_YEAR = re.compile(r"(\d{1,2})[-/](\d{4})")
 YEAR = re.compile(r"(\d{4})")
 QUARTER = re.compile(r"(?:(\d{4})\s*[-/ ]?\s*q([1-4])|q([1-4])\s*[-/ ]?\s*(\d{4}))")
+# An ISO week: 2025-W03, 2025W03, 2025-w3.
+ISO_WEEK = re.compile(r"(\d{4})-?w(\d{1,2})")
 NUMERIC_DAY = re.compile(r"(\d{1,2})[-/.](\d{1,2})[-/.](\d{4}|\d{2})(?:[ t]\d{1,2}:\d{2}(?::\d{2})?)?")
 PLAIN_DECIMAL = re.compile(r"[+-]?\d+(?:\.\d+)?")
 DATE_NAME_WORDS = ("date", "month", "period", "week", "year", "day", "time", "quarter",
@@ -122,20 +133,53 @@ class Period:
     day: int = None
     quarter: int = None
     precision: str = "day"
+    # ISO week number when the value was written as a week (2025-W03).
+    week: int = None
 
-    def label(self, grain):
+    def _anchor(self):
+        """The calendar day that places this period in a month: the day
+        itself, or for a week its Thursday, the ISO 8601 anchor that also
+        decides the week's year."""
+        if self.precision == "week":
+            return date.fromisocalendar(self.year, self.week, 4)
+        return date(self.year, self.month, self.day)
+
+    def label(self, grain, fiscal_start=1):
         """This period as a sortable label at a grain, or None when the
-        value is coarser than the grain (a year cannot be put in a month)."""
+        value is coarser than the grain (a year cannot be put in a month).
+
+        With a fiscal year starting in a month other than January
+        (27 October 2026), quarter and year labels read FY2026-Q1 and
+        FY2026, named by the calendar year in which the fiscal year ends;
+        a calendar quarter or year written in the data fits only when it
+        falls inside one fiscal quarter or year."""
         if FINEST_FIRST.index(self.precision) > FINEST_FIRST.index(grain):
             return None
         if grain == "day":
             return f"{self.year:04d}-{self.month:02d}-{self.day:02d}"
+        if grain == "week":
+            year, week, _ = self._anchor().isocalendar()
+            return f"{year:04d}-W{week:02d}"
+        month = self._anchor().month if self.precision == "week" else self.month
+        year = self._anchor().year if self.precision == "week" else self.year
         if grain == "month":
-            return f"{self.year:04d}-{self.month:02d}"
+            return f"{year:04d}-{month:02d}"
+        if fiscal_start == 1:
+            if grain == "quarter":
+                return f"{year:04d}-Q{self.quarter or (month - 1) // 3 + 1}"
+            return f"{year:04d}"
+        if self.precision == "year":
+            return None
+        if self.precision == "quarter":
+            # A calendar quarter fits a fiscal one only on a shared boundary.
+            if (fiscal_start - 1) % 3:
+                return None
+            month = 3 * self.quarter - 2
+        offset = (month - fiscal_start) % 12
+        fiscal_year = year + (1 if month >= fiscal_start else 0)
         if grain == "quarter":
-            quarter = self.quarter or (self.month - 1) // 3 + 1
-            return f"{self.year:04d}-Q{quarter}"
-        return f"{self.year:04d}"
+            return f"FY{fiscal_year:04d}-Q{offset // 3 + 1}"
+        return f"FY{fiscal_year:04d}"
 
 
 def _year(text):
@@ -154,6 +198,16 @@ def _month(year, month):
     if not (_plausible(year) and 1 <= month <= 12):
         return None
     return Period(year, month, precision="month")
+
+
+def _week(year, week):
+    if not _plausible(year):
+        return None
+    try:
+        date.fromisocalendar(year, week, 1)
+    except ValueError:
+        return None
+    return Period(year, precision="week", week=week)
 
 
 def _day(year, month, day):
@@ -220,6 +274,8 @@ def parse_date(value, order="day-first"):
     if match := QUARTER.fullmatch(text):
         year, quarter = (match[1], match[2]) if match[1] else (match[4], match[3])
         return Period(int(year), quarter=int(quarter), precision="quarter") if _plausible(int(year)) else None
+    if match := ISO_WEEK.fullmatch(text):
+        return _week(int(match[1]), int(match[2]))
     if match := YEAR.fullmatch(text):
         year = int(match[1])
         return Period(year, precision="year") if _plausible(year) else None
@@ -271,7 +327,7 @@ def read_dates(values, order="auto"):
     return [parse_date(v, resolved) for v in values], resolved, ambiguous
 
 
-def choose_grain(periods, grain="auto"):
+def choose_grain(periods, grain="auto", fiscal_start=1):
     """The grain a trend uses. "auto" is the finest grain that nine in ten
     readable values reach, rolled up until there are at most
     MAX_AUTO_PERIODS periods."""
@@ -280,22 +336,29 @@ def choose_grain(periods, grain="auto"):
         return grain
     if not readable:
         return "month"
-    for index, candidate in enumerate(FINEST_FIRST):
-        fits = sum(1 for p in readable if p.label(candidate) is not None)
+    for index, candidate in enumerate(AUTO_GRAINS):
+        fits = sum(1 for p in readable if p.label(candidate, fiscal_start) is not None)
         if fits >= SUGGEST_SHARE * len(readable):
             break
-    for candidate in FINEST_FIRST[index:]:
-        if len({p.label(candidate) for p in readable} - {None}) <= MAX_AUTO_PERIODS:
+    for candidate in AUTO_GRAINS[index:]:
+        if len({p.label(candidate, fiscal_start) for p in readable} - {None}) <= MAX_AUTO_PERIODS:
             return candidate
     return "year"
 
 
-def period_labels(values, order="auto", grain="auto"):
+def period_labels(values, order="auto", grain="auto", fiscal_start=1):
     """Labels for a date column at a grain: (labels with None for a value
     that does not read, the grain used, the order used)."""
     periods, resolved, _ = read_dates(values, order)
-    used = choose_grain(periods, grain)
-    return [p.label(used) if p else None for p in periods], used, resolved
+    used = choose_grain(periods, grain, fiscal_start)
+    return [p.label(used, fiscal_start) if p else None for p in periods], used, resolved
+
+
+def fiscal_start_of(mapping):
+    """The month a saved mapping's fiscal year starts in, 1 to 12; a
+    mapping saved before the field existed means January."""
+    value = mapping.get("fiscal_start") if isinstance(mapping, dict) else None
+    return value if isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= 12 else 1
 
 
 def next_period_labels(last, count):
@@ -308,16 +371,23 @@ def next_period_labels(last, count):
         for step in range(1, count + 1):
             out.append(date.fromordinal(current.toordinal() + step).isoformat())
         return out
-    if match := re.fullmatch(r"(\d{4})-Q([1-4])", text):
-        year, quarter = int(match[1]), int(match[2])
+    if match := re.fullmatch(r"(\d{4})-W(\d{2})", text):
+        current = date.fromisocalendar(int(match[1]), int(match[2]), 4)
+        for step in range(1, count + 1):
+            year, week, _ = date.fromordinal(current.toordinal() + 7 * step).isocalendar()
+            out.append(f"{year:04d}-W{week:02d}")
+        return out
+    if match := re.fullmatch(r"(FY)?(\d{4})-Q([1-4])", text):
+        prefix, year, quarter = match[1] or "", int(match[2]), int(match[3])
         for _ in range(count):
             quarter += 1
             if quarter > 4:
                 quarter, year = 1, year + 1
-            out.append(f"{year:04d}-Q{quarter}")
+            out.append(f"{prefix}{year:04d}-Q{quarter}")
         return out
-    if re.fullmatch(r"\d{4}", text):
-        return [f"{int(text) + step:04d}" for step in range(1, count + 1)]
+    if match := re.fullmatch(r"(FY)?(\d{4})", text):
+        prefix = match[1] or ""
+        return [f"{prefix}{int(match[2]) + step:04d}" for step in range(1, count + 1)]
     return None
 
 
@@ -559,21 +629,30 @@ def validate(mapping, columns, rows):
                                 "اختر كيف تُكتب التواريخ اليوم والشهر."))
         order = "auto"
     if grain not in GRAINS:
-        problems.append(Problem("grain", None, "Choose day, month, quarter or year as the period.",
-                                "اختر اليوم أو الشهر أو الربع أو السنة فترةً زمنية."))
+        problems.append(Problem("grain", None, "Choose day, week, month, quarter or year as the period.",
+                                "اختر اليوم أو الأسبوع أو الشهر أو الربع أو السنة فترةً زمنية."))
         grain = "auto"
     currency, currency_problem = read_currency(mapping.get("currency"))
     if currency_problem:
         problems.append(currency_problem)
+    fiscal_start = mapping.get("fiscal_start", 1)
+    if fiscal_start is None:
+        fiscal_start = 1
+    if isinstance(fiscal_start, bool) or not isinstance(fiscal_start, int) or not 1 <= fiscal_start <= 12:
+        problems.append(Problem("fiscal_start", None,
+                                "The fiscal year starts in a month from 1 (January) to 12 (December).",
+                                "تبدأ السنة المالية في شهر من 1 (يناير) إلى 12 (ديسمبر)."))
+        fiscal_start = 1
 
     measures = [c for c in columns if roles.get(c) == "measure"]
     dates = [c for c in columns if roles.get(c) == "date"]
     measure, dimension = mapping.get("measure"), mapping.get("dimension")
+    derived = _validate_derived(mapping, columns, roles, problems)
     if not measures:
         problems.append(Problem("measure", None,
                                 "Map at least one column as a measure: the number the analysis is about.",
                                 "اربط عموداً واحداً على الأقل بوصفه مقياساً: الرقم الذي يدور حوله التحليل."))
-    elif measure not in measures:
+    elif measure not in measures and measure not in [d["name"] for d in derived]:
         problems.append(Problem("measure", measure,
                                 "Choose which measure the analysis is about.",
                                 "اختر المقياس الذي يدور حوله التحليل."))
@@ -608,11 +687,12 @@ def validate(mapping, columns, rows):
                 f"“{column}” writes dates like {example}, which could be day first or month first. Choose one.",
                 f"يكتب «{column}» التواريخ بصيغة مثل {example}، وقد يكون اليوم أولاً أو الشهر أولاً. اختر واحدة."))
         else:
-            used = choose_grain(periods, grain)
-            readable = sum(1 for p in periods if p is not None and p.label(used) is not None)
+            used = choose_grain(periods, grain, fiscal_start)
+            readable = sum(1 for p in periods if p is not None and p.label(used, fiscal_start) is not None)
             if not filled or readable < MIN_READABLE_SHARE * len(filled):
-                grain_names = {"day": ("day", "اليوم"), "month": ("month", "الشهر"),
-                               "quarter": ("quarter", "الربع"), "year": ("year", "السنة")}
+                grain_names = {"day": ("day", "اليوم"), "week": ("week", "الأسبوع"),
+                               "month": ("month", "الشهر"), "quarter": ("quarter", "الربع"),
+                               "year": ("year", "السنة")}
                 en_g, ar_g = grain_names[used]
                 problems.append(Problem(
                     "roles" if grain == "auto" else "grain", column,
@@ -624,7 +704,201 @@ def validate(mapping, columns, rows):
     return {"version": MAPPING_VERSION,
             "roles": {c: roles[c] for c in columns},
             "measure": measure, "dimension": dimension,
-            "date_order": order, "grain": grain, "currency": currency}
+            "date_order": order, "grain": grain, "currency": currency,
+            "derived": derived, "fiscal_start": fiscal_start}
+
+
+# ---------------------------------------------------------------------------
+# Derived columns: arithmetic over the measures, nothing else
+# ---------------------------------------------------------------------------
+
+class FormulaError(ValueError):
+    """A formula that cannot be read, said in both languages."""
+
+    def __init__(self, en, ar):
+        super().__init__(en)
+        self.en, self.ar = en, ar
+
+
+def _tokens(text):
+    tokens, position = [], 0
+    text = text.strip()
+    while position < len(text):
+        match = FORMULA_TOKEN.match(text, position)
+        if not match or match.end() == position:
+            raise FormulaError(f"Unexpected “{text[position:position + 8]}” in the formula.",
+                               f"رمز غير متوقع «{text[position:position + 8]}» في الصيغة.")
+        number, quoted, name, operator = match.groups()
+        if number is not None:
+            tokens.append(("num", float(number)))
+        elif quoted is not None or name is not None:
+            tokens.append(("ref", quoted if quoted is not None else name))
+        else:
+            tokens.append(("op", operator))
+        position = match.end()
+    return tokens
+
+
+def parse_formula(text):
+    """A formula as a tree: ("num", x), ("ref", column), ("neg", node) or
+    (operator, left, right) with the usual precedence. Raises FormulaError."""
+    tokens = _tokens(str(text or ""))
+    if not tokens:
+        raise FormulaError("The formula is empty.", "الصيغة فارغة.")
+    index = 0
+
+    def peek():
+        return tokens[index] if index < len(tokens) else (None, None)
+
+    def take():
+        nonlocal index
+        token = tokens[index]
+        index += 1
+        return token
+
+    def expression():
+        node = term()
+        while peek() == ("op", "+") or peek() == ("op", "-"):
+            node = (take()[1], node, term())
+        return node
+
+    def term():
+        node = factor()
+        while peek() == ("op", "*") or peek() == ("op", "/"):
+            node = (take()[1], node, factor())
+        return node
+
+    def factor():
+        kind, value = peek()
+        if kind is None:
+            raise FormulaError("The formula ends too early.", "تنتهي الصيغة قبل اكتمالها.")
+        if kind == "op" and value == "-":
+            take()
+            return ("neg", factor())
+        if kind == "op" and value == "(":
+            take()
+            node = expression()
+            if peek() != ("op", ")"):
+                raise FormulaError("A bracket is not closed.", "قوس لم يُغلق.")
+            take()
+            return node
+        if kind in ("num", "ref"):
+            return take()
+        raise FormulaError(f"Unexpected “{value}” in the formula.", f"رمز غير متوقع «{value}» في الصيغة.")
+
+    node = expression()
+    if index != len(tokens):
+        kind, value = tokens[index]
+        raise FormulaError(f"Unexpected “{value}” after the formula.", f"رمز غير متوقع «{value}» بعد الصيغة.")
+    return node
+
+
+def formula_refs(node):
+    """The column names a formula reads, in order of first use."""
+    out = []
+
+    def walk(item):
+        if item[0] == "ref":
+            if item[1] not in out:
+                out.append(item[1])
+        elif item[0] == "neg":
+            walk(item[1])
+        elif item[0] != "num":
+            walk(item[1]); walk(item[2])
+    walk(node)
+    return out
+
+
+def evaluate_formula(node, row):
+    """The formula on one cleaned row: a float, or None when any value it
+    reads is missing or a division divides by zero. Never raises."""
+    kind = node[0]
+    if kind == "num":
+        return node[1]
+    if kind == "ref":
+        value = row.get(node[1])
+        return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+    if kind == "neg":
+        inner = evaluate_formula(node[1], row)
+        return None if inner is None else -inner
+    left, right = evaluate_formula(node[1], row), evaluate_formula(node[2], row)
+    if left is None or right is None:
+        return None
+    if kind == "+":
+        return left + right
+    if kind == "-":
+        return left - right
+    if kind == "*":
+        return left * right
+    return None if right == 0 else left / right
+
+
+def derived_of(mapping):
+    """The saved derived columns, [{name, formula}], oldest mapping first."""
+    items = mapping.get("derived") if isinstance(mapping, dict) else None
+    return [dict(item) for item in items] if isinstance(items, list) else []
+
+
+def compute_derived(mapping, columns, rows):
+    """Add each derived column to `columns` and every row, in order, so a
+    later formula may read an earlier derived column. Rows must already
+    hold numbers in the measures. Returns the names added."""
+    added = []
+    for item in derived_of(mapping):
+        name = item["name"]
+        try:
+            tree = parse_formula(item["formula"])
+        except FormulaError:
+            continue  # validated when saved; a stale mapping is skipped, not crashed
+        for row in rows:
+            row[name] = evaluate_formula(tree, row)
+        if name not in columns:
+            columns.append(name)
+        added.append(name)
+    return added
+
+
+def _validate_derived(mapping, columns, roles, problems):
+    """Check the derived columns of a mapping; returns the clean list."""
+    items = mapping.get("derived") or []
+    if not isinstance(items, list):
+        items = []
+    if len(items) > MAX_DERIVED:
+        problems.append(Problem("derived", None,
+                                f"At most {MAX_DERIVED} derived columns; {len(items)} were given.",
+                                f"الحد الأقصى {MAX_DERIVED} أعمدة مشتقة، وأُعطي {len(items)}."))
+        items = items[:MAX_DERIVED]
+    clean, known = [], []
+    measures = {c for c in columns if roles.get(c) == "measure"}
+    for item in items:
+        item = item if isinstance(item, dict) else {}
+        name = str(item.get("name") or "").strip()
+        formula = str(item.get("formula") or "").strip()
+        if not DERIVED_NAME.match(name):
+            problems.append(Problem("derived", name or None,
+                                    f"“{name}” is not a usable column name: letters, digits and underscores, starting with a letter (40 at most).",
+                                    f"«{name}» ليس اسم عمود صالحاً: حروف إنجليزية وأرقام وشرطات سفلية، ويبدأ بحرف (40 على الأكثر)."))
+            continue
+        if name in columns or name in known:
+            problems.append(Problem("derived", name,
+                                    f"“{name}” is already a column; choose another name.",
+                                    f"«{name}» عمود موجود بالفعل؛ اختر اسماً آخر."))
+            continue
+        try:
+            tree = parse_formula(formula)
+        except FormulaError as error:
+            problems.append(Problem("derived", name, f"“{name}”: {error.en}", f"«{name}»: {error.ar}"))
+            continue
+        unknown = [r for r in formula_refs(tree) if r not in measures and r not in known]
+        if unknown:
+            shown = ", ".join(f"“{r}”" for r in unknown)
+            problems.append(Problem("derived", name,
+                                    f"“{name}” reads {shown}, which is not a measure of this dataset or an earlier derived column.",
+                                    f"«{name}» يقرأ {shown.replace('“', '«').replace('”', '»')}، وليس مقياساً في هذه البيانات ولا عموداً مشتقاً سابقاً."))
+            continue
+        known.append(name)
+        clean.append({"name": name, "formula": formula})
+    return clean
 
 
 def read_currency(value):
@@ -657,7 +931,9 @@ def currency_of(mapping):
 
 
 def measures_of(mapping, columns):
-    return [c for c in columns if mapping["roles"].get(c) == "measure"]
+    """The mapped measures, and the derived columns once the table has them."""
+    derived = {d["name"] for d in derived_of(mapping)}
+    return [c for c in columns if mapping["roles"].get(c) == "measure" or c in derived]
 
 
 def date_of(mapping, columns):

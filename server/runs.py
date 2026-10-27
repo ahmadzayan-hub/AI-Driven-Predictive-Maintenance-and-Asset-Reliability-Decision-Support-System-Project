@@ -1170,6 +1170,9 @@ class RunEngine:
         roles = {}
         for column in numeric:
             roles[column] = "measure"
+        for column in outputs.get("cleaner", {}).get("derived") or []:
+            if column in columns:
+                roles[column] = "derived"
         # A mapped date is read by the cleaner; an unmapped one is found by
         # name by the preparer. Either way it is the run's time axis.
         date_col = ((outputs.get("cleaner") or {}).get("date_col")

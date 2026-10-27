@@ -235,6 +235,9 @@ def clean_table(text, mapping=None):
     for row in cleaned:
         for column in numeric:
             row[column] = read(row[column]) if row[column] else None
+    if mapping:
+        columns = list(columns)
+        numeric = numeric + colmap.compute_derived(mapping, columns, cleaned)
     return Table(columns, cleaned, numeric, len(raw), empty, duplicates, screened)
 
 
@@ -302,7 +305,7 @@ def _stack(index, item, columns, rows, numeric, date, source, source_name, probl
     if date and date.get("grain") and date.get("column") in expected:
         labels, _, _ = colmap.period_labels(
             [row.get(date["column"]) or "" for row in table.rows],
-            date.get("order") or "auto", date["grain"])
+            date.get("order") or "auto", date["grain"], date.get("fiscal_start") or 1)
     seen = {tuple(row.get(c) for c in expected) for row in rows}
     added, duplicates = [], 0
     for position, row in enumerate(table.rows):
@@ -408,7 +411,8 @@ def merge(columns, rows, numeric, joined, date=None, source_name=None):
             if date and left == date.get("column"):
                 labels, _, _ = colmap.period_labels(
                     [row.get(right) or "" for row in table.rows],
-                    date.get("order") or "auto", date.get("grain") or "auto")
+                    date.get("order") or "auto", date.get("grain") or "auto",
+                    date.get("fiscal_start") or 1)
                 right_values[right] = labels
         lookup, counts, empty_keys = {}, Counter(), 0
         for position, row in enumerate(table.rows):

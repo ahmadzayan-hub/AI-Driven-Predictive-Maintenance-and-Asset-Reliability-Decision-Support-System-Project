@@ -377,6 +377,18 @@ class PreviewTests(unittest.TestCase):
         self.assertEqual(preview["preview"][0][-1], "sales.csv")
         self.assertEqual(preview["joins"][0]["rows_added"], 1)
 
+    def test_a_stacked_table_gets_the_main_mapping_s_derived_columns(self):
+        mapping = {"roles": {"month": "date", "product": "dimension", "region": "dimension",
+                             "revenue": "measure"}, "measure": "revenue_k", "dimension": "product",
+                   "date_order": "auto", "grain": "month",
+                   "derived": [{"name": "revenue_k", "formula": "revenue / 1000"}]}
+        stacked = {"dataset_id": "q", "name": "q3.csv", "alias": "q3", "content": Q3_CSV,
+                   "snapshot": "abc", "how": "stack", "keys": [], "mapping": None}
+        preview = analytics.preview_merge(SALES_CSV, mapping, [stacked], None, dataset_name="h1.csv")
+        self.assertEqual((preview["rows_before"], preview["rows_after"]), (24, 36))
+        self.assertEqual(preview["columns"], ["month", "product", "region", "revenue", "revenue_k", "source"])
+        self.assertEqual(preview["preview"][0][4], "0.1")
+
     def test_personal_data_in_a_joined_dataset_is_found(self):
         people = "code,owner_email\nP1,a.person@example.com\nP2,b.person@example.com\n"
         preview = analytics.preview_merge(SALES_CSV, None, self.inputs(people), None)

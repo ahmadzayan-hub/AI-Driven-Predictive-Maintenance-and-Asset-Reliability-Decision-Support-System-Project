@@ -10,6 +10,7 @@
     "maximum_history_items": 50,
     "stages": [
         "server.modelling.RegressionModel",
+        "server.modelling.TreeModel",
         "server.modelling.ClassificationModel",
         "server.modelling.ClusteringModel",
         "server.modelling.SeasonalForecast",
@@ -21,6 +22,7 @@
         "default": [],
         "models": [
             "regression_model",
+            "tree_model",
             "classification_model",
             "clustering_model",
             "seasonal_model"

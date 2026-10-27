@@ -3,9 +3,9 @@ type: concept
 aliases: [Design system v2, UI design system, ui-ux-pro-max]
 tags: [interface, design]
 status: active
-updated: 2026-10-22
+updated: 2026-10-27
 review_every_days: 30
-sources: [frontend/src/tests/charts.test.tsx, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0028-views-load-on-demand.md, docs/UI_PLAN.md, design-system/agentic-os/MASTER.md, frontend/src/shared/styles/tokens.css, .claude/skills/ui-ux-pro-max/PROVENANCE.md, .claude/skills/design/PROVENANCE.md, docs/design/REACT_AGENT_CONNECTIONS_STUDY.md, docs/design/README_ASSETS.md]
+sources: [docs/adr/2026-10-27-miyaar-visual-layer.md, frontend/src/tests/charts.test.tsx, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0028-views-load-on-demand.md, docs/UI_PLAN.md, design-system/agentic-os/MASTER.md, frontend/src/shared/styles/tokens.css, .claude/skills/ui-ux-pro-max/PROVENANCE.md, .claude/skills/design/PROVENANCE.md, docs/design/REACT_AGENT_CONNECTIONS_STUDY.md, docs/design/README_ASSETS.md]
 ---
 
 # Design system
@@ -22,6 +22,7 @@ How the interface of [[Agentic OS]] looks and behaves, and where those choices c
 - Budgets are enforced by `scripts/verify.py` and documented in `docs/UI_PLAN.md`; current measurements live in README. The 20 October collaboration decision adds a lazy workflow diagram and inspector, preserving initial-load, chunk and font ceilings.
 - Agent motion follows the [[User]] preference for professional restraint: brief observed-stage highlights, clear status words, expandable handoffs/evidence and a pause-view control. The [[Hermes orchestrator]] still sequences stages; the view does not invent message transcripts. System and app reduced motion, interruption and document visibility suppress animation. `docs/design/AGENT_COLLABORATION_MOTION.md` records the study.
 - Phases 0 and 1 of `docs/UI_PLAN.md` shipped in `dea3b38`; the [[Analytics OS roadmap]] records the later implemented dataset, model and live-data milestones and their remaining acceptance work.
+- The Miyaar visual layer of 27 October 2026 (`docs/adr/2026-10-27-miyaar-visual-layer.md`): the Command Centre opens with a brief (greeting, one sentence from counted runs, one action, a 14-day sparkline of starts counted from the runs' own dates); the Miyaar hero carries an AI-core motif; `--glow` and `--glow-edge` are decorative halos. Total ceilings 255 KB script and 35 KB style; first load unchanged.
 - Six more skills from the same upstream repository were vendored in `b478983`: design-system, brand, ui-styling, design, banner-design and slides. For the app only ui-ux-pro-max and design-system's token rules apply. ui-styling's shadcn/Tailwind and slides' CDN Chart.js break ADR 0023, and design's logo, identity and icon generators call third-party image services.
 
 ## How to use it

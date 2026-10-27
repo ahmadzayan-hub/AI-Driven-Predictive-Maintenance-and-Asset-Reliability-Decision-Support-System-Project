@@ -28,6 +28,14 @@ export const journeyMessages = definePack({
   countBasis: 'Workspace count from {source}; source as-of unavailable. Owner unassigned; no performance target.',
   evidence: 'Analysis checks and optional exports',
   tools: 'Other workflows',
+  briefAria: 'Your brief',
+  morning: 'Good morning',
+  afternoon: 'Good afternoon',
+  evening: 'Good evening',
+  briefWaiting: 'Miyaar has {closed} analyses closed and {waiting} waiting for your approval.',
+  briefClear: 'Miyaar has {closed} analyses closed and nothing waiting for your approval.',
+  trend: 'Analyses started, last {n} days',
+  trendDelta: '{delta} against the {n} days before',
 }, {
   journey: 'خطوتك التالية',
   upload: 'تجهيز البيانات',
@@ -53,6 +61,14 @@ export const journeyMessages = definePack({
   countBasis: 'عدد من مساحة العمل، المصدر {source}؛ تاريخ المصدر غير متاح. المسؤول غير محدد؛ لا يوجد هدف أداء.',
   evidence: 'فحوص التحليل والتصدير الاختياري',
   tools: 'مسارات عمل أخرى',
+  briefAria: 'موجزك',
+  morning: 'صباح الخير',
+  afternoon: 'طاب يومك',
+  evening: 'مساء الخير',
+  briefWaiting: 'لدى معيار {closed} تحليلًا منتهيًا و{waiting} بانتظار موافقتك.',
+  briefClear: 'لدى معيار {closed} تحليلًا منتهيًا ولا شيء بانتظار موافقتك.',
+  trend: 'التحليلات التي بدأت خلال آخر {n} يومًا',
+  trendDelta: '{delta} مقارنةً بالأيام الـ{n} السابقة',
 })
 
 /** An existing run, never an invented workflow or a claim about model readiness. */

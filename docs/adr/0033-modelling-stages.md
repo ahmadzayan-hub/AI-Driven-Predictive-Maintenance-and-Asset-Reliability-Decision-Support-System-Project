@@ -56,6 +56,6 @@ Each model writes its summary, headline and report section in the run's language
 
 ## Not done here
 
-- Trees, ensembles, neural models or anything that needs a library outside the standard one.
+- Neural models or anything that needs a library outside the standard one. (A bagged tree ensemble in the standard library followed on 27 October 2026: `2026-10-27-tree-ensemble.md`.)
 - Choosing inputs by when they were recorded; that needs the owner's word, which the mapping does not yet carry.
 - Tuning beyond the fixed, documented settings; tuning on the held-out data would make the comparison with the baseline dishonest.

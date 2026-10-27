@@ -187,11 +187,23 @@ each column one role:
 - **Dimension** — a category to break totals down by. Pick one under
   *Breakdown*, or none.
 - **Date** — at most one column. Choose how dates are written (day or
-  month first) and what to sum them by: day, month, quarter or year. The
-  automatic choice keeps the data's own detail until there would be more
-  than 36 periods.
+  month first) and what to sum them by: day, week, month, quarter or
+  year. The automatic choice keeps the data's own detail until there
+  would be more than 36 periods, going from days to months; weeks are
+  only used when you choose them. A week is the ISO week, Monday to
+  Sunday, labelled `2025-W03`, and a week that straddles the new year
+  belongs to the year of its Thursday.
+  If your year starts in another month, choose it under *Fiscal year
+  starts in*: quarters and years are then labelled `FY2026-Q1` and
+  `FY2026`, named by the year the fiscal year ends in.
 - **Ignore** — left out of the analysis, such as IDs and free-text notes.
   The quality and privacy checks still read it.
+- **Derived columns** — up to five columns computed from the measures
+  with `+ - * /` and brackets, such as `cost / hours` or `downtime -
+  planned`. A later column may read an earlier one, and a derived column
+  can be the measure analysed. A cell stays empty where a value is
+  missing or a division divides by zero, and the cleaning stage says how
+  many. Only arithmetic is accepted: no functions, text or conditions.
 
 A mapped measure reads currency signs and codes, `(300)` as −300, and
 Arabic digits. A comma must group thousands: `12,5` is refused rather
@@ -310,11 +322,12 @@ minute per source.
 ### Models
 
 Choose the **models** pipeline profile when starting an analysis to add
-four models to it: what predicts the measure (a regression), which
-records land in its top quarter, or in the classes of a text column the
-operator names (a classification), whether the records fall into natural groups (a
-clustering) and whether the measure follows a season (a seasonal
-forecast).
+five models to it: what predicts the measure (a regression), whether
+threshold rules on the other columns predict it better than a straight
+line (a tree ensemble), which records land in its top quarter, or in the
+classes of a text column the operator names (a classification), whether
+the records fall into natural groups (a clustering) and whether the
+measure follows a season (a seasonal forecast).
 
 Each model is tested on data it did not learn from: the latest fifth of
 the periods, every fifth record when there is no date, or the last full

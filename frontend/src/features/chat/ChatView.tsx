@@ -43,18 +43,18 @@ interface ChatViewProps {
   onAction?: (action: WorkspaceAction) => void
 }
 
-/** A decorative industrial motif. No metric or status is encoded in the artwork. */
-function IndustrialMotif() {
-  return <div className="miyaar-hero__motif" aria-hidden="true">
+/** A decorative AI-core motif: rings, an orbit and streams around the
+ *  mark. No metric, status or activity is encoded in the artwork. */
+function CoreMotif() {
+  return <div className="miyaar-hero__motif miyaar-core" aria-hidden="true">
     <svg viewBox="0 0 320 220" fill="none" stroke="currentColor" focusable="false">
-      <path d="M0 64h45l30 30h40M320 158h-45l-32-32h-40M25 190h58l32-32M290 25h-50l-30 30" strokeOpacity=".3" />
-      <circle cx="160" cy="110" r="87" strokeOpacity=".2" />
-      <circle cx="160" cy="110" r="67" strokeDasharray="2 8" strokeOpacity=".6" />
-      <circle cx="160" cy="110" r="49" strokeOpacity=".5" />
-      {Array.from({ length: 12 }, (_, i) => <path key={i} d="M161 61l15 15-5 14" transform={`rotate(${i * 30} 160 110)`} strokeOpacity=".65" />)}
-      <circle cx="160" cy="110" r="23" strokeWidth="2" />
-      <path d="M148 116v-12l12 8 12-8v12" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="45" cy="64" r="4" /><circle cx="275" cy="158" r="4" />
+      {Array.from({ length: 16 }, (_, i) => <path key={i} d="M160 110 L160 8" strokeOpacity={i % 2 ? '.12' : '.22'} transform={`rotate(${i * 22.5} 160 110)`} />)}
+      <circle cx="160" cy="110" r="96" strokeOpacity=".18" />
+      <circle cx="160" cy="110" r="74" strokeDasharray="3 9" strokeOpacity=".55" className="miyaar-core__orbit" />
+      <circle cx="160" cy="110" r="52" strokeOpacity=".4" />
+      <circle cx="160" cy="110" r="34" strokeWidth="2" />
+      <path d="M146 118v-16l14 10 14-10v16" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="234" cy="110" r="4" fill="currentColor" /><circle cx="86" cy="110" r="4" fill="currentColor" />
     </svg>
   </div>
 }
@@ -112,7 +112,7 @@ export function ChatView({
               <span><Icon name="shield" size={14} />{t('miyaar.step3')}</span>
             </div>
           </div>
-          <div className="miyaar-hero__art"><IndustrialMotif /><span>{t('miyaar.art')}</span></div>
+          <div className="miyaar-hero__art"><CoreMotif /><span>{t('miyaar.art')}</span></div>
         </div>
         <h3 className="miyaar-welcome__heading">{t('miyaar.start')}</h3>
         <div className="miyaar-actions">

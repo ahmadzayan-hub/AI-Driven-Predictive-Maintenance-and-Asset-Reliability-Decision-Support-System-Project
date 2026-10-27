@@ -559,6 +559,7 @@ export const ar: Record<MessageKey, string> = {
   'order.month-first': 'الشهر أولاً (12/31/2025)',
   'grain.auto': 'تلقائياً، 36 فترة على الأكثر',
   'grain.day': 'اليوم',
+  'grain.week': 'الأسبوع (ISO، من الاثنين إلى الأحد)',
   'grain.month': 'الشهر',
   'grain.quarter': 'الربع',
   'grain.year': 'السنة',

@@ -326,9 +326,16 @@ class RunIn(BaseModel):
     idempotency_key: str | None = Field(default=None, max_length=200)
 
 
+class DerivedIn(BaseModel):
+    """A column computed from the measures by a formula (27 October 2026)."""
+    name: str = Field(min_length=1, max_length=40)
+    formula: str = Field(min_length=1, max_length=200)
+
+
 class MappingIn(BaseModel):
     """A column mapping (ADR 0025). Roles, orders and grains are checked
     by server.mapping, which explains a refusal in the reader's language."""
+    derived: list[DerivedIn] = Field(default_factory=list, max_length=colmap.MAX_DERIVED)
     roles: dict[str, str] = Field(default_factory=dict, max_length=500)
     measure: str | None = Field(default=None, max_length=200)
     dimension: str | None = Field(default=None, max_length=200)
@@ -337,6 +344,9 @@ class MappingIn(BaseModel):
     # The currency of the money columns, an ISO 4217 code; absent means
     # not stated (slice three, U4). Checked by server.mapping.
     currency: str | None = Field(default=None, max_length=8)
+    # The month the fiscal year starts in, 1 to 12; January means the
+    # calendar year (27 October 2026).
+    fiscal_start: int = Field(default=1, ge=1, le=12)
 
 
 class QueryIn(BaseModel):

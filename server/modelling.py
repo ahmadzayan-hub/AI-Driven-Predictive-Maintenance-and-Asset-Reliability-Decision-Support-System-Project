@@ -45,8 +45,15 @@ MAX_CLASSES = 6
 TRAIN_CAP = 5000
 CLUSTER_CAP = 2000
 SILHOUETTE_CAP = 400
-SEASONS = {"day": 7, "month": 12, "quarter": 4}
+SEASONS = {"day": 7, "week": 52, "month": 12, "quarter": 4}
 RIDGE = 1e-3
+# The tree ensemble (27 October 2026): bagged regression trees, small and
+# few, so a run stays within seconds in the standard library.
+TREES = 16
+TREE_DEPTH = 4
+MIN_LEAF = 5
+SPLIT_CANDIDATES = 8
+TREE_CAP = 1500
 
 
 # ---------------------------------------------------------------------------
@@ -539,6 +546,223 @@ def seasonal_forecast(series, season, steps):
 # ---------------------------------------------------------------------------
 # The stages
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Trees: splits by variance reduction, bagged (27 October 2026)
+# ---------------------------------------------------------------------------
+
+def fit_tree(vectors, targets, indices, depth, min_leaf, rng, features, importance):
+    """One regression tree as nested tuples: ("leaf", mean) or
+    ("split", feature, threshold, left, right). Each split is the best
+    variance reduction among `features` sampled inputs and at most
+    SPLIT_CANDIDATES thresholds per input; its gain is added to
+    `importance[feature]`."""
+    n = len(indices)
+    mean = sum(targets[i] for i in indices) / n
+    if depth == 0 or n < 2 * min_leaf:
+        return ("leaf", mean)
+    sse = sum((targets[i] - mean) ** 2 for i in indices)
+    best = None
+    for feature in rng.sample(range(len(vectors[0])), min(features, len(vectors[0]))):
+        values = sorted({vectors[i][feature] for i in indices})
+        if len(values) < 2:
+            continue
+        step = max(1, len(values) // SPLIT_CANDIDATES)
+        for k in range(step, len(values), step):
+            threshold = (values[k - 1] + values[k]) / 2
+            left = [i for i in indices if vectors[i][feature] <= threshold]
+            if len(left) < min_leaf or n - len(left) < min_leaf:
+                continue
+            right = [i for i in indices if vectors[i][feature] > threshold]
+            left_mean = sum(targets[i] for i in left) / len(left)
+            right_mean = sum(targets[i] for i in right) / len(right)
+            gain = sse - sum((targets[i] - left_mean) ** 2 for i in left) \
+                - sum((targets[i] - right_mean) ** 2 for i in right)
+            if best is None or gain > best[0]:
+                best = (gain, feature, threshold, left, right)
+    if best is None or best[0] <= 0:
+        return ("leaf", mean)
+    gain, feature, threshold, left, right = best
+    importance[feature] += gain
+    return ("split", feature, threshold,
+            fit_tree(vectors, targets, left, depth - 1, min_leaf, rng, features, importance),
+            fit_tree(vectors, targets, right, depth - 1, min_leaf, rng, features, importance))
+
+
+def predict_tree(tree, vector):
+    while tree[0] == "split":
+        tree = tree[3] if vector[tree[1]] <= tree[2] else tree[4]
+    return tree[1]
+
+
+def fit_forest(vectors, targets, trees=TREES, depth=TREE_DEPTH, min_leaf=MIN_LEAF, seed=17):
+    """Bagged trees: each on a bootstrap sample, each split over about the
+    square root of the inputs. Returns (trees, importance shares by input)."""
+    rng = random.Random(seed)
+    n, p = len(vectors), len(vectors[0])
+    features = max(1, round(p ** 0.5))
+    importance = [0.0] * p
+    forest = []
+    for _ in range(trees):
+        sample = [rng.randrange(n) for _ in range(n)]
+        forest.append(fit_tree(vectors, targets, sample, depth, min_leaf, rng, features, importance))
+    total = sum(importance)
+    return forest, [g / total if total else 0.0 for g in importance]
+
+
+def predict_forest(forest, vector):
+    return sum(predict_tree(tree, vector) for tree in forest) / len(forest)
+
+
+class TreeModel:
+    role = "tree_model"
+    title = "Tree Ensemble Agent — do simple rules predict the measure?"
+    title_ar = "وكيل مجموعة الأشجار: هل تتنبأ قواعد بسيطة بالمقياس؟"
+    after = "sensitivity"
+    question = "Do threshold rules on the inputs predict the measure, and better than a straight line?"
+    can_fail_run = False
+
+    def run(self, ctx):
+        role = self.role
+        rows, columns, numeric, measure, date = _table(ctx)
+        title = _say(ctx, "Do simple rules predict the measure?", "هل تتنبأ قواعد بسيطة بالمقياس؟")
+        screened = _screen(ctx, rows, columns, numeric, measure)
+        exclude = {measure, date, *screened}
+        numbers, texts = _inputs(rows, columns, numeric, exclude)
+        names, vector = _vectoriser(numbers, texts)
+        if not names:
+            return _thin(ctx, role, title, 1, 0, "inputs", "المدخلات")
+        usable = [i for i, row in enumerate(rows)
+                  if isinstance(row.get(measure), (int, float)) and vector(row) is not None]
+        if len(usable) < MIN_ROWS:
+            return _thin(ctx, role, title, MIN_ROWS, len(usable), "records", "السجلات")
+        subset = [rows[i] for i in usable]
+        train, test, split = _split(subset, date)
+        if len(train) < MIN_ROWS - 10 or len(test) < 5:
+            train, test, split = _split(subset, None, "the chronological split left too few records on one side")
+        train_rows = _even([subset[i] for i in train], TREE_CAP)
+        test_rows = [subset[i] for i in test]
+        vectors = [vector(r) for r in train_rows]
+        targets = [r[measure] for r in train_rows]
+        forest, importance = fit_forest(vectors, targets)
+        average = statistics.fmean(targets)
+        # The straight line on the same records, so the card says whether
+        # the rules add anything to it.
+        scale = _scaler(vectors)
+        coefficients, intercept = fit_least_squares([scale(v) for v in vectors], targets)
+        actual = [r[measure] for r in test_rows]
+        predicted = [predict_forest(forest, vector(r)) for r in test_rows]
+        linear = [intercept + sum(c * x for c, x in zip(coefficients, scale(vector(r)))) for r in test_rows]
+        model_error = statistics.fmean(abs(a - p) for a, p in zip(actual, predicted))
+        base_error = statistics.fmean(abs(a - average) for a in actual)
+        linear_error = statistics.fmean(abs(a - p) for a, p in zip(actual, linear))
+        improvement = _improvement(model_error, base_error, lower_is_better=True)
+        over_line = _improvement(model_error, linear_error, lower_is_better=True)
+        beats = improvement >= BEATS
+        ranked = sorted(zip(names, importance), key=lambda ni: -ni[1])[:5]
+        leaves = sum(1 for tree in forest for _ in _leaves(tree))
+
+        calcs = [
+            _calc(role, "c_inputs", "inputs", len(names),
+                  f"other measures and indicators of up to {MAX_TEXT_INPUTS} text columns"),
+            _calc(role, "c_train", "training_records", len(train_rows),
+                  f"records before the held-out ones, at most {TREE_CAP} evenly spaced"),
+            _calc(role, "c_test", "held_out_records", len(test_rows), split["kind"]),
+            _calc(role, "c_trees", "trees", len(forest),
+                  f"bagged regression trees of depth at most {TREE_DEPTH}, leaves of at least "
+                  f"{MIN_LEAF} records, about the square root of the inputs tried at each split"),
+            _calc(role, "c_model_error", "model_average_error", round(model_error, 4),
+                  f"mean of |actual − predicted| {measure} on held-out records, "
+                  "the average of the trees' predictions"),
+            _calc(role, "c_base_error", "baseline_average_error", round(base_error, 4),
+                  f"mean of |actual − training average| {measure} on held-out records"),
+            _calc(role, "c_linear_error", "straight_line_average_error", round(linear_error, 4),
+                  "mean of |actual − least-squares prediction| on the same held-out records"),
+            _calc(role, "c_improvement", "improvement_over_baseline", round(improvement, 4),
+                  "(baseline error − model error) / baseline error"),
+            _calc(role, "c_over_line", "improvement_over_straight_line", round(over_line, 4),
+                  "(straight-line error − model error) / straight-line error"),
+        ]
+        claims = [
+            _claim(ctx, role, "cl_fit", "calculation",
+                   f"On {len(test_rows)} records the trees never saw, their average error in "
+                   f"{measure} is {model_error:,.2f}, against {base_error:,.2f} for always "
+                   f"guessing the average: {improvement:.0%} better.",
+                   f"على {len(test_rows)} من السجلات التي لم ترها الأشجار، متوسط خطئها في "
+                   f"{measure} هو {model_error:,.2f} مقابل {base_error:,.2f} عند تخمين "
+                   f"المتوسط دائماً: أفضل بنسبة {improvement:.0%}.",
+                   ["c_model_error", "c_base_error", "c_improvement", "c_test"]),
+            _claim(ctx, role, "cl_line", "fact",
+                   (f"The rules beat the straight-line model by {over_line:.0%} on the same "
+                    f"records, so the relationship has thresholds a line misses."
+                    if over_line >= BEATS else
+                    f"The rules do not beat the straight-line model ({over_line:.0%}); a line "
+                    f"describes this relationship as well, and is easier to read."),
+                   (f"تتفوق القواعد على نموذج الخط المستقيم بنسبة {over_line:.0%} على السجلات "
+                    "نفسها، فللعلاقة حدود يفوّتها الخط."
+                    if over_line >= BEATS else
+                    f"لا تتفوق القواعد على نموذج الخط المستقيم ({over_line:.0%})؛ يصف الخط "
+                    "هذه العلاقة بالقدر نفسه، وهو أسهل قراءة."),
+                   ["c_model_error", "c_linear_error", "c_over_line"]),
+            _leakage(ctx, role, screened),
+        ]
+        if beats and ranked and ranked[0][1] > 0:
+            top_name, top_share = ranked[0]
+            claims.append(_claim(
+                ctx, role, "cl_strongest", "fact",
+                f"The splits lean most on {top_name}: {top_share:.0%} of the variance the trees "
+                f"explain is cut on it. This is an association, not a cause.",
+                f"تعتمد التقسيمات أكثر ما تعتمد على {top_name}: {top_share:.0%} من التباين الذي "
+                "تفسره الأشجار يُقطع عليه. وهذا ارتباط لا سبب.",
+                ["c_trees", "c_inputs"]))
+        else:
+            claims.append(_weak(ctx, role, "tree ensemble", "مجموعة الأشجار", improvement))
+        headline = _say(
+            ctx,
+            (f"Threshold rules on the other columns predict {measure} {improvement:.0%} better "
+             f"than its average" + (f" and {over_line:.0%} better than a straight line." if over_line >= BEATS else ".")
+             if beats else
+             f"No simple rules here predict {measure} much better than its average "
+             f"({improvement:.0%} better)."),
+            (f"تتنبأ قواعد الحدود على الأعمدة الأخرى بـ {measure} أفضل من متوسطه بنسبة "
+             f"{improvement:.0%}" + (f" وأفضل من الخط المستقيم بنسبة {over_line:.0%}." if over_line >= BEATS else ".")
+             if beats else
+             f"لا توجد قواعد بسيطة هنا تتنبأ بـ {measure} أفضل كثيراً من متوسطه (أفضل بنسبة "
+             f"{improvement:.0%})."))
+        lines = [_say(ctx, "| Input | Share of explained variance |", "| المدخل | حصة التباين المفسَّر |"),
+                 "| --- | --- |"]
+        lines += [f"| {name} | {share:.1%} |" for name, share in ranked]
+        lines += ["", _split_text(ctx, split) + "."]
+        return {
+            "status": "succeeded", "summary": headline, "claims": claims,
+            "calculations": calcs,
+            "quality_checks": [{"name": "trees_beat_their_baseline", "passed": beats,
+                                "detail": _say(ctx, f"{improvement:.1%} better than the average.",
+                                               f"أفضل من المتوسط بنسبة {improvement:.1%}.")}],
+            "output": {
+                "headline": headline, "fitted": True,
+                "question": _say(ctx, self.question, "هل تتنبأ قواعد الحدود على المدخلات بالمقياس، وأفضل من الخط المستقيم؟"),
+                "report_markdown": _section(ctx, title, headline, calcs, lines),
+                "model_card": _card(
+                    "trees", measure, names, len(train_rows), len(test_rows), split,
+                    "average_error", round(model_error, 4), round(base_error, 4),
+                    "training_average", round(improvement, 4), beats,
+                    {"importance": [{"input": n, "share": round(v, 4)} for n, v in ranked],
+                     "trees": len(forest), "depth": TREE_DEPTH, "leaves": leaves,
+                     "straight_line_average_error": round(linear_error, 4),
+                     "improvement_over_straight_line": round(over_line, 4)},
+                    window=_window(train_rows, date), excluded=screened, ctx=ctx),
+            },
+        }
+
+
+def _leaves(tree):
+    if tree[0] == "leaf":
+        yield tree
+    else:
+        yield from _leaves(tree[3])
+        yield from _leaves(tree[4])
+
 
 class RegressionModel:
     role = "regression_model"
@@ -1110,6 +1334,12 @@ def _grain_of(labels):
         return "month"
     if sample and all(len(s) == 7 and s[4:6] == "-Q" for s in sample):
         return "quarter"
+    if sample and all(len(s) == 8 and s[4:6] == "-W" for s in sample):
+        return "week"
+    if sample and all(len(s) == 9 and s[:2] == "FY" and s[6:8] == "-Q" for s in sample):
+        return "quarter"
+    if sample and all(len(s) == 4 and s.isdigit() or len(s) == 6 and s[:2] == "FY" for s in sample):
+        return "year"
     if sample and all(len(s) == 10 and s[4] == "-" and s[7] == "-" for s in sample):
         return "day"
     return None

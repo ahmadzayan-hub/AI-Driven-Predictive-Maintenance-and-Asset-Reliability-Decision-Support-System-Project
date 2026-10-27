@@ -1915,6 +1915,52 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Next: reviewed clean-branch publication/hosted CI and a separately validated
   local release that retains existing local-only report functionality.
 
+## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (A13 tree ensemble)
+
+**Goal:** the "trees and ensembles" item of the modelling gap row.
+
+- **Done:** `TreeModel` in `server/modelling.py` (bagged regression trees: 16 trees, depth 4, leaves of 5, variance-reduction splits over about the square root of the inputs and 8 thresholds, bootstrap samples of at most 1,500 records; prediction as the trees' average; importance as shares of explained variance), scored like the regression against the training average and additionally against the least-squares line on the same held-out records, with claims that say whether the rules add thresholds a line misses; registered in `config.json` and the `models` profile; decision record amending ADR 0033, user guide, limitations, gap analysis, milestone A13, roadmap note, decision log, README.
+- **Verified:** full Python suite with PostgreSQL 2,352 tests (19 skipped; 5 new), 515 frontend unit tests, type check, brain strict check; the stage runs in about 0.06 s on 400 records.
+- **Decided:** fixed settings, no tuning on held-out data; the second comparison is the line, because the reader's question is whether trees add anything, not whether they are good.
+- **Open / next:** the owner asks whether the platform changes its dashboard and deliverables with the data: an assessment follows in the session; PR #69 waits for the merge word.
+
+## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (A12 fiscal year)
+
+**Goal:** close the dynamic-inputs gap row: a fiscal year starting in any month.
+
+- **Done:** `fiscal_start` in the mapping (1 to 12, validated in both languages, January and older mappings meaning the calendar); `Period.label` names fiscal quarters and years by the end year (`FY2026-Q1`, `FY2026`) and refuses calendar quarters and years that do not fit; `choose_grain` and `period_labels` take the start; the cleaner records it and the merge passes it to joins and stacks; forecast labels continue `FY` labels; the seasonal model reads their shape; the API field; the panel's select with `Intl` month names; decision record amending ADR 0025, limitations, user guide, gap analysis, milestone A12, brain, README.
+- **Verified:** full Python suite with PostgreSQL 2,347 tests (19 skipped; 5 new), 515 frontend unit tests (1 new), type check, brain strict check, build and budget (JS 99.7 of 100 KB, 255.5 of 256 KB total; CSS 10.46 of 10.5 KB, 34.1 of 35 KB) within the ceilings set earlier today.
+- **Decided:** name the fiscal year by the calendar year it ends in; a calendar quarter fits a fiscal quarter only on a shared boundary and a calendar year never fits a fiscal year that is not the calendar; month names come from the locale, not a string list.
+- **Open / next:** PR #69 carries A10, the visual layer, A11 and A12, waiting for the owner's merge word; next: agent cards per stage and a live timeline on the interface; trees and ensembles in modelling; U8 and U20; the model half of G8.
+
+## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (A11 derived columns)
+
+**Goal:** continue the programme on the owner's "continue till finish all": the derived-columns half of the dynamic-inputs gap.
+
+- **Done:** a formula engine in `server/mapping.py` (tokeniser, recursive-descent parser for `+ - * /`, brackets, unary minus, numbers, measure names and backtick names; evaluation to a float or None; nothing passes through the interpreter); `derived` in the mapping, validated with refusals in both languages (name, clash, unreadable formula, non-measure reference, at most five), a derived column allowed as the measure; the collector lists the names, the profiler counts them as measures, the cleaner computes them after coercion and records a calculation and a claim; `clean_table` computes them for joined and stacked tables; the analysis table marks them `derived`; the API model; the mapping panel's section with strings in the Datasets chunk; decision record amending ADR 0025, limitations, user guide, gap analysis, milestone A11, brain, README.
+- **Verified:** full Python suite with PostgreSQL 2,342 tests (19 skipped; 8 new), 514 frontend unit tests (2 new), type check, brain strict check, build and budget (JS 99.6 of 100 KB, 255.1 of 256 KB total; CSS 10.46 of 10.5 KB, 34.1 of 35 KB), the mapping journey with axe on desktop (3 passed).
+- **Decided:** arithmetic only, no functions or conditionals, so a refusal can always say why; empty cells rather than errors for missing values and zero divisors, consistent with unreadable measures; the total script ceiling moves to 256 KB after trimming, recorded.
+- **Open / next:** PR #69 carries A10, the visual layer and A11, green, waiting for the owner's merge word; next: a fiscal year; agent cards per stage; a live timeline; U8 and U20; the model half of G8.
+
+## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (Miyaar visual layer)
+
+**Goal:** the owner's request to study nine reference AI and operations dashboards, research current practice and develop the Miyaar interface.
+
+- **Found:** the references share a one-sentence situation brief with one action, large figures with a small trend, a glowing "core" for the intelligence layer, and depth from gradients and halos; current practice (2026 design surveys, WCAG 2.2 as the floor, progressive disclosure for executives) confirms them. Miyaar had the midnight and cyan system and the honest-voice rules of ADR 0054 but no brief, no trend and a gear for a hero.
+- **Done:** the Command Centre brief (greeting by hour and name, counted sentence, Review opening the longest-waiting run or Start an analysis, a 14-day sparkline from `dailyStarts`); the AI-core hero motif with chips and a three-column action grid; `--glow` and `--glow-edge` tokens, hazes and a hero gradient in both themes; strings in both languages in the lazy pack; decision record, design master decision 10, progress board, Memory, brain note and decision log, README; screenshots refreshed.
+- **Verified:** full Python suite with PostgreSQL 2,334 tests (19 skipped), 512 frontend unit tests (4 new), type check, brain strict check, build and budget (JS 99.6 of 100 KB first load, 254.3 of 255 KB total; CSS 10.46 of 10.5 KB first load, 33.97 of 35 KB total), Miyaar workspace suite 12 passed with axe, Command Centre and screenshot journeys on desktop.
+- **Decided:** total ceilings move to 255 KB script and 35 KB style after moving the strings off the first load; first-load ceilings unchanged. The brief's Review opens the longest-waiting analysis, not an inbox. No invented health, uptime or satisfaction figure: only counted runs.
+- **Open / next:** PR #69 (A10) is green and waits for the owner's merge word; this layer rides the same branch; next interface slices: agent cards per stage from task states, a live timeline, imagery-led asset cards; then derived columns and a fiscal year.
+
+## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (A10 week grain)
+
+**Goal:** after PR #68 merged on the owner's word, the next gap-analysis slice: a weekly grain.
+
+- **Done:** `week` in `GRAINS` and `FINEST_FIRST` with ISO week labels (`YYYY-Www`); week values (`2025-W03`, `2025W03`) read as periods of week precision, placed in a month, quarter or year by their Thursday; `AUTO_GRAINS` keeps the automatic roll-up at day, month, quarter, year so no earlier run changes; forecast labels step ISO weeks across the year; the seasonal model's season for weeks is 52 and unmapped week labels are recognised; validation wording and the Arabic grain names; the mapping panel option and strings in both languages; decision record, ADR 0025 row, limitations, user guide, gap analysis, milestone A10, brain note and decision log, README.
+- **Verified:** full Python suite with PostgreSQL 2,334 tests (19 skipped; 4 new), 508 frontend unit tests, type check, brain strict check, build and budget (JS 99.7 of 100 KB, 253.3 of 254 KB total).
+- **Decided:** weeks are the owner's choice, never the automatic one; a week straddling the new year belongs to the year and month of its Thursday (the ISO anchor); a fiscal year is a separate decision.
+- **Open / next:** the PR waits for the owner's word before merging; then derived columns, a fiscal year; U8 and U20; the model half of G8; the next standards-lint round.
+
 ## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (A9 stacked exports)
 
 **Goal:** the next gap-analysis slice after A8: stacking period exports, a union of datasets with matching columns.

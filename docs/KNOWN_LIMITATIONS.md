@@ -92,7 +92,7 @@ after the main integration. Do not infer it from idle API health.
      and extends it, with accuracy measured by backtesting against
      held-out periods. There is no probabilistic interval — the stated
      range comes from measured backtest error. A seasonal model, a
-     regression, a classifier and a clustering are available as optional
+     regression, a tree ensemble, a classifier and a clustering are available as optional
      stages on the `models` profile (ADR 0033; see item 28). Fewer than 4 periods produces no
      forecast; fewer than 6 produces a forecast explicitly marked as
      having unmeasured accuracy. With 6 or more, the trend is also
@@ -383,9 +383,12 @@ required local files. Both behaviors are covered by tests
     room for only the first letters of the agent's name.
 21. Column mapping (ADR 0025) gives each column one role and analyses
     one measure, broken down by at most one dimension. The other
-    measures are drivers, not subjects. There is no week grain, no
-    fiscal year, no derived or computed column, and no unit per
-    measure. A decimal comma is refused rather than read, and
+    measures are drivers, not subjects. A week grain exists since 27
+    October 2026 (ISO weeks, chosen by the owner, never by the automatic
+    roll-up); derived columns exist since the same day (up to five,
+    arithmetic over the measures, no functions or conditionals); a fiscal
+    year starting in any month exists since the same day (not a 52/53-week
+    or 4-4-5 calendar); there is no unit per measure. A decimal comma is refused rather than read, and
     two-digit years follow the POSIX rule, so `70` is 1970. The
     suggestion reads an even sample of 10,000 rows of a larger table,
     while saving checks every row. A mapping belongs to one dataset:
