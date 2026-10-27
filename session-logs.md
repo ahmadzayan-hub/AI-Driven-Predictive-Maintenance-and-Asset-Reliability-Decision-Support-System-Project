@@ -1915,6 +1915,15 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Next: reviewed clean-branch publication/hosted CI and a separately validated
   local release that retains existing local-only report functionality.
 
+## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (A13 tree ensemble)
+
+**Goal:** the "trees and ensembles" item of the modelling gap row.
+
+- **Done:** `TreeModel` in `server/modelling.py` (bagged regression trees: 16 trees, depth 4, leaves of 5, variance-reduction splits over about the square root of the inputs and 8 thresholds, bootstrap samples of at most 1,500 records; prediction as the trees' average; importance as shares of explained variance), scored like the regression against the training average and additionally against the least-squares line on the same held-out records, with claims that say whether the rules add thresholds a line misses; registered in `config.json` and the `models` profile; decision record amending ADR 0033, user guide, limitations, gap analysis, milestone A13, roadmap note, decision log, README.
+- **Verified:** full Python suite with PostgreSQL 2,352 tests (19 skipped; 5 new), 515 frontend unit tests, type check, brain strict check; the stage runs in about 0.06 s on 400 records.
+- **Decided:** fixed settings, no tuning on held-out data; the second comparison is the line, because the reader's question is whether trees add anything, not whether they are good.
+- **Open / next:** the owner asks whether the platform changes its dashboard and deliverables with the data: an assessment follows in the session; PR #69 waits for the merge word.
+
 ## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (A12 fiscal year)
 
 **Goal:** close the dynamic-inputs gap row: a fiscal year starting in any month.

@@ -92,7 +92,7 @@ after the main integration. Do not infer it from idle API health.
      and extends it, with accuracy measured by backtesting against
      held-out periods. There is no probabilistic interval — the stated
      range comes from measured backtest error. A seasonal model, a
-     regression, a classifier and a clustering are available as optional
+     regression, a tree ensemble, a classifier and a clustering are available as optional
      stages on the `models` profile (ADR 0033; see item 28). Fewer than 4 periods produces no
      forecast; fewer than 6 produces a forecast explicitly marked as
      having unmeasured accuracy. With 6 or more, the trend is also

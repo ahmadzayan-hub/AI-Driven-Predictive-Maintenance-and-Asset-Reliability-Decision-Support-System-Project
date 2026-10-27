@@ -249,8 +249,8 @@ probabilities or commercial readiness by displaying a score.
   content revision reject changed evidence until the brief is refreshed;
   exporting does not approve or publish a run (ADR 0059).
 - **Models, each against a plain guess** — a run on the `models` profile
-  adds a regression, a classification, a clustering and a seasonal
-  forecast as governed stages. Each is tested on held-out data against
+  adds a regression, a tree ensemble, a classification, a clustering
+  and a seasonal forecast as governed stages. Each is tested on held-out data against
   the obvious baseline (the average, the most common class, last
   season), reports a weak model as weak, and shows a model card with the
   verdict first (ADR 0033)
@@ -893,6 +893,19 @@ cd frontend && npm run typecheck
 # --e2e adds both the main and Miyaar Playwright suites.
 python scripts/verify.py
 ```
+
+### Tree ensemble: threshold rules against the average and the line — 27 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-27-tree-ensemble.md)): a
+fifth model on the `models` profile, 16 bagged regression trees in the
+standard library, scored on held-out records against the training average
+and against the straight-line model, so the card says whether the
+relationship has thresholds a line misses; each input's share of the
+explained variance is reported as an association. Checked with the full
+Python suite against PostgreSQL 16 (2,352 tests, 19 skipped; 5 new in
+`tests/test_modelling.py`, and the governed models run now lists the
+`trees` card in both languages), 515 frontend unit tests, type check,
+brain check, build and budget unchanged (no interface change).
 
 ### Fiscal year: quarters and years named by the start month — 27 October 2026
 

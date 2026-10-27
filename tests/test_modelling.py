@@ -26,8 +26,9 @@ if FASTAPI_AVAILABLE:
     from server.app import create_app
 
 STAGE_PATHS = ["server.modelling.RegressionModel", "server.modelling.ClassificationModel",
-               "server.modelling.ClusteringModel", "server.modelling.SeasonalForecast"]
-ROLES = ["regression_model", "classification_model", "clustering_model", "seasonal_model"]
+               "server.modelling.ClusteringModel", "server.modelling.SeasonalForecast",
+               "server.modelling.TreeModel"]
+ROLES = ["regression_model", "classification_model", "clustering_model", "seasonal_model", "tree_model"]
 
 
 def context(rows, columns, numeric, measure, date=None, trend=None, grain=None, language="en"):
@@ -49,6 +50,17 @@ def linear_rows(n=400, noise=1.0, seed=3):
         channel = ("web", "store", "phone")[i % 3]
         sales = 50 + 8 * price - 3 * ads + (6 if channel == "web" else 0) + rng.gauss(0, noise)
         rows.append({"price": price, "ads": ads, "channel": channel, "sales": sales})
+    return rows
+
+
+def step_rows(n=400, seed=3):
+    """A relationship made of thresholds: a line can only approximate it."""
+    rng = random.Random(seed)
+    rows = []
+    for _ in range(n):
+        price, ads = rng.uniform(1, 10), rng.uniform(0, 5)
+        sales = 100 + (30 if price > 6 else 0) + (15 if ads < 1.5 else 0) + rng.gauss(0, 2)
+        rows.append({"price": price, "ads": ads, "sales": sales})
     return rows
 
 
@@ -94,6 +106,63 @@ class ArithmeticTests(unittest.TestCase):
         expected = [100 + 2 * i + pattern[i % 4] for i in range(16, 20)]
         for got, want in zip(forecast, expected):
             self.assertAlmostEqual(got, want, places=6)
+
+
+class TreeTests(unittest.TestCase):
+    """The tree ensemble (27 October 2026): rules against the average and the line."""
+
+    def test_thresholds_beat_the_average_and_the_straight_line(self):
+        result = checked(m.TreeModel(), context(step_rows(), ["price", "ads", "sales"],
+                                                ["price", "ads", "sales"], "sales"))
+        card = result["output"]["model_card"]
+        self.assertEqual(card["kind"], "trees")
+        self.assertTrue(card["beats_baseline"])
+        self.assertGreater(card["improvement"], 0.5)
+        self.assertGreater(card["details"]["improvement_over_straight_line"], 0.3)
+        self.assertEqual(card["details"]["importance"][0]["input"], "price")
+        self.assertEqual(card["details"]["trees"], m.TREES)
+        self.assertEqual(card["metric"]["baseline_name"], "training_average")
+        ids = {c["id"] for c in result["claims"]}
+        self.assertIn("tree_model.cl_strongest", ids)
+        line = next(c for c in result["claims"] if c["id"] == "tree_model.cl_line")
+        self.assertIn("thresholds a line misses", line["text"])
+        self.assertTrue(result["quality_checks"][0]["passed"])
+
+    def test_a_straight_relationship_says_the_line_is_as_good(self):
+        result = checked(m.TreeModel(), context(linear_rows(), ["channel", "price", "ads", "sales"],
+                                                ["price", "ads", "sales"], "sales"))
+        card = result["output"]["model_card"]
+        self.assertTrue(card["beats_baseline"])
+        self.assertLess(card["details"]["improvement_over_straight_line"], 0)
+        line = next(c for c in result["claims"] if c["id"] == "tree_model.cl_line")
+        self.assertIn("easier to read", line["text"])
+
+    def test_noise_is_reported_as_weak(self):
+        result = checked(m.TreeModel(), context(noise_rows(), ["a", "b", "sales"],
+                                                ["a", "b", "sales"], "sales"))
+        self.assertFalse(result["output"]["model_card"]["beats_baseline"])
+        weak = next(c for c in result["claims"] if c["id"] == "tree_model.cl_weak")
+        self.assertEqual(weak["type"], "limitation")
+        self.assertFalse(result["quality_checks"][0]["passed"])
+
+    def test_too_few_records_is_a_limitation_not_a_failure(self):
+        result = checked(m.TreeModel(), context(step_rows(n=20), ["price", "ads", "sales"],
+                                                ["price", "ads", "sales"], "sales"))
+        self.assertEqual(result["status"], "succeeded")
+        self.assertFalse(result["output"]["fitted"])
+
+    def test_the_arithmetic_of_one_tree(self):
+        vectors = [[float(i)] for i in range(40)]
+        targets = [0.0 if i < 20 else 10.0 for i in range(40)]
+        importance = [0.0]
+        tree = m.fit_tree(vectors, targets, list(range(40)), 3, 5, random.Random(1), 1, importance)
+        self.assertEqual(tree[0], "split")
+        self.assertEqual((m.predict_tree(tree, [3.0]), m.predict_tree(tree, [30.0])), (0.0, 10.0))
+        self.assertGreater(importance[0], 0)
+        forest, shares = m.fit_forest(vectors, targets, trees=4)
+        self.assertEqual(len(forest), 4)
+        self.assertAlmostEqual(sum(shares), 1.0)
+        self.assertAlmostEqual(m.predict_forest(forest, [35.0]), 10.0, delta=2.0)
 
 
 class RegressionTests(unittest.TestCase):
@@ -362,7 +431,7 @@ class ModelsInARunTests(unittest.TestCase):
                 self.assertEqual(failed, [])
                 kinds = [card["kind"] for card in run["models"]]
                 # The sample has twelve months: too few for a season.
-                self.assertEqual(kinds, ["regression", "classification", "clustering"])
+                self.assertEqual(kinds, ["regression", "classification", "clustering", "trees"])
                 self.assertTrue(all("beats_baseline" in card for card in run["models"]))
                 self.assertIn(m.RegressionModel.question if language == "en" else
                               "ما الذي يتنبأ بالمقياس، وبأي دقة؟",

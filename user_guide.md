@@ -322,11 +322,12 @@ minute per source.
 ### Models
 
 Choose the **models** pipeline profile when starting an analysis to add
-four models to it: what predicts the measure (a regression), which
-records land in its top quarter, or in the classes of a text column the
-operator names (a classification), whether the records fall into natural groups (a
-clustering) and whether the measure follows a season (a seasonal
-forecast).
+five models to it: what predicts the measure (a regression), whether
+threshold rules on the other columns predict it better than a straight
+line (a tree ensemble), which records land in its top quarter, or in the
+classes of a text column the operator names (a classification), whether
+the records fall into natural groups (a clustering) and whether the
+measure follows a season (a seasonal forecast).
 
 Each model is tested on data it did not learn from: the latest fifth of
 the periods, every fifth record when there is no date, or the last full
