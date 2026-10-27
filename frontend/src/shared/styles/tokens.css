@@ -112,9 +112,14 @@
   --accent-haze: rgb(51 78 104 / .04);
   --workspace-bg: #F3F6FA;
   --panel-fill: #FFFFFF;
-  --hero-fill: #FFFFFF;
+  --hero-fill: linear-gradient(135deg, #FFFFFF, #EEF5FF);
   --hero-border: #D7E0EB;
   --user-message: #E8F0FD;
+  /* The glow (27 October 2026): a soft halo behind the AI core, the
+     listening microphone and the sparkline. Decorative only; never
+     the sole carrier of a state. */
+  --glow: rgb(37 99 235 / .22);
+  --glow-edge: rgb(255 255 255 / .6);
 }
 
 /* Arabic. System fonts with full Arabic coverage, ordered so that Latin
@@ -176,12 +181,14 @@
   --nav-accent: #72D7EA;
   --accent-haze: rgb(158 186 212 / .04);
   --surface-glass: #17263D;
-  --workspace-bg: #0E192B;
+  --workspace-bg: radial-gradient(900px 480px at 85% -10%, rgb(114 215 234 / .10), transparent 60%), radial-gradient(700px 420px at -10% 110%, rgb(139 92 246 / .10), transparent 60%), #0E192B;
   --panel-fill: #17263D;
-  --hero-fill: #17263D;
+  --hero-fill: linear-gradient(135deg, #17263D, #122A3F);
   --hero-border: #3C506D;
   --user-message: #243F62;
   --switch-thumb: #0E192B;
+  --glow: rgb(114 215 234 / .38);
+  --glow-edge: rgb(255 255 255 / .08);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -228,12 +235,14 @@
   --nav-accent: #72D7EA;
   --accent-haze: rgb(158 186 212 / .04);
   --surface-glass: #17263D;
-  --workspace-bg: #0E192B;
+  --workspace-bg: radial-gradient(900px 480px at 85% -10%, rgb(114 215 234 / .10), transparent 60%), radial-gradient(700px 420px at -10% 110%, rgb(139 92 246 / .10), transparent 60%), #0E192B;
   --panel-fill: #17263D;
-  --hero-fill: #17263D;
+  --hero-fill: linear-gradient(135deg, #17263D, #122A3F);
   --hero-border: #3C506D;
   --user-message: #243F62;
   --switch-thumb: #0E192B;
+  --glow: rgb(114 215 234 / .38);
+  --glow-edge: rgb(255 255 255 / .08);
   }
 }
 

@@ -49,3 +49,19 @@ it('links pending review counts to their actual queue with no invented owner or 
   fireEvent.click(within(tile).getByRole('button', { name: 'Review' }))
   expect(onApprovals).toHaveBeenCalledOnce()
 })
+
+it('greets the reader with counted analyses and one action, inventing nothing', async () => {
+  vi.spyOn(api, 'listRuns').mockResolvedValue({ runs: [{ ...source, state: 'awaiting_approval' }, { ...source, id: 'done', state: 'completed' }] })
+  vi.spyOn(api, 'usage').mockRejectedValue(new Error('Synthetic usage outage'))
+  vi.spyOn(api, 'getRun').mockRejectedValue(new Error('Synthetic detail outage'))
+  vi.spyOn(api, 'runExecutive').mockRejectedValue(new Error('Synthetic brief outage'))
+  const onOpenRun = vi.fn()
+  render(<OverviewView onOpenRun={onOpenRun} onStart={vi.fn()} userName="Synthetic Reader" />)
+  const brief = await screen.findByRole('region', { name: 'Your brief' })
+  expect(brief.querySelector('.brief__greeting')).toHaveTextContent(/^Good (morning|afternoon|evening), Synthetic Reader\.$/)
+  expect(within(brief).getByText('Miyaar has 1 analyses closed and 1 waiting for your approval.')).toBeInTheDocument()
+  expect(within(brief).getByText('Analyses started, last 14 days')).toBeInTheDocument()
+  // Review opens the analysis that has waited longest, not a generic inbox.
+  fireEvent.click(within(brief).getByRole('button', { name: 'Review' }))
+  expect(onOpenRun).toHaveBeenCalledWith('synthetic-running')
+})

@@ -1915,6 +1915,16 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Next: reviewed clean-branch publication/hosted CI and a separately validated
   local release that retains existing local-only report functionality.
 
+## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (Miyaar visual layer)
+
+**Goal:** the owner's request to study nine reference AI and operations dashboards, research current practice and develop the Miyaar interface.
+
+- **Found:** the references share a one-sentence situation brief with one action, large figures with a small trend, a glowing "core" for the intelligence layer, and depth from gradients and halos; current practice (2026 design surveys, WCAG 2.2 as the floor, progressive disclosure for executives) confirms them. Miyaar had the midnight and cyan system and the honest-voice rules of ADR 0054 but no brief, no trend and a gear for a hero.
+- **Done:** the Command Centre brief (greeting by hour and name, counted sentence, Review opening the longest-waiting run or Start an analysis, a 14-day sparkline from `dailyStarts`); the AI-core hero motif with chips and a three-column action grid; `--glow` and `--glow-edge` tokens, hazes and a hero gradient in both themes; strings in both languages in the lazy pack; decision record, design master decision 10, progress board, Memory, brain note and decision log, README; screenshots refreshed.
+- **Verified:** full Python suite with PostgreSQL 2,334 tests (19 skipped), 512 frontend unit tests (4 new), type check, brain strict check, build and budget (JS 99.6 of 100 KB first load, 254.3 of 255 KB total; CSS 10.46 of 10.5 KB first load, 33.97 of 35 KB total), Miyaar workspace suite 12 passed with axe, Command Centre and screenshot journeys on desktop.
+- **Decided:** total ceilings move to 255 KB script and 35 KB style after moving the strings off the first load; first-load ceilings unchanged. The brief's Review opens the longest-waiting analysis, not an inbox. No invented health, uptime or satisfaction figure: only counted runs.
+- **Open / next:** PR #69 (A10) is green and waits for the owner's merge word; this layer rides the same branch; next interface slices: agent cards per stage from task states, a live timeline, imagery-led asset cards; then derived columns and a fiscal year.
+
 ## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (A10 week grain)
 
 **Goal:** after PR #68 merged on the owner's word, the next gap-analysis slice: a weekly grain.

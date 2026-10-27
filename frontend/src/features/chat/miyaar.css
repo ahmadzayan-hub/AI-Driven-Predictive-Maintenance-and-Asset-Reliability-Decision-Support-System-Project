@@ -16,7 +16,8 @@
 .miyaar-toolbar__count { margin-inline-start: auto; color: var(--text-faint); font-size: var(--text-xs); white-space: nowrap; }
 .chat__scroll { padding: var(--space-5); }
 .miyaar-welcome { max-inline-size: 1040px; margin-inline: auto; }
-.miyaar-hero { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(120px, 22%); padding: clamp(24px, 2vw, 32px); gap: var(--space-3); border: 1px solid var(--hero-border); border-radius: var(--radius-xl); background: var(--hero-fill); overflow: hidden; }
+.miyaar-hero { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(140px, 26%); padding: clamp(24px, 2vw, 32px); gap: var(--space-3); border: 1px solid var(--hero-border); border-radius: var(--radius-xl); background: var(--hero-fill); box-shadow: inset 0 1px 0 var(--glow-edge); overflow: hidden; }
+.miyaar-hero::after { content: ''; position: absolute; inset: auto -10% -40% auto; width: 60%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(closest-side, var(--glow), transparent); pointer-events: none; }
 .miyaar-hero__copy { position: relative; z-index: 1; }
 .miyaar-hero .eyebrow { font-size: var(--text-xs); color: var(--accent); margin-block-end: var(--space-4); }
 .miyaar-hero h2 { font-size: clamp(1.5rem, 2.1vw, 2.2rem); letter-spacing: var(--tracking-tighter); line-height: 1.25; max-inline-size: 15ch; margin-block-end: var(--space-4); }
@@ -30,10 +31,12 @@
 .miyaar-hero__art > span { color: var(--text-faint); font-size: .625rem; text-align: center; }
 .miyaar-hero__motif { inline-size: 130%; max-inline-size: 340px; }
 .miyaar-hero__motif svg { inline-size: 100%; display: block; }
+.miyaar-core { position: relative; z-index: 1; filter: drop-shadow(0 0 14px var(--glow)); }
+.miyaar-hero__steps span { padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-glass); }
 .miyaar-welcome__heading { font-weight: 500; font-size: var(--text-m); margin-block: var(--space-5) var(--space-4); }
 .miyaar-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: var(--space-3); }
 .miyaar-action { display: flex; align-items: center; gap: var(--space-3); min-inline-size: 0; text-align: start; padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-l); background: var(--panel-fill); transition: border-color var(--motion-fast), background var(--motion-fast); }
-.miyaar-action:hover { border-color: var(--accent); background: var(--accent-soft); }
+.miyaar-action:hover { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 4px var(--accent-haze), 0 8px 24px -12px var(--glow); }
 .miyaar-action:last-child { grid-column: 1 / -1; }
 .miyaar-action__icon { padding: 10px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); border-radius: var(--radius-s); flex-shrink: 0; }
 .miyaar-action strong { display: block; font-size: var(--text-s); font-weight: 500; }
@@ -56,7 +59,7 @@
 .voice-console__copy span { display: block; color: var(--text-muted); line-height: 1.5; }
 .voice-console__permission { color: var(--text-faint); white-space: nowrap; font-size: .6875rem; }
 .voice-console[data-state='error'] .voice-console__copy span { color: var(--danger); }
-.voice-console[data-state='listening'] .voice-capture__button { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-haze); }
+.voice-console[data-state='listening'] .voice-capture__button { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-haze), 0 0 18px var(--glow); }
 .voice-wave { display: flex; align-items: center; gap: 3px; block-size: 24px; color: var(--accent); }
 .voice-wave i { inline-size: 3px; block-size: 14px; border-radius: 3px; background: currentColor; animation: voice-pulse 1s ease-in-out infinite alternate; }
 .voice-wave i:nth-child(2n) { animation-delay: -.4s; block-size: 22px; }
@@ -78,7 +81,9 @@
 .miyaar-followups { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
 .alertbar { flex-wrap: wrap; }
 .alertbar > div { flex: 1; min-inline-size: 150px; }
-@media(min-width:1600px) { .miyaar-actions { grid-template-columns: repeat(3,minmax(0,1fr)); } .miyaar-action:last-child { grid-column: auto; } }
+@media(min-width:1280px) { .miyaar-actions { grid-template-columns: repeat(3,minmax(0,1fr)); } .miyaar-action:last-child { grid-column: auto; } }
+@media(prefers-reduced-motion:no-preference) { .miyaar-core__orbit { animation: core-orbit 60s linear infinite; transform-origin: 160px 110px; } }
+@keyframes core-orbit { to { transform: rotate(360deg); } }
 @media(max-width:767px) {
   .sidebar__footer .miyaar-mobile-help { display: inline-flex; }
   .shell__header { padding-inline: var(--space-3); min-height: 60px; gap: var(--space-2); }

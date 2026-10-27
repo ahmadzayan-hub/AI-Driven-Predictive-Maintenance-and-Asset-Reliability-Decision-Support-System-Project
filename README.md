@@ -894,6 +894,24 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Miyaar visual layer: the brief, the AI core and a bounded glow — 27 October 2026
+
+Interface change ([decision](docs/adr/2026-10-27-miyaar-visual-layer.md)):
+the Command Centre opens with a brief (a greeting by the hour and name,
+one sentence from counted runs, one action that opens the longest-waiting
+analysis, and analyses started in the last 14 days with a sparkline, all
+counted from the runs' own dates); the Miyaar hero carries an AI-core
+motif with a decorative glow; the action grid goes to three columns from
+1280px. Strings in both languages in the Overview's lazy pack. Checked
+with the full Python suite against PostgreSQL 16 (2,334 tests, 19
+skipped), 512 frontend unit tests (4 new), type check, brain check, build
+and budget (JS 99.6 of 100 KB first load and 254.3 of 255 KB in total;
+CSS 10.46 of 10.5 KB first load and 33.97 of 35 KB in total: the total
+ceilings moved by 1 KB and 1.5 KB, recorded in the decision; first load
+unchanged), the Miyaar workspace suite (12 passed with axe, both
+languages, four viewports) and the Command Centre and screenshot journeys
+on desktop. Screenshots in `docs/screenshots/` refreshed.
+
 ### Week grain: dates summed by ISO week — 27 October 2026
 
 Behaviour change ([decision](docs/adr/2026-10-27-week-grain.md)): a column
