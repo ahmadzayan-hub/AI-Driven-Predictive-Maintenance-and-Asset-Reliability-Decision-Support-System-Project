@@ -8,7 +8,7 @@ export function DataChatContext({ session, disabled }: { session: SessionState; 
   const readOnly = useReadOnly()
   disabled = disabled || readOnly
   const [selected, setSelected] = useState(session.data_context ?? null)
-  const [expanded, setExpanded] = useState(!session.data_context)
+  const [expanded, setExpanded] = useState(false)
   const [choices, setChoices] = useState<DataContextChoices['choices'] | null>(null)
   const [runId, setRunId] = useState('')
   const [busy, setBusy] = useState(false)

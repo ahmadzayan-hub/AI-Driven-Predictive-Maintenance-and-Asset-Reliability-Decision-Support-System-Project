@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
+import { dataChatMessages } from '../src/features/chat/dataChatMessages'
 import type { SessionState, TranscriptEntry } from '../src/shared/types'
 
 // Explicitly synthetic browser fixtures, never shipped as application data.
@@ -10,6 +11,7 @@ async function boot(page: Page, locale: 'en' | 'ar' = 'en', theme = 'dark') {
     localStorage.setItem('aos-theme', theme)
   }, { locale, theme })
   const state: SessionState = {
+    data_chat_labels: Object.fromEntries(Object.entries(dataChatMessages[locale]).map(([key, value]) => [key.replace('dataChat.', ''), value])) as SessionState['data_chat_labels'],
     session_id: 'synthetic-ui-test', agent_name: 'Agentic OS', version: 'test',
     welcome: 'Synthetic test session', ended: false, created_at: '2026-10-19T08:00:00Z',
     transcript: [], preferences: { language: locale === 'ar' ? 'Arabic' : 'English' },
@@ -47,8 +49,18 @@ for(const locale of ['en','ar'] as const) for(const size of ['desktop','phone','
     await page.setViewportSize(size === 'desktop' ? { width: 1440, height: 1000 } : size === 'tablet' ? { width: 768, height: 1024 } : size === 'laptop' ? { width: 1024, height: 900 } : { width: 375, height: 812 })
     await boot(page,locale)
     await expect(page.locator('html')).toHaveAttribute('dir',locale === 'ar' ? 'rtl' : 'ltr')
-    await expect(page.locator('.miyaar-toolbar strong')).toHaveText(locale === 'ar' ? 'معيار' : 'Miyaar')
+    await expect(page.locator('.miyaar-toolbar strong')).toHaveText(locale === 'ar' ? 'اسأل معيار' : 'Ask Miyaar')
     await expect(page.locator('.miyaar-actions button')).toHaveCount(5)
+    await expect(page.locator('.assistant-workspace > aside')).toHaveCount(0)
+    await expect(page.locator('.miyaar-action--primary')).toContainText(locale === 'ar' ? 'تحليل البيانات' : 'Analyze data')
+    const context = page.locator('.assistant-context details')
+    await expect(context).not.toHaveAttribute('open')
+    await context.locator('summary').focus()
+    await page.keyboard.press('Enter')
+    await expect(context).toHaveAttribute('open', '')
+    await noOverflow(page)
+    await page.keyboard.press('Enter')
+    await expect(context).not.toHaveAttribute('open')
     expect(await page.locator('.chat__scroll').evaluate(el => el.scrollTop)).toBe(0)
     await noOverflow(page)
     await a11y(page)
