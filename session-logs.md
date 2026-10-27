@@ -1915,6 +1915,15 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Next: reviewed clean-branch publication/hosted CI and a separately validated
   local release that retains existing local-only report functionality.
 
+## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (A9 stacked exports)
+
+**Goal:** the next gap-analysis slice after A8: stacking period exports, a union of datasets with matching columns.
+
+- **Done:** a third join type `stack` in `server/joins.py` (same column set or refused with the columns named in both languages; read with the main mapping; dates at the main grain; repeats of rows already present dropped and counted; the dataset row ceiling; a `source` column, `source_2` when taken, shared by later stacks); the merge stage's evidence for a stack and the validator's recount; `JoinIn.keys` may be empty; the builder's third segmented option with the key pairs hidden and the preview line; strings in both languages; decision record, user guide, limitations, gap analysis, milestone A9, brain note and decision log, README.
+- **Verified:** full Python suite with PostgreSQL 2,330 tests (19 skipped; 12 new), 508 frontend unit tests, type check, brain strict check, build and budget (JS 99.6 of 100 KB, 253.2 of 254 KB total), the four join journeys in Playwright on desktop.
+- **Decided:** the total script ceiling moves from 253 to 254 KB: the preview table is shared with the upload preview and the two key selects became one map, which recovered part of the cost; the rest is the third join type and its bilingual strings. A stacked row has no source position (index `None`); the maintenance reader already falls back.
+- **Open / next:** the PR waits for the owner's word before merging (CLAUDE.md, 23 October instructions); then a weekly grain and derived columns; U8 and U20; the model half of G8; the next standards-lint round.
+
 ## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (review and A8 dataset lifecycle)
 
 **Goal:** review the project after the 23 to 26 October streams landed on main, then continue building the platform from the gap analysis.

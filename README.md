@@ -894,6 +894,20 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Stacked exports: a union of datasets with the same columns — 27 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-27-stacked-datasets.md)): a
+declared join may be a stack (`how: "stack"`, no key): the dataset's rows go
+under the main table, read with the main mapping, under exactly the same
+columns or refused with the columns named; repeats of rows already present
+are dropped and counted; a `source` column says which export each row came
+from. The builder offers *Stack its rows underneath*. Checked with the full
+Python suite against PostgreSQL 16 (2,330 tests, 19 skipped; 12 new in
+`tests/test_joins.py`), 508 frontend unit tests, type check, brain check,
+build and budget (JS 99.6 of 100 KB first load and 253.2 of 254 KB in
+total: the ceiling moved by 1 KB after trimming, recorded in the decision),
+and the four join journeys in Playwright on desktop, the stack one new.
+
 ### Dataset lifecycle: a stored dataset can be removed — 27 October 2026
 
 Behaviour change ([decision](docs/adr/2026-10-27-dataset-deletion.md)):

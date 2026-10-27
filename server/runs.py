@@ -447,7 +447,8 @@ class RunEngine:
     def preview_joins(self, owner, dataset_id, joins, breakdown=None, language="en"):
         primary, mapping, spec, inputs = self.join_plan(owner, dataset_id, joins, breakdown)
         return analytics.preview_merge(primary["content"], mapping, inputs,
-                                       spec["breakdown"], language)
+                                       spec["breakdown"], language,
+                                       dataset_name=primary["name"])
 
     def create_run(self, goal, dataset_text=None, dataset_name=None,
                    owner="local-owner", dataset_id=None, profile=None,
@@ -592,7 +593,10 @@ class RunEngine:
                 continue  # the merge then reports a join it cannot make
             inputs.append({**item, "name": dataset["name"], "content": dataset["content"],
                            "snapshot": dataset["sha256"][:16]})
-        return {"joins": inputs, "join_breakdown": declared.get("breakdown")}
+        primary = self.store.get_dataset(run.get("dataset_id")) if run.get("dataset_id") else None
+        return {"joins": inputs, "join_breakdown": declared.get("breakdown"),
+                # What a stack calls the main dataset's rows in its source column.
+                "primary_name": primary["name"] if primary else run.get("dataset_name")}
 
     def _context(self, run, tasks):
         ctx = {"goal": run["goal"], "dataset_text": self._dataset_text(run),

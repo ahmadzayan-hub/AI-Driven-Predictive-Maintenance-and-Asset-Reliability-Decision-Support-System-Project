@@ -22,9 +22,15 @@ from server import mapping as colmap
 
 MAX_JOINS = 4
 MAX_KEYS = 3
-HOWS = ("left", "inner")
+HOWS = ("left", "inner", "stack")
 # The same ceiling one dataset has (server/datasets.py, ADR 0024).
 MAX_MERGED_COLUMNS = 500
+# A stacked table may not grow past what one dataset may hold
+# (analytics.MAX_ROWS); the test asserts the two agree.
+STACK_MAX_ROWS = 50_000
+# The column a stack adds, saying which dataset each row came from.
+SOURCE_COLUMN = "source"
+MISMATCH_EXAMPLES = 5
 UNMATCHED_EXAMPLES = 5
 DUPLICATE_EXAMPLES = 3
 # The 90% rule the Data Profiling Agent applies to unmapped data.
@@ -89,7 +95,9 @@ def normalise(joins, breakdown=None):
     """The declaration a run keeps: checked for shape, nothing loaded.
 
     `joins` is a list of {dataset_id, keys: [{left, right}], how, alias};
-    names are checked against real columns later, by `merge`."""
+    names are checked against real columns later, by `merge`. A stack
+    (how = "stack") appends the dataset's rows instead of joining them
+    and needs no key."""
     problems = []
     joins = list(joins or [])
     if not joins:
@@ -113,16 +121,16 @@ def normalise(joins, breakdown=None):
         if how not in HOWS:
             problems.append(Problem(
                 "how", None,
-                f"Join {index + 1}: “{how}” is not a join type; use left or inner.",
-                f"الدمج رقم {index + 1}: «{how}» ليس نوع دمج؛ استخدم left أو inner.",
+                f"Join {index + 1}: “{how}” is not a join type; use left, inner or stack.",
+                f"الدمج رقم {index + 1}: «{how}» ليس نوع دمج؛ استخدم left أو inner أو stack.",
                 index))
         keys = []
-        for pair in item.get("keys") or []:
+        for pair in (item.get("keys") or []) if how != "stack" else []:
             left = str((pair or {}).get("left") or "").strip()
             right = str((pair or {}).get("right") or "").strip()
             if left and right:
                 keys.append({"left": left, "right": right})
-        if not keys:
+        if not keys and how != "stack":
             problems.append(Problem(
                 "keys", None,
                 f"Join {index + 1} needs a key: a column of the main table and the "
@@ -259,22 +267,121 @@ def _quoted(keys):
 # The merge
 # ---------------------------------------------------------------------------
 
-def merge(columns, rows, numeric, joined, date=None):
-    """Join each table in `joined` onto `rows`, in order.
+def _stack(index, item, columns, rows, numeric, date, source, source_name, problems):
+    """Append a table's rows under the main table's columns (a union).
+
+    The table must have exactly the main table's columns, apart from the
+    source column an earlier stack added. Its dates are read at the main
+    grain, its measures as numbers, and a row that repeats one already in
+    the table is dropped and counted, as the cleaner drops repeats within
+    one dataset. Returns (rows, source column, record) or None."""
+    table, name = item["table"], item["name"]
+    expected = [c for c in columns if c != source]
+    missing = [c for c in expected if c not in table.columns]
+    extra = [c for c in table.columns if c not in expected]
+    if missing or extra:
+        parts_en, parts_ar = [], []
+        if missing:
+            shown = ", ".join(f"“{c}”" for c in missing[:MISMATCH_EXAMPLES])
+            parts_en.append(f"it lacks {shown}")
+            parts_ar.append(f"ينقصه {shown.replace('“', '«').replace('”', '»')}")
+        if extra:
+            shown = ", ".join(f"“{c}”" for c in extra[:MISMATCH_EXAMPLES])
+            parts_en.append(f"it adds {shown}")
+            parts_ar.append(f"يزيد فيه {shown.replace('“', '«').replace('”', '»')}")
+        problems.append(Problem(
+            "columns", ", ".join((missing + extra)[:MISMATCH_EXAMPLES]),
+            f"Join {index + 1}: {name} cannot be stacked under the main table because "
+            f"{' and '.join(parts_en)}. A stacked dataset must have exactly the same "
+            "columns.",
+            f"الدمج رقم {index + 1}: لا يمكن رصّ {name} تحت الجدول الرئيسي لأنه "
+            f"{' و'.join(parts_ar)}. يجب أن تكون أعمدة البيانات المرصوصة هي نفسها تماماً.",
+            index))
+        return None
+    labels = None
+    if date and date.get("grain") and date.get("column") in expected:
+        labels, _, _ = colmap.period_labels(
+            [row.get(date["column"]) or "" for row in table.rows],
+            date.get("order") or "auto", date["grain"])
+    seen = {tuple(row.get(c) for c in expected) for row in rows}
+    added, duplicates = [], 0
+    for position, row in enumerate(table.rows):
+        cell = {}
+        for column in expected:
+            value = row.get(column)
+            if column in numeric:
+                value = value if isinstance(value, (int, float)) else _plain_number(value)
+            elif isinstance(value, float):
+                value = str(int(value)) if value.is_integer() else format(value, ".15g")
+            elif value is not None:
+                value = str(value)
+            cell[column] = value
+        if labels is not None:
+            cell[date["column"]] = labels[position]
+        key = tuple(cell[c] for c in expected)
+        if key in seen:
+            duplicates += 1
+            continue
+        seen.add(key)
+        added.append(cell)
+    if len(rows) + len(added) > STACK_MAX_ROWS:
+        problems.append(Problem(
+            "joins", None,
+            f"Join {index + 1}: stacking {name} would make {len(rows) + len(added)} rows; "
+            f"the limit is {STACK_MAX_ROWS:,}.",
+            f"الدمج رقم {index + 1}: رصّ {name} يجعل عدد الصفوف {len(rows) + len(added)}، "
+            f"والحد {STACK_MAX_ROWS:,}.", index))
+        return None
+    new_source = source is None
+    if new_source:
+        source, suffix = SOURCE_COLUMN, 2
+        while source in columns:
+            source = f"{SOURCE_COLUMN}_{suffix}"
+            suffix += 1
+        rows = [{**row, source: source_name} for row in rows]
+    label = item.get("alias") or name
+    record = {
+        "dataset_id": item.get("dataset_id"), "name": name, "alias": item["alias"],
+        "how": "stack", "keys": [], "snapshot": item.get("snapshot"),
+        "rows_in": len(rows), "rows_out": len(rows) + len(added),
+        "rows_added": len(added), "duplicates_dropped": duplicates,
+        "unmatched": 0, "unmatched_keys": [],
+        "lookup_rows": len(table.rows), "lookup_unused": 0,
+        "lookup_empty_keys": 0, "lookup_dropped_empty": table.dropped_empty,
+        "lookup_dropped_duplicates": table.dropped_duplicates,
+        "source_column": source, "source_label": label,
+        "added_columns": [source] if new_source else [], "renamed": {},
+    }
+    return rows + [{**cell, source: label} for cell in added], source, record
+
+
+def merge(columns, rows, numeric, joined, date=None, source_name=None):
+    """Join or stack each table in `joined` onto `rows`, in order.
 
     `joined` holds dicts with `table` (a Table), `keys`, `how`, `alias`,
     `name`, `dataset_id` and `snapshot`. `date` is the main dataset's
     mapped date as the cleaner left it ({column, order, grain}), so a key
-    on it can read the joined dates at the same grain.
+    on it can read the joined dates at the same grain, and a stacked
+    table's dates are read at that grain too. `source_name` is what the
+    main dataset's rows are called in the source column a stack adds.
 
     Returns the merged columns, rows and numeric columns, and one record
     per join of what it did. Raises JoinError when a join cannot be made
     without changing what the rows count."""
     columns, numeric, rows = list(columns), list(numeric), rows
-    problems, records = [], []
+    problems, records, source = [], [], None
     for index, item in enumerate(joined):
         table, keys, how = item["table"], item["keys"], item["how"]
         name, alias = item["name"], item["alias"]
+        if how == "stack":
+            stacked = _stack(index, item, columns, rows, numeric, date, source,
+                             source_name or "main", problems)
+            if stacked is not None:
+                rows, source, record = stacked
+                if record["added_columns"]:
+                    columns += record["added_columns"]
+                records.append(record)
+            continue
         missing = [k["left"] for k in keys if k["left"] not in columns]
         missing_right = [k["right"] for k in keys if k["right"] not in table.columns]
         for column in missing:

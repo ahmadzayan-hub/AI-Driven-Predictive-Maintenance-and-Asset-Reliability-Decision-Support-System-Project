@@ -354,30 +354,40 @@ export interface JoinKey {
 
 /** A dataset joined onto a run's main dataset. `left` keeps every row;
  *  `inner` keeps only the rows that found a match. */
+/** A stack (`how: 'stack'`) appends the dataset's rows under the main
+ *  table's columns and needs no key (27 October 2026). */
+export type JoinHow = 'left' | 'inner' | 'stack'
+
 export interface JoinSpec {
   dataset_id: string
   keys: JoinKey[]
-  how: 'left' | 'inner'
+  how: JoinHow
   alias?: string | null
 }
 
-/** What one join did: rows in and out, matches, and the columns it added. */
+/** What one join did: rows in and out, matches, and the columns it added.
+ *  A stack reports the rows it appended and the repeats it dropped instead
+ *  of matches. */
 export interface JoinRecord {
   dataset_id: string
   name: string
   alias: string
-  how: 'left' | 'inner'
+  how: JoinHow
   keys: JoinKey[]
   rows_in: number
   rows_out: number
-  matched: number
+  matched?: number
   unmatched: number
-  coverage: number
+  coverage?: number
   unmatched_keys: string[]
   lookup_rows: number
   lookup_unused: number
   added_columns: string[]
   renamed: Record<string, string>
+  rows_added?: number
+  duplicates_dropped?: number
+  source_column?: string
+  source_label?: string
 }
 
 /** POST /api/joins/preview: the merge a run would make, without the run. */

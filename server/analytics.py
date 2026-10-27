@@ -765,21 +765,27 @@ def _merge_tables(ctx):
              "grain": clean.get("date_grain")} if clean.get("date_col") else None)
     joined, screens = [], []
     for item in ctx.get("joins") or []:
-        table = joining.clean_table(item["content"], item.get("mapping"))
+        # A stacked table is read the way the main one was: with the main
+        # dataset's mapping, so its measures and dates agree with the rows
+        # it joins. A lookup keeps its own mapping (ADR 0030).
+        mapping = ctx.get("mapping") if item.get("how") == "stack" else item.get("mapping")
+        table = joining.clean_table(item["content"], mapping)
         joined.append({**item, "table": table})
         for finding in personal_data_findings(table.columns, table.screened):
             screens.append({**finding, "dataset": item["name"]})
     # Keep a row's source position through left/inner joins without trusting
     # an asset/record identifier or putting an internal field in the table.
+    # A stacked row has no position in the main file: its index is None.
     source_indices = clean.get("source_indices")
     marker = object()
     source_rows = ([{**row, marker: index} for row, index in
                     zip(clean["rows"], source_indices)]
                    if source_indices is not None else clean["rows"])
     merged = joining.merge(ctx["collector"]["columns"], source_rows,
-                           ctx["profiler"]["numeric_columns"], joined, date)
+                           ctx["profiler"]["numeric_columns"], joined, date,
+                           ctx.get("primary_name"))
     if source_indices is not None:
-        merged["source_indices"] = [row.pop(marker) for row in merged["rows"]]
+        merged["source_indices"] = [row.pop(marker, None) for row in merged["rows"]]
     ignored = {column for column, role in (ctx.get("mapping") or {}).get("roles", {}).items()
                if role == "ignore"}
     for item, record in zip(joined, merged["joins"]):
@@ -795,8 +801,63 @@ def _merge_tables(ctx):
     return merged, screens
 
 
+def _stack_evidence(ctx, index, prefix, record, calcs, claims, checks, lines):
+    """What a stack did, as calculations, claims, a check and a note line:
+    rows appended under the same columns, repeats dropped and counted,
+    and the source column that tells the periods apart."""
+    name, added, dropped = record["name"], record["rows_added"], record["duplicates_dropped"]
+    calcs += [
+        {"id": f"{prefix}_rows_in", "name": f"rows_before_stacking_{record['alias']}",
+         "value": record["rows_in"], "method": "rows of the table before this stack"},
+        {"id": f"{prefix}_added", "name": f"rows_stacked_from_{record['alias']}",
+         "value": added, "method": f"rows of {name} appended under the same columns"},
+        {"id": f"{prefix}_dupes", "name": f"rows_of_{record['alias']}_already_present",
+         "value": dropped,
+         "method": f"rows of {name} identical to a row already in the table, dropped"},
+        {"id": f"{prefix}_rows_out", "name": f"rows_after_stacking_{record['alias']}",
+         "value": record["rows_out"], "method": "rows before + rows stacked"},
+    ]
+    source = record["source_column"]
+    claims.append(_claim(
+        ctx, f"cl_merge_{index}", "fact",
+        f"{added} rows of {name} were stacked under the same columns, so every total "
+        f"now covers {record['rows_out']} rows; the “{source}” column says which dataset "
+        f"each row came from ({record['source_label']} for the stacked rows).",
+        f"رُصّ {added} صفاً من {name} تحت الأعمدة نفسها، فصار كل مجموع يغطي "
+        f"{record['rows_out']} صفاً؛ ويبيّن عمود «{source}» مصدر كل صف "
+        f"({record['source_label']} للصفوف المرصوصة).",
+        [f"{prefix}_added", f"{prefix}_rows_out"]))
+    if dropped:
+        claims.append(_claim(
+            ctx, f"cl_merge_{index}_dupes", "limitation",
+            f"{dropped} rows of {name} repeat a row already in the table and were "
+            "dropped, so no row is counted twice. If the exports overlap on purpose, "
+            "that is expected; if not, check the period each export covers.",
+            f"يكرر {dropped} صفاً من {name} صفاً موجوداً في الجدول فحُذفت، فلا يُحسب "
+            "أي صف مرتين. إن كان التداخل مقصوداً فهذا متوقع، وإلا فتحقق من الفترة "
+            "التي يغطيها كل تصدير.",
+            [f"{prefix}_dupes"]))
+    checks.append({
+        "name": f"stack_{record['alias']}_adds_up",
+        "passed": record["rows_out"] == record["rows_in"] + added,
+        "detail": _say(ctx,
+                       f"{record['rows_in']} rows + {added} stacked = {record['rows_out']} "
+                       f"rows out; {dropped} repeated rows dropped.",
+                       f"{record['rows_in']} صفاً + {added} مرصوصاً = {record['rows_out']} "
+                       f"صفاً؛ حُذف {dropped} صفاً مكرراً.")})
+    lines.append(_say(
+        ctx,
+        f"- **{name}** (stacked): {added} rows appended under the same columns"
+        + (f", {dropped} repeated rows dropped" if dropped else "")
+        + f"; the “{source}” column names each row's dataset.",
+        f"- **{name}** (رصّ): أُضيف {added} صفاً تحت الأعمدة نفسها"
+        + (f"، وحُذف {dropped} صفاً مكرراً" if dropped else "")
+        + f"؛ ويسمّي عمود «{source}» مجموعة بيانات كل صف."))
+
+
 def merge(ctx):
-    """Data Merge Agent — put the joined datasets beside each row (ADR 0030).
+    """Data Merge Agent — put the joined datasets beside each row, or
+    stacked datasets' rows under them (ADR 0030, 27 October 2026).
 
     Runs only when a run declares joins, right after cleaning. It never
     adds a row: a lookup whose key repeats is refused, a left join keeps
@@ -811,6 +872,9 @@ def merge(ctx):
     calcs, claims, checks, lines = [], [], [], []
     for index, record in enumerate(merged["joins"]):
         prefix = f"c_merge_{index}"
+        if record["how"] == "stack":
+            _stack_evidence(ctx, index, prefix, record, calcs, claims, checks, lines)
+            continue
         keys = ", ".join(f"{k['left']} = {k['right']}" for k in record["keys"])
         calcs += [
             {"id": f"{prefix}_rows_in", "name": f"rows_before_joining_{record['alias']}",
@@ -899,11 +963,15 @@ def merge(ctx):
         ctx,
         f"Merged {len(merged['joins'])} dataset(s) onto {rows_before} rows: "
         f"{rows_after} rows and {len(merged['columns'])} columns. "
-        + " ".join(f"{r['name']}: {r['matched']} of {r['rows_in']} matched."
+        + " ".join(f"{r['name']}: {r['rows_added']} rows stacked."
+                   if r["how"] == "stack" else
+                   f"{r['name']}: {r['matched']} of {r['rows_in']} matched."
                    for r in merged["joins"]),
         f"دُمجت {len(merged['joins'])} من مجموعات البيانات على {rows_before} صفاً: "
         f"{rows_after} صفاً و{len(merged['columns'])} عموداً. "
-        + " ".join(f"{r['name']}: تطابق {r['matched']} من {r['rows_in']}."
+        + " ".join(f"{r['name']}: رُصّ {r['rows_added']} صفاً."
+                   if r["how"] == "stack" else
+                   f"{r['name']}: تطابق {r['matched']} من {r['rows_in']}."
                    for r in merged["joins"]))
     return _result(
         "succeeded", summary,
@@ -919,14 +987,14 @@ def merge(ctx):
 
 
 def preview_merge(dataset_text, mapping, joins, breakdown=None, language="en",
-                  rows_shown=5):
+                  rows_shown=5, dataset_name=None):
     """What a run with these joins would merge, without making the run.
 
     It runs the real collection, profiling, cleaning and merge stages, so
     the preview cannot disagree with the run (ADR 0030). Raises
     joins.JoinError with every problem, including a main dataset that the
     pipeline itself would refuse."""
-    ctx = {"dataset_text": dataset_text, "mapping": mapping,
+    ctx = {"dataset_text": dataset_text, "mapping": mapping, "primary_name": dataset_name,
            "report_language": language, "joins": joins, "join_breakdown": breakdown}
     for role, stage in (("collector", collector), ("profiler", profiler),
                         ("cleaner", cleaner)):
@@ -4211,14 +4279,16 @@ def validator(ctx):
                                   f"محذوف = {clean['rows_before']} صف مُدخل")})
     merged = ctx.get("merge")
     if merged:
-        # A join must not add rows, and an inner join may only remove the
-        # rows that found no match (ADR 0030). Recounted from the records,
-        # independently of the merge stage's own check.
+        # A join must not add rows, an inner join may only remove the rows
+        # that found no match (ADR 0030), and a stack adds exactly the rows
+        # it appended. Recounted from the records, independently of the
+        # merge stage's own check.
         counted = clean["rows_after"]
         broken = []
         for record in merged["joins"]:
             expected = (record["rows_in"] if record["how"] == "left"
-                        else record["matched"])
+                        else record["rows_in"] + record["rows_added"]
+                        if record["how"] == "stack" else record["matched"])
             if record["rows_in"] != counted or record["rows_out"] != expected:
                 broken.append(record["alias"])
             counted = record["rows_out"]
