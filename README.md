@@ -894,6 +894,20 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Fiscal year: quarters and years named by the start month — 27 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-27-fiscal-year.md)): a
+column mapping may name the month its fiscal year starts in; quarter and
+year labels then read `FY2026-Q1` and `FY2026`, named by the year the
+fiscal year ends in; forecasts continue the fiscal calendar; joins and
+stacks follow the main table; day, week and month labels are unchanged,
+as is every mapping saved before. The mapping panel offers *Fiscal year
+starts in* with month names from the browser's locale data. Checked with
+the full Python suite against PostgreSQL 16 (2,347 tests, 19 skipped; 5
+new in `tests/test_mapping.py`), 515 frontend unit tests (1 new), type
+check, brain check, build and budget (JS 99.7 of 100 KB first load and
+255.5 of 256 KB in total; CSS 10.46 of 10.5 KB and 34.1 of 35 KB).
+
 ### Derived columns: arithmetic over the measures — 27 October 2026
 
 Behaviour change ([decision](docs/adr/2026-10-27-derived-columns.md)): a

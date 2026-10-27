@@ -1915,6 +1915,15 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Next: reviewed clean-branch publication/hosted CI and a separately validated
   local release that retains existing local-only report functionality.
 
+## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (A12 fiscal year)
+
+**Goal:** close the dynamic-inputs gap row: a fiscal year starting in any month.
+
+- **Done:** `fiscal_start` in the mapping (1 to 12, validated in both languages, January and older mappings meaning the calendar); `Period.label` names fiscal quarters and years by the end year (`FY2026-Q1`, `FY2026`) and refuses calendar quarters and years that do not fit; `choose_grain` and `period_labels` take the start; the cleaner records it and the merge passes it to joins and stacks; forecast labels continue `FY` labels; the seasonal model reads their shape; the API field; the panel's select with `Intl` month names; decision record amending ADR 0025, limitations, user guide, gap analysis, milestone A12, brain, README.
+- **Verified:** full Python suite with PostgreSQL 2,347 tests (19 skipped; 5 new), 515 frontend unit tests (1 new), type check, brain strict check, build and budget (JS 99.7 of 100 KB, 255.5 of 256 KB total; CSS 10.46 of 10.5 KB, 34.1 of 35 KB) within the ceilings set earlier today.
+- **Decided:** name the fiscal year by the calendar year it ends in; a calendar quarter fits a fiscal quarter only on a shared boundary and a calendar year never fits a fiscal year that is not the calendar; month names come from the locale, not a string list.
+- **Open / next:** PR #69 carries A10, the visual layer, A11 and A12, waiting for the owner's merge word; next: agent cards per stage and a live timeline on the interface; trees and ensembles in modelling; U8 and U20; the model half of G8.
+
 ## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (A11 derived columns)
 
 **Goal:** continue the programme on the owner's "continue till finish all": the derived-columns half of the dynamic-inputs gap.

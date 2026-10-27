@@ -144,9 +144,15 @@ class Period:
             return date.fromisocalendar(self.year, self.week, 4)
         return date(self.year, self.month, self.day)
 
-    def label(self, grain):
+    def label(self, grain, fiscal_start=1):
         """This period as a sortable label at a grain, or None when the
-        value is coarser than the grain (a year cannot be put in a month)."""
+        value is coarser than the grain (a year cannot be put in a month).
+
+        With a fiscal year starting in a month other than January
+        (27 October 2026), quarter and year labels read FY2026-Q1 and
+        FY2026, named by the calendar year in which the fiscal year ends;
+        a calendar quarter or year written in the data fits only when it
+        falls inside one fiscal quarter or year."""
         if FINEST_FIRST.index(self.precision) > FINEST_FIRST.index(grain):
             return None
         if grain == "day":
@@ -155,15 +161,25 @@ class Period:
             year, week, _ = self._anchor().isocalendar()
             return f"{year:04d}-W{week:02d}"
         month = self._anchor().month if self.precision == "week" else self.month
-        if grain == "month":
-            year = self._anchor().year if self.precision == "week" else self.year
-            return f"{year:04d}-{month:02d}"
-        if grain == "quarter":
-            year = self._anchor().year if self.precision == "week" else self.year
-            quarter = self.quarter or (month - 1) // 3 + 1
-            return f"{year:04d}-Q{quarter}"
         year = self._anchor().year if self.precision == "week" else self.year
-        return f"{year:04d}"
+        if grain == "month":
+            return f"{year:04d}-{month:02d}"
+        if fiscal_start == 1:
+            if grain == "quarter":
+                return f"{year:04d}-Q{self.quarter or (month - 1) // 3 + 1}"
+            return f"{year:04d}"
+        if self.precision == "year":
+            return None
+        if self.precision == "quarter":
+            # A calendar quarter fits a fiscal one only on a shared boundary.
+            if (fiscal_start - 1) % 3:
+                return None
+            month = 3 * self.quarter - 2
+        offset = (month - fiscal_start) % 12
+        fiscal_year = year + (1 if month >= fiscal_start else 0)
+        if grain == "quarter":
+            return f"FY{fiscal_year:04d}-Q{offset // 3 + 1}"
+        return f"FY{fiscal_year:04d}"
 
 
 def _year(text):
@@ -311,7 +327,7 @@ def read_dates(values, order="auto"):
     return [parse_date(v, resolved) for v in values], resolved, ambiguous
 
 
-def choose_grain(periods, grain="auto"):
+def choose_grain(periods, grain="auto", fiscal_start=1):
     """The grain a trend uses. "auto" is the finest grain that nine in ten
     readable values reach, rolled up until there are at most
     MAX_AUTO_PERIODS periods."""
@@ -321,21 +337,28 @@ def choose_grain(periods, grain="auto"):
     if not readable:
         return "month"
     for index, candidate in enumerate(AUTO_GRAINS):
-        fits = sum(1 for p in readable if p.label(candidate) is not None)
+        fits = sum(1 for p in readable if p.label(candidate, fiscal_start) is not None)
         if fits >= SUGGEST_SHARE * len(readable):
             break
     for candidate in AUTO_GRAINS[index:]:
-        if len({p.label(candidate) for p in readable} - {None}) <= MAX_AUTO_PERIODS:
+        if len({p.label(candidate, fiscal_start) for p in readable} - {None}) <= MAX_AUTO_PERIODS:
             return candidate
     return "year"
 
 
-def period_labels(values, order="auto", grain="auto"):
+def period_labels(values, order="auto", grain="auto", fiscal_start=1):
     """Labels for a date column at a grain: (labels with None for a value
     that does not read, the grain used, the order used)."""
     periods, resolved, _ = read_dates(values, order)
-    used = choose_grain(periods, grain)
-    return [p.label(used) if p else None for p in periods], used, resolved
+    used = choose_grain(periods, grain, fiscal_start)
+    return [p.label(used, fiscal_start) if p else None for p in periods], used, resolved
+
+
+def fiscal_start_of(mapping):
+    """The month a saved mapping's fiscal year starts in, 1 to 12; a
+    mapping saved before the field existed means January."""
+    value = mapping.get("fiscal_start") if isinstance(mapping, dict) else None
+    return value if isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= 12 else 1
 
 
 def next_period_labels(last, count):
@@ -354,16 +377,17 @@ def next_period_labels(last, count):
             year, week, _ = date.fromordinal(current.toordinal() + 7 * step).isocalendar()
             out.append(f"{year:04d}-W{week:02d}")
         return out
-    if match := re.fullmatch(r"(\d{4})-Q([1-4])", text):
-        year, quarter = int(match[1]), int(match[2])
+    if match := re.fullmatch(r"(FY)?(\d{4})-Q([1-4])", text):
+        prefix, year, quarter = match[1] or "", int(match[2]), int(match[3])
         for _ in range(count):
             quarter += 1
             if quarter > 4:
                 quarter, year = 1, year + 1
-            out.append(f"{year:04d}-Q{quarter}")
+            out.append(f"{prefix}{year:04d}-Q{quarter}")
         return out
-    if re.fullmatch(r"\d{4}", text):
-        return [f"{int(text) + step:04d}" for step in range(1, count + 1)]
+    if match := re.fullmatch(r"(FY)?(\d{4})", text):
+        prefix = match[1] or ""
+        return [f"{prefix}{int(match[2]) + step:04d}" for step in range(1, count + 1)]
     return None
 
 
@@ -611,6 +635,14 @@ def validate(mapping, columns, rows):
     currency, currency_problem = read_currency(mapping.get("currency"))
     if currency_problem:
         problems.append(currency_problem)
+    fiscal_start = mapping.get("fiscal_start", 1)
+    if fiscal_start is None:
+        fiscal_start = 1
+    if isinstance(fiscal_start, bool) or not isinstance(fiscal_start, int) or not 1 <= fiscal_start <= 12:
+        problems.append(Problem("fiscal_start", None,
+                                "The fiscal year starts in a month from 1 (January) to 12 (December).",
+                                "تبدأ السنة المالية في شهر من 1 (يناير) إلى 12 (ديسمبر)."))
+        fiscal_start = 1
 
     measures = [c for c in columns if roles.get(c) == "measure"]
     dates = [c for c in columns if roles.get(c) == "date"]
@@ -655,8 +687,8 @@ def validate(mapping, columns, rows):
                 f"“{column}” writes dates like {example}, which could be day first or month first. Choose one.",
                 f"يكتب «{column}» التواريخ بصيغة مثل {example}، وقد يكون اليوم أولاً أو الشهر أولاً. اختر واحدة."))
         else:
-            used = choose_grain(periods, grain)
-            readable = sum(1 for p in periods if p is not None and p.label(used) is not None)
+            used = choose_grain(periods, grain, fiscal_start)
+            readable = sum(1 for p in periods if p is not None and p.label(used, fiscal_start) is not None)
             if not filled or readable < MIN_READABLE_SHARE * len(filled):
                 grain_names = {"day": ("day", "اليوم"), "week": ("week", "الأسبوع"),
                                "month": ("month", "الشهر"), "quarter": ("quarter", "الربع"),
@@ -673,7 +705,7 @@ def validate(mapping, columns, rows):
             "roles": {c: roles[c] for c in columns},
             "measure": measure, "dimension": dimension,
             "date_order": order, "grain": grain, "currency": currency,
-            "derived": derived}
+            "derived": derived, "fiscal_start": fiscal_start}
 
 
 # ---------------------------------------------------------------------------

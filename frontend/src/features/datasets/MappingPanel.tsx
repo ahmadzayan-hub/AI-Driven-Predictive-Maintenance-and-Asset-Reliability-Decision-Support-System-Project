@@ -23,6 +23,7 @@ import type {
 const ROLES: ColumnRole[] = ['measure', 'dimension', 'date', 'ignore']
 const ORDERS: DateOrder[] = ['auto', 'day-first', 'month-first']
 const GRAINS: Grain[] = ['auto', 'day', 'week', 'month', 'quarter', 'year']
+const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1)
 
 interface MappingPanelProps {
   datasetId: string
@@ -42,6 +43,7 @@ function sameMapping(a: ColumnMapping | null, b: ColumnMapping | null): boolean 
     a.date_order === b.date_order &&
     a.grain === b.grain &&
     (a.currency ?? null) === (b.currency ?? null) &&
+    (a.fiscal_start ?? 1) === (b.fiscal_start ?? 1) &&
     JSON.stringify(a.derived ?? []) === JSON.stringify(b.derived ?? []) &&
     Object.keys(a.roles).length === Object.keys(b.roles).length &&
     Object.entries(a.roles).every(([column, role]) => b.roles[column] === role)
@@ -70,6 +72,8 @@ export function MappingPanel({ datasetId, focusOnOpen, onClose, onChanged, onAna
   const readOnly = useReadOnly()
   const { t, locale, formatNumber, formatDate } = useI18n()
   const { t: d } = usePack(derivedMessages)
+  // Month names come from the browser's locale data, not a string list.
+  const monthName = (month: number) => new Intl.DateTimeFormat(locale === 'ar' ? 'ar-AE' : 'en-GB', { month: 'long' }).format(new Date(Date.UTC(2026, month - 1, 15)))
   const base = useId()
   const heading = useRef<HTMLHeadingElement | null>(null)
   const summaryRef = useRef<HTMLDivElement | null>(null)
@@ -124,6 +128,7 @@ export function MappingPanel({ datasetId, focusOnOpen, onClose, onChanged, onAna
     grain: `${base}-grain`,
     currency: `${base}-currency`,
     derived: (index: number) => `${base}-derived-${index}`,
+    fiscal: `${base}-fiscal`,
   }
 
   const columns = detail?.columns ?? []
@@ -137,6 +142,7 @@ export function MappingPanel({ datasetId, focusOnOpen, onClose, onChanged, onAna
     if (problem.field === 'dimension') return ids.dimension
     if (problem.field === 'date_order') return ids.order
     if (problem.field === 'currency') return ids.currency
+    if (problem.field === 'fiscal_start') return ids.fiscal
     if (problem.field === 'derived') {
       const index = (draft?.derived ?? []).findIndex((item) => item.name === problem.column)
       return index >= 0 ? ids.derived(index) : null
@@ -539,6 +545,27 @@ export function MappingPanel({ datasetId, focusOnOpen, onClose, onChanged, onAna
                     ))}
                   </select>
                   {errorText(ids.grain)}
+                </div>
+                <div className="field">
+                  <label className="field__label" htmlFor={ids.fiscal}>
+                    {d('fiscal')}
+                  </label>
+                  <span className="field__help" id={`${ids.fiscal}-help`}>{d('fiscalHelp')}</span>
+                  <select
+                    id={ids.fiscal}
+                    className="field__select"
+                    value={draft.fiscal_start ?? 1}
+                    aria-invalid={errorsFor(ids.fiscal).length > 0 || undefined}
+                    aria-describedby={described(ids.fiscal, `${ids.fiscal}-help`)}
+                    onChange={(event) => setDraft({ ...draft, fiscal_start: Number(event.target.value) })}
+                  >
+                    {MONTHS.map((month) => (
+                      <option key={month} value={month}>
+                        {monthName(month)}
+                      </option>
+                    ))}
+                  </select>
+                  {errorText(ids.fiscal)}
                 </div>
               </>
             ) : null}

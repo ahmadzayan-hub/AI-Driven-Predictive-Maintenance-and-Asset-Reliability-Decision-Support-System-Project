@@ -193,6 +193,9 @@ each column one role:
   only used when you choose them. A week is the ISO week, Monday to
   Sunday, labelled `2025-W03`, and a week that straddles the new year
   belongs to the year of its Thursday.
+  If your year starts in another month, choose it under *Fiscal year
+  starts in*: quarters and years are then labelled `FY2026-Q1` and
+  `FY2026`, named by the year the fiscal year ends in.
 - **Ignore** — left out of the analysis, such as IDs and free-text notes.
   The quality and privacy checks still read it.
 - **Derived columns** — up to five columns computed from the measures

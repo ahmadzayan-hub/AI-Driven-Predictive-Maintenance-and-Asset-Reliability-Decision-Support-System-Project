@@ -307,6 +307,9 @@ export interface ColumnMapping {
   /** Columns computed from the measures by arithmetic (27 October 2026):
    *  `cost / hours`, in order, so a later one may read an earlier one. */
   derived?: DerivedColumn[]
+  /** The month the fiscal year starts in, 1 to 12; 1 or absent means the
+   *  calendar year. Quarter and year labels then read FY2026-Q1, FY2026. */
+  fiscal_start?: number
 }
 
 export interface DerivedColumn {
@@ -346,7 +349,7 @@ export interface DatasetDetail {
  *  column; a join's problems also say which join (ADR 0030). */
 export interface MappingProblem {
   field:
-    | 'roles' | 'measure' | 'dimension' | 'date_order' | 'grain' | 'currency' | 'derived'
+    | 'roles' | 'measure' | 'dimension' | 'date_order' | 'grain' | 'currency' | 'derived' | 'fiscal_start'
     | 'joins' | 'keys' | 'how' | 'alias' | 'breakdown' | 'dataset'
   column: string | null
   message: string

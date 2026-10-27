@@ -357,6 +357,50 @@ class ValidationTests(unittest.TestCase):
 
 
 @unittest.skipUnless(FASTAPI_AVAILABLE, "fastapi is not installed")
+class FiscalYearTests(unittest.TestCase):
+    """A fiscal year starting in a month other than January (27 October 2026)."""
+
+    def test_quarters_and_years_follow_the_fiscal_calendar(self):
+        april = 4
+        cases = [("2025-03-15", "quarter", "FY2025-Q4"), ("2025-03-15", "year", "FY2025"),
+                 ("2025-04-01", "quarter", "FY2026-Q1"), ("2025-04-01", "year", "FY2026"),
+                 ("2025-12-31", "quarter", "FY2026-Q3"), ("2026-01-10", "quarter", "FY2026-Q4"),
+                 ("2025-05", "quarter", "FY2026-Q1"), ("2025-W18", "quarter", "FY2026-Q1"),
+                 ("2025-04-01", "month", "2025-04"), ("2025-04-01", "day", "2025-04-01")]
+        for text, grain, expected in cases:
+            with self.subTest(text=text, grain=grain):
+                self.assertEqual(m.parse_date(text).label(grain, april), expected)
+        # A calendar quarter fits a fiscal quarter only on a shared boundary;
+        # a calendar year never fits a fiscal year that is not the calendar.
+        self.assertEqual(m.parse_date("2025-Q2").label("quarter", april), "FY2026-Q1")
+        self.assertIsNone(m.parse_date("2025-Q2").label("quarter", 2))
+        self.assertIsNone(m.parse_date("2025").label("year", april))
+        self.assertEqual(m.parse_date("2025").label("year", 1), "2025")
+
+    def test_forecast_labels_continue_the_fiscal_calendar(self):
+        self.assertEqual(m.next_period_labels("FY2026-Q3", 3), ["FY2026-Q4", "FY2027-Q1", "FY2027-Q2"])
+        self.assertEqual(m.next_period_labels("FY2026", 2), ["FY2027", "FY2028"])
+        self.assertEqual(analytics._next_labels(["FY2026-Q4"], 1), ["FY2027-Q1"])
+
+    def test_the_mapping_keeps_a_valid_start_month_only(self):
+        columns, rows = rows_of(SHOP_CSV)
+        clean = m.validate(dict(SHOP_MAPPING, fiscal_start=4, grain="quarter"), columns, rows)
+        self.assertEqual(clean["fiscal_start"], 4)
+        self.assertEqual(m.validate(SHOP_MAPPING, columns, rows)["fiscal_start"], 1)
+        self.assertEqual(m.fiscal_start_of({"fiscal_start": 7}), 7)
+        self.assertEqual(m.fiscal_start_of({}), 1)
+        self.assertEqual(m.fiscal_start_of({"fiscal_start": "4"}), 1)
+        for bad in (0, 13, "April", True):
+            with self.subTest(bad=bad):
+                with self.assertRaises(m.MappingError) as caught:
+                    m.validate(dict(SHOP_MAPPING, fiscal_start=bad), columns, rows)
+                self.assertEqual(caught.exception.problems[0].field, "fiscal_start")
+                self.assertIn("1 (January) to 12", caught.exception.problems[0].en)
+        labels, grain, _ = m.period_labels(["15/11/2024", "20/11/2024", "09/01/2025", "13/03/2025", "27/03/2025"],
+                                           "day-first", "quarter", 4)
+        self.assertEqual((grain, labels), ("quarter", ["FY2025-Q3", "FY2025-Q3", "FY2025-Q4", "FY2025-Q4", "FY2025-Q4"]))
+
+
 class DerivedColumnTests(unittest.TestCase):
     """Derived columns (27 October 2026): arithmetic over the measures."""
 
@@ -586,6 +630,19 @@ class MappingApiTestCase(unittest.TestCase):
                          ("month", "region", None))
         self.assertFalse(self.output(run, "collector")["mapped"])
         self.assertNotIn("cl_mapping", self.claim_ids(run))
+
+    def test_a_fiscal_year_trends_by_fiscal_quarter(self):
+        dataset_id = self.upload(SHOP_CSV)
+        mapping = dict(SHOP_MAPPING, grain="quarter", fiscal_start=4)
+        saved = self.client.put(f"/api/datasets/{dataset_id}/mapping", json=mapping)
+        self.assertEqual(saved.status_code, 200, saved.text)
+        self.assertEqual(saved.json()["mapping"]["fiscal_start"], 4)
+        run = self.run_to_gate(dataset_id=dataset_id)
+        cleaner = self.output(run, "cleaner")
+        self.assertEqual((cleaner["date_grain"], cleaner["fiscal_start"]), ("quarter", 4))
+        self.assertEqual(list(self.output(run, "preparer")["trend"]), ["FY2025-Q3", "FY2025-Q4"])
+        refused = self.client.put(f"/api/datasets/{dataset_id}/mapping", json=dict(mapping, fiscal_start=13))
+        self.assertEqual(refused.status_code, 422)
 
     def test_a_derived_measure_is_computed_and_analysed(self):
         dataset_id = self.upload(SHOP_CSV)

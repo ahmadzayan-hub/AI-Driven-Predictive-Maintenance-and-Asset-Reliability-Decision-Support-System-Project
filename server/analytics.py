@@ -722,12 +722,14 @@ def cleaner(ctx):
         # value that does not read is left out of the trend and counted.
         labels, grain, order = colmap.period_labels(
             [row.get(date_col, "") for row in cleaned],
-            mapping.get("date_order", "auto"), mapping.get("grain", "auto"))
+            mapping.get("date_order", "auto"), mapping.get("grain", "auto"),
+            colmap.fiscal_start_of(mapping))
         for row, label in zip(cleaned, labels):
             if label is None:
                 dates["dates_unreadable" if row.get(date_col) else "dates_missing"] += 1
             row[date_col] = label
-        dates.update(date_col=date_col, date_grain=grain, date_order=order)
+        dates.update(date_col=date_col, date_grain=grain, date_order=order,
+                     fiscal_start=colmap.fiscal_start_of(mapping))
         calcs.append({"id": "c_dates_unread", "name": "dates_not_read",
                       "value": dates["dates_unreadable"],
                       "method": f"filled {date_col} cells that do not read as a date "
@@ -787,7 +789,8 @@ def _merge_tables(ctx):
     Raises joins.JoinError with every problem."""
     clean = ctx["cleaner"]
     date = ({"column": clean["date_col"], "order": clean.get("date_order"),
-             "grain": clean.get("date_grain")} if clean.get("date_col") else None)
+             "grain": clean.get("date_grain"), "fiscal_start": clean.get("fiscal_start") or 1}
+            if clean.get("date_col") else None)
     joined, screens = [], []
     for item in ctx.get("joins") or []:
         # A stacked table is read the way the main one was: with the main

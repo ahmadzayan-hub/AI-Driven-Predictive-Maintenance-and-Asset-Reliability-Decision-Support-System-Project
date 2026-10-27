@@ -1112,6 +1112,10 @@ def _grain_of(labels):
         return "quarter"
     if sample and all(len(s) == 8 and s[4:6] == "-W" for s in sample):
         return "week"
+    if sample and all(len(s) == 9 and s[:2] == "FY" and s[6:8] == "-Q" for s in sample):
+        return "quarter"
+    if sample and all(len(s) == 4 and s.isdigit() or len(s) == 6 and s[:2] == "FY" for s in sample):
+        return "year"
     if sample and all(len(s) == 10 and s[4] == "-" and s[7] == "-" for s in sample):
         return "day"
     return None

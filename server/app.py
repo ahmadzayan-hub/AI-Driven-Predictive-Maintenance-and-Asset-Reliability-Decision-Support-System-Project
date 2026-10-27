@@ -344,6 +344,9 @@ class MappingIn(BaseModel):
     # The currency of the money columns, an ISO 4217 code; absent means
     # not stated (slice three, U4). Checked by server.mapping.
     currency: str | None = Field(default=None, max_length=8)
+    # The month the fiscal year starts in, 1 to 12; January means the
+    # calendar year (27 October 2026).
+    fiscal_start: int = Field(default=1, ge=1, le=12)
 
 
 class QueryIn(BaseModel):
