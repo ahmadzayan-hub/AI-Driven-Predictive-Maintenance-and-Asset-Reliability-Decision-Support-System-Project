@@ -1915,6 +1915,15 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Next: reviewed clean-branch publication/hosted CI and a separately validated
   local release that retains existing local-only report functionality.
 
+## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (A10 week grain)
+
+**Goal:** after PR #68 merged on the owner's word, the next gap-analysis slice: a weekly grain.
+
+- **Done:** `week` in `GRAINS` and `FINEST_FIRST` with ISO week labels (`YYYY-Www`); week values (`2025-W03`, `2025W03`) read as periods of week precision, placed in a month, quarter or year by their Thursday; `AUTO_GRAINS` keeps the automatic roll-up at day, month, quarter, year so no earlier run changes; forecast labels step ISO weeks across the year; the seasonal model's season for weeks is 52 and unmapped week labels are recognised; validation wording and the Arabic grain names; the mapping panel option and strings in both languages; decision record, ADR 0025 row, limitations, user guide, gap analysis, milestone A10, brain note and decision log, README.
+- **Verified:** full Python suite with PostgreSQL 2,334 tests (19 skipped; 4 new), 508 frontend unit tests, type check, brain strict check, build and budget (JS 99.7 of 100 KB, 253.3 of 254 KB total).
+- **Decided:** weeks are the owner's choice, never the automatic one; a week straddling the new year belongs to the year and month of its Thursday (the ISO anchor); a fiscal year is a separate decision.
+- **Open / next:** the PR waits for the owner's word before merging; then derived columns, a fiscal year; U8 and U20; the model half of G8; the next standards-lint round.
+
 ## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (A9 stacked exports)
 
 **Goal:** the next gap-analysis slice after A8: stacking period exports, a union of datasets with matching columns.

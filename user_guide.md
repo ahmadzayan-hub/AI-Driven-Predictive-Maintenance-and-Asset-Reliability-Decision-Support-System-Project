@@ -187,9 +187,12 @@ each column one role:
 - **Dimension** — a category to break totals down by. Pick one under
   *Breakdown*, or none.
 - **Date** — at most one column. Choose how dates are written (day or
-  month first) and what to sum them by: day, month, quarter or year. The
-  automatic choice keeps the data's own detail until there would be more
-  than 36 periods.
+  month first) and what to sum them by: day, week, month, quarter or
+  year. The automatic choice keeps the data's own detail until there
+  would be more than 36 periods, going from days to months; weeks are
+  only used when you choose them. A week is the ISO week, Monday to
+  Sunday, labelled `2025-W03`, and a week that straddles the new year
+  belongs to the year of its Thursday.
 - **Ignore** — left out of the analysis, such as IDs and free-text notes.
   The quality and privacy checks still read it.
 

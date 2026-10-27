@@ -20,8 +20,12 @@ from datetime import date
 
 ROLES = ("measure", "dimension", "date", "ignore")
 DATE_ORDERS = ("auto", "day-first", "month-first")
-GRAINS = ("auto", "day", "month", "quarter", "year")
-FINEST_FIRST = ("day", "month", "quarter", "year")
+GRAINS = ("auto", "day", "week", "month", "quarter", "year")
+FINEST_FIRST = ("day", "week", "month", "quarter", "year")
+# The grains "auto" may choose. A week is a choice the owner makes (27
+# October 2026): the automatic roll-up goes from days to months as before,
+# so no earlier analysis changes its periods.
+AUTO_GRAINS = ("day", "month", "quarter", "year")
 MAPPING_VERSION = 1
 # The currency of money columns, as the owner states it: an ISO 4217 code,
 # three upper-case letters. Absent means "not stated", which the interface
@@ -109,6 +113,8 @@ ISO_MONTH = re.compile(r"(\d{4})[-/](\d{1,2})")
 MONTH_YEAR = re.compile(r"(\d{1,2})[-/](\d{4})")
 YEAR = re.compile(r"(\d{4})")
 QUARTER = re.compile(r"(?:(\d{4})\s*[-/ ]?\s*q([1-4])|q([1-4])\s*[-/ ]?\s*(\d{4}))")
+# An ISO week: 2025-W03, 2025W03, 2025-w3.
+ISO_WEEK = re.compile(r"(\d{4})-?w(\d{1,2})")
 NUMERIC_DAY = re.compile(r"(\d{1,2})[-/.](\d{1,2})[-/.](\d{4}|\d{2})(?:[ t]\d{1,2}:\d{2}(?::\d{2})?)?")
 PLAIN_DECIMAL = re.compile(r"[+-]?\d+(?:\.\d+)?")
 DATE_NAME_WORDS = ("date", "month", "period", "week", "year", "day", "time", "quarter",
@@ -122,6 +128,16 @@ class Period:
     day: int = None
     quarter: int = None
     precision: str = "day"
+    # ISO week number when the value was written as a week (2025-W03).
+    week: int = None
+
+    def _anchor(self):
+        """The calendar day that places this period in a month: the day
+        itself, or for a week its Thursday, the ISO 8601 anchor that also
+        decides the week's year."""
+        if self.precision == "week":
+            return date.fromisocalendar(self.year, self.week, 4)
+        return date(self.year, self.month, self.day)
 
     def label(self, grain):
         """This period as a sortable label at a grain, or None when the
@@ -130,12 +146,19 @@ class Period:
             return None
         if grain == "day":
             return f"{self.year:04d}-{self.month:02d}-{self.day:02d}"
+        if grain == "week":
+            year, week, _ = self._anchor().isocalendar()
+            return f"{year:04d}-W{week:02d}"
+        month = self._anchor().month if self.precision == "week" else self.month
         if grain == "month":
-            return f"{self.year:04d}-{self.month:02d}"
+            year = self._anchor().year if self.precision == "week" else self.year
+            return f"{year:04d}-{month:02d}"
         if grain == "quarter":
-            quarter = self.quarter or (self.month - 1) // 3 + 1
-            return f"{self.year:04d}-Q{quarter}"
-        return f"{self.year:04d}"
+            year = self._anchor().year if self.precision == "week" else self.year
+            quarter = self.quarter or (month - 1) // 3 + 1
+            return f"{year:04d}-Q{quarter}"
+        year = self._anchor().year if self.precision == "week" else self.year
+        return f"{year:04d}"
 
 
 def _year(text):
@@ -154,6 +177,16 @@ def _month(year, month):
     if not (_plausible(year) and 1 <= month <= 12):
         return None
     return Period(year, month, precision="month")
+
+
+def _week(year, week):
+    if not _plausible(year):
+        return None
+    try:
+        date.fromisocalendar(year, week, 1)
+    except ValueError:
+        return None
+    return Period(year, precision="week", week=week)
 
 
 def _day(year, month, day):
@@ -220,6 +253,8 @@ def parse_date(value, order="day-first"):
     if match := QUARTER.fullmatch(text):
         year, quarter = (match[1], match[2]) if match[1] else (match[4], match[3])
         return Period(int(year), quarter=int(quarter), precision="quarter") if _plausible(int(year)) else None
+    if match := ISO_WEEK.fullmatch(text):
+        return _week(int(match[1]), int(match[2]))
     if match := YEAR.fullmatch(text):
         year = int(match[1])
         return Period(year, precision="year") if _plausible(year) else None
@@ -280,11 +315,11 @@ def choose_grain(periods, grain="auto"):
         return grain
     if not readable:
         return "month"
-    for index, candidate in enumerate(FINEST_FIRST):
+    for index, candidate in enumerate(AUTO_GRAINS):
         fits = sum(1 for p in readable if p.label(candidate) is not None)
         if fits >= SUGGEST_SHARE * len(readable):
             break
-    for candidate in FINEST_FIRST[index:]:
+    for candidate in AUTO_GRAINS[index:]:
         if len({p.label(candidate) for p in readable} - {None}) <= MAX_AUTO_PERIODS:
             return candidate
     return "year"
@@ -307,6 +342,12 @@ def next_period_labels(last, count):
         current = date(int(match[1]), int(match[2]), int(match[3]))
         for step in range(1, count + 1):
             out.append(date.fromordinal(current.toordinal() + step).isoformat())
+        return out
+    if match := re.fullmatch(r"(\d{4})-W(\d{2})", text):
+        current = date.fromisocalendar(int(match[1]), int(match[2]), 4)
+        for step in range(1, count + 1):
+            year, week, _ = date.fromordinal(current.toordinal() + 7 * step).isocalendar()
+            out.append(f"{year:04d}-W{week:02d}")
         return out
     if match := re.fullmatch(r"(\d{4})-Q([1-4])", text):
         year, quarter = int(match[1]), int(match[2])
@@ -559,8 +600,8 @@ def validate(mapping, columns, rows):
                                 "اختر كيف تُكتب التواريخ اليوم والشهر."))
         order = "auto"
     if grain not in GRAINS:
-        problems.append(Problem("grain", None, "Choose day, month, quarter or year as the period.",
-                                "اختر اليوم أو الشهر أو الربع أو السنة فترةً زمنية."))
+        problems.append(Problem("grain", None, "Choose day, week, month, quarter or year as the period.",
+                                "اختر اليوم أو الأسبوع أو الشهر أو الربع أو السنة فترةً زمنية."))
         grain = "auto"
     currency, currency_problem = read_currency(mapping.get("currency"))
     if currency_problem:
@@ -611,8 +652,9 @@ def validate(mapping, columns, rows):
             used = choose_grain(periods, grain)
             readable = sum(1 for p in periods if p is not None and p.label(used) is not None)
             if not filled or readable < MIN_READABLE_SHARE * len(filled):
-                grain_names = {"day": ("day", "اليوم"), "month": ("month", "الشهر"),
-                               "quarter": ("quarter", "الربع"), "year": ("year", "السنة")}
+                grain_names = {"day": ("day", "اليوم"), "week": ("week", "الأسبوع"),
+                               "month": ("month", "الشهر"), "quarter": ("quarter", "الربع"),
+                               "year": ("year", "السنة")}
                 en_g, ar_g = grain_names[used]
                 problems.append(Problem(
                     "roles" if grain == "auto" else "grain", column,

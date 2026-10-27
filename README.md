@@ -894,6 +894,20 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Week grain: dates summed by ISO week — 27 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-27-week-grain.md)): a column
+mapping can sum dates by week (`2025-W03`, ISO, Monday to Sunday, the year
+of the Thursday); week values in the data read as periods and roll up to
+the month of their Thursday; the automatic roll-up never chooses weeks, so
+earlier runs keep their periods; forecasts continue the week calendar and
+the seasonal model uses a season of 52. Checked with the full Python suite
+against PostgreSQL 16 (2,334 tests, 19 skipped; 3 new in
+`tests/test_mapping.py` and 1 in `tests/test_modelling.py`, plus new cases
+in the date-format table), 508 frontend unit tests, type check, brain
+check, build and budget (JS 99.7 of 100 KB first load and 253.3 of 254 KB
+in total).
+
 ### Stacked exports: a union of datasets with the same columns — 27 October 2026
 
 Behaviour change ([decision](docs/adr/2026-10-27-stacked-datasets.md)): a

@@ -290,7 +290,7 @@ export interface DatasetSummary {
 /** What a column is, in a mapping (ADR 0025). */
 export type ColumnRole = 'measure' | 'dimension' | 'date' | 'ignore'
 export type DateOrder = 'auto' | 'day-first' | 'month-first'
-export type Grain = 'auto' | 'day' | 'month' | 'quarter' | 'year'
+export type Grain = 'auto' | 'day' | 'week' | 'month' | 'quarter' | 'year'
 
 /** A column mapping: one role per column, the measure analysed, the
  *  breakdown, and how dates are read and summed. */

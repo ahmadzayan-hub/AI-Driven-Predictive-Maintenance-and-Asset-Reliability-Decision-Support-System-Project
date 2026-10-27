@@ -45,7 +45,7 @@ MAX_CLASSES = 6
 TRAIN_CAP = 5000
 CLUSTER_CAP = 2000
 SILHOUETTE_CAP = 400
-SEASONS = {"day": 7, "month": 12, "quarter": 4}
+SEASONS = {"day": 7, "week": 52, "month": 12, "quarter": 4}
 RIDGE = 1e-3
 
 
@@ -1110,6 +1110,8 @@ def _grain_of(labels):
         return "month"
     if sample and all(len(s) == 7 and s[4:6] == "-Q" for s in sample):
         return "quarter"
+    if sample and all(len(s) == 8 and s[4:6] == "-W" for s in sample):
+        return "week"
     if sample and all(len(s) == 10 and s[4] == "-" and s[7] == "-" for s in sample):
         return "day"
     return None

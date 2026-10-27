@@ -579,6 +579,7 @@ export const en = {
   'order.month-first': 'Month first (12/31/2025)',
   'grain.auto': 'Automatically, at most 36 periods',
   'grain.day': 'Day',
+  'grain.week': 'Week (ISO, Monday to Sunday)',
   'grain.month': 'Month',
   'grain.quarter': 'Quarter',
   'grain.year': 'Year',

@@ -8,6 +8,7 @@ other stage's, in English and in Arabic.
 """
 
 import json
+import math
 import random
 import tempfile
 import unittest
@@ -258,6 +259,21 @@ class SeasonalTests(unittest.TestCase):
         self.assertEqual(card["details"]["grain"], "month")
         self.assertEqual(card["details"]["forecast"][0]["label"], "2025-01")
         self.assertIn("seasonal_model.cl_forecast", {c["id"] for c in result["claims"]})
+
+    def test_a_weekly_season_continues_the_iso_weeks(self):
+        # Three years of weeks with a yearly pattern (27 October 2026): the
+        # season is 52 and the forecast labels continue the ISO calendar.
+        from server import mapping as colmap
+        labels = ["2022-W01"] + colmap.next_period_labels("2022-W01", 155)
+        rng = random.Random(3)
+        trend = {label: 1000 + 2 * i + 100 * math.sin(2 * math.pi * i / 52) + rng.gauss(0, 3)
+                 for i, label in enumerate(labels)}
+        result = checked(m.SeasonalForecast(), context([], [], [], "sales", trend=trend,
+                                                       grain="week"))
+        card = result["output"]["model_card"]
+        self.assertEqual((card["details"]["season"], card["details"]["grain"]), (52, "week"))
+        self.assertEqual(card["details"]["forecast"][0]["label"], "2025-W01")
+        self.assertTrue(card["beats_baseline"])
 
     def test_too_little_history_is_a_limitation(self):
         trend = self.months(12, [0] * 12)

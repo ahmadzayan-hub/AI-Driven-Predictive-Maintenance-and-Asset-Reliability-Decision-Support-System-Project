@@ -109,6 +109,11 @@ class DateTests(unittest.TestCase):
             ("sept 2024", "month", "2024-09"), ("يناير 2025", "month", "2025-01"),
             ("١٥ مارس ٢٠٢٥", "day", "2025-03-15"), ("كانون الثاني 2025", "month", "2025-01"),
             ("1/2/99", "day", "1999-02-01"), ("1/2/05", "day", "2005-02-01"),
+            # ISO weeks (27 October 2026): a week value, and a day placed in
+            # its week; the week of 30 December 2024 is 2025-W01.
+            ("2025-W03", "week", "2025-W03"), ("2025w3", "week", "2025-W03"),
+            ("2025-01-15", "week", "2025-W03"), ("2024-12-30", "week", "2025-W01"),
+            ("2024-12-30", "year", "2024"),
         ]
         for text, grain, expected in cases:
             with self.subTest(text=text):
@@ -116,7 +121,8 @@ class DateTests(unittest.TestCase):
 
     def test_what_is_not_a_date(self):
         for text in ("2025-02-30", "2025-13", "13/13/2025", "1234.5", "2025.03", "26.5",
-                     "9999-01-01", "hello", "", "Q5 2025", "Jan Feb 2025"):
+                     "9999-01-01", "hello", "", "Q5 2025", "Jan Feb 2025", "2025-W54",
+                     "2025-W00"):
             with self.subTest(text=text):
                 self.assertIsNone(m.parse_date(text))
 
@@ -152,11 +158,30 @@ class DateTests(unittest.TestCase):
         # A stray year among days does not drag the whole column to years.
         self.assertEqual(m.period_labels(["2025-01-01"] * 20 + ["2025"])[1], "day")
 
+    def test_a_week_rolls_up_to_the_month_of_its_thursday_and_never_down_to_a_day(self):
+        # 2024-W01 runs 1 to 7 January 2024; 2025-W01 runs 30 December 2024 to
+        # 5 January 2025 and belongs to January 2025, as its Thursday does.
+        week = m.parse_date("2025-W01")
+        self.assertEqual((week.label("month"), week.label("quarter"), week.label("year")),
+                         ("2025-01", "2025-Q1", "2025"))
+        self.assertIsNone(week.label("day"))
+        self.assertIsNone(m.parse_date("2025-03").label("week"))
+
+    def test_the_week_grain_is_chosen_never_guessed(self):
+        days = [f"2025-{mo:02d}-{d:02d}" for mo in (1, 2) for d in range(1, 29)]
+        self.assertEqual(m.period_labels(days)[1], "month")
+        labels, grain, _ = m.period_labels(days, grain="week")
+        self.assertEqual((grain, labels[0], labels[-1], len(set(labels))),
+                         ("week", "2025-W01", "2025-W09", 9))
+        self.assertEqual(m.AUTO_GRAINS, tuple(g for g in m.FINEST_FIRST if g != "week"))
+
     def test_forecast_labels_continue_the_calendar(self):
         self.assertEqual(m.next_period_labels("2025-Q4", 2), ["2026-Q1", "2026-Q2"])
         self.assertEqual(m.next_period_labels("2025", 2), ["2026", "2027"])
         self.assertEqual(m.next_period_labels("2024-02-28", 2), ["2024-02-29", "2024-03-01"])
         self.assertIsNone(m.next_period_labels("week 3", 1))
+        self.assertEqual(m.next_period_labels("2024-W51", 3), ["2024-W52", "2025-W01", "2025-W02"])
+        self.assertEqual(analytics._next_labels(["2025-W09"], 1), ["2025-W10"])
         self.assertEqual(analytics._next_labels(["2025-Q3"], 1), ["2025-Q4"])
         self.assertEqual(analytics._next_labels(["2025-11"], 2), ["2025-12", "2026-01"])
         self.assertEqual(analytics._next_labels(["Spring"], 1), ["next period +1"])
@@ -285,6 +310,18 @@ class ValidationTests(unittest.TestCase):
     def test_unknown_order_and_grain(self):
         error = self.problems(dict(SHOP_MAPPING, date_order="sideways", grain="fortnight"))
         self.assertEqual({p.field for p in error.problems}, {"date_order", "grain"})
+        self.assertIn("day, week, month, quarter or year", error.problems[1].en)
+
+    def test_a_week_grain_sums_days_by_iso_week(self):
+        text = "day,amount\n" + "\n".join(
+            f"2025-01-{d:02d},{d}" for d in range(1, 15)) + "\n2025-01,5\n"
+        columns, rows = rows_of(text)
+        mapping = mapping_for({"day": "date", "amount": "measure"}, "amount", grain="week")
+        self.assertEqual(m.validate(mapping, columns, rows)["grain"], "week")
+        labels, grain, _ = m.period_labels([r["day"] for r in rows], grain="week")
+        self.assertEqual(grain, "week")
+        self.assertEqual(sorted(set(labels) - {None}), ["2025-W01", "2025-W02", "2025-W03"])
+        self.assertIsNone(labels[-1])  # a month cannot be placed in a week
 
     def test_a_currency_is_optional_and_saved_as_an_upper_case_code(self):
         # Absent, or stated as nothing, means "not stated": never a guess.

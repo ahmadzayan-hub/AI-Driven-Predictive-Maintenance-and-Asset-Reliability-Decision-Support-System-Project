@@ -19,7 +19,7 @@ import type {
 
 const ROLES: ColumnRole[] = ['measure', 'dimension', 'date', 'ignore']
 const ORDERS: DateOrder[] = ['auto', 'day-first', 'month-first']
-const GRAINS: Grain[] = ['auto', 'day', 'month', 'quarter', 'year']
+const GRAINS: Grain[] = ['auto', 'day', 'week', 'month', 'quarter', 'year']
 
 interface MappingPanelProps {
   datasetId: string

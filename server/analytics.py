@@ -1402,7 +1402,8 @@ def preparer(ctx):
     # Round only when formatting a figure for a reader.
     total = math.fsum(r[measure] for r in rows if r.get(measure) is not None)
     grain = ctx["cleaner"].get("date_grain") if mapping else None
-    grain_ar = {"day": "اليوم", "month": "الشهر", "quarter": "الربع", "year": "السنة"}
+    grain_ar = {"day": "اليوم", "week": "الأسبوع", "month": "الشهر", "quarter": "الربع",
+                "year": "السنة"}
     calcs = [{"id": "c_total", "name": f"total_{measure}", "value": total,
               "method": f"sum({measure}) over cleaned rows"}]
     claims = [_claim(ctx, "cl_total", "calculation",
