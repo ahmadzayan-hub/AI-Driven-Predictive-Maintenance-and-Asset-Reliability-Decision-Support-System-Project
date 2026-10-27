@@ -326,6 +326,13 @@ export const api = {
       { method: 'DELETE' },
       UPLOAD_TIMEOUT_MS,
     ),
+  /** Remove a stored dataset; one an analysis reads is a 409 naming them. */
+  deleteDataset: (id: string, language: 'en' | 'ar' = 'en') =>
+    request<{ deleted: string; name: string; usage: { datasets: number; bytes: number } }>(
+      `/api/datasets/${encodeURIComponent(id)}?language=${language}`,
+      { method: 'DELETE' },
+      UPLOAD_TIMEOUT_MS,
+    ),
   pipelines: (signal?: AbortSignal) => request<Pipelines>('/api/pipelines', { signal }),
   assetEvidence: (signal?: AbortSignal) => request<{
     run: RunDetail | null; prepared_at: string; scope: 'latest_completed_maintenance_stage'

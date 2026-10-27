@@ -171,6 +171,28 @@ class IdempotencyConflict(ValueError):
 class PublicationDestinationChanged(ValueError):
     """A pending review names a different destination from current settings."""
 
+
+class DatasetInUse(ValueError):
+    """A dataset an analysis still reads stays: runs cannot be deleted, and
+    a run whose table vanished could not be reopened or re-read."""
+
+    EXAMPLES = 3
+
+    def __init__(self, runs, language="en"):
+        self.runs = runs
+        goals = [str(r.get("goal") or r["id"])[:60] for r in runs[:self.EXAMPLES]]
+        more = len(runs) - len(goals)
+        if language == "ar":
+            listed = "، ".join(f"«{g}»" for g in goals) + (f" و{more} غيرها" if more > 0 else "")
+            message = (f"تبقى مجموعة البيانات ما دام تحليل يقرؤها ({len(runs)}): {listed}. "
+                       "لا يمكن حذف التحليلات، فالنتيجة المنشورة تشير إلى جدولها.")
+        else:
+            listed = ", ".join(f"\u201c{g}\u201d" for g in goals) + (f" and {more} more" if more > 0 else "")
+            message = (f"The dataset stays while an analysis reads it ({len(runs)}): {listed}. "
+                       "Analyses are not deleted, because a published result points at its table.")
+        super().__init__(message)
+        self.message = message
+
 class RunEngine:
     def __init__(self, store, vault_dir, gateway, limits=None, glossary=None,
                  stages=None, profiles=None, execution_mode="client", roles=None,
@@ -333,6 +355,20 @@ class RunEngine:
         self.store.update("datasets", dataset_id, {
             "mapping_json": None, "mapping_updated_at": None})
         return self.dataset_detail(dataset_id, owner, language)
+
+    def delete_dataset(self, dataset_id, owner, language="en"):
+        """Remove a stored dataset no analysis reads. Another owner's dataset
+        is missing (KeyError); one a run reads is refused (DatasetInUse) with
+        the runs named, because runs are never deleted. Checked and deleted
+        in one transaction so a run created meanwhile cannot lose its table."""
+        with self.store.atomic("owner:" + owner):
+            dataset = self._owned_dataset(dataset_id, owner)
+            users = self.store.runs_using_dataset(dataset_id, owner)
+            if users:
+                raise DatasetInUse(users, language)
+            self.store.delete_dataset(dataset_id)
+            return {"deleted": dataset_id, "name": dataset["name"],
+                    "usage": self.store.dataset_usage(owner)}
 
     def custom_roles_for(self, profile=None):
         """Which registered stages a run includes. A profile names a

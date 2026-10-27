@@ -894,6 +894,19 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Dataset lifecycle: a stored dataset can be removed — 27 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-27-dataset-deletion.md)):
+`DELETE /api/datasets/{id}` and a Remove control in the Datasets view;
+refused with 409 `dataset_in_use`, naming the analyses in the reader's
+language, while a run reads the dataset as its main or a joined table;
+a live source forgets the snapshot it last stored. Checked with the full
+Python suite against PostgreSQL 16 (2,318 tests, 19 skipped; 14 new in
+`tests/test_dataset_deletion.py`), 484 frontend unit tests (3 new), type
+check, brain check, build and budget (JS 99.6 of 100 KB first load and
+253.0 of 253 KB in total, the ceiling: the next interface slice trims or
+records a budget change first).
+
 ### Standards lint: blind set v2 into dev, blind set v3 — 23 October 2026
 
 Behaviour change ([decision](docs/adr/2026-10-23-standards-lint-blind-v3.md)):

@@ -13,6 +13,7 @@ engine never sees a driver type.
 """
 
 import hashlib
+import json
 import threading
 import time
 from contextlib import contextmanager
@@ -895,6 +896,38 @@ class SqlStore:
             "SELECT id, sha256, name, byte_size, created_at, source_format, "
             "row_count, column_count, mapping_updated_at FROM datasets "
             "WHERE owner = ? ORDER BY created_at DESC LIMIT 50", (owner,))
+
+    def runs_using_dataset(self, dataset_id, owner):
+        """The owner's runs that read this dataset, as their main table or
+        as a joined one (ADR 0030), newest first. The LIKE narrows the
+        candidates; the declared joins decide, so an id that merely appears
+        inside another string never counts."""
+        rows = self._exec(
+            "SELECT id, goal, state, created_at, dataset_id, joins_json FROM runs "
+            "WHERE owner = ? AND (dataset_id = ? OR joins_json LIKE ?) "
+            "ORDER BY created_at DESC, id DESC",
+            (owner, dataset_id, f'%"{dataset_id}"%'))
+        found = []
+        for row in rows:
+            if row.get("dataset_id") == dataset_id:
+                found.append(row)
+                continue
+            try:
+                declared = json.loads(row.get("joins_json") or "{}")
+            except ValueError:
+                declared = {}
+            if any(item.get("dataset_id") == dataset_id
+                   for item in declared.get("joins", []) if isinstance(item, dict)):
+                found.append(row)
+        return found
+
+    def delete_dataset(self, dataset_id):
+        """Remove one stored dataset. A live source that last stored it
+        forgets that snapshot, so its next refresh stores and analyses the
+        fetched table again instead of calling it unchanged."""
+        self._exec("UPDATE connectors SET last_dataset_id = NULL, last_sha256 = NULL "
+                   "WHERE last_dataset_id = ?", (dataset_id,))
+        self._exec("DELETE FROM datasets WHERE id = ?", (dataset_id,))
 
     # -- backup and restore ----------------------------------------------
     def export_all(self):

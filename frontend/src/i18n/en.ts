@@ -517,6 +517,12 @@ export const en = {
   'datasets.duplicate':
     '{name} holds the same data as a dataset already stored, so nothing new was saved.',
   'datasets.uploadFailed': 'The file could not be uploaded.',
+  'datasets.remove': 'Remove',
+  'datasets.removeAria': 'Remove {name}',
+  'datasets.removeTitle': 'Remove this dataset?',
+  'datasets.removeMessage': '{name} leaves your stored datasets. An analysis that reads it keeps it.',
+  'datasets.removed': '{name} was removed.',
+  'datasets.removeFailed': 'The dataset could not be removed.',
   'format.csv': 'CSV',
   'format.tsv': 'TSV',
   'format.xlsx': 'Excel',

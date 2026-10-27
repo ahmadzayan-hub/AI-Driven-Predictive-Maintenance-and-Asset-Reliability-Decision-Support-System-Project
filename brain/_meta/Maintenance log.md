@@ -100,3 +100,12 @@ What each round of brain maintenance changed, newest last. The SessionStart hook
 - Refreshed [[Approval gate]] against SQL publication and destination-bound fresh review: superseding is not a human decision, refresh cannot publish, and changed content cannot reuse review. No runtime reports were copied.
 - Preserved incoming [[Agent evaluation]] and [[Decision log]] updates while integrating main. Rechecked their source paths and the existing [[Home]] map; the expanded changes remain in existing notes rather than duplicate concepts.
 - Confirmed the final source-scoped acceptance, expanded platform journeys, native build and preceding complete regression before the main-content gate. [[Agentic OS]] and [[Approval gate]] retain their explicit device, production and original-source boundaries; the later aggregate rerun is recorded separately in README.
+
+## 2026-10-27
+
+- `scripts/brain_check.py --json` before the edits: 47 notes, 642 links, no broken links, missing fields, bad dates, duplicate candidates, unlinked mentions or orphans; 1 stale note ([[Team 3 Capstone]]); maintenance due since 26 October.
+- Refreshed [[Decision log]] with the 35 records it lacked since 23 October: the P2 and P3 slices two to seven, the two standards-lint rounds, main's platform, publication, identity, model, specialist, report, typography and Motion records of 23 to 24 October, and today's dataset deletion (source: `docs/adr`). Each line reads the record's title and decision; the record stays the source.
+- Refreshed [[Team 3 Capstone]]: the submission and presentation dates have passed; no outcome is recorded in the repository or `Memory.md`, so the note says so rather than guessing (sources: `Memory.md`, `project-progress.md`).
+- Merged no notes and linked no new mentions: the checker reported none, and today's decision extends [[Column mapping]], [[Dataset joins]] and [[Tenant isolation]] rather than introducing a concept.
+- `scripts/brain_check.py --strict` exits 0 after the edits; [[Home]] still lists every note.
+

@@ -53,7 +53,7 @@ from server.model_gateway import ModelGateway
 from server.orchestration import ModelRoles
 from server.routing import RoutedGateway, build_router
 from server.stages import describe, load_stages
-from server.runs import (IdempotencyConflict, PublicationDestinationChanged, RunEngine, TableNotReady, dataset_summary,
+from server.runs import (DatasetInUse, IdempotencyConflict, PublicationDestinationChanged, RunEngine, TableNotReady, dataset_summary,
                          resolve_publish_target, resolve_vault_dir)
 from server import demo
 from server.auth import DEMO_PRINCIPAL, AuthError, build_identity, public_auth_config
@@ -1366,6 +1366,24 @@ def create_app(config_path=None, env=None, dist_dir=None):
                 return engine.clear_mapping(dataset_id, principal.subject, language)
             except KeyError:
                 raise HTTPException(status_code=404, detail="Dataset not found.")
+
+    @app.delete("/api/datasets/{dataset_id}")
+    def delete_dataset(dataset_id: str,
+                       language: str = Query(default="en", pattern="^(en|ar)$"),
+                       principal=Depends(requires("write"))):
+        """Remove a stored dataset the owner no longer needs. One an
+        analysis reads is refused with the analyses named (409), because
+        runs are never deleted; another owner's is a 404."""
+        with lock:
+            try:
+                return engine.delete_dataset(dataset_id, principal.subject, language)
+            except KeyError:
+                raise HTTPException(status_code=404, detail="Dataset not found.")
+            except DatasetInUse as error:
+                raise HTTPException(status_code=409, detail={
+                    "code": "dataset_in_use", "message": error.message,
+                    "runs": [{"id": r["id"], "goal": r.get("goal"), "state": r.get("state")}
+                             for r in error.runs]})
 
     @app.get("/api/runs")
     def list_runs(state: str | None = Query(default=None, pattern="^[a-z_]{1,40}$"),

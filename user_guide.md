@@ -208,6 +208,11 @@ the mapping later never changes a finished report. **Use automatic
 detection** removes the mapping. Pasted CSV and the sample always use
 automatic detection.
 
+**Remove** takes a stored dataset out of your list and your allowance
+after you confirm. A dataset an analysis reads stays: the server names
+the analyses, because analyses are never deleted and a published report
+points at its table.
+
 ### Joining other datasets
 
 A run can bring columns from other stored datasets onto each row of its

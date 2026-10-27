@@ -3,7 +3,7 @@ type: decision
 aliases: [ADR index, Architecture decisions]
 tags: [decisions]
 status: active
-updated: 2026-10-23
+updated: 2026-10-27
 review_every_days: 30
 sources: [docs/adr]
 ---
@@ -153,3 +153,45 @@ See the composition decision in docs/adr/2026-10-25-dataset-workspace-compositio
 ### 2026-10-25 - Shared visual identity and phone reflow
 
 Separate navigation from evidence with semantic navy/blue/cyan tokens; retain dark mode and accessibility. Contain the phone shell without suppressing content scrolling. Full filenames remain available through bidirectional text and accessible actions. See docs/adr/2026-10-25-shared-visual-identity-and-mobile-reflow.md.
+
+## Records added on the 27 October catch-up
+
+One line per record, read from its title and decision; the record itself is the source (`docs/adr`).
+
+| Record | Decision | Notes |
+| --- | --- | --- |
+| 2026-10-23-p2-slice-two | The store as publish target, logged failures and 503 on an outage, one error envelope, a required connector allowlist in production, recorded migrations, the optional-runtime CI job | [[Approval gate]], [[Tenant isolation]], [[Live data]] |
+| 2026-10-23-p2-slice-three | A corrective repair time in the register, screened and versioned model cards, reversible cleaning, a store-backed rate limit with a per-owner model budget, one PostgreSQL connection per thread | [[Weighted KPIs]], [[Model validation]], [[Tenant isolation]] |
+| 2026-10-23-p2-slice-four | Screened inputs for the generic models, probabilities with a Brier score, a bounded connection pool, structured model answers checked on the server with JSON mode, agreement by finding, eval cases for the knowledge search and the scorecard | [[Model validation]], [[Model gateway]], [[Agent evaluation]] |
+| 2026-10-23-p2-slice-five-reviewer-benchmarks | Blind memos H, I and J and first-run floors for the brief-compliance, security-privacy and accessibility-i18n reviewers | [[Agent evaluation]], [[Agent team]] |
+| 2026-10-23-p2-slice-six-interface | Committed font subsets pay for one-call asset evidence, the table note, one noun per destination, every upload through Datasets, as-of times, every pack in the parity test | [[Design system]], [[Verification and budgets]] |
+| 2026-10-23-p3-slice-seven | The minor findings closed: signed shares, a robust anomaly rule, a noise floor for clustering, health liveness and detail, relative published paths, one connector error handler, orchestration problems recorded, quantity words in grounding, acceptance by a known reviewer, tool arguments held to their schema, one voice toggle name | [[Governed pipeline]], [[Evidence and claims]] |
+| 2026-10-23-standards-lint-families-blind-v2 | Standards lint rules as linguistic families; blind_v1 into dev; blind_v2 scored once at 32% and floored | [[Agent evaluation]] |
+| 2026-10-23-standards-lint-blind-v3 | blind_v2 into dev, the families widened; blind_v3 scored once at 14% with no false alarms and floored | [[Agent evaluation]] |
+| 2026-10-23-database-publication-target | Durable SQL publication without a writable serverless vault; an approval is refused when its reviewed destination changes and a fresh review can be requested | [[Approval gate]] |
+| 2026-10-23-platform-contract-and-application-builds | One API error contract behind sign-in, request-bound creation replay, indexed asset evidence, Android debug build with browser-engine journeys | [[Agentic OS]], [[Release acceptance]] |
+| 2026-10-23-workbook-sheet-discovery | Workbook sheets listed without parsing; the first that looks like a table is read | [[Column mapping]] |
+| 2026-10-23-number-words-and-run-to-failure | The figures checker reads counts in words; run-to-failure is judged on both sides | [[Agent team]], [[Evidence and claims]] |
+| 2026-10-23-chart-axes-state-their-scale | Chart axes state their scale and zero is drawn at zero | [[Scoped dashboards]] |
+| 2026-10-23-hosted-schema-preflight | Hosted startup validates the reviewed schema and never migrates it | [[Tenant isolation]], [[Backup and restore]] |
+| 2026-10-23-managed-auth-onboarding | Managed sign-in with verified PKCE onboarding and passwordless recovery | [[Managed identity]] |
+| 2026-10-23-model-failure-boundaries | Explicit model failure categories and recipient-bounded failover | [[Model gateway]], [[Model privacy]] |
+| 2026-10-23-daemon-candidate | An opt-in database-backed worker daemon candidate with restart checks | [[Run lifecycle]] |
+| 2026-10-23-analysis-workflow-recovery | Analysis lists recover after a failure and human review is explained in the workflow | [[Approval gate]] |
+| 2026-10-23-bounded-specialist-loops | Opt-in, bounded and durable evidence-specialist loops | [[Agent collaboration]] |
+| 2026-10-23-specialist-runtime-wiring | Default-off evidence-specialist API and worker wiring | [[Agent collaboration]], [[Agent runtimes and MCP]] |
+| 2026-10-23-rmd-runtime-context | The requester's context survives runtime deadlines | [[Knowledge retrieval]] |
+| 2026-10-23-run-source-handoff | A governed handoff carries an explicit run source reference | [[Run lifecycle]] |
+| 2026-10-23-reference-aligned-report-evidence | A bounded, reference-aligned report evidence contract | [[Business report exports]], [[Evidence and claims]] |
+| 2026-10-23-compact-executive-export | A compact executive opening with the complete technical evidence behind it | [[Business report exports]] |
+| 2026-10-23-report-dubai-typography | Verified Dubai typography in derived executive exports | [[House style]], [[Business report exports]] |
+| 2026-10-23-original-dubai-font-and-concise-decisions | The original Dubai font and concise decision presentation | [[House style]] |
+| 2026-10-23-miyaar-dubai-executive-direction | Miyaar as asset-maintenance decision support in a Dubai Executive direction | [[Design system]], [[Maintenance decision support]] |
+| 2026-10-23-task-first-miyaar-interface | A task-first mobile journey leads the Miyaar interface | [[Design system]] |
+| 2026-10-23-report-motion-access | Selected reports and source-bound Motion review | [[Accessible motion]] |
+| 2026-10-23-motion-script-gates | Motion drafts gated by script approval with bounded repair | [[Accessible motion]], [[Approval gate]] |
+| 2026-10-23-browser-toolchain-audit | The browser toolchain's Zod advisory repaired without weakening the audit | [[Verification and budgets]] |
+| 2026-10-24-executive-workspace-hierarchy | Executive workspace hierarchy with progressive disclosure | [[Design system]] |
+| 2026-10-24-period-coverage-evidence | Period coverage evidence and bounded scenario claims | [[Evidence and claims]], [[Governed pipeline]] |
+| 2026-10-24-undici-development-audit-patch | A compatible undici security floor for the development DOM runtime | [[Verification and budgets]] |
+| 2026-10-27-dataset-deletion | A stored dataset can be removed unless an analysis reads it; the analyses are named, runs are never deleted, a live source forgets the snapshot | [[Column mapping]], [[Dataset joins]], [[Tenant isolation]] |
