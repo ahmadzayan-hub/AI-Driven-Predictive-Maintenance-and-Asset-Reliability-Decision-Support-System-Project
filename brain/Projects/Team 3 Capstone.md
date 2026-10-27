@@ -3,7 +3,7 @@ type: project
 aliases: [Capstone, Group 9226 capstone]
 tags: [project, course]
 status: active
-updated: 2026-10-21
+updated: 2026-10-27
 review_every_days: 3
 sources: [project-progress.md, docs/AGENT_TEAM.md, Memory.md]
 ---
@@ -22,6 +22,7 @@ The course capstone of the [[User]]'s team: an executive analytics package on pr
 
 - Moodle submission closes on 22 October 2026, and the team uploads on 21 October 2026 to keep a buffer.
 - The team presents to the instructors on 25 October 2026.
+- Both dates have passed as of 27 October 2026. No submission receipt or presentation outcome is recorded in this repository or in `Memory.md`, so the table above stays the state on 21 October and the project's `status` stays as it was until the user says otherwise.
 - Reconciled on 16 October: all 30 expected dashboard values agree with the report, three of them rounded there to whole hours, and every number in the deck appears in the report, exactly or abbreviated. A submission checklist went to the user with the files.
 - **Reviewed on 16 October** by the [[Agent team]]'s review loop. The gates went 50.0% → 62.5%; all ten the session could act on pass.
     - The build fixes are in the files: a tagged PDF with bookmarks, titled slides with readable alt text, and clip sources a reader can follow.

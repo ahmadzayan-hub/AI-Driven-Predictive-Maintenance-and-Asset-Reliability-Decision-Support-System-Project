@@ -3,6 +3,7 @@ import { useReadOnly } from '../../shared/readOnly'
 import { useI18n } from '../../i18n'
 import '../../shared/styles/kpi.css'
 import { api, ApiError, MAX_UPLOAD_BYTES, UPLOAD_ACCEPT } from '../../shared/api'
+import { ConfirmDialog } from '../../shared/components/ConfirmDialog'
 import { Icon } from '../../shared/components/Icon'
 import { formatBytes } from '../../shared/format'
 import { formatLabel } from '../../shared/labels'
@@ -39,6 +40,28 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
   // Column mapping (ADR 0025): one dataset's columns at a time. A new
   // upload opens it straight away, without taking focus from the status.
   const [mapping, setMapping] = useState<{ id: string; focus: boolean } | null>(null)
+  // Removing a dataset (27 October 2026): confirmed first; the server
+  // refuses one an analysis reads and names the analyses.
+  const [removing, setRemoving] = useState<DatasetSummary | null>(null)
+  const [removeBusy, setRemoveBusy] = useState(false)
+  const [removeNotice, setRemoveNotice] = useState<{ kind: 'done' | 'refused'; text: string } | null>(null)
+
+  async function removeDataset(dataset: DatasetSummary) {
+    setRemoveBusy(true)
+    try {
+      const result = await api.deleteDataset(dataset.id, locale)
+      setRemoveNotice({ kind: 'done', text: t('datasets.removed', { name: result.name }) })
+      if (mapping?.id === dataset.id) setMapping(null)
+      if (outcome?.dataset.id === dataset.id) setOutcome(null)
+      setDatasets((list) => list && list.filter((item) => item.id !== dataset.id))
+      api.usage().then(setUsage).catch(() => {})
+    } catch (error) {
+      setRemoveNotice({ kind: 'refused', text: error instanceof ApiError ? error.message : t('datasets.removeFailed') })
+    } finally {
+      setRemoving(null)
+      setRemoveBusy(false)
+    }
+  }
 
   function closeMapping() {
     const id = mapping?.id
@@ -205,6 +228,15 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
           />
         ) : null}
 
+        {removeNotice ? (
+          <p
+            className={removeNotice.kind === 'done' ? 'statusline statusline--success' : 'statusline statusline--error'}
+            role={removeNotice.kind === 'done' ? 'status' : 'alert'}
+            dir="auto"
+          >
+            {removeNotice.text}
+          </p>
+        ) : null}
         {failed ? (
           <div className="card">
             <p className="statusline statusline--error" role="alert" dir="auto">
@@ -293,6 +325,14 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
                     >
                       {t('datasets.analyse')}
                     </button>}
+                    {readOnly ? null : <button
+                      type="button"
+                      className="btn btn--ghost dataset__action"
+                      aria-label={t('datasets.removeAria', { name: dataset.name })}
+                      onClick={() => { setRemoveNotice(null); setRemoving(dataset) }}
+                    >
+                      {t('datasets.remove')}
+                    </button>}
                   </span>
                 </li>
               ))}
@@ -319,6 +359,16 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
         </aside>
         </div>
       </div>
+      {removing ? (
+        <ConfirmDialog
+          title={t('datasets.removeTitle')}
+          message={t('datasets.removeMessage', { name: removing.name })}
+          confirmLabel={t('datasets.remove')}
+          busy={removeBusy}
+          onConfirm={() => void removeDataset(removing)}
+          onCancel={() => setRemoving(null)}
+        />
+      ) : null}
     </section>
   )
 }

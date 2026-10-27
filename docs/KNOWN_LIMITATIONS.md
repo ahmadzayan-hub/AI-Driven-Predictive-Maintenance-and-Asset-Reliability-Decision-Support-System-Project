@@ -339,7 +339,10 @@ required local files. Both behaviors are covered by tests
     converted to CSV. They are held in the database rather than object
     storage. Not read: old `.xls` workbooks, OpenDocument, Parquet, CSV
     in any encoding but UTF-8 or UTF-16, and database connectors. A
-    workbook gives one sheet per upload. After a successful upload, the
+    workbook gives one sheet per upload. A stored dataset can be removed
+    from the Datasets view unless an analysis reads it, in which case the
+    server names the analyses and keeps it; runs themselves are never
+    deleted (2026-10-27 dataset deletion). After a successful upload, the
     interface lets you choose another sheet (ADR 0038). A cover sheet is
     skipped for the first sheet that looks like a table, judged from a
     sample of each sheet's first rows; a table whose header sits below a

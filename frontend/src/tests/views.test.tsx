@@ -6,7 +6,7 @@ import { ReadOnlyContext } from '../shared/readOnly'
 import { OverviewView } from '../features/overview/OverviewView'
 import { ConnectorsPanel } from '../features/live/ConnectorsPanel'
 import { connectorsApi } from '../features/live/connectors'
-import { api } from '../shared/api'
+import { api, ApiError } from '../shared/api'
 import type { Connector } from '../features/live/connectors'
 
 const USAGE = {
@@ -236,6 +236,44 @@ describe('DatasetsView', () => {
     expect(screen.getByText(/Up to 4 MB/).closest('details')).not.toHaveAttribute('open')
     await user.click(screen.getByRole('button', { name: 'Analyse quarterly-sales.csv' }))
     expect(onAnalyse).toHaveBeenCalledWith(dataset)
+  })
+
+  it('removes a stored dataset after confirmation and refreshes the allowance', async () => {
+    const user = userEvent.setup()
+    const dataset = { id: 'ds1', sha256: 'abcdef12', name: 'old-export.csv', byte_size: 1000, created_at: '2026-10-16T09:00:00+00:00' }
+    serve({ '/api/datasets': { datasets: [dataset] }, '/api/usage': USAGE })
+    const remove = vi.spyOn(api, 'deleteDataset').mockResolvedValue({ deleted: 'ds1', name: 'old-export.csv', usage: { datasets: 0, bytes: 0 } })
+    render(<DatasetsView onAnalyse={vi.fn()} />)
+    await user.click(await screen.findByRole('button', { name: 'Remove old-export.csv' }))
+    expect(screen.getByRole('dialog')).toHaveTextContent('old-export.csv leaves your stored datasets')
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove' }))
+    expect(remove).toHaveBeenCalledWith('ds1', 'en')
+    expect(await screen.findByText('old-export.csv was removed.')).toBeVisible()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.queryByTitle('old-export.csv')).not.toBeInTheDocument()
+  })
+
+  it('shows the server refusal when an analysis still reads the dataset', async () => {
+    const user = userEvent.setup()
+    const dataset = { id: 'ds1', sha256: 'abcdef12', name: 'sales.csv', byte_size: 1000, created_at: '2026-10-16T09:00:00+00:00' }
+    serve({ '/api/datasets': { datasets: [dataset] }, '/api/usage': USAGE })
+    vi.spyOn(api, 'deleteDataset').mockRejectedValue(
+      new ApiError('The dataset stays while an analysis reads it (1): \u201cMonthly sales\u201d.', 409),
+    )
+    render(<DatasetsView onAnalyse={vi.fn()} />)
+    await user.click(await screen.findByRole('button', { name: 'Remove sales.csv' }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove' }))
+    const refusal = await screen.findByText(/The dataset stays while an analysis reads it/)
+    expect(refusal).toHaveAttribute('role', 'alert')
+    expect(screen.getByTitle('sales.csv')).toBeInTheDocument()
+  })
+
+  it('offers no Remove control in the view-only demo', async () => {
+    const dataset = { id: 'ds1', sha256: 'abcdef12', name: 'sales.csv', byte_size: 1000, created_at: '2026-10-16T09:00:00+00:00' }
+    serve({ '/api/datasets': { datasets: [dataset] }, '/api/usage': USAGE })
+    render(<ReadOnlyContext.Provider value><DatasetsView onAnalyse={vi.fn()} /></ReadOnlyContext.Provider>)
+    await screen.findByText('sales.csv')
+    expect(screen.queryByRole('button', { name: 'Remove sales.csv' })).not.toBeInTheDocument()
   })
 
   it('adds a file through the API and lists it with its format and rows', async () => {

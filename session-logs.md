@@ -1914,3 +1914,14 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
   model call, remote write or live source replacement occurred.
 - Next: reviewed clean-branch publication/hosted CI and a separately validated
   local release that retains existing local-only report functionality.
+
+## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (review and A8 dataset lifecycle)
+
+**Goal:** review the project after the 23 to 26 October streams landed on main, then continue building the platform from the gap analysis.
+
+- **Found:** main had moved 284 files (Miyaar palette, reports, Hermes package, specialists, auth onboarding, hosted preflight); the branch fast-forwards cleanly. The assessment backlog is closed except the two owner decisions and the model half of G8; the open product gaps are the 16 October gap analysis: deleting a dataset, stacking exports, weekly grain, derived columns, trees, saved layouts, credentialed sources. Brain maintenance was due (one stale note; the decision log lacked 35 records since 23 October).
+- **Done:** A8 dataset lifecycle: `DELETE /api/datasets/{id}` behind the write permission, 404 for another owner, 409 `dataset_in_use` naming the analyses (main or joined table, parsed joins decide) in English and Arabic, checked and deleted in one owner transaction; a live source forgets the snapshot it last stored; Remove with the shared confirm dialog in the Datasets view, hidden in the demo; strings in both languages; decision record, limitations, gap analysis, milestones (A8), user guide, README. Brain: decision log caught up, the capstone note says its dates passed without a recorded outcome, maintenance logged.
+- **Verified:** full Python suite with PostgreSQL 2,318 tests (19 skipped), 484 frontend unit tests, type check, brain strict check, build and budget (JS 99.6 of 100 KB, 253.0 of 253 KB total after trimming the new code and strings; main alone sits at 252.4).
+- **Decided:** runs are never deleted, so a dataset a run reads stays and the server says which; the budget was trimmed into rather than raised, and the next interface slice must trim or record a change first.
+- **Open / next:** stacking period exports (union with matching columns), a weekly grain, derived columns; U8 and U20 (owner decisions); the model half of G8; the next standards-lint round.
+
