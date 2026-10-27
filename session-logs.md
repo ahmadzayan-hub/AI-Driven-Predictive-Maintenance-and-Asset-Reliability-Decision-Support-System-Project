@@ -1980,3 +1980,24 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Decided:** runs are never deleted, so a dataset a run reads stays and the server says which; the budget was trimmed into rather than raised, and the next interface slice must trim or record a change first.
 - **Open / next:** stacking period exports (union with matching columns), a weekly grain, derived columns; U8 and U20 (owner decisions); the model half of G8; the next standards-lint round.
 
+
+
+## 27 October 2026 — Isolated assistant focus candidate
+
+- **Done:** rechecked GitHub main/open PRs/Claude branch ancestry before edits;
+  pinned `1dd392c26a2f3c5107081faf1e5e917a62b1a90a`. Replaced the empty context
+  rail with a collapsed native report disclosure above the composer; retained
+  selection behavior and server model-status text. Reduced hero/toolbar branding,
+  prioritized analysis and improved helper type. Independent source review caught
+  and corrected primary-icon contrast. No remote or live checkout changes.
+- **Verified:** component, TypeScript, build, native run-logic and exact byte-budget
+  checks passed; documentation checks passed. Aggregate backend gate blocked by
+  absent `psycopg2`; no install attempted. Browser launch blocked by sandbox socket
+  permission and platform escalation setup; CUA cannot access isolated loopback.
+  No new screenshots or browser/axe/mobile acceptance claimed.
+- **Decided:** existing dependencies only; no new status inference, provider calls,
+  storage changes, deployment, push, PR or merge. Browser acceptance is a release
+  gate, not waived because source tests pass.
+- **Next:** capture and inspect real before/after EN/AR desktop/mobile screenshots,
+  exercise report selection and composer with virtual keyboard, and run the browser
+  and backend suites on an authorized capable executor before integration.

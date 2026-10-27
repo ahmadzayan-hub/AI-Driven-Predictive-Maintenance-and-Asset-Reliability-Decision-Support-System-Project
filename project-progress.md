@@ -1,5 +1,11 @@
 # Project progress
 
+Assistant focus candidate (27 October): prepared against `1dd392c` in an isolated
+checkout. Empty context rail removed in favor of a composer-adjacent native
+disclosure, compact hero and primary analysis action. No live activation. Fresh
+Arabic/English desktop/phone screenshots and browser acceptance remain blocked
+by the cloud execution sandbox; see the assistant-focus ADR.
+
 RMD CI selector repair: the old navigation-title grep selected no tests. Run the
 complete desktop overview file instead; local navigation/recovery cases pass
 with existing viewport conditions preserved. No runtime or permission changes.

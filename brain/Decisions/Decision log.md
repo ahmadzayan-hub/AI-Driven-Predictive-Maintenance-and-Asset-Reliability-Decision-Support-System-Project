@@ -201,3 +201,5 @@ One line per record, read from its title and decision; the record itself is the 
 | 2026-10-27-derived-columns | A mapping may declare up to five columns computed from the measures by arithmetic, checked when saved, computed after cleaning, available as the measure and carried through stacks | [[Column mapping]], [[Dataset joins]] |
 | 2026-10-27-fiscal-year | A mapping names the month its fiscal year starts in; quarter and year labels read FY2026-Q1 and FY2026 by the end year; forecasts continue the fiscal calendar; day, week and month unchanged | [[Column mapping]] |
 | 2026-10-27-tree-ensemble | A fifth model plugin: 16 bagged regression trees in the standard library, scored on held-out records against the training average and the straight line; inputs' shares of explained variance as association | [[Analytics OS roadmap]] |
+
+- `2026-10-27-assistant-focus-and-context`: isolated candidate; native report disclosure beside composer, scoped session status and stronger first action. Browser acceptance pending.

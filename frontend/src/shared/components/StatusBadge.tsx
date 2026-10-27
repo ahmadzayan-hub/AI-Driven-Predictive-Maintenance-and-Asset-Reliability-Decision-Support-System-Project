@@ -16,7 +16,7 @@ export function StatusBadge({ status, announce = true }: { status: ConnectionSta
   return (
     <span className={`badge badge--${status}`} role={announce ? "status" : undefined} aria-live={announce ? "polite" : undefined}>
       <span className="badge__dot" aria-hidden="true" />
-      {t(LABELS[status])}
+      {t('miyaar.session')}: {t(LABELS[status])}
     </span>
   )
 }
