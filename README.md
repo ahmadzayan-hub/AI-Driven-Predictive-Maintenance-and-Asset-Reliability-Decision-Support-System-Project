@@ -894,6 +894,22 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Derived columns: arithmetic over the measures — 27 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-27-derived-columns.md)): a
+column mapping may declare up to five derived columns, each a name and an
+arithmetic formula over the measures (`cost / hours`), checked when saved
+in both languages, computed after cleaning with empty cells where a value
+is missing or a divisor is zero, available as the measure analysed, and
+carried through stacked exports and the analysis table. The mapping panel
+has a *Derived columns* section. Checked with the full Python suite
+against PostgreSQL 16 (2,342 tests, 19 skipped; 8 new in
+`tests/test_mapping.py` and `tests/test_joins.py`), 514 frontend unit
+tests (2 new), type check, brain check, build and budget (JS 99.6 of 100
+KB first load and 255.1 of 256 KB in total, the ceiling moved by 1 KB and
+recorded; CSS 10.46 of 10.5 KB and 34.1 of 35 KB), and the mapping journey
+in Playwright on desktop with axe (3 passed).
+
 ### Miyaar visual layer: the brief, the AI core and a bounded glow — 27 October 2026
 
 Interface change ([decision](docs/adr/2026-10-27-miyaar-visual-layer.md)):

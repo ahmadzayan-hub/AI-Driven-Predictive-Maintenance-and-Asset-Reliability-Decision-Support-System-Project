@@ -195,6 +195,12 @@ each column one role:
   belongs to the year of its Thursday.
 - **Ignore** — left out of the analysis, such as IDs and free-text notes.
   The quality and privacy checks still read it.
+- **Derived columns** — up to five columns computed from the measures
+  with `+ - * /` and brackets, such as `cost / hours` or `downtime -
+  planned`. A later column may read an earlier one, and a derived column
+  can be the measure analysed. A cell stays empty where a value is
+  missing or a division divides by zero, and the cleaning stage says how
+  many. Only arithmetic is accepted: no functions, text or conditions.
 
 A mapped measure reads currency signs and codes, `(300)` as −300, and
 Arabic digits. A comma must group thousands: `12,5` is refused rather

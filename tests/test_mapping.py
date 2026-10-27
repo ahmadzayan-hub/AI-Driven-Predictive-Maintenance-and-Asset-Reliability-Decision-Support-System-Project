@@ -357,6 +357,75 @@ class ValidationTests(unittest.TestCase):
 
 
 @unittest.skipUnless(FASTAPI_AVAILABLE, "fastapi is not installed")
+class DerivedColumnTests(unittest.TestCase):
+    """Derived columns (27 October 2026): arithmetic over the measures."""
+
+    def test_a_formula_reads_with_the_usual_precedence(self):
+        row = {"cost": 120.0, "hours": 8.0, "units": 3.0}
+        for formula, expected in (("cost / hours", 15.0), ("cost + hours * units", 144.0),
+                                  ("(cost + hours) * units", 384.0), ("-cost / -hours", 15.0),
+                                  ("cost / hours / units", 5.0), ("2.5 * units", 7.5),
+                                  ("`cost` - `hours`", 112.0)):
+            with self.subTest(formula=formula):
+                self.assertAlmostEqual(m.evaluate_formula(m.parse_formula(formula), row), expected)
+        self.assertEqual(m.formula_refs(m.parse_formula("cost / hours + cost")), ["cost", "hours"])
+
+    def test_a_missing_value_or_a_zero_divisor_leaves_the_cell_empty(self):
+        tree = m.parse_formula("cost / hours")
+        self.assertIsNone(m.evaluate_formula(tree, {"cost": 10.0, "hours": 0.0}))
+        self.assertIsNone(m.evaluate_formula(tree, {"cost": None, "hours": 2.0}))
+        self.assertIsNone(m.evaluate_formula(tree, {"cost": "10", "hours": 2.0}))
+
+    def test_a_formula_that_cannot_be_read_says_why_in_both_languages(self):
+        for text, needle in (("cost +", "ends too early"), ("(cost", "not closed"), ("cost ^ 2", "Unexpected"),
+                             ("", "empty"), ("cost hours", "after the formula")):
+            with self.subTest(text=text):
+                with self.assertRaises(m.FormulaError) as caught:
+                    m.parse_formula(text)
+                self.assertIn(needle, caught.exception.en)
+                self.assertTrue(caught.exception.ar)
+
+    def problems(self, derived, extra_roles=None):
+        columns, rows = rows_of(SHOP_CSV)
+        mapping = dict(SHOP_MAPPING, derived=derived)
+        if extra_roles:
+            mapping = dict(mapping, roles=dict(mapping["roles"], **extra_roles))
+        try:
+            return m.validate(mapping, columns, rows), []
+        except m.MappingError as error:
+            return None, error.problems
+
+    def test_a_derived_column_is_saved_and_may_be_the_measure(self):
+        columns, rows = rows_of(SHOP_CSV)
+        mapping = dict(SHOP_MAPPING, derived=[{"name": "amount_k", "formula": "amount / 1000"},
+                                              {"name": "double_k", "formula": "amount_k * 2"}],
+                       measure="double_k")
+        clean = m.validate(mapping, columns, rows)
+        self.assertEqual(clean["derived"], [{"name": "amount_k", "formula": "amount / 1000"},
+                                            {"name": "double_k", "formula": "amount_k * 2"}])
+        self.assertEqual(clean["measure"], "double_k")
+        self.assertEqual(m.measures_of(clean, columns + ["amount_k"]), ["amount", "amount_k"])
+        self.assertEqual(m.validate(SHOP_MAPPING, columns, rows)["derived"], [])
+
+    def test_a_derived_column_is_refused_for_the_right_reason(self):
+        cases = [
+            ([{"name": "amount", "formula": "amount * 2"}], "already a column"),
+            ([{"name": "2x", "formula": "amount * 2"}], "not a usable column name"),
+            ([{"name": "per_store", "formula": "amount / store_id"}], "not a measure"),
+            ([{"name": "bad", "formula": "amount +"}], "ends too early"),
+            ([{"name": "later", "formula": "earlier * 2"}, {"name": "earlier", "formula": "amount"}], "not a measure"),
+            ([{"name": f"d{i}", "formula": "amount"} for i in range(m.MAX_DERIVED + 1)], "At most"),
+        ]
+        for derived, needle in cases:
+            with self.subTest(needle=needle):
+                clean, problems = self.problems(derived)
+                self.assertIsNone(clean)
+                found = [p for p in problems if p.field == "derived"]
+                self.assertTrue(found, [p.en for p in problems])
+                self.assertIn(needle, found[0].en)
+                self.assertTrue(found[0].ar)
+
+
 class MappingApiTestCase(unittest.TestCase):
     """The mapping API and mapped runs, against SQLite."""
 
@@ -517,6 +586,29 @@ class MappingApiTestCase(unittest.TestCase):
                          ("month", "region", None))
         self.assertFalse(self.output(run, "collector")["mapped"])
         self.assertNotIn("cl_mapping", self.claim_ids(run))
+
+    def test_a_derived_measure_is_computed_and_analysed(self):
+        dataset_id = self.upload(SHOP_CSV)
+        mapping = dict(SHOP_MAPPING, derived=[{"name": "amount_k", "formula": "amount / 1000"}],
+                       measure="amount_k")
+        saved = self.client.put(f"/api/datasets/{dataset_id}/mapping", json=mapping)
+        self.assertEqual(saved.status_code, 200, saved.text)
+        self.assertEqual(saved.json()["mapping"]["derived"][0]["name"], "amount_k")
+        run = self.run_to_gate(dataset_id=dataset_id)
+        collector = self.output(run, "collector")
+        self.assertEqual(collector["columns"][-1], "amount_k")
+        self.assertIn("amount_k", self.output(run, "profiler")["numeric_columns"])
+        cleaner = self.output(run, "cleaner")
+        self.assertEqual(cleaner["derived"], ["amount_k"])
+        self.assertAlmostEqual(cleaner["rows"][0]["amount_k"], 1.2)
+        self.assertAlmostEqual(self.output(run, "preparer")["total"],
+                               sum(r["amount"] for r in cleaner["rows"]) / 1000)
+        self.assertIn("cl_derived", {c["id"] for c in self.task(run, "cleaner")["claims"]})
+        refused = self.client.put(f"/api/datasets/{dataset_id}/mapping?language=ar", json=dict(
+            mapping, derived=[{"name": "amount_k", "formula": "amount / notes"}]))
+        self.assertEqual(refused.status_code, 422)
+        self.assertEqual(refused.json()["detail"]["errors"][0]["field"], "derived")
+        self.assertIn("«amount_k»", refused.json()["detail"]["errors"][0]["message"])
 
     def test_pasted_data_ignores_a_saved_mapping_of_the_same_content(self):
         dataset_id = self.upload(SHOP_CSV)

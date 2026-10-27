@@ -1915,6 +1915,15 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Next: reviewed clean-branch publication/hosted CI and a separately validated
   local release that retains existing local-only report functionality.
 
+## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (A11 derived columns)
+
+**Goal:** continue the programme on the owner's "continue till finish all": the derived-columns half of the dynamic-inputs gap.
+
+- **Done:** a formula engine in `server/mapping.py` (tokeniser, recursive-descent parser for `+ - * /`, brackets, unary minus, numbers, measure names and backtick names; evaluation to a float or None; nothing passes through the interpreter); `derived` in the mapping, validated with refusals in both languages (name, clash, unreadable formula, non-measure reference, at most five), a derived column allowed as the measure; the collector lists the names, the profiler counts them as measures, the cleaner computes them after coercion and records a calculation and a claim; `clean_table` computes them for joined and stacked tables; the analysis table marks them `derived`; the API model; the mapping panel's section with strings in the Datasets chunk; decision record amending ADR 0025, limitations, user guide, gap analysis, milestone A11, brain, README.
+- **Verified:** full Python suite with PostgreSQL 2,342 tests (19 skipped; 8 new), 514 frontend unit tests (2 new), type check, brain strict check, build and budget (JS 99.6 of 100 KB, 255.1 of 256 KB total; CSS 10.46 of 10.5 KB, 34.1 of 35 KB), the mapping journey with axe on desktop (3 passed).
+- **Decided:** arithmetic only, no functions or conditionals, so a refusal can always say why; empty cells rather than errors for missing values and zero divisors, consistent with unreadable measures; the total script ceiling moves to 256 KB after trimming, recorded.
+- **Open / next:** PR #69 carries A10, the visual layer and A11, green, waiting for the owner's merge word; next: a fiscal year; agent cards per stage; a live timeline; U8 and U20; the model half of G8.
+
 ## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (Miyaar visual layer)
 
 **Goal:** the owner's request to study nine reference AI and operations dashboards, research current practice and develop the Miyaar interface.

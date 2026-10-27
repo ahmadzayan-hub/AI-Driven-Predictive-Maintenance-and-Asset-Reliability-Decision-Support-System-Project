@@ -385,8 +385,9 @@ required local files. Both behaviors are covered by tests
     one measure, broken down by at most one dimension. The other
     measures are drivers, not subjects. A week grain exists since 27
     October 2026 (ISO weeks, chosen by the owner, never by the automatic
-    roll-up); there is no fiscal year, no derived or computed column,
-    and no unit per measure. A decimal comma is refused rather than read, and
+    roll-up); derived columns exist since the same day (up to five,
+    arithmetic over the measures, no functions or conditionals); there is
+    no fiscal year and no unit per measure. A decimal comma is refused rather than read, and
     two-digit years follow the POSIX rule, so `70` is 1970. The
     suggestion reads an even sample of 10,000 rows of a larger table,
     while saving checks every row. A mapping belongs to one dataset:

@@ -304,6 +304,14 @@ export interface ColumnMapping {
   /** The ISO 4217 code of money columns, as the owner stated it; null or
    *  absent means not stated, and the interface says so. Never guessed. */
   currency?: string | null
+  /** Columns computed from the measures by arithmetic (27 October 2026):
+   *  `cost / hours`, in order, so a later one may read an earlier one. */
+  derived?: DerivedColumn[]
+}
+
+export interface DerivedColumn {
+  name: string
+  formula: string
 }
 
 /** What the server read in one column, and the role it suggests. */
@@ -338,7 +346,7 @@ export interface DatasetDetail {
  *  column; a join's problems also say which join (ADR 0030). */
 export interface MappingProblem {
   field:
-    | 'roles' | 'measure' | 'dimension' | 'date_order' | 'grain' | 'currency'
+    | 'roles' | 'measure' | 'dimension' | 'date_order' | 'grain' | 'currency' | 'derived'
     | 'joins' | 'keys' | 'how' | 'alias' | 'breakdown' | 'dataset'
   column: string | null
   message: string

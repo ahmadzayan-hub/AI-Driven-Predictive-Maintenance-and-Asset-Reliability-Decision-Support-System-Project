@@ -27,6 +27,11 @@ FINEST_FIRST = ("day", "week", "month", "quarter", "year")
 # so no earlier analysis changes its periods.
 AUTO_GRAINS = ("day", "month", "quarter", "year")
 MAPPING_VERSION = 1
+# Derived columns (27 October 2026): at most this many per mapping, named
+# like identifiers, computed from the measures by arithmetic alone.
+MAX_DERIVED = 5
+DERIVED_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,39}$")
+FORMULA_TOKEN = re.compile(r"\s*(?:(\d+(?:\.\d*)?|\.\d+)|`([^`]+)`|([A-Za-z_][A-Za-z0-9_]*)|([-+*/()]))")
 # The currency of money columns, as the owner states it: an ISO 4217 code,
 # three upper-case letters. Absent means "not stated", which the interface
 # then says in so many words; nothing ever guesses one from the data.
@@ -610,11 +615,12 @@ def validate(mapping, columns, rows):
     measures = [c for c in columns if roles.get(c) == "measure"]
     dates = [c for c in columns if roles.get(c) == "date"]
     measure, dimension = mapping.get("measure"), mapping.get("dimension")
+    derived = _validate_derived(mapping, columns, roles, problems)
     if not measures:
         problems.append(Problem("measure", None,
                                 "Map at least one column as a measure: the number the analysis is about.",
                                 "اربط عموداً واحداً على الأقل بوصفه مقياساً: الرقم الذي يدور حوله التحليل."))
-    elif measure not in measures:
+    elif measure not in measures and measure not in [d["name"] for d in derived]:
         problems.append(Problem("measure", measure,
                                 "Choose which measure the analysis is about.",
                                 "اختر المقياس الذي يدور حوله التحليل."))
@@ -666,7 +672,201 @@ def validate(mapping, columns, rows):
     return {"version": MAPPING_VERSION,
             "roles": {c: roles[c] for c in columns},
             "measure": measure, "dimension": dimension,
-            "date_order": order, "grain": grain, "currency": currency}
+            "date_order": order, "grain": grain, "currency": currency,
+            "derived": derived}
+
+
+# ---------------------------------------------------------------------------
+# Derived columns: arithmetic over the measures, nothing else
+# ---------------------------------------------------------------------------
+
+class FormulaError(ValueError):
+    """A formula that cannot be read, said in both languages."""
+
+    def __init__(self, en, ar):
+        super().__init__(en)
+        self.en, self.ar = en, ar
+
+
+def _tokens(text):
+    tokens, position = [], 0
+    text = text.strip()
+    while position < len(text):
+        match = FORMULA_TOKEN.match(text, position)
+        if not match or match.end() == position:
+            raise FormulaError(f"Unexpected “{text[position:position + 8]}” in the formula.",
+                               f"رمز غير متوقع «{text[position:position + 8]}» في الصيغة.")
+        number, quoted, name, operator = match.groups()
+        if number is not None:
+            tokens.append(("num", float(number)))
+        elif quoted is not None or name is not None:
+            tokens.append(("ref", quoted if quoted is not None else name))
+        else:
+            tokens.append(("op", operator))
+        position = match.end()
+    return tokens
+
+
+def parse_formula(text):
+    """A formula as a tree: ("num", x), ("ref", column), ("neg", node) or
+    (operator, left, right) with the usual precedence. Raises FormulaError."""
+    tokens = _tokens(str(text or ""))
+    if not tokens:
+        raise FormulaError("The formula is empty.", "الصيغة فارغة.")
+    index = 0
+
+    def peek():
+        return tokens[index] if index < len(tokens) else (None, None)
+
+    def take():
+        nonlocal index
+        token = tokens[index]
+        index += 1
+        return token
+
+    def expression():
+        node = term()
+        while peek() == ("op", "+") or peek() == ("op", "-"):
+            node = (take()[1], node, term())
+        return node
+
+    def term():
+        node = factor()
+        while peek() == ("op", "*") or peek() == ("op", "/"):
+            node = (take()[1], node, factor())
+        return node
+
+    def factor():
+        kind, value = peek()
+        if kind is None:
+            raise FormulaError("The formula ends too early.", "تنتهي الصيغة قبل اكتمالها.")
+        if kind == "op" and value == "-":
+            take()
+            return ("neg", factor())
+        if kind == "op" and value == "(":
+            take()
+            node = expression()
+            if peek() != ("op", ")"):
+                raise FormulaError("A bracket is not closed.", "قوس لم يُغلق.")
+            take()
+            return node
+        if kind in ("num", "ref"):
+            return take()
+        raise FormulaError(f"Unexpected “{value}” in the formula.", f"رمز غير متوقع «{value}» في الصيغة.")
+
+    node = expression()
+    if index != len(tokens):
+        kind, value = tokens[index]
+        raise FormulaError(f"Unexpected “{value}” after the formula.", f"رمز غير متوقع «{value}» بعد الصيغة.")
+    return node
+
+
+def formula_refs(node):
+    """The column names a formula reads, in order of first use."""
+    out = []
+
+    def walk(item):
+        if item[0] == "ref":
+            if item[1] not in out:
+                out.append(item[1])
+        elif item[0] == "neg":
+            walk(item[1])
+        elif item[0] != "num":
+            walk(item[1]); walk(item[2])
+    walk(node)
+    return out
+
+
+def evaluate_formula(node, row):
+    """The formula on one cleaned row: a float, or None when any value it
+    reads is missing or a division divides by zero. Never raises."""
+    kind = node[0]
+    if kind == "num":
+        return node[1]
+    if kind == "ref":
+        value = row.get(node[1])
+        return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+    if kind == "neg":
+        inner = evaluate_formula(node[1], row)
+        return None if inner is None else -inner
+    left, right = evaluate_formula(node[1], row), evaluate_formula(node[2], row)
+    if left is None or right is None:
+        return None
+    if kind == "+":
+        return left + right
+    if kind == "-":
+        return left - right
+    if kind == "*":
+        return left * right
+    return None if right == 0 else left / right
+
+
+def derived_of(mapping):
+    """The saved derived columns, [{name, formula}], oldest mapping first."""
+    items = mapping.get("derived") if isinstance(mapping, dict) else None
+    return [dict(item) for item in items] if isinstance(items, list) else []
+
+
+def compute_derived(mapping, columns, rows):
+    """Add each derived column to `columns` and every row, in order, so a
+    later formula may read an earlier derived column. Rows must already
+    hold numbers in the measures. Returns the names added."""
+    added = []
+    for item in derived_of(mapping):
+        name = item["name"]
+        try:
+            tree = parse_formula(item["formula"])
+        except FormulaError:
+            continue  # validated when saved; a stale mapping is skipped, not crashed
+        for row in rows:
+            row[name] = evaluate_formula(tree, row)
+        if name not in columns:
+            columns.append(name)
+        added.append(name)
+    return added
+
+
+def _validate_derived(mapping, columns, roles, problems):
+    """Check the derived columns of a mapping; returns the clean list."""
+    items = mapping.get("derived") or []
+    if not isinstance(items, list):
+        items = []
+    if len(items) > MAX_DERIVED:
+        problems.append(Problem("derived", None,
+                                f"At most {MAX_DERIVED} derived columns; {len(items)} were given.",
+                                f"الحد الأقصى {MAX_DERIVED} أعمدة مشتقة، وأُعطي {len(items)}."))
+        items = items[:MAX_DERIVED]
+    clean, known = [], []
+    measures = {c for c in columns if roles.get(c) == "measure"}
+    for item in items:
+        item = item if isinstance(item, dict) else {}
+        name = str(item.get("name") or "").strip()
+        formula = str(item.get("formula") or "").strip()
+        if not DERIVED_NAME.match(name):
+            problems.append(Problem("derived", name or None,
+                                    f"“{name}” is not a usable column name: letters, digits and underscores, starting with a letter (40 at most).",
+                                    f"«{name}» ليس اسم عمود صالحاً: حروف إنجليزية وأرقام وشرطات سفلية، ويبدأ بحرف (40 على الأكثر)."))
+            continue
+        if name in columns or name in known:
+            problems.append(Problem("derived", name,
+                                    f"“{name}” is already a column; choose another name.",
+                                    f"«{name}» عمود موجود بالفعل؛ اختر اسماً آخر."))
+            continue
+        try:
+            tree = parse_formula(formula)
+        except FormulaError as error:
+            problems.append(Problem("derived", name, f"“{name}”: {error.en}", f"«{name}»: {error.ar}"))
+            continue
+        unknown = [r for r in formula_refs(tree) if r not in measures and r not in known]
+        if unknown:
+            shown = ", ".join(f"“{r}”" for r in unknown)
+            problems.append(Problem("derived", name,
+                                    f"“{name}” reads {shown}, which is not a measure of this dataset or an earlier derived column.",
+                                    f"«{name}» يقرأ {shown.replace('“', '«').replace('”', '»')}، وليس مقياساً في هذه البيانات ولا عموداً مشتقاً سابقاً."))
+            continue
+        known.append(name)
+        clean.append({"name": name, "formula": formula})
+    return clean
 
 
 def read_currency(value):
@@ -699,7 +899,9 @@ def currency_of(mapping):
 
 
 def measures_of(mapping, columns):
-    return [c for c in columns if mapping["roles"].get(c) == "measure"]
+    """The mapped measures, and the derived columns once the table has them."""
+    derived = {d["name"] for d in derived_of(mapping)}
+    return [c for c in columns if mapping["roles"].get(c) == "measure" or c in derived]
 
 
 def date_of(mapping, columns):

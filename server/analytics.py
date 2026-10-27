@@ -464,6 +464,13 @@ def collector(ctx):
                           f"تتجاوز البيانات الحد المسموح به وهو {MAX_ROWS} صف."))
     columns = [c for c in reader.fieldnames if c]
     digest = hashlib.sha256(text.encode()).hexdigest()[:16]
+    # A derived column of the mapping is a column of the table from here
+    # on, empty until the cleaner has numbers to compute it from.
+    for item in colmap.derived_of(ctx.get("mapping")):
+        if item["name"] not in columns:
+            columns.append(item["name"])
+            for row in rows:
+                row[item["name"]] = ""
     calculations = [{"id": "c_rows", "name": "row_count", "value": len(rows),
                      "method": "len(csv rows)"}]
     claims = [_claim(ctx, "cl_ingest", "fact",
@@ -629,6 +636,7 @@ def cleaner(ctx):
             stripped[col] = number
         cleaned.append(stripped)
         source_indices.append(source_index)
+    derived = colmap.compute_derived(mapping, [], cleaned) if mapping else []
     after = len(cleaned)
     calcs = [
         {"id": "c_rows_before", "name": "rows_before", "value": before, "method": "count"},
@@ -639,12 +647,29 @@ def cleaner(ctx):
          "method": "non-empty values in numeric columns that could not be read as a "
                    "number and were set to empty"},
     ]
+    if derived:
+        calcs.append({"id": "c_derived", "name": "derived_columns", "value": len(derived),
+                      "method": "columns computed from the mapping's formulas: " + ", ".join(
+                          f"{d['name']} = {d['formula']}" for d in colmap.derived_of(mapping))})
     claims = [_claim(ctx, "cl_rowloss", "fact",
                      f"{before - after} of {before} rows were removed during cleaning "
                      f"({dropped_empty} empty, {dropped_dupes} duplicates).",
                      f"حُذف {before - after} من أصل {_ar_n(before, 'row')} أثناء التنظيف "
                      f"({dropped_empty} فارغ و{dropped_dupes} مكرر).",
                      ["c_rows_before", "c_rows_after", "c_dropped"])]
+    if derived:
+        empty = {d: sum(1 for row in cleaned if row.get(d) is None) for d in derived}
+        claims.append(_claim(
+            ctx, "cl_derived", "fact",
+            f"{len(derived)} derived column(s) were computed from the mapping's formulas: "
+            + ", ".join(f"{d['name']} = {d['formula']}" for d in colmap.derived_of(mapping))
+            + ". A row is left empty where a value it reads is missing or a division divides by zero"
+            + (f" ({', '.join(f'{d}: {n}' for d, n in empty.items() if n)})" if any(empty.values()) else "") + ".",
+            f"حُسب {len(derived)} من الأعمدة المشتقة من صيغ الربط: "
+            + "، ".join(f"{d['name']} = {d['formula']}" for d in colmap.derived_of(mapping))
+            + ". يُترك الصف فارغاً حين تنقص قيمة يقرؤها أو يقسم على صفر"
+            + (f" ({'، '.join(f'{d}: {n}' for d, n in empty.items() if n)})" if any(empty.values()) else "") + ".",
+            ["c_derived"]))
     if coercion_failures:
         columns_hit = sorted({item["column"] for item in unreadable})
         claims.append(_claim(
@@ -727,7 +752,7 @@ def cleaner(ctx):
              f"{coercion_failures} قيمة غير رقمية فارغة). يُذكر كل صف محذوف "
              "ولا يُخفى."),
         output={"dropped_indices": dropped, "unreadable_values": unreadable,
-                "rows": cleaned, "source_indices": source_indices,
+                "rows": cleaned, "source_indices": source_indices, "derived": derived,
                 "rows_before": before, "rows_after": after,
                 "dropped": before - after, **dates},
         calculations=calcs,

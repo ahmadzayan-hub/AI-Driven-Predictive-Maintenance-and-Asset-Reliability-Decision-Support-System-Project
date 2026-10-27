@@ -315,6 +315,7 @@ export const api = {
           date_order: mapping.date_order,
           grain: mapping.grain,
           currency: mapping.currency ?? null,
+          derived: mapping.derived ?? [],
         }),
       },
       UPLOAD_TIMEOUT_MS,

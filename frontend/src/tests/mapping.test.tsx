@@ -124,7 +124,7 @@ describe('MappingPanel', () => {
     const [path, init] = fetchMock.mock.calls[1]
     expect(path).toBe('/api/datasets/ds1/mapping?language=en')
     expect(init?.method).toBe('PUT')
-    expect(JSON.parse(String(init?.body))).toEqual({ ...SUGGESTION, dimension: null, currency: null })
+    expect(JSON.parse(String(init?.body))).toEqual({ ...SUGGESTION, dimension: null, currency: null, derived: [] })
     expect(await screen.findByText('Mapping saved. Runs of this dataset now follow it.')).toBeInTheDocument()
     expect(onChanged).toHaveBeenCalledWith(saved.dataset)
     expect(screen.getByRole('button', { name: 'Use automatic detection' })).toBeInTheDocument()
@@ -189,6 +189,50 @@ describe('MappingPanel', () => {
   })
 })
 
+describe('MappingPanel derived columns', () => {
+  it('adds a derived column, offers it as the measure, and sends it to the server', async () => {
+    const user = userEvent.setup()
+    const saved = {
+      ...DETAIL,
+      dataset: { ...DETAIL.dataset, mapped: true, mapping_updated_at: '2026-10-27T10:00:00+00:00' },
+      mapping: { ...SUGGESTION, measure: 'amount_k', derived: [{ name: 'amount_k', formula: 'amount / 1000' }], version: 1 },
+    }
+    const fetchMock = serve([
+      { status: 200, body: DETAIL },
+      { status: 200, body: saved },
+    ])
+    renderPanel()
+    await screen.findByRole('heading', { name: 'Columns of shop.csv' })
+    await user.click(screen.getByRole('button', { name: 'Add a derived column' }))
+    const row = screen.getByRole('group', { name: 'Derived column 1' })
+    await user.type(within(row).getByRole('textbox', { name: 'Column name' }), 'amount_k')
+    await user.type(within(row).getByRole('textbox', { name: 'Formula' }), 'amount / 1000')
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Measure analysed' }), 'amount_k')
+    await user.click(screen.getByRole('button', { name: 'Save mapping' }))
+    const [, init] = fetchMock.mock.calls[1]
+    expect(JSON.parse(String(init?.body))).toEqual({ ...SUGGESTION, measure: 'amount_k', currency: null, derived: [{ name: 'amount_k', formula: 'amount / 1000' }] })
+    expect(await screen.findByText('Mapping saved. Runs of this dataset now follow it.')).toBeInTheDocument()
+  })
+
+  it('links a refused formula to its row', async () => {
+    const user = userEvent.setup()
+    serve([
+      { status: 200, body: DETAIL },
+      { status: 422, body: { detail: { message: 'The mapping cannot be saved: 1 problem to fix.',
+        errors: [{ field: 'derived', column: 'bad', message: '“bad”: The formula ends too early.' }] } } },
+    ])
+    renderPanel()
+    await screen.findByRole('heading', { name: 'Columns of shop.csv' })
+    await user.click(screen.getByRole('button', { name: 'Add a derived column' }))
+    const row = screen.getByRole('group', { name: 'Derived column 1' })
+    await user.type(within(row).getByRole('textbox', { name: 'Column name' }), 'bad')
+    await user.type(within(row).getByRole('textbox', { name: 'Formula' }), 'amount +')
+    await user.click(screen.getByRole('button', { name: 'Save mapping' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('The formula ends too early')
+    expect(within(row).getByRole('textbox', { name: 'Column name' })).toHaveAttribute('aria-invalid', 'true')
+  })
+})
+
 describe('MappingPanel currency', () => {
   it('sends the stated currency as an upper-case code and shows it saved', async () => {
     const user = userEvent.setup()
@@ -213,7 +257,7 @@ describe('MappingPanel currency', () => {
     const [, init] = fetchMock.mock.calls[1]
     // The transport (shared/api.ts saveMapping) names each field it sends;
     // once it carries `currency` this becomes toEqual({ ...SUGGESTION, currency: 'AED' }).
-    expect(JSON.parse(String(init?.body))).toEqual({ ...SUGGESTION, currency: 'AED' })
+    expect(JSON.parse(String(init?.body))).toEqual({ ...SUGGESTION, currency: 'AED', derived: [] })
     expect(await screen.findByText('Mapping saved. Runs of this dataset now follow it.')).toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: 'Currency of money columns' })).toHaveValue('AED')
   })
@@ -247,6 +291,6 @@ describe('MappingPanel currency', () => {
     await screen.findByRole('heading', { name: 'Columns of shop.csv' })
     await user.click(screen.getByRole('button', { name: 'Save mapping' }))
     const [, init] = fetchMock.mock.calls[1]
-    expect(JSON.parse(String(init?.body))).toEqual({ ...SUGGESTION, currency: null })
+    expect(JSON.parse(String(init?.body))).toEqual({ ...SUGGESTION, currency: null, derived: [] })
   })
 })

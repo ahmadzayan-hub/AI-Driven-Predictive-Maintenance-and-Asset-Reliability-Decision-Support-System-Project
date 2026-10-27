@@ -49,6 +49,7 @@ A1 gave datasets a life before any run (ADR 0024). That makes the fix possible: 
 | `dimension` | A column whose role is `dimension`, or `null` | What totals are broken down by. `null` means no breakdown |
 | `date_order` | `auto`, `day-first`, `month-first` | How to read `03/04/2025`. `auto` decides from the data, and asks when it cannot |
 | `grain` | `auto`, `day`, `week`, `month`, `quarter`, `year` | The period a trend is summed over. `auto` keeps the data's own precision, then coarsens until there are at most 36 periods; it never chooses `week`, which the owner picks (ISO weeks, `2026-10-27-week-grain.md`) |
+| `derived` | up to five `{name, formula}` | Columns computed from the measures by arithmetic, in order (`2026-10-27-derived-columns.md`) |
 
 The mapping is saved with the dataset, per owner, and is the same for every run of that dataset until the owner changes it.
 

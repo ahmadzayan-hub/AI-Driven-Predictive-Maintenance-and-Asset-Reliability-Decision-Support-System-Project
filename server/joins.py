@@ -235,6 +235,9 @@ def clean_table(text, mapping=None):
     for row in cleaned:
         for column in numeric:
             row[column] = read(row[column]) if row[column] else None
+    if mapping:
+        columns = list(columns)
+        numeric = numeric + colmap.compute_derived(mapping, columns, cleaned)
     return Table(columns, cleaned, numeric, len(raw), empty, duplicates, screened)
 
 
