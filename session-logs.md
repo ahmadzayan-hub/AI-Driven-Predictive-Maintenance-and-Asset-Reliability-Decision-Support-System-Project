@@ -1915,6 +1915,15 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Next: reviewed clean-branch publication/hosted CI and a separately validated
   local release that retains existing local-only report functionality.
 
+## 2026-10-28 · `d9e3f889` · claude/tender-clarke-m4uwgq (agent cards and the hosted migration)
+
+**Goal:** develop the agent cards per stage (after trimming the script budget) and the hosted migration `20261027_dashboard_views.sql`.
+
+- **Done:** each stage in the run timeline states its claims and how many checks passed (`docs/adr/2026-10-28-agent-cards.md`). The script budget was held by removing five unused string keys in both languages, each checked against every source file and test. The migration now refuses a table of another shape, and it is tested on a disposable schema: it applies, re-applies, and refuses drift. Runbook with read-only checks and rollback: `docs/HOSTED_MIGRATION_20261027.md`.
+- **Found:** the test first wrapped the migration's own BEGIN/COMMIT, which committed a drift test against the shared test database; fixed, and the shared test table reset. The remaining budget levers are small: unused keys, duplicated strings and API methods were checked and are essentially gone.
+- **Not done:** the visual card layout (stylesheet first-load budget is at its ceiling). The hosted migration is not applied; the operator applies it after review.
+- **Verified:** full Python suite on PostgreSQL: 2,366 tests, 19 skipped, OK. 529 frontend unit tests. 28 browser journeys on desktop and phone. Script budget 256.9 of 257 KB.
+
 ## 2026-10-28 · `d9e3f889` · claude/tender-clarke-m4uwgq (live pipeline)
 
 **Goal:** the next interface items from the owner's list: agent cards per stage and a live timeline.

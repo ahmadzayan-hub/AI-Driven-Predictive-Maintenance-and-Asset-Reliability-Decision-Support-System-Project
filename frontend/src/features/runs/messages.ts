@@ -247,9 +247,11 @@ export type DecisionKey = keyof typeof decisionMessages.en
 export const timelineMessages = definePack(
   {
     'timeline.now': 'Now: {stage}',
+    'timeline.evidence': '{claims} claims · {passed} of {checks} checks passed',
   },
   {
     'timeline.now': 'الآن: {stage}',
+    'timeline.evidence': '{claims} ادعاءً · اجتاز {passed} من {checks} فحصاً',
   },
 )
 

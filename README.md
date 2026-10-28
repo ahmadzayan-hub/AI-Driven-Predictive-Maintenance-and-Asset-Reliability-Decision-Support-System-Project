@@ -894,6 +894,24 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Agent cards: each stage shows its evidence; hosted migration packaged — 28 October 2026
+
+Interface change ([decision](docs/adr/2026-10-28-agent-cards.md)): each stage
+in the run timeline states its claims and how many of its checks passed. A
+visual card layout is not in this slice, because the stylesheet's first-load
+budget is at its ceiling. The script total is 256.9 of 257 KB after removing
+five unused string keys in both languages.
+
+Hosted migration ([runbook](docs/HOSTED_MIGRATION_20261027.md)): the
+`dashboard_views` migration now refuses a table of another shape, and it is
+tested on a disposable schema: it applies, re-applies, and refuses drift. It is
+not applied to any hosted database; the database operator applies it after
+review.
+
+Checked by the full Python suite against PostgreSQL 16 (2,366 tests, 19
+skipped), 529 frontend unit tests, and the runs, accessibility, Arabic and
+dashboard journeys on desktop and phone (28 cases).
+
 ### The live pipeline names the stage running now — 28 October 2026
 
 Interface change ([decision](docs/adr/2026-10-28-live-pipeline.md)): the run

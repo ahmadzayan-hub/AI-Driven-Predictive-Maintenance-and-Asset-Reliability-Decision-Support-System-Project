@@ -29,8 +29,9 @@ credential or database was changed by this feature's development.
 The 27 October interactive-dashboard slice adds the backend-only
 `dashboard_views` table (one saved dashboard view per owner and dataset) with
 the same rule: `database/migrations/20261027_dashboard_views.sql` creates it
-with row level security on and direct-client grants revoked, and a hosted
-database in verify mode refuses to start until an operator has applied it.
+with row level security on and direct-client grants revoked. A hosted database
+in verify mode refuses to start until an operator has applied it; the steps and
+read-only checks are in `docs/HOSTED_MIGRATION_20261027.md`.
 
 1. Open [Supabase project](https://supabase.com/dashboard/project/uiommvpyzutkkurjoajw)
    → **Connect** → select the **Session pooler** (IPv4 compatible) and copy the

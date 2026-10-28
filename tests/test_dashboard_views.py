@@ -8,7 +8,9 @@ and, when a test database is reachable, PostgreSQL.
 """
 
 import json
+import re
 import tempfile
+import uuid
 import unittest
 from pathlib import Path
 
@@ -171,6 +173,53 @@ class PostgresSavedViewTestCase(SavedViewMixin, unittest.TestCase):
         return TestClient(closing(self, create_app(config, env={
             "AGENTIC_OS_JWT_SECRET": SECRET, "SUPABASE_URL": "https://test.supabase.invalid",
             "AGENTIC_OS_ENV": "production"})), raise_server_exceptions=False)
+
+
+@unittest.skipUnless(_postgres_available(), "test PostgreSQL is not reachable")
+class DashboardViewsMigrationTest(unittest.TestCase):
+    """The operator's migration on a disposable schema: it applies, re-applies,
+    refuses a table of another shape, and leaves the table the way the store
+    expects it (ADR 2026-10-27-interactive-dashboard)."""
+
+    MIGRATION = Path(__file__).resolve().parents[1] / "database" / "migrations" / "20261027_dashboard_views.sql"
+
+    def test_applies_twice_refuses_drift_and_matches_the_store(self):
+        import psycopg2
+        from psycopg2 import sql
+
+        connection = psycopg2.connect(PG_TEST_URL, connect_timeout=3)
+        schema = "dashboard_views_" + uuid.uuid4().hex
+        try:
+            connection.autocommit = False
+            with connection.cursor() as cursor:
+                cursor.execute(sql.SQL("CREATE SCHEMA {}").format(sql.Identifier(schema)))
+                cursor.execute(sql.SQL("SET LOCAL search_path TO {}, pg_catalog").format(sql.Identifier(schema)))
+                prefix = sql.Identifier(schema).as_string(connection) + "."
+                # The file's own BEGIN and COMMIT would end this test's transaction
+                # and leave the schema behind; they are stripped, as the snapshot test does.
+                script = re.sub(r"(?im)^[ \t]*(?:BEGIN|COMMIT)[ \t]*;[ \t]*\r?$", "",
+                                self.MIGRATION.read_text(encoding="utf-8")).replace("public.", prefix)
+                # Every schema name the file uses must point at the disposable schema.
+                script = script.replace("'public'", f"'{schema}'")
+                cursor.execute(script)
+                cursor.execute(script)  # a second run changes nothing and does not fail
+                cursor.execute("SELECT column_name FROM information_schema.columns "
+                               "WHERE table_schema = %s AND table_name = 'dashboard_views' "
+                               "ORDER BY ordinal_position", (schema,))
+                self.assertEqual([r[0] for r in cursor.fetchall()],
+                                 ["id", "owner", "dataset_key", "run_id", "page", "query", "updated_at"])
+                cursor.execute("SELECT relrowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
+                               "WHERE n.nspname = %s AND c.relname = 'dashboard_views'", (schema,))
+                self.assertTrue(cursor.fetchone()[0])
+                # A table of another shape is refused, not altered.
+                cursor.execute("ALTER TABLE dashboard_views DROP COLUMN query")
+                with self.assertRaises(psycopg2.Error):
+                    cursor.execute(script)
+        finally:
+            try:
+                connection.rollback()
+            finally:
+                connection.close()
 
 
 if __name__ == "__main__":

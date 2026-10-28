@@ -27,3 +27,13 @@ it.each(['en', 'ar'] as const)('names the stage running now and marks it as the 
   expect(current).toHaveTextContent('Model the trend')
   expect(screen.getByRole('status')).toBeInTheDocument()
 })
+
+it('states the evidence each stage produced: its claims and how many checks passed', () => {
+  applyLocale('en')
+  const withEvidence = { ...task('a', 'Model the trend', 'succeeded'),
+    claims: [{ id: 'c1', text: 'Rising', type: 'descriptive', evidence: ['e1'], status: 'supported' }, { id: 'c2', text: 'Flat', type: 'descriptive', evidence: ['e2'], status: 'supported' }],
+    quality_checks: [{ name: 'a', passed: true, detail: '' }, { name: 'b', passed: false, detail: '' }] }
+  render(<RunTimeline run={runWith([withEvidence])} pipelines={null} onEvidence={() => {}} />)
+  expect(screen.getByText('2 claims · 1 of 2 checks passed')).toBeInTheDocument()
+})
+
