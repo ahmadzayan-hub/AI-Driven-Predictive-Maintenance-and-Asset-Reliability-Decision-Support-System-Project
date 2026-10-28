@@ -242,3 +242,16 @@ export const decisionMessages = definePack(
 )
 
 export type DecisionKey = keyof typeof decisionMessages.en
+
+/** The live pipeline's lines (ADR 2026-10-28-live-pipeline). */
+export const timelineMessages = definePack(
+  {
+    'timeline.now': 'Now: {stage}',
+  },
+  {
+    'timeline.now': 'الآن: {stage}',
+  },
+)
+
+export type TimelineKey = keyof typeof timelineMessages.en
+

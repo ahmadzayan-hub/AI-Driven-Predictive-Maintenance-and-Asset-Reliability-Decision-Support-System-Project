@@ -894,6 +894,16 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### The live pipeline names the stage running now — 28 October 2026
+
+Interface change ([decision](docs/adr/2026-10-28-live-pipeline.md)): the run
+timeline names the stage running now and marks it as the current step, and its
+progress count is a live status, so a screen reader hears the pipeline move.
+Progress still arrives by the run's poll. Agent cards per stage are not in this
+slice. Checked by a new timeline unit test (English and Arabic), the runs,
+accessibility and Arabic journeys on desktop and phone (18 cases), 528
+frontend unit tests, and the script budget at 256.9 of 257 KB.
+
 ### Stage reports leave out empty sections — 28 October 2026
 
 Behaviour change ([decision](docs/adr/2026-10-28-stage-report-sections.md)):

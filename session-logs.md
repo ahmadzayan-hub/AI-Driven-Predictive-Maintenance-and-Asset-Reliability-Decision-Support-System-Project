@@ -1915,6 +1915,15 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Next: reviewed clean-branch publication/hosted CI and a separately validated
   local release that retains existing local-only report functionality.
 
+## 2026-10-28 · `d9e3f889` · claude/tender-clarke-m4uwgq (live pipeline)
+
+**Goal:** the next interface items from the owner's list: agent cards per stage and a live timeline.
+
+- **Done:** the run timeline names the stage running now and marks it (`aria-current`), and its progress count is a live status. Decision: `docs/adr/2026-10-28-live-pipeline.md`. A line for approval waits was added and removed to fit the script budget; the mark and the approvals inbox already say it.
+- **Found:** the timeline was already live: the run screen polls about every 2.5 seconds. The gap was naming and announcing, not transport.
+- **Not done:** agent cards per stage. Needs a decision on card content and a budget; the script total has no headroom to add it.
+- **Verified:** 528 frontend unit tests; type check; build; runs, accessibility and Arabic journeys on desktop and phone (18 cases); script budget 256.9 of 257 KB.
+
 ## 2026-10-28 · `d9e3f889` · claude/tender-clarke-m4uwgq (stage report sections and the open items)
 
 **Goal:** work through the open items the owner listed: scatter plot, stage reports, brain maintenance, the hosted migration, and the agent cards and live timeline.
