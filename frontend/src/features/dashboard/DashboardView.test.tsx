@@ -11,7 +11,7 @@ vi.mock('./ExecutiveOverview', () => ({ ExecutiveOverview: ({ children }: { chil
 
 vi.mock('../../shared/api', async (original) => {
   const actual = await original<typeof import('../../shared/api')>()
-  return { ...actual, api: { ...actual.api, listRuns: vi.fn(), tableFields: vi.fn(), getRun: vi.fn(), queryTable: vi.fn(), tableRecords: vi.fn() } }
+  return { ...actual, api: { ...actual.api, listRuns: vi.fn(), tableFields: vi.fn(), getRun: vi.fn(), queryTable: vi.fn(), tableRecords: vi.fn(), getDashboardView: vi.fn(), saveDashboardView: vi.fn(), forgetDashboardView: vi.fn() } }
 })
 beforeEach(() => {
   applyLocale('en')
@@ -20,6 +20,7 @@ beforeEach(() => {
   vi.mocked(api.getRun).mockRejectedValue(new ApiError('Not found', 404))
   vi.mocked(api.queryTable).mockResolvedValue({ groups: [], group_by: [], measures: [], group_count: 0, truncated: false, records: 1, matched_records: 1 })
   vi.mocked(api.tableRecords).mockResolvedValue({ columns: ['label'], rows: [['Owner A fixture']], total: 1 })
+  vi.mocked(api.getDashboardView).mockResolvedValue({ view: null })
 })
 
 it.each(['en', 'ar'] as const)('keeps numeric-only uploads quantitative with an honest distribution (%s)', async (locale) => {
@@ -87,3 +88,65 @@ it.each(['overview', 'trend'])('discloses omitted later periods on the %s page i
     view.unmount()
   }
 }, 15000)
+
+// Cross-filtering by clicking and a saved view per dataset (ADR
+// 2026-10-27-interactive-dashboard).
+const REGIONS = { records: 4, fields: [
+  { name: 'region', type: 'text' as const, role: 'breakdown' as const, filled: 4, records: 4, values: ['North', 'South'] },
+  { name: 'sales', type: 'number' as const, role: 'analysed' as const, filled: 4, records: 4 },
+] }
+
+function groupsByRegion() {
+  vi.mocked(api.tableFields).mockResolvedValue(REGIONS)
+  vi.mocked(api.queryTable).mockImplementation(async (_id, spec) => ({
+    groups: spec.group_by?.length ? [
+      { keys: ['North'], values: [30, 2], records: 2 },
+      { keys: ['South'], values: [10, 2], records: 2 },
+    ] : [], group_by: [], measures: [], group_count: 2, truncated: false, records: 4, matched_records: 4,
+  }))
+}
+
+it.each(['en', 'ar'] as const)('a click on a bar keeps that group alone in the address, and a second click releases it (%s)', async (locale) => {
+  applyLocale(locale)
+  groupsByRegion()
+  const user = userEvent.setup()
+  const onNavigate = vi.fn()
+  const view = render(<DashboardView runId="r1" page="breakdown" query="" onNavigate={onNavigate} onOpenRun={vi.fn()} />)
+  const keep = locale === 'ar' ? 'إبقاء North فقط' : 'Keep only North'
+  const bar = await screen.findByRole('button', { name: keep })
+  expect(bar).toHaveAttribute('aria-pressed', 'false')
+  await user.click(bar)
+  expect(onNavigate).toHaveBeenLastCalledWith({ tab: 'dashboard', runId: 'r1', page: 'breakdown', query: 'f.region=North' })
+  view.unmount()
+  render(<DashboardView runId="r1" page="breakdown" query="f.region=North" onNavigate={onNavigate} onOpenRun={vi.fn()} />)
+  const release = locale === 'ar' ? 'إظهار كل المجموعات مجدداً (North)' : 'Show every group again (North)'
+  const held = await screen.findByRole('button', { name: release })
+  expect(held).toHaveAttribute('aria-pressed', 'true')
+  await user.click(held)
+  expect(onNavigate).toHaveBeenLastCalledWith({ tab: 'dashboard', runId: 'r1', page: 'breakdown', query: undefined })
+})
+
+it('a saved view is applied once when the dashboard opens without an address of its own', async () => {
+  groupsByRegion()
+  vi.mocked(api.getDashboardView).mockResolvedValue({ view: { page: 'trend', query: 'f.region=South', run_id: 'r0', updated_at: '' } })
+  const onNavigate = vi.fn()
+  render(<DashboardView runId="r1" page={null} query="" onNavigate={onNavigate} onOpenRun={vi.fn()} />)
+  await screen.findByText('Saved view applied.')
+  expect(onNavigate).toHaveBeenCalledWith({ tab: 'dashboard', runId: 'r1', page: 'trend', query: 'f.region=South' })
+  expect(onNavigate).toHaveBeenCalledTimes(1)
+})
+
+it('saving and forgetting a view go to the server and are confirmed', async () => {
+  groupsByRegion()
+  vi.mocked(api.saveDashboardView).mockResolvedValue({ view: { page: 'breakdown', query: 'f.region=North', run_id: 'r1', updated_at: '' } })
+  vi.mocked(api.forgetDashboardView).mockResolvedValue(undefined)
+  const user = userEvent.setup()
+  render(<DashboardView runId="r1" page="breakdown" query="f.region=North" onNavigate={vi.fn()} onOpenRun={vi.fn()} />)
+  await user.click(await screen.findByRole('button', { name: 'Save this view' }))
+  expect(api.saveDashboardView).toHaveBeenCalledWith('r1', { page: 'breakdown', query: 'f.region=North' }, 'en')
+  await screen.findByText('View saved. Every analysis of this dataset opens this way.')
+  await user.click(screen.getByRole('button', { name: 'Forget the saved view' }))
+  expect(api.forgetDashboardView).toHaveBeenCalledWith('r1')
+  await screen.findByText('Saved view forgotten.')
+  expect(screen.queryByRole('button', { name: 'Forget the saved view' })).not.toBeInTheDocument()
+})

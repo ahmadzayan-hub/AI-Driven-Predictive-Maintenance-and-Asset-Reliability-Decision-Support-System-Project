@@ -38,6 +38,7 @@ from server import knowledge as knowledge_module
 from server import analytics
 from server.api_contract import document_errors, error_body, install_error_handlers
 from server.api_contract import error_response as contract_error
+from server import dashboard_views
 from server import datasets as dataset_reader
 from server import joins as joining
 from server import live
@@ -369,6 +370,13 @@ class RecordsIn(BaseModel):
 
 class ApprovalIn(BaseModel):
     decision: str = Field(pattern="^(approve|reject)$")
+
+
+class ViewIn(BaseModel):
+    """A dashboard view to keep for the run's dataset; checked by
+    server.dashboard_views, which explains a refusal in the reader's language."""
+    page: str = Field(max_length=20)
+    query: str = Field(default="", max_length=dashboard_views.MAX_QUERY_CHARS)
 
 
 class ConnectorIn(BaseModel):
@@ -1916,6 +1924,45 @@ def create_app(config_path=None, env=None, dist_dir=None):
             return await run_in_threadpool(table_query.aggregate, table, body.model_dump())
         except table_query.QueryError as error:
             raise HTTPException(status_code=422, detail=error.detail(language))
+
+    # A saved dashboard view, one per owner and dataset (ADR
+    # 2026-10-27-interactive-dashboard). Another owner's run is a 404.
+    def _view_scope(principal, run_id, permission="read"):
+        with lock:
+            if not owns_run(principal, run_id, permission):
+                raise HTTPException(status_code=404, detail="Run not found.")
+            run = engine.store.get_run(run_id)
+        if run is None:
+            raise HTTPException(status_code=404, detail="Run not found.")
+        return principal.subject, dashboard_views.dataset_key(run)
+
+    @app.get("/api/runs/{run_id}/view")
+    def get_dashboard_view(run_id: str, principal=Depends(requires("read"))):
+        owner, key = _view_scope(principal, run_id)
+        with lock:
+            return {"view": dashboard_views.present(engine.store.get_dashboard_view(owner, key))}
+
+    @app.put("/api/runs/{run_id}/view")
+    def save_dashboard_view(run_id: str, body: ViewIn,
+                            language: str = Query(default="en", pattern="^(en|ar)$"),
+                            principal=Depends(requires("write"))):
+        owner, key = _view_scope(principal, run_id, "write")
+        try:
+            page, query = dashboard_views.validate(body.page, body.query)
+        except dashboard_views.ViewError as error:
+            raise HTTPException(status_code=422, detail=error.detail(language))
+        with lock:
+            row = engine.store.save_dashboard_view(
+                uuid.uuid4().hex, owner, key, run_id, page, query,
+                datetime.now(timezone.utc).isoformat())
+        return {"view": dashboard_views.present(row)}
+
+    @app.delete("/api/runs/{run_id}/view", status_code=204)
+    def forget_dashboard_view(run_id: str, principal=Depends(requires("write"))):
+        owner, key = _view_scope(principal, run_id, "write")
+        with lock:
+            engine.store.delete_dashboard_view(owner, key)
+        return Response(status_code=204)
 
     @app.post("/api/runs/{run_id}/records")
     async def table_records(run_id: str, body: RecordsIn,

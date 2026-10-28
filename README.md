@@ -894,6 +894,24 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Interactive dashboard: click to filter, a saved view per dataset, no empty brief sections — 27 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-27-interactive-dashboard.md)):
+a bar or a line point is clicked to keep its group alone on every figure,
+and clicked again to release it, the filter staying in the address; one
+dashboard view per owner and dataset is saved on the server (`GET`, `PUT`
+and `DELETE /api/runs/{run_id}/view`, a backend-only `dashboard_views` table
+with its hosted migration and the initial schema mirror) and applied when a
+run over that dataset opens from a bare address; the executive HTML and
+DOCX brief leaves out sections whose only content is their "nothing to
+report" statement and names them once in the decision context. Checked with
+the full Python suite against PostgreSQL 16 (2,361 tests, 19 skipped; 9 new
+in `tests/test_dashboard_views.py` and `tests/test_report_navigation.py`),
+522 frontend unit tests (7 new), type check, build, brain check, and the
+browser journeys for the dashboard and the executive opening on desktop and
+phone. The script ceiling moves to 257 KB after trimming; first load stays
+99.7 of 100 KB script and 10.5 of 10.5 KB style.
+
 ### Tree ensemble: threshold rules against the average and the line — 27 October 2026
 
 Behaviour change ([decision](docs/adr/2026-10-27-tree-ensemble.md)): a

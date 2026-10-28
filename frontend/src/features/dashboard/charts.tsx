@@ -63,27 +63,41 @@ export function Figure({ title, chart, table, open = false }: {
   )
 }
 
+/** Cross-filtering by clicking (ADR 2026-10-27-interactive-dashboard): a
+ *  chart given `onPick` keeps the clicked group alone on every figure, or
+ *  releases it when it is already the only one kept. Its marks are then
+ *  buttons, pressed for the kept group, and the chart is a group rather
+ *  than an image. */
+export interface Pickable {
+  onPick?: (label: string) => void
+  picked?: (label: string) => boolean
+}
+
 /** Horizontal bars from a zero line, largest first as given. */
-export function Bars({ items, label }: { items: Point[]; label: string }) {
+export function Bars({ items, label, onPick, picked }: { items: Point[]; label: string } & Pickable) {
   const { formatNumber } = useI18n()
+  const { t } = usePack(dashMessages)
   const tip = useTip()
   const values = items.map((item) => item.value ?? 0)
   const { min, range } = span(values)
   const zero = (-min / range) * 100
   return (
-    <div className="dash-bars" role="img" aria-label={label}>
+    <div className="dash-bars" role={onPick ? 'group' : 'img'} aria-label={label}>
       {tip.node}
       {items.map((item, index) => {
         const value = values[index]
         const width = (Math.abs(value) / range) * 100
-        const reading = `${item.label || '—'} · ${
-          item.value === null ? '—' : formatNumber(item.value, { maximumFractionDigits: 2 })}`
+        const text = item.value === null ? '—' : formatNumber(item.value, { maximumFractionDigits: 2 })
+        const reading = `${item.label || '—'} · ${text}`
+        const held = picked?.(item.label) ?? false
+        const Row = onPick ? 'button' : 'div'
         return (
-          <div
-            className="dash-bars__row"
+          <Row
+            className={`dash-bars__row${onPick ? ' dash-bars__row--pick' : ''}`}
             key={`${item.label}-${index}`}
             onMouseMove={tip.show(reading)}
             onMouseLeave={tip.hide}
+            {...(onPick ? { type: 'button' as const, 'aria-pressed': held, 'aria-label': t(held ? 'dash.release' : 'dash.keep', { group: item.label || '—' }), onClick: () => onPick(item.label) } : {})}
           >
             <span className="dash-bars__label" dir="auto">
               {item.label || '—'}
@@ -94,8 +108,8 @@ export function Bars({ items, label }: { items: Point[]; label: string }) {
                 style={{ insetInlineStart: `${value < 0 ? zero - width : zero}%`, width: `${width}%` }}
               />
             </span>
-            <span className="dash-bars__value">{item.value === null ? '—' : formatNumber(item.value, { maximumFractionDigits: 2 })}</span>
-          </div>
+            <span className="dash-bars__value">{text}</span>
+          </Row>
         )
       })}
     </div>
@@ -103,8 +117,9 @@ export function Bars({ items, label }: { items: Point[]; label: string }) {
 }
 
 /** A line over periods; empty periods break the line. */
-export function Line({ points, label }: { points: Point[]; label: string }) {
+export function Line({ points, label, onPick, picked }: { points: Point[]; label: string } & Pickable) {
   const { formatNumber } = useI18n()
+  const { t } = usePack(dashMessages)
   const tip = useTip()
   const values = points.map((p) => p.value).filter((v): v is number => v !== null)
   const { min, max, range } = span(values)
@@ -118,21 +133,31 @@ export function Line({ points, label }: { points: Point[]; label: string }) {
   return (
     <>
     {tip.node}
-    <svg viewBox="0 0 100 58" role="img" aria-label={label} className="dash-svg">
+    <svg viewBox="0 0 100 58" role={onPick ? 'group' : 'img'} aria-label={label} className="dash-svg">
       <line x1="6" y1={y(0)} x2="98" y2={y(0)} stroke="var(--border-strong)" strokeWidth="0.4" />
-      {points.map((point, index) =>
-        point.value === null ? null : (
+      {points.map((point, index) => {
+        if (point.value === null) return null
+        const held = picked?.(point.label) ?? false
+        return (
           <circle
             key={`hit-${index}`}
             cx={x(index)}
             cy={y(point.value)}
             r="3"
             fill="transparent"
+            className={held ? 'dash-point--held' : undefined}
             onMouseMove={tip.show(`${point.label} · ${formatNumber(point.value, { maximumFractionDigits: 2 })}`)}
             onMouseLeave={tip.hide}
+            {...(onPick ? {
+              role: 'button', tabIndex: 0, 'aria-pressed': held, 'aria-label': t(held ? 'dash.release' : 'dash.keep', { group: point.label }),
+              onClick: () => onPick(point.label),
+              onKeyDown: (event: { key: string; preventDefault: () => void }) => {
+                if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onPick(point.label) }
+              },
+            } : {})}
           />
-        ),
-      )}
+        )
+      })}
       {segments.filter((s) => s.length > 1).map((segment, index) => (
         <polyline key={index} points={segment.join(' ')} fill="none" stroke="var(--accent-solid)" strokeWidth="1.2" />
       ))}

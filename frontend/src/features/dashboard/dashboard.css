@@ -170,6 +170,38 @@
   border-radius: var(--radius-s);
 }
 
+.dash-bars__row--pick {
+  width: 100%;
+  /* The same 21 px row as a plain bar: the rows sit 25 px apart, which
+     meets the WCAG 2.2 target spacing, instead of the 44 px of a lone button. */
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+  border-radius: var(--radius-s);
+}
+
+.dash-bars__row--pick:hover .dash-bars__fill,
+.dash-bars__row--pick[aria-pressed='true'] .dash-bars__fill {
+  background: var(--highlight);
+}
+
+.dash-bars__row--pick[aria-pressed='true'] .dash-bars__label {
+  font-weight: 600;
+}
+
+.dash-svg [role='button'] {
+  cursor: pointer;
+}
+
+.dash-point--held {
+  fill: var(--highlight);
+  fill-opacity: 0.35;
+}
+
 .dash-bars__fill--negative {
   background: var(--highlight);
 }

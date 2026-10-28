@@ -7,6 +7,7 @@
 -- Migration generated 2026-10-18; apply only to dedicated Team 3 Supabase project.
 -- Snapshot refreshed 2026-10-22 for private evidence workspaces and governed review.
 -- Snapshot refreshed 2026-10-23 for the shared rate windows and the model budget (B6).
+-- Snapshot refreshed 2026-10-27 for the saved dashboard view per owner and dataset.
 -- This is the initial-schema mirror; editing it does not apply a hosted migration.
 BEGIN;
 CREATE TABLE IF NOT EXISTS organizations (
@@ -100,6 +101,12 @@ CREATE TABLE IF NOT EXISTS kpi_policies (
       version INTEGER NOT NULL, revision TEXT NOT NULL, rules_json TEXT NOT NULL,
       actor TEXT NOT NULL, created_at TEXT NOT NULL,
       UNIQUE (run_id, version));
+
+CREATE TABLE IF NOT EXISTS dashboard_views (
+      id TEXT PRIMARY KEY, owner TEXT NOT NULL, dataset_key TEXT NOT NULL,
+      run_id TEXT NOT NULL, page TEXT NOT NULL, query TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE (owner, dataset_key));
 
 CREATE TABLE IF NOT EXISTS approvals (
       id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(id),
@@ -242,6 +249,8 @@ ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.tasks FROM PUBLIC, anon, authenticated;
 ALTER TABLE public.kpi_policies ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.kpi_policies FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.dashboard_views ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.dashboard_views FROM PUBLIC, anon, authenticated;
 ALTER TABLE public.approvals ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.approvals FROM PUBLIC, anon, authenticated;
 ALTER TABLE public.artifacts ENABLE ROW LEVEL SECURITY;

@@ -1915,6 +1915,16 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Next: reviewed clean-branch publication/hosted CI and a separately validated
   local release that retains existing local-only report functionality.
 
+## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (A14 interactive dashboard)
+
+**Goal:** the owner asked that the dashboard react to clicks and keep what the reader prefers, and that empty deliverable sections drop out, within the current interface budget.
+
+- **Done:** PR #69 (five slices) merged into main at `1dd392c` after both CI runs on `1487e48` passed; the branch fast-forwarded. Clicking a bar or a line point keeps its group alone on every figure and clicking again releases it (`pick` and `isPicked` in `state.ts`; accessible pressed buttons in `charts.tsx`). One saved dashboard view per owner and dataset: `server/dashboard_views.py`, `dashboard_views` table, `GET`/`PUT`/`DELETE /api/runs/{run_id}/view`, applied once when a run over that dataset opens from a bare address. Executive HTML and DOCX briefs leave out sections whose only content is their "nothing to report" statement and name them once in the decision context. Decision: `docs/adr/2026-10-27-interactive-dashboard.md`.
+- **Verified:** full Python suite on PostgreSQL: 2,361 tests, 19 skipped, OK. Frontend: 522 unit tests, type check, build. Browser journeys for the dashboard and the executive opening pass on desktop; the mobile run of the executive opening was not re-run after the last style change. Budget: 256.6 of 257 KB script (ceiling raised by 1 KB and recorded), first load 99.7 of 100 KB, style unchanged. Brain check strict passes.
+- **Decided:** one saved view per dataset rather than named layouts; histogram and scatter stay unclickable; the stage reports (`report_markdown`) keep their fixed sections and are listed as a limitation.
+- **Open / next:** re-run the mobile executive opening; the stage reports' fixed sections; clickable histogram bins; agent cards per stage; the live timeline; imagery-led asset cards. The hosted database has not been changed: `database/migrations/20261027_dashboard_views.sql` is for the operator to review and apply.
+- **Blockers:** the session's usage limit reset at 19:30 UTC on 27 October; compaction failed on it.
+
 ## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (A13 tree ensemble)
 
 **Goal:** the "trees and ensembles" item of the modelling gap row.

@@ -496,6 +496,14 @@ export interface QueryMeasure {
   denominator?: string
 }
 
+/** A dashboard view kept on the server for its owner and dataset. */
+export interface SavedView {
+  page: string
+  query: string
+  run_id: string
+  updated_at: string
+}
+
 export interface QuerySpec {
   group_by?: Array<string | { column: string; bins: number }>
   measures: QueryMeasure[]

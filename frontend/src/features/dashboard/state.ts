@@ -146,6 +146,26 @@ export function drill(state: DashState, column: string, value: string, date: str
   return next
 }
 
+/** Cross-filter by clicking a bar or a point: keep that group alone on
+ *  every figure, or release it when it is already the only one kept. */
+export function pick(state: DashState, column: string, value: string, date: string | null): DashState {
+  if (column === date) {
+    const held = state.from === value && state.to === value
+    return { ...state, from: held ? null : value, to: held ? null : value, offset: 0 }
+  }
+  const filters = { ...state.filters }
+  if (isPicked(state, column, value, date)) delete filters[column]
+  else filters[column] = [value]
+  return { ...state, filters, offset: 0 }
+}
+
+/** Whether a click keeps this group alone. */
+export function isPicked(state: DashState, column: string, value: string, date: string | null): boolean {
+  if (column === date) return state.from === value && state.to === value
+  const values = state.filters[column]
+  return values?.length === 1 && values[0] === value
+}
+
 /** Represent a server-provided drill faithfully in the existing bookmark format.
  * Unsupported operators are refused rather than silently widening the scope. */
 export function executiveDrill(filters: TableFilter[], state: DashState, roles: Roles): DashState | null {
