@@ -894,6 +894,16 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Stage reports leave out empty sections — 28 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-28-stage-report-sections.md)):
+the comprehensive analysis report prints key metrics, every claim and charts
+only when a stage produced one, and its limitations name the sections left
+out. Checked with the full Python suite against PostgreSQL 16 (2,365 tests,
+19 skipped; 4 new in `tests/test_stage_report_sections.py`), the existing run,
+analytics and report suites unchanged. Histogram bins are clickable; the
+scatter plot is deliberately not (see the dashboard decision).
+
 ### Interactive dashboard: click to filter, a saved view per dataset, no empty brief sections — 27 October 2026
 
 Behaviour change ([decision](docs/adr/2026-10-27-interactive-dashboard.md)):

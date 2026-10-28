@@ -3,7 +3,7 @@ type: concept
 aliases: []
 tags: [interface]
 status: active
-updated: 2026-10-27
+updated: 2026-10-28
 review_every_days: 30
 sources: [docs/adr/0058-executive-dashboard-agent-and-scoped-evidence.md, docs/adr/2026-10-20-asset-evidence-scope.md, docs/adr/2026-10-27-interactive-dashboard.md, server/query.py, server/dashboard_views.py]
 ---

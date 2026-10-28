@@ -104,6 +104,14 @@ report, so a thin run read as a long document of absences.
   (a bin click writes `lo`, `hi` and `hiop` and the held state shows),
   `dashboard.spec.ts` (keep and release a bin, coverage follows, axe passes).
 
+- **The scatter plot stays unclickable, on purpose.** A point is one sampled
+  record: the relationship page reads at most 500 records evenly spaced, and
+  a point carries no group. Keeping "only this point" would filter every figure
+  to one arbitrary row, which is not a question a reader asks. Its numbers
+  table and the records page remain the way to read a row.
+- **The stage reports** no longer print empty key-metrics, claims or charts
+  sections; see `docs/adr/2026-10-28-stage-report-sections.md`.
+
 ## Tests
 
 - `tests/test_dashboard_views.py`: the dataset key, the canonical address,

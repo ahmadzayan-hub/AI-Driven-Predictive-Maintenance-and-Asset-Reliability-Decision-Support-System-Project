@@ -1915,6 +1915,17 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Next: reviewed clean-branch publication/hosted CI and a separately validated
   local release that retains existing local-only report functionality.
 
+## 2026-10-28 · `d9e3f889` · claude/tender-clarke-m4uwgq (stage report sections and the open items)
+
+**Goal:** work through the open items the owner listed: scatter plot, stage reports, brain maintenance, the hosted migration, and the agent cards and live timeline.
+
+- **Done:** the comprehensive analysis report prints key metrics, every claim and charts only when a stage produced one; the assumptions section names what was left out (`server/analytics.py`, helpers `_metric_lines`, `_claim_lines`, `_chart_lines`; decision `docs/adr/2026-10-28-stage-report-sections.md`). The brain maintenance for today ran and is recorded; the strict check passes and maintenance is no longer due.
+- **Decided:** the scatter plot stays unclickable. A point is one sampled record with no group, so "keep only this point" filters to one arbitrary row. Recorded in the dashboard decision.
+- **Not done, owner-gated:** the hosted migration `database/migrations/20261027_dashboard_views.sql` is still for the database operator to review and apply. It was not applied.
+- **Not done, scoped out:** agent cards per stage and a live timeline. The timeline exists as a static view of run tasks (`RunTimeline.tsx`); the live part needs streamed per-stage updates and a design decision on what each card shows. It is the next slice and needs its own ADR.
+- **Verified:** full Python suite on PostgreSQL: 2,365 tests, 19 skipped, OK. Brain strict check passes; docs test passes.
+- **Open / next:** agent cards and the live timeline; the scatter plot is closed by decision.
+
 ## 2026-10-28 · `d9e3f889` · claude/tender-clarke-m4uwgq (A14 review and histogram bins)
 
 **Goal:** review the A14 commit, then continue the dashboard's interaction with the next listed item.

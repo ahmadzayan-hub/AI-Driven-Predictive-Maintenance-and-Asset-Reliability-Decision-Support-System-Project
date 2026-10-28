@@ -3,7 +3,7 @@ type: decision
 aliases: [ADR index, Architecture decisions]
 tags: [decisions]
 status: active
-updated: 2026-10-27
+updated: 2026-10-28
 review_every_days: 30
 sources: [docs/adr]
 ---
@@ -202,3 +202,4 @@ One line per record, read from its title and decision; the record itself is the 
 | 2026-10-27-fiscal-year | A mapping names the month its fiscal year starts in; quarter and year labels read FY2026-Q1 and FY2026 by the end year; forecasts continue the fiscal calendar; day, week and month unchanged | [[Column mapping]] |
 | 2026-10-27-tree-ensemble | A fifth model plugin: 16 bagged regression trees in the standard library, scored on held-out records against the training average and the straight line; inputs' shares of explained variance as association | [[Analytics OS roadmap]] |
 | 2026-10-27-interactive-dashboard | Cross-filter by clicking a bar or a point, one saved dashboard view per owner and dataset on the server, and executive briefs that leave sections with nothing to report out and name them once; the script ceiling moves to 257 KB after trimming | [[Scoped dashboards]], [[Business report exports]], [[Tenant isolation]] |
+| 2026-10-28-stage-report-sections | The comprehensive analysis report prints key metrics, claims and charts only when a stage produced them, and its limitations name the sections left out | [[Scoped dashboards]], [[Business report exports]], [[Approval gate]] |
