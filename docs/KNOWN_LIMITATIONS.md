@@ -466,11 +466,11 @@ required local files. Both behaviors are covered by tests
     several processes parses once per process.
 27. Dashboards (ADR 0032) are one run's table, read-only, with a fixed
     set of pages chosen from its fields and no choice of chart per page.
-    Since 27 October 2026 a bar or a line point can be clicked to keep
-    its group alone on every figure and one view per owner and dataset
-    can be saved on the server (`2026-10-27-interactive-dashboard.md`);
-    the histogram and the scatter plot are not clickable, there is one
-    saved view per dataset rather than a library of named layouts, and
+    Since 27 October 2026 a bar, a line point or a histogram bin can be
+    clicked to keep its group alone on every figure and one view per owner
+    and dataset can be saved on the server (`2026-10-27-interactive-dashboard.md`);
+    the scatter plot is not clickable, there is one saved view per dataset
+    rather than a library of named layouts, and
     the stage reports (`report_markdown`) still print every section,
     unlike the executive brief, which leaves sections with nothing to
     report out and names them once. The relationship page reads an even

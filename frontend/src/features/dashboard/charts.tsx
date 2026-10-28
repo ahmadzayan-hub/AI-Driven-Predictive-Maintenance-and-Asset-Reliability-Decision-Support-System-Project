@@ -187,18 +187,41 @@ export function Line({ points, label, onPick, picked }: { points: Point[]; label
   )
 }
 
-/** Counts per equal-width bin. */
-export function Histogram({ bins, label }: { bins: Array<{ from: number; to: number; count: number }>; label: string }) {
+/** Counts per equal-width bin. With `onPick` each bin is a button: the
+ *  range it stands for is kept alone on every figure, as a bar is (ADR
+ *  2026-10-27-interactive-dashboard). */
+export function Histogram({ bins, label, onPick, picked }: {
+  bins: Array<{ from: number; to: number; count: number }>
+  label: string
+  onPick?: (index: number) => void
+  picked?: (index: number) => boolean
+}) {
   const { formatNumber } = useI18n()
+  const { t } = usePack(dashMessages)
   const max = Math.max(1, ...bins.map((b) => b.count))
   const width = 92 / Math.max(bins.length, 1)
   return (
-    <svg viewBox="0 0 100 58" role="img" aria-label={label} className="dash-svg">
+    <svg viewBox="0 0 100 58" role={onPick ? 'group' : 'img'} aria-label={label} className="dash-svg">
       {bins.map((bin, index) => {
         const height = (bin.count / max) * 44
+        const x = 6 + index * width + width * 0.08
+        const bar = (
+          <rect className={picked?.(index) ? 'dash-bin__bar dash-bin__bar--held' : 'dash-bin__bar'}
+            x={x} y={48 - height} width={width * 0.84} height={height} fill="var(--accent-solid)" rx="0.6" />
+        )
+        if (!onPick) return <g key={index}>{bar}</g>
+        const held = picked?.(index) ?? false
+        const group = `${formatNumber(bin.from, { maximumFractionDigits: 2 })} – ${formatNumber(bin.to, { maximumFractionDigits: 2 })}`
         return (
-          <rect key={index} x={6 + index * width + width * 0.08} y={48 - height} width={width * 0.84}
-            height={height} fill="var(--accent-solid)" rx="0.6" />
+          <g key={index} role="button" tabIndex={0} aria-pressed={held}
+            aria-label={t(held ? 'dash.release' : 'dash.keep', { group })}
+            onClick={() => onPick(index)}
+            onKeyDown={(event: { key: string; preventDefault: () => void }) => {
+              if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onPick(index) }
+            }}>
+            {bar}
+            <rect x={6 + index * width} y="0" width={width} height="50" fill="transparent" />
+          </g>
         )
       })}
       <line x1="6" y1="48" x2="98" y2="48" stroke="var(--border-strong)" strokeWidth="0.4" />

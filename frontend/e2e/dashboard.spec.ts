@@ -124,6 +124,21 @@ test('a filter survives a reload and a group drills down to its records', async 
   await expect(page.locator('.dash-coverage')).toHaveText('Showing 12 of 72 records.')
 })
 
+test('a histogram bin keeps its range alone on every figure and releases it', async ({ page }) => {
+  await skipOnboarding(page)
+  const runId = await finishedRun(page.request, 'Histogram bins')
+  await openDashboard(page, runId, '/distribution')
+  const bin = page.locator('.dash-svg g[role="button"]').first()
+  await expect(bin).toHaveAttribute('aria-pressed', 'false')
+  await bin.click()
+  await expect(bin).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.dash-coverage')).not.toHaveText('Showing 72 of 72 records.')
+  await expectNoViolations(page, 'kept histogram bin')
+  await bin.click()
+  await expect(bin).toHaveAttribute('aria-pressed', 'false')
+  await expect(page.locator('.dash-coverage')).toHaveText('Showing 72 of 72 records.')
+})
+
 test('the dashboard in Arabic', async ({ page }) => {
   await skipOnboarding(page)
   await page.addInitScript(() => localStorage.setItem('aos-locale', 'ar'))

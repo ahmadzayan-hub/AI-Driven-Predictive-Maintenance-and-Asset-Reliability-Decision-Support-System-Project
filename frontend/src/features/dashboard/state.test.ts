@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { EMPTY, isPicked, pick, readState, writeState } from './state'
+import { EMPTY, isPicked, isRangePicked, pick, pickRange, readState, writeState } from './state'
 
 // Cross-filtering by clicking (ADR 2026-10-27-interactive-dashboard): a click
 // keeps one group alone in the address, a second click on it releases it,
@@ -31,5 +31,24 @@ describe('pick', () => {
     const released = pick(kept, 'month', '2025-03', 'month')
     expect(released.from).toBeNull()
     expect(released.to).toBeNull()
+  })
+})
+
+describe('pickRange', () => {
+  it('keeps one histogram bin as the measure range, and releases it on the second click', () => {
+    const kept = pickRange({ ...EMPTY, offset: 50 }, 10, 20, false)
+    expect(kept).toMatchObject({ lo: 10, hi: 20, hiop: 'lt', offset: 0 })
+    expect(isRangePicked(kept, 10, 20, false)).toBe(true)
+    expect(isRangePicked(kept, 20, 30, false)).toBe(false)
+    expect(writeState(kept)).toBe('lo=10&hi=20&hiop=lt')
+    const released = pickRange(kept, 10, 20, false)
+    expect(released).toMatchObject({ lo: null, hi: null, hiop: 'lte' })
+  })
+
+  it('includes the upper edge of the last bin', () => {
+    const last = pickRange(EMPTY, 90, 100, true)
+    expect(last.hiop).toBe('lte')
+    expect(isRangePicked(last, 90, 100, true)).toBe(true)
+    expect(isRangePicked(last, 90, 100, false)).toBe(false)
   })
 })

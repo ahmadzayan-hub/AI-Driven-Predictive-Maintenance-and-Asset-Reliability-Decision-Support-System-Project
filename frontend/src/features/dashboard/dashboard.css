@@ -197,6 +197,10 @@
   cursor: pointer;
 }
 
+.dash-bin__bar--held {
+  fill: var(--highlight);
+}
+
 .dash-point--held {
   fill: var(--highlight);
   fill-opacity: 0.35;

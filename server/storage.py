@@ -603,15 +603,15 @@ class SqlStore:
         return rows[0] if rows else None
 
     def save_dashboard_view(self, identifier, owner, dataset_key, run_id, page, query, updated_at):
-        """Replace the owner's view of this dataset; the unique pair keeps one."""
-        changed = self._exec_rowcount(
-            "UPDATE dashboard_views SET run_id = ?, page = ?, query = ?, updated_at = ? "
-            "WHERE owner = ? AND dataset_key = ?",
-            (run_id, page, query, updated_at, owner, dataset_key))
-        if not changed:
-            self.insert("dashboard_views", {
-                "id": identifier, "owner": owner, "dataset_key": dataset_key,
-                "run_id": run_id, "page": page, "query": query, "updated_at": updated_at})
+        """Replace the owner's view of this dataset in one statement. Two
+        processes saving at once both succeed; the later write wins, and no
+        unique-key error reaches the reader."""
+        self._exec_rowcount(
+            "INSERT INTO dashboard_views (id, owner, dataset_key, run_id, page, query, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT (owner, dataset_key) DO UPDATE SET run_id = excluded.run_id, "
+            "page = excluded.page, query = excluded.query, updated_at = excluded.updated_at",
+            (identifier, owner, dataset_key, run_id, page, query, updated_at))
         return self.get_dashboard_view(owner, dataset_key)
 
     def delete_dashboard_view(self, owner, dataset_key):

@@ -907,9 +907,10 @@ DOCX brief leaves out sections whose only content is their "nothing to
 report" statement and names them once in the decision context. Checked with
 the full Python suite against PostgreSQL 16 (2,361 tests, 19 skipped; 9 new
 in `tests/test_dashboard_views.py` and `tests/test_report_navigation.py`),
-522 frontend unit tests (7 new), type check, build, brain check, and the
+526 frontend unit tests (11 new), type check, build, brain check, and the
 browser journeys for the dashboard and the executive opening on desktop and
-phone. The script ceiling moves to 257 KB after trimming; first load stays
+phone. A histogram bin is clickable too, and its bins keep their edges under
+their own filter. The script ceiling moves to 257 KB after trimming; first load stays
 99.7 of 100 KB script and 10.5 of 10.5 KB style.
 
 ### Tree ensemble: threshold rules against the average and the line — 27 October 2026

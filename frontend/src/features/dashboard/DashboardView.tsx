@@ -32,7 +32,7 @@ import { routeHash } from '../../app/routing'
 import { Bars, Figure, Histogram, Line, Scatter } from './charts'
 import { ExecutiveOverview } from './ExecutiveOverview'
 import type { Point } from './charts'
-import { drill, EMPTY, executiveDrill, filterCount, isPicked, pagesFor, pick, readState, rolesOf, toFilters, writeState } from './state'
+import { drill, EMPTY, executiveDrill, filterCount, isPicked, isRangePicked, pagesFor, pick, pickRange, readState, rolesOf, toFilters, writeState } from './state'
 import type { DashState, Page, Roles } from './state'
 import './dashboard.css'
 
@@ -625,7 +625,11 @@ function TrendPage({ runId, roles, state, filters, setState }: PageProps) {
 function DistributionPage({ runId, roles, state, filters, setState }: PageProps) {
   const { t, formatNumber } = usePack(dashMessages)
   const m = roles.measure!
-  const answer = useQuery(runId, { group_by: [{ column: m, bins: 12 }], measures: [{ agg: 'count' }], filters, limit: 50 })
+  // The bins are the measure's whole distribution under the other filters:
+  // the measure's own range is not applied, so the edges stay where they are
+  // and a kept bin is highlighted rather than the histogram collapsing onto it.
+  const shape = filters.filter((filter) => !(filter.column === m && (filter.op === 'gte' || filter.op === 'lt' || filter.op === 'lte')))
+  const answer = useQuery(runId, { group_by: [{ column: m, bins: 12 }], measures: [{ agg: 'count' }], filters: shape, limit: 50 })
   const bins = (answer.data?.groups ?? [])
     .filter((g) => Array.isArray(g.keys[0]))
     .map((g, index, all) => {
@@ -639,7 +643,9 @@ function DistributionPage({ runId, roles, state, filters, setState }: PageProps)
       {answer.loading ? <Loading /> : (
         <Figure open
           title={t('dash.chart.distribution', { measure: m })}
-          chart={<Histogram bins={bins} label={t('dash.alt.distribution', { measure: m, n: formatNumber(bins.length) })} />}
+          chart={<Histogram bins={bins} label={t('dash.alt.distribution', { measure: m, n: formatNumber(bins.length) })}
+            onPick={(index) => setState(pickRange(state, bins[index].from, bins[index].to, bins[index].last))}
+            picked={(index) => isRangePicked(state, bins[index].from, bins[index].to, bins[index].last)} />}
           table={<GroupTable head={[t('dash.col.range'), t('dash.col.records')]} onDrill
             rows={bins.map((bin) => ({
               label: `${formatNumber(bin.from)} – ${formatNumber(bin.to)}`, cells: [formatNumber(bin.count)],

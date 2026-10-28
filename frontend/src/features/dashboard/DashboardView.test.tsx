@@ -35,7 +35,8 @@ it.each(['en', 'ar'] as const)('keeps numeric-only uploads quantitative with an 
     ] : [], group_by: [], measures: [], group_count: 2, truncated: false, records: 3, matched_records: 3,
   }))
   const view = render(<DashboardView runId="r1" page="overview" query="" onNavigate={vi.fn()} onOpenRun={vi.fn()} />)
-  expect(await screen.findByRole('img')).toBeVisible()
+  const alt = dashMessages[locale]['dash.alt.distribution'].replace('{measure}', 'cost').replace('{n}', '2')
+  expect(await screen.findByRole('group', { name: alt })).toBeVisible()
   expect(screen.getByText(dashMessages[locale]['dash.numericContext'])).toBeVisible()
   expect(screen.getByRole('table')).toHaveTextContent('0 – 10')
   expect(screen.getByRole('table')).toHaveTextContent('10 – 20')
@@ -149,4 +150,27 @@ it('saving and forgetting a view go to the server and are confirmed', async () =
   expect(api.forgetDashboardView).toHaveBeenCalledWith('r1')
   await screen.findByText('Saved view forgotten.')
   expect(screen.queryByRole('button', { name: 'Forget the saved view' })).not.toBeInTheDocument()
+})
+
+it.each(['en', 'ar'] as const)('a click on a histogram bin keeps that range on this page, and a second click releases it (%s)', async (locale) => {
+  applyLocale(locale)
+  vi.mocked(api.tableFields).mockResolvedValue({ records: 3, fields: [
+    { name: 'cost', type: 'number', role: 'analysed', filled: 3, records: 3 },
+  ] })
+  vi.mocked(api.queryTable).mockImplementation(async (_id, spec) => ({
+    groups: spec.group_by?.length ? [
+      { keys: [[0, 10]], values: [1], records: 1 },
+      { keys: [[10, 20]], values: [2], records: 2 },
+    ] : [], group_by: [], measures: [], group_count: 2, truncated: false, records: 3, matched_records: 3,
+  }))
+  const user = userEvent.setup()
+  const onNavigate = vi.fn()
+  const view = render(<DashboardView runId="r1" page="distribution" query="" onNavigate={onNavigate} onOpenRun={vi.fn()} />)
+  const keep = locale === 'ar' ? 'إبقاء 0 – 10 فقط' : 'Keep only 0 – 10'
+  await user.click(await screen.findByRole('button', { name: keep }))
+  expect(onNavigate).toHaveBeenLastCalledWith({ tab: 'dashboard', runId: 'r1', page: 'distribution', query: 'lo=0&hi=10&hiop=lt' })
+  view.unmount()
+  render(<DashboardView runId="r1" page="distribution" query="lo=0&hi=10&hiop=lt" onNavigate={onNavigate} onOpenRun={vi.fn()} />)
+  const release = locale === 'ar' ? 'إظهار كل المجموعات مجدداً (0 – 10)' : 'Show every group again (0 – 10)'
+  expect(await screen.findByRole('button', { name: release })).toHaveAttribute('aria-pressed', 'true')
 })

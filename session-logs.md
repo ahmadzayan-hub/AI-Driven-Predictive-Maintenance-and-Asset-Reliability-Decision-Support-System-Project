@@ -1915,6 +1915,15 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Next: reviewed clean-branch publication/hosted CI and a separately validated
   local release that retains existing local-only report functionality.
 
+## 2026-10-28 · `d9e3f889` · claude/tender-clarke-m4uwgq (A14 review and histogram bins)
+
+**Goal:** review the A14 commit, then continue the dashboard's interaction with the next listed item.
+
+- **Done:** a review of A14 found that saving a view was an update followed by an insert, so two processes saving at once could return a server error. Replaced with one upsert. Histogram bins are clickable: a click keeps the bin's range as the measure filter and a second click releases it. The distribution's bins are computed without the measure's own range, so the edges do not move when a bin is kept (found by the browser journey, which the unit tests missed). Decision amended in `docs/adr/2026-10-27-interactive-dashboard.md`.
+- **Verified:** full Python suite on PostgreSQL: 2,361 tests, 19 skipped, OK. Frontend: 526 unit tests, type check, build. Dashboard, executive opening and accessibility journeys pass on desktop and phone (16 cases). Budget 256.6 of 257 KB script; brain check strict passes.
+- **Decided:** the histogram shows the whole distribution under the other filters with the kept bin highlighted, the usual reading of a brushed histogram, rather than re-binning onto the kept range.
+- **Open / next:** the scatter plot; agent cards per stage and the live timeline; imagery-led asset cards; the stage reports' fixed sections; the hosted migration remains for the operator to review and apply. The brain's maintenance is due today and has not been run.
+
 ## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (A14 interactive dashboard)
 
 **Goal:** the owner asked that the dashboard react to clicks and keep what the reader prefers, and that empty deliverable sections drop out, within the current interface budget.

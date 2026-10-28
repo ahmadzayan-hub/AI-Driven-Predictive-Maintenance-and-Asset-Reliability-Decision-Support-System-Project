@@ -85,6 +85,25 @@ report, so a thin run read as a long document of absences.
   stage reports' fixed sections (`report_markdown`), which still print
   every section. `docs/KNOWN_LIMITATIONS.md` item 27 says so.
 
+## Amendment, 28 October 2026
+
+- **Histogram bins are buttons too.** A click keeps one bin's range as the
+  measure filter (`pickRange` in `state.ts`), and a second click releases it.
+  The last bin includes its upper edge, as its table drill-down already did.
+- **The bins do not move under the filter.** The distribution's bins are
+  computed over the other filters only, without the measure's own range, so
+  the edges stay where they were and the kept bin is highlighted. Without
+  this the histogram re-binned onto the kept range and the pressed bin no
+  longer matched. The counts show the whole distribution under the other
+  filters, the usual reading of a brushed histogram.
+- **Saving a view is one upsert.** `save_dashboard_view` writes with
+  `INSERT ... ON CONFLICT (owner, dataset_key) DO UPDATE` instead of an
+  update followed by an insert, so two processes saving at once both succeed
+  and no unique-key error reaches the reader.
+- Tests: `state.test.ts` (range pick, last-bin edge), `DashboardView.test.tsx`
+  (a bin click writes `lo`, `hi` and `hiop` and the held state shows),
+  `dashboard.spec.ts` (keep and release a bin, coverage follows, axe passes).
+
 ## Tests
 
 - `tests/test_dashboard_views.py`: the dataset key, the canonical address,
