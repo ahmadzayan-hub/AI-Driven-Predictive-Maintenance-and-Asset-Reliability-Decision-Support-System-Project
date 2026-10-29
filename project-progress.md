@@ -1,5 +1,7 @@
 # Project progress
 
+PR72 corrective review (29 October): direct trend-point clicks and compact Arabic axis labels have fixes and browser regressions in PR #73. Original merged head `206a0a5` is preserved; final hosted CI is the merge gate. Database migration and production deployment remain separate.
+
 Assistant focus candidate (27 October): prepared against `1dd392c` in an isolated
 checkout. Empty context rail removed in favor of a composer-adjacent native
 disclosure, compact hero and primary analysis action. No live activation. Fresh

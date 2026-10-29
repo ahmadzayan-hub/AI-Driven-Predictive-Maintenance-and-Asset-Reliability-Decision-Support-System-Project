@@ -2081,3 +2081,17 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Next:** capture and inspect real before/after EN/AR desktop/mobile screenshots,
   exercise report selection and composer with virtual keyboard, and run the browser
   and backend suites on an authorized capable executor before integration.
+
+
+## 2026-10-29 · Codex · PR72 corrective interaction and RTL review
+
+- **Done:** verified PR #72 had already merged at `206a0a5`, with the exact reviewed head tree preserved. Reproduced trend-point pointer interception in hosted Chromium on desktop/mobile in English/Arabic. Inspected synthetic Arabic screenshots for every dashboard page and found clipped numeric axis labels on phones. Decorative line/circle elements now ignore pointer events; trend/scatter plots reserve a wider numeric-label gutter. Retained browser regressions and removed the temporary diagnostic workflow.
+- **Verified:** original PR CI succeeded; focused saved-view authorization and report tests, frontend component tests, TypeScript and build passed locally. Explicit unauthenticated GET/PUT/DELETE were refused; unauthorized/viewer DELETE preserved the owner's view. A histogram edge mutation failed the existing suite, and the restored source passed. The diagnostic browser run `40944443034` failed on all centre-click cases and passed the Arabic page audits. Local full verification found only missing action-version comments in the temporary workflow, which is removed from the final change. Local Chromium startup is restricted; hosted final CI remains the merge gate.
+- **Decided:** owner-authorized code correction and merge only after quality gates. Preserve data, numeric results and existing roles; no hosted schema mutation, model call, production deployment, permission changes or history rewriting. `vercel.json` already disables automatic main deployments.
+- **Next:** inspect final hosted browser evidence and merge PR #73 only after the final head is green. Hosted dashboard-view migration remains a separate operator step before a future deployment.
+
+### Parallel CI fixture correction
+
+- **Observed:** PR run `40945482662` passed (213 browser cases, 14 bilingual/voice cases); all 12 Arabic dashboard screenshots were inspected. Parallel push run `40945474927` failed three conversation cases because the journey fixture UUID contained a ten-digit phone-like sequence. The privacy boundary correctly blocked the saved fixture, then the interrupted cleanup affected later tests.
+- **Corrected:** encode only the synthetic journey identifier's digits as letters. Keep the UUID's uniqueness, every assertion and all production privacy code. Reproduce the detected identifier locally and verify the encoded fixture does not trip the detector while real phone-like text still does.
+- **Gate:** rerun CI on the corrected head before merge; no hosted migration or production deployment.
