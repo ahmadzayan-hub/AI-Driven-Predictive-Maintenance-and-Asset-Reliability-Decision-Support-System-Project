@@ -52,7 +52,7 @@ test('every page of the dashboard, accessible and without sideways scrolling', a
   await expect(page.locator('.dash-provenance > bdi')).toHaveText(run.dataset_name)
   await expect(page.locator('.dash-coverage')).toHaveText('Showing 72 of 72 records.')
   const comparison = page.locator('.dash-overview-charts .card').first()
-  await expect(comparison.getByRole('img')).toBeVisible()
+  await expect(comparison.locator('.dash-bars')).toBeVisible()
   await expect(comparison.locator('.dash-bars')).toContainText('North')
 
   const pages = page.getByRole('navigation', { name: 'Dashboard pages' })
@@ -78,6 +78,28 @@ test('a filter survives a reload and a group drills down to its records', async 
   await page.getByLabel('Break down by').selectOption('category')
   const table = page.locator('.dash-page table')
   await expect(table).toContainText('Software')
+
+  // Cross-filtering by clicking a bar: the group is kept alone on every
+  // figure, and a second click releases it.
+  await page.getByRole('button', { name: 'Keep only Software' }).click()
+  await expect(page.locator('.dash-coverage')).toHaveText('Showing 24 of 72 records.')
+  expect(page.url()).toContain('f.category=Software')
+  const held = page.getByRole('button', { name: 'Show every group again (Software)' })
+  await expect(held).toHaveAttribute('aria-pressed', 'true')
+  await expectNoViolations(page, 'kept group')
+  // The view is saved for the dataset on the server and opens the same
+  // way from a bare address; forgetting it ends that.
+  await page.getByRole('button', { name: 'Save this view' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'View saved' })).toBeVisible()
+  await page.goto(`/#/dashboard/${runId}`)
+  await expect(page.locator('.dash-coverage')).toHaveText('Showing 24 of 72 records.')
+  await expect(page).toHaveURL(/f\.category=Software/)
+  await expect(page.getByRole('link', { name: 'Breakdown' })).toHaveAttribute('aria-current', 'page')
+  await page.getByRole('button', { name: 'Forget the saved view' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'Saved view forgotten' })).toBeVisible()
+  await held.click()
+  await expect(page.locator('.dash-coverage')).toHaveText('Showing 72 of 72 records.')
+
   await page.getByRole('button', { name: 'Show the records for Software' }).click()
 
   await expect(page.getByRole('link', { name: 'Records' })).toHaveAttribute('aria-current', 'page')
@@ -100,6 +122,21 @@ test('a filter survives a reload and a group drills down to its records', async 
   await openFilters(page)
   await page.getByLabel('From').selectOption('2025-11')
   await expect(page.locator('.dash-coverage')).toHaveText('Showing 12 of 72 records.')
+})
+
+test('a histogram bin keeps its range alone on every figure and releases it', async ({ page }) => {
+  await skipOnboarding(page)
+  const runId = await finishedRun(page.request, 'Histogram bins')
+  await openDashboard(page, runId, '/distribution')
+  const bin = page.locator('.dash-svg g[role="button"]').first()
+  await expect(bin).toHaveAttribute('aria-pressed', 'false')
+  await bin.click()
+  await expect(bin).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.dash-coverage')).not.toHaveText('Showing 72 of 72 records.')
+  await expectNoViolations(page, 'kept histogram bin')
+  await bin.click()
+  await expect(bin).toHaveAttribute('aria-pressed', 'false')
+  await expect(page.locator('.dash-coverage')).toHaveText('Showing 72 of 72 records.')
 })
 
 test('the dashboard in Arabic', async ({ page }) => {

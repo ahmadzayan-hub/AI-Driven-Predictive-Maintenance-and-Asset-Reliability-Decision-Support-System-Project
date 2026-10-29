@@ -109,3 +109,18 @@ What each round of brain maintenance changed, newest last. The SessionStart hook
 - Merged no notes and linked no new mentions: the checker reported none, and today's decision extends [[Column mapping]], [[Dataset joins]] and [[Tenant isolation]] rather than introducing a concept.
 - `scripts/brain_check.py --strict` exits 0 after the edits; [[Home]] still lists every note.
 
+## 2026-10-28
+
+- `scripts/brain_check.py --json` before the edits: 47 notes, 716 links, no broken links, missing fields, bad dates, missing sources, stale notes, orphans, duplicate candidates, unlinked mentions or weak links; maintenance due since 27 October.
+- Checked the eight decision records of 27 October against [[Decision log]]: every one has a row; no change needed.
+- Refreshed [[Scoped dashboards]] against the amended interactive dashboard decision: histogram bins are clickable with their edges held under their own filter; the scatter plot is still not clickable. Source: `docs/adr/2026-10-27-interactive-dashboard.md`, `frontend/src/features/dashboard/charts.tsx`.
+- Merged no notes and linked no new mentions: the checker reported none.
+- `scripts/brain_check.py --strict` exits 0 after the edits.
+
+## 2026-10-29
+
+- `scripts/brain_check.py --json`: 47 notes, no broken links, missing fields, bad dates, missing sources, stale notes, orphans, duplicate candidates, unlinked mentions or weak links; maintenance due since 28 October.
+- Checked the two decision records written today (`2026-10-29-asset-imagery`, `2026-10-28-agent-cards`) against [[Decision log]]. The asset imagery record is proposed, not accepted, so it is not logged as a decision. Agent cards are logged with its amended scope.
+- Merged no notes and linked no new mentions: the checker reported none.
+- `scripts/brain_check.py --strict` exits 0 after the edits.
+

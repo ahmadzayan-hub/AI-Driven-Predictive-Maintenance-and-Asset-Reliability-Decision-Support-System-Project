@@ -465,11 +465,18 @@ required local files. Both behaviors are covered by tests
     50,000-row run is slower than the ones after it, and a server with
     several processes parses once per process.
 27. Dashboards (ADR 0032) are one run's table, read-only, with a fixed
-    set of pages chosen from its fields: no saved layouts, no choice of
-    chart per page and no cross-filtering by dragging. The relationship
-    page reads an even sample of at most 500 records, and a filter list
-    offers a column only when it has at most 200 values, so an ID or
-    free-text column cannot be filtered from the bar.
+    set of pages chosen from its fields and no choice of chart per page.
+    Since 27 October 2026 a bar, a line point or a histogram bin can be
+    clicked to keep its group alone on every figure and one view per owner
+    and dataset can be saved on the server (`2026-10-27-interactive-dashboard.md`);
+    the scatter plot is deliberately not clickable (a point is one sampled
+    record), there is one saved view per dataset rather than a library of
+    named layouts, and the stage reports and the executive brief both leave
+    out sections with nothing to report and name them once
+    (`2026-10-28-stage-report-sections.md`). The relationship page reads an even
+    sample of at most 500 records, and a filter list offers a column
+    only when it has at most 200 values, so an ID or free-text column
+    cannot be filtered from the bar.
 28. The modelling stages (ADR 0033) are four fixed, standard-library
     models: least squares, naive Bayes, k-means and an additive trend
     and season. There are no trees, ensembles or tuning, and nothing

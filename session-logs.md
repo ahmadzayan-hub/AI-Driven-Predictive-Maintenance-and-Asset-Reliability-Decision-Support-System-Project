@@ -1915,6 +1915,86 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Next: reviewed clean-branch publication/hosted CI and a separately validated
   local release that retains existing local-only report functionality.
 
+## 2026-10-29 · `d9e3f889` · claude/tender-clarke-m4uwgq (visual agent cards)
+
+**Goal:** the visual card layout deferred from the agent-cards slice.
+
+- **Done:** each stage row is a bordered card, its edge coloured by state, with the rules in the analytics stylesheet. That stylesheet loads with the runs view, so first-load CSS (10.46 of 10.5 KB) is unchanged; stylesheet total 34.3 of 35 KB. Decision amended in `docs/adr/2026-10-28-agent-cards.md`.
+- **Verified:** 22 browser journeys (runs, accessibility, Arabic, collaboration) on desktop and phone; 529 frontend unit tests; script budget 256.9 of 257 KB.
+- **Next:** imagery-led asset cards.
+
+## 2026-10-29 · `d9e3f889` · claude/tender-clarke-m4uwgq (voice guide and source check)
+
+**Goal:** continue the Arabic voice brief: the terminology guide it asks for, and a check of its sources.
+
+- **Done:** `docs/voice/RTA_Rail_Arabic_Terminology_and_Pronunciation_Guide.md` extracts the brief's glossary, station table and editing rules unchanged, with its status stated. The motion skill links it. Tests cover the guide and the link.
+- **Blocked:** the sources could not be checked. The session's network policy denies `learn.microsoft.com` (the voice name `ar-AE-HamdanNeural`) and `www.rta.ae` (the timetable). The owner must allow those hosts under Network access in the environment settings before the sources can be verified.
+- **Open:** verify the sources once allowed; the Marina study files the brief cites are not in this repository; a listening test of any voice before use.
+
+## 2026-10-29 · `d9e3f889` · claude/tender-clarke-m4uwgq (Arabic voice brief for video)
+
+**Goal:** add the uploaded RTA Arabic voice prompt and glossary to the platform's future video generation.
+
+- **Done:** the brief is kept at `docs/voice/RTA_Arabic_Voice_Prompt_and_Glossary.md`. The motion skill (`.claude/skills/motion/SKILL.md`) has a section on Arabic voice-over that points to it and states the limits: the renderer does not generate speech, and the brief's voice candidate, speaker and figures are not verified. A test keeps the link in place.
+- **Found:** the Marina study files the brief cites (P1) are not in this repository, so its figures cannot be checked here. The brief's online sources were not re-verified in this session.
+- **Not done:** no narration was generated and no renderer code changed. Audio still needs listening tests before use.
+
+## 2026-10-29 · `d9e3f889` · claude/tender-clarke-m4uwgq (asset imagery proposal)
+
+**Goal:** the last interface item on the list: imagery-led asset cards.
+
+- **Found:** assets have no image field, no upload path and no image storage. The feature needs owner decisions on source, privacy and storage, so it is not an interface change.
+- **Done:** a proposed decision record with four options and a recommendation, `docs/adr/2026-10-29-asset-imagery.md`, listing the four decisions the owner must make. No code changed.
+- **Open:** the owner's decision on asset imagery.
+
+## 2026-10-28 · `d9e3f889` · claude/tender-clarke-m4uwgq (agent cards and the hosted migration)
+
+**Goal:** develop the agent cards per stage (after trimming the script budget) and the hosted migration `20261027_dashboard_views.sql`.
+
+- **Done:** each stage in the run timeline states its claims and how many checks passed (`docs/adr/2026-10-28-agent-cards.md`). The script budget was held by removing five unused string keys in both languages, each checked against every source file and test. The migration now refuses a table of another shape, and it is tested on a disposable schema: it applies, re-applies, and refuses drift. Runbook with read-only checks and rollback: `docs/HOSTED_MIGRATION_20261027.md`.
+- **Found:** the test first wrapped the migration's own BEGIN/COMMIT, which committed a drift test against the shared test database; fixed, and the shared test table reset. The remaining budget levers are small: unused keys, duplicated strings and API methods were checked and are essentially gone.
+- **Not done:** the visual card layout (stylesheet first-load budget is at its ceiling). The hosted migration is not applied; the operator applies it after review.
+- **Verified:** full Python suite on PostgreSQL: 2,366 tests, 19 skipped, OK. 529 frontend unit tests. 28 browser journeys on desktop and phone. Script budget 256.9 of 257 KB.
+
+## 2026-10-28 · `d9e3f889` · claude/tender-clarke-m4uwgq (live pipeline)
+
+**Goal:** the next interface items from the owner's list: agent cards per stage and a live timeline.
+
+- **Done:** the run timeline names the stage running now and marks it (`aria-current`), and its progress count is a live status. Decision: `docs/adr/2026-10-28-live-pipeline.md`. A line for approval waits was added and removed to fit the script budget; the mark and the approvals inbox already say it.
+- **Found:** the timeline was already live: the run screen polls about every 2.5 seconds. The gap was naming and announcing, not transport.
+- **Not done:** agent cards per stage. Needs a decision on card content and a budget; the script total has no headroom to add it.
+- **Verified:** 528 frontend unit tests; type check; build; runs, accessibility and Arabic journeys on desktop and phone (18 cases); script budget 256.9 of 257 KB.
+
+## 2026-10-28 · `d9e3f889` · claude/tender-clarke-m4uwgq (stage report sections and the open items)
+
+**Goal:** work through the open items the owner listed: scatter plot, stage reports, brain maintenance, the hosted migration, and the agent cards and live timeline.
+
+- **Done:** the comprehensive analysis report prints key metrics, every claim and charts only when a stage produced one; the assumptions section names what was left out (`server/analytics.py`, helpers `_metric_lines`, `_claim_lines`, `_chart_lines`; decision `docs/adr/2026-10-28-stage-report-sections.md`). The brain maintenance for today ran and is recorded; the strict check passes and maintenance is no longer due.
+- **Decided:** the scatter plot stays unclickable. A point is one sampled record with no group, so "keep only this point" filters to one arbitrary row. Recorded in the dashboard decision.
+- **Not done, owner-gated:** the hosted migration `database/migrations/20261027_dashboard_views.sql` is still for the database operator to review and apply. It was not applied.
+- **Not done, scoped out:** agent cards per stage and a live timeline. The timeline exists as a static view of run tasks (`RunTimeline.tsx`); the live part needs streamed per-stage updates and a design decision on what each card shows. It is the next slice and needs its own ADR.
+- **Verified:** full Python suite on PostgreSQL: 2,365 tests, 19 skipped, OK. Brain strict check passes; docs test passes.
+- **Open / next:** agent cards and the live timeline; the scatter plot is closed by decision.
+
+## 2026-10-28 · `d9e3f889` · claude/tender-clarke-m4uwgq (A14 review and histogram bins)
+
+**Goal:** review the A14 commit, then continue the dashboard's interaction with the next listed item.
+
+- **Done:** a review of A14 found that saving a view was an update followed by an insert, so two processes saving at once could return a server error. Replaced with one upsert. Histogram bins are clickable: a click keeps the bin's range as the measure filter and a second click releases it. The distribution's bins are computed without the measure's own range, so the edges do not move when a bin is kept (found by the browser journey, which the unit tests missed). Decision amended in `docs/adr/2026-10-27-interactive-dashboard.md`.
+- **Verified:** full Python suite on PostgreSQL: 2,361 tests, 19 skipped, OK. Frontend: 526 unit tests, type check, build. Dashboard, executive opening and accessibility journeys pass on desktop and phone (16 cases). Budget 256.6 of 257 KB script; brain check strict passes.
+- **Decided:** the histogram shows the whole distribution under the other filters with the kept bin highlighted, the usual reading of a brushed histogram, rather than re-binning onto the kept range.
+- **Open / next:** the scatter plot; agent cards per stage and the live timeline; imagery-led asset cards; the stage reports' fixed sections; the hosted migration remains for the operator to review and apply. The brain's maintenance is due today and has not been run.
+
+## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (A14 interactive dashboard)
+
+**Goal:** the owner asked that the dashboard react to clicks and keep what the reader prefers, and that empty deliverable sections drop out, within the current interface budget.
+
+- **Done:** PR #69 (five slices) merged into main at `1dd392c` after both CI runs on `1487e48` passed; the branch fast-forwarded. Clicking a bar or a line point keeps its group alone on every figure and clicking again releases it (`pick` and `isPicked` in `state.ts`; accessible pressed buttons in `charts.tsx`). One saved dashboard view per owner and dataset: `server/dashboard_views.py`, `dashboard_views` table, `GET`/`PUT`/`DELETE /api/runs/{run_id}/view`, applied once when a run over that dataset opens from a bare address. Executive HTML and DOCX briefs leave out sections whose only content is their "nothing to report" statement and name them once in the decision context. Decision: `docs/adr/2026-10-27-interactive-dashboard.md`.
+- **Verified:** full Python suite on PostgreSQL: 2,361 tests, 19 skipped, OK. Frontend: 522 unit tests, type check, build. Browser journeys for the dashboard and the executive opening pass on desktop; the mobile run of the executive opening was not re-run after the last style change. Budget: 256.6 of 257 KB script (ceiling raised by 1 KB and recorded), first load 99.7 of 100 KB, style unchanged. Brain check strict passes.
+- **Decided:** one saved view per dataset rather than named layouts; histogram and scatter stay unclickable; the stage reports (`report_markdown`) keep their fixed sections and are listed as a limitation.
+- **Open / next:** re-run the mobile executive opening; the stage reports' fixed sections; clickable histogram bins; agent cards per stage; the live timeline; imagery-led asset cards. The hosted database has not been changed: `database/migrations/20261027_dashboard_views.sql` is for the operator to review and apply.
+- **Blockers:** the session's usage limit reset at 19:30 UTC on 27 October; compaction failed on it.
+
 ## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (A13 tree ensemble)
 
 **Goal:** the "trees and ensembles" item of the modelling gap row.

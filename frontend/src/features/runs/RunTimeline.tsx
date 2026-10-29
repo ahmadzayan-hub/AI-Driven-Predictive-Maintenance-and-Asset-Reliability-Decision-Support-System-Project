@@ -6,6 +6,8 @@ import { Icon } from '../../shared/components/Icon'
 import { stateLabel } from '../../shared/labels'
 import type { Pipelines, RunDetail, RunTask } from '../../shared/types'
 import { BANDS, groupedTasks, planRoles, roleBand } from './pipeline'
+import { timelineMessages } from './messages'
+import { usePack } from '../../i18n/pack'
 
 const STATES: Record<string, string> = { succeeded: '✓', failed: '✕', skipped: '—', cancelled: '—', running: '…', awaiting_approval: '!', pending: '·' }
 
@@ -25,13 +27,18 @@ export function RunTimeline({ run, pipelines, onEvidence }: {
 }) {
   const { t, tx, formatNumber } = useI18n()
   const [expanded, setExpanded] = useState(() => window.matchMedia('(min-width: 1100px)').matches)
+  const { t: tl } = usePack(timelineMessages)
   const completed = run.tasks.filter((task) => ['succeeded', 'skipped'].includes(task.state)).length
+  // The stage running now is named and marked; the count is a polite live
+  // region, so a screen reader hears the pipeline move as the run polls.
+  const current = run.tasks.find((task) => task.state === 'running') ?? null
   return <aside className="card run-timeline" aria-label={t('runs.pipeline')}>
-    <div className="run-timeline__head"><span className="eyebrow">{t('cockpit.orchestrated')}</span><h3 className="card__title">{t('runs.pipeline')}</h3><span className="run-timeline__count">{t('cockpit.progress', { done: formatNumber(completed), total: formatNumber(run.tasks.length) })}</span></div>
+    <div className="run-timeline__head"><span className="eyebrow">{t('cockpit.orchestrated')}</span><h3 className="card__title">{t('runs.pipeline')}</h3><span className="run-timeline__count" role="status">{t('cockpit.progress', { done: formatNumber(completed), total: formatNumber(run.tasks.length) })}</span></div>
     <progress value={completed} max={Math.max(run.tasks.length, 1)} aria-label={t('runs.pipeline')} />
+    {current ? <p className="run-timeline__now" dir="auto" lang={run.report_language}>{tl('timeline.now', { stage: current.title })}</p> : null}
     <p className="controlrow__help">{tx('runs.pipelineDesc', { hermes: <strong>Hermes</strong> })}</p>
     <details className="run-timeline__disclosure" open={expanded} onToggle={(event) => setExpanded(event.currentTarget.open)}><summary>{t('cockpit.showPipeline')}</summary><div className="pipeline__bands">{groupedTasks(run.tasks, pipelines).map(({ band, tasks }) => <details key={band} open className="pipeline__band"><summary><span>{t(`cockpit.band.${band}`)}</span><span dir="ltr">{formatNumber(tasks.filter((task) => ['succeeded', 'skipped'].includes(task.state)).length)} / {formatNumber(tasks.length)}</span></summary><ul className="runtasks">
-      {tasks.map((task) => <li key={task.id} className={`runtask runtask--${task.state}`}><span className="runtask__mark" aria-hidden="true">{STATES[task.state] ?? '·'}</span><div className="runtask__body"><span className="controlrow__label" dir="auto" lang={run.report_language}>{task.title}</span><span className="controlrow__help">{stateLabel(t, task.state)}</span>{task.summary ? <p className="controlrow__help" dir="auto" lang={run.report_language}>{task.summary}</p> : null}{task.claims.length || task.quality_checks.length ? <button type="button" className="evidence-link" onClick={() => onEvidence(task)}>{t('cockpit.inspectStage')}<Icon name="search" size={13} /></button> : null}</div></li>)}
+      {tasks.map((task) => <li key={task.id} className={`runtask runtask--${task.state}${current?.id === task.id ? ' runtask--current' : ''}`} aria-current={current?.id === task.id ? 'step' : undefined}><span className="runtask__mark" aria-hidden="true">{STATES[task.state] ?? '·'}</span><div className="runtask__body"><span className="controlrow__label" dir="auto" lang={run.report_language}>{task.title}</span><span className="controlrow__help">{stateLabel(t, task.state)}</span>{task.summary ? <p className="controlrow__help" dir="auto" lang={run.report_language}>{task.summary}</p> : null}{task.claims.length || task.quality_checks.length ? <p className="controlrow__help">{tl('timeline.evidence', { claims: formatNumber(task.claims.length), passed: formatNumber(task.quality_checks.filter((check) => check.passed).length), checks: formatNumber(task.quality_checks.length) })}</p> : null}{task.claims.length || task.quality_checks.length ? <button type="button" className="evidence-link" onClick={() => onEvidence(task)}>{t('cockpit.inspectStage')}<Icon name="search" size={13} /></button> : null}</div></li>)}
     </ul></details>)}</div></details>
   </aside>
 }

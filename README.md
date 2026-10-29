@@ -894,6 +894,63 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Agent cards: each stage shows its evidence; hosted migration packaged — 28 October 2026
+
+Interface change ([decision](docs/adr/2026-10-28-agent-cards.md)): each stage
+in the run timeline is a card that states its claims and how many of its
+checks passed, with its edge coloured by state. The card rules load with the
+runs view, so the first-load stylesheet is unchanged. The script total is 256.9 of 257 KB after removing
+five unused string keys in both languages.
+
+Hosted migration ([runbook](docs/HOSTED_MIGRATION_20261027.md)): the
+`dashboard_views` migration now refuses a table of another shape, and it is
+tested on a disposable schema: it applies, re-applies, and refuses drift. It is
+not applied to any hosted database; the database operator applies it after
+review.
+
+Checked by the full Python suite against PostgreSQL 16 (2,366 tests, 19
+skipped), 529 frontend unit tests, and the runs, accessibility, Arabic and
+dashboard journeys on desktop and phone (28 cases).
+
+### The live pipeline names the stage running now — 28 October 2026
+
+Interface change ([decision](docs/adr/2026-10-28-live-pipeline.md)): the run
+timeline names the stage running now and marks it as the current step, and its
+progress count is a live status, so a screen reader hears the pipeline move.
+Progress still arrives by the run's poll. Agent cards per stage are not in this
+slice. Checked by a new timeline unit test (English and Arabic), the runs,
+accessibility and Arabic journeys on desktop and phone (18 cases), 528
+frontend unit tests, and the script budget at 256.9 of 257 KB.
+
+### Stage reports leave out empty sections — 28 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-28-stage-report-sections.md)):
+the comprehensive analysis report prints key metrics, every claim and charts
+only when a stage produced one, and its limitations name the sections left
+out. Checked with the full Python suite against PostgreSQL 16 (2,365 tests,
+19 skipped; 4 new in `tests/test_stage_report_sections.py`), the existing run,
+analytics and report suites unchanged. Histogram bins are clickable; the
+scatter plot is deliberately not (see the dashboard decision).
+
+### Interactive dashboard: click to filter, a saved view per dataset, no empty brief sections — 27 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-27-interactive-dashboard.md)):
+a bar or a line point is clicked to keep its group alone on every figure,
+and clicked again to release it, the filter staying in the address; one
+dashboard view per owner and dataset is saved on the server (`GET`, `PUT`
+and `DELETE /api/runs/{run_id}/view`, a backend-only `dashboard_views` table
+with its hosted migration and the initial schema mirror) and applied when a
+run over that dataset opens from a bare address; the executive HTML and
+DOCX brief leaves out sections whose only content is their "nothing to
+report" statement and names them once in the decision context. Checked with
+the full Python suite against PostgreSQL 16 (2,361 tests, 19 skipped; 9 new
+in `tests/test_dashboard_views.py` and `tests/test_report_navigation.py`),
+526 frontend unit tests (11 new), type check, build, brain check, and the
+browser journeys for the dashboard and the executive opening on desktop and
+phone. A histogram bin is clickable too, and its bins keep their edges under
+their own filter. The script ceiling moves to 257 KB after trimming; first load stays
+99.7 of 100 KB script and 10.5 of 10.5 KB style.
+
 ### Tree ensemble: threshold rules against the average and the line — 27 October 2026
 
 Behaviour change ([decision](docs/adr/2026-10-27-tree-ensemble.md)): a
