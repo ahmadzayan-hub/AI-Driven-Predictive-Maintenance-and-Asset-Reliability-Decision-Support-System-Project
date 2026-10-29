@@ -123,7 +123,8 @@ export function Line({ points, label, onPick, picked }: { points: Point[]; label
   const tip = useTip()
   const values = points.map((p) => p.value).filter((v): v is number => v !== null)
   const { min, max, range } = span(values)
-  const x = (index: number) => (points.length > 1 ? (index / (points.length - 1)) * 92 + 6 : 50)
+  // Compact Arabic values need room for both the number and its unit.
+  const x = (index: number) => (points.length > 1 ? (index / (points.length - 1)) * 80 + 18 : 58)
   const y = (value: number) => 46 - ((value - min) / range) * 40
   const segments: string[][] = [[]]
   points.forEach((point, index) => {
@@ -134,7 +135,7 @@ export function Line({ points, label, onPick, picked }: { points: Point[]; label
     <>
     {tip.node}
     <svg viewBox="0 0 100 58" role={onPick ? 'group' : 'img'} aria-label={label} className="dash-svg">
-      <line x1="6" y1={y(0)} x2="98" y2={y(0)} stroke="var(--border-strong)" strokeWidth="0.4" />
+      <line x1="18" y1={y(0)} x2="98" y2={y(0)} stroke="var(--border-strong)" strokeWidth="0.4" />
       {points.map((point, index) => {
         if (point.value === null) return null
         const held = picked?.(point.label) ?? false
@@ -159,24 +160,24 @@ export function Line({ points, label, onPick, picked }: { points: Point[]; label
         )
       })}
       {segments.filter((s) => s.length > 1).map((segment, index) => (
-        <polyline key={index} points={segment.join(' ')} fill="none" stroke="var(--accent-solid)" strokeWidth="1.2" />
+        <polyline key={index} points={segment.join(' ')} fill="none" stroke="var(--accent-solid)" strokeWidth="1.2" pointerEvents="none" />
       ))}
       {points.length <= 40
         ? points.map((point, index) =>
             point.value === null ? null : (
-              <circle key={index} cx={x(index)} cy={y(point.value)} r="0.9" fill="var(--accent-solid)" />
+              <circle key={index} cx={x(index)} cy={y(point.value)} r="0.9" fill="var(--accent-solid)" pointerEvents="none" />
             ),
           )
         : null}
-      <text x="5" y={y(max) + 1} fontSize="3" textAnchor="end" fill="var(--text-faint)">
+      <text x="17" y={y(max) + 1} fontSize="3" textAnchor="end" fill="var(--text-faint)">
         {formatNumber(max, { notation: 'compact' })}
       </text>
       {min !== max ? (
-        <text x="5" y={y(min) + 1} fontSize="3" textAnchor="end" fill="var(--text-faint)">
+        <text x="17" y={y(min) + 1} fontSize="3" textAnchor="end" fill="var(--text-faint)">
           {formatNumber(min, { notation: 'compact' })}
         </text>
       ) : null}
-      <text x="6" y="55" fontSize="3.2" fill="var(--text-faint)">
+      <text x="18" y="55" fontSize="3.2" fill="var(--text-faint)">
         {points[0]?.label}
       </text>
       <text x="98" y="55" fontSize="3.2" textAnchor="end" fill="var(--text-faint)">
@@ -244,16 +245,16 @@ export function Scatter({ points, label }: { points: Array<{ x: number; y: numbe
   const ys = span(points.map((p) => p.y))
   return (
     <svg viewBox="0 0 100 58" role="img" aria-label={label} className="dash-svg">
-      <line x1="6" y1="48" x2="98" y2="48" stroke="var(--border-strong)" strokeWidth="0.4" />
-      <line x1="6" y1="4" x2="6" y2="48" stroke="var(--border-strong)" strokeWidth="0.4" />
+      <line x1="18" y1="48" x2="98" y2="48" stroke="var(--border-strong)" strokeWidth="0.4" />
+      <line x1="18" y1="4" x2="18" y2="48" stroke="var(--border-strong)" strokeWidth="0.4" />
       {points.map((point, index) => (
-        <circle key={index} cx={6 + ((point.x - xs.min) / xs.range) * 92} cy={48 - ((point.y - ys.min) / ys.range) * 44}
+        <circle key={index} cx={18 + ((point.x - xs.min) / xs.range) * 80} cy={48 - ((point.y - ys.min) / ys.range) * 44}
           r="0.8" fill="var(--accent-solid)" fillOpacity="0.55" />
       ))}
-      <text x="6" y="55" fontSize="3.2" fill="var(--text-faint)">{formatNumber(xs.min, { notation: 'compact' })}</text>
+      <text x="18" y="55" fontSize="3.2" fill="var(--text-faint)">{formatNumber(xs.min, { notation: 'compact' })}</text>
       <text x="98" y="55" fontSize="3.2" textAnchor="end" fill="var(--text-faint)">{formatNumber(xs.max, { notation: 'compact' })}</text>
-      <text x="5" y="6" fontSize="3" textAnchor="end" fill="var(--text-faint)">{formatNumber(ys.max, { notation: 'compact' })}</text>
-      <text x="5" y="49" fontSize="3" textAnchor="end" fill="var(--text-faint)">{formatNumber(ys.min, { notation: 'compact' })}</text>
+      <text x="17" y="6" fontSize="3" textAnchor="end" fill="var(--text-faint)">{formatNumber(ys.max, { notation: 'compact' })}</text>
+      <text x="17" y="49" fontSize="3" textAnchor="end" fill="var(--text-faint)">{formatNumber(ys.min, { notation: 'compact' })}</text>
     </svg>
   )
 }

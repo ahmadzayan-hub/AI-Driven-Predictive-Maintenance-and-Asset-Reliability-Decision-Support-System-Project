@@ -46,6 +46,13 @@ test('Arabic dashboard pages remain readable in RTL', async ({ page }, testInfo)
     await expect(page.locator('.dash-coverage')).toHaveText('يُعرض 72 من أصل 72 سجلاً.')
     await expect(page.locator('.dash-page .skeleton')).toHaveCount(0)
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl')
+    // Page overflow alone misses text clipped inside an SVG viewport.
+    if (view === 'trend' || view === 'relationship') {
+      const clipped = await page.locator('.dash-page .dash-svg text').evaluateAll((labels) => labels
+        .filter((label) => { const box = (label as SVGGraphicsElement).getBBox(); return box.x < 0 || box.x + box.width > 100 })
+        .map((label) => label.textContent))
+      expect(clipped).toEqual([])
+    }
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
     expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()).violations).toEqual([])
     await page.screenshot({ path: testInfo.outputPath(`arabic-${view}.png`), fullPage: true })

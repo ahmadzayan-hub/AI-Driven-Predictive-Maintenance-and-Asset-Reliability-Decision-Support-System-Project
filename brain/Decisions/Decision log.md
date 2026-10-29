@@ -207,3 +207,5 @@ One line per record, read from its title and decision; the record itself is the 
 | 2026-10-28-agent-cards | Each stage in the run timeline is a card stating its claims and passed checks; the card rules load with the runs view, not on first load; five unused string keys removed to hold the script ceiling | [[Run lifecycle]], [[Agentic OS]] |
 
 - `2026-10-27-assistant-focus-and-context`: isolated candidate; native report disclosure beside composer, scoped session status and stronger first action. Browser acceptance pending.
+
+- `2026-10-29-trend-pointer-targets`: decorative SVG marks must not intercept chart controls; keep compact Arabic numeric labels inside the plot viewport. See `docs/adr/2026-10-29-trend-pointer-targets.md`.
