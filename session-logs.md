@@ -1923,6 +1923,14 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** 22 browser journeys (runs, accessibility, Arabic, collaboration) on desktop and phone; 529 frontend unit tests; script budget 256.9 of 257 KB.
 - **Next:** imagery-led asset cards.
 
+## 2026-10-29 · `d9e3f889` · claude/tender-clarke-m4uwgq (voice guide and source check)
+
+**Goal:** continue the Arabic voice brief: the terminology guide it asks for, and a check of its sources.
+
+- **Done:** `docs/voice/RTA_Rail_Arabic_Terminology_and_Pronunciation_Guide.md` extracts the brief's glossary, station table and editing rules unchanged, with its status stated. The motion skill links it. Tests cover the guide and the link.
+- **Blocked:** the sources could not be checked. The session's network policy denies `learn.microsoft.com` (the voice name `ar-AE-HamdanNeural`) and `www.rta.ae` (the timetable). The owner must allow those hosts under Network access in the environment settings before the sources can be verified.
+- **Open:** verify the sources once allowed; the Marina study files the brief cites are not in this repository; a listening test of any voice before use.
+
 ## 2026-10-29 · `d9e3f889` · claude/tender-clarke-m4uwgq (Arabic voice brief for video)
 
 **Goal:** add the uploaded RTA Arabic voice prompt and glossary to the platform's future video generation.

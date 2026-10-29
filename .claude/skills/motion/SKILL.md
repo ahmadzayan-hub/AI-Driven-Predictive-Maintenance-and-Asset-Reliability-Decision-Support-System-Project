@@ -61,7 +61,7 @@ The renderer does not generate speech. A voice-over is supplied as a file (`--au
 
 For Arabic narration, use [the RTA Arabic voice prompt and glossary](../../../docs/voice/RTA_Arabic_Voice_Prompt_and_Glossary.md) (version 1.0, 29 October 2026). It holds:
 
-- the glossary of technical terms and their approved Arabic renderings, with the reliance status of each entry;
+- the glossary of technical terms and their approved Arabic renderings, with the reliance status of each entry (extracted to [the terminology guide](../../../docs/voice/RTA_Rail_Arabic_Terminology_and_Pronunciation_Guide.md));
 - the rules for full diacritics on the spoken text, the spelling of numbers and units, and station names as the official RTA table gives them;
 - the speaker brief and the checks a voice must pass before it is accepted.
 
