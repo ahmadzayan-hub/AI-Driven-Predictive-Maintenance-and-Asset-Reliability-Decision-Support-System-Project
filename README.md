@@ -897,9 +897,9 @@ python scripts/verify.py
 ### Agent cards: each stage shows its evidence; hosted migration packaged — 28 October 2026
 
 Interface change ([decision](docs/adr/2026-10-28-agent-cards.md)): each stage
-in the run timeline states its claims and how many of its checks passed. A
-visual card layout is not in this slice, because the stylesheet's first-load
-budget is at its ceiling. The script total is 256.9 of 257 KB after removing
+in the run timeline is a card that states its claims and how many of its
+checks passed, with its edge coloured by state. The card rules load with the
+runs view, so the first-load stylesheet is unchanged. The script total is 256.9 of 257 KB after removing
 five unused string keys in both languages.
 
 Hosted migration ([runbook](docs/HOSTED_MIGRATION_20261027.md)): the

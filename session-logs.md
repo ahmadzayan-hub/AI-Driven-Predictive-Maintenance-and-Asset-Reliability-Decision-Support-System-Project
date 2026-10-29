@@ -1915,6 +1915,14 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Next: reviewed clean-branch publication/hosted CI and a separately validated
   local release that retains existing local-only report functionality.
 
+## 2026-10-29 · `d9e3f889` · claude/tender-clarke-m4uwgq (visual agent cards)
+
+**Goal:** the visual card layout deferred from the agent-cards slice.
+
+- **Done:** each stage row is a bordered card, its edge coloured by state, with the rules in the analytics stylesheet. That stylesheet loads with the runs view, so first-load CSS (10.46 of 10.5 KB) is unchanged; stylesheet total 34.3 of 35 KB. Decision amended in `docs/adr/2026-10-28-agent-cards.md`.
+- **Verified:** 22 browser journeys (runs, accessibility, Arabic, collaboration) on desktop and phone; 529 frontend unit tests; script budget 256.9 of 257 KB.
+- **Next:** imagery-led asset cards.
+
 ## 2026-10-28 · `d9e3f889` · claude/tender-clarke-m4uwgq (agent cards and the hosted migration)
 
 **Goal:** develop the agent cards per stage (after trimming the script budget) and the hosted migration `20261027_dashboard_views.sql`.

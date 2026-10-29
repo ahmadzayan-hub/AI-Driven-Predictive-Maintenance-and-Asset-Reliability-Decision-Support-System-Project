@@ -28,10 +28,10 @@ parameters. Those stay behind the inspect action, so the timeline stays short.
 
 - **Built:** the evidence line in both languages, from data the run already
   stores. No server change.
-- **Not built:** a visual card layout (borders, a card grid). Its styling needs
-  stylesheet bytes, and the stylesheet's first-load budget is at its ceiling
-  (10.5 of 10.5 KB). The timeline keeps its current rows with the new evidence
-  line. A card layout is a later slice, once the stylesheet budget is decided.
+- **Visual cards, amended the same day:** each stage row is a bordered card,
+  its edge coloured by its state. The rules live in the analytics stylesheet,
+  which loads with the runs view, not on first load: the first-load stylesheet
+  stays at 10.46 of 10.5 KB, and the stylesheet total is 34.3 of 35 KB.
 
 ## Budget
 
