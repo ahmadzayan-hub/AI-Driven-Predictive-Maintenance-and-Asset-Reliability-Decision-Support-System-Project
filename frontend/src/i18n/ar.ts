@@ -17,6 +17,7 @@ export const ar: Record<MessageKey, string> = {
   'nav.tools': 'أدوات مساحة العمل',
   "assistant.name": "معيار",
   "assistant.tagline": "ذكاء صيانة الأصول ودعم القرار",
+  "miyaar.context": "سياق مساحة العمل",
   "miyaar.eyebrow": "مساحتك لاتخاذ قرارات موثوقية الأصول",
   "miyaar.headline": "لكل أصل، قرار أوضح.",
   "miyaar.intro": "أنا معيار. أضف بيانات الصيانة، واستكشف الأدلة، وحوّل نتائج التحليل إلى قرارات يمكنك الاستناد إليها.",

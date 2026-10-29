@@ -16,6 +16,7 @@ export const en = {
 
   "assistant.name": "Miyaar",
   "assistant.tagline": "AI-Powered Asset Maintenance, Reliability & Decision Support",
+  "miyaar.context": "Workspace context",
   "miyaar.eyebrow": "YOUR ASSET RELIABILITY WORKSPACE",
   "miyaar.headline": "Every asset. A clearer decision.",
   "miyaar.intro": "I'm Miyaar. Bring your maintenance data, explore the evidence, and turn analysis into decisions you can stand behind.",
