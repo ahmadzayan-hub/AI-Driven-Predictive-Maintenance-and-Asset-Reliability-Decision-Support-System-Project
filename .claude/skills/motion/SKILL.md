@@ -55,6 +55,18 @@ Rendering needs the frontend's Playwright (`npm --prefix frontend ci`), Chromium
 - `clip.sheet.png`: one frame per scene. **Read it before delivering**, and check overflow, contrast and text;
 - `clip.txt`: every on-screen word and figure in order, exactly as shown, with a note number on each figure and the sources listed at the end: for alt text, captions and checking.
 
+## Arabic voice-over
+
+The renderer does not generate speech. A voice-over is supplied as a file (`--audio`, see `docs/MOTION_STUDIO_IMPLEMENTATION.md`), and it must be listened to before delivery.
+
+For Arabic narration, use [the RTA Arabic voice prompt and glossary](../../../docs/voice/RTA_Arabic_Voice_Prompt_and_Glossary.md) (version 1.0, 29 October 2026). It holds:
+
+- the glossary of technical terms and their approved Arabic renderings, with the reliance status of each entry;
+- the rules for full diacritics on the spoken text, the spelling of numbers and units, and station names as the official RTA table gives them;
+- the speaker brief and the checks a voice must pass before it is accepted.
+
+Its status matters. The file records that no new recording was made when it was written, and that no Emirati speaker has been checked against it. Its Marina study figures come from study files that are not in this repository, so they cannot be checked here. Any voice that is used needs a listening test, and its voice name is a candidate, not a verified match.
+
 ## Rules
 
 1. **Figures** come from a verified register: the KPI register, a run's calculations, `Expected_Values.csv`. Say which in each `source`, in words the viewer can follow, such as "Report, Appendix A: Maintenance Cost", not a working file name.

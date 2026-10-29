@@ -1923,6 +1923,14 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** 22 browser journeys (runs, accessibility, Arabic, collaboration) on desktop and phone; 529 frontend unit tests; script budget 256.9 of 257 KB.
 - **Next:** imagery-led asset cards.
 
+## 2026-10-29 · `d9e3f889` · claude/tender-clarke-m4uwgq (Arabic voice brief for video)
+
+**Goal:** add the uploaded RTA Arabic voice prompt and glossary to the platform's future video generation.
+
+- **Done:** the brief is kept at `docs/voice/RTA_Arabic_Voice_Prompt_and_Glossary.md`. The motion skill (`.claude/skills/motion/SKILL.md`) has a section on Arabic voice-over that points to it and states the limits: the renderer does not generate speech, and the brief's voice candidate, speaker and figures are not verified. A test keeps the link in place.
+- **Found:** the Marina study files the brief cites (P1) are not in this repository, so its figures cannot be checked here. The brief's online sources were not re-verified in this session.
+- **Not done:** no narration was generated and no renderer code changed. Audio still needs listening tests before use.
+
 ## 2026-10-29 · `d9e3f889` · claude/tender-clarke-m4uwgq (asset imagery proposal)
 
 **Goal:** the last interface item on the list: imagery-led asset cards.
