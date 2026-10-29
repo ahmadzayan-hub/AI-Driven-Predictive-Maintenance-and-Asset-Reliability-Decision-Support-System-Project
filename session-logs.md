@@ -1923,6 +1923,14 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Verified:** 22 browser journeys (runs, accessibility, Arabic, collaboration) on desktop and phone; 529 frontend unit tests; script budget 256.9 of 257 KB.
 - **Next:** imagery-led asset cards.
 
+## 2026-10-29 · `d9e3f889` · claude/tender-clarke-m4uwgq (asset imagery proposal)
+
+**Goal:** the last interface item on the list: imagery-led asset cards.
+
+- **Found:** assets have no image field, no upload path and no image storage. The feature needs owner decisions on source, privacy and storage, so it is not an interface change.
+- **Done:** a proposed decision record with four options and a recommendation, `docs/adr/2026-10-29-asset-imagery.md`, listing the four decisions the owner must make. No code changed.
+- **Open:** the owner's decision on asset imagery.
+
 ## 2026-10-28 · `d9e3f889` · claude/tender-clarke-m4uwgq (agent cards and the hosted migration)
 
 **Goal:** develop the agent cards per stage (after trimming the script budget) and the hosted migration `20261027_dashboard_views.sql`.
