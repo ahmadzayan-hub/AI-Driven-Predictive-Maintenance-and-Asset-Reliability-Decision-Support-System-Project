@@ -29,3 +29,11 @@ filter and record coverage, and releases the filter using Enter. The same
 browser suite captures each Arabic dashboard page and checks RTL, horizontal
 overflow, SVG label bounds and accessibility on desktop and phone. Screenshots are synthetic
 test evidence; they make no claim about production data or hosted readiness.
+
+The parallel push run on `5dc60af` also exposed a test-fixture flake:
+the journey's random UUID ended in a ten-digit sequence, which correctly
+triggered the conservative model privacy boundary when stored as memory.
+That failure prevented cleanup and affected two later conversation tests.
+Encode the fixture UUID's digits as letters, preserving uniqueness without
+manufacturing phone-like test data. Production privacy checks and all test
+assertions stay unchanged. Evidence: Actions run `40945474927`.
