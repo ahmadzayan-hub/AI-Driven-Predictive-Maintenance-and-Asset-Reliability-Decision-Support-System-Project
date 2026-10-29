@@ -4,7 +4,6 @@ import type { MessageKey } from '../../i18n'
 import { Icon } from '../../shared/components/Icon'
 import type { IconName } from '../../shared/components/Icon'
 import { MiyaarMark } from '../../shared/components/MiyaarMark'
-import { StatusBadge } from '../../shared/components/StatusBadge'
 import type { ConnectionStatus, SessionState } from '../../shared/types'
 import { Composer } from './Composer'
 import type { ComposerHandle } from './Composer'
@@ -60,7 +59,7 @@ function CoreMotif() {
 }
 
 export function ChatView({
-  session, sending, failedText, pendingText, requestError, connectionStatus,
+  session, sending, failedText, pendingText, requestError,
   offline, userName, onSend, onRetry, onDismissFailed, composerRef, onOpenRun, onAction,
 }: ChatViewProps) {
   const { t, formatNumber } = useI18n()
@@ -69,7 +68,6 @@ export function ChatView({
   const [waiting, setWaiting] = useState(false)
   const transcriptLength = session.transcript.length
   const latest = session.transcript.filter((entry) => entry.role === 'agent').at(-1)
-  const status = connectionStatus ?? (offline ? 'offline' : session.ended ? 'ended' : sending ? 'working' : 'ready')
   useEffect(() => {
     const container = scrollRef.current
     if (container && pinnedToBottom) container.scrollTop = transcriptLength || sending || failedText ? container.scrollHeight : 0
@@ -86,16 +84,9 @@ export function ChatView({
   }
   const empty = transcriptLength === 0 && !failedText && !sending
   return <div className="assistant-workspace">
-    <aside className="assistant-context" aria-label={session.data_chat_labels?.title ?? t('miyaar.workspace')}>
-      <div className="assistant-context__state"><strong>{t('miyaar.session')}</strong><StatusBadge status={status} announce={false} /></div>
-      {session.assistant_status && <p className="miyaar-notice" role="status" dir="auto">{session.assistant_status.message}</p>}
-      <DataChatContext key={session.session_id} session={session} disabled={session.ended || offline || sending} />
-      <p className="assistant-context__boundary"><Icon name="shield" size={18} />{t('miyaar.review')}</p>
-    </aside>
     <section className="chat" aria-label={t('chat.aria')}>
     <div className="miyaar-toolbar">
-      <MiyaarMark />
-      <div><strong>{t('assistant.name')}</strong><span>{t('assistant.tagline')}</span></div>
+      <strong>{t('nav.assistant')}</strong>
       <span className="miyaar-toolbar__count">{formatNumber(transcriptLength)} · {t('rail.messages')}</span>
     </div>
     <div className="chat__scroll" ref={scrollRef} onScroll={handleScroll}>
@@ -116,7 +107,7 @@ export function ChatView({
         </div>
         <h3 className="miyaar-welcome__heading">{t('miyaar.start')}</h3>
         <div className="miyaar-actions">
-          {ACTIONS.map((action) => <button key={action.id} type="button" className="miyaar-action"
+          {ACTIONS.map((action) => <button key={action.id} type="button" className={`miyaar-action${action.id === 'analyse' ? ' miyaar-action--primary' : ''}`}
             onClick={() => onAction?.(action.id)} disabled={!onAction}>
             <span className="miyaar-action__icon"><Icon name={action.icon} size={20} /></span>
             <span><strong>{t(action.title)}</strong><small>{t(action.description)}</small></span>
@@ -160,6 +151,11 @@ export function ChatView({
       if (container) container.scrollTop = container.scrollHeight
       setPinnedToBottom(true)
     }}><Icon name="arrowDown" size={14} />{t('chat.latest')}</button> : null}
+    <div className="assistant-context" aria-label={t('miyaar.context')} role="region">
+      {session.assistant_status && <p className="assistant-context__notice" role="status" dir="auto">{session.assistant_status.message}</p>}
+      <DataChatContext key={session.session_id} session={session} disabled={session.ended || offline || sending} />
+      <p className="assistant-context__boundary"><Icon name="shield" size={15} />{t('miyaar.review')}</p>
+    </div>
     <Composer sessionId={session.session_id} draftKey={`${session.session_id}:composer`} ref={composerRef} onSend={onSend}
       busy={sending} disabled={session.ended || offline} offline={offline} />
   </section></div>

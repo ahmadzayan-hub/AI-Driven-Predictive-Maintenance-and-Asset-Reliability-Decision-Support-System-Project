@@ -50,7 +50,7 @@ def render_frames(manifest: dict, folder: Path, font_path: Path, *,
         lines, current = [], ""
         for word in words:
             proposal = (current+" "+word).strip()
-            if current and draw.textbbox((0,0),proposal,font=font,direction=direction)[2] > safe_width:
+            if current and draw.textbbox((0,0),proposal,font=font)[2] > safe_width:
                 lines.append(current)
                 current = word
             else:
@@ -62,13 +62,19 @@ def render_frames(manifest: dict, folder: Path, font_path: Path, *,
         y = int(h*.44 - len(lines)*line_height/2)
         anchor_x = int(w*.91 if rtl else w*.09)
         for line in lines:
-            draw.text((anchor_x,y),line,font=font,fill="#ffffff",
-                      direction=direction,anchor="ra" if rtl else "la")
+            if rtl:
+                draw.text((anchor_x,y),line,font=font,fill="#ffffff",
+                          direction=direction,anchor="ra")
+            else:
+                draw.text((anchor_x,y),line,font=font,fill="#ffffff",anchor="la")
             y += line_height
         status="DRAFT / FOR HUMAN REVIEW" if not rtl else "مسودة / للمراجعة البشرية"
-        draw.text((anchor_x,int(h*.12)),status,font=tag_font,
-                  fill="#a6dfeb",direction=direction,
-                  anchor="ra" if rtl else "la")
+        if rtl:
+            draw.text((anchor_x,int(h*.12)),status,font=tag_font,
+                      fill="#a6dfeb",direction=direction,anchor="ra")
+        else:
+            draw.text((anchor_x,int(h*.12)),status,font=tag_font,
+                      fill="#a6dfeb",anchor="la")
         progress=int(w*.84*t)
         draw.rectangle((int(w*.08),int(h*.84)-3,int(w*.08)+progress,int(h*.84)+3),
                        fill="#e8b966")

@@ -205,3 +205,5 @@ One line per record, read from its title and decision; the record itself is the 
 | 2026-10-28-stage-report-sections | The comprehensive analysis report prints key metrics, claims and charts only when a stage produced them, and its limitations name the sections left out | [[Scoped dashboards]], [[Business report exports]], [[Approval gate]] |
 | 2026-10-28-live-pipeline | The run timeline names the stage running now, marks it as the current step and announces its progress; progress still arrives by the run's poll; agent cards are a later slice | [[Run lifecycle]], [[Agentic OS]] |
 | 2026-10-28-agent-cards | Each stage in the run timeline is a card stating its claims and passed checks; the card rules load with the runs view, not on first load; five unused string keys removed to hold the script ceiling | [[Run lifecycle]], [[Agentic OS]] |
+
+- `2026-10-27-assistant-focus-and-context`: isolated candidate; native report disclosure beside composer, scoped session status and stronger first action. Browser acceptance pending.
