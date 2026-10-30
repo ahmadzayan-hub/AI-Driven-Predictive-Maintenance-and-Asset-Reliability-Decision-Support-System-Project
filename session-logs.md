@@ -2095,3 +2095,17 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Observed:** PR run `40945482662` passed (213 browser cases, 14 bilingual/voice cases); all 12 Arabic dashboard screenshots were inspected. Parallel push run `40945474927` failed three conversation cases because the journey fixture UUID contained a ten-digit phone-like sequence. The privacy boundary correctly blocked the saved fixture, then the interrupted cleanup affected later tests.
 - **Corrected:** encode only the synthetic journey identifier's digits as letters. Keep the UUID's uniqueness, every assertion and all production privacy code. Reproduce the detected identifier locally and verify the encoded fixture does not trip the detector while real phone-like text still does.
 - **Gate:** rerun CI on the corrected head before merge; no hosted migration or production deployment.
+
+## 2026-10-30 — opt-in editorial guidance (GitHub draft candidate)
+
+- **Done:** added a bilingual draft-only editorial reference, concise-output guidance,
+  pinned upstream attribution and full MIT notices. Linked it narrowly from AGENTS
+  and CLAUDE; no upstream hook/skill activation or runtime/model change.
+- **Verified:** synthetic fixture script, editorial/docs unittest selection, strict
+  brain check and whitespace check pass. Quick aggregate attempted: missing
+  psycopg2 and uninstalled frontend tsc/vitest block broader suites; not a full pass.
+  No application behavior or rendered-report quality claim.
+- **Decided:** preserve claims, numbers, citations, uncertainty and approved bytes;
+  only owner-selected draft editing is in scope. Existing Claude/Hermes work retained.
+- **Next:** GitHub draft review and exact-head CI; no merge/deployment. Laptop
+  installation is separate and has not happened in this cloud workspace.

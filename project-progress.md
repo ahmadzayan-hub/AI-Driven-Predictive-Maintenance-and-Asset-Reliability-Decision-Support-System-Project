@@ -346,3 +346,9 @@ and remote merge remain distinct gates. Existing report features are retained.
 RTL phone follow-up: remove the negative hidden-element margin and strengthen
 root-scroll assertions to use client dimensions. Restore explicit identity-control
 focus styling without changing contrast thresholds. Verification recorded separately.
+
+**Opt-in editorial guidance candidate, 30 October 2026:** bilingual draft-only
+reference with pinned attribution and MIT notices, narrow agent-document links and
+bounded stdlib teaching fixtures. No runtime/approved-report changes or activation.
+Focused checks pass; quick aggregate is dependency-blocked in the cloud checkout.
+GitHub draft review and laptop installation remain separate steps.
