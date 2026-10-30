@@ -1,0 +1,10 @@
+FINDING: [P07] "The 9 air compressors recorded 5 failures, which is 56% of all unplanned workshop failures" with a total of 17. 5 / 17 = 29.4%, not 56%. The register row "Compressor share of all failures percent,56" carries the same wrong value, so the register does not catch it.
+Category: arithmetic
+
+FINDING: [P25] "Across the 6 lift failures, the mean repair time is therefore 21 hours" (126 / 6). The 126 hours add 30 hours of planned re-certification to the 96 unplanned hours. P19 and P03 say planned work is excluded from unplanned downtime and that mean repair time is an unplanned measure. On that base, 96 / 6 = 16 hours, which matches the register row "Lift mean repair hours unplanned only,16". The 21-hour figure is wrong for the stated base.
+Category: arithmetic
+
+FINDING: [P09] "Four compressors moved to a 500-hour oil change interval and four remained on the existing 250-hour interval." The register gives 8 compressors in the trial but no split into groups of four. The 4 / 4 split is not in the register and is not an exact result of any register row.
+Category: unsourced_figure
+
+SUMMARY: 3 findings.
