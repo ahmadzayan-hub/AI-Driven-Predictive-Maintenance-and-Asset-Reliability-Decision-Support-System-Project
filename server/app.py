@@ -385,7 +385,7 @@ class ConnectorIn(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     url: str = Field(min_length=1, max_length=2000)
     goal: str = Field(min_length=1, max_length=500)
-    format: str | None = Field(default=None, pattern="^(csv|tsv|xlsx|json|jsonl)$")
+    format: str | None = Field(default=None, pattern="^(csv|tsv|xlsx|ods|json|jsonl)$")
     sheet: str | None = Field(default=None, max_length=31)
     every_minutes: int | None = None
     language: str = Field(default="en", pattern="^(en|ar)$")
@@ -1293,7 +1293,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
     async def list_workbook_sheets(
         request: Request,
         name: str = Query(min_length=1, max_length=100),
-        format: str | None = Query(default=None, pattern="^(csv|tsv|xlsx|json|jsonl)$"),
+        format: str | None = Query(default=None, pattern="^(csv|tsv|xlsx|ods|json|jsonl)$"),
         language: str = Query(default="en", pattern="^(en|ar)$"),
         principal=Depends(requires("write")),
     ):
@@ -1303,9 +1303,10 @@ def create_app(config_path=None, env=None, dist_dir=None):
         body = await read_body(request, language)
         filename = re.split(r"[\\/]", name)[-1].strip() or "dataset"
         try:
-            if (format or dataset_reader.detect_format(filename, body)) != "xlsx":
+            fmt = format or dataset_reader.detect_format(filename, body)
+            if fmt not in ("xlsx", "ods"):
                 return {"sheets": [], "default_sheet": None}
-            sheets = await run_in_threadpool(dataset_reader.list_sheets, body)
+            sheets = await run_in_threadpool(dataset_reader.list_sheets, body, fmt)
         except dataset_reader.DatasetError as error:
             raise HTTPException(error.status, detail=error.message(language))
         return {"sheets": sheets, "default_sheet": dataset_reader.default_sheet(sheets)}
@@ -1314,7 +1315,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
     async def upload_dataset(
         request: Request,
         name: str = Query(min_length=1, max_length=100),
-        format: str | None = Query(default=None, pattern="^(csv|tsv|xlsx|json|jsonl)$"),
+        format: str | None = Query(default=None, pattern="^(csv|tsv|xlsx|ods|json|jsonl)$"),
         sheet: str | None = Query(default=None, max_length=31),
         language: str = Query(default="en", pattern="^(en|ar)$"),
         principal=Depends(requires("write")),

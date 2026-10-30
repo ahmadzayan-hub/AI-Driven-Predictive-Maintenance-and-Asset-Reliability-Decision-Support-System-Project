@@ -894,6 +894,21 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### OpenDocument spreadsheets are read: 30 October 2026
+
+Reader change ([decision](docs/adr/2026-10-30-opendocument-spreadsheets.md)):
+an `.ods` file, LibreOffice's default format, uploads and is read like an Excel
+workbook, with the same sheet choice, warnings, title-line detection and sheet
+listing, and is stored as `ods`. The repeated empty cells and rows LibreOffice
+writes for the unused grid are never expanded; the column and row limits, the
+XML budget and the document type refusal apply as for workbooks. The file
+picker accepts `.ods`; the upload help text does not name it yet, to stay within
+the script budget (257.07 of 257.1 KB).
+
+Checked by the full Python suite against PostgreSQL 16 (2,383 tests, 19
+skipped, 10 of them new: the reader on its own and the API on SQLite and
+PostgreSQL), 536 frontend unit tests, and the production build and budget.
+
 ### A failed workbook upload offers its sheets: 30 October 2026
 
 Interface change ([decision](docs/adr/2026-10-30-sheet-picker-after-failure.md)):

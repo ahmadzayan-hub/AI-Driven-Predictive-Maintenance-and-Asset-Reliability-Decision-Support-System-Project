@@ -9,7 +9,7 @@ export type SheetChoice = Pick<UploadResult, 'sheets' | 'sheet_details' | 'selec
 /** After a workbook upload fails (no sheet looked like a table, or the
  *  chosen one did not read), its sheets so the user can pick another. */
 export async function sheetsAfterFailure(file: File, language: 'en' | 'ar'): Promise<SheetChoice | null> {
-  if (!/\.xls/i.test(file.name)) return null
+  if (!/\.(xls|ods)/i.test(file.name)) return null
   const { sheets } = await api.listSheets(file, language).catch(() => ({ sheets: [] }))
   return sheets[1] ? { sheets: sheets.map((d) => d.name), sheet_details: sheets } : null
 }

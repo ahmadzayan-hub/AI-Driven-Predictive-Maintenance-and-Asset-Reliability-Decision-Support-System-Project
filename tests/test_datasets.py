@@ -22,6 +22,7 @@ from server import datasets
 from tests.support import closing
 from server.datasets import DatasetError, read
 from tests.test_runs import FASTAPI_AVAILABLE, PG_TEST_URL, _postgres_available
+from tests.ods_builder import Raw, build_ods
 from tests.xlsx_builder import (DATE, QUARTERLY_SALES, REGIONAL_SALES, STRICT_MAIN, TIME,
                                 Cell, build_xlsx)
 
@@ -456,6 +457,112 @@ class XlsxTests(unittest.TestCase):
         self.assertEqual(parsed.sheets, ["Sales", "Notes"])
 
 
+class OdsTests(unittest.TestCase):
+    """OpenDocument spreadsheets (2026-10-30): read like a workbook, with
+    LibreOffice's repeated empty grid never expanded."""
+
+    def test_text_numbers_dates_times_booleans_read_as_in_a_workbook(self):
+        time_cell = Raw('<table:table-cell office:value-type="time" office:time-value="PT18H30M00S">'
+                        '<text:p>18:30</text:p></table:table-cell>')
+        pct = Raw('<table:table-cell office:value-type="percentage" office:value="0.25">'
+                  '<text:p>25%</text:p></table:table-cell>')
+        body = build_ods([("Data", [
+            ["month", "region", "revenue", "active", "booked", "shift", "share"],
+            ["2025-01", "الشمال", 100, True, date(2025, 1, 15), time_cell, pct],
+            ["2025-02", "South", 120.5, False, datetime(2025, 2, 1, 9, 30), None, None],
+        ])])
+        parsed = read(body, "book.ods")
+        self.assertEqual(parsed.source_format, "ods")
+        self.assertEqual(table(parsed), [
+            ["month", "region", "revenue", "active", "booked", "shift", "share"],
+            ["2025-01", "الشمال", "100", "TRUE", "2025-01-15", "18:30:00", "0.25"],
+            ["2025-02", "South", "120.5", "FALSE", "2025-02-01 09:30:00", "", ""]])
+        self.assertEqual(parsed.sheets, ["Data"])
+        self.assertEqual(parsed.warnings, [])
+
+    def test_the_unused_grid_is_never_expanded(self):
+        # Each row ends in 16,380 empty cells and the sheet in 1,048,000 empty
+        # rows, as LibreOffice writes them; the table is still two columns.
+        parsed = read(build_ods([("S", [["a", "b"], [1, 2]])]), "grid.ods")
+        self.assertEqual(table(parsed), [["a", "b"], ["1", "2"]])
+
+    def test_repeated_values_are_copied_and_gaps_kept(self):
+        row = Raw('<table:table-row><table:table-cell office:value-type="float" office:value="7" '
+                  'table:number-columns-repeated="2"><text:p>7</text:p></table:table-cell>'
+                  '<table:table-cell table:number-columns-repeated="1"/>'
+                  '<table:table-cell office:value-type="float" office:value="9"><text:p>9</text:p>'
+                  '</table:table-cell></table:table-row>')
+        twice = Raw('<table:table-row table:number-rows-repeated="2"><table:table-cell '
+                    'office:value-type="string"><text:p>same</text:p></table:table-cell>'
+                    '<table:table-cell office:value-type="float" office:value="1"><text:p>1</text:p>'
+                    '</table:table-cell></table:table-row>')
+        parsed = read(build_ods([("S", [["a", "b", "c", "d"], row, twice])]), "rep.ods")
+        self.assertEqual(parsed.rows, [["7", "7", "", "9"], ["same", "1", "", ""],
+                                       ["same", "1", "", ""]])
+
+    def test_paragraphs_spaces_and_notes(self):
+        cell = Raw('<table:table-cell office:value-type="string"><office:annotation><text:p>'
+                   'a private note</text:p></office:annotation><text:p>Line one</text:p>'
+                   '<text:p>two<text:s text:c="3"/>spaced</text:p></table:table-cell>')
+        parsed = read(build_ods([("S", [["note", "n"], [cell, 1]])]), "text.ods")
+        self.assertEqual(parsed.rows, [["Line one\ntwo   spaced", "1"]])
+
+    def test_a_value_past_the_column_limit_and_a_row_flood_are_refused(self):
+        far = Raw('<table:table-row><table:table-cell table:number-columns-repeated="600"/>'
+                  '<table:table-cell office:value-type="float" office:value="1"><text:p>1</text:p>'
+                  '</table:table-cell></table:table-row>')
+        with self.assertRaises(DatasetError) as caught:
+            read(build_ods([("S", [["a", "b"], far])]), "wide.ods")
+        self.assertIn("columns", caught.exception.en)
+        flood = Raw(f'<table:table-row table:number-rows-repeated="{datasets.MAX_ROWS + 10}">'
+                    '<table:table-cell office:value-type="float" office:value="1"><text:p>1</text:p>'
+                    '</table:table-cell><table:table-cell office:value-type="float" office:value="2">'
+                    '<text:p>2</text:p></table:table-cell></table:table-row>')
+        with self.assertRaises(DatasetError) as caught:
+            read(build_ods([("S", [["a", "b"], flood])]), "flood.ods")
+        self.assertIn("rows", caught.exception.en)
+
+    def test_sheets_are_listed_and_chosen_as_in_a_workbook(self):
+        body = build_ods([("Cover", [["Synthetic plant report"], ["Prepared for testing only"]]),
+                          ("Plant data", [["Synthetic plant data"], ["plant", "cost"],
+                                          ["North", 320], ["South", 180]]),
+                          ("Lookup", [["code", "label"], ["N", "North"]])])
+        listed = datasets.list_sheets(body, "ods")
+        self.assertEqual([s["name"] for s in listed], ["Cover", "Plant data", "Lookup"])
+        self.assertEqual([s["tabular"] for s in listed], [False, True, True])
+        self.assertEqual(datasets.default_sheet(listed), "Plant data")
+        parsed = read(body, "plant.ods")
+        self.assertEqual(parsed.selected_sheet, "Plant data")
+        self.assertEqual(table(parsed), [["plant", "cost"], ["North", "320"], ["South", "180"]])
+        texts = parsed.warning_texts()
+        self.assertIn("Read the sheet “Plant data”, the first of 3 that looks like a table.", texts)
+        self.assertIn("Left out 1 title line above the header row.", texts)
+        self.assertEqual(read(body, "plant.ods", sheet="lookup").columns, ["code", "label"])
+        with self.assertRaises(DatasetError) as caught:
+            read(body, "plant.ods", sheet="Budget")
+        self.assertIn("Its sheets: Cover, Plant data, Lookup", caught.exception.en)
+
+    def test_detected_by_name_and_by_its_bytes(self):
+        body = build_ods([("S", [["a", "b"], [1, 2]])])
+        self.assertEqual(datasets.detect_format("x.ods", body), "ods")
+        self.assertEqual(datasets.detect_format("download", body), "ods")
+        self.assertEqual(datasets.detect_format("download", build_xlsx([("S", [["a"], [1]])])), "xlsx")
+
+    def test_hostile_content_is_refused(self):
+        doctype = ('<?xml version="1.0"?><!DOCTYPE x [<!ENTITY a "b">]>'
+                   '<office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"/>')
+        for content, expected in ((doctype, "document type"), ("<not closed", "content.xml")):
+            with self.subTest(expected=expected), self.assertRaises(DatasetError) as caught:
+                read(build_ods([], content=content), "bad.ods")
+            self.assertIn(expected, caught.exception.en)
+        no_content = io.BytesIO()
+        with zipfile.ZipFile(no_content, "w") as archive:
+            archive.writestr("mimetype", "application/vnd.oasis.opendocument.spreadsheet")
+        with self.assertRaises(DatasetError) as caught:
+            read(no_content.getvalue(), "empty.ods")
+        self.assertIn("no content.xml", caught.exception.en)
+
+
 def _zip(files):
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w") as archive:
@@ -555,6 +662,22 @@ class DatasetApiTestCase(unittest.TestCase):
         self.assertFalse(again.json()["created"])
         self.assertEqual(again.json()["dataset"]["id"], first.json()["dataset"]["id"])
         self.assertEqual(len(self.client.get("/api/datasets").json()["datasets"]), 1)
+
+    def test_an_opendocument_spreadsheet_is_listed_and_stored_as_ods(self):
+        headers = getattr(self, "headers", {})
+        body = build_ods([("Cover", [["Synthetic report"]]),
+                          ("Readings", [["asset", "hours"], ["Lift 1", 4], ["Lift 2", 6]])])
+        listing = self.client.post("/api/datasets/sheets?name=readings.ods", content=body,
+                                   headers=headers)
+        self.assertEqual(listing.status_code, 200, listing.text)
+        self.assertEqual(listing.json()["default_sheet"], "Readings")
+        response = self.upload(body, "readings.ods")
+        self.assertEqual(response.status_code, 201, response.text)
+        payload = response.json()
+        self.assertEqual(payload["dataset"]["source_format"], "ods")
+        self.assertEqual(payload["selected_sheet"], "Readings")
+        self.assertEqual(payload["columns"], ["asset", "hours"])
+        self.assertEqual(payload["dataset"]["row_count"], 2)
 
     def test_a_cover_sheet_first_uploads_the_first_table_and_lists_every_sheet(self):
         body, headers = cover_book(), getattr(self, "headers", {})

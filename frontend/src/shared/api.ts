@@ -22,7 +22,7 @@ function sendFile<T>(path: string, file: File, language: string, extra = '') {
 /** The most one upload can be (server/datasets.py, ADR 0024). Checked
  *  here only to save a wasted transfer; the server decides. */
 export const MAX_UPLOAD_BYTES = 4_000_000
-export const UPLOAD_ACCEPT = '.csv,.tsv,.tab,.txt,.xlsx,.xlsm,.json,.jsonl,.ndjson'
+export const UPLOAD_ACCEPT = '.csv,.tsv,.tab,.txt,.xlsx,.xlsm,.ods,.json,.jsonl,.ndjson'
 
 export class ApiError extends Error {
   status: number

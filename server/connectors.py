@@ -43,7 +43,7 @@ LEASE_SECONDS = 120
 # Reserved by RFC 2606: never a real host, so only the test seam answers it.
 FIXTURE_HOST = "fixtures.invalid"
 FIXTURE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$")
-FORMATS = ("csv", "tsv", "xlsx", "json", "jsonl")
+FORMATS = ("csv", "tsv", "xlsx", "ods", "json", "jsonl")
 CREDENTIAL_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
 SECRET_ENV_NAME = re.compile(r"^[A-Z][A-Z0-9_]{1,127}$")
 CHUNK = 16 * 1024
