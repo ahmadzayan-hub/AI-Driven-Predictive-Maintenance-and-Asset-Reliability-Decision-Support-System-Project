@@ -894,6 +894,21 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Join keys that differ only in case or spaces: 30 October 2026
+
+Analysis change ([decision](docs/adr/2026-10-30-loose-join-keys.md)): a join
+may declare `"match": "loose"`, so text keys compare ignoring letter case and
+spaces (`PUMP-01` matches `pump-01 `); numbers and dates compare as before, and
+a lookup whose keys repeat only once loosened is refused. Every join now
+reports how many rows matched only because it was loose, or, for an exact join,
+how many unmatched rows a loose one would have matched; the merge stage states
+these as claims tied to calculations. Exact joins, saved declarations and
+request hashes are unchanged. Server side only: the join builder does not offer
+the option yet.
+
+Checked by the full Python suite against PostgreSQL 16 (2,391 tests, 19
+skipped, 8 of them new), 536 frontend unit tests, and the build and budget.
+
 ### OpenDocument spreadsheets are read: 30 October 2026
 
 Reader change ([decision](docs/adr/2026-10-30-opendocument-spreadsheets.md)):

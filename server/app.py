@@ -296,6 +296,18 @@ class JoinIn(BaseModel):
     keys: list[KeyPairIn] = Field(default_factory=list, max_length=joining.MAX_KEYS)
     how: str = Field(default="left", pattern="^(left|inner|stack)$")
     alias: str | None = Field(default=None, max_length=24)
+    # How text keys compare (30 October 2026): exact (the default) or loose,
+    # ignoring letter case and runs of spaces.
+    match: str | None = Field(default=None, pattern="^(exact|loose)$")
+
+
+def _join_dict(join):
+    """A join as the run engine takes it. `match` is left out unless given,
+    so a request written before it existed hashes as it did (idempotency)."""
+    out = join.model_dump()
+    if out.get("match") is None:
+        out.pop("match", None)
+    return out
 
 
 class JoinPreviewIn(BaseModel):
@@ -1212,7 +1224,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
                                            dataset_id=run.dataset_id,
                                            profile=run.profile,
                                            language=run.language,
-                                           joins=([j.model_dump() for j in run.joins]
+                                           joins=([_join_dict(j) for j in run.joins]
                                                   if run.joins else None),
                                            breakdown=run.breakdown,
                                            assumptions=run.assumptions,
@@ -1245,7 +1257,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         def plan():
             with lock:
                 return engine.join_plan(principal.subject, body.dataset_id,
-                                        [j.model_dump() for j in body.joins],
+                                        [_join_dict(j) for j in body.joins],
                                         body.breakdown)
         try:
             primary, mapping, spec, inputs = await run_in_threadpool(plan)

@@ -942,6 +942,39 @@ def merge(ctx):
                 f"احتُفظ بالصفوف المتطابقة وحدها: استُبعد {record['unmatched']} صفاً "
                 f"بلا تطابق في {name}، فكل مجموع يغطي {record['rows_out']} صفاً.",
                 [f"{prefix}_rows_out", f"{prefix}_matched"]))
+        # How keys were compared (30 October 2026): a loose join says how many
+        # matches it owes to ignoring case and spaces; an exact join says how
+        # many unmatched rows that would have matched.
+        if record.get("match") == "loose":
+            calcs.append({"id": f"{prefix}_loose",
+                          "name": f"rows_matched_ignoring_case_{record['alias']}",
+                          "value": record.get("loose_matched", 0),
+                          "method": "matched rows whose key matched only when letter case "
+                                    "and runs of spaces were ignored"})
+            claims.append(_claim(
+                ctx, f"cl_merge_{index}_loose", "fact",
+                f"Keys were compared ignoring letter case and spaces: "
+                f"{record.get('loose_matched', 0)} of the {matched} matched rows matched "
+                f"{name} only because of that.",
+                f"قورنت المفاتيح مع تجاهل حالة الأحرف والمسافات: تطابق "
+                f"{record.get('loose_matched', 0)} من أصل {matched} صفاً متطابقاً مع "
+                f"{name} بسبب ذلك وحده.",
+                [f"{prefix}_loose", f"{prefix}_matched"]))
+        elif record.get("near_matches"):
+            calcs.append({"id": f"{prefix}_near",
+                          "name": f"unmatched_rows_matching_ignoring_case_{record['alias']}",
+                          "value": record["near_matches"],
+                          "method": "unmatched rows whose key matches when letter case and "
+                                    "runs of spaces are ignored"})
+            claims.append(_claim(
+                ctx, f"cl_merge_{index}_near", "limitation",
+                f"{record['near_matches']} of the {record['unmatched']} unmatched rows would "
+                f"match {name} if letter case and spaces were ignored; the keys were "
+                f"compared exactly.",
+                f"كان {record['near_matches']} من أصل {record['unmatched']} صفاً غير متطابق "
+                f"سيتطابق مع {name} لو تُجوهلت حالة الأحرف والمسافات؛ قورنت المفاتيح "
+                f"مقارنة تامة.",
+                [f"{prefix}_near", f"{prefix}_rows_in"]))
         expected = record["rows_in"] if record["how"] == "left" else record["matched"]
         checks += [
             {"name": f"join_{record['alias']}_keeps_the_row_count",

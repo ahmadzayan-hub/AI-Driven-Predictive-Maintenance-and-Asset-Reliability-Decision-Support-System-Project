@@ -43,6 +43,10 @@ P4_TOTAL = float(sum(v for _, p, _, v in SALES_ROWS if p == "P4"))
 PRODUCTS_CSV = ("code,category,list_price\nP1,Hardware,10\nP2,Software,20\n"
                 "P3,Hardware,15\nP9,Services,5\n")
 DUPLICATED_CSV = "code,category\nP1,Hardware\nP1,Software\nP2,Software\n"
+# The product list as another system writes its codes (30 October 2026):
+# P1 and P3 in lower case with stray spaces, so only P2 matches exactly.
+MESSY_PRODUCTS_CSV = ("code,category,list_price\np1 ,Hardware,10\nP2,Software,20\n"
+                      " p3,Hardware,15\nP9,Services,5\n")
 # The next quarter's export of the same table (a stack, 27 October 2026):
 # the same four columns, three more months, plus one row that repeats the
 # last row of the first half.
@@ -125,6 +129,30 @@ class KeyTests(unittest.TestCase):
         self.assertEqual(j.key_text("2.50", True), "2.5")
         self.assertIsNone(j.key_text("n/a", True))
 
+    def test_loose_matching_is_declared_and_only_recorded_when_chosen(self):
+        keys = [{"left": "product", "right": "code"}]
+        exact = j.normalise([{"dataset_id": "d", "keys": keys}])["joins"][0]
+        self.assertNotIn("match", exact)  # a saved declaration reads as before
+        self.assertEqual(j.normalise([{"dataset_id": "d", "keys": keys, "match": "exact"}]),
+                         j.normalise([{"dataset_id": "d", "keys": keys}]))
+        loose = j.normalise([{"dataset_id": "d", "keys": keys, "match": "loose"}])["joins"][0]
+        self.assertEqual(loose["match"], "loose")
+        stack = j.normalise([{"dataset_id": "d", "how": "stack", "match": "loose"}])["joins"][0]
+        self.assertNotIn("match", stack)
+        with self.assertRaises(j.JoinError) as caught:
+            j.normalise([{"dataset_id": "d", "keys": keys, "match": "fuzzy"}])
+        problem = caught.exception.problems[0]
+        self.assertEqual(problem.field, "match")
+        self.assertIn("use exact or loose", problem.en)
+        self.assertIn("استخدم exact أو loose", problem.ar)
+
+    def test_loose_text_ignores_case_and_runs_of_spaces_but_not_numbers(self):
+        self.assertEqual(j.key_text("  PUMP-01 ", False, True), j.key_text("pump-01", False, True))
+        self.assertEqual(j.key_text("Lift   Bay 2", False, True), "lift bay 2")
+        self.assertNotEqual(j.key_text("PUMP-01", False), j.key_text("pump-01", False))
+        self.assertEqual(j.key_text("003", True, True), "3")
+        self.assertIsNone(j.key_text("   ", False, True))
+
     def test_text_compares_trimmed_and_exact(self):
         self.assertEqual(j.key_text("  North ", False), "North")
         self.assertNotEqual(j.key_text("north", False), j.key_text("North", False))
@@ -181,6 +209,41 @@ class MergeTests(unittest.TestCase):
         record = result["joins"][0]
         self.assertEqual((record["rows_out"], record["matched"]), (18, 18))
         self.assertEqual(sum(r["revenue"] for r in result["rows"]), SALES_TOTAL - P4_TOTAL)
+
+    def test_an_exact_join_counts_the_rows_a_loose_one_would_match(self):
+        columns, rows, numeric = base()
+        result = j.merge(columns, rows, numeric,
+                         [joined(MESSY_PRODUCTS_CSV, [{"left": "product", "right": "code"}])])
+        record = result["joins"][0]
+        self.assertEqual((record["match"], record["matched"], record["near_matches"],
+                          record["loose_matched"]), ("exact", 6, 12, 0))
+
+    def test_a_loose_join_matches_across_case_and_spaces_and_says_how_many(self):
+        columns, rows, numeric = base()
+        item = joined(MESSY_PRODUCTS_CSV, [{"left": "product", "right": "code"}])
+        item["match"] = "loose"
+        result = j.merge(columns, rows, numeric, [item])
+        record = result["joins"][0]
+        self.assertEqual((record["match"], record["matched"], record["loose_matched"],
+                          record["near_matches"]), ("loose", 18, 12, 0))
+        self.assertEqual(record["unmatched_keys"], ["P4"])
+        p1 = next(r for r in result["rows"] if r["product"] == "P1")
+        self.assertEqual(p1["category"], "Hardware")
+        # The main table's own values are kept as written.
+        self.assertEqual(sum(r["revenue"] for r in result["rows"]), SALES_TOTAL)
+
+    def test_keys_that_only_differ_in_case_repeat_under_a_loose_join(self):
+        columns, rows, numeric = base()
+        text = "code,category\nP1,Hardware\np1,Software\nP2,Software\n"
+        exact = j.merge(columns, rows, numeric, [joined(text, [{"left": "product", "right": "code"}])])
+        self.assertEqual(exact["joins"][0]["matched"], 12)
+        item = joined(text, [{"left": "product", "right": "code"}])
+        item["match"] = "loose"
+        with self.assertRaises(j.JoinError) as caught:
+            j.merge(columns, rows, numeric, [item])
+        problem = caught.exception.problems[0]
+        self.assertIn("when case and spaces are ignored", problem.en)
+        self.assertIn("عند تجاهل حالة الأحرف والمسافات", problem.ar)
 
     def test_a_repeated_lookup_key_is_refused(self):
         columns, rows, numeric = base()
@@ -350,6 +413,15 @@ class PreviewTests(unittest.TestCase):
         self.assertEqual(preview["preview"][0], ["2025-01", "P1", "South", "100", "Hardware", "10"])
         self.assertEqual(preview["joins"][0]["matched"], 18)
 
+    def test_the_preview_reports_loose_and_near_matches(self):
+        exact = analytics.preview_merge(SALES_CSV, None, self.inputs(MESSY_PRODUCTS_CSV), None)
+        self.assertEqual((exact["joins"][0]["matched"], exact["joins"][0]["near_matches"]), (6, 12))
+        loose = self.inputs(MESSY_PRODUCTS_CSV)
+        loose[0]["match"] = "loose"
+        preview = analytics.preview_merge(SALES_CSV, None, loose, None)
+        self.assertEqual((preview["joins"][0]["matched"], preview["joins"][0]["loose_matched"]),
+                         (18, 12))
+
     def test_a_main_dataset_the_pipeline_refuses_is_refused_here(self):
         with self.assertRaises(j.JoinError):
             analytics.preview_merge("a,b\nx,y\n", None, self.inputs(), None)
@@ -495,6 +567,25 @@ class JoinApiTestCase(unittest.TestCase):
         ids = {c["id"] for c in self.task(run, "merge")["claims"]}
         self.assertIn("cl_merge_0_inner", ids)
         self.assertIn("18 analyzed rows", run["report"]["content"])
+
+    def test_a_loose_run_says_what_it_matched_and_an_exact_one_what_it_missed(self):
+        sales = self.upload(SALES_CSV, "sales.csv")
+        products = self.upload(MESSY_PRODUCTS_CSV, "products.csv")
+        exact = self.run_to_gate(dataset_id=sales, joins=self.joins(products))
+        near = next(c for c in self.task(exact, "merge")["claims"] if c["id"] == "cl_merge_0_near")
+        self.assertEqual(near["type"], "limitation")
+        self.assertIn("12 of the 18 unmatched rows would match products.csv", near["text"])
+        joins = self.joins(products)
+        joins[0]["match"] = "loose"
+        run = self.run_to_gate(dataset_id=sales, joins=joins)
+        self.assertEqual(run["joins"][0]["match"], "loose")
+        merged = self.output(run, "merge")
+        self.assertEqual((merged["joins"][0]["matched"], merged["joins"][0]["loose_matched"]),
+                         (18, 12))
+        claim = next(c for c in self.task(run, "merge")["claims"] if c["id"] == "cl_merge_0_loose")
+        self.assertIn("12 of the 18 matched rows matched products.csv only because of that",
+                      claim["text"])
+        self.assertTrue(all(c["passed"] for c in self.task(run, "validator")["quality_checks"]))
 
     def test_a_stacked_export_is_counted_once_and_told_apart_by_source(self):
         h1 = self.upload(SALES_CSV, "h1.csv")

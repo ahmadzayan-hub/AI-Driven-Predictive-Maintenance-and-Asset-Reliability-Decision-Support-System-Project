@@ -23,6 +23,10 @@ from server import mapping as colmap
 MAX_JOINS = 4
 MAX_KEYS = 3
 HOWS = ("left", "inner", "stack")
+# How text keys compare (30 October 2026): exactly, as before, or "loose":
+# ignoring letter case and runs of spaces, so "PUMP-01" and "pump-01 " are
+# one key. Numbers and dates compare the same way under either.
+MATCHES = ("exact", "loose")
 # The same ceiling one dataset has (server/datasets.py, ADR 0024).
 MAX_MERGED_COLUMNS = 500
 # A stacked table may not grow past what one dataset may hold
@@ -143,6 +147,13 @@ def normalise(joins, breakdown=None):
                 f"Join {index + 1} has {len(keys)} key pairs; the limit is {MAX_KEYS}.",
                 f"الدمج رقم {index + 1} فيه {len(keys)} أزواج مفاتيح، والحد {MAX_KEYS}.",
                 index))
+        match = item.get("match") or "exact"
+        if match not in MATCHES:
+            problems.append(Problem(
+                "match", None,
+                f"Join {index + 1}: “{match}” is not a way to compare keys; use exact or loose.",
+                f"الدمج رقم {index + 1}: «{match}» ليست طريقة لمقارنة المفاتيح؛ استخدم exact أو loose.",
+                index))
         alias = item.get("alias")
         if alias is not None:
             alias = str(alias).strip().lower() or None
@@ -154,8 +165,12 @@ def normalise(joins, breakdown=None):
                     f"الدمج رقم {index + 1}: البادئة «{alias}» يجب أن تبدأ بحرف وأن "
                     "تتكون من حروف إنجليزية صغيرة وأرقام وشرطات سفلية (24 على الأكثر).",
                     index))
-        clean.append({"dataset_id": dataset_id, "how": how, "keys": keys,
-                      "alias": alias})
+        entry = {"dataset_id": dataset_id, "how": how, "keys": keys, "alias": alias}
+        # Only a loose join records how it compares, so every declaration
+        # saved before this option reads, and hashes, exactly as it did.
+        if match == "loose" and how != "stack":
+            entry["match"] = "loose"
+        clean.append(entry)
     if problems:
         raise JoinError(problems)
     breakdown = str(breakdown).strip() if breakdown else None
@@ -245,9 +260,10 @@ def clean_table(text, mapping=None):
 # Keys
 # ---------------------------------------------------------------------------
 
-def key_text(value, numeric):
+def key_text(value, numeric, loose=False):
     """A key value as it is compared. Numbers compare as numbers, so 3,
-    3.0 and "003" are one key; everything else as trimmed text."""
+    3.0 and "003" are one key; everything else as trimmed text, and with
+    `loose` also ignoring letter case and runs of spaces."""
     if value is None:
         return None
     if numeric:
@@ -259,6 +275,8 @@ def key_text(value, numeric):
         number = float(number)
         return str(int(number)) if number.is_integer() else format(number, ".15g")
     text = str(value).strip()
+    if loose:
+        text = " ".join(text.split()).casefold()
     return text or None
 
 
@@ -414,15 +432,23 @@ def merge(columns, rows, numeric, joined, date=None, source_name=None):
                     date.get("order") or "auto", date.get("grain") or "auto",
                     date.get("fiscal_start") or 1)
                 right_values[right] = labels
+        loose = item.get("match") == "loose"
         lookup, counts, empty_keys = {}, Counter(), 0
+        # Both ways of comparing are kept for the lookup: a loose join says
+        # how many rows matched only because it was loose, and an exact one
+        # how many unmatched rows would have matched loosely.
+        exact_keys, loose_keys = set(), set()
         for position, row in enumerate(table.rows):
-            key = tuple(
-                key_text(right_values[right][position] if right in right_values
-                         else row.get(right), number)
-                for right, number in zip(rights, as_number))
+            raw = [right_values[right][position] if right in right_values else row.get(right)
+                   for right in rights]
+            exact = tuple(key_text(v, number) for v, number in zip(raw, as_number))
+            relaxed = tuple(key_text(v, number, True) for v, number in zip(raw, as_number))
+            key = relaxed if loose else exact
             if None in key:
                 empty_keys += 1
                 continue
+            exact_keys.add(exact)
+            loose_keys.add(relaxed)
             counts[key] += 1
             lookup.setdefault(key, row)
         repeated = [(key, n) for key, n in counts.most_common() if n > 1]
@@ -430,13 +456,15 @@ def merge(columns, rows, numeric, joined, date=None, source_name=None):
             examples = repeated[:DUPLICATE_EXAMPLES]
             shown = "; ".join(f"“{_quoted([key])}” ({n} times)" for key, n in examples)
             shown_ar = "؛ ".join(f"«{_quoted([key])}» ({n} مرات)" for key, n in examples)
+            how_en = " when case and spaces are ignored" if loose else ""
+            how_ar = " عند تجاهل حالة الأحرف والمسافات" if loose else ""
             problems.append(Problem(
                 "keys", ", ".join(rights),
                 f"Join {index + 1}: {len(repeated)} key value(s) appear more than once in "
-                f"{name}, for example {shown}. Each main row must find at most one "
+                f"{name}{how_en}, for example {shown}. Each main row must find at most one "
                 "match, or its figures would be counted more than once. Keep one row "
                 "per key in the joined dataset, or join on more columns.",
-                f"الدمج رقم {index + 1}: تتكرر {len(repeated)} من قيم المفتاح في {name}، "
+                f"الدمج رقم {index + 1}: تتكرر {len(repeated)} من قيم المفتاح في {name}{how_ar}، "
                 f"مثل {shown_ar}. يجب أن يجد كل صف رئيسي تطابقاً واحداً على الأكثر، وإلا "
                 "حُسبت أرقامه أكثر من مرة. أبقِ صفاً واحداً لكل مفتاح في البيانات المدمجة، "
                 "أو ادمج على أعمدة أكثر.", index))
@@ -464,6 +492,7 @@ def merge(columns, rows, numeric, joined, date=None, source_name=None):
             continue
 
         merged, matched, unmatched_keys, used = [], 0, [], set()
+        loose_only, near = 0, 0
         # An unmatched row gets what a blank cell becomes after cleaning:
         # no number for a measure, empty text otherwise. A breakdown on a
         # joined column then groups the unmatched rows together, and the
@@ -472,16 +501,23 @@ def merge(columns, rows, numeric, joined, date=None, source_name=None):
         blank = {new: (None if old in table.numeric else "")
                  for old, new in zip(source, added)}
         for row in rows:
-            key = tuple(key_text(row.get(left), number)
-                        for left, number in zip(lefts, as_number))
+            exact = tuple(key_text(row.get(left), number)
+                          for left, number in zip(lefts, as_number))
+            relaxed = tuple(key_text(row.get(left), number, True)
+                            for left, number in zip(lefts, as_number))
+            key = relaxed if loose else exact
             match = lookup.get(key) if None not in key else None
             if match is None:
-                if len(unmatched_keys) < UNMATCHED_EXAMPLES and key not in unmatched_keys:
-                    unmatched_keys.append(key)
+                if not loose and None not in relaxed and relaxed in loose_keys:
+                    near += 1
+                if len(unmatched_keys) < UNMATCHED_EXAMPLES and exact not in unmatched_keys:
+                    unmatched_keys.append(exact)
                 if how == "left":
                     merged.append({**row, **blank})
                 continue
             matched += 1
+            if loose and exact not in exact_keys:
+                loose_only += 1
             used.add(key)
             merged.append({**row, **{new: match[old] for old, new in zip(source, added)}})
         rows_in = len(rows)
@@ -498,6 +534,10 @@ def merge(columns, rows, numeric, joined, date=None, source_name=None):
             "lookup_dropped_empty": table.dropped_empty,
             "lookup_dropped_duplicates": table.dropped_duplicates,
             "added_columns": added, "renamed": renamed,
+            "match": "loose" if loose else "exact",
+            # Rows matched only because case and spaces were ignored (loose),
+            # and unmatched rows that would match if they were (exact).
+            "loose_matched": loose_only, "near_matches": near,
         })
         columns += added
         numeric += [renamed.get(c, c) for c in table.numeric if c not in rights]
