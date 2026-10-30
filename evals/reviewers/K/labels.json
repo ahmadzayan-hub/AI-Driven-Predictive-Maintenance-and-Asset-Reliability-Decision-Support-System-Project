@@ -1,0 +1,47 @@
+{
+  "about": "This synthetic 27-paragraph regional bus depot workshop review plants 9 domain_method defects, 1 denominator defect, 1 causal_claim defect and 1 overclaim defect (12 defective paragraphs in all), alongside 11 correct decoys and 4 plain correct paragraphs.",
+  "categories": ["domain_method", "causal_claim", "denominator", "overclaim"],
+  "paragraphs": ["P01", "P02", "P03", "P04", "P05", "P06", "P07", "P08", "P09", "P10", "P11", "P12", "P13", "P14", "P15", "P16", "P17", "P18", "P19", "P20", "P21", "P22", "P23", "P24", "P25", "P26", "P27"],
+  "defects": {
+    "P05": ["domain_method"],
+    "P07": ["denominator"],
+    "P08": ["domain_method"],
+    "P10": ["domain_method"],
+    "P12": ["domain_method"],
+    "P15": ["domain_method"],
+    "P17": ["causal_claim"],
+    "P18": ["domain_method"],
+    "P20": ["domain_method"],
+    "P22": ["domain_method"],
+    "P25": ["domain_method"],
+    "P27": ["overclaim"]
+  },
+  "decoys": ["P04", "P06", "P09", "P11", "P14", "P16", "P19", "P21", "P23", "P24", "P26"],
+  "decoy_reasons": {
+    "P04": "Percentages are correct: 1,128 of 1,200 and 1,001 of 1,150 scheduled tasks, with the scheduled-task base stated.",
+    "P06": "The rate is correct: 3 failures over 8,000 scheduled hours gives 0.375 per 1,000 unit-hours on the stated exposure.",
+    "P09": "The causal word is supported: a randomly allocated 4 versus 4 lubrication trial is described, so the reduction claim is limited to the trial.",
+    "P11": "The zero-failure statement is bounded to a stated six-month window with 4,000 scheduled hours, and makes no claim about the whole year.",
+    "P14": "The per-lift rates are correct: 6 and 9 failures across the same 14 lifts give 0.43 and 0.64.",
+    "P16": "The causal word is supported: a paired seal trial on 12 lifts is described, and the claim is limited to leak-related failures within it.",
+    "P19": "Planned overhaul hours are correctly excluded from unplanned downtime, and the 22-hour mean is stated with its 5 events.",
+    "P21": "The mean is over only 2 events, is explicitly stated as descriptive, and is not used to set an interval.",
+    "P23": "The causal word is supported by a physical teardown of the failed part, which is direct evidence for the cause of the scoring.",
+    "P24": "The percentage is correct on its stated base: 5 of 9 compressors had a failure, and the 5 failures fell on 5 different units.",
+    "P26": "The limit statement is correct and bounded to the 12 sampled readings, none of which reached the 150 ppm limit."
+  },
+  "why": {
+    "P05": "Two lathe failures in one year cannot establish a statistically significant improvement, so treating the drop from 3 to 2 as confirmation overstates what counts of this size allow.",
+    "P07": "The 56% uses the 9 compressors as the base, whereas the share of all unplanned failures should use the 17 total failures, giving 29.4%.",
+    "P08": "The detection score is entered on a scale where a higher score means easier detection, yet a higher detection score raises the risk priority number, so a well-detected failure mode is prioritised.",
+    "P10": "A straight line fitted to three readings is projected six months beyond the last sample to predict the alert date, an extrapolation that the readings do not support.",
+    "P12": "Inspection findings are counted as functional failures in the numerator, which inflates the brake tester failure rate from 0.375 to 1.25 per 1,000 unit-hours.",
+    "P15": "Failure rates on different exposure bases (per 100 test cycles and per unit-year) are placed on one ranking, so the brake tester position is not comparable with the cranes.",
+    "P17": "A fall in lift failures after a supplier change is presented as caused by the new grease, with no comparison group, which is a correlation presented as a cause.",
+    "P18": "The preventive maintenance interval for a group of three lathes is set from one lathe's failure-free year, generalising a single unit's record to the group.",
+    "P20": "The replacement decision rests on a simple payback from one year's repair cost, with no discounting or asset horizon, so it cannot support a capital approval.",
+    "P22": "The 22-hour mean, pulled up by one 98-hour job, is used as the typical job length for crew planning, whereas the 3-hour median describes a typical job.",
+    "P25": "The 30 planned re-certification hours are added to unplanned downtime, treating planned maintenance as failure time and raising the lift mean repair time from 16 to 21 hours.",
+    "P27": "The 5 failures in 2025 and 4 in 2024 do not support the claim that the programme has removed failure risk or that monitoring can stop, so the statement overstates the evidence."
+  }
+}
