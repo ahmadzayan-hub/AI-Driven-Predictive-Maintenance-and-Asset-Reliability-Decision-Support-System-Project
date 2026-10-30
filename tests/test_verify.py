@@ -213,6 +213,28 @@ class StepTests(unittest.TestCase):
         self.assertIn("Production build", by_name["Interface budget"].needs)
         self.assertIn("Production build", by_name["End-to-end tests"].needs)
 
+    def test_independent_steps_overlap_and_dependents_wait(self):
+        # Each step waits for a marker file the other writes. Run one after the
+        # other, the first would time out, so a pass proves they ran together.
+        with tempfile.TemporaryDirectory() as folder:
+            first, second = Path(folder, "first"), Path(folder, "second")
+            wait_for = ("import pathlib, sys, time\n"
+                        "mark, other = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])\n"
+                        "mark.touch()\n"
+                        "for _ in range(200):\n"
+                        "    if other.exists():\n"
+                        "        raise SystemExit(0)\n"
+                        "    time.sleep(0.05)\n"
+                        "raise SystemExit(5)\n")
+            a = verify.Step("A", [sys.executable, "-c", wait_for, str(first), str(second)], groups={"quick"})
+            b = verify.Step("B", [sys.executable, "-c", wait_for, str(second), str(first)], groups={"quick"})
+            c = verify.Step("C", [sys.executable, "-c", "raise SystemExit(0)"], groups={"quick"},
+                            needs=("A",))
+            with mock.patch.object(verify, "steps", return_value=[a, b, c]):
+                with contextlib.redirect_stdout(io.StringIO()) as out:
+                    self.assertEqual(verify.main(["--quick"]), 0)
+        self.assertIn("All 3 steps passed", out.getvalue())
+
     def test_a_failing_step_fails_the_run(self):
         failing = verify.Step("Python tests", [sys.executable, "-c", "raise SystemExit(3)"],
                               groups={"quick"})

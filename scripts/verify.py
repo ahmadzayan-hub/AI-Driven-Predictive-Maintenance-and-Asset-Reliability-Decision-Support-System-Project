@@ -22,6 +22,7 @@ import re
 import subprocess
 import sys
 import time
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -198,6 +199,50 @@ def run(step):
     return done.returncode == 0, detail, output, time.monotonic() - started
 
 
+def run_steps(chosen):
+    """Run steps side by side, each as soon as the steps it needs have passed.
+
+    The Python suite takes minutes; the type check, unit tests and brain check
+    do not depend on it, so they no longer wait behind it. A step whose needed
+    step failed is reported as not run. Returns the names of the failed steps.
+    """
+    names = {s.name for s in chosen}
+    waiting = list(chosen)
+    running = {}
+    finished = set()
+    failed = []
+    with ThreadPoolExecutor(max_workers=max(1, len(chosen))) as pool:
+        while waiting or running:
+            for s in list(waiting):
+                blocked = [name for name in s.needs if name in failed]
+                if blocked:
+                    waiting.remove(s)
+                    failed.append(s.name)
+                    print(f"FAIL {s.name:20} {0:6.1f}s  not run: {', '.join(blocked)} failed", flush=True)
+                elif all(name in finished or name not in names for name in s.needs):
+                    waiting.remove(s)
+                    print(f"… {s.name}", flush=True)
+                    running[pool.submit(run, s)] = s
+            if not running:
+                for s in waiting:
+                    failed.append(s.name)
+                    print(f"FAIL {s.name:20} {0:6.1f}s  never ready: its needs did not finish", flush=True)
+                break
+            done, _ = wait(running, return_when=FIRST_COMPLETED)
+            for future in done:
+                s = running.pop(future)
+                ok, detail, output, seconds = future.result()
+                mark = "PASS" if ok else "FAIL"
+                print(f"{mark} {s.name:20} {seconds:6.1f}s  {detail}", flush=True)
+                if ok:
+                    finished.add(s.name)
+                else:
+                    failed.append(s.name)
+                    tail = "\n".join(output.rstrip().splitlines()[-40:])
+                    print("    " + tail.replace("\n", "\n    "))
+    return failed
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     mode = parser.add_mutually_exclusive_group()
@@ -229,21 +274,7 @@ def main(argv=None):
             print(f"{s.name:20} {' '.join(Path(c).name if i == 0 else c for i, c in enumerate(s.command))}{where}")
         return 0
 
-    failed = []
-    for s in chosen:
-        print(f"… {s.name}", flush=True)
-        blocked = [name for name in s.needs if name in failed]
-        if blocked:
-            failed.append(s.name)
-            print(f"FAIL {s.name:20} {0:6.1f}s  not run: {', '.join(blocked)} failed", flush=True)
-            continue
-        ok, detail, output, seconds = run(s)
-        mark = "PASS" if ok else "FAIL"
-        print(f"{mark} {s.name:20} {seconds:6.1f}s  {detail}", flush=True)
-        if not ok:
-            failed.append(s.name)
-            tail = "\n".join(output.rstrip().splitlines()[-40:])
-            print("    " + tail.replace("\n", "\n    "))
+    failed = run_steps(chosen)
     print()
     if failed:
         print(f"{len(failed)} of {len(chosen)} steps failed: {', '.join(failed)}")
