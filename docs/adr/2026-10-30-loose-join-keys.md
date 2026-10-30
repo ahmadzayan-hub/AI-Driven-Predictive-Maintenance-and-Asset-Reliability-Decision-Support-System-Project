@@ -62,6 +62,13 @@ OpenDocument `.ods`). That freed 272 bytes (257,074 to 256,802). The control
 and its hint then cost 215, leaving the total at 257,017 bytes, under the same
 ceiling; first load fell from 99.6 to 99.4 KB.
 
+A second pass the same day, at the owner's request, shortened the pairs where
+neither language is checked by a test: the maintenance preview's method note
+and condition thresholds (formula, prices and score bands unchanged), the
+target colour legend and range help, and the sheet help. It freed 137 bytes
+more: 256,880 bytes, 220 under the ceiling. Most long strings left are checked
+word for word by tests, so a further pass would return little.
+
 ## Consequences
 
 - A user whose keys differ only in case or spacing learns it from the report,

@@ -894,6 +894,18 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### A second, smaller text trim: 30 October 2026
+
+Interface text only ([decision](docs/adr/2026-10-30-loose-join-keys.md),
+Budget): the maintenance preview's method note and condition thresholds, the
+target colour legend and range help, and the sheet help were shortened in
+English and Arabic alike, with every formula, price and score band unchanged.
+137 bytes freed: script total 256.88 of 257.1 KB, 220 bytes spare. Most long
+strings left are checked word for word by tests, so a further pass would return
+little. Checked by 540 frontend unit tests, the build and budget, and the
+dashboard, intake, datasets, Arabic, accessibility and metric-colour journeys
+on desktop and phone (38 cases).
+
 ### Shorter interface text, a loose-key box and .ods named: 30 October 2026
 
 Interface change ([decision](docs/adr/2026-10-30-loose-join-keys.md), Budget
