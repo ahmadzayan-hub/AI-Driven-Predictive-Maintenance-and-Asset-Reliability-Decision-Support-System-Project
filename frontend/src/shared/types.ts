@@ -374,6 +374,8 @@ export interface JoinSpec {
   keys: JoinKey[]
   how: JoinHow
   alias?: string | null
+  /** Compare text keys ignoring letter case and spaces (30 October 2026). */
+  match?: 'loose'
 }
 
 /** What one join did: rows in and out, matches, and the columns it added.
@@ -397,6 +399,8 @@ export interface JoinRecord {
   renamed: Record<string, string>
   rows_added?: number
   duplicates_dropped?: number
+  /** Unmatched rows a loose comparison would have matched. */
+  near_matches?: number
   source_column?: string
   source_label?: string
 }

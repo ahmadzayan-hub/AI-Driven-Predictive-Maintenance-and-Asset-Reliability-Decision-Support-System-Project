@@ -82,7 +82,7 @@ export const ar: Record<MessageKey, string> = {
   'voice.start': 'إملاء صوتي بالميكروفون',
   'voice.stop': 'إيقاف التسجيل',
   'voice.privacyTitle': 'قبل استخدام الإدخال الصوتي',
-  'voice.privacyText': 'قد يرسل المتصفح الصوت إلى مزود خدمة التعرف على الكلام. لا تُمِلِ بيانات سرية أو حساسة. لا يحفظ التطبيق ملفاً صوتياً، ويمكنك مراجعة النص قبل إرساله.',
+  'voice.privacyText': 'قد يرسل المتصفح الصوت إلى خدمة التعرف على الكلام. لا تُمِلِ بيانات حساسة. لا يُحفظ أي تسجيل، وتراجع النص قبل إرساله.',
   'voice.allow': 'فهمت، ابدأ التسجيل',
   'voice.cancel': 'إلغاء',
   "voice.listening": "جارٍ الاستماع · اضغط الميكروفون للانتهاء",
@@ -294,7 +294,7 @@ export const ar: Record<MessageKey, string> = {
 
   'memory.stored': 'تُخزَّن محليًا في {code} على هذا الجهاز — لا يُرسل شيء إلى أي مكان آخر.',
   'prefs.desc':
-    'تحكّم في طريقة رد الوكيل. تنطبق التغييرات على الجلسة الحالية؛ أما الإعدادات الافتراضية الدائمة فهي في {code}.',
+    'طريقة رد الوكيل. تنطبق التغييرات على هذه الجلسة؛ والإعدادات الدائمة في {code}.',
   'memory.updated': 'حُدّث في {date}',
   'category.general': 'عام',
   'category.profile': 'الملف الشخصي',
@@ -362,7 +362,7 @@ export const ar: Record<MessageKey, string> = {
   'runs.upload': 'ارفع ملفًا أو الصق CSV',
   'runs.chooseFile': 'اختر ملفًا',
   'runs.fileHelp':
-    'CSV أو TSV أو Excel ‏(‎.xlsx‎) أو JSON أو JSON Lines. حتى 4 ميغابايت و50,000 صف. يُرسل الملف مرة واحدة ويُخزَّن؛ والبيانات المتطابقة تُخزَّن مرة واحدة فقط.',
+    'CSV أو TSV أو Excel أو OpenDocument ‏(‎.ods‎) أو JSON أو JSON Lines. حتى 4 ميغابايت و50,000 صف؛ وتُخزَّن البيانات المتطابقة مرة واحدة.',
   'runs.tooBig': 'حجم {name} هو {size} ميغابايت، وأقصى حجم للرفع الواحد {limit} ميغابايت.',
   'runs.uploading': 'جارٍ رفع {name}…',
   'runs.uploadFailed': 'تعذّر رفع الملف.',
@@ -446,7 +446,7 @@ export const ar: Record<MessageKey, string> = {
   'overview.evidenceUnavailable': 'لا توجد نتيجة تحقق حتى الآن',
   'overview.evidencePassed': 'اجتازت أدلة التحليل فحوصات التحقق',
   'overview.evidencePending': 'التحقق غير مكتمل أو يحتاج إلى مراجعة',
-  'overview.evidenceScope': 'تفحص هذه الحالة الحسابات والأدلة المسجلة لهذا التحليل فقط، ولا تعني اعتماد دقة نماذج الذكاء الاصطناعي أو السلامة أو التشغيل الفعلي.',
+  'overview.evidenceScope': 'تفحص الحسابات والأدلة المسجلة لهذا التحليل فقط، ولا تعتمد دقة النماذج أو السلامة أو التشغيل الفعلي.',
   'overview.start': 'ابدأ تحليلًا',
   'overview.loading': 'جارٍ تحميل النظرة العامة',
   'overview.failed': 'تعذّر تحميل النظرة العامة.',
@@ -515,7 +515,7 @@ export const ar: Record<MessageKey, string> = {
   'mapping.loading': 'جارٍ قراءة الأعمدة',
   'mapping.loadFailed': 'تعذّرت قراءة الأعمدة.',
   'mapping.stateSaved': 'تستخدم تحليلات هذه البيانات الربط المحفوظ في {date}.',
-  'mapping.stateSuggested': 'هذا اقتراح من البيانات ولم يُحفظ بعد. تكتشف التحليلات الأعمدة تلقائياً إلى أن تحفظه.',
+  'mapping.stateSuggested': 'مقترح من البيانات ولم يُحفظ. إلى أن تحفظه، تكتشف التحليلات الأعمدة بنفسها.',
   'mapping.sampled': 'اقتُرح من عينة موزعة قوامها {n} من أصل {total} من الصفوف.',
   'mapping.preview': 'الصفوف الأولى',
   'mapping.previewAria': 'الصفوف الأولى من {name}',
@@ -566,7 +566,7 @@ export const ar: Record<MessageKey, string> = {
   'demo.note': 'عرض تجريبي للاطلاع فقط على بيانات افتراضية. لا يوجد تسجيل دخول، ولا يمكن رفع أي ملف أو تعديله أو اعتماده هنا.',
   'signin.title': 'تسجيل الدخول إلى موثوقية الأصول',
   'signin.desc':
-    'يتطلب هذا النشر حسابًا. تذهب بيانات اعتمادك مباشرة إلى مزوّد الهوية — ولا يراها هذا التطبيق أبدًا.',
+    'يتطلب هذا النشر حسابًا. تذهب بيانات اعتمادك إلى مزوّد الهوية وحده، ولا يراها هذا التطبيق.',
   'signin.email': 'البريد الإلكتروني',
   'signin.password': 'كلمة المرور',
   'signin.submit': 'تسجيل الدخول',
@@ -577,7 +577,7 @@ export const ar: Record<MessageKey, string> = {
   'cockpit.lastObserved': 'آخر تحقق {time}',
   'cockpit.exactReport': 'مراجعة التقرير المحدد',
   'cockpit.readReport': 'قرأت هذا التقرير المحدد',
-  'cockpit.previewIncludesEvidence': 'هذا هو التقرير المرتبط بهذه الموافقة كما أعاده الخادم. ترد حساباته ومراجعه وحدوده أدناه.',
+  'cockpit.previewIncludesEvidence': 'تقرير هذه الموافقة، وحساباته ومراجعه وحدوده أدناه.',
   'cockpit.reportUnavailable': 'التقرير غير متاح. يظل النشر معطلاً؛ أعد فتح التحليل لاستعادته.',
   'install.failed': 'تعذر فتح نافذة التثبيت. استخدم قائمة التثبيت في المتصفح.',
 

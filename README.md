@@ -894,6 +894,17 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Shorter interface text, a loose-key box and .ods named: 30 October 2026
+
+Interface change ([decision](docs/adr/2026-10-30-loose-join-keys.md), Budget
+and point 6): the longest interface strings were shortened in English and
+Arabic alike, keeping every limit, number, privacy and approval statement and
+every phrase a test checks. That freed 272 bytes of script. With it, each keyed
+join in the builder has a box to ignore letter case and spaces in its keys, the
+preview names how many more rows that would match, and the upload help and
+format limits name OpenDocument `.ods`. Script total 257.0 of 257.1 KB, no
+ceiling raise; first load 99.4 KB, down from 99.6.
+
 ### Join keys that differ only in case or spaces: 30 October 2026
 
 Analysis change ([decision](docs/adr/2026-10-30-loose-join-keys.md)): a join

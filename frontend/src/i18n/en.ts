@@ -81,7 +81,7 @@ export const en = {
   'voice.start': 'Dictate with microphone',
   'voice.stop': 'Stop recording',
   'voice.privacyTitle': 'Before using voice input',
-  'voice.privacyText': 'Your browser may send microphone audio to its speech provider. Do not dictate confidential or sensitive data. This app does not store an audio recording, and you review the text before sending.',
+  'voice.privacyText': 'Your browser may send audio to its speech service. Do not dictate sensitive data. No recording is stored, and you review the text before sending.',
   'voice.allow': 'I understand, start recording',
   'voice.cancel': 'Cancel',
   "voice.listening": "Listening · select the microphone to finish",
@@ -309,7 +309,7 @@ export const en = {
   // Memory
   'memory.stored': 'Stored locally in {code} on this computer — nothing is sent anywhere else.',
   'prefs.desc':
-    'Control how the agent responds. Changes apply to the current session; permanent defaults live in {code}.',
+    'How the agent responds. Changes apply to this session; permanent defaults are in {code}.',
   'memory.updated': 'Updated {date}',
   'category.general': 'General',
   'category.profile': 'Profile',
@@ -381,7 +381,7 @@ export const en = {
   'runs.upload': 'Upload a file or paste CSV',
   'runs.chooseFile': 'Choose a file',
   'runs.fileHelp':
-    'CSV, TSV, Excel (.xlsx), JSON or JSON Lines. Up to 4 MB and 50,000 rows. The file is sent once and stored; identical data is stored only once.',
+    'CSV, TSV, Excel, OpenDocument (.ods), JSON or JSON Lines. Up to 4 MB and 50,000 rows; identical data is stored once.',
   'runs.tooBig': '{name} is {size} MB; one upload can be at most {limit} MB.',
   'runs.uploading': 'Uploading {name}…',
   'runs.uploadFailed': 'The file could not be uploaded.',
@@ -465,7 +465,7 @@ export const en = {
   'overview.evidenceUnavailable': 'No validation result yet',
   'overview.evidencePassed': 'Run-level evidence checks passed',
   'overview.evidencePending': 'Validation incomplete or needs review',
-  'overview.evidenceScope': 'This checks the recorded calculations and evidence in one run. It does not certify AI model accuracy, safety or live operations.',
+  'overview.evidenceScope': 'Checks this run’s recorded calculations and evidence only; it does not certify model accuracy, safety or live operations.',
   'overview.start': 'Start an analysis',
   'overview.loading': 'Loading the overview',
   'overview.failed': 'The overview could not be loaded.',
@@ -535,7 +535,7 @@ export const en = {
   'mapping.loading': 'Reading the columns',
   'mapping.loadFailed': 'The columns could not be read.',
   'mapping.stateSaved': 'Runs of this dataset use the mapping saved {date}.',
-  'mapping.stateSuggested': 'Suggested from the data and not saved yet. Runs detect columns automatically until you save.',
+  'mapping.stateSuggested': 'Suggested from the data, not saved. Until you save, runs detect columns themselves.',
   'mapping.sampled': 'Suggested from {n} rows spread across all {total}.',
   'mapping.preview': 'First rows',
   'mapping.previewAria': 'First rows of {name}',
@@ -587,7 +587,7 @@ export const en = {
   'demo.note': 'A view-only demo on fictional data. There is no sign-in, and nothing can be uploaded, changed or approved here.',
   'signin.title': 'Sign in to Asset Reliability',
   'signin.desc':
-    'This deployment requires an account. Your credentials go directly to the identity provider — this app never sees them.',
+    'This deployment needs an account. Your credentials go only to the identity provider; this app never sees them.',
   'signin.email': 'Email',
   'signin.password': 'Password',
   'signin.submit': 'Sign in',
@@ -598,7 +598,7 @@ export const en = {
   'cockpit.lastObserved': 'Last checked {time}',
   'cockpit.exactReport': 'Review the exact report',
   'cockpit.readReport': 'I have read this exact report',
-  'cockpit.previewIncludesEvidence': 'This is the report returned for this approval. Its calculations, references and limitations are included below.',
+  'cockpit.previewIncludesEvidence': 'The report for this approval, with its calculations, references and limitations below.',
   'cockpit.reportUnavailable': 'The report is unavailable. Publishing stays disabled; reopen the analysis to recover it.',
   'install.failed': 'The installation prompt could not open. Use your browser’s installation menu instead.',
   // Dashboard pages (ADR 0032).

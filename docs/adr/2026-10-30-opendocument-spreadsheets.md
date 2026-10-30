@@ -48,10 +48,9 @@ expansion), the 500-column and 50,000-row limits. Only `content.xml` is read.
 ## Consequences
 
 - An `.ods` export uploads without converting it first.
-- The interface's upload help still lists "CSV, TSV, Excel (.xlsx), JSON or
-  JSON Lines". Adding OpenDocument to that sentence in both languages would put
-  the script total over its 257.1 KB ceiling; the server's own refusal message
-  names `.ods`. To be updated when string space is freed.
+- The upload help and the format limits name OpenDocument `.ods` since the
+  same day, in both languages, after the interface text was shortened to make
+  room (`2026-10-30-loose-join-keys.md`, Budget).
 - Old binary `.xls` and Parquet remain unread.
 
 ## Tests

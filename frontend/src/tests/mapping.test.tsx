@@ -100,7 +100,7 @@ describe('MappingPanel', () => {
     expect(amount).toHaveAccessibleDescription(/Numbers in 100% of filled cells/)
     expect(screen.getByRole('combobox', { name: 'Measure analysed' })).toHaveValue('amount')
     expect(screen.getByRole('combobox', { name: 'Breakdown' })).toHaveValue('region')
-    expect(screen.getByText(/not saved yet\. Runs detect columns/)).toBeInTheDocument()
+    expect(screen.getByText(/not saved\. Until you save, runs detect columns/)).toBeInTheDocument()
     expect(screen.queryByText('You have changes that are not saved yet.')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Analyse with automatic detection' })).toBeInTheDocument()
   })

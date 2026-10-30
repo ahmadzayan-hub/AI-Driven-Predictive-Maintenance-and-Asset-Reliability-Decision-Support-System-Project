@@ -1,7 +1,8 @@
 # Join keys that differ only in case or spaces
 
-Date: 2026-10-30 · Status: Accepted, server side (gap analysis, *Several
-datasets* row; extends ADR 0030). The interface control is a later slice.
+Date: 2026-10-30 · Status: Accepted (gap analysis, *Several datasets* row;
+extends ADR 0030). Amended the same day: the join builder offers the option
+(point 6).
 
 ## Context
 
@@ -38,11 +39,28 @@ missing.
      match X if letter case and spaces were ignored; the keys were compared
      exactly".
    The join preview returns the same counts.
-5. **The interface is unchanged in this slice.** `POST /api/runs` and
-   `POST /api/joins/preview` accept `match`; the join builder does not offer it
-   yet. A control needs new strings in both languages, and the script total is
-   at its 257.1 KB ceiling. Until then, an exact run's report names the near
-   misses, so the reader knows the keys need attention.
+5. **The API.** `POST /api/runs` and `POST /api/joins/preview` accept
+   `match`. An exact run's report names its near misses, so the reader knows
+   the keys need attention.
+
+6. **The join builder offers it (amendment, 30 October).** Each keyed join
+   has a box, "Ignore letter case and spaces in keys" / "تجاهل حالة الأحرف
+   والمسافات في المفاتيح", that sets `match: loose`; a stack shows none. The
+   preview adds "N more would match ignoring case and spaces" when an exact
+   join has near misses. The room came from shortening interface text, not
+   from the ceiling (see Budget).
+
+## Budget
+
+The script total was at its 257.1 KB ceiling. As the owner chose on
+30 October, the longest interface strings were shortened first, in English
+and Arabic alike, keeping every limit, number, privacy and approval statement
+and every phrase a test checks: the voice privacy notices, the evidence scope,
+the sign-in note, the report-language, preferences and mapping help, the data
+chat help, the file help and the format limits (which now also name
+OpenDocument `.ods`). That freed 272 bytes (257,074 to 256,802). The control
+and its hint then cost 215, leaving the total at 257,017 bytes, under the same
+ceiling; first load fell from 99.6 to 99.4 KB.
 
 ## Consequences
 
