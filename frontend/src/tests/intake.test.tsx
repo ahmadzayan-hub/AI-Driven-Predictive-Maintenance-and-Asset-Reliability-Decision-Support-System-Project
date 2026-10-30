@@ -156,6 +156,37 @@ describe('real data intake', () => {
     expect(api.createRun).not.toHaveBeenCalled()
   })
 
+  it('lists the sheets of a workbook whose upload failed so another can be chosen', async () => {
+    const user = userEvent.setup()
+    const uploader = vi.spyOn(api, 'uploadDataset')
+      .mockRejectedValueOnce(new ApiError('The file has a header row but no data rows.'))
+      .mockResolvedValueOnce(upload)
+    const lister = vi.spyOn(api, 'listSheets').mockResolvedValue({ sheets: [
+      { name: 'Cover', hidden: false, rows: 12, columns: 6, tabular: false, unreadable: false },
+      { name: 'Readings', hidden: false, rows: 40, columns: 5, tabular: false, unreadable: false },
+    ] })
+    render(<RunsView preset={{ kind: 'upload' }} />)
+    const file = new File(['synthetic workbook'], 'report.xlsx')
+    await user.upload(screen.getByLabelText('Choose a file'), file)
+    expect(await screen.findByText('The file has a header row but no data rows.')).toBeVisible()
+    expect(lister).toHaveBeenCalledWith(file, 'en')
+    const picker = await screen.findByRole('combobox', { name: 'Workbook sheet' })
+    expect(within(picker).getByRole('option', { name: 'Readings · 40×5 · not a table' })).toBeInTheDocument()
+    await user.selectOptions(picker, 'Readings')
+    expect(uploader).toHaveBeenLastCalledWith(file, 'en', 'Readings')
+  })
+
+  it('does not ask for sheets when a file that is not a workbook fails', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(api, 'uploadDataset').mockRejectedValue(new ApiError('Unreadable file'))
+    const lister = vi.spyOn(api, 'listSheets')
+    render(<RunsView preset={{ kind: 'upload' }} />)
+    await user.upload(screen.getByLabelText('Choose a file'), new File(['bad'], 'broken.csv'))
+    expect(await screen.findByText('Unreadable file')).toBeVisible()
+    expect(lister).not.toHaveBeenCalled()
+    expect(screen.queryByRole('combobox', { name: 'Workbook sheet' })).not.toBeInTheDocument()
+  })
+
   it('rejects an oversized replacement rather than analyzing an older file or pasted data', async () => {
     const user = userEvent.setup()
     const uploader = vi.spyOn(api, 'uploadDataset').mockResolvedValue(upload)

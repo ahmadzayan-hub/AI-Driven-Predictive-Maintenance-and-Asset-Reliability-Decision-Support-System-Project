@@ -10,6 +10,15 @@ const RUN_REQUEST_TIMEOUT_MS = 90_000
 // A 4 MB file on a slow connection, then read on the server.
 const UPLOAD_TIMEOUT_MS = 60_000
 
+/** A file as the request body of a dataset endpoint, read by the server in `language`. */
+function sendFile<T>(path: string, file: File, language: string, extra = '') {
+  return request<T>(
+    `/api/datasets${path}?name=${encodeURIComponent(file.name)}&language=${language}${extra}`,
+    { method: 'POST', body: file, headers: { 'Content-Type': file.type || 'application/octet-stream' } },
+    UPLOAD_TIMEOUT_MS,
+  )
+}
+
 /** The most one upload can be (server/datasets.py, ADR 0024). Checked
  *  here only to save a wasted transfer; the server decides. */
 export const MAX_UPLOAD_BYTES = 4_000_000
@@ -290,15 +299,10 @@ export const api = {
   /** The file itself is the request body: CSV, TSV, Excel, JSON or JSON
    *  Lines. The server reads it, stores it once and answers in `language`. */
   uploadDataset: (file: File, language: 'en' | 'ar' = 'en', sheet?: string) =>
-    request<UploadResult>(
-      `/api/datasets?name=${encodeURIComponent(file.name)}&language=${language}${sheet ? `&sheet=${encodeURIComponent(sheet)}` : ''}`,
-      {
-        method: 'POST',
-        body: file,
-        headers: { 'Content-Type': file.type || 'application/octet-stream' },
-      },
-      UPLOAD_TIMEOUT_MS,
-    ),
+    sendFile<UploadResult>('', file, language, sheet ? `&sheet=${encodeURIComponent(sheet)}` : ''),
+  /** A workbook's sheets, described without parsing; nothing is stored. */
+  listSheets: (file: File, language: 'en' | 'ar' = 'en') =>
+    sendFile<{ sheets: NonNullable<UploadResult['sheet_details']> }>('/sheets', file, language),
   /** Preview, column profile, saved mapping and a suggestion (ADR 0025). */
   getDataset: (id: string, language: 'en' | 'ar' = 'en') =>
     request<DatasetDetail>(`/api/datasets/${encodeURIComponent(id)}?language=${language}`, {}, UPLOAD_TIMEOUT_MS),

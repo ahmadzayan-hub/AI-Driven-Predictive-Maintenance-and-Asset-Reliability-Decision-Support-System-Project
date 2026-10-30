@@ -276,6 +276,22 @@ describe('DatasetsView', () => {
     expect(screen.queryByRole('button', { name: 'Remove sales.csv' })).not.toBeInTheDocument()
   })
 
+  it('offers the sheets of a workbook whose upload failed and retries with the one chosen', async () => {
+    const user = userEvent.setup()
+    serve({ '/api/datasets': { datasets: [] }, '/api/usage': USAGE })
+    const uploader = vi.spyOn(api, 'uploadDataset').mockRejectedValue(new ApiError('The file has no data in it.'))
+    vi.spyOn(api, 'listSheets').mockResolvedValue({ sheets: [
+      { name: 'Cover', hidden: false, rows: 8, columns: 4, tabular: false, unreadable: false },
+      { name: 'Log', hidden: false, rows: 30, columns: 6, tabular: false, unreadable: false },
+    ] })
+    render(<DatasetsView onAnalyse={vi.fn()} />)
+    const file = new File(['synthetic workbook'], 'plant.xlsx')
+    await user.upload(document.querySelector<HTMLInputElement>('input[type="file"]')!, file)
+    expect(await screen.findByText('The file has no data in it.')).toBeVisible()
+    await user.selectOptions(await screen.findByRole('combobox', { name: 'Workbook sheet' }), 'Log')
+    expect(uploader).toHaveBeenLastCalledWith(file, 'en', 'Log')
+  })
+
   it('adds a file through the API and lists it with its format and rows', async () => {
     const user = userEvent.setup()
     const stored = {

@@ -53,8 +53,8 @@ elsewhere, and their text does not appear in the warning.
 - The rule can still miss: a title block of more than five lines, or title
   lines that hold two values each (a label and a date in separate cells),
   are read as before. The sheet picker remains the way out.
-- Still open from board item 3: the picker does not call
-  `/api/datasets/sheets` when no sheet looks tabular.
+- Board item 3's last interface part, the picker after a failed upload, is
+  `2026-10-30-sheet-picker-after-failure.md`.
 
 ## Tests
 

@@ -894,6 +894,21 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### A failed workbook upload offers its sheets: 30 October 2026
+
+Interface change ([decision](docs/adr/2026-10-30-sheet-picker-after-failure.md)):
+when a workbook's default sheet cannot be read, the Datasets and Runs screens
+ask the server for its sheets (`POST /api/datasets/sheets`, which stores
+nothing) and show the existing sheet picker beside the error, so another sheet
+can be chosen and the file uploaded again. Only Excel files trigger the call;
+no new string, component or style. The total script ceiling is 257.1 KB, up
+from 257 KB after trimming was tried; first load and the largest chunk are
+unchanged.
+
+Checked by the full Python suite against PostgreSQL 16 (2,373 tests, 19
+skipped), 536 frontend unit tests (3 new), the production build and budget,
+and the datasets, intake and runs journeys on desktop and phone (18 cases).
+
 ### Workbook title lines are left out with a warning: 30 October 2026
 
 Reader change ([decision](docs/adr/2026-10-30-workbook-title-lines.md)): a

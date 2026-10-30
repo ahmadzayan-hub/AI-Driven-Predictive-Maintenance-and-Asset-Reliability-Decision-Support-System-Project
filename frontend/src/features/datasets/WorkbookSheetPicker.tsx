@@ -1,9 +1,20 @@
 import { useId } from 'react'
 import { usePack } from '../../i18n/pack'
+import { api } from '../../shared/api'
 import type { UploadResult } from '../../shared/types'
 import { intakeMessages } from './intakeMessages'
 
-export function WorkbookSheetPicker({ result, onSelect }: { result: UploadResult; onSelect: (sheet: string) => void }) {
+export type SheetChoice = Pick<UploadResult, 'sheets' | 'sheet_details' | 'selected_sheet'>
+
+/** After a workbook upload fails (no sheet looked like a table, or the
+ *  chosen one did not read), its sheets so the user can pick another. */
+export async function sheetsAfterFailure(file: File, language: 'en' | 'ar'): Promise<SheetChoice | null> {
+  if (!/\.xls/i.test(file.name)) return null
+  const { sheets } = await api.listSheets(file, language).catch(() => ({ sheets: [] }))
+  return sheets[1] ? { sheets: sheets.map((d) => d.name), sheet_details: sheets } : null
+}
+
+export function WorkbookSheetPicker({ result, onSelect }: { result: SheetChoice; onSelect: (sheet: string) => void }) {
   const { t } = usePack(intakeMessages)
   const id = useId()
   if (result.sheets.length < 2) return null

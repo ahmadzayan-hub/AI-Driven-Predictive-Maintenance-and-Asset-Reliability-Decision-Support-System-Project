@@ -12,7 +12,7 @@ import { api, ApiError, MAX_UPLOAD_BYTES, UPLOAD_ACCEPT } from '../../shared/api
 import { usePack } from '../../i18n/pack'
 import { intakeMessages } from '../datasets/intakeMessages'
 import { decisionMessages } from './messages'
-import { WorkbookSheetPicker } from '../datasets/WorkbookSheetPicker'
+import { type SheetChoice, WorkbookSheetPicker, sheetsAfterFailure } from '../datasets/WorkbookSheetPicker'
 import { MappingPanel } from '../datasets/MappingPanel'
 import { barGeometry, valueScale } from '../../shared/charts'
 import { Icon } from '../../shared/components/Icon'
@@ -236,6 +236,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
   // never replaced when they pick another dataset.
   const autoGoal = useRef(suggestedGoal)
   const [uploaded, setUploaded] = useState<UploadResult | null>(null)
+  const [choice, setChoice] = useState<SheetChoice | null>(null)
   const [uploading, setUploading] = useState<string | null>(null)
   const sourceFile = useRef<File | null>(null)
   const [mappingId, setMappingId] = useState<string | null>(null)
@@ -312,6 +313,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
   async function uploadFile(file: File, sheet?: string) {
     setErrorMessage(null)
     setUploaded(null)
+    setChoice(null)
     setCsvDraft('')
     setMappingId(null)
     sourceFile.current = file
@@ -336,6 +338,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
       )
     } catch (error) {
       setErrorMessage(error instanceof ApiError ? error.message : t('runs.uploadFailed'))
+      setChoice(await sheetsAfterFailure(file, locale))
     } finally {
       setUploading(null)
     }
@@ -647,7 +650,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                       </ul>
                     ) : null}
                   </div>
-                  {uploaded && sourceFile.current && <WorkbookSheetPicker result={uploaded} onSelect={(sheet) => { if (sourceFile.current) void uploadFile(sourceFile.current, sheet) }} />}
+                  {(uploaded ?? choice) && sourceFile.current && <WorkbookSheetPicker result={(uploaded ?? choice)!} onSelect={(sheet) => { if (sourceFile.current) void uploadFile(sourceFile.current, sheet) }} />}
                   <div className="field">
                     <label className="field__label" htmlFor="run-csv">
                       {t('runs.paste')}

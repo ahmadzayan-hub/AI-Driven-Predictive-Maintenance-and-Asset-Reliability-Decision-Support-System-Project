@@ -11,7 +11,7 @@ import type { DatasetSummary, UploadResult, Usage } from '../../shared/types'
 import { ConnectorsPanel } from '../live/ConnectorsPanel'
 import { MappingPanel } from './MappingPanel'
 import { UploadPreview } from './UploadPreview'
-import { WorkbookSheetPicker } from './WorkbookSheetPicker'
+import { type SheetChoice, WorkbookSheetPicker, sheetsAfterFailure } from './WorkbookSheetPicker'
 
 /** The most datasets GET /api/datasets returns. */
 const DATASET_PAGE = 50
@@ -37,6 +37,7 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
   const [uploading, setUploading] = useState<string | null>(null)
   const [outcome, setOutcome] = useState<UploadResult | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [choice, setChoice] = useState<SheetChoice | null>(null)
   // Column mapping (ADR 0025): one dataset's columns at a time. A new
   // upload opens it straight away, without taking focus from the status.
   const [mapping, setMapping] = useState<{ id: string; focus: boolean } | null>(null)
@@ -81,6 +82,7 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
   async function addFile(file: File, sheet?: string) {
     setOutcome(null)
     setUploadError(null)
+    setChoice(null)
     setMapping(null)
     sourceFile.current = file
     if (file.size > MAX_UPLOAD_BYTES) {
@@ -104,6 +106,7 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
       if (latest.status === 'fulfilled') setUsage(latest.value)
     } catch (error) {
       setUploadError(error instanceof ApiError ? error.message : t('datasets.uploadFailed'))
+      setChoice(await sheetsAfterFailure(file, locale))
     } finally {
       setUploading(null)
       if (fileInput.current) fileInput.current.value = ''
@@ -215,7 +218,7 @@ export function DatasetsView({ onAnalyse }: DatasetsViewProps) {
             {uploadError}
           </p>
         ) : null}
-        {outcome && sourceFile.current && <WorkbookSheetPicker result={outcome} onSelect={(sheet) => { if (sourceFile.current) void addFile(sourceFile.current, sheet) }} />}
+        {(outcome ?? choice) && sourceFile.current && <WorkbookSheetPicker result={(outcome ?? choice)!} onSelect={(sheet) => { if (sourceFile.current) void addFile(sourceFile.current, sheet) }} />}
 
         {mapping ? (
           <MappingPanel

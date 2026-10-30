@@ -343,7 +343,8 @@ required local files. Both behaviors are covered by tests
     from the Datasets view unless an analysis reads it, in which case the
     server names the analyses and keeps it; runs themselves are never
     deleted (2026-10-27 dataset deletion). After a successful upload, the
-    interface lets you choose another sheet (ADR 0038). A cover sheet is
+    interface lets you choose another sheet (ADR 0038), and after a failed
+    workbook upload it lists the sheets so you can choose one (2026-10-30). A cover sheet is
     skipped for the first sheet that looks like a table, judged from a
     sample of each sheet's first rows (2026-10-23 workbook sheet
     discovery). Up to five single-value title lines above a header are left
