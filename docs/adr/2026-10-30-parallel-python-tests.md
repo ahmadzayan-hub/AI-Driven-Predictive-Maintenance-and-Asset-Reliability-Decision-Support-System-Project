@@ -54,6 +54,11 @@ so the copies apply there.
   beside the existing `agentic_test` line (Memory.md, PostgreSQL tests).
 - A test that relies on another file having run first would now show it; none
   did across three full runs with the same 2,391 tests and 19 skips.
+- Parallel load exposed one timing flaw (amendment, same day):
+  `test_rate_limit_survives_restart` sends two requests that must fall in one
+  60-second limit window, and a slower restart let them straddle its end. The
+  test now starts at least ten seconds before a window ends. No product code
+  changed.
 
 ## Tests
 

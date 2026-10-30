@@ -52,18 +52,35 @@ class ReversibleCleaningTest(unittest.TestCase):
 
     def test_dropped_rows_and_unreadable_values_are_recorded(self):
         numbers = "\n".join(f"{i},{i * 2}" for i in range(4, 20))
-        text = f"job,hours\n1,4\n,\n1,4\n2,n/a\n{numbers}\n"
+        # "abc" is text that does not read as a number. ("n/a" is a
+        # missing-value marker since 30 October; see the test after this.)
+        text = f"job,hours\n1,4\n,\n1,4\n2,abc\n{numbers}\n"
         ctx, results = run_pipeline(text)
         output = ctx["cleaner"]
         self.assertEqual(output["dropped_indices"], {"empty": [1], "duplicates": [2]})
         self.assertEqual(output["unreadable_values"],
-                         [{"row": 3, "column": "hours", "value": "n/a"}])
+                         [{"row": 3, "column": "hours", "value": "abc"}])
         calc = next(c for c in results["cleaner"]["calculations"] if c["id"] == "c_coercion")
         self.assertEqual(calc["value"], 1)
         claim = next(c for c in results["cleaner"]["claims"] if c["id"] == "cl_coercion")
         self.assertEqual(claim["type"], "limitation")
         self.assertIn("hours", claim["text"])
         self.assertEqual(claim["evidence"], ["c_coercion"])
+
+    def test_a_missing_value_marker_is_empty_recorded_and_counted_apart(self):
+        numbers = "\n".join(f"{i},{i * 2}" for i in range(4, 20))
+        ctx, results = run_pipeline(f"job,hours\n1,4\n2,n/a\n3,غير متوفر\n{numbers}\n")
+        output = ctx["cleaner"]
+        # Still recorded with every value the cleaning emptied, so it can be reversed.
+        self.assertEqual(output["unreadable_values"],
+                         [{"row": 1, "column": "hours", "value": "n/a"},
+                          {"row": 2, "column": "hours", "value": "غير متوفر"}])
+        self.assertEqual(output["missing_markers"], 2)
+        calcs = {c["id"]: c["value"] for c in results["cleaner"]["calculations"]}
+        self.assertEqual((calcs["c_missing_markers"], calcs["c_coercion"]), (2, 0))
+        ids = {c["id"] for c in results["cleaner"]["claims"]}
+        self.assertIn("cl_missing_markers", ids)
+        self.assertNotIn("cl_coercion", ids)
 
     def test_a_clean_dataset_makes_no_coercion_claim(self):
         ctx, results = run_pipeline("job,hours\n1,4\n2,5\n3,6\n")

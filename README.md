@@ -894,6 +894,23 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Understanding and cleaning the data: 30 October 2026
+
+Analysis change ([decision](docs/adr/2026-10-30-data-understanding-and-cleaning.md)):
+the Data Profiling Agent now reports each measure's range and median, values far
+outside its usual range with their source rows, negative values, and columns
+that are mostly empty or hold one value, each as a claim tied to a calculation,
+in English and Arabic. The cleaner reads `N/A`, `-`, `غير متوفر` and similar as
+missing in number columns (counted apart, still recorded for reversal, and no
+longer stopping a column from being numeric), and names categories spelled two
+ways without merging them. Nothing is imputed or removed: values are flagged,
+never changed, until the owner sets a policy.
+
+Checked by the full Python suite against PostgreSQL 16 (2,409 tests, 19
+skipped, 11 of them new), 540 frontend unit tests, the build and budget, and
+the runs, intake, Arabic, journey and accessibility journeys on desktop and
+phone (28 cases).
+
 ### The Python suite runs in parallel: 30 October 2026
 
 Tooling change ([decision](docs/adr/2026-10-30-parallel-python-tests.md)):
