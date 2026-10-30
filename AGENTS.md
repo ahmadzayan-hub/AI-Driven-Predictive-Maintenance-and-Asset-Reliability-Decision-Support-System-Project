@@ -52,3 +52,10 @@ Report what it printed. If a step was skipped or failed, say so. Set `PG_TEST_UR
 ## At the end of a session
 
 Append an entry to `session-logs.md` in the shape `docs/PLAYBOOK.md` describes: done, verified, decided, next. Move finished items on `project-progress.md`. Claude Code does this through its hooks and skills in `.claude/`; other agents do it by hand.
+
+## Optional draft editing reference
+
+Only when the owner asks to review selected unapproved prose, consult
+[Editorial QA (Arabic/English)](docs/editorial/EDITORIAL_QA_AR_EN.md).
+This is opt-in writing guidance, not a skill activation or Hermes/runtime change.
+Existing evidence, bilingual parity and artifact-bound approval rules win.
