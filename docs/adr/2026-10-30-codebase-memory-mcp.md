@@ -1,9 +1,13 @@
-# codebase-memory-mcp as a code-navigation aid: options for the owner's decision
+# codebase-memory-mcp as a code-navigation aid
 
-Date: 2026-10-30 · Status: **Proposed, awaiting the owner's decision.** Nothing
-is installed, configured or committed for it. This record exists because the
-tool would change how every coding agent works in this repository, and that is
-a team-wide decision, not a session's.
+Date: 2026-10-30 · Status: **Accepted, option A** (the owner, 2026-10-30). Each
+developer may install it on their own machine as an MCP server only, after a
+measured trial. Nothing is added to the tracked agent configuration. The one
+tracked change is a `.gitignore` guard for the tool's optional graph snapshot.
+The trial has not yet run; its owner is not yet named.
+
+This record exists because the tool would change how every coding agent works
+in this repository, and that is a team-wide decision, not a session's.
 
 ## Context
 
@@ -99,11 +103,52 @@ Option A, with a short measured trial before anything wider:
 4. Adopt more widely only if the trial shows a clear saving with correct
    answers. A wider adoption would amend this record.
 
-## What the owner must decide
+## Decision
 
-1. Option A, B, C or D.
-2. If A, who runs the trial, and whether its results are recorded in this
-   record.
+Option A, chosen by the owner on 2026-10-30. Still open: who runs the trial.
+Its results are to be added to this record.
+
+## Setup on a developer's machine (macOS or Linux)
+
+These steps follow the tool's own manual-install and manual-configuration
+sections and skip its `install` command on purpose.
+
+1. Download the archive for your platform and `checksums.txt` from the latest
+   release at <https://github.com/DeusData/codebase-memory-mcp/releases>
+   (for example `codebase-memory-mcp-darwin-arm64.tar.gz` on Apple Silicon).
+2. Verify it: `shasum -a 256 -c checksums.txt --ignore-missing` on macOS, or
+   `sha256sum -c checksums.txt --ignore-missing` on Linux. Stop if it fails.
+3. Extract the executable to a folder of your own, outside this repository,
+   for example `~/bin/codebase-memory-mcp`. Do not run its `install` or
+   `install.sh`.
+4. Register the server for your user only, so no tracked file changes:
+   `claude mcp add --scope user codebase-memory-mcp "$HOME/bin/codebase-memory-mcp"`.
+   This writes to `~/.claude.json`, outside the repository. Do not add it to
+   the tracked `.mcp.json`.
+5. Restart Claude Code and check `/mcp`. The tool's README says it should list
+   `codebase-memory-mcp` with 17 tools.
+6. Before relying on it, ask it to index this repository and read its coverage
+   report. Its ignore rules follow `.gitignore`, which already excludes
+   `private/`, `brain/private/`, `vault/` and the local database
+   (`data/agentic.db*`). Confirm that none of them appears in the index.
+7. Leave `persistence` at its default (`false`). If a `.codebase-memory/`
+   folder appears anyway, `.gitignore` keeps it out of Git.
+
+To stop using it: `claude mcp remove --scope user codebase-memory-mcp`, then
+delete the executable and its cache folder.
+
+## The trial
+
+Ask the same three questions with and without the tool, in fresh sessions on
+the same commit:
+
+1. What calls `SqlStore.save_dashboard_view` (`server/storage.py`)?
+2. What would a change to `SqlStore.save_dashboard_view` affect?
+3. Where is a run's stage report assembled?
+
+Record, for each: tokens used, time taken and whether the answer was correct
+against the code. Adopt it more widely only on a clear saving with correct
+answers, and amend this record either way.
 
 ## Sources
 

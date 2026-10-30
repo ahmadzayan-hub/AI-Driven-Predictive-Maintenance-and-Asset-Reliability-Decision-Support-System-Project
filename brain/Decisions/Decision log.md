@@ -3,7 +3,7 @@ type: decision
 aliases: [ADR index, Architecture decisions]
 tags: [decisions]
 status: active
-updated: 2026-10-28
+updated: 2026-10-30
 review_every_days: 30
 sources: [docs/adr]
 ---
@@ -205,5 +205,6 @@ One line per record, read from its title and decision; the record itself is the 
 | 2026-10-28-stage-report-sections | The comprehensive analysis report prints key metrics, claims and charts only when a stage produced them, and its limitations name the sections left out | [[Scoped dashboards]], [[Business report exports]], [[Approval gate]] |
 | 2026-10-28-live-pipeline | The run timeline names the stage running now, marks it as the current step and announces its progress; progress still arrives by the run's poll; agent cards are a later slice | [[Run lifecycle]], [[Agentic OS]] |
 | 2026-10-28-agent-cards | Each stage in the run timeline is a card stating its claims and passed checks; the card rules load with the runs view, not on first load; five unused string keys removed to hold the script ceiling | [[Run lifecycle]], [[Agentic OS]] |
+| 2026-10-30-codebase-memory-mcp | codebase-memory-mcp may be installed per developer as an MCP server only, outside tracked configuration and without its own agent profiles or hooks, after a measured three-question trial; its graph snapshot is gitignored. Graft/Trail, OpenMontage and The Agency rejected | [[Agent runtimes and MCP]], [[Agent team]], [[Soul]] |
 
 - `2026-10-27-assistant-focus-and-context`: isolated candidate; native report disclosure beside composer, scoped session status and stronger first action. Browser acceptance pending.
