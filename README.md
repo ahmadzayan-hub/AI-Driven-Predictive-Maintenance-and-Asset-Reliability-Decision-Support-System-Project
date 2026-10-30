@@ -894,6 +894,20 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### The Python suite runs in parallel: 30 October 2026
+
+Tooling change ([decision](docs/adr/2026-10-30-parallel-python-tests.md)):
+`scripts/run_python_tests.py` runs the Python suite on one worker per CPU, in
+heaviest-first batches, and `verify` uses it. PostgreSQL tests get a database
+per worker where the server allows it; otherwise they run in one batch, as
+before. Files that create roles never overlap, and the Python step waits for
+the production build because some tests read it. CI keeps `unittest discover`.
+
+Measured here (4 CPUs, PostgreSQL 16): a full `verify` took 220 s and 225 s in
+two runs, against about 540 s before; the Python step alone 182 to 220 s
+against about 520 to 560 s. Both runs: all 8 steps passed, 2,398 Python tests
+(19 skipped), 540 frontend unit tests.
+
 ### A second, smaller text trim: 30 October 2026
 
 Interface text only ([decision](docs/adr/2026-10-30-loose-join-keys.md),

@@ -19,6 +19,11 @@ class SummaryTests(unittest.TestCase):
         self.assertEqual(verify.summarise_unittest("Ran 1 test in 0.1s\n\nOK\n"), "1 tests")
         self.assertEqual(verify.summarise_unittest("ImportError: no module"), "")
 
+    def test_the_parallel_runner_is_read_by_its_last_counts(self):
+        output = ("--- batch failed (test_x) ---\nRan 12 tests in 1.0s\n\nFAILED (errors=1)\n"
+                  "----\nRan 2391 tests in 180.0s (32 batches on 4 workers)\n\nFAILED (skipped=19, errors=1)\n")
+        self.assertEqual(verify.summarise_unittest(output), "2391 tests, 19 skipped")
+
     def test_vitest_line_is_read_through_colour_codes(self):
         output = (" \x1b[2m Test Files \x1b[22m \x1b[1m\x1b[32m9 passed\x1b[39m\x1b[22m (9)\n"
                   "\x1b[2m      Tests \x1b[22m \x1b[1m\x1b[32m54 passed\x1b[39m\x1b[22m (54)\n")
@@ -207,6 +212,13 @@ class StepTests(unittest.TestCase):
         self.assertIn("FAIL Interface budget", out.getvalue())
         self.assertIn("not run: Production build failed", out.getvalue())
         self.assertIn("2 of 2 steps failed", out.getvalue())
+
+    def test_python_tests_never_read_a_build_being_written(self):
+        by_name = {s.name: s for s in verify.steps()}
+        self.assertIn("Production build", by_name["Python tests"].needs)
+        # In --quick there is no build, and the Python tests do not wait for one.
+        quick = [s for s in verify.steps() if "quick" in s.groups]
+        self.assertNotIn("Production build", [s.name for s in quick])
 
     def test_the_budget_and_browser_tests_need_the_build(self):
         by_name = {s.name: s for s in verify.steps()}

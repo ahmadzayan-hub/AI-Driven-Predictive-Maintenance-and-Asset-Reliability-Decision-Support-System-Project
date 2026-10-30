@@ -6,8 +6,11 @@
     python scripts/verify.py --quick    # Python suite, brain, typecheck and unit tests only
     python scripts/verify.py --list     # print the steps; run nothing
 
-It runs the same commands as CI (.github/workflows/ci.yml), plus the brain
-check and the interface budget from docs/UI_PLAN.md, and prints one line per
+It runs the same checks as CI (.github/workflows/ci.yml), plus the brain
+check and the interface budget from docs/UI_PLAN.md. The Python suite is the
+same tests as CI's `unittest discover`, run in parallel by
+scripts/run_python_tests.py; steps that do not depend on each other also run
+side by side. It prints one line per
 step with the counts the tools reported. A failed step prints the end of its
 output, and the script exits 1. Standard library only.
 
@@ -75,12 +78,14 @@ class Step:
 
 
 def summarise_unittest(output):
-    ran = re.search(r"Ran (\d+) tests?", output)
-    skipped = re.search(r"skipped=(\d+)", output)
+    # The last counts: the parallel runner prints a failed batch's own output
+    # above the combined line, and plain unittest prints them once.
+    ran = re.findall(r"Ran (\d+) tests?", output)
+    skipped = re.findall(r"skipped=(\d+)", output)
     if not ran:
         return ""
-    text = f"{ran.group(1)} tests"
-    return text + (f", {skipped.group(1)} skipped" if skipped else "")
+    text = f"{ran[-1]} tests"
+    return text + (f", {skipped[-1]} skipped" if skipped else "")
 
 
 def summarise_vitest(output):
@@ -160,9 +165,14 @@ def steps():
         Step("Server dependencies", [python, "-c",
              "from fastapi.testclient import TestClient; import httpx, jwt, psycopg2, uvicorn"],
              groups={"quick", "full", "e2e"}),
-        Step("Python tests", [python, "-m", "unittest", "discover", "tests"],
+        # Parallel, a PostgreSQL database per worker where the server allows
+        # it (scripts/run_python_tests.py); the same tests as `discover`.
+        # Some Python tests read frontend/dist, which the build empties and
+        # rewrites: they wait for it (about 8 s) rather than read a half-written
+        # build. In --quick there is no build, so nothing to wait for.
+        Step("Python tests", [python, "scripts/run_python_tests.py"],
              summarise=summarise_unittest, groups={"quick", "full", "e2e"},
-             needs=("Server dependencies",)),
+             needs=("Server dependencies", "Production build")),
         Step("Brain check", [python, "scripts/brain_check.py", "--strict"],
              summarise=summarise_brain, groups={"quick", "full", "e2e"}),
         Step("Type check", [npm, "run", "typecheck"], cwd=FRONTEND,

@@ -25,6 +25,7 @@ The product is **AI-Driven Predictive Maintenance and Asset Reliability Decision
 ```bash
 python3 -m pip install -r requirements.txt               # Python deps (see Memory.md if PyJWT conflicts)
 python -m unittest discover tests                         # Python suite (PostgreSQL tests skip without a database)
+python scripts/run_python_tests.py                        # the same suite in parallel, as verify runs it (a database per worker when allowed)
 REQUIRE_PG=1 PG_TEST_URL=postgresql://dev@127.0.0.1:5432/agentic_test python -m unittest discover tests
 npm --prefix frontend ci
 npm --prefix frontend run typecheck && npm --prefix frontend test && npm --prefix frontend run build
