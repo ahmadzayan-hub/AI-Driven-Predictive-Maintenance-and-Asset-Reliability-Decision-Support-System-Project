@@ -719,6 +719,9 @@ def _read_sheet(archive, part, budget, strings, kinds, date1904, limit=None):
 
 # How many non-blank rows of each sheet are read to describe it.
 SAMPLE_ROWS = 20
+# How many title lines (a report name, a "generated on" line) may sit above
+# a header before the sheet is no longer taken for a table.
+MAX_TITLE_ROWS = 5
 
 
 def _open_archive(body):
@@ -801,6 +804,29 @@ def _looks_tabular(rows):
     return any(sum(1 for v in row if v.strip()) >= 2 for row in rows[1:])
 
 
+def _non_blank(rows):
+    return [r for r in rows if any(str(v).strip() for v in r)]
+
+
+def _header_start(rows):
+    """How many title lines sit above the header among the non-blank rows.
+
+    0 when the first non-blank row looks like a header, as before. Otherwise
+    up to MAX_TITLE_ROWS lines of at most one value each (a report title, a
+    date line) are passed over, but only when the row after them looks like
+    a header with data below it. Anything else is 0, so a sheet that is not
+    a table is read as it always was."""
+    filled = _non_blank(rows)
+    if _looks_tabular(filled):
+        return 0
+    for start in range(1, min(MAX_TITLE_ROWS, len(filled) - 2) + 1):
+        if sum(1 for v in filled[start - 1] if str(v).strip()) > 1:
+            return 0
+        if _looks_tabular(filled[start:]):
+            return start
+    return 0
+
+
 def _describe(archive, sheet, budget, strings, kinds, date1904):
     info = {"name": sheet["name"], "hidden": sheet["hidden"], "rows": None,
             "columns": None, "tabular": False, "unreadable": False}
@@ -818,7 +844,7 @@ def _describe(archive, sheet, budget, strings, kinds, date1904):
     elif not counts["more"]:
         info["rows"] = len(rows)
         info["columns"] = max((len(r) for r in rows), default=0)
-    info["tabular"] = _looks_tabular(rows)
+    info["tabular"] = _looks_tabular(_non_blank(rows)[_header_start(rows):])
     return info
 
 
@@ -878,6 +904,13 @@ def _read_xlsx(body, sheet=None):
             warnings.append({
                 "en": f"Read the sheet “{chosen['name']}”, the first of {len(sheets)} that looks like a table.",
                 "ar": f"قُرئت الورقة «{chosen['name']}»، وهي أول ورقة من {len(sheets)} تبدو جدولًا."})
+    titles = _header_start(rows)
+    if titles:
+        rows = _non_blank(rows)[titles:]
+        lines = "line" if titles == 1 else "lines"
+        warnings.append({
+            "en": f"Left out {titles} title {lines} above the header row.",
+            "ar": f"استُبعدت أسطر العنوان فوق صف عناوين الأعمدة، وعددها {titles}."})
     parsed = _table("xlsx", rows, warnings, [s["name"] for s in sheets])
     parsed.selected_sheet = chosen["name"]
     parsed.sheet_details = details

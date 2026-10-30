@@ -292,6 +292,51 @@ class XlsxTests(unittest.TestCase):
         self.assertEqual((listed[1]["rows"], listed[1]["columns"]), (3, 2))
         self.assertEqual(datasets.default_sheet(listed), "Plant data")
 
+    def test_title_lines_above_the_header_are_left_out_and_named(self):
+        body = build_xlsx([("Report", [
+            ["Synthetic depot work orders"],
+            ["Generated 2025-12-31"],
+            [None],
+            ["asset", "hours", "cost"],
+            ["Lift 1", 4, 120],
+            ["Lift 2", 6, 180],
+        ])])
+        parsed = read(body, "titled.xlsx")
+        self.assertEqual(table(parsed), [["asset", "hours", "cost"],
+                                         ["Lift 1", "4", "120"], ["Lift 2", "6", "180"]])
+        self.assertIn("Left out 2 title lines above the header row.", parsed.warning_texts())
+        self.assertIn("استُبعدت أسطر العنوان فوق صف عناوين الأعمدة، وعددها 2.",
+                      parsed.warning_texts("ar"))
+        self.assertTrue(datasets.list_sheets(body)[0]["tabular"])
+
+    def test_one_title_line_is_named_in_the_singular(self):
+        body = build_xlsx([("S", [["Synthetic report"], ["a", "b"], [1, 2]])])
+        parsed = read(body, "one.xlsx")
+        self.assertEqual(parsed.columns, ["a", "b"])
+        self.assertIn("Left out 1 title line above the header row.", parsed.warning_texts())
+
+    def test_a_titled_table_after_a_cover_is_the_default_sheet(self):
+        body = build_xlsx([("Cover", []),
+                           ("Data", [["Synthetic plant data"], ["plant", "cost"], ["North", 320]])],
+                          sheet_xml={0: COVER})
+        parsed = read(body, "cover-titled.xlsx")
+        self.assertEqual(parsed.selected_sheet, "Data")
+        self.assertEqual(table(parsed), [["plant", "cost"], ["North", "320"]])
+
+    def test_only_single_value_lines_and_at_most_five_are_passed_over(self):
+        # A line with two values may be data or a header: never skipped.
+        two = build_xlsx([("S", [["Report", "2025"], ["a", "b"], [1, 2]])])
+        self.assertEqual(read(two, "two.xlsx").columns, ["Report", "2025"])
+        # Six title lines is more than a title block: read as it always was.
+        six = build_xlsx([("S", [[f"Line {n}"] for n in range(6)] + [["a", "b"], [1, 2]])])
+        parsed = read(six, "six.xlsx")
+        self.assertEqual(parsed.columns[0], "Line 0")
+        self.assertFalse(any("title" in w for w in parsed.warning_texts()))
+        self.assertFalse(datasets.list_sheets(six)[0]["tabular"])
+        # A one-column table is not a title block either.
+        one_column = build_xlsx([("S", [["pump"], ["P1"], ["P2"]])])
+        self.assertEqual(table(read(one_column, "col.xlsx")), [["pump"], ["P1"], ["P2"]])
+
     def test_the_declared_dimension_gives_the_approximate_size(self):
         listed = datasets.list_sheets(cover_book())
         self.assertEqual((listed[0]["rows"], listed[0]["columns"]), (12, 6))

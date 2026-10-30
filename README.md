@@ -894,6 +894,18 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Workbook title lines are left out with a warning: 30 October 2026
+
+Reader change ([decision](docs/adr/2026-10-30-workbook-title-lines.md)): a
+workbook whose table sits below a report title or a date line now uploads. Up
+to five lines of one value each above a header are left out, and the upload
+says how many in English and Arabic. The sheet listing counts such a sheet as a
+table, so it can be the default after a cover. Tables that read correctly
+before read the same way; CSV, TSV and JSON are unchanged. No interface change.
+
+Checked by the full Python suite against PostgreSQL 16 (2,373 tests, 19
+skipped, including 4 new workbook tests) and 533 frontend unit tests.
+
 ### Agent cards: each stage shows its evidence; hosted migration packaged — 28 October 2026
 
 Interface change ([decision](docs/adr/2026-10-28-agent-cards.md)): each stage
