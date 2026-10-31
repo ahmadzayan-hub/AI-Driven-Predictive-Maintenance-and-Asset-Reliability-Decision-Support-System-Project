@@ -894,6 +894,20 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Validity limits per measure: 31 October 2026
+
+Analysis change ([decision](docs/adr/2026-10-31-validity-limits.md)): a mapping
+may declare the lowest and highest value a measure can hold (for example hours
+from 0 to 24). The cleaner leaves a value outside its limit out of every figure,
+records its row, value and the limit it broke so the exclusion can be reversed,
+and states it as a limitation claim tied to a calculation in English and Arabic.
+The profile no longer counts such values. Without declared limits nothing
+changes. The limits are set through the mapping API; the mapping panel control
+follows.
+
+Checked by the full Python suite against PostgreSQL 16 (2,420 tests, 19
+skipped, 11 of them new), 540 frontend unit tests, the build and budget.
+
 ### Understanding and cleaning the data: 30 October 2026
 
 Analysis change ([decision](docs/adr/2026-10-30-data-understanding-and-cleaning.md)):

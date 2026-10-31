@@ -590,8 +590,12 @@ def profiler(ctx):
                                if str(r.get(col, "") or "").strip()})
         entry["constant"] = filled > 1 and distinct_filled == 1
         if col in numeric_columns:
+            # A value outside a declared limit is a data error the cleaner
+            # removes; it is not also counted here as unusual or negative.
+            limit = colmap.limits_of(mapping).get(col) if mapping else None
             numbers = [(i, n) for i, n in ((i, to_number(str(r.get(col, "") or "").strip()))
-                                           for i, r in enumerate(rows)) if n is not None]
+                                           for i, r in enumerate(rows))
+                       if n is not None and not colmap.breaks_limit(n, limit)]
             entry["measure"] = _measure_profile(numbers)
     claims = [_claim(ctx, "cl_quality", "fact",
                      f"Data completeness is {completeness:.0%} with {duplicates} duplicate rows.",
@@ -762,6 +766,11 @@ def cleaner(ctx):
     before = len(rows)
     cleaned, seen, dropped_empty, dropped_dupes, coercion_failures = [], set(), 0, 0, 0
     marked_missing, unreadable_columns = 0, set()
+    # Validity limits (31 October 2026): a value outside its measure's
+    # declared limits is a data error. It is left out of every figure and
+    # recorded with the limit it broke, so the cleaning can be reversed.
+    limits = colmap.limits_of(mapping) if mapping else {}
+    invalid, invalid_count, invalid_by = [], 0, {}
     source_indices = []
     # Every removal is recorded by source row (assessment A18): the
     # indices of the empty and the repeated rows, and each value a numeric
@@ -791,6 +800,15 @@ def cleaner(ctx):
                 stripped[col] = None
                 continue
             number = to_number(stripped.get(col, ""))
+            broke = colmap.breaks_limit(number, limits.get(col))
+            if broke:
+                invalid_count += 1
+                invalid_by[(col, broke)] = invalid_by.get((col, broke), 0) + 1
+                if len(invalid) < MAX_UNREADABLE_RECORDED:
+                    invalid.append({"row": source_index, "column": col, "value": number,
+                                    "broke": broke, "limit": limits[col][broke]})
+                stripped[col] = None
+                continue
             if number is None and str(stripped.get(col, "")).strip():
                 coercion_failures += 1
                 unreadable_columns.add(col)
@@ -839,6 +857,24 @@ def cleaner(ctx):
             + ". يُترك الصف فارغاً حين تنقص قيمة يقرؤها أو يقسم على صفر"
             + (f" ({'، '.join(f'{d}: {n}' for d, n in empty.items() if n)})" if any(empty.values()) else "") + ".",
             ["c_derived"]))
+    if invalid_count:
+        parts = [(col, broke, n, limits[col][broke]) for (col, broke), n in invalid_by.items()]
+        listed = ", ".join(f"{col} {'below' if broke == 'min' else 'above'} {bound:g} ({n})"
+                           for col, broke, n, bound in parts)
+        listed_ar = "، ".join(f"{col} {'أقل من' if broke == 'min' else 'أعلى من'} {bound:g} ({n})"
+                              for col, broke, n, bound in parts)
+        calcs.append({"id": "c_invalid_values", "name": "values_outside_declared_limits",
+                      "value": invalid_count,
+                      "method": "measure values below the lowest or above the highest value the "
+                                "mapping allows, left out of every figure"})
+        claims.append(_claim(
+            ctx, "cl_invalid_values", "limitation",
+            f"{invalid_count} value(s) break a limit declared for their measure and were left out "
+            f"of every figure as data errors: {listed}. Each is recorded by row; correct it at the "
+            "source.",
+            f"تخالف {invalid_count} من القيم حداً مُعلناً لمقياسها فاستُبعدت من كل رقم بوصفها "
+            f"أخطاء بيانات: {listed_ar}. سُجّلت كل قيمة بصفّها؛ صحّحها في المصدر.",
+            ["c_invalid_values"]))
     if marked_missing:
         claims.append(_claim(
             ctx, "cl_missing_markers", "fact",
@@ -956,6 +992,7 @@ def cleaner(ctx):
                 "rows": cleaned, "source_indices": source_indices, "derived": derived,
                 "rows_before": before, "rows_after": after,
                 "dropped": before - after, "missing_markers": marked_missing,
+                "invalid_values": invalid, "invalid_count": invalid_count,
                 "spelling_variants": {col: [[list(vn) for vn in group] for group in found]
                                       for col, found in variants.items()},
                 **dates},

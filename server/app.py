@@ -360,6 +360,10 @@ class MappingIn(BaseModel):
     # The month the fiscal year starts in, 1 to 12; January means the
     # calendar year (27 October 2026).
     fiscal_start: int = Field(default=1, ge=1, le=12)
+    # The values each measure can physically take, {measure: {min, max}}
+    # (31 October 2026); outside them is a data error. Checked by
+    # server.mapping, which explains a refusal in the reader's language.
+    limits: dict[str, dict] | None = Field(default=None, max_length=500)
 
 
 class QueryIn(BaseModel):

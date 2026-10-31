@@ -1915,6 +1915,15 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Next: reviewed clean-branch publication/hosted CI and a separately validated
   local release that retains existing local-only report functionality.
 
+## 2026-10-31 · `d9e3f889` · claude/tender-clarke-m4uwgq (data policy point 1: validity limits)
+
+**Goal:** apply the owner's approved four-point data policy, starting with validity limits per measure.
+
+- **Done:** mappings may declare `limits` per measure, validated in both languages; the cleaner leaves values outside them out of every figure, records each for reversal (`invalid_values`) and states it as `cl_invalid_values` tied to `c_invalid_values`; the profiler stops counting them; Arabic display names; the API field. Decision record `docs/adr/2026-10-31-validity-limits.md`, README, progress board, decision log.
+- **Verified:** `scripts/verify.py` with PostgreSQL, all 8 steps: 2,420 Python tests (19 skipped, 11 new), 540 frontend unit tests, build, budget unchanged (256.9 of 257.1 KB).
+- **Decided:** limits come only from the person who knows the data; no limits, no change. The interface control is a separate step against the 220-byte script headroom.
+- **Next:** the mapping panel control for limits; policy point 2 (outliers per group and on a log scale, with and without at a 10% effect), point 3 (imputation in modelling only, flagged, sensitivity check, never the target), point 4 (each report states the policy).
+
 ## 2026-10-29 · `d9e3f889` · claude/tender-clarke-m4uwgq (visual agent cards)
 
 **Goal:** the visual card layout deferred from the agent-cards slice.
