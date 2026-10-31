@@ -58,6 +58,15 @@ ARABIC_CONSEQUENCE = {
     "broken_identity": "لذلك لا تُعرض هذه الأعمدة باعتبارها هوية محاسبية.",
     "uneven_periods": "لذلك تُقارن الفترات لكل سجل لا بالمجاميع.",
 }
+def _arabic_detail(finding):
+    """The figures the English detail states, so both languages cite them."""
+    numbers = finding["numbers"]
+    if finding["detector"] == "uneven_periods" and "listing" in numbers:
+        return (f"{numbers['listing']}. أصغر فترة تضم سجلات أقل بنسبة "
+                f"{numbers['imbalance']:.0%} من أكبرها. ")
+    return ""
+
+
 # A high-severity structural finding restricts what may be concluded; a
 # medium one qualifies it. The claim types follow that distinction.
 CLAIM_TYPE = {"high": "warning", "medium": "limitation", "low": "limitation"}
@@ -194,7 +203,7 @@ class MaintenanceGovernance:
             # Every figure the finding's text states is a calculation of its
             # own, so the validator's figure check can find it (A6).
             for key, value in numbers.items():
-                if isinstance(value, (int, float)) and not isinstance(value, bool) \
+                if isinstance(value, (int, float, str)) and not isinstance(value, bool) \
                         and value != headline_number:
                     calculations.append({
                         "id": f"{prefix}.c_f{index}_{key}",
@@ -253,12 +262,12 @@ class MaintenanceGovernance:
                 "id": f"{prefix}.cl_f{index}",
                 "type": CLAIM_TYPE.get(finding["severity"], "limitation"),
                 "text": _clip(f"{finding['headline']}. {finding['detail']}"),
-                "text_ar": _clip(f"{arabic}. "
+                "text_ar": _clip(f"{arabic}. " + _arabic_detail(finding)
                                  + ARABIC_CONSEQUENCE.get(detector, "")),
                 "evidence": [f"{prefix}.c_f{index}"] + [
                     f"{prefix}.c_f{index}_{key}"
                     for key, value in finding["numbers"].items()
-                    if isinstance(value, (int, float)) and not isinstance(value, bool)
+                    if isinstance(value, (int, float, str)) and not isinstance(value, bool)
                     and value != next(iter(finding["numbers"].values()),
                                       len(finding["columns"]))],
                 "status": "verified"})

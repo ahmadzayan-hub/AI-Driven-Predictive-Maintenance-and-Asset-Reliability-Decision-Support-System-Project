@@ -894,6 +894,23 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Reliability model per asset class: 31 October 2026
+
+Analysis change ([decision](docs/adr/2026-10-31-reliability-model.md)): on the
+`maintenance` profile a new stage, `reliability_model`, reads the days between
+failures for each asset from `Asset_ID`, `Record_Date` and `Failure_Count`,
+counts assets still running as surviving to the latest date, and fits a
+Weibull failure pattern per asset class. Each claim says whether failures come
+early in life, at random or with wear (named only when the whole likely range
+agrees), by when about 10% fail, and the average life, in English and Arabic.
+It estimates a class pattern, not one asset's remaining life. The governance
+stage's uneven-periods finding now cites every figure it states, in both
+languages.
+
+Checked by the full Python suite against PostgreSQL 16 (2,446 tests, 19
+skipped, 13 of them new), 542 frontend unit tests, the build and budget
+(unchanged; no interface change).
+
 ### The data policy applied: 31 October 2026
 
 Analysis change ([decision](docs/adr/2026-10-31-data-policy.md)): unusual

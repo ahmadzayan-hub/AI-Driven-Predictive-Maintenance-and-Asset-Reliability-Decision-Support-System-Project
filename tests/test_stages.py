@@ -549,7 +549,8 @@ class ShippedConfigTestCase(unittest.TestCase):
     # joining it is a decision about what an opt-in maintenance run does,
     # so it should fail here until a record says otherwise. Rail asset
     # screening joined under ADR 0046.
-    MAINTENANCE = ("maintenance_governance", "maintenance_risk", "rail_asset_manager")
+    MAINTENANCE = ("maintenance_governance", "maintenance_risk", "rail_asset_manager",
+                   "reliability_model")
 
     def setUp(self):
         root = Path(__file__).resolve().parent.parent

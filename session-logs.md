@@ -1915,6 +1915,15 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Next: reviewed clean-branch publication/hosted CI and a separately validated
   local release that retains existing local-only report functionality.
 
+## 2026-10-31 · `d9e3f889` · claude/tender-clarke-m4uwgq (R1 reliability model)
+
+**Goal:** review every stage from intake to video, then build slice R1, the reliability model, on the owner's instruction.
+
+- **Done:** stage review delivered in chat (R1 to R5 ranked). New `reliability_model` stage on the `maintenance` profile: days between failures per asset, running assets censored, Weibull fit per asset class with a profile-likelihood range; pattern named only when the range agrees, otherwise unverified. Fixed the governance uneven-periods finding, which cited none of its per-year counts and dropped them in Arabic, failing validation on any unevenly spread maintenance run. Decision record `docs/adr/2026-10-31-reliability-model.md`.
+- **Verified:** 13 new tests, including a governed maintenance run that reaches approval with the validator passing in both languages. Full verify: all 8 steps passed; 2,446 Python tests on PostgreSQL (19 skipped), 542 frontend unit tests, build and budget unchanged.
+- **Decided:** server and report only, no interface change (script budget has 1 byte left).
+- **Next:** R2, risk ranking (probability from R1 × criticality × cost).
+
 ## 2026-10-31 · `d9e3f889` · claude/tender-clarke-m4uwgq (data policy points 2 to 4 and the limits control)
 
 **Goal:** apply the rest of the owner's data policy.

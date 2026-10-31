@@ -395,7 +395,9 @@ def uneven_periods(columns, rows, date_column=None):
             f"{shape}. The smallest holds {imbalance:.0%} fewer records than the largest, so a "
             f"total by period moves with the record count. Compare per record.",
             [column], {"periods": len(buckets), "imbalance": round(imbalance, 4),
-                       "smallest": counts[0], "largest": counts[-1]}))
+                       "smallest": counts[0], "largest": counts[-1],
+                       # The listing the text states, so each period is cited.
+                       "listing": shape}))
     return findings
 
 
