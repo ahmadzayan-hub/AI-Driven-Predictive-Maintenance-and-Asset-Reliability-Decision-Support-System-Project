@@ -894,6 +894,20 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Drift alerts for live sources: 31 October 2026
+
+Platform change ([decision](docs/adr/2026-10-31-snapshot-drift.md)): each new
+snapshot of a live source is compared with the previous one. Columns added or
+removed, a row count halved or doubled, a numeric median moving by half its
+previous spread, or empty cells moving by 10 points are stated in a note in
+the source's language, beside the refresh, asking the reader to check the
+source before approving. The analysis still runs; nothing is blocked. The
+refresh result carries the findings as `drift`.
+
+Checked by the full Python suite against PostgreSQL 16 (2,485 tests, 19
+skipped, 9 of them new), 542 frontend unit tests, the build and budget
+(unchanged; no interface change).
+
 ### Data health: 31 October 2026
 
 Analysis change ([decision](docs/adr/2026-10-31-data-health.md)): every run

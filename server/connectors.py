@@ -27,6 +27,7 @@ from pathlib import Path
 from urllib.parse import parse_qsl, quote, urlsplit
 
 from server import datasets as reader
+from server import drift as driftmod
 from server import mapping as colmap
 from server.quota import QuotaExceeded
 from server.runs import _stamp, _utcnow
@@ -525,7 +526,10 @@ class Connectors:
             return {"connector": summary(self.store.get_connector(row["id"])),
                     "status": "unchanged", "error": None, "dataset": dataset["id"],
                     "run": None, "note": None}
+        drift = self._drift(row, dataset)
         note = self._carry_mapping(row, dataset, language)
+        alert = driftmod.describe(drift, language)
+        note = " ".join(text for text in (note, alert) if text) or None
         try:
             run = self.engine.create_run(row["goal"], owner=row["owner"],
                                          dataset_id=dataset["id"], profile=row.get("profile"),
@@ -540,7 +544,17 @@ class Connectors:
         self.store.update("connectors", row["id"], fields)
         return {"connector": summary(self.store.get_connector(row["id"])),
                 "status": "updated", "error": None, "dataset": dataset["id"],
-                "run": run["id"], "note": note}
+                "run": run["id"], "note": note, "drift": drift}
+
+    def _drift(self, row, dataset):
+        """What moved since the previous snapshot (R5); empty on the first."""
+        previous = (self.store.get_dataset(row["last_dataset_id"])
+                    if row.get("last_dataset_id") else None)
+        if not previous:
+            return []
+        old_columns, old_rows = colmap.table(previous["content"])
+        new_columns, new_rows = colmap.table(dataset["content"])
+        return driftmod.compare(old_columns, old_rows, new_columns, new_rows)
 
     def _carry_mapping(self, row, dataset, language):
         """Give the new snapshot the previous one's mapping when it still

@@ -1915,6 +1915,14 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Next: reviewed clean-branch publication/hosted CI and a separately validated
   local release that retains existing local-only report functionality.
 
+## 2026-10-31 · `d9e3f889` · claude/tender-clarke-m4uwgq (R5 snapshot drift)
+
+**Goal:** build slice R5 on the owner's instruction.
+
+- **Done:** `server/drift.py` compares each live snapshot with the previous one on four stated rules (columns, rows halved or doubled, median moving half the previous spread, empty cells moving 10 points); the alert is a note in the source's language beside the refresh, never a block; the refresh result carries `drift`. Decision record `docs/adr/2026-10-31-snapshot-drift.md`. Completes the R1 to R5 list.
+- **Verified:** 9 new tests (recorded snapshots through the fetcher seam). Full verify: all 8 steps passed; 2,485 Python tests on PostgreSQL (19 skipped), 542 frontend unit tests, build and budget unchanged.
+- **Open:** a real external host still untested from this environment; per-source thresholds need the owner's numbers.
+
 ## 2026-10-31 · `d9e3f889` · claude/tender-clarke-m4uwgq (R4 data health)
 
 **Goal:** build slice R4 on the owner's instruction.
