@@ -3,9 +3,9 @@ type: project
 aliases: [Agentic OS project]
 tags: [project]
 status: active
-updated: 2026-10-23
+updated: 2026-10-31
 review_every_days: 14
-sources: [docs/implementation/PLATFORM_RELEASE.md, README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/RMD_EVIDENCE.md, docs/assessments/2026-10-20-project-review.md, docs/assessments/2026-10-21-saas-competitive-benchmark.md, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0024-the-dataset-api.md, docs/adr/0028-views-load-on-demand.md, scripts/verify.py, docs/adr/0058-executive-dashboard-agent-and-scoped-evidence.md]
+sources: [docs/implementation/PLATFORM_RELEASE.md, README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/RMD_EVIDENCE.md, docs/assessments/2026-10-20-project-review.md, docs/assessments/2026-10-21-saas-competitive-benchmark.md, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0024-the-dataset-api.md, docs/adr/0028-views-load-on-demand.md, scripts/verify.py, docs/adr/0058-executive-dashboard-agent-and-scoped-evidence.md, docs/adr/2026-10-31-reliability-model.md, docs/adr/2026-10-31-risk-ranking.md, docs/adr/2026-10-31-what-if-scenarios.md, docs/adr/2026-10-31-data-health.md, docs/adr/2026-10-31-snapshot-drift.md]
 ---
 
 # Agentic OS
@@ -64,6 +64,7 @@ The engine in this repository, described in [[Identity]]: a governed business-an
 - A scoped executive overview and read-only evidence agent (ADRs 0058–0059): controlled KPIs, populations, review priorities and calculation references in English and Arabic RTL. Business exports use standalone HTML or genuine Word DOCX, with native Print / Save as PDF. Timestamp plus content revision binds each file to its prepared evidence. Models remain run-wide; briefs do not approve reports. Claude development instructions are integrated; hosted Artifact availability is separate.
 - Performance colors with configured per-analysis targets (the 20 October performance-color decision): red bad, blue okay and green good, with status words in both languages and business exports. Directions, inclusive boundaries, controlled units and sources persist in separate audited history. Unknown/missing values stay neutral; target edits change the display policy rather than approvals or the measured figures. The [[Decision log]] links the decision; the [[Design system]] defines the shared interface vocabulary.
 - Reports with claims linked to calculations, published through the [[Approval gate]].
+- On the maintenance profile since 31 October 2026: a failure pattern per asset class (Weibull, running assets censored), assets ranked by the chance of failing within 90 days times recorded cost per failure, and planned-replacement intervals compared with run to failure. Each is advisory and stays behind the [[Approval gate]]. Every run also states its data health (measure values usable as recorded, each loss named), and each live-source snapshot is compared with the previous one, with a note when it moved materially.
 - Optional narration through the [[Model gateway]]; extension through [[Custom stages]] and [[Agent runtimes and MCP]].
 - The bundled [[Sample sales data]] works without an upload.
 - An Overview of key figures, the latest findings and the approval queue, and a Datasets view that analyses a stored dataset again by reference. Both follow the [[Design system]].
