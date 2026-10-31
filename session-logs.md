@@ -1915,6 +1915,15 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Next: reviewed clean-branch publication/hosted CI and a separately validated
   local release that retains existing local-only report functionality.
 
+## 2026-10-31 · `d9e3f889` · claude/tender-clarke-m4uwgq (data policy points 2 to 4 and the limits control)
+
+**Goal:** apply the rest of the owner's data policy.
+
+- **Done:** unusual values judged per group of the breakdown and by ratio for positive measures leaning high (quartile skew ≥ 0.25), still kept; both averages stated when the effect is ≥ 10% (`cl_outlier_effect`). The association model fills gaps in the other column by group median, at most 30% missing, never the measure, with a flag column and the result with and without (`cl_fill_n`, `filled_for_model`). A *Data policy applied* section in every full report, in both languages. *Allowed range* in the mapping panel, sent by the transport; refusals shown at the measure. Decision record `docs/adr/2026-10-31-data-policy.md`.
+- **Verified:** verify with PostgreSQL, all 8 steps: 2,433 Python tests (19 skipped, 13 new), 542 frontend unit tests (2 new), build, budget 257,099 of 257,100 bytes; Playwright mapping and intake, 10 of 10 on desktop and phone.
+- **Decided:** no ceiling raise: three help strings were shortened in both languages and limit errors sit at the measure field. Time interpolation not applied, because the association model reads rows, not one series per asset.
+- **Next:** script headroom is now 1 byte, so the next interface change must trim or record a raise. Open owner actions unchanged.
+
 ## 2026-10-31 · `d9e3f889` · claude/tender-clarke-m4uwgq (data policy point 1: validity limits)
 
 **Goal:** apply the owner's approved four-point data policy, starting with validity limits per measure.

@@ -321,6 +321,7 @@ export const api = {
           currency: mapping.currency ?? null,
           derived: mapping.derived ?? [],
           fiscal_start: mapping.fiscal_start ?? 1,
+          limits: mapping.limits,
         }),
       },
       UPLOAD_TIMEOUT_MS,

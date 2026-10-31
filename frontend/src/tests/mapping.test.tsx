@@ -319,3 +319,45 @@ describe('MappingPanel currency', () => {
     expect(JSON.parse(String(init?.body))).toEqual({ ...SUGGESTION, currency: null, derived: [], fiscal_start: 1 })
   })
 })
+
+describe('MappingPanel validity limits', () => {
+  it('sends the allowed range of the measure and shows a refusal by the measure', async () => {
+    const user = userEvent.setup()
+    const fetchMock = serve([
+      { status: 200, body: DETAIL },
+      {
+        status: 422,
+        body: {
+          detail: {
+            message: 'The mapping cannot be saved.',
+            errors: [{ field: 'limits', column: 'amount', message: 'The lowest allowed value of “amount” is above its highest.' }],
+          },
+        },
+      },
+    ])
+    renderPanel()
+    await screen.findByRole('heading', { name: 'Columns of shop.csv' })
+    const range = screen.getByRole('group', { name: 'Allowed range' })
+    await user.type(within(range).getByRole('spinbutton', { name: 'Lowest' }), '0')
+    await user.type(within(range).getByRole('spinbutton', { name: 'Highest' }), '5000')
+    await user.click(screen.getByRole('button', { name: 'Save mapping' }))
+    const [, init] = fetchMock.mock.calls[1]
+    expect(JSON.parse(String(init?.body)).limits).toEqual({ amount: { min: 0, max: 5000 } })
+    const measure = screen.getByRole('combobox', { name: 'Measure analysed' })
+    expect(await screen.findAllByText('The lowest allowed value of “amount” is above its highest.')).not.toHaveLength(0)
+    expect(measure).toHaveAttribute('aria-invalid', 'true')
+  })
+
+  it('leaves the limits out when none is set', async () => {
+    const user = userEvent.setup()
+    const fetchMock = serve([
+      { status: 200, body: DETAIL },
+      { status: 200, body: DETAIL },
+    ])
+    renderPanel()
+    await screen.findByRole('heading', { name: 'Columns of shop.csv' })
+    await user.click(screen.getByRole('button', { name: 'Save mapping' }))
+    const [, init] = fetchMock.mock.calls[1]
+    expect(JSON.parse(String(init?.body))).not.toHaveProperty('limits')
+  })
+})

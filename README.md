@@ -894,6 +894,23 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### The data policy applied: 31 October 2026
+
+Analysis change ([decision](docs/adr/2026-10-31-data-policy.md)): unusual
+values are judged within each group of the breakdown and by ratio for positive
+measures that lean high, and are still kept; when they move a measure's
+average by 10% or more, the report gives the average with and without them.
+The association model fills a gap in the column beside the measure with its
+group's median (never the measure, and not when more than 30% is missing),
+flags it as `<column>_filled`, and states the result with and without the
+fill; no stored row changes. Every full report states the policy it applied,
+in its language, and the mapping panel sets each measure's allowed range.
+
+Checked by the full Python suite against PostgreSQL 16 (2,433 tests, 19
+skipped, 13 of them new), 542 frontend unit tests (2 new), the build and
+budget (257,099 of 257,100 bytes after trimming), and the mapping and intake
+journeys on desktop and phone (10 cases).
+
 ### Validity limits per measure: 31 October 2026
 
 Analysis change ([decision](docs/adr/2026-10-31-validity-limits.md)): a mapping
@@ -902,8 +919,7 @@ from 0 to 24). The cleaner leaves a value outside its limit out of every figure,
 records its row, value and the limit it broke so the exclusion can be reversed,
 and states it as a limitation claim tied to a calculation in English and Arabic.
 The profile no longer counts such values. Without declared limits nothing
-changes. The limits are set through the mapping API; the mapping panel control
-follows.
+changes. The mapping panel sets them as *Allowed range* (see the data policy above).
 
 Checked by the full Python suite against PostgreSQL 16 (2,420 tests, 19
 skipped, 11 of them new), 540 frontend unit tests, the build and budget.

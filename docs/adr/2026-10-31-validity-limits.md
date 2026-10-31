@@ -41,8 +41,8 @@ possible range ends, so the platform cannot guess it.
   and the report says how many and which.
 - A wrong limit would drop real values. The claim names each limit and count,
   so a reviewer sees it before approval; the gate is unchanged.
-- The mapping panel does not yet offer the control: the limits are set
-  through the API until the interface step, which must fit the script budget.
+- The mapping panel offers the control for the chosen measure as *Allowed
+  range* (added the same day, `docs/adr/2026-10-31-data-policy.md`).
 - Points 2 to 4 of the policy (outliers per group and on a log scale,
   transparent imputation in modelling only, and each report stating the
   policy) are separate records.

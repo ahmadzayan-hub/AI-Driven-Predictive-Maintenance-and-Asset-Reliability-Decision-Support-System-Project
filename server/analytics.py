@@ -511,9 +511,37 @@ OUTLIER_EXAMPLES = 5      # source rows kept per measure, to look them up
 MIN_FOR_QUARTILES = 4     # fewer values give no meaningful quartiles
 
 
-def _measure_profile(numbers):
-    """Range, median, signs and Tukey outliers of one measure's values,
-    given as (source_row, number) pairs. None with no numbers."""
+# Data policy point 2 (31 October 2026): unusual values are judged within
+# each group of the breakdown, so a large asset is not unusual only for
+# being large, and on a log scale when a measure's values are all positive
+# and spread far to the high side (costs, durations), where the plain
+# fences flag every expensive repair. When leaving them out moves the
+# measure's average by at least OUTLIER_EFFECT, both figures are reported.
+OUTLIER_METHOD = ("measure values below Q1 - 1.5 x IQR or above Q3 + 1.5 x IQR, within each "
+                  "group of the breakdown holding at least 4 values, on a log scale for "
+                  "positive measures leaning high")
+SKEW_FOR_LOG = 0.25       # quartile skew, (Q3 + Q1 - 2 x median) / (Q3 - Q1), at or above it
+OUTLIER_EFFECT = 0.10     # a change in the average at least this large is material
+
+
+def _fences(values):
+    q1, _, q3 = statistics.quantiles(values, n=4, method="inclusive")
+    spread = q3 - q1
+    return q1 - OUTLIER_FENCE * spread, q3 + OUTLIER_FENCE * spread
+
+
+def _log_scale(values):
+    """True when values are all positive and lean far to the high side."""
+    if len(values) < MIN_FOR_QUARTILES or values[0] <= 0:
+        return False
+    q1, median, q3 = statistics.quantiles(values, n=4, method="inclusive")
+    return q3 > q1 and (q3 + q1 - 2 * median) / (q3 - q1) >= SKEW_FOR_LOG
+
+
+def _measure_profile(numbers, groups=None):
+    """Range, median, signs and unusual values of one measure's values,
+    given as (source_row, number) pairs; groups maps a source row to its
+    group in the breakdown. None with no numbers."""
     if not numbers:
         return None
     values = sorted(n for _, n in numbers)
@@ -521,15 +549,37 @@ def _measure_profile(numbers):
            "median": statistics.median(values),
            "negatives": sum(1 for v in values if v < 0),
            "zeros": sum(1 for v in values if v == 0),
-           "outliers": 0, "outlier_rows": [], "fences": None}
-    if len(values) >= MIN_FOR_QUARTILES:
-        q1, _, q3 = statistics.quantiles(values, n=4, method="inclusive")
-        spread = q3 - q1
-        low, high = q1 - OUTLIER_FENCE * spread, q3 + OUTLIER_FENCE * spread
-        out["fences"] = [round(low, 6), round(high, 6)]
-        flagged = [row for row, n in numbers if n < low or n > high]
-        out["outliers"] = len(flagged)
-        out["outlier_rows"] = flagged[:OUTLIER_EXAMPLES]
+           "outliers": 0, "outlier_rows": [], "fences": None,
+           "scale": "linear", "grouped": False}
+    if len(values) < MIN_FOR_QUARTILES:
+        return out
+    log = _log_scale(values)
+    scaled = (lambda v: math.log(v)) if log else (lambda v: v)
+    overall = _fences([scaled(v) for v in values])
+    by_group = {}
+    for row, n in numbers:
+        if groups and groups.get(row) is not None:
+            by_group.setdefault(groups[row], []).append(scaled(n))
+    group_fences = {g: _fences(sorted(v)) for g, v in by_group.items()
+                    if len(v) >= MIN_FOR_QUARTILES}
+    out["scale"] = "log" if log else "linear"
+    out["grouped"] = bool(group_fences)
+    out["fences"] = [round(math.exp(f) if log else f, 6) for f in overall]
+    flagged = []
+    for row, n in numbers:
+        low, high = group_fences.get(groups.get(row) if groups else None, overall)
+        if scaled(n) < low or scaled(n) > high:
+            flagged.append((row, n))
+    out["outliers"] = len(flagged)
+    out["outlier_rows"] = [row for row, _ in flagged[:OUTLIER_EXAMPLES]]
+    mean = math.fsum(values) / len(values)
+    flagged_rows = {row for row, _ in flagged}
+    kept = [n for row, n in numbers if row not in flagged_rows]
+    out["mean"] = round(mean, 6)
+    if flagged and kept:
+        without = math.fsum(kept) / len(kept)
+        out["mean_without_outliers"] = round(without, 6)
+        out["outlier_effect"] = round(abs(without - mean) / abs(mean), 6) if mean else None
     return out
 
 
@@ -582,6 +632,10 @@ def profiler(ctx):
     ]
     # Each column's shape, and each measure's range and unusual values.
     to_number = colmap.parse_number if mapping else _to_number
+    group_col = ((mapping or {}).get("dimension") if mapping else
+                 _automatic_group(columns, numeric_columns, _date_like_column(columns), rows))
+    groups = ({i: (str(r.get(group_col) or "").strip() or None) for i, r in enumerate(rows)}
+              if group_col in columns else None)
     for col in columns:
         entry = profile[col]
         filled = len(rows) - entry["missing"]
@@ -596,7 +650,7 @@ def profiler(ctx):
             numbers = [(i, n) for i, n in ((i, to_number(str(r.get(col, "") or "").strip()))
                                            for i, r in enumerate(rows))
                        if n is not None and not colmap.breaks_limit(n, limit)]
-            entry["measure"] = _measure_profile(numbers)
+            entry["measure"] = _measure_profile(numbers, groups)
     claims = [_claim(ctx, "cl_quality", "fact",
                      f"Data completeness is {completeness:.0%} with {duplicates} duplicate rows.",
                      f"اكتمال البيانات {completeness:.0%}، وعدد الصفوف المكررة "
@@ -635,24 +689,54 @@ def profiler(ctx):
             ["c_constant_columns"]))
     measured = [(c, profile[c]["measure"]) for c in numeric_columns if profile[c].get("measure")]
     unusual = [(c, m["outliers"]) for c, m in measured if m["outliers"]]
+    logged = [c for c, m in measured if m["scale"] == "log"]
+    how_en = ((f" They were judged within each group of {group_col}" if any(m["grouped"] for _, m in measured)
+               else " They were judged across all rows")
+              + (f", and by ratio rather than difference for {', '.join(logged)}." if logged else "."))
+    how_ar = ((f" قُيّمت داخل كل مجموعة من {group_col}" if any(m["grouped"] for _, m in measured)
+               else " قُيّمت على كل الصفوف")
+              + (f"، وبالنسبة لا بالفرق في {'، '.join(logged)}." if logged else "."))
     if unusual:
         shown, more = _listed(unusual)
         calcs.append({"id": "c_outliers", "name": "values_far_outside_the_usual_range",
                       "value": sum(n for _, n in unusual),
-                      "method": f"measure values below Q1 - {OUTLIER_FENCE} x IQR or above "
-                                f"Q3 + {OUTLIER_FENCE} x IQR, per measure"})
+                      "method": OUTLIER_METHOD})
         claims.append(_claim(
             ctx, "cl_outliers", "limitation",
             f"{sum(n for _, n in unusual)} value(s) lie far outside the range where most values "
             f"of their measure fall: "
             + ", ".join(f"{c} {n}" for c, n in shown) + (f" and {more} more" if more else "")
             + ". They are kept, not removed or changed; check them before reading totals "
-            "and averages.",
+            "and averages." + how_en,
             f"تقع {sum(n for _, n in unusual)} من القيم بعيداً عن النطاق الذي تقع فيه أغلب "
             f"قيم مقياسها: "
             + "، ".join(f"{c} {n}" for c, n in shown) + (f" و{more} أخرى" if more else "")
-            + ". أُبقيت كما هي دون حذف أو تعديل؛ راجعها قبل قراءة المجاميع والمتوسطات.",
+            + ". أُبقيت كما هي دون حذف أو تعديل؛ راجعها قبل قراءة المجاميع والمتوسطات."
+            + how_ar,
             ["c_outliers"]))
+    material = [(c, m) for c, m in measured
+                if m.get("outlier_effect") is not None and m["outlier_effect"] >= OUTLIER_EFFECT]
+    if material:
+        shown, more = _listed(material)
+        listed = "; ".join(f"{c}: {m['mean']:,.2f} with, {m['mean_without_outliers']:,.2f} without"
+                           for c, m in shown)
+        listed_ar = "؛ ".join(f"{c}: {m['mean']:,.2f} معها، و{m['mean_without_outliers']:,.2f} دونها"
+                              for c, m in shown)
+        calcs.append({"id": "c_outlier_effect", "name": "average_with_and_without_unusual_values",
+                      "value": listed,
+                      "method": "average of each measure with and without its unusual values, "
+                                f"shown when they differ by at least {OUTLIER_EFFECT:.0%}"})
+        claims.append(_claim(
+            ctx, "cl_outlier_effect", "limitation",
+            f"The unusual values move the average of {len(material)} measure(s) by at least "
+            f"{OUTLIER_EFFECT:.0%}. Average with and without them: {listed}"
+            + (f" and {more} more" if more else "")
+            + ". Read figures built on these measures with both in mind.",
+            f"تحرّك القيم غير المعتادة متوسط {len(material)} من المقاييس بنسبة "
+            f"{OUTLIER_EFFECT:.0%} على الأقل. المتوسط معها ودونها: {listed_ar}"
+            + (f" و{more} أخرى" if more else "")
+            + ". اقرأ الأرقام المبنية على هذه المقاييس مع مراعاة الرقمين.",
+            ["c_outlier_effect"]))
     negative = [(c, m["negatives"]) for c, m in measured if m["negatives"]]
     if negative:
         shown, more = _listed(negative)
@@ -1941,6 +2025,70 @@ def descriptive(ctx):
     )
 
 
+# Data policy point 3 (31 October 2026): a gap in a column the model reads
+# beside the measure is filled with the median of the row's group (or of the
+# whole column when the group holds too few values), only for the
+# association model, only when at most FILL_MAX_SHARE of the rows with the
+# measure lack the value, and with the result checked without the fill. The
+# measure itself is never filled, and no stored row changes.
+FILL_MAX_SHARE = 0.30
+FILL_GROUP_MIN = 3
+
+
+def _fill_for_model(rows, column, measure, group_col):
+    candidates = [r for r in rows if r.get(measure) is not None]
+    gaps = [r for r in candidates if r.get(column) is None]
+    if not candidates or not gaps or len(gaps) / len(candidates) > FILL_MAX_SHARE:
+        return None
+    observed = [r[column] for r in candidates if r.get(column) is not None]
+    if len(observed) < FILL_GROUP_MIN:
+        return None
+    overall = statistics.median(observed)
+    by_group = {}
+    if group_col:
+        for r in candidates:
+            if r.get(column) is not None:
+                by_group.setdefault(r.get(group_col), []).append(r[column])
+    filled, used_group = [], False
+    for r in gaps:
+        values = by_group.get(r.get(group_col)) if group_col else None
+        if values and len(values) >= FILL_GROUP_MIN:
+            filled.append((r, statistics.median(values)))
+            used_group = True
+        else:
+            filled.append((r, overall))
+    return {"filled": filled, "share": round(len(gaps) / len(candidates), 4),
+            "method": "group median" if used_group else "column median"}
+
+
+def _fill_claim(ctx, calcs, claims, index, column, measure, fill, observed, with_fill):
+    count = len(fill["filled"])
+    calcs += [
+        {"id": f"c_fill_{index}", "name": f"filled_for_model_{column}", "value": count,
+         "method": f"rows with {measure} but no {column}, given the "
+                   f"{fill['method']} of {column} for the association model only"},
+        {"id": f"c_fill_observed_{index}", "name": f"association_without_fill_{column}",
+         "value": round(observed, 4),
+         "method": f"Pearson correlation of {column} and {measure} over rows with both present"},
+    ]
+    moved = abs(with_fill - observed) >= 0.1 or (abs(with_fill) >= 0.5) != (abs(observed) >= 0.5)
+    tail_en = (" The result depends on the fill, so treat it as weak."
+               if moved else " The result holds either way.")
+    tail_ar = (" تتوقف النتيجة على التعبئة، فعاملها بوصفها ضعيفة."
+               if moved else " تصمد النتيجة في الحالتين.")
+    by_en = "its group's median" if fill["method"] == "group median" else "the column's median"
+    by_ar = "وسيط مجموعته" if fill["method"] == "group median" else "وسيط العمود"
+    claims.append(_claim(
+        ctx, f"cl_fill_{index}", "limitation",
+        f"{count} row(s) had {measure} but no {column}; for this comparison only they were "
+        f"given {by_en} and flagged in {column}_filled, and no stored value changed. "
+        f"Correlation with the fill {with_fill:+.2f}, without it {observed:+.2f}." + tail_en,
+        f"في {count} من الصفوف قيمة لـ{measure} دون {column}؛ ولهذه المقارنة وحدها أُعطيت "
+        f"{by_ar} ووُسمت في {column}_filled، ولم تتغير أي قيمة مخزنة. "
+        f"الارتباط مع التعبئة {with_fill:+.2f}، ودونها {observed:+.2f}." + tail_ar,
+        [f"c_fill_{index}", f"c_fill_observed_{index}", f"c_assoc_{index}"]))
+
+
 def diagnostic(ctx):
     """Type 2 — Why did it happen?
 
@@ -2023,6 +2171,7 @@ def diagnostic(ctx):
     # Which other numeric columns move together with the measure?
     associations = []
     numeric_columns = [c for c in _numeric(ctx) if c != measure]
+    filled_record = []
     for index, column in enumerate(numeric_columns[:4]):
         pairs = [(r[column], r[measure]) for r in rows
                  if r.get(column) is not None and r.get(measure) is not None]
@@ -2031,6 +2180,22 @@ def diagnostic(ctx):
         correlation = _correlation([p[0] for p in pairs], [p[1] for p in pairs])
         if correlation is None:
             continue
+        # Data policy point 3: gaps in the other column, never in the measure,
+        # are filled for this model alone, flagged, and checked both ways.
+        fill = _fill_for_model(rows, column, measure, group_col)
+        if fill:
+            filled_pairs = pairs + [(value, r[measure]) for r, value in fill["filled"]]
+            with_fill = _correlation([p[0] for p in filled_pairs], [p[1] for p in filled_pairs])
+            if with_fill is not None:
+                observed = correlation
+                correlation = with_fill
+                pairs = filled_pairs
+                filled_record.append({"column": column, "filled": len(fill["filled"]),
+                                      "share": fill["share"], "method": fill["method"],
+                                      "correlation_observed": round(observed, 4),
+                                      "correlation_filled": round(with_fill, 4),
+                                      "flag_column": f"{column}_filled"})
+                _fill_claim(ctx, calcs, claims, index, column, measure, fill, observed, with_fill)
         associations.append({"column": column, "correlation": round(correlation, 4),
                              "rows": len(pairs)})
         calcs.append({"id": f"c_assoc_{index}", "name": f"association_{column}",
@@ -2147,6 +2312,7 @@ def diagnostic(ctx):
         "succeeded", headline,
         output={"headline": headline,
                 "contributions": contributions, "associations": associations,
+                "filled_for_model": filled_record,
                 "report_markdown": report},
         calculations=calcs, claims=claims,
     )
@@ -5015,6 +5181,56 @@ def _chart_lines(ctx, language, text):
     return ["", text["charts"], *charts] if charts else []
 
 
+def _policy_lines(ctx, arabic):
+    """Data policy point 4: the report states the data policy and what it did
+    on this run, in the run's language."""
+    cleaner = ctx.get("cleaner") or {}
+    limits = colmap.limits_of(ctx.get("mapping")) if ctx.get("mapping") else {}
+    profile = (ctx.get("profiler") or {}).get("profile") or {}
+    measured = [(c, p["measure"]) for c, p in profile.items() if p.get("measure")]
+    unusual = sum(m["outliers"] for _, m in measured)
+    logged = [c for c, m in measured if m["scale"] == "log"]
+    grouped = any(m["grouped"] for _, m in measured)
+    material = [c for c, m in measured
+                if m.get("outlier_effect") is not None and m["outlier_effect"] >= OUTLIER_EFFECT]
+    filled = (ctx.get("diagnostic") or {}).get("filled_for_model") or []
+    invalid = cleaner.get("invalid_count", 0)
+    if arabic:
+        out = ["", "## سياسة البيانات المطبقة",
+               (f"- حدود الصلاحية: معلنة لـ{'، '.join(limits)}؛ استُبعدت {invalid} من القيم "
+                "خارجها من كل رقم، وسُجلت لإمكان استعادتها."
+                if limits else "- حدود الصلاحية: لم تُعلن حدود، فلم تُستبعد أي قيمة."),
+               f"- القيم غير المعتادة: {unusual}، أُبقيت دون تعديل؛ قُيّمت "
+               + ("داخل كل مجموعة" if grouped else "على كل الصفوف")
+               + (f"، وبالنسبة في {'، '.join(logged)}" if logged else "")
+               + (f"؛ ويُعرض المتوسط معها ودونها لـ{'، '.join(material)} لأن الفرق "
+                  f"{OUTLIER_EFFECT:.0%} أو أكثر." if material else
+                  f"؛ ولم يتحرك متوسط أي مقياس بنسبة {OUTLIER_EFFECT:.0%} أو أكثر دونها."),
+               ("- تعبئة الفجوات: في نموذج الارتباط وحده، لـ"
+                + "، ".join(f"{f['column']} ({f['filled']})" for f in filled)
+                + "، مع عمود وسم ومقارنة النتيجة دون تعبئة."
+                if filled else "- تعبئة الفجوات: لم تُعبأ أي قيمة.")
+               + f" لا يُعبأ المقياس أبداً، ولا يُعبأ عمود تنقصه أكثر من {FILL_MAX_SHARE:.0%} من قيمه."]
+    else:
+        out = ["", "## Data policy applied",
+               (f"- Validity limits: declared for {', '.join(limits)}; {invalid} value(s) "
+                "outside them were left out of every figure and recorded so they can be restored."
+                if limits else "- Validity limits: none declared, so no value was left out."),
+               f"- Unusual values: {unusual}, kept unchanged; judged "
+               + ("within each group" if grouped else "across all rows")
+               + (f", by ratio for {', '.join(logged)}" if logged else "")
+               + (f"; the average with and without them is shown for {', '.join(material)}, "
+                  f"which differ by {OUTLIER_EFFECT:.0%} or more." if material else
+                  f"; no measure's average moves by {OUTLIER_EFFECT:.0%} or more without them."),
+               ("- Filling gaps: in the association model only, for "
+                + ", ".join(f"{f['column']} ({f['filled']})" for f in filled)
+                + ", with a flag column and the result compared without the fill."
+                if filled else "- Filling gaps: no value was filled.")
+               + f" The measure is never filled, nor a column missing more than "
+                 f"{FILL_MAX_SHARE:.0%} of its values."]
+    return out
+
+
 def reporter(ctx):
     """The comprehensive report: the four type reports in one document.
 
@@ -5118,6 +5334,7 @@ def reporter(ctx):
         lines.append(f"- {verdict}: {caption}: {detail}"
                      if arabic else
                      f"- {verdict} — {check['name']}: {check['detail']}")
+    lines += _policy_lines(ctx, arabic)
     lines += ["", text["limits"]]
     lines += [line.format(snapshot=ctx["collector"]["snapshot"])
               for line in text["limits_lines"]]

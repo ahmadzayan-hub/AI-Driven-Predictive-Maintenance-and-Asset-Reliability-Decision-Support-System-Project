@@ -44,7 +44,7 @@ function sameMapping(a: ColumnMapping | null, b: ColumnMapping | null): boolean 
     a.grain === b.grain &&
     (a.currency ?? null) === (b.currency ?? null) &&
     (a.fiscal_start ?? 1) === (b.fiscal_start ?? 1) &&
-    JSON.stringify(a.derived ?? []) === JSON.stringify(b.derived ?? []) &&
+    JSON.stringify([a.derived ?? [], a.limits ?? {}]) === JSON.stringify([b.derived ?? [], b.limits ?? {}]) &&
     Object.keys(a.roles).length === Object.keys(b.roles).length &&
     Object.entries(a.roles).every(([column, role]) => b.roles[column] === role)
   )
@@ -138,7 +138,8 @@ export function MappingPanel({ datasetId, focusOnOpen, onClose, onChanged, onAna
       const index = order.indexOf(problem.column ?? '')
       return index >= 0 ? ids.role(index) : null
     }
-    if (problem.field === 'measure') return ids.measure
+    // A refused limit belongs to the measure it was set for.
+    if (problem.field === 'measure' || problem.field === 'limits') return ids.measure
     if (problem.field === 'dimension') return ids.dimension
     if (problem.field === 'date_order') return ids.order
     if (problem.field === 'currency') return ids.currency
@@ -215,6 +216,14 @@ export function MappingPanel({ datasetId, focusOnOpen, onClose, onChanged, onAna
   /** Replace the derived list: a typed name or formula, a removal, an addition. */
   const setDerived = (next: DerivedColumn[]) => {
     if (draft) setDraft({ ...draft, derived: next })
+    setNotice(null)
+  }
+  // Limits are set for the chosen measure; an emptied box removes its side.
+  const limited = draft?.measure && draft.roles[draft.measure] === 'measure' ? draft.measure : null
+  const setLimit = (side: 'min' | 'max', text: string) => {
+    if (!draft || !limited) return
+    const limit = { ...draft.limits?.[limited], [side]: text ? +text : undefined }
+    setDraft({ ...draft, limits: { ...draft.limits, [limited]: limit } })
     setNotice(null)
   }
   const dimensions = draft ? order.filter((c) => draft.roles[c] === 'dimension') : []
@@ -404,6 +413,21 @@ export function MappingPanel({ datasetId, focusOnOpen, onClose, onChanged, onAna
               </select>
               {errorText(ids.measure)}
             </div>
+            {limited ? (
+              <fieldset className="field">
+                <legend className="field__label">{d('limits')}</legend>
+                {(['min', 'max'] as const).map((side) => (
+                  <input
+                    key={side}
+                    className="field__input"
+                    type="number"
+                    aria-label={d(side)}
+                    value={draft.limits?.[limited]?.[side] ?? ''}
+                    onChange={(event) => setLimit(side, event.target.value)}
+                  />
+                ))}
+              </fieldset>
+            ) : null}
             <div className="field">
               <label className="field__label" htmlFor={ids.dimension}>
                 {t('mapping.dimension')}
