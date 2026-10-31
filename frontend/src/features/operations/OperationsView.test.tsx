@@ -133,7 +133,7 @@ describe('maintenance operations', () => {
     expect(within(coverage).getByText('Recorded work orders').parentElement).toHaveTextContent('88')
     const summary = screen.getByRole('group', { name: 'Work order summary' })
     expect([...summary.querySelectorAll('.performance-value__number')].map((node) => node.textContent)).toEqual(['1', '1', '1'])
-    expect(screen.getByText(/Showing 3 of 88 orders/)).toHaveTextContent('Workflow counts and filters cover this displayed queue')
+    expect(screen.getByText(/Showing 3 of 88 orders/)).toHaveTextContent('counts and filters cover this queue only')
   })
 
   it.each(['en', 'ar'] as const)('inspects only the selected asset with keyboard focus and truthful %s history', async (locale) => {
@@ -250,7 +250,7 @@ describe('maintenance operations', () => {
     await user.click(within(detail).getByRole('button', { name: 'Authorize maintenance' }))
     expect(calls.filter((call) => call.method === 'PATCH')).toHaveLength(0)
     const dialog = screen.getByRole('dialog')
-    expect(dialog).toHaveTextContent('Report publication approval is a separate decision')
+    expect(dialog).toHaveTextContent('not report publication')
     await user.click(within(dialog).getByRole('button', { name: 'Authorize maintenance' }))
     await user.click(await screen.findByRole('button', { name: 'Start work' }))
     await user.type(await screen.findByLabelText('Observed outcome'), 'Bearing wear confirmed')
@@ -321,7 +321,7 @@ describe('maintenance operations', () => {
     expect(document.documentElement.dir).toBe('rtl')
     await user.click(screen.getByRole('button', { name: 'التصريح بتنفيذ الصيانة' }))
     const dialog = screen.getByRole('dialog')
-    expect(dialog).toHaveTextContent('الموافقة على نشر التقرير قرار مستقل')
+    expect(dialog).toHaveTextContent('لا بنشر التقرير')
     await user.click(within(dialog).getByRole('button', { name: 'التصريح بتنفيذ الصيانة' }))
     await screen.findByRole('button', { name: 'بدء العمل' })
     expect(calls.filter((call) => call.path.startsWith('/api/operations')).every((call) => call.language === 'ar')).toBe(true)

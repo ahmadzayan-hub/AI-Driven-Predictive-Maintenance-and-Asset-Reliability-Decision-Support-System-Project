@@ -217,9 +217,13 @@ class RiskRanking:
                          f"{item['criticality'] or 'n/a'} | {item['days_running']:,} | "
                          f"{round(item['chance'] * 100)}% | {cost} |")
         lines += ["", "A proposal for engineering review; it issues no work order."]
-        summary = (f"Ranked {len(ranked)} assets by "
-                   + ("expected failure cost" if by_cost else "chance of failure")
-                   + f" over {HORIZON_DAYS} days.")
+        summary = analytics._say(
+            ctx, f"Ranked {len(ranked)} assets by "
+                 + ("expected failure cost" if by_cost else "chance of failure")
+                 + f" over {HORIZON_DAYS} days.",
+            f"رُتِّب {len(ranked)} أصلًا حسب "
+            + ("التكلفة المتوقعة للأعطال" if by_cost else "احتمال العطل")
+            + f" خلال {HORIZON_DAYS} يومًا.")
         return {"status": "succeeded", "summary": summary, "claims": claims,
                 "calculations": calcs,
                 "quality_checks": [

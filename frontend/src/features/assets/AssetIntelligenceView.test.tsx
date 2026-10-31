@@ -123,3 +123,27 @@ it('shows measures as family tiles, keeps a verdict reason on its tile and says 
   const screening = screen.getByText('Engineering review screening')
   expect(availability.compareDocumentPosition(screening) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 })
+
+it('shows data health and each decision stage with its claims, in the run language', async () => {
+  const claim = (id: string, text: string, text_ar?: string) =>
+    ({ id, text, text_ar, type: 'calculation', evidence: [], status: 'verified' })
+  const run = runFixture({
+    id: 'decisions', dataset_name: 'fleet.csv', state: 'awaiting_approval',
+    tasks: [
+      { id: 'rail', role: 'rail_asset_manager', title: 'Rail', state: 'succeeded', summary: 'Screened', quality_checks: [], claims: [] },
+      { id: 'clean', role: 'cleaner', title: 'Cleaner', state: 'succeeded', summary: '', quality_checks: [],
+        claims: [claim('cl_health', 'Data health: 87.5%', 'صحة البيانات: 87.5%')] },
+      { id: 'rank', role: 'risk_ranking', title: 'وكيل ترتيب المخاطر', state: 'succeeded', summary: '', quality_checks: [],
+        claims: [claim('cl_rank_0', 'Review Pum-3', 'يُقترح مراجعة Pum-3')] },
+      { id: 'what', role: 'what_if_scenarios', title: 'Scenarios', state: 'failed', summary: '', quality_checks: [],
+        claims: [claim('cl_scenario_0', 'Hidden')] },
+    ],
+  })
+  vi.spyOn(api, 'assetEvidence').mockResolvedValue(answer(run))
+  vi.spyOn(api, 'runKpis').mockResolvedValue(measures(run.id, 'Cost'))
+  render(<AssetIntelligenceView onOpenRun={vi.fn()} />)
+  expect(await screen.findByText('صحة البيانات: 87.5%')).toBeVisible()
+  expect(screen.getByText('وكيل ترتيب المخاطر')).toBeVisible()
+  expect(screen.getByText('يُقترح مراجعة Pum-3')).toBeVisible()
+  expect(screen.queryByText('Hidden')).not.toBeInTheDocument()
+})

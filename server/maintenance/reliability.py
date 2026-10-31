@@ -316,8 +316,10 @@ class ReliabilityModel:
                 f"منها، أو بعد أكبر {MAX_GROUPS} فئات. لا يُستنتج لها أي نمط.",
                 [p + "c_too_few"]))
         fitted = len(groups)
-        summary = (f"Fitted the failure pattern for {fitted} asset classes; "
-                   f"{len(too_few)} had too few failures.")
+        summary = analytics._say(
+            ctx, f"Fitted the failure pattern for {fitted} asset classes; "
+                 f"{len(too_few)} had too few failures.",
+            f"قُدّر نمط الأعطال لـ{fitted} من فئات الأصول؛ و{len(too_few)} أعطالها قليلة.")
         lines = ["## Reliability: failure pattern by asset class", "", summary, ""]
         for g in groups:
             lines.append(f"- {g['group']}: shape {g['shape']} (likely {g['shape_range']}), "

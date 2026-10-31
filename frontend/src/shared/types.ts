@@ -135,7 +135,7 @@ export interface RunTask {
   state: string
   summary: string | null
   quality_checks: Array<{ name: string; passed: boolean; detail: string }>
-  claims: Array<{ id: string; text: string; type: string; evidence: string[]; status: string }>
+  claims: Array<{ id: string; text: string; text_ar?: string; type: string; evidence: string[]; status: string }>
 }
 
 export interface RunApproval {

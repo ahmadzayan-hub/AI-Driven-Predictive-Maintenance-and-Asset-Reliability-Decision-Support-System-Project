@@ -219,5 +219,6 @@ One line per record, read from its title and decision; the record itself is the 
 | 2026-10-31-what-if-scenarios | Planned replacement intervals against run to failure per class (age-replacement model, recorded costs); lowest-cost interval named only when it saves; no wear, no planned-replacement advice; declared intervals as a stage option | [[Evidence and claims]] |
 | 2026-10-31-data-health | Share of measure values usable as recorded after cleaning, each loss named, unusual values counted as usable; first line of the policy section; the raw quality score unchanged | [[Data quality contracts]], [[Evidence and claims]] |
 | 2026-10-31-snapshot-drift | Each live snapshot compared with the previous one on four stated rules; a note, never a block; findings in the refresh result | [[Data quality contracts]] |
+| 2026-10-31-decision-stages-on-assets | The Assets screen shows data health and the decision stages' claims in the run language; no new string; room from trimming six Operations strings | [[Design system]] |
 
 - `2026-10-27-assistant-focus-and-context`: isolated candidate; native report disclosure beside composer, scoped session status and stronger first action. Browser acceptance pending.

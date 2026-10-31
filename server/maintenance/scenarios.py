@@ -233,7 +233,9 @@ class WhatIfScenarios:
             [f"{p}c_group_0"]))
         lines.append("Figures are per 1,000 asset-days. A comparison for engineering "
                      "review; it changes no maintenance plan.")
-        summary = f"Compared planned replacement with run to failure for {len(classes)} asset classes."
+        summary = analytics._say(
+            ctx, f"Compared planned replacement with run to failure for {len(classes)} asset classes.",
+            f"قورن الاستبدال المخطط بالتشغيل حتى العطل لـ{len(classes)} من فئات الأصول.")
         return {"status": "succeeded", "summary": summary, "claims": claims,
                 "calculations": calcs,
                 "quality_checks": [

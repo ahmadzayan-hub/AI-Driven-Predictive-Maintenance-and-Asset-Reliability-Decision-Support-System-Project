@@ -22,4 +22,19 @@ describe('asset domain evidence', () => {
     expect(found?.run.id).toBe('latest')
     expect(found?.risk).toBeNull()
   })
+  it('carries the decision stages in order, and the data health line in the run language', () => {
+    const task = (role: string, claims: object[], state = 'succeeded') =>
+      ({ id: role, title: role, role, state, summary: role, quality_checks: [], claims })
+    const claim = { id: 'c', text: 'en', type: 'calculation', evidence: [], status: 'verified' }
+    const found = findAssetEvidence([{ id: 'r', updated_at: '2026-10-31', tasks: [
+      task('rail_asset_manager', []),
+      task('what_if_scenarios', [claim]),
+      task('risk_ranking', [], 'succeeded'),
+      task('reliability_model', [claim]),
+      task('cleaner', [{ ...claim, id: 'cl_health', text_ar: 'صحة البيانات' }]),
+    ] } as unknown as RunDetail])
+    expect(found?.decisions.map((t) => t.role)).toEqual(['reliability_model', 'what_if_scenarios'])
+    expect(found?.health).toBe('صحة البيانات')
+    expect(findAssetEvidence([run('a', '2026-10-17', 'rail_asset_manager')])?.health).toBeNull()
+  })
 })

@@ -1915,6 +1915,14 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Next: reviewed clean-branch publication/hosted CI and a separately validated
   local release that retains existing local-only report functionality.
 
+## 2026-10-31 · `d9e3f889` · claude/tender-clarke-m4uwgq (decision stages on the Assets screen)
+
+**Goal:** the owner chose "Screen for R1–R5".
+
+- **Done:** the Assets screen shows the latest maintenance run's data-health line and each decision stage's title and claims (R1 to R3) in the run's language; R5 already shows beside a live refresh. Stage summaries now bilingual. No new interface string. Trimmed six Operations help strings in both languages (one trim that grew the gzip total was reverted); script 257,090 of 257,100 bytes, no raise. Decision record `docs/adr/2026-10-31-decision-stages-on-assets.md`. Brain maintenance also ran today (`d21d016`).
+- **Verified:** full verify all 8 steps passed (2,485 Python tests on PostgreSQL, 19 skipped; 544 frontend unit tests, 2 new); Playwright operations, overview, responsive and visual-system specs 19 passed, 3 skipped, desktop and phone, no screenshot change.
+- **Next:** the owner's numbers (criticality weights, horizon, intervals, drift thresholds); merge to main needs explicit approval.
+
 ## 2026-10-31 · `d9e3f889` · claude/tender-clarke-m4uwgq (R5 snapshot drift)
 
 **Goal:** build slice R5 on the owner's instruction.

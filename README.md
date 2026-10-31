@@ -894,6 +894,15 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Decision stages on the Assets screen: 31 October 2026
+
+Interface change ([decision](docs/adr/2026-10-31-decision-stages-on-assets.md)):
+the Assets screen shows the latest maintenance run's data-health line and, for
+each decision stage that made claims (reliability, risk ranking, scenarios),
+its title and claims in the run's language. No new interface string; the room
+came from shortening six Operations help strings in both languages (script
+total 257,090 of 257,100 bytes, no raise).
+
 ### Drift alerts for live sources: 31 October 2026
 
 Platform change ([decision](docs/adr/2026-10-31-snapshot-drift.md)): each new
