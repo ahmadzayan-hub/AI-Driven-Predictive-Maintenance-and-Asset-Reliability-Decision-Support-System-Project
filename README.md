@@ -894,6 +894,20 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Data health: 31 October 2026
+
+Analysis change ([decision](docs/adr/2026-10-31-data-health.md)): every run
+now states, after cleaning, the share of measure values usable as recorded,
+and names each loss: empty, marked missing, unreadable, or outside a declared
+limit. Unusual values are still used and are counted among the usable ones.
+The figure is the first line of the report's *Data policy applied* section, in
+English and Arabic. The existing quality score over the raw table is
+unchanged.
+
+Checked by the full Python suite against PostgreSQL 16 (2,476 tests, 19
+skipped, 5 of them new), 542 frontend unit tests, the build and budget
+(unchanged; no interface change).
+
 ### What-if scenarios for planned replacement: 31 October 2026
 
 Analysis change ([decision](docs/adr/2026-10-31-what-if-scenarios.md)): on the

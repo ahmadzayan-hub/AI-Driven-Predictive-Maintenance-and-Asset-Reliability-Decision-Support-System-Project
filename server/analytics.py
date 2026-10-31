@@ -837,6 +837,45 @@ def _spelling_variants(rows, columns, skip):
             found[col] = sorted(clashes, key=lambda g: -sum(n for _, n in g))
     return found
 
+def _data_health(ctx, cells, blank, marked, unreadable, outside, numeric_columns):
+    """Data health (owner slice R4): the share of measure values usable as
+    recorded, after cleaning, with every loss named. Unusual values are
+    still used, so they are counted beside the share, not against it."""
+    if not cells:
+        return None
+    usable = cells - blank - marked - unreadable - outside
+    profile = ctx["profiler"].get("profile", {})
+    unusual = sum((profile.get(col, {}).get("measure") or {}).get("outliers", 0)
+                  for col in numeric_columns)
+    share = round(100 * usable / cells, 1)
+    figures = {"share": share, "usable": usable, "cells": cells, "empty": blank,
+               "marked_missing": marked, "unreadable": unreadable,
+               "outside_limits": outside, "unusual_kept": unusual}
+    calcs = [
+        {"id": "c_health", "name": "data_health_share", "value": share,
+         "method": "measure values usable as recorded / measure cells in the cleaned rows × 100"},
+        {"id": "c_health_cells", "name": "data_health_counts",
+         "value": (f"{usable:,} of {cells:,} usable; {blank:,} empty, {marked:,} marked "
+                   f"missing, {unreadable:,} unreadable, {outside:,} outside limits; "
+                   f"{unusual:,} unusual and kept"),
+         "method": "cells in the measure columns of the rows kept after cleaning"},
+    ]
+    lost = [(n, en, ar) for n, en, ar in (
+        (blank, "empty", "فارغة"), (marked, "marked missing", "معلَّمة مفقودة"),
+        (unreadable, "unreadable", "متعذرة القراءة"),
+        (outside, "outside a declared limit", "خارج حد مُعلن")) if n]
+    detail_en = ("; ".join(f"{n:,} {en}" for n, en, _ in lost) + ".") if lost else         "none is empty, unreadable or outside a limit."
+    detail_ar = ("؛ ".join(f"{n:,} {ar}" for n, _, ar in lost) + ".") if lost else         "لا قيمة فارغة أو متعذرة القراءة أو خارج حد."
+    claim = _claim(
+        ctx, "cl_health", "fact",
+        f"Data health: {share}% of measure values ({usable:,} of {cells:,}) are usable as "
+        f"recorded; {detail_en} Of the usable values, {unusual:,} are unusual and still used.",
+        f"صحة البيانات: {share}% من قيم المقاييس ({usable:,} من {cells:,}) صالحة كما سُجّلت؛ "
+        f"{detail_ar} ومن القيم الصالحة {unusual:,} غير معتادة وما زالت مستخدمة.",
+        ["c_health", "c_health_cells"])
+    return {"figures": figures, "calculations": calcs, "claim": claim}
+
+
 def cleaner(ctx):
     rows = ctx["collector"]["rows"]
     numeric_columns = ctx["profiler"]["numeric_columns"]
@@ -849,7 +888,7 @@ def cleaner(ctx):
     to_number = colmap.parse_number if mapping else _to_number
     before = len(rows)
     cleaned, seen, dropped_empty, dropped_dupes, coercion_failures = [], set(), 0, 0, 0
-    marked_missing, unreadable_columns = 0, set()
+    marked_missing, unreadable_columns, blank_cells = 0, set(), 0
     # Validity limits (31 October 2026): a value outside its measure's
     # declared limits is a data error. It is left out of every figure and
     # recorded with the limit it broke, so the cleaning can be reversed.
@@ -883,6 +922,8 @@ def cleaner(ctx):
                     unreadable.append({"row": source_index, "column": col, "value": text[:80]})
                 stripped[col] = None
                 continue
+            if not text:
+                blank_cells += 1
             number = to_number(stripped.get(col, ""))
             broke = colmap.breaks_limit(number, limits.get(col))
             if broke:
@@ -1039,6 +1080,11 @@ def cleaner(ctx):
                 f"في {dates['dates_unreadable']} من الصفوف قيمة {date_col} لم تُقرأ "
                 "تاريخاً، فاستُبعدت من كل اتجاه زمني.",
                 ["c_dates_unread"]))
+    health = _data_health(ctx, after * len(numeric_columns), blank_cells, marked_missing,
+                          coercion_failures, invalid_count, numeric_columns)
+    if health:
+        calcs += health["calculations"]
+        claims.append(health["claim"])
     variants = _spelling_variants(cleaned, ctx["collector"]["columns"],
                                   set(numeric_columns) | {dates.get("date_col")} | set(derived))
     if variants:
@@ -1077,6 +1123,7 @@ def cleaner(ctx):
                 "rows_before": before, "rows_after": after,
                 "dropped": before - after, "missing_markers": marked_missing,
                 "invalid_values": invalid, "invalid_count": invalid_count,
+                "health": health["figures"] if health else None,
                 "spelling_variants": {col: [[list(vn) for vn in group] for group in found]
                                       for col, found in variants.items()},
                 **dates},
@@ -5195,8 +5242,12 @@ def _policy_lines(ctx, arabic):
                 if m.get("outlier_effect") is not None and m["outlier_effect"] >= OUTLIER_EFFECT]
     filled = (ctx.get("diagnostic") or {}).get("filled_for_model") or []
     invalid = cleaner.get("invalid_count", 0)
+    health = cleaner.get("health")
     if arabic:
         out = ["", "## سياسة البيانات المطبقة",
+               *([f"- صحة البيانات: {health['share']}% من قيم المقاييس "
+                  f"({health['usable']:,} من {health['cells']:,}) صالحة كما سُجّلت."]
+                 if health else []),
                (f"- حدود الصلاحية: معلنة لـ{'، '.join(limits)}؛ استُبعدت {invalid} من القيم "
                 "خارجها من كل رقم، وسُجلت لإمكان استعادتها."
                 if limits else "- حدود الصلاحية: لم تُعلن حدود، فلم تُستبعد أي قيمة."),
@@ -5213,6 +5264,9 @@ def _policy_lines(ctx, arabic):
                + f" لا يُعبأ المقياس أبداً، ولا يُعبأ عمود تنقصه أكثر من {FILL_MAX_SHARE:.0%} من قيمه."]
     else:
         out = ["", "## Data policy applied",
+               *([f"- Data health: {health['share']}% of measure values "
+                  f"({health['usable']:,} of {health['cells']:,}) are usable as recorded."]
+                 if health else []),
                (f"- Validity limits: declared for {', '.join(limits)}; {invalid} value(s) "
                 "outside them were left out of every figure and recorded so they can be restored."
                 if limits else "- Validity limits: none declared, so no value was left out."),

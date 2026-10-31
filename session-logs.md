@@ -1915,6 +1915,14 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Next: reviewed clean-branch publication/hosted CI and a separately validated
   local release that retains existing local-only report functionality.
 
+## 2026-10-31 · `d9e3f889` · claude/tender-clarke-m4uwgq (R4 data health)
+
+**Goal:** build slice R4 on the owner's instruction.
+
+- **Done:** the cleaner states data health: the share of measure values usable as recorded after cleaning, each loss named (empty, marked missing, unreadable, outside a limit), unusual values counted as usable; first line of the report's policy section in both languages. Kept the existing raw quality score unchanged rather than altering its formula. Decision record `docs/adr/2026-10-31-data-health.md`.
+- **Verified:** 5 new tests. Full verify: all 8 steps passed; 2,476 Python tests on PostgreSQL (19 skipped), 542 frontend unit tests, build and budget unchanged. A first verify failed only because PostgreSQL had stopped after the session resumed.
+- **Next:** R5 drift alerts for live sources.
+
 ## 2026-10-31 · `d9e3f889` · claude/tender-clarke-m4uwgq (R3 what-if scenarios)
 
 **Goal:** build slice R3 on the owner's instruction.
