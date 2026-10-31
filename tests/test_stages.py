@@ -550,7 +550,7 @@ class ShippedConfigTestCase(unittest.TestCase):
     # so it should fail here until a record says otherwise. Rail asset
     # screening joined under ADR 0046.
     MAINTENANCE = ("maintenance_governance", "maintenance_risk", "rail_asset_manager",
-                   "reliability_model")
+                   "reliability_model", "risk_ranking")
 
     def setUp(self):
         root = Path(__file__).resolve().parent.parent

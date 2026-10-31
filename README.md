@@ -894,6 +894,23 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Risk ranking of assets: 31 October 2026
+
+Analysis change ([decision](docs/adr/2026-10-31-risk-ranking.md)): on the
+`maintenance` profile a new stage, `risk_ranking`, gives each asset its chance
+of failing within the next 90 days, from its class's failure pattern and the
+days since its last failure, and multiplies it by the class's recorded cost
+per failure. Assets are ranked by that expected cost (or by the chance alone
+when costs are missing, which the report says). Criticality is shown, not
+weighted. The top three become recommendation claims in English and Arabic;
+an asset that has run longer than any failure interval seen in its class is
+called an extrapolation and left unverified. A proposal for engineering
+review, not a work order.
+
+Checked by the full Python suite against PostgreSQL 16 (2,457 tests, 19
+skipped, 11 of them new), 542 frontend unit tests, the build and budget
+(unchanged; no interface change).
+
 ### Reliability model per asset class: 31 October 2026
 
 Analysis change ([decision](docs/adr/2026-10-31-reliability-model.md)): on the

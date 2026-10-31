@@ -1915,6 +1915,15 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Next: reviewed clean-branch publication/hosted CI and a separately validated
   local release that retains existing local-only report functionality.
 
+## 2026-10-31 · `d9e3f889` · claude/tender-clarke-m4uwgq (R2 risk ranking)
+
+**Goal:** build slice R2 on the owner's instruction.
+
+- **Done:** new `risk_ranking` stage on the `maintenance` profile: chance of failing within 90 days per asset from its class's R1 pattern and days since its last failure, times the class's recorded cost per failure; ranked by expected cost, or by chance when costs are missing. Criticality shown, not weighted. Top three as recommendation claims; ages beyond the longest interval seen are called extrapolations and left unverified. Decision record `docs/adr/2026-10-31-risk-ranking.md`.
+- **Verified:** 11 new tests including a governed run in both languages. Full verify: all 8 steps passed; 2,457 Python tests on PostgreSQL (19 skipped), 542 frontend unit tests, build and budget unchanged.
+- **Decided:** no criticality weights and a fixed 90-day horizon until the owner gives numbers.
+- **Next:** R3 what-if scenarios.
+
 ## 2026-10-31 · `d9e3f889` · claude/tender-clarke-m4uwgq (R1 reliability model)
 
 **Goal:** review every stage from intake to video, then build slice R1, the reliability model, on the owner's instruction.
