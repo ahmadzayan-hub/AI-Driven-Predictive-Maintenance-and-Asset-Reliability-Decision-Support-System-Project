@@ -550,15 +550,19 @@ class MaintenanceRisk:
                                              "decision": target.decision}}
         calc = modelling._calc(self.role, calc_id, f"{target.key}_not_fitted", 0,
                                f"not fitted: {reason}")
+        # The reason states figures (record counts); cite them as text.
+        stated = modelling._calc(self.role, calc_id + "_reason",
+                                 f"{target.key}_not_fitted_reason", reason,
+                                 "the reason as stated")
         claim = modelling._claim(
             ctx, self.role, f"cl_{target.key}", "limitation",
             f"{target.question} Not answered: {reason}. No score is reported, "
             f"because an unfitted model has none.",
             f"{target.question_ar} لم يُجَب: {reason}. لا تُذكر أي نتيجة لأن "
             f"النموذج لم يُبنَ.",
-            [calc_id])
+            [calc_id, calc_id + "_reason"])
         check = {"name": f"{target.key}_fitted", "passed": False, "detail": reason}
-        return card, [claim], [calc], check
+        return card, [claim], [calc, stated], check
 
     # -- presentation ---------------------------------------------------
     def _summary(self, verdicts):

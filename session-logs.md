@@ -1915,6 +1915,14 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Next: reviewed clean-branch publication/hosted CI and a separately validated
   local release that retains existing local-only report functionality.
 
+## 2026-10-31 · `d9e3f889` · claude/tender-clarke-m4uwgq (R3 what-if scenarios)
+
+**Goal:** build slice R3 on the owner's instruction.
+
+- **Done:** new `what_if_scenarios` stage on the `maintenance` profile: planned replacement every T running days against run to failure per class (age-replacement model), failures, planned jobs and cost per 1,000 asset-days from recorded failure and preventive costs; declared intervals as the stage option `intervals_days`; lowest-cost interval named only when it saves; no-wear classes told planned replacement does not help. Fixed two existing claims that failed validation on exports with `Work_Order_Type`. Decision record `docs/adr/2026-10-31-what-if-scenarios.md`.
+- **Verified:** 14 new tests including the optimality condition and a governed run in both languages. Full verify: all 8 steps passed; 2,471 Python tests on PostgreSQL (19 skipped), 542 frontend unit tests, build and budget unchanged.
+- **Next:** R4 data health score; the owner still owes criticality weights and the planning horizon.
+
 ## 2026-10-31 · `d9e3f889` · claude/tender-clarke-m4uwgq (R2 risk ranking)
 
 **Goal:** build slice R2 on the owner's instruction.

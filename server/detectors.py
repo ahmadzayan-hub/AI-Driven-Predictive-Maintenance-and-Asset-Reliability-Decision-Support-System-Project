@@ -229,7 +229,9 @@ def target_leakage(columns, rows):
               f"the split, and report the base rate there.",
             involved[:8],
             {"columns_involved": len(involved), "positive_rows": positive,
-             "rows": len(rows), "explained_by": best}))
+             "rows": len(rows), "explained_by": best,
+             # The listing the text states, so each count is cited.
+             "listing": shape}))
     return findings
 
 

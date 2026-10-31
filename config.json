@@ -18,7 +18,8 @@
         "server.maintenance.targets.MaintenanceRisk",
         "server.maintenance.rail_stage.RailAssetManagerStage",
     "server.maintenance.reliability.ReliabilityModel",
-    "server.maintenance.risk_ranking.RiskRanking"
+    "server.maintenance.risk_ranking.RiskRanking",
+    "server.maintenance.scenarios.WhatIfScenarios"
     ],
     "profiles": {
         "default": [],
@@ -32,7 +33,7 @@
         "maintenance": [
             "maintenance_governance",
             "maintenance_risk",
-            "rail_asset_manager", "reliability_model", "risk_ranking"
+            "rail_asset_manager", "reliability_model", "risk_ranking", "what_if_scenarios"
         ]
     }
 }

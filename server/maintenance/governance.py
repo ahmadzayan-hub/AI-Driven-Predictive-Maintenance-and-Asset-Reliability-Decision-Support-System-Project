@@ -64,6 +64,13 @@ def _arabic_detail(finding):
     if finding["detector"] == "uneven_periods" and "listing" in numbers:
         return (f"{numbers['listing']}. أصغر فترة تضم سجلات أقل بنسبة "
                 f"{numbers['imbalance']:.0%} من أكبرها. ")
+    if finding["detector"] == "target_leakage" and "listing" in numbers:
+        involved = numbers["columns_involved"]
+        named = "، ".join(finding["columns"][:6])
+        more = f" و{involved - 6} أخرى" if involved > 6 else ""
+        return (f"{numbers['positive_rows']:,} من {numbers['rows']:,} صفًا في جانب واحد من "
+                f"تقسيم واحد، وتسجله {involved} أعمدة: {named}{more}. ويذكره "
+                f"{numbers['explained_by']} بأوضح صورة ({numbers['listing']}). ")
     return ""
 
 

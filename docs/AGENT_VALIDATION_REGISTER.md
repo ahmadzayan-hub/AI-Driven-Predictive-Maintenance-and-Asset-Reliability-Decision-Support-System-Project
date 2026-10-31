@@ -4,7 +4,7 @@ Updated 18 October 2026 | Status: development assessment, not an operational cer
 
 ## What has been reviewed
 
-The repository's `server/analytics.py` declares 21 core stages from planner to reporter. `server/runs.py` supplies **Hermes**, the stateful orchestrator, and a separate approval-gated publish step. The joined-dataset `merge` stage is conditional. `config.json` also registers optional model and maintenance specialists, including `rail_asset_manager`, `reliability_model` and `risk_ranking`; not every stage runs on every profile.
+The repository's `server/analytics.py` declares 21 core stages from planner to reporter. `server/runs.py` supplies **Hermes**, the stateful orchestrator, and a separate approval-gated publish step. The joined-dataset `merge` stage is conditional. `config.json` also registers optional model and maintenance specialists, including `rail_asset_manager`, `reliability_model`, `risk_ranking` and `what_if_scenarios`; not every stage runs on every profile.
 
 ### Validation matrix
 
@@ -18,6 +18,7 @@ The repository's `server/analytics.py` declares 21 core stages from planner to r
 | Maintenance Governance, Risk and Railway Asset Manager | `server/maintenance/`, `server/rail_asset_decisions.py`, `tests/test_maintenance_governance.py`, `tests/test_maintenance_targets.py`, `tests/test_rail_asset_stage.py` | Synthetic stage contracts and refusals covered; no authority for live railway decisions |
 | Reliability model (R1) | `server/maintenance/reliability.py`, `tests/test_reliability_model.py` | Synthetic fleets with known shapes recovered within 10%; governed run passes the validator in English and Arabic; class pattern only, no single-asset remaining life, human review before any interval change |
 | Risk ranking (R2) | `server/maintenance/risk_ranking.py`, `tests/test_risk_ranking.py` | Chance checked against the survival ratio by hand; ranking, cost fallback and extrapolation flag tested; governed run passes in English and Arabic; criticality not weighted; no work order issued |
+| What-if scenarios (R3) | `server/maintenance/scenarios.py`, `tests/test_what_if_scenarios.py` | Limits and the optimality condition checked; no-wear classes refused; governed run passes in English and Arabic; changes no maintenance plan |
 | Conversation intent, column roles, privacy, raw-data guard, model router, jargon, causal wording and figure checks | `scripts/evaluate_agents.py --check`, `evals/`, `tests/test_evals.py` | Labelled dev and holdout classification performance with floors; not a universal agent accuracy measure |
 | Hosted identities, tenant access and background work | `server/auth.py`, `server/storage.py`, `server/worker.py`, `tests/test_tenancy.py`, `tests/test_auth.py` | Automated tests present; live provider login, recovery, storage and isolation still need deployed pilot evidence |
 | Live third-party language models | `server/model_gateway.py`, `tests/test_model_gateway.py` | Stubbed/provider-wire testing; no verified live-provider quality, toxicity or hallucination score |

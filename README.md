@@ -894,6 +894,23 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### What-if scenarios for planned replacement: 31 October 2026
+
+Analysis change ([decision](docs/adr/2026-10-31-what-if-scenarios.md)): on the
+`maintenance` profile a new stage, `what_if_scenarios`, compares servicing or
+replacing each asset class every T running days with running it to failure:
+failures, planned jobs and cost per 1,000 asset-days, from the class's failure
+pattern and its recorded failure and preventive costs. Intervals are the
+owner's (stage option `intervals_days`) or a quarter, half and three quarters
+of the average life; the lowest-cost interval is named only when it saves
+cost. A class without a wear pattern is told that planned replacement does not
+reduce its failures. Two existing claims that failed validation on data with
+work-order types now cite every figure they state, in both languages.
+
+Checked by the full Python suite against PostgreSQL 16 (2,471 tests, 19
+skipped, 14 of them new), 542 frontend unit tests, the build and budget
+(unchanged; no interface change).
+
 ### Risk ranking of assets: 31 October 2026
 
 Analysis change ([decision](docs/adr/2026-10-31-risk-ranking.md)): on the
