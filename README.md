@@ -581,8 +581,12 @@ media test**, **533 frontend tests**, **12 design comparisons**, **19 responsive
 cases**, **10 RMD/platform cases**, **5 navigation cases plus 1 intentional skip**,
 **14 Miyaar bilingual/voice fixture cases**, and **13 actual-API platform journeys
 on each of Windows Edge and macOS WebKit** passed. These are separate suites,
-not a count of unique cases. The main comprehensive CI remains pending in its
-broad E2E step at the review snapshot; follow-up exact-head CI is also required.
+not a count of unique cases. The main comprehensive CI subsequently completed:
+**2,387 Python tests: 2,363 passed, 24 optional/build-dependent skips**, plus
+**3 worker/restart tests**; broad Playwright **225 passed, 35 explicit skips**,
+and the separate Miyaar suite **14 passed**. Browser skips reflect single-run
+viewport matrices and platform-specific cases. Follow-up exact-head CI is still
+required. The main Python job also logged a non-failing unclosed-socket warning.
 
 Local Chromium installation failed on an invalid downloaded archive. The local
 broad browser attempt was stopped after missing-executable errors; **no local

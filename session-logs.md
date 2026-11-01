@@ -2193,6 +2193,6 @@ Fresh final-head hosted checks are required; the failed run is retained as evide
 - **Decided:** retain current main as the sole integration baseline; do not merge
   PR78's duplicate alert or replay old branches. Package hashes, application logic,
   dependency pins, hosted database and operational configuration are unchanged.
-- **Next:** review the small follow-up and its exact-head CI; finish the existing
-  main broad E2E gate. Production release and migration remain separate. No main
+- **Next:** review the small follow-up and its exact-head CI. The existing main
+  broad E2E gate has now passed. Production release and migration remain separate. No main
   merge, deployment, live database access, model-provider call or report approval.
