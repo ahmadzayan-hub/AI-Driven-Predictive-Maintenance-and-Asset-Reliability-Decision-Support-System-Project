@@ -11,12 +11,18 @@ test('the report tabs follow the keyboard tabs pattern', async ({ page }) => {
   })
 
   const tab = (name: RegExp) => page.getByRole('tab', { name })
+  const tablist = page.getByRole('tablist')
+  const isVertical = async () =>
+    (await tablist.getAttribute('aria-orientation')) === 'vertical'
+  const forward = async () => (await isVertical()) ? 'ArrowDown' : 'ArrowRight'
+  const backward = async () => (await isVertical()) ? 'ArrowUp' : 'ArrowLeft'
+
   await tab(/descriptive/i).focus()
   await expect(tab(/descriptive/i)).toHaveAttribute('aria-selected', 'true')
 
-  // Right moves to the next question in the ladder, and selection follows
+  // Right/Down moves to the next question in the ladder, and selection follows
   // focus so the panel below matches what is focused.
-  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press(await forward())
   await expect(tab(/diagnostic/i)).toBeFocused()
   await expect(tab(/diagnostic/i)).toHaveAttribute('aria-selected', 'true')
   await expect(page.getByRole('tabpanel')).toContainText('Why did it happen?')
@@ -24,7 +30,7 @@ test('the report tabs follow the keyboard tabs pattern', async ({ page }) => {
   // The causal check sits right after the stage that finds associations.
   // The stage's role is "experiment"; the reader sees it as the causal
   // question, which is what the tab is named.
-  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press(await forward())
   await expect(tab(/causal/i)).toBeFocused()
   await expect(page.getByRole('tabpanel')).toContainText('Can we claim a cause?')
 
@@ -33,9 +39,9 @@ test('the report tabs follow the keyboard tabs pattern', async ({ page }) => {
   await expect(page.getByRole('tabpanel')).toContainText('What should I do?')
 
   // Wrapping keeps a keyboard user from getting stuck at either end.
-  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press(await forward())
   await expect(tab(/descriptive/i)).toBeFocused()
-  await page.keyboard.press('ArrowLeft')
+  await page.keyboard.press(await backward())
   await expect(tab(/prescriptive/i)).toBeFocused()
   await page.keyboard.press('Home')
   await expect(tab(/descriptive/i)).toBeFocused()
