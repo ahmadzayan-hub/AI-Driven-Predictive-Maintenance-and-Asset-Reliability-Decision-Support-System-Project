@@ -2177,3 +2177,22 @@ Fresh final-head hosted checks are required; the failed run is retained as evide
   only owner-selected draft editing is in scope. Existing Claude/Hermes work retained.
 - **Next:** GitHub draft review and exact-head CI; no merge/deployment. Laptop
   installation is separate and has not happened in this cloud workspace.
+
+
+## 2026-11-02: PR76/PR78 integration review and test corrections
+
+- **Done:** inspected current main and the actual patches/heads of PR76, PR78 and
+  the six original requests; verified integration ancestry, identical main/PR76
+  trees and the simulated PR78 merge. Fixed cross-platform manifest path comparison
+  and added a Windows-path regression. Added a delayed-write Pydantic order test.
+- **Verified:** fresh full local verifier, isolated optional runtimes, bilingual
+  reports, checksum simulation, dependency audits and a pre/post-integration
+  numerical/evidence comparison passed. The order mutation is caught. Counts and
+  environment limits are recorded in README Testing. Inspected current-main hosted
+  RMD/platform/media/optional-runtime results and bounded Arabic/English screenshots.
+- **Decided:** retain current main as the sole integration baseline; do not merge
+  PR78's duplicate alert or replay old branches. Package hashes, application logic,
+  dependency pins, hosted database and operational configuration are unchanged.
+- **Next:** review the small follow-up and its exact-head CI; finish the existing
+  main broad E2E gate. Production release and migration remain separate. No main
+  merge, deployment, live database access, model-provider call or report approval.
