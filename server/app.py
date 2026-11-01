@@ -38,6 +38,7 @@ from server import knowledge as knowledge_module
 from server import analytics
 from server.api_contract import document_errors, error_body, install_error_handlers
 from server.api_contract import error_response as contract_error
+from server import dashboard_views
 from server import datasets as dataset_reader
 from server import joins as joining
 from server import live
@@ -53,7 +54,7 @@ from server.model_gateway import ModelGateway
 from server.orchestration import ModelRoles
 from server.routing import RoutedGateway, build_router
 from server.stages import describe, load_stages
-from server.runs import (IdempotencyConflict, PublicationDestinationChanged, RunEngine, TableNotReady, dataset_summary,
+from server.runs import (DatasetInUse, IdempotencyConflict, PublicationDestinationChanged, RunEngine, TableNotReady, dataset_summary,
                          resolve_publish_target, resolve_vault_dir)
 from server import demo
 from server.auth import DEMO_PRINCIPAL, AuthError, build_identity, public_auth_config
@@ -291,8 +292,9 @@ class KeyPairIn(BaseModel):
 
 class JoinIn(BaseModel):
     dataset_id: str = Field(min_length=1, max_length=32)
-    keys: list[KeyPairIn] = Field(min_length=1, max_length=joining.MAX_KEYS)
-    how: str = Field(default="left", pattern="^(left|inner)$")
+    # A stack needs no key; `normalise` refuses a left or inner join without one.
+    keys: list[KeyPairIn] = Field(default_factory=list, max_length=joining.MAX_KEYS)
+    how: str = Field(default="left", pattern="^(left|inner|stack)$")
     alias: str | None = Field(default=None, max_length=24)
 
 
@@ -325,9 +327,16 @@ class RunIn(BaseModel):
     idempotency_key: str | None = Field(default=None, max_length=200)
 
 
+class DerivedIn(BaseModel):
+    """A column computed from the measures by a formula (27 October 2026)."""
+    name: str = Field(min_length=1, max_length=40)
+    formula: str = Field(min_length=1, max_length=200)
+
+
 class MappingIn(BaseModel):
     """A column mapping (ADR 0025). Roles, orders and grains are checked
     by server.mapping, which explains a refusal in the reader's language."""
+    derived: list[DerivedIn] = Field(default_factory=list, max_length=colmap.MAX_DERIVED)
     roles: dict[str, str] = Field(default_factory=dict, max_length=500)
     measure: str | None = Field(default=None, max_length=200)
     dimension: str | None = Field(default=None, max_length=200)
@@ -336,6 +345,9 @@ class MappingIn(BaseModel):
     # The currency of the money columns, an ISO 4217 code; absent means
     # not stated (slice three, U4). Checked by server.mapping.
     currency: str | None = Field(default=None, max_length=8)
+    # The month the fiscal year starts in, 1 to 12; January means the
+    # calendar year (27 October 2026).
+    fiscal_start: int = Field(default=1, ge=1, le=12)
 
 
 class QueryIn(BaseModel):
@@ -358,6 +370,13 @@ class RecordsIn(BaseModel):
 
 class ApprovalIn(BaseModel):
     decision: str = Field(pattern="^(approve|reject)$")
+
+
+class ViewIn(BaseModel):
+    """A dashboard view to keep for the run's dataset; checked by
+    server.dashboard_views, which explains a refusal in the reader's language."""
+    page: str = Field(max_length=20)
+    query: str = Field(default="", max_length=dashboard_views.MAX_QUERY_CHARS)
 
 
 class ConnectorIn(BaseModel):
@@ -1367,6 +1386,24 @@ def create_app(config_path=None, env=None, dist_dir=None):
             except KeyError:
                 raise HTTPException(status_code=404, detail="Dataset not found.")
 
+    @app.delete("/api/datasets/{dataset_id}")
+    def delete_dataset(dataset_id: str,
+                       language: str = Query(default="en", pattern="^(en|ar)$"),
+                       principal=Depends(requires("write"))):
+        """Remove a stored dataset the owner no longer needs. One an
+        analysis reads is refused with the analyses named (409), because
+        runs are never deleted; another owner's is a 404."""
+        with lock:
+            try:
+                return engine.delete_dataset(dataset_id, principal.subject, language)
+            except KeyError:
+                raise HTTPException(status_code=404, detail="Dataset not found.")
+            except DatasetInUse as error:
+                raise HTTPException(status_code=409, detail={
+                    "code": "dataset_in_use", "message": error.message,
+                    "runs": [{"id": r["id"], "goal": r.get("goal"), "state": r.get("state")}
+                             for r in error.runs]})
+
     @app.get("/api/runs")
     def list_runs(state: str | None = Query(default=None, pattern="^[a-z_]{1,40}$"),
                   principal=Depends(requires("read"))):
@@ -1887,6 +1924,45 @@ def create_app(config_path=None, env=None, dist_dir=None):
             return await run_in_threadpool(table_query.aggregate, table, body.model_dump())
         except table_query.QueryError as error:
             raise HTTPException(status_code=422, detail=error.detail(language))
+
+    # A saved dashboard view, one per owner and dataset (ADR
+    # 2026-10-27-interactive-dashboard). Another owner's run is a 404.
+    def _view_scope(principal, run_id, permission="read"):
+        with lock:
+            if not owns_run(principal, run_id, permission):
+                raise HTTPException(status_code=404, detail="Run not found.")
+            run = engine.store.get_run(run_id)
+        if run is None:
+            raise HTTPException(status_code=404, detail="Run not found.")
+        return principal.subject, dashboard_views.dataset_key(run)
+
+    @app.get("/api/runs/{run_id}/view")
+    def get_dashboard_view(run_id: str, principal=Depends(requires("read"))):
+        owner, key = _view_scope(principal, run_id)
+        with lock:
+            return {"view": dashboard_views.present(engine.store.get_dashboard_view(owner, key))}
+
+    @app.put("/api/runs/{run_id}/view")
+    def save_dashboard_view(run_id: str, body: ViewIn,
+                            language: str = Query(default="en", pattern="^(en|ar)$"),
+                            principal=Depends(requires("write"))):
+        owner, key = _view_scope(principal, run_id, "write")
+        try:
+            page, query = dashboard_views.validate(body.page, body.query)
+        except dashboard_views.ViewError as error:
+            raise HTTPException(status_code=422, detail=error.detail(language))
+        with lock:
+            row = engine.store.save_dashboard_view(
+                uuid.uuid4().hex, owner, key, run_id, page, query,
+                datetime.now(timezone.utc).isoformat())
+        return {"view": dashboard_views.present(row)}
+
+    @app.delete("/api/runs/{run_id}/view", status_code=204)
+    def forget_dashboard_view(run_id: str, principal=Depends(requires("write"))):
+        owner, key = _view_scope(principal, run_id, "write")
+        with lock:
+            engine.store.delete_dashboard_view(owner, key)
+        return Response(status_code=204)
 
     @app.post("/api/runs/{run_id}/records")
     async def table_records(run_id: str, body: RecordsIn,

@@ -6,7 +6,7 @@ import '../../shared/styles/analytics.css'
  *  the reader's filters, and the rows behind them. The filters, the page
  *  and every choice live in the address, so a filtered page survives a
  *  reload and can be shared with someone who can open the run. */
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useReadOnly } from '../../shared/readOnly'
 import { useI18n } from '../../i18n'
 import { usePack } from '../../i18n/pack'
@@ -22,6 +22,7 @@ import type {
   RecordsPage,
   RecordsSpec,
   RunDetail,
+  SavedView,
   RunSummary,
   TableField,
   TableFilter,
@@ -31,7 +32,7 @@ import { routeHash } from '../../app/routing'
 import { Bars, Figure, Histogram, Line, Scatter } from './charts'
 import { ExecutiveOverview } from './ExecutiveOverview'
 import type { Point } from './charts'
-import { drill, EMPTY, executiveDrill, filterCount, pagesFor, readState, rolesOf, toFilters, writeState } from './state'
+import { drill, EMPTY, executiveDrill, filterCount, isPicked, isRangePicked, pagesFor, pick, pickRange, readState, rolesOf, toFilters, writeState } from './state'
 import type { DashState, Page, Roles } from './state'
 import './dashboard.css'
 
@@ -140,6 +141,34 @@ function useAnswer<T>(key: string | null, load: () => Promise<T>) {
   return { data: current ? state.data : null, error: current ? state.error : null, loading: key !== null && (!current || (!state.data && !state.error)) }
 }
 
+/** The saved view for the run's dataset (ADR 2026-10-27-interactive-dashboard):
+ *  applied once when the dashboard opens with no address of its own, and
+ *  saved or forgotten from the filter bar. */
+function useSavedView(runId: string, page: string | null, query: string, current: Page, state: DashState,
+  onNavigate: (route: Route) => void) {
+  const { t, locale } = usePack(dashMessages)
+  const readOnly = useReadOnly()
+  const stored = useAnswer<{ view: SavedView | null }>(readOnly ? null : `view:${runId}`, () => api.getDashboardView(runId))
+  const [view, setView] = useState<SavedView | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const applied = useRef<string | null>(null)
+  useEffect(() => { if (stored.data) setView(stored.data.view) }, [stored.data])
+  useEffect(() => {
+    if (!view || page !== null || query !== '' || applied.current === runId) return
+    applied.current = runId
+    setNotice(t('dash.view.applied'))
+    onNavigate({ tab: 'dashboard', runId, page: view.page, query: view.query || undefined })
+  }, [view, page, query, runId, onNavigate, t])
+  const attempt = (work: Promise<SavedView | null>, done: DashKey) => work
+    .then((next) => { setView(next); setNotice(t(done)) })
+    .catch((error) => setNotice(t('dash.view.failed', { reason: error instanceof ApiError ? error.message : String(error) })))
+  return {
+    view, notice, enabled: !readOnly,
+    save: () => attempt(api.saveDashboardView(runId, { page: current, query: writeState(state) }, locale).then((r) => r.view), 'dash.view.saved'),
+    forget: () => attempt(api.forgetDashboardView(runId).then(() => null), 'dash.view.forgotten'),
+  }
+}
+
 function useQuery(runId: string, spec: QuerySpec | null) {
   const { locale } = useI18n()
   const key = spec ? `q:${runId}:${locale}:${JSON.stringify(spec)}` : null
@@ -150,6 +179,11 @@ function useRecords(runId: string, spec: RecordsSpec | null) {
   const { locale } = useI18n()
   const key = spec ? `r:${runId}:${locale}:${JSON.stringify(spec)}` : null
   return useAnswer<RecordsPage>(key, () => api.tableRecords(runId, spec!, locale))
+}
+
+/** The click-to-filter props of a chart over one column. */
+function picker(state: DashState, column: string, date: string | null, setState: (next: DashState) => void) {
+  return { onPick: (label: string) => setState(pick(state, column, label, date)), picked: (label: string) => isPicked(state, column, label, date) }
 }
 
 function keyText(key: GroupKey): string {
@@ -191,6 +225,7 @@ function Dashboard({ runId, page, query, onNavigate, onOpenRun }: {
     },
     [onNavigate, runId, current],
   )
+  const saved = useSavedView(runId, page, query, current, state, onNavigate)
 
   if (fields.error) {
     return (
@@ -232,9 +267,15 @@ function Dashboard({ runId, page, query, onNavigate, onOpenRun }: {
           {matched === undefined
             ? t('dash.counting')
             : t('dash.coverage', { matched: formatNumber(matched), total: formatNumber(fields.data.records) })}
-        </span></div>
+        </span>{saved.notice ? <> · <span className="dash-view__notice" role="status" aria-live="polite" dir="auto">{saved.notice}</span></> : null}</div>
           </div>
           <div className="dash-actions">
+            {saved.enabled ? (
+              <>
+                <button type="button" className="btn btn--ghost" onClick={() => void saved.save()}>{t('dash.view.save')}</button>
+                {saved.view ? <button type="button" className="btn btn--ghost" onClick={() => void saved.forget()}>{t('dash.view.forget')}</button> : null}
+              </>
+            ) : null}
             <button type="button" className="btn btn--ghost" onClick={() => onOpenRun(runId)}>
               {t('dash.openRun')}
             </button>
@@ -456,7 +497,8 @@ function OverviewPage({ runId, roles, state, filters, setState }: PageProps) {
             {top.loading ? <Loading /> : (
               <Figure
                 title={t('dash.chart.top', { n: formatNumber(topPoints.length), measure: m, breakdown: roles.breakdown })}
-                chart={<Bars items={topPoints} label={t('dash.alt.bars', { measure: m, breakdown: roles.breakdown, n: formatNumber(topPoints.length) })} />}
+                chart={<Bars items={topPoints} label={t('dash.alt.bars', { measure: m, breakdown: roles.breakdown, n: formatNumber(topPoints.length) })}
+                  {...picker(state, roles.breakdown, roles.date, setState)} />}
                 table={<GroupTable head={[roles.breakdown, t('dash.col.total'), t('dash.col.records')]} onDrill
                   rows={(top.data?.groups ?? []).map((g) => ({
                     label: keyText(g.keys[0]), cells: [number(g.values[0]), number(g.records)],
@@ -471,7 +513,8 @@ function OverviewPage({ runId, roles, state, filters, setState }: PageProps) {
             {trend.loading ? <Loading /> : (
               <Figure
                 title={t('dash.chart.trend', { measure: m, date: roles.date })}
-                chart={<Line points={trendPoints} label={t('dash.alt.trend', { measure: m, n: formatNumber(trendPoints.length) })} />}
+                chart={<Line points={trendPoints} label={t('dash.alt.trend', { measure: m, n: formatNumber(trendPoints.length) })}
+                  {...picker(state, roles.date, roles.date, setState)} />}
                 table={<GroupTable head={[roles.date, t('dash.col.total'), t('dash.col.records')]} onDrill
                   rows={(trend.data?.groups ?? []).map((g) => ({
                     label: keyText(g.keys[0]), cells: [number(g.values[0]), number(g.records)],
@@ -522,7 +565,8 @@ function BreakdownPage({ runId, roles, state, filters, setState }: PageProps) {
         <Figure
           open
           title={t(state.per ? 'dash.chart.byPer' : 'dash.chart.by', { measure: m, breakdown: by })}
-          chart={<Bars items={points} label={t('dash.alt.bars', { measure: m, breakdown: by, n: formatNumber(points.length) })} />}
+          chart={<Bars items={points} label={t('dash.alt.bars', { measure: m, breakdown: by, n: formatNumber(points.length) })}
+            {...picker(state, by, roles.date, setState)} />}
           table={<GroupTable head={[by, t('dash.col.total'), t('dash.col.perRecord'), t('dash.col.records')]} onDrill
             rows={groups.map((g) => ({
               label: keyText(g.keys[0]), cells: [number(g.values[0]), number(g.values[1]), number(g.records)],
@@ -546,6 +590,7 @@ function TrendPage({ runId, roles, state, filters, setState }: PageProps) {
   })
   const groups = answer.data?.groups ?? []
   const number = (value: number | null) => (value === null ? '—' : formatNumber(value, { maximumFractionDigits: 2 }))
+  const keep = picker(state, date, date, setState)
   const table = (
     <GroupTable head={[date, t('dash.col.total'), t('dash.col.perRecord'), t('dash.col.records')]} onDrill
       rows={groups.map((g) => ({
@@ -562,13 +607,13 @@ function TrendPage({ runId, roles, state, filters, setState }: PageProps) {
           <div className="card">
             <Figure title={t('dash.chart.trend', { measure: m, date })}
               chart={<Line points={groups.map((g) => ({ label: keyText(g.keys[0]), value: g.values[0] }))}
-                label={t('dash.alt.trend', { measure: m, n: formatNumber(groups.length) })} />}
+                label={t('dash.alt.trend', { measure: m, n: formatNumber(groups.length) })} {...keep} />}
               table={table} />
           </div>
           <div className="card">
             <Figure open title={t('dash.chart.trendPer', { measure: m, date })}
               chart={<Line points={groups.map((g) => ({ label: keyText(g.keys[0]), value: g.values[1] }))}
-                label={t('dash.alt.trendPer', { measure: m, n: formatNumber(groups.length) })} />}
+                label={t('dash.alt.trendPer', { measure: m, n: formatNumber(groups.length) })} {...keep} />}
               table={table} />
           </div>
         </div>
@@ -580,7 +625,11 @@ function TrendPage({ runId, roles, state, filters, setState }: PageProps) {
 function DistributionPage({ runId, roles, state, filters, setState }: PageProps) {
   const { t, formatNumber } = usePack(dashMessages)
   const m = roles.measure!
-  const answer = useQuery(runId, { group_by: [{ column: m, bins: 12 }], measures: [{ agg: 'count' }], filters, limit: 50 })
+  // The bins are the measure's whole distribution under the other filters:
+  // the measure's own range is not applied, so the edges stay where they are
+  // and a kept bin is highlighted rather than the histogram collapsing onto it.
+  const shape = filters.filter((filter) => !(filter.column === m && (filter.op === 'gte' || filter.op === 'lt' || filter.op === 'lte')))
+  const answer = useQuery(runId, { group_by: [{ column: m, bins: 12 }], measures: [{ agg: 'count' }], filters: shape, limit: 50 })
   const bins = (answer.data?.groups ?? [])
     .filter((g) => Array.isArray(g.keys[0]))
     .map((g, index, all) => {
@@ -594,7 +643,9 @@ function DistributionPage({ runId, roles, state, filters, setState }: PageProps)
       {answer.loading ? <Loading /> : (
         <Figure open
           title={t('dash.chart.distribution', { measure: m })}
-          chart={<Histogram bins={bins} label={t('dash.alt.distribution', { measure: m, n: formatNumber(bins.length) })} />}
+          chart={<Histogram bins={bins} label={t('dash.alt.distribution', { measure: m, n: formatNumber(bins.length) })}
+            onPick={(index) => setState(pickRange(state, bins[index].from, bins[index].to, bins[index].last))}
+            picked={(index) => isRangePicked(state, bins[index].from, bins[index].to, bins[index].last)} />}
           table={<GroupTable head={[t('dash.col.range'), t('dash.col.records')]} onDrill
             rows={bins.map((bin) => ({
               label: `${formatNumber(bin.from)} – ${formatNumber(bin.to)}`, cells: [formatNumber(bin.count)],

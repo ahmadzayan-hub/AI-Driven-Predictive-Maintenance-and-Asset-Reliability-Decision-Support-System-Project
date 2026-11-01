@@ -459,7 +459,7 @@ export function App() {
             setEvidenceContext({ packId, analysisId }); navigate({ tab: 'chat' })
           }} />)}
           {pane('overview', (
-            <OverviewView onOpenRun={openRun} onStart={startAnalysis} onAddDataset={() => go('datasets')} canStart={!demo} onApprovals={() => go('approvals')}
+            <OverviewView onOpenRun={openRun} onStart={startAnalysis} onAddDataset={() => go('datasets')} canStart={!demo} onApprovals={() => go('approvals')} userName={demo ? null : userName}
               onOpenDashboard={(id) => (id ? openDashboard(id) : go('dashboard'))} onSeeAll={() => go('runs')} />
           ))}
           {pane('assets', (

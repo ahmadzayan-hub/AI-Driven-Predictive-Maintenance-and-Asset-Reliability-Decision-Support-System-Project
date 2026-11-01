@@ -19,19 +19,47 @@ class ReportNavigationTests(unittest.TestCase):
         titles = [section.title for section in sections]
         self.assertEqual(titles[:3], ['Executive summary', 'Decision context', 'Decision questions'])
         for before, after in [('Scope and filters', 'Controlled KPIs'),
-                              ('Controlled KPIs', 'Whole-run findings'),
-                              ('Whole-run findings', 'Review priorities'),
+                              ('Controlled KPIs', 'Review priorities'),
                               ('Review priorities', 'Decision boundaries and unresolved issues')]:
             self.assertLess(titles.index(before), titles.index(after))
         self.assertTrue(all(s.paragraphs or s.after_paragraphs or any(t.rows for t in s.tables) for s in sections))
+        # Sections with nothing to report carry no heading; the decision
+        # context names them once, with their statement, so absence stays
+        # explicit (ADR 2026-10-27-interactive-dashboard).
+        self.assertNotIn('Whole-run findings', titles)
+        self.assertNotIn('Recorded model evidence and limitations', titles)
+        context = sections[1]
+        self.assertEqual(context.title, 'Decision context')
+        self.assertIn('Left out because there is nothing to report: Whole-run findings (No verified findings are available in this briefing.); '
+                      'Recorded model evidence and limitations (No model evaluation is available; predictive performance is not claimed.)',
+                      context.paragraphs)
         html = render_html(brief).decode()
         self.assertIn('No model evaluation is available; predictive performance is not claimed.', html)
+        self.assertNotIn('Whole-run findings</bdi></h2>', html)
+        self.assertNotIn('Recorded model evidence and limitations</bdi></h2>', html)
         self.assertNotIn('Technical appendix and source audit', html)
         for index, section in enumerate(sections):
             self.assertIn(section.title if index == 0 else f'{index}. {section.title}', html)
         self.assertNotIn('<h2><bdi dir="auto">1. Executive summary</bdi></h2>', html)
         self.assertNotIn('Imaginary predictive validation', render_sections_html(
             'Test', [sections[0], Section('Imaginary predictive validation'), sections[1]], 'en').decode())
+
+    def test_sections_with_content_keep_their_statement_and_arabic_names_the_absent_ones(self):
+        brief = fixtures.ExecutiveDocumentTests().brief('ar')
+        brief['models'] = []
+        sections = report_sections(brief)[1]
+        titles = [section.title for section in sections]
+        self.assertNotIn('أدلة النماذج المسجلة وحدودها', titles)
+        self.assertIn('نتائج التشغيل الكامل', titles)
+        self.assertTrue(any(p.startswith('أُسقطت الأقسام التالية لعدم وجود ما يُبلَّغ عنه: أدلة النماذج المسجلة وحدودها')
+                            for p in sections[1].paragraphs))
+        # A section with real content beside a missing part keeps the statement in place.
+        english = fixtures.ExecutiveDocumentTests().brief('en')
+        english['kpis']['measures'] = []
+        english['kpis']['unavailable'] = {'first_time_fix': 'no outcome column'}
+        kpis = next(s for s in report_sections(english)[1] if s.title == 'Controlled KPIs')
+        self.assertIn('No controlled KPI is computable for this scope.', kpis.paragraphs)
+        self.assertTrue(kpis.tables[-1].rows)
 
     def test_every_html_contents_link_has_one_destination_and_no_self_entry(self):
         for language in ('en', 'ar'):

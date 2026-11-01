@@ -42,6 +42,25 @@ def figures(spec):
 
 class WiringTests(unittest.TestCase):
 
+    def test_the_arabic_voice_brief_is_kept_with_the_skill(self):
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[1]
+        brief = root / "docs" / "voice" / "RTA_Arabic_Voice_Prompt_and_Glossary.md"
+        self.assertTrue(brief.is_file())
+        text = brief.read_text(encoding="utf-8")
+        self.assertIn("الإصدار: 1.0", text)
+        self.assertIn("ar-AE-HamdanNeural", text)
+        skill = (root / ".claude" / "skills" / "motion" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("docs/voice/RTA_Arabic_Voice_Prompt_and_Glossary.md", skill.replace("../../../", ""))
+
+    def test_the_terminology_guide_is_extracted_from_the_brief(self):
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[1]
+        guide = (root / "docs" / "voice" / "RTA_Rail_Arabic_Terminology_and_Pronunciation_Guide.md").read_text(encoding="utf-8")
+        self.assertIn("| 5 | مرسى دبي | Dubai Marina |", guide)
+        self.assertIn("لم يُتحقق من المصادر على الإنترنت في هذه الجلسة", guide)
+        self.assertIn("صياغة تضعف الوضوح", guide)
+
     def test_the_skill_and_the_subagent_are_declared(self):
         skill = frontmatter(SKILL / "SKILL.md")
         self.assertEqual(skill["name"], "motion")

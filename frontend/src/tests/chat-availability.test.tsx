@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { createRef, useRef } from 'react'
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -35,10 +35,15 @@ beforeEach(() => {
 })
 afterEach(() => { act(() => applyLocale('en')); vi.restoreAllMocks() })
 
-it('keeps report selection and the actual unavailable-model notice together in the context panel', async () => {
+it('keeps a collapsed report disclosure and actual model notice beside the composer', async () => {
   const view = render(<StoreProvider><Workspace /></StoreProvider>)
-  const context = await screen.findByRole('complementary')
+  const context = await screen.findByRole('region', { name: 'Workspace context' })
   expect(within(context).getByText(initial().assistant_status!.message)).toBeVisible()
+  const details = context.querySelector('details')!
+  expect(details).not.toHaveAttribute('open')
+  expect(view.container.querySelector('.assistant-workspace > aside')).toBeNull()
+  expect(context.nextElementSibling).toHaveClass('composer')
+  await userEvent.setup().click(within(context).getByText(/Data for this chat:/))
   expect(within(context).getByRole('button', { name: 'Show my reports' })).toBeEnabled()
   expect(view.container.querySelectorAll('.tool-cards')).toHaveLength(1)
   expect(view.container.querySelector('.miyaar-status')).toBeNull()
@@ -55,7 +60,8 @@ it.each(['en', 'ar'] as const)('requires explicit report selection and retains t
   const save = vi.spyOn(api, 'selectDataContext').mockResolvedValue({ ...initial(), data_context: selected })
   const view = render(<DataChatContext session={localized} disabled={false} />)
   const user = userEvent.setup()
-  expect(view.container.querySelector('details')).toHaveAttribute('open')
+  expect(view.container.querySelector('details')).not.toHaveAttribute('open')
+  await user.click(view.container.querySelector('summary')!)
   await user.click(screen.getByRole('button', { name: language === 'ar' ? 'عرض تقاريري' : 'Show my reports' }))
   const select = await screen.findByRole('combobox')
   expect(select).toHaveValue('')
@@ -65,6 +71,12 @@ it.each(['en', 'ar'] as const)('requires explicit report selection and retains t
   await waitFor(() => expect(save).toHaveBeenCalledWith(initial().session_id, selected.run_id))
   expect(load).toHaveBeenCalledWith(initial().session_id)
   expect(await screen.findByText(selected.run_id, { selector: 'bdi' })).toBeVisible()
+  await user.click(view.container.querySelector('summary')!)
+  expect(view.container.querySelector('details')).not.toHaveAttribute('open')
+  expect(view.container.querySelector('summary')).toHaveTextContent(selected.dataset_name)
+  await user.click(view.container.querySelector('summary')!)
+  expect(screen.getByRole('combobox')).toHaveValue(selected.run_id)
+  expect(save).toHaveBeenCalledTimes(1)
   view.unmount()
   const restored = render(<DataChatContext session={{ ...initial(), data_context: selected }} disabled={false} />)
   expect(restored.container.querySelector('summary')).toHaveTextContent(selected.dataset_name)
@@ -76,7 +88,8 @@ it('does not show a confirmed selection when saving fails', async () => {
   vi.spyOn(api, 'selectDataContext').mockRejectedValue(new ApiError('Stale report', 409))
   const view = render(<DataChatContext session={initial()} disabled={false} />)
   const user = userEvent.setup()
-  expect(view.container.querySelector('details')).toHaveAttribute('open')
+  expect(view.container.querySelector('details')).not.toHaveAttribute('open')
+  await user.click(view.container.querySelector('summary')!)
   await user.click(screen.getByRole('button', { name: 'Show my reports' }))
   await user.selectOptions(await screen.findByRole('combobox'), 'stale')
   await user.click(screen.getByRole('button', { name: 'Use this report' }))
@@ -124,4 +137,40 @@ it('restores a saved transcript and uses a new session only after an explicit 40
   vi.mocked(api.getSession).mockRejectedValue(new ApiError('Expired session', 404))
   render(<StoreProvider><Workspace /></StoreProvider>)
   await waitFor(() => expect(api.createSession).toHaveBeenCalledOnce())
+})
+
+it('clears context only after the server confirms and preserves it across disclosure toggles', async () => {
+  const selected = { run_id: 'owned-report', dataset_id: 'd1', dataset_name: 'synthetic.csv',
+    source_sha256: 'a'.repeat(64), analysis_revision: 'b'.repeat(64), filters: [], records: 3, total_records: 3 }
+  const save = vi.spyOn(api, 'selectDataContext').mockResolvedValue({ ...initial(), data_context: null })
+  const view = render(<DataChatContext session={{ ...initial(), data_context: selected }} disabled={false} />)
+  const user = userEvent.setup()
+  expect(view.container.querySelector('summary')).toHaveTextContent('synthetic.csv')
+  await user.click(view.container.querySelector('summary')!)
+  await user.click(screen.getByRole('button', { name: 'Clear selection' }))
+  await waitFor(() => expect(view.container.querySelector('summary')).toHaveTextContent('No report selected'))
+  expect(save).toHaveBeenCalledExactlyOnceWith('chat-synthetic', null)
+})
+
+it.each([true, false])('keeps context actions disabled when unavailable: %s', async ended => {
+  const view = render(<DataChatContext session={{ ...initial(), ended }} disabled />)
+  await userEvent.setup().click(view.container.querySelector('summary')!)
+  expect(screen.getByRole('button', { name: 'Show my reports' })).toBeDisabled()
+})
+
+it('emphasizes analysis without changing any workspace action or inventing model readiness', async () => {
+  const onAction = vi.fn()
+  const view = render(<ChatView session={initial()} sending={false} failedText={null}
+    offline={false} userName={null} onSend={vi.fn()} onRetry={vi.fn()} onDismissFailed={vi.fn()}
+    composerRef={createRef<ComposerHandle>()} onAction={onAction} />)
+  const primary = screen.getByRole('button', { name: /Analyze data/ })
+  expect(primary).toHaveClass('miyaar-action--primary')
+  expect(view.container.querySelectorAll('.miyaar-action--primary')).toHaveLength(1)
+  const actions = view.container.querySelectorAll('.miyaar-actions button')
+  const user = userEvent.setup()
+  for (const action of actions) await user.click(action)
+  expect(onAction.mock.calls.map(call => call[0])).toEqual(['analyse', 'assets', 'report', 'compare', 'approvals'])
+  expect(view.container.querySelector('.miyaar-toolbar')).toHaveTextContent('Ask Miyaar')
+  expect(view.container.querySelector('.miyaar-toolbar')).not.toHaveTextContent('AI-Powered')
+  expect(screen.queryByText('Ready')).not.toBeInTheDocument()
 })

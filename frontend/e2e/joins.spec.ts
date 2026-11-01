@@ -16,6 +16,7 @@ test.use({ contextOptions: { reducedMotion: 'reduce' } })
 const ORDERS = 'e2e-orders.csv'
 const CATALOGUE = 'e2e-catalogue.csv'
 const DUPLICATED = 'e2e-catalogue-dupes.csv'
+const NEXT = 'e2e-orders-next.csv'
 // Eight orders over four months; item K4 is not in the catalogue.
 const ORDERS_CSV =
   'month,item,channel,amount\n' +
@@ -27,6 +28,8 @@ const ORDERS_CSV =
   ].map((row) => row.join(',')).join('\n') + '\n'
 const CATALOGUE_CSV = 'item,family,unit_cost\nK1,Tools,5\nK2,Paint,3\nK3,Tools,7\nK9,Garden,2\n'
 const DUPLICATED_CSV = 'item,family\nK1,Tools\nK1,Paint\nK2,Paint\n'
+// The next two months, with one row that repeats an order already stored.
+const NEXT_CSV = 'month,item,channel,amount\n2025-05,K1,Web,110\n2025-05,K2,Store,85\n2025-06,K3,Web,145\n2025-04,K4,Web,70\n'
 
 async function store(page: Page, name: string, text: string) {
   const response = await page.request.post(`/api/datasets?name=${name}`, {
@@ -111,6 +114,31 @@ test('a lookup is joined, previewed and run', async ({ page }) => {
   const csv = Buffer.concat(text).toString('utf-8')
   expect(csv.replace(/^\ufeff/, '').split('\r\n')[0]).toBe('month,item,channel,amount,family,unit_cost')
   expect(csv).toContain('2025-02,K4,Store,60,,')
+})
+
+test('a later export is stacked underneath with a source column', async ({ page }) => {
+  await skipOnboarding(page)
+  await page.goto('/')
+  const orders = await startFromOrders(page)
+  await store(page, NEXT, NEXT_CSV)
+  await page.reload()
+  await openTab(page, /^Analyses/)
+  await page.getByRole('button', { name: 'Stored dataset' }).click()
+  await page.getByLabel('Choose a stored dataset').selectOption(orders)
+  const builder = page.getByRole('group', { name: 'Join other datasets (optional)' })
+  await builder.getByRole('button', { name: 'Join a dataset' }).click()
+  const join = builder.getByRole('group', { name: 'Join 1' })
+  await join.getByLabel('Dataset to join').selectOption({ label: NEXT })
+  await join.getByRole('button', { name: 'Stack its rows underneath' }).click()
+  await expect(join.getByLabel('Column in the main table')).toHaveCount(0)
+  await builder.getByRole('button', { name: 'Preview the merge' }).click()
+  await expect(builder.getByText('8 rows in, 11 rows out, 1 columns added.')).toBeVisible()
+  await expect(builder.getByText(`${NEXT}: 3 rows stacked underneath.`)).toBeVisible()
+  await expect(builder.getByText('1 already present were dropped.')).toBeVisible()
+  await expect(builder.getByRole('region', { name: 'First rows of the merged table' })).toContainText('source')
+  await builder.getByLabel('Break totals down by').selectOption('source')
+  await expectNoViolations(page, 'stack preview')
+  expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
 })
 
 test('a lookup whose key repeats is refused with the reason', async ({ page }) => {

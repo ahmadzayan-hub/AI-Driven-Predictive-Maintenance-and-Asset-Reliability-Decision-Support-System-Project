@@ -1982,3 +1982,198 @@ captured loading text. Require the actual next action and report headline before
 capturing text, and wait for font readiness. Keep unchanged-text, axe and overflow
 assertions intact. This corrects test synchronization, not product data or styling.
 Fresh final-head hosted checks are required; the failed run is retained as evidence.
+
+## 2026-10-29 · `d9e3f889` · claude/tender-clarke-m4uwgq (visual agent cards)
+
+**Goal:** the visual card layout deferred from the agent-cards slice.
+
+- **Done:** each stage row is a bordered card, its edge coloured by state, with the rules in the analytics stylesheet. That stylesheet loads with the runs view, so first-load CSS (10.46 of 10.5 KB) is unchanged; stylesheet total 34.3 of 35 KB. Decision amended in `docs/adr/2026-10-28-agent-cards.md`.
+- **Verified:** 22 browser journeys (runs, accessibility, Arabic, collaboration) on desktop and phone; 529 frontend unit tests; script budget 256.9 of 257 KB.
+- **Next:** imagery-led asset cards.
+
+## 2026-10-29 · `d9e3f889` · claude/tender-clarke-m4uwgq (voice guide and source check)
+
+**Goal:** continue the Arabic voice brief: the terminology guide it asks for, and a check of its sources.
+
+- **Done:** `docs/voice/RTA_Rail_Arabic_Terminology_and_Pronunciation_Guide.md` extracts the brief's glossary, station table and editing rules unchanged, with its status stated. The motion skill links it. Tests cover the guide and the link.
+- **Blocked:** the sources could not be checked. The session's network policy denies `learn.microsoft.com` (the voice name `ar-AE-HamdanNeural`) and `www.rta.ae` (the timetable). The owner must allow those hosts under Network access in the environment settings before the sources can be verified.
+- **Open:** verify the sources once allowed; the Marina study files the brief cites are not in this repository; a listening test of any voice before use.
+
+## 2026-10-29 · `d9e3f889` · claude/tender-clarke-m4uwgq (Arabic voice brief for video)
+
+**Goal:** add the uploaded RTA Arabic voice prompt and glossary to the platform's future video generation.
+
+- **Done:** the brief is kept at `docs/voice/RTA_Arabic_Voice_Prompt_and_Glossary.md`. The motion skill (`.claude/skills/motion/SKILL.md`) has a section on Arabic voice-over that points to it and states the limits: the renderer does not generate speech, and the brief's voice candidate, speaker and figures are not verified. A test keeps the link in place.
+- **Found:** the Marina study files the brief cites (P1) are not in this repository, so its figures cannot be checked here. The brief's online sources were not re-verified in this session.
+- **Not done:** no narration was generated and no renderer code changed. Audio still needs listening tests before use.
+
+## 2026-10-29 · `d9e3f889` · claude/tender-clarke-m4uwgq (asset imagery proposal)
+
+**Goal:** the last interface item on the list: imagery-led asset cards.
+
+- **Found:** assets have no image field, no upload path and no image storage. The feature needs owner decisions on source, privacy and storage, so it is not an interface change.
+- **Done:** a proposed decision record with four options and a recommendation, `docs/adr/2026-10-29-asset-imagery.md`, listing the four decisions the owner must make. No code changed.
+- **Open:** the owner's decision on asset imagery.
+
+## 2026-10-28 · `d9e3f889` · claude/tender-clarke-m4uwgq (agent cards and the hosted migration)
+
+**Goal:** develop the agent cards per stage (after trimming the script budget) and the hosted migration `20261027_dashboard_views.sql`.
+
+- **Done:** each stage in the run timeline states its claims and how many checks passed (`docs/adr/2026-10-28-agent-cards.md`). The script budget was held by removing five unused string keys in both languages, each checked against every source file and test. The migration now refuses a table of another shape, and it is tested on a disposable schema: it applies, re-applies, and refuses drift. Runbook with read-only checks and rollback: `docs/HOSTED_MIGRATION_20261027.md`.
+- **Found:** the test first wrapped the migration's own BEGIN/COMMIT, which committed a drift test against the shared test database; fixed, and the shared test table reset. The remaining budget levers are small: unused keys, duplicated strings and API methods were checked and are essentially gone.
+- **Not done:** the visual card layout (stylesheet first-load budget is at its ceiling). The hosted migration is not applied; the operator applies it after review.
+- **Verified:** full Python suite on PostgreSQL: 2,366 tests, 19 skipped, OK. 529 frontend unit tests. 28 browser journeys on desktop and phone. Script budget 256.9 of 257 KB.
+
+## 2026-10-28 · `d9e3f889` · claude/tender-clarke-m4uwgq (live pipeline)
+
+**Goal:** the next interface items from the owner's list: agent cards per stage and a live timeline.
+
+- **Done:** the run timeline names the stage running now and marks it (`aria-current`), and its progress count is a live status. Decision: `docs/adr/2026-10-28-live-pipeline.md`. A line for approval waits was added and removed to fit the script budget; the mark and the approvals inbox already say it.
+- **Found:** the timeline was already live: the run screen polls about every 2.5 seconds. The gap was naming and announcing, not transport.
+- **Not done:** agent cards per stage. Needs a decision on card content and a budget; the script total has no headroom to add it.
+- **Verified:** 528 frontend unit tests; type check; build; runs, accessibility and Arabic journeys on desktop and phone (18 cases); script budget 256.9 of 257 KB.
+
+## 2026-10-28 · `d9e3f889` · claude/tender-clarke-m4uwgq (stage report sections and the open items)
+
+**Goal:** work through the open items the owner listed: scatter plot, stage reports, brain maintenance, the hosted migration, and the agent cards and live timeline.
+
+- **Done:** the comprehensive analysis report prints key metrics, every claim and charts only when a stage produced one; the assumptions section names what was left out (`server/analytics.py`, helpers `_metric_lines`, `_claim_lines`, `_chart_lines`; decision `docs/adr/2026-10-28-stage-report-sections.md`). The brain maintenance for today ran and is recorded; the strict check passes and maintenance is no longer due.
+- **Decided:** the scatter plot stays unclickable. A point is one sampled record with no group, so "keep only this point" filters to one arbitrary row. Recorded in the dashboard decision.
+- **Not done, owner-gated:** the hosted migration `database/migrations/20261027_dashboard_views.sql` is still for the database operator to review and apply. It was not applied.
+- **Not done, scoped out:** agent cards per stage and a live timeline. The timeline exists as a static view of run tasks (`RunTimeline.tsx`); the live part needs streamed per-stage updates and a design decision on what each card shows. It is the next slice and needs its own ADR.
+- **Verified:** full Python suite on PostgreSQL: 2,365 tests, 19 skipped, OK. Brain strict check passes; docs test passes.
+- **Open / next:** agent cards and the live timeline; the scatter plot is closed by decision.
+
+## 2026-10-28 · `d9e3f889` · claude/tender-clarke-m4uwgq (A14 review and histogram bins)
+
+**Goal:** review the A14 commit, then continue the dashboard's interaction with the next listed item.
+
+- **Done:** a review of A14 found that saving a view was an update followed by an insert, so two processes saving at once could return a server error. Replaced with one upsert. Histogram bins are clickable: a click keeps the bin's range as the measure filter and a second click releases it. The distribution's bins are computed without the measure's own range, so the edges do not move when a bin is kept (found by the browser journey, which the unit tests missed). Decision amended in `docs/adr/2026-10-27-interactive-dashboard.md`.
+- **Verified:** full Python suite on PostgreSQL: 2,361 tests, 19 skipped, OK. Frontend: 526 unit tests, type check, build. Dashboard, executive opening and accessibility journeys pass on desktop and phone (16 cases). Budget 256.6 of 257 KB script; brain check strict passes.
+- **Decided:** the histogram shows the whole distribution under the other filters with the kept bin highlighted, the usual reading of a brushed histogram, rather than re-binning onto the kept range.
+- **Open / next:** the scatter plot; agent cards per stage and the live timeline; imagery-led asset cards; the stage reports' fixed sections; the hosted migration remains for the operator to review and apply. The brain's maintenance is due today and has not been run.
+
+## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (A14 interactive dashboard)
+
+**Goal:** the owner asked that the dashboard react to clicks and keep what the reader prefers, and that empty deliverable sections drop out, within the current interface budget.
+
+- **Done:** PR #69 (five slices) merged into main at `1dd392c` after both CI runs on `1487e48` passed; the branch fast-forwarded. Clicking a bar or a line point keeps its group alone on every figure and clicking again releases it (`pick` and `isPicked` in `state.ts`; accessible pressed buttons in `charts.tsx`). One saved dashboard view per owner and dataset: `server/dashboard_views.py`, `dashboard_views` table, `GET`/`PUT`/`DELETE /api/runs/{run_id}/view`, applied once when a run over that dataset opens from a bare address. Executive HTML and DOCX briefs leave out sections whose only content is their "nothing to report" statement and name them once in the decision context. Decision: `docs/adr/2026-10-27-interactive-dashboard.md`.
+- **Verified:** full Python suite on PostgreSQL: 2,361 tests, 19 skipped, OK. Frontend: 522 unit tests, type check, build. Browser journeys for the dashboard and the executive opening pass on desktop; the mobile run of the executive opening was not re-run after the last style change. Budget: 256.6 of 257 KB script (ceiling raised by 1 KB and recorded), first load 99.7 of 100 KB, style unchanged. Brain check strict passes.
+- **Decided:** one saved view per dataset rather than named layouts; histogram and scatter stay unclickable; the stage reports (`report_markdown`) keep their fixed sections and are listed as a limitation.
+- **Open / next:** re-run the mobile executive opening; the stage reports' fixed sections; clickable histogram bins; agent cards per stage; the live timeline; imagery-led asset cards. The hosted database has not been changed: `database/migrations/20261027_dashboard_views.sql` is for the operator to review and apply.
+- **Blockers:** the session's usage limit reset at 19:30 UTC on 27 October; compaction failed on it.
+
+## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (A13 tree ensemble)
+
+**Goal:** the "trees and ensembles" item of the modelling gap row.
+
+- **Done:** `TreeModel` in `server/modelling.py` (bagged regression trees: 16 trees, depth 4, leaves of 5, variance-reduction splits over about the square root of the inputs and 8 thresholds, bootstrap samples of at most 1,500 records; prediction as the trees' average; importance as shares of explained variance), scored like the regression against the training average and additionally against the least-squares line on the same held-out records, with claims that say whether the rules add thresholds a line misses; registered in `config.json` and the `models` profile; decision record amending ADR 0033, user guide, limitations, gap analysis, milestone A13, roadmap note, decision log, README.
+- **Verified:** full Python suite with PostgreSQL 2,352 tests (19 skipped; 5 new), 515 frontend unit tests, type check, brain strict check; the stage runs in about 0.06 s on 400 records.
+- **Decided:** fixed settings, no tuning on held-out data; the second comparison is the line, because the reader's question is whether trees add anything, not whether they are good.
+- **Open / next:** the owner asks whether the platform changes its dashboard and deliverables with the data: an assessment follows in the session; PR #69 waits for the merge word.
+
+## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (A12 fiscal year)
+
+**Goal:** close the dynamic-inputs gap row: a fiscal year starting in any month.
+
+- **Done:** `fiscal_start` in the mapping (1 to 12, validated in both languages, January and older mappings meaning the calendar); `Period.label` names fiscal quarters and years by the end year (`FY2026-Q1`, `FY2026`) and refuses calendar quarters and years that do not fit; `choose_grain` and `period_labels` take the start; the cleaner records it and the merge passes it to joins and stacks; forecast labels continue `FY` labels; the seasonal model reads their shape; the API field; the panel's select with `Intl` month names; decision record amending ADR 0025, limitations, user guide, gap analysis, milestone A12, brain, README.
+- **Verified:** full Python suite with PostgreSQL 2,347 tests (19 skipped; 5 new), 515 frontend unit tests (1 new), type check, brain strict check, build and budget (JS 99.7 of 100 KB, 255.5 of 256 KB total; CSS 10.46 of 10.5 KB, 34.1 of 35 KB) within the ceilings set earlier today.
+- **Decided:** name the fiscal year by the calendar year it ends in; a calendar quarter fits a fiscal quarter only on a shared boundary and a calendar year never fits a fiscal year that is not the calendar; month names come from the locale, not a string list.
+- **Open / next:** PR #69 carries A10, the visual layer, A11 and A12, waiting for the owner's merge word; next: agent cards per stage and a live timeline on the interface; trees and ensembles in modelling; U8 and U20; the model half of G8.
+
+## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (A11 derived columns)
+
+**Goal:** continue the programme on the owner's "continue till finish all": the derived-columns half of the dynamic-inputs gap.
+
+- **Done:** a formula engine in `server/mapping.py` (tokeniser, recursive-descent parser for `+ - * /`, brackets, unary minus, numbers, measure names and backtick names; evaluation to a float or None; nothing passes through the interpreter); `derived` in the mapping, validated with refusals in both languages (name, clash, unreadable formula, non-measure reference, at most five), a derived column allowed as the measure; the collector lists the names, the profiler counts them as measures, the cleaner computes them after coercion and records a calculation and a claim; `clean_table` computes them for joined and stacked tables; the analysis table marks them `derived`; the API model; the mapping panel's section with strings in the Datasets chunk; decision record amending ADR 0025, limitations, user guide, gap analysis, milestone A11, brain, README.
+- **Verified:** full Python suite with PostgreSQL 2,342 tests (19 skipped; 8 new), 514 frontend unit tests (2 new), type check, brain strict check, build and budget (JS 99.6 of 100 KB, 255.1 of 256 KB total; CSS 10.46 of 10.5 KB, 34.1 of 35 KB), the mapping journey with axe on desktop (3 passed).
+- **Decided:** arithmetic only, no functions or conditionals, so a refusal can always say why; empty cells rather than errors for missing values and zero divisors, consistent with unreadable measures; the total script ceiling moves to 256 KB after trimming, recorded.
+- **Open / next:** PR #69 carries A10, the visual layer and A11, green, waiting for the owner's merge word; next: a fiscal year; agent cards per stage; a live timeline; U8 and U20; the model half of G8.
+
+## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (Miyaar visual layer)
+
+**Goal:** the owner's request to study nine reference AI and operations dashboards, research current practice and develop the Miyaar interface.
+
+- **Found:** the references share a one-sentence situation brief with one action, large figures with a small trend, a glowing "core" for the intelligence layer, and depth from gradients and halos; current practice (2026 design surveys, WCAG 2.2 as the floor, progressive disclosure for executives) confirms them. Miyaar had the midnight and cyan system and the honest-voice rules of ADR 0054 but no brief, no trend and a gear for a hero.
+- **Done:** the Command Centre brief (greeting by hour and name, counted sentence, Review opening the longest-waiting run or Start an analysis, a 14-day sparkline from `dailyStarts`); the AI-core hero motif with chips and a three-column action grid; `--glow` and `--glow-edge` tokens, hazes and a hero gradient in both themes; strings in both languages in the lazy pack; decision record, design master decision 10, progress board, Memory, brain note and decision log, README; screenshots refreshed.
+- **Verified:** full Python suite with PostgreSQL 2,334 tests (19 skipped), 512 frontend unit tests (4 new), type check, brain strict check, build and budget (JS 99.6 of 100 KB first load, 254.3 of 255 KB total; CSS 10.46 of 10.5 KB first load, 33.97 of 35 KB total), Miyaar workspace suite 12 passed with axe, Command Centre and screenshot journeys on desktop.
+- **Decided:** total ceilings move to 255 KB script and 35 KB style after moving the strings off the first load; first-load ceilings unchanged. The brief's Review opens the longest-waiting analysis, not an inbox. No invented health, uptime or satisfaction figure: only counted runs.
+- **Open / next:** PR #69 (A10) is green and waits for the owner's merge word; this layer rides the same branch; next interface slices: agent cards per stage from task states, a live timeline, imagery-led asset cards; then derived columns and a fiscal year.
+
+## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (A10 week grain)
+
+**Goal:** after PR #68 merged on the owner's word, the next gap-analysis slice: a weekly grain.
+
+- **Done:** `week` in `GRAINS` and `FINEST_FIRST` with ISO week labels (`YYYY-Www`); week values (`2025-W03`, `2025W03`) read as periods of week precision, placed in a month, quarter or year by their Thursday; `AUTO_GRAINS` keeps the automatic roll-up at day, month, quarter, year so no earlier run changes; forecast labels step ISO weeks across the year; the seasonal model's season for weeks is 52 and unmapped week labels are recognised; validation wording and the Arabic grain names; the mapping panel option and strings in both languages; decision record, ADR 0025 row, limitations, user guide, gap analysis, milestone A10, brain note and decision log, README.
+- **Verified:** full Python suite with PostgreSQL 2,334 tests (19 skipped; 4 new), 508 frontend unit tests, type check, brain strict check, build and budget (JS 99.7 of 100 KB, 253.3 of 254 KB total).
+- **Decided:** weeks are the owner's choice, never the automatic one; a week straddling the new year belongs to the year and month of its Thursday (the ISO anchor); a fiscal year is a separate decision.
+- **Open / next:** the PR waits for the owner's word before merging; then derived columns, a fiscal year; U8 and U20; the model half of G8; the next standards-lint round.
+
+## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (A9 stacked exports)
+
+**Goal:** the next gap-analysis slice after A8: stacking period exports, a union of datasets with matching columns.
+
+- **Done:** a third join type `stack` in `server/joins.py` (same column set or refused with the columns named in both languages; read with the main mapping; dates at the main grain; repeats of rows already present dropped and counted; the dataset row ceiling; a `source` column, `source_2` when taken, shared by later stacks); the merge stage's evidence for a stack and the validator's recount; `JoinIn.keys` may be empty; the builder's third segmented option with the key pairs hidden and the preview line; strings in both languages; decision record, user guide, limitations, gap analysis, milestone A9, brain note and decision log, README.
+- **Verified:** full Python suite with PostgreSQL 2,330 tests (19 skipped; 12 new), 508 frontend unit tests, type check, brain strict check, build and budget (JS 99.6 of 100 KB, 253.2 of 254 KB total), the four join journeys in Playwright on desktop.
+- **Decided:** the total script ceiling moves from 253 to 254 KB: the preview table is shared with the upload preview and the two key selects became one map, which recovered part of the cost; the rest is the third join type and its bilingual strings. A stacked row has no source position (index `None`); the maintenance reader already falls back.
+- **Open / next:** the PR waits for the owner's word before merging (CLAUDE.md, 23 October instructions); then a weekly grain and derived columns; U8 and U20; the model half of G8; the next standards-lint round.
+
+## 2026-10-27 · `d9e3f889` · claude/tender-clarke-m4uwgq (review and A8 dataset lifecycle)
+
+**Goal:** review the project after the 23 to 26 October streams landed on main, then continue building the platform from the gap analysis.
+
+- **Found:** main had moved 284 files (Miyaar palette, reports, Hermes package, specialists, auth onboarding, hosted preflight); the branch fast-forwards cleanly. The assessment backlog is closed except the two owner decisions and the model half of G8; the open product gaps are the 16 October gap analysis: deleting a dataset, stacking exports, weekly grain, derived columns, trees, saved layouts, credentialed sources. Brain maintenance was due (one stale note; the decision log lacked 35 records since 23 October).
+- **Done:** A8 dataset lifecycle: `DELETE /api/datasets/{id}` behind the write permission, 404 for another owner, 409 `dataset_in_use` naming the analyses (main or joined table, parsed joins decide) in English and Arabic, checked and deleted in one owner transaction; a live source forgets the snapshot it last stored; Remove with the shared confirm dialog in the Datasets view, hidden in the demo; strings in both languages; decision record, limitations, gap analysis, milestones (A8), user guide, README. Brain: decision log caught up, the capstone note says its dates passed without a recorded outcome, maintenance logged.
+- **Verified:** full Python suite with PostgreSQL 2,318 tests (19 skipped), 484 frontend unit tests, type check, brain strict check, build and budget (JS 99.6 of 100 KB, 253.0 of 253 KB total after trimming the new code and strings; main alone sits at 252.4).
+- **Decided:** runs are never deleted, so a dataset a run reads stays and the server says which; the budget was trimmed into rather than raised, and the next interface slice must trim or record a change first.
+- **Open / next:** stacking period exports (union with matching columns), a weekly grain, derived columns; U8 and U20 (owner decisions); the model half of G8; the next standards-lint round.
+
+
+
+## 27 October 2026 — Isolated assistant focus candidate
+
+- **Done:** rechecked GitHub main/open PRs/Claude branch ancestry before edits;
+  pinned `1dd392c26a2f3c5107081faf1e5e917a62b1a90a`. Replaced the empty context
+  rail with a collapsed native report disclosure above the composer; retained
+  selection behavior and server model-status text. Reduced hero/toolbar branding,
+  prioritized analysis and improved helper type. Independent source review caught
+  and corrected primary-icon contrast. No remote or live checkout changes.
+- **Verified:** component, TypeScript, build, native run-logic and exact byte-budget
+  checks passed; documentation checks passed. Aggregate backend gate blocked by
+  absent `psycopg2`; no install attempted. Browser launch blocked by sandbox socket
+  permission and platform escalation setup; CUA cannot access isolated loopback.
+  No new screenshots or browser/axe/mobile acceptance claimed.
+- **Decided:** existing dependencies only; no new status inference, provider calls,
+  storage changes, deployment, push, PR or merge. Browser acceptance is a release
+  gate, not waived because source tests pass.
+- **Next:** capture and inspect real before/after EN/AR desktop/mobile screenshots,
+  exercise report selection and composer with virtual keyboard, and run the browser
+  and backend suites on an authorized capable executor before integration.
+
+
+## 2026-10-29 · Codex · PR72 corrective interaction and RTL review
+
+- **Done:** verified PR #72 had already merged at `206a0a5`, with the exact reviewed head tree preserved. Reproduced trend-point pointer interception in hosted Chromium on desktop/mobile in English/Arabic. Inspected synthetic Arabic screenshots for every dashboard page and found clipped numeric axis labels on phones. Decorative line/circle elements now ignore pointer events; trend/scatter plots reserve a wider numeric-label gutter. Retained browser regressions and removed the temporary diagnostic workflow.
+- **Verified:** original PR CI succeeded; focused saved-view authorization and report tests, frontend component tests, TypeScript and build passed locally. Explicit unauthenticated GET/PUT/DELETE were refused; unauthorized/viewer DELETE preserved the owner's view. A histogram edge mutation failed the existing suite, and the restored source passed. The diagnostic browser run `40944443034` failed on all centre-click cases and passed the Arabic page audits. Local full verification found only missing action-version comments in the temporary workflow, which is removed from the final change. Local Chromium startup is restricted; hosted final CI remains the merge gate.
+- **Decided:** owner-authorized code correction and merge only after quality gates. Preserve data, numeric results and existing roles; no hosted schema mutation, model call, production deployment, permission changes or history rewriting. `vercel.json` already disables automatic main deployments.
+- **Next:** inspect final hosted browser evidence and merge PR #73 only after the final head is green. Hosted dashboard-view migration remains a separate operator step before a future deployment.
+
+### Parallel CI fixture correction
+
+- **Observed:** PR run `40945482662` passed (213 browser cases, 14 bilingual/voice cases); all 12 Arabic dashboard screenshots were inspected. Parallel push run `40945474927` failed three conversation cases because the journey fixture UUID contained a ten-digit phone-like sequence. The privacy boundary correctly blocked the saved fixture, then the interrupted cleanup affected later tests.
+- **Corrected:** encode only the synthetic journey identifier's digits as letters. Keep the UUID's uniqueness, every assertion and all production privacy code. Reproduce the detected identifier locally and verify the encoded fixture does not trip the detector while real phone-like text still does.
+- **Gate:** rerun CI on the corrected head before merge; no hosted migration or production deployment.
+
+## 2026-10-30 — opt-in editorial guidance (GitHub draft candidate)
+
+- **Done:** added a bilingual draft-only editorial reference, concise-output guidance,
+  pinned upstream attribution and full MIT notices. Linked it narrowly from AGENTS
+  and CLAUDE; no upstream hook/skill activation or runtime/model change.
+- **Verified:** synthetic fixture script, editorial/docs unittest selection, strict
+  brain check and whitespace check pass. Quick aggregate attempted: missing
+  psycopg2 and uninstalled frontend tsc/vitest block broader suites; not a full pass.
+  No application behavior or rendered-report quality claim.
+- **Decided:** preserve claims, numbers, citations, uncertainty and approved bytes;
+  only owner-selected draft editing is in scope. Existing Claude/Hermes work retained.
+- **Next:** GitHub draft review and exact-head CI; no merge/deployment. Laptop
+  installation is separate and has not happened in this cloud workspace.

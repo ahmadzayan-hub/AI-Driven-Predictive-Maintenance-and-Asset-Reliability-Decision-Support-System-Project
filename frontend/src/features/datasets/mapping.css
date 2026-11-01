@@ -24,3 +24,10 @@
   font-weight: 600;
   margin: var(--space-4) 0 var(--space-2);
 }
+
+/* Derived columns (27 October 2026): name, formula, remove, on one line. */
+.mapping__derived { border: 0; padding: 0; margin: 0; min-width: 0; }
+.mapping__derived-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto; gap: var(--space-2); align-items: center; margin-block-start: var(--space-2); }
+.mapping__derived-row .field-error { grid-column: 1 / -1; }
+.mapping__derived > .btn { margin-block-start: var(--space-3); }
+@media (max-width: 479px) { .mapping__derived-row { grid-template-columns: minmax(0, 1fr) auto; } .mapping__derived-row input:nth-child(2) { grid-column: 1 / -1; } }

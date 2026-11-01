@@ -4,11 +4,14 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { useReadOnly } from '../../shared/readOnly'
 import type { MessageKey } from '../../i18n'
 import { useI18n } from '../../i18n'
+import { usePack } from '../../i18n/pack'
+import { derivedMessages } from './derivedMessages'
 import { api, ApiError } from '../../shared/api'
 import { CURRENCY_CODE } from '../../shared/format'
 import { Icon } from '../../shared/components/Icon'
 import type {
   ColumnMapping,
+  DerivedColumn,
   ColumnRole,
   DatasetDetail,
   DatasetSummary,
@@ -19,7 +22,8 @@ import type {
 
 const ROLES: ColumnRole[] = ['measure', 'dimension', 'date', 'ignore']
 const ORDERS: DateOrder[] = ['auto', 'day-first', 'month-first']
-const GRAINS: Grain[] = ['auto', 'day', 'month', 'quarter', 'year']
+const GRAINS: Grain[] = ['auto', 'day', 'week', 'month', 'quarter', 'year']
+const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1)
 
 interface MappingPanelProps {
   datasetId: string
@@ -39,6 +43,8 @@ function sameMapping(a: ColumnMapping | null, b: ColumnMapping | null): boolean 
     a.date_order === b.date_order &&
     a.grain === b.grain &&
     (a.currency ?? null) === (b.currency ?? null) &&
+    (a.fiscal_start ?? 1) === (b.fiscal_start ?? 1) &&
+    JSON.stringify(a.derived ?? []) === JSON.stringify(b.derived ?? []) &&
     Object.keys(a.roles).length === Object.keys(b.roles).length &&
     Object.entries(a.roles).every(([column, role]) => b.roles[column] === role)
   )
@@ -65,6 +71,9 @@ export function withRole(draft: ColumnMapping, column: string, role: ColumnRole,
 export function MappingPanel({ datasetId, focusOnOpen, onClose, onChanged, onAnalyse }: MappingPanelProps) {
   const readOnly = useReadOnly()
   const { t, locale, formatNumber, formatDate } = useI18n()
+  const { t: d } = usePack(derivedMessages)
+  // Month names come from the browser's locale data, not a string list.
+  const monthName = (month: number) => new Intl.DateTimeFormat(locale === 'ar' ? 'ar-AE' : 'en-GB', { month: 'long' }).format(new Date(Date.UTC(2026, month - 1, 15)))
   const base = useId()
   const heading = useRef<HTMLHeadingElement | null>(null)
   const summaryRef = useRef<HTMLDivElement | null>(null)
@@ -118,6 +127,8 @@ export function MappingPanel({ datasetId, focusOnOpen, onClose, onChanged, onAna
     order: `${base}-order`,
     grain: `${base}-grain`,
     currency: `${base}-currency`,
+    derived: (index: number) => `${base}-derived-${index}`,
+    fiscal: `${base}-fiscal`,
   }
 
   const columns = detail?.columns ?? []
@@ -131,6 +142,11 @@ export function MappingPanel({ datasetId, focusOnOpen, onClose, onChanged, onAna
     if (problem.field === 'dimension') return ids.dimension
     if (problem.field === 'date_order') return ids.order
     if (problem.field === 'currency') return ids.currency
+    if (problem.field === 'fiscal_start') return ids.fiscal
+    if (problem.field === 'derived') {
+      const index = (draft?.derived ?? []).findIndex((item) => item.name === problem.column)
+      return index >= 0 ? ids.derived(index) : null
+    }
     return ids.grain
   }
   // The currency is checked as it is typed, so the field explains itself
@@ -194,7 +210,13 @@ export function MappingPanel({ datasetId, focusOnOpen, onClose, onChanged, onAna
   // Changed since it was loaded or saved; an untouched suggestion is not
   // a change, and the line above already says it is not saved.
   const dirty = Boolean(detail && draft && !sameMapping(draft, detail.mapping ?? detail.suggestion))
-  const measures = draft ? order.filter((c) => draft.roles[c] === 'measure') : []
+  const derived = draft?.derived ?? []
+  const measures = draft ? [...order.filter((c) => draft.roles[c] === 'measure'), ...derived.map((item) => item.name).filter(Boolean)] : []
+  /** Replace the derived list: a typed name or formula, a removal, an addition. */
+  const setDerived = (next: DerivedColumn[]) => {
+    if (draft) setDraft({ ...draft, derived: next })
+    setNotice(null)
+  }
   const dimensions = draft ? order.filter((c) => draft.roles[c] === 'dimension') : []
   const hasDate = draft ? order.some((c) => draft.roles[c] === 'date') : false
 
@@ -435,6 +457,53 @@ export function MappingPanel({ datasetId, focusOnOpen, onClose, onChanged, onAna
               />
               {errorText(ids.currency)}
             </div>
+            <fieldset className="field mapping__derived">
+              <legend className="field__label">{d('title')}</legend>
+              <span className="field__help">{d('help')}</span>
+              {derived.map((item, index) => (
+                <div className="mapping__derived-row" key={index} role="group" aria-label={d('item', { n: formatNumber(index + 1) })}>
+                  <input
+                    id={ids.derived(index)}
+                    className="field__input"
+                    type="text"
+                    dir="ltr"
+                    maxLength={40}
+                    autoComplete="off"
+                    aria-label={d('name')}
+                    value={item.name}
+                    aria-invalid={errorsFor(ids.derived(index)).length > 0 || undefined}
+                    aria-describedby={described(ids.derived(index))}
+                    onChange={(event) => setDerived(derived.map((row, i) => (i === index ? { ...row, name: event.target.value.trim() } : row)))}
+                  />
+                  <input
+                    className="field__input"
+                    type="text"
+                    dir="ltr"
+                    maxLength={200}
+                    autoComplete="off"
+                    aria-label={d('formula')}
+                    placeholder="cost / hours"
+                    value={item.formula}
+                    onChange={(event) => setDerived(derived.map((row, i) => (i === index ? { ...row, formula: event.target.value } : row)))}
+                  />
+                  {readOnly ? null : <button
+                    type="button"
+                    className="btn btn--subtle"
+                    aria-label={d('remove', { n: formatNumber(index + 1) })}
+                    onClick={() => setDerived(derived.filter((_, i) => i !== index))}
+                  >
+                    <Icon name="x" size={14} />
+                  </button>}
+                  {errorText(ids.derived(index))}
+                </div>
+              ))}
+              {readOnly || derived.length >= 5 ? null : (
+                <button type="button" className="btn btn--ghost" onClick={() => setDerived([...derived, { name: '', formula: '' }])}>
+                  <Icon name="plus" size={16} />
+                  {d('add')}
+                </button>
+              )}
+            </fieldset>
             {hasDate ? (
               <>
                 <div className="field">
@@ -476,6 +545,27 @@ export function MappingPanel({ datasetId, focusOnOpen, onClose, onChanged, onAna
                     ))}
                   </select>
                   {errorText(ids.grain)}
+                </div>
+                <div className="field">
+                  <label className="field__label" htmlFor={ids.fiscal}>
+                    {d('fiscal')}
+                  </label>
+                  <span className="field__help" id={`${ids.fiscal}-help`}>{d('fiscalHelp')}</span>
+                  <select
+                    id={ids.fiscal}
+                    className="field__select"
+                    value={draft.fiscal_start ?? 1}
+                    aria-invalid={errorsFor(ids.fiscal).length > 0 || undefined}
+                    aria-describedby={described(ids.fiscal, `${ids.fiscal}-help`)}
+                    onChange={(event) => setDraft({ ...draft, fiscal_start: Number(event.target.value) })}
+                  >
+                    {MONTHS.map((month) => (
+                      <option key={month} value={month}>
+                        {monthName(month)}
+                      </option>
+                    ))}
+                  </select>
+                  {errorText(ids.fiscal)}
                 </div>
               </>
             ) : null}

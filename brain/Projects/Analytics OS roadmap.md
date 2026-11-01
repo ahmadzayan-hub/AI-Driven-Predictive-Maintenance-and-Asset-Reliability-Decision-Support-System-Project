@@ -3,9 +3,9 @@ type: project
 aliases: [Analytics roadmap, Dashboard roadmap]
 tags: [project, roadmap]
 status: active
-updated: 2026-10-24
+updated: 2026-10-27
 review_every_days: 14
-sources: [project-progress.md, server/analytics.py, server/runs.py, server/joins.py, server/query.py, server/modelling.py, server/connectors.py, server/live.py, frontend/src/app/App.tsx, docs/UI_PLAN.md]
+sources: [docs/adr/2026-10-27-tree-ensemble.md, project-progress.md, server/analytics.py, server/runs.py, server/joins.py, server/query.py, server/modelling.py, server/connectors.py, server/live.py, frontend/src/app/App.tsx, docs/UI_PLAN.md]
 ---
 
 # Analytics OS roadmap
@@ -20,7 +20,7 @@ The [[User]]'s goal for [[Agentic OS]]: a system that digests several datasets w
 | Several datasets | A3 (ADR 0030): up to four lookups joined on declared keys right after cleaning, with key coverage and a row recount | Unions; fuzzy keys |
 | Dynamic inputs | A2 (ADR 0025): a [[Column mapping]] per dataset, with suggested roles and every-row validation | Weeks and fiscal years; derived columns; more than one breakdown |
 | Preparation and cleaning | Trim, dedupe, null non-numbers; the cleaned, merged table downloads and answers queries (A4, ADR 0031) | Imputation, outlier treatment |
-| Modelling | Trend with backtest and the analytic stages; on the `models` profile, a regression, a classifier, a clustering and a seasonal forecast, each against a baseline (A6, ADR 0033) | Trees, ensembles, tuning |
+| Modelling | Trend with backtest and the analytic stages; on the `models` profile, a regression, a tree ensemble (A13, 27 October 2026), a classifier, a clustering and a seasonal forecast, each against a baseline (A6, ADR 0033) | Classification trees, boosting, tuning |
 | Visualisation | A six-page dashboard per run with filters in the address and drill-down to records (A5, ADR 0032) | Saved layouts; cross-filtering by clicking a chart |
 | Live data | Live sources that snapshot into datasets, scheduled refreshes by the worker, and a resumable event stream with a connection badge (A7, ADR 0034) | Sources needing credentials; incremental loads |
 

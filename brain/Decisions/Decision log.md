@@ -3,7 +3,7 @@ type: decision
 aliases: [ADR index, Architecture decisions]
 tags: [decisions]
 status: active
-updated: 2026-10-23
+updated: 2026-10-28
 review_every_days: 30
 sources: [docs/adr]
 ---
@@ -160,3 +160,59 @@ Preserve numerical results and historical artifacts while making planning power
 probabilistic and distinguishing no forecast, an unmeasured projection and a
 backtested forecast. Review-branch automatic deployment is disabled pending owner
 approval. See docs/adr/2026-10-26-report-wording-current-main.md and [[Approval gate]].
+
+## Records added on the 27 October catch-up
+
+One line per record, read from its title and decision; the record itself is the source (`docs/adr`).
+
+| Record | Decision | Notes |
+| --- | --- | --- |
+| 2026-10-23-p2-slice-two | The store as publish target, logged failures and 503 on an outage, one error envelope, a required connector allowlist in production, recorded migrations, the optional-runtime CI job | [[Approval gate]], [[Tenant isolation]], [[Live data]] |
+| 2026-10-23-p2-slice-three | A corrective repair time in the register, screened and versioned model cards, reversible cleaning, a store-backed rate limit with a per-owner model budget, one PostgreSQL connection per thread | [[Weighted KPIs]], [[Model validation]], [[Tenant isolation]] |
+| 2026-10-23-p2-slice-four | Screened inputs for the generic models, probabilities with a Brier score, a bounded connection pool, structured model answers checked on the server with JSON mode, agreement by finding, eval cases for the knowledge search and the scorecard | [[Model validation]], [[Model gateway]], [[Agent evaluation]] |
+| 2026-10-23-p2-slice-five-reviewer-benchmarks | Blind memos H, I and J and first-run floors for the brief-compliance, security-privacy and accessibility-i18n reviewers | [[Agent evaluation]], [[Agent team]] |
+| 2026-10-23-p2-slice-six-interface | Committed font subsets pay for one-call asset evidence, the table note, one noun per destination, every upload through Datasets, as-of times, every pack in the parity test | [[Design system]], [[Verification and budgets]] |
+| 2026-10-23-p3-slice-seven | The minor findings closed: signed shares, a robust anomaly rule, a noise floor for clustering, health liveness and detail, relative published paths, one connector error handler, orchestration problems recorded, quantity words in grounding, acceptance by a known reviewer, tool arguments held to their schema, one voice toggle name | [[Governed pipeline]], [[Evidence and claims]] |
+| 2026-10-23-standards-lint-families-blind-v2 | Standards lint rules as linguistic families; blind_v1 into dev; blind_v2 scored once at 32% and floored | [[Agent evaluation]] |
+| 2026-10-23-standards-lint-blind-v3 | blind_v2 into dev, the families widened; blind_v3 scored once at 14% with no false alarms and floored | [[Agent evaluation]] |
+| 2026-10-23-database-publication-target | Durable SQL publication without a writable serverless vault; an approval is refused when its reviewed destination changes and a fresh review can be requested | [[Approval gate]] |
+| 2026-10-23-platform-contract-and-application-builds | One API error contract behind sign-in, request-bound creation replay, indexed asset evidence, Android debug build with browser-engine journeys | [[Agentic OS]], [[Release acceptance]] |
+| 2026-10-23-workbook-sheet-discovery | Workbook sheets listed without parsing; the first that looks like a table is read | [[Column mapping]] |
+| 2026-10-23-number-words-and-run-to-failure | The figures checker reads counts in words; run-to-failure is judged on both sides | [[Agent team]], [[Evidence and claims]] |
+| 2026-10-23-chart-axes-state-their-scale | Chart axes state their scale and zero is drawn at zero | [[Scoped dashboards]] |
+| 2026-10-23-hosted-schema-preflight | Hosted startup validates the reviewed schema and never migrates it | [[Tenant isolation]], [[Backup and restore]] |
+| 2026-10-23-managed-auth-onboarding | Managed sign-in with verified PKCE onboarding and passwordless recovery | [[Managed identity]] |
+| 2026-10-23-model-failure-boundaries | Explicit model failure categories and recipient-bounded failover | [[Model gateway]], [[Model privacy]] |
+| 2026-10-23-daemon-candidate | An opt-in database-backed worker daemon candidate with restart checks | [[Run lifecycle]] |
+| 2026-10-23-analysis-workflow-recovery | Analysis lists recover after a failure and human review is explained in the workflow | [[Approval gate]] |
+| 2026-10-23-bounded-specialist-loops | Opt-in, bounded and durable evidence-specialist loops | [[Agent collaboration]] |
+| 2026-10-23-specialist-runtime-wiring | Default-off evidence-specialist API and worker wiring | [[Agent collaboration]], [[Agent runtimes and MCP]] |
+| 2026-10-23-rmd-runtime-context | The requester's context survives runtime deadlines | [[Knowledge retrieval]] |
+| 2026-10-23-run-source-handoff | A governed handoff carries an explicit run source reference | [[Run lifecycle]] |
+| 2026-10-23-reference-aligned-report-evidence | A bounded, reference-aligned report evidence contract | [[Business report exports]], [[Evidence and claims]] |
+| 2026-10-23-compact-executive-export | A compact executive opening with the complete technical evidence behind it | [[Business report exports]] |
+| 2026-10-23-report-dubai-typography | Verified Dubai typography in derived executive exports | [[House style]], [[Business report exports]] |
+| 2026-10-23-original-dubai-font-and-concise-decisions | The original Dubai font and concise decision presentation | [[House style]] |
+| 2026-10-23-miyaar-dubai-executive-direction | Miyaar as asset-maintenance decision support in a Dubai Executive direction | [[Design system]], [[Maintenance decision support]] |
+| 2026-10-23-task-first-miyaar-interface | A task-first mobile journey leads the Miyaar interface | [[Design system]] |
+| 2026-10-23-report-motion-access | Selected reports and source-bound Motion review | [[Accessible motion]] |
+| 2026-10-23-motion-script-gates | Motion drafts gated by script approval with bounded repair | [[Accessible motion]], [[Approval gate]] |
+| 2026-10-23-browser-toolchain-audit | The browser toolchain's Zod advisory repaired without weakening the audit | [[Verification and budgets]] |
+| 2026-10-24-executive-workspace-hierarchy | Executive workspace hierarchy with progressive disclosure | [[Design system]] |
+| 2026-10-24-period-coverage-evidence | Period coverage evidence and bounded scenario claims | [[Evidence and claims]], [[Governed pipeline]] |
+| 2026-10-24-undici-development-audit-patch | A compatible undici security floor for the development DOM runtime | [[Verification and budgets]] |
+| 2026-10-27-dataset-deletion | A stored dataset can be removed unless an analysis reads it; the analyses are named, runs are never deleted, a live source forgets the snapshot | [[Column mapping]], [[Dataset joins]], [[Tenant isolation]] |
+| 2026-10-27-stacked-datasets | A declared join may stack an export with the same columns under the main table, read with the main mapping, repeats dropped and counted, a source column for the breakdown; the script ceiling moves to 254 KB after trimming | [[Dataset joins]], [[Column mapping]] |
+| 2026-10-27-week-grain | A week grain labelled by ISO week, chosen by the owner and never by the automatic roll-up; week values read and roll up to the month of their Thursday; forecasts continue weeks, the seasonal model uses 52 | [[Column mapping]] |
+| 2026-10-27-miyaar-visual-layer | The Command Centre opens with a brief (greeting, counted sentence, one action, 14-day sparkline); the Miyaar hero carries an AI-core motif with a decorative glow; total ceilings 255 KB script and 35 KB style, first load unchanged | [[Design system]] |
+| 2026-10-27-derived-columns | A mapping may declare up to five columns computed from the measures by arithmetic, checked when saved, computed after cleaning, available as the measure and carried through stacks | [[Column mapping]], [[Dataset joins]] |
+| 2026-10-27-fiscal-year | A mapping names the month its fiscal year starts in; quarter and year labels read FY2026-Q1 and FY2026 by the end year; forecasts continue the fiscal calendar; day, week and month unchanged | [[Column mapping]] |
+| 2026-10-27-tree-ensemble | A fifth model plugin: 16 bagged regression trees in the standard library, scored on held-out records against the training average and the straight line; inputs' shares of explained variance as association | [[Analytics OS roadmap]] |
+| 2026-10-27-interactive-dashboard | Cross-filter by clicking a bar or a point, one saved dashboard view per owner and dataset on the server, and executive briefs that leave sections with nothing to report out and name them once; the script ceiling moves to 257 KB after trimming | [[Scoped dashboards]], [[Business report exports]], [[Tenant isolation]] |
+| 2026-10-28-stage-report-sections | The comprehensive analysis report prints key metrics, claims and charts only when a stage produced them, and its limitations name the sections left out | [[Scoped dashboards]], [[Business report exports]], [[Approval gate]] |
+| 2026-10-28-live-pipeline | The run timeline names the stage running now, marks it as the current step and announces its progress; progress still arrives by the run's poll; agent cards are a later slice | [[Run lifecycle]], [[Agentic OS]] |
+| 2026-10-28-agent-cards | Each stage in the run timeline is a card stating its claims and passed checks; the card rules load with the runs view, not on first load; five unused string keys removed to hold the script ceiling | [[Run lifecycle]], [[Agentic OS]] |
+
+- `2026-10-27-assistant-focus-and-context`: isolated candidate; native report disclosure beside composer, scoped session status and stronger first action. Browser acceptance pending.
+
+- `2026-10-29-trend-pointer-targets`: decorative SVG marks must not intercept chart controls; keep compact Arabic numeric labels inside the plot viewport. See `docs/adr/2026-10-29-trend-pointer-targets.md`.

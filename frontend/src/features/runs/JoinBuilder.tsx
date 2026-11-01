@@ -8,10 +8,16 @@ import { usePack } from '../../i18n/pack'
 import { joinMessages } from './messages'
 import { api, ApiError } from '../../shared/api'
 import { Icon } from '../../shared/components/Icon'
-import type { DatasetSummary, JoinPreview, JoinSpec, MappingProblem } from '../../shared/types'
+import { PreviewTable } from '../datasets/UploadPreview'
+import type { DatasetSummary, JoinHow, JoinPreview, JoinSpec, MappingProblem } from '../../shared/types'
 
 export const MAX_JOINS = 4
 const MAX_KEYS = 3
+const HOWS: Array<{ how: JoinHow; label: 'joins.keepAll' | 'joins.onlyMatched' | 'joins.stack' }> = [
+  { how: 'left', label: 'joins.keepAll' },
+  { how: 'inner', label: 'joins.onlyMatched' },
+  { how: 'stack', label: 'joins.stack' },
+]
 
 interface JoinBuilderProps {
   primaryId: string | null
@@ -92,7 +98,7 @@ export function JoinBuilder({ primaryId, datasets, disabled, joins, breakdown, o
     let changed = false
     const next = joins.map((join, index) => {
       const right = columns[join.dataset_id]
-      if (!right || join.keys.some((key) => key.left || key.right)) return join
+      if (!right || join.how === 'stack' || join.keys.some((key) => key.left || key.right)) return join
       changed = true
       return { ...join, keys: [suggestKey(leftColumns(index), right)] }
     })
@@ -154,54 +160,34 @@ export function JoinBuilder({ primaryId, datasets, disabled, joins, breakdown, o
                 ))}
               </select>
             </div>
-            {join.keys.map((key, keyIndex) => (
+            {join.how === 'stack' ? <p className="field__help">{t('joins.stackHelp')}</p> : null}
+            {(join.how === 'stack' ? [] : join.keys).map((key, keyIndex) => (
               <div className="joinbuilder__key" key={keyIndex}>
-                <div className="field">
-                  <label className="field__label" htmlFor={`${idBase}-left-${keyIndex}`}>
-                    {t('joins.mainColumn')}
-                  </label>
-                  <select
-                    id={`${idBase}-left-${keyIndex}`}
-                    className="field__select"
-                    dir="auto"
-                    value={key.left}
-                    onChange={(event) =>
-                      update(index, {
-                        keys: join.keys.map((k, i) => (i === keyIndex ? { ...k, left: event.target.value } : k)),
-                      })
-                    }
-                  >
-                    {key.left ? null : <option value="">—</option>}
-                    {left.map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="field">
-                  <label className="field__label" htmlFor={`${idBase}-right-${keyIndex}`}>
-                    {t('joins.joinedColumn')}
-                  </label>
-                  <select
-                    id={`${idBase}-right-${keyIndex}`}
-                    className="field__select"
-                    dir="auto"
-                    value={key.right}
-                    onChange={(event) =>
-                      update(index, {
-                        keys: join.keys.map((k, i) => (i === keyIndex ? { ...k, right: event.target.value } : k)),
-                      })
-                    }
-                  >
-                    {key.right ? null : <option value="">—</option>}
-                    {right.map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {(['left', 'right'] as const).map((side) => (
+                  <div className="field" key={side}>
+                    <label className="field__label" htmlFor={`${idBase}-${side}-${keyIndex}`}>
+                      {t(side === 'left' ? 'joins.mainColumn' : 'joins.joinedColumn')}
+                    </label>
+                    <select
+                      id={`${idBase}-${side}-${keyIndex}`}
+                      className="field__select"
+                      dir="auto"
+                      value={key[side]}
+                      onChange={(event) =>
+                        update(index, {
+                          keys: join.keys.map((k, i) => (i === keyIndex ? { ...k, [side]: event.target.value } : k)),
+                        })
+                      }
+                    >
+                      {key[side] ? null : <option value="">—</option>}
+                      {(side === 'left' ? left : right).map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
                 {join.keys.length > 1 ? (
                   <button
                     type="button"
@@ -214,7 +200,7 @@ export function JoinBuilder({ primaryId, datasets, disabled, joins, breakdown, o
                 ) : null}
               </div>
             ))}
-            {join.keys.length < MAX_KEYS ? (
+            {join.how !== 'stack' && join.keys.length < MAX_KEYS ? (
               <button
                 type="button"
                 className="btn btn--ghost"
@@ -228,15 +214,15 @@ export function JoinBuilder({ primaryId, datasets, disabled, joins, breakdown, o
                 {t('joins.how')}
               </span>
               <div className="segmented" role="group" aria-labelledby={`${idBase}-how`}>
-                {(['left', 'inner'] as const).map((how) => (
+                {HOWS.map(({ how, label }) => (
                   <button
                     key={how}
                     type="button"
                     className="segmented__option"
                     aria-pressed={join.how === how}
-                    onClick={() => update(index, { how })}
+                    onClick={() => update(index, { how, keys: how === 'stack' ? [] : join.keys })}
                   >
-                    {t(how === 'left' ? 'joins.keepAll' : 'joins.onlyMatched')}
+                    {t(label)}
                   </button>
                 ))}
               </div>
@@ -289,7 +275,7 @@ export function JoinBuilder({ primaryId, datasets, disabled, joins, breakdown, o
             <button
               type="button"
               className="btn btn--ghost"
-              disabled={previewing || joins.some((join) => !join.dataset_id || join.keys.some((k) => !k.left || !k.right))}
+              disabled={previewing || joins.some((join) => !join.dataset_id || (join.how !== 'stack' && join.keys.some((k) => !k.left || !k.right)))}
               onClick={() => void runPreview()}
             >
               {previewing ? <span className="spinner" aria-hidden="true" /> : <Icon name="search" size={16} />}
@@ -312,12 +298,15 @@ export function JoinBuilder({ primaryId, datasets, disabled, joins, breakdown, o
             <ul className={preview.joins.some((record) => record.unmatched) ? 'warnings' : 'joinbuilder__list'}>
               {preview.joins.map((record) => (
                 <li key={record.alias} dir="auto">
-                  {t('joins.matched', {
-                    name: record.name,
-                    matched: formatNumber(record.matched),
-                    total: formatNumber(record.rows_in),
-                    pct: percent(record.coverage),
-                  })}
+                  {record.how === 'stack'
+                    ? t('joins.stacked', { name: record.name, added: formatNumber(record.rows_added ?? 0) })
+                    : t('joins.matched', {
+                        name: record.name,
+                        matched: formatNumber(record.matched ?? 0),
+                        total: formatNumber(record.rows_in),
+                        pct: percent(record.coverage ?? 0),
+                      })}
+                  {record.duplicates_dropped ? <> {t('joins.stackedDropped', { n: formatNumber(record.duplicates_dropped) })}</> : null}
                   {record.unmatched_keys.length ? <> {t('joins.unmatched', { keys: record.unmatched_keys.join(', ') })}</> : null}
                   {record.lookup_unused ? <> {t('joins.unused', { n: formatNumber(record.lookup_unused), name: record.name })}</> : null}
                   {Object.keys(record.renamed).length ? (
@@ -332,30 +321,7 @@ export function JoinBuilder({ primaryId, datasets, disabled, joins, breakdown, o
                 {t('joins.personal', { list: preview.personal_data.map((p) => `${p.dataset}: ${p.column}`).join(', ') })}
               </p>
             ) : null}
-            <div className="evidence__table" role="region" aria-label={t('joins.previewTable')} tabIndex={0}>
-              <table className="datatable">
-                <thead>
-                  <tr>
-                    {preview.columns.map((name) => (
-                      <th key={name} scope="col" dir="auto">
-                        {name}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {preview.preview.map((row, index) => (
-                    <tr key={index}>
-                      {row.map((cell, column) => (
-                        <td key={column} dir="auto">
-                          {cell}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <PreviewTable columns={preview.columns} preview={preview.preview} label={t('joins.previewTable')} />
           </div>
         ) : null}
       </div>

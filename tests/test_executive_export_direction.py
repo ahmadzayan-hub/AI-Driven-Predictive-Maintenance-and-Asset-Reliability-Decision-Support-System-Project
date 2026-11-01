@@ -90,7 +90,11 @@ class ExecutiveExportDirectionTests(unittest.TestCase):
     def test_arabic_titles_labels_and_table_order_remain_explicitly_rtl(self):
         method = "(95.5) الجاهزية مقارنة بالهدف Availability_Pct"
         root = document("ar", [method])
-        for value in ("معيار | Miyaar", "4. مصدر البيانات وتتبع اللقطة", "الطريقة", method):
+        # Section numbers follow the sections actually present (empty ones are
+        # left out), so the heading is found by its title, not its number.
+        heading = next(p for p in root.findall(".//w:p", NS) if text(p).endswith("مصدر البيانات وتتبع اللقطة"))
+        self.assertEqual(heading.find("w:pPr/w:bidi", NS).get(W + "val"), "1")
+        for value in ("معيار | Miyaar", "الطريقة", method):
             with self.subTest(value=value):
                 self.assertEqual(paragraph_with(root, value).find("w:pPr/w:bidi", NS).get(W + "val"), "1")
         self.assertTrue(all(table.find("w:tblPr/w:bidiVisual", NS).get(W + "val") == "1"

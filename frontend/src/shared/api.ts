@@ -1,6 +1,6 @@
 import { translate } from '../i18n'
 import type { AuthConfig, ColumnMapping, DataContextChoices, DatasetDetail, DatasetSummary, ExportPayload, IdentityInfo, JoinPreview, JoinSpec,
-  KpiPolicy, MappingProblem, Pipelines, QueryAnswer, QuerySpec, RecordsPage, RecordsSpec, RunAssumptions, RunDetail, RunExecutive, RunKpis, RunSummary, SessionState, TableField, TableFilter, TranscriptEntry, UploadResult, Usage } from './types'
+  KpiPolicy, MappingProblem, Pipelines, QueryAnswer, QuerySpec, RecordsPage, RecordsSpec, RunAssumptions, RunDetail, RunExecutive, RunKpis, RunSummary, SavedView, SessionState, TableField, TableFilter, TranscriptEntry, UploadResult, Usage } from './types'
 
 export const API_BASE = import.meta.env.VITE_API_BASE ?? ''
 const REQUEST_TIMEOUT_MS = 10_000
@@ -315,6 +315,8 @@ export const api = {
           date_order: mapping.date_order,
           grain: mapping.grain,
           currency: mapping.currency ?? null,
+          derived: mapping.derived ?? [],
+          fiscal_start: mapping.fiscal_start ?? 1,
         }),
       },
       UPLOAD_TIMEOUT_MS,
@@ -323,6 +325,13 @@ export const api = {
   clearMapping: (id: string, language: 'en' | 'ar' = 'en') =>
     request<DatasetDetail>(
       `/api/datasets/${encodeURIComponent(id)}/mapping?language=${language}`,
+      { method: 'DELETE' },
+      UPLOAD_TIMEOUT_MS,
+    ),
+  /** Remove a stored dataset; one an analysis reads is a 409 naming them. */
+  deleteDataset: (id: string, language: 'en' | 'ar' = 'en') =>
+    request<{ deleted: string; name: string; usage: { datasets: number; bytes: number } }>(
+      `/api/datasets/${encodeURIComponent(id)}?language=${language}`,
       { method: 'DELETE' },
       UPLOAD_TIMEOUT_MS,
     ),
@@ -395,6 +404,15 @@ export const api = {
       { method: 'POST', body: JSON.stringify(spec) },
       UPLOAD_TIMEOUT_MS,
     ),
+  /** The saved dashboard view for the run's dataset (one per owner and dataset). */
+  getDashboardView: (id: string) =>
+    request<{ view: SavedView | null }>(`/api/runs/${encodeURIComponent(id)}/view`, {}, RUN_REQUEST_TIMEOUT_MS),
+  saveDashboardView: (id: string, view: { page: string; query: string }, language: 'en' | 'ar' = 'en') =>
+    request<{ view: SavedView }>(
+      `/api/runs/${encodeURIComponent(id)}/view?language=${language}`,
+      { method: 'PUT', body: JSON.stringify(view) }, RUN_REQUEST_TIMEOUT_MS),
+  forgetDashboardView: (id: string) =>
+    request<void>(`/api/runs/${encodeURIComponent(id)}/view`, { method: 'DELETE' }, RUN_REQUEST_TIMEOUT_MS),
   tableRecords: (id: string, spec: RecordsSpec, language: 'en' | 'ar' = 'en') =>
     request<RecordsPage>(
       `/api/runs/${encodeURIComponent(id)}/records?language=${language}`,

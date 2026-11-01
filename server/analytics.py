@@ -464,6 +464,13 @@ def collector(ctx):
                           f"تتجاوز البيانات الحد المسموح به وهو {MAX_ROWS} صف."))
     columns = [c for c in reader.fieldnames if c]
     digest = hashlib.sha256(text.encode()).hexdigest()[:16]
+    # A derived column of the mapping is a column of the table from here
+    # on, empty until the cleaner has numbers to compute it from.
+    for item in colmap.derived_of(ctx.get("mapping")):
+        if item["name"] not in columns:
+            columns.append(item["name"])
+            for row in rows:
+                row[item["name"]] = ""
     calculations = [{"id": "c_rows", "name": "row_count", "value": len(rows),
                      "method": "len(csv rows)"}]
     claims = [_claim(ctx, "cl_ingest", "fact",
@@ -629,6 +636,7 @@ def cleaner(ctx):
             stripped[col] = number
         cleaned.append(stripped)
         source_indices.append(source_index)
+    derived = colmap.compute_derived(mapping, [], cleaned) if mapping else []
     after = len(cleaned)
     calcs = [
         {"id": "c_rows_before", "name": "rows_before", "value": before, "method": "count"},
@@ -639,12 +647,29 @@ def cleaner(ctx):
          "method": "non-empty values in numeric columns that could not be read as a "
                    "number and were set to empty"},
     ]
+    if derived:
+        calcs.append({"id": "c_derived", "name": "derived_columns", "value": len(derived),
+                      "method": "columns computed from the mapping's formulas: " + ", ".join(
+                          f"{d['name']} = {d['formula']}" for d in colmap.derived_of(mapping))})
     claims = [_claim(ctx, "cl_rowloss", "fact",
                      f"{before - after} of {before} rows were removed during cleaning "
                      f"({dropped_empty} empty, {dropped_dupes} duplicates).",
                      f"حُذف {before - after} من أصل {_ar_n(before, 'row')} أثناء التنظيف "
                      f"({dropped_empty} فارغ و{dropped_dupes} مكرر).",
                      ["c_rows_before", "c_rows_after", "c_dropped"])]
+    if derived:
+        empty = {d: sum(1 for row in cleaned if row.get(d) is None) for d in derived}
+        claims.append(_claim(
+            ctx, "cl_derived", "fact",
+            f"{len(derived)} derived column(s) were computed from the mapping's formulas: "
+            + ", ".join(f"{d['name']} = {d['formula']}" for d in colmap.derived_of(mapping))
+            + ". A row is left empty where a value it reads is missing or a division divides by zero"
+            + (f" ({', '.join(f'{d}: {n}' for d, n in empty.items() if n)})" if any(empty.values()) else "") + ".",
+            f"حُسب {len(derived)} من الأعمدة المشتقة من صيغ الربط: "
+            + "، ".join(f"{d['name']} = {d['formula']}" for d in colmap.derived_of(mapping))
+            + ". يُترك الصف فارغاً حين تنقص قيمة يقرؤها أو يقسم على صفر"
+            + (f" ({'، '.join(f'{d}: {n}' for d, n in empty.items() if n)})" if any(empty.values()) else "") + ".",
+            ["c_derived"]))
     if coercion_failures:
         columns_hit = sorted({item["column"] for item in unreadable})
         claims.append(_claim(
@@ -697,12 +722,14 @@ def cleaner(ctx):
         # value that does not read is left out of the trend and counted.
         labels, grain, order = colmap.period_labels(
             [row.get(date_col, "") for row in cleaned],
-            mapping.get("date_order", "auto"), mapping.get("grain", "auto"))
+            mapping.get("date_order", "auto"), mapping.get("grain", "auto"),
+            colmap.fiscal_start_of(mapping))
         for row, label in zip(cleaned, labels):
             if label is None:
                 dates["dates_unreadable" if row.get(date_col) else "dates_missing"] += 1
             row[date_col] = label
-        dates.update(date_col=date_col, date_grain=grain, date_order=order)
+        dates.update(date_col=date_col, date_grain=grain, date_order=order,
+                     fiscal_start=colmap.fiscal_start_of(mapping))
         calcs.append({"id": "c_dates_unread", "name": "dates_not_read",
                       "value": dates["dates_unreadable"],
                       "method": f"filled {date_col} cells that do not read as a date "
@@ -727,7 +754,7 @@ def cleaner(ctx):
              f"{coercion_failures} قيمة غير رقمية فارغة). يُذكر كل صف محذوف "
              "ولا يُخفى."),
         output={"dropped_indices": dropped, "unreadable_values": unreadable,
-                "rows": cleaned, "source_indices": source_indices,
+                "rows": cleaned, "source_indices": source_indices, "derived": derived,
                 "rows_before": before, "rows_after": after,
                 "dropped": before - after, **dates},
         calculations=calcs,
@@ -762,24 +789,31 @@ def _merge_tables(ctx):
     Raises joins.JoinError with every problem."""
     clean = ctx["cleaner"]
     date = ({"column": clean["date_col"], "order": clean.get("date_order"),
-             "grain": clean.get("date_grain")} if clean.get("date_col") else None)
+             "grain": clean.get("date_grain"), "fiscal_start": clean.get("fiscal_start") or 1}
+            if clean.get("date_col") else None)
     joined, screens = [], []
     for item in ctx.get("joins") or []:
-        table = joining.clean_table(item["content"], item.get("mapping"))
+        # A stacked table is read the way the main one was: with the main
+        # dataset's mapping, so its measures and dates agree with the rows
+        # it joins. A lookup keeps its own mapping (ADR 0030).
+        mapping = ctx.get("mapping") if item.get("how") == "stack" else item.get("mapping")
+        table = joining.clean_table(item["content"], mapping)
         joined.append({**item, "table": table})
         for finding in personal_data_findings(table.columns, table.screened):
             screens.append({**finding, "dataset": item["name"]})
     # Keep a row's source position through left/inner joins without trusting
     # an asset/record identifier or putting an internal field in the table.
+    # A stacked row has no position in the main file: its index is None.
     source_indices = clean.get("source_indices")
     marker = object()
     source_rows = ([{**row, marker: index} for row, index in
                     zip(clean["rows"], source_indices)]
                    if source_indices is not None else clean["rows"])
     merged = joining.merge(ctx["collector"]["columns"], source_rows,
-                           ctx["profiler"]["numeric_columns"], joined, date)
+                           ctx["profiler"]["numeric_columns"], joined, date,
+                           ctx.get("primary_name"))
     if source_indices is not None:
-        merged["source_indices"] = [row.pop(marker) for row in merged["rows"]]
+        merged["source_indices"] = [row.pop(marker, None) for row in merged["rows"]]
     ignored = {column for column, role in (ctx.get("mapping") or {}).get("roles", {}).items()
                if role == "ignore"}
     for item, record in zip(joined, merged["joins"]):
@@ -795,8 +829,63 @@ def _merge_tables(ctx):
     return merged, screens
 
 
+def _stack_evidence(ctx, index, prefix, record, calcs, claims, checks, lines):
+    """What a stack did, as calculations, claims, a check and a note line:
+    rows appended under the same columns, repeats dropped and counted,
+    and the source column that tells the periods apart."""
+    name, added, dropped = record["name"], record["rows_added"], record["duplicates_dropped"]
+    calcs += [
+        {"id": f"{prefix}_rows_in", "name": f"rows_before_stacking_{record['alias']}",
+         "value": record["rows_in"], "method": "rows of the table before this stack"},
+        {"id": f"{prefix}_added", "name": f"rows_stacked_from_{record['alias']}",
+         "value": added, "method": f"rows of {name} appended under the same columns"},
+        {"id": f"{prefix}_dupes", "name": f"rows_of_{record['alias']}_already_present",
+         "value": dropped,
+         "method": f"rows of {name} identical to a row already in the table, dropped"},
+        {"id": f"{prefix}_rows_out", "name": f"rows_after_stacking_{record['alias']}",
+         "value": record["rows_out"], "method": "rows before + rows stacked"},
+    ]
+    source = record["source_column"]
+    claims.append(_claim(
+        ctx, f"cl_merge_{index}", "fact",
+        f"{added} rows of {name} were stacked under the same columns, so every total "
+        f"now covers {record['rows_out']} rows; the “{source}” column says which dataset "
+        f"each row came from ({record['source_label']} for the stacked rows).",
+        f"رُصّ {added} صفاً من {name} تحت الأعمدة نفسها، فصار كل مجموع يغطي "
+        f"{record['rows_out']} صفاً؛ ويبيّن عمود «{source}» مصدر كل صف "
+        f"({record['source_label']} للصفوف المرصوصة).",
+        [f"{prefix}_added", f"{prefix}_rows_out"]))
+    if dropped:
+        claims.append(_claim(
+            ctx, f"cl_merge_{index}_dupes", "limitation",
+            f"{dropped} rows of {name} repeat a row already in the table and were "
+            "dropped, so no row is counted twice. If the exports overlap on purpose, "
+            "that is expected; if not, check the period each export covers.",
+            f"يكرر {dropped} صفاً من {name} صفاً موجوداً في الجدول فحُذفت، فلا يُحسب "
+            "أي صف مرتين. إن كان التداخل مقصوداً فهذا متوقع، وإلا فتحقق من الفترة "
+            "التي يغطيها كل تصدير.",
+            [f"{prefix}_dupes"]))
+    checks.append({
+        "name": f"stack_{record['alias']}_adds_up",
+        "passed": record["rows_out"] == record["rows_in"] + added,
+        "detail": _say(ctx,
+                       f"{record['rows_in']} rows + {added} stacked = {record['rows_out']} "
+                       f"rows out; {dropped} repeated rows dropped.",
+                       f"{record['rows_in']} صفاً + {added} مرصوصاً = {record['rows_out']} "
+                       f"صفاً؛ حُذف {dropped} صفاً مكرراً.")})
+    lines.append(_say(
+        ctx,
+        f"- **{name}** (stacked): {added} rows appended under the same columns"
+        + (f", {dropped} repeated rows dropped" if dropped else "")
+        + f"; the “{source}” column names each row's dataset.",
+        f"- **{name}** (رصّ): أُضيف {added} صفاً تحت الأعمدة نفسها"
+        + (f"، وحُذف {dropped} صفاً مكرراً" if dropped else "")
+        + f"؛ ويسمّي عمود «{source}» مجموعة بيانات كل صف."))
+
+
 def merge(ctx):
-    """Data Merge Agent — put the joined datasets beside each row (ADR 0030).
+    """Data Merge Agent — put the joined datasets beside each row, or
+    stacked datasets' rows under them (ADR 0030, 27 October 2026).
 
     Runs only when a run declares joins, right after cleaning. It never
     adds a row: a lookup whose key repeats is refused, a left join keeps
@@ -811,6 +900,9 @@ def merge(ctx):
     calcs, claims, checks, lines = [], [], [], []
     for index, record in enumerate(merged["joins"]):
         prefix = f"c_merge_{index}"
+        if record["how"] == "stack":
+            _stack_evidence(ctx, index, prefix, record, calcs, claims, checks, lines)
+            continue
         keys = ", ".join(f"{k['left']} = {k['right']}" for k in record["keys"])
         calcs += [
             {"id": f"{prefix}_rows_in", "name": f"rows_before_joining_{record['alias']}",
@@ -899,11 +991,15 @@ def merge(ctx):
         ctx,
         f"Merged {len(merged['joins'])} dataset(s) onto {rows_before} rows: "
         f"{rows_after} rows and {len(merged['columns'])} columns. "
-        + " ".join(f"{r['name']}: {r['matched']} of {r['rows_in']} matched."
+        + " ".join(f"{r['name']}: {r['rows_added']} rows stacked."
+                   if r["how"] == "stack" else
+                   f"{r['name']}: {r['matched']} of {r['rows_in']} matched."
                    for r in merged["joins"]),
         f"دُمجت {len(merged['joins'])} من مجموعات البيانات على {rows_before} صفاً: "
         f"{rows_after} صفاً و{len(merged['columns'])} عموداً. "
-        + " ".join(f"{r['name']}: تطابق {r['matched']} من {r['rows_in']}."
+        + " ".join(f"{r['name']}: رُصّ {r['rows_added']} صفاً."
+                   if r["how"] == "stack" else
+                   f"{r['name']}: تطابق {r['matched']} من {r['rows_in']}."
                    for r in merged["joins"]))
     return _result(
         "succeeded", summary,
@@ -919,14 +1015,14 @@ def merge(ctx):
 
 
 def preview_merge(dataset_text, mapping, joins, breakdown=None, language="en",
-                  rows_shown=5):
+                  rows_shown=5, dataset_name=None):
     """What a run with these joins would merge, without making the run.
 
     It runs the real collection, profiling, cleaning and merge stages, so
     the preview cannot disagree with the run (ADR 0030). Raises
     joins.JoinError with every problem, including a main dataset that the
     pipeline itself would refuse."""
-    ctx = {"dataset_text": dataset_text, "mapping": mapping,
+    ctx = {"dataset_text": dataset_text, "mapping": mapping, "primary_name": dataset_name,
            "report_language": language, "joins": joins, "join_breakdown": breakdown}
     for role, stage in (("collector", collector), ("profiler", profiler),
                         ("cleaner", cleaner)):
@@ -1334,7 +1430,8 @@ def preparer(ctx):
     # Round only when formatting a figure for a reader.
     total = math.fsum(r[measure] for r in rows if r.get(measure) is not None)
     grain = ctx["cleaner"].get("date_grain") if mapping else None
-    grain_ar = {"day": "اليوم", "month": "الشهر", "quarter": "الربع", "year": "السنة"}
+    grain_ar = {"day": "اليوم", "week": "الأسبوع", "month": "الشهر", "quarter": "الربع",
+                "year": "السنة"}
     calcs = [{"id": "c_total", "name": f"total_{measure}", "value": total,
               "method": f"sum({measure}) over cleaned rows"}]
     claims = [_claim(ctx, "cl_total", "calculation",
@@ -4220,14 +4317,16 @@ def validator(ctx):
                                   f"محذوف = {clean['rows_before']} صف مُدخل")})
     merged = ctx.get("merge")
     if merged:
-        # A join must not add rows, and an inner join may only remove the
-        # rows that found no match (ADR 0030). Recounted from the records,
-        # independently of the merge stage's own check.
+        # A join must not add rows, an inner join may only remove the rows
+        # that found no match (ADR 0030), and a stack adds exactly the rows
+        # it appended. Recounted from the records, independently of the
+        # merge stage's own check.
         counted = clean["rows_after"]
         broken = []
         for record in merged["joins"]:
             expected = (record["rows_in"] if record["how"] == "left"
-                        else record["matched"])
+                        else record["rows_in"] + record["rows_added"]
+                        if record["how"] == "stack" else record["matched"])
             if record["rows_in"] != counted or record["rows_out"] != expected:
                 broken.append(record["alias"])
             counted = record["rows_out"]
@@ -4558,6 +4657,8 @@ REPORT_TEXT = {
             "improvement assumption applied equally to each. It is not a claim "
             "about cost, feasibility, or certainty of outcome.",
         ],
+        "left_out": "- Left out because there is nothing to report: {sections}.",
+        "separator": "; ",
         "footer": "*Generated by Agentic OS run {run_id} — measure “{measure}”, "
                   "{rows} analyzed rows.*",
         "done": "Comprehensive report assembled from all four analytics types: "
@@ -4604,6 +4705,8 @@ REPORT_TEXT = {
             "بالتساوي على كل خيار. وليست ادعاءً عن التكلفة أو الجدوى أو يقين "
             "النتيجة.",
         ],
+        "left_out": "- أُسقطت لعدم وجود ما يُبلَّغ عنه: {sections}.",
+        "separator": "؛ ",
         "footer": "*أُنتج بواسطة تشغيل Agentic OS رقم {run_id}، المقياس «{measure}»، "
                   "وعدد الصفوف المحللة {rows}.*",
         "done": "جُمع التقرير الشامل من أنواع التحليل الأربعة: {claims} مع روابط "
@@ -4621,6 +4724,48 @@ CLAIM_KINDS_AR = {"fact": "حقيقة", "calculation": "حساب", "finding": "�
                   "assumption": "افتراض", "limitation": "قيد", "warning": "تحذير"}
 NARRATOR_AR = {"deterministic": "حتمية (قالب ثابت)", "model": "نموذج لغوي"}
 STATUS_AR = {"verified": "متحقق منه"}
+
+
+def _metric_lines(ctx, language, text):
+    """Key metrics: one row per calculation. Empty when no stage calculated."""
+    rows = [report_display.calculation_row(calc, language, builtin=stage in EVIDENCE_STAGES)
+            for stage in evidence_stages(ctx)
+            for calc in ctx.get(stage + "_result", {}).get("calculations", [])]
+    if not rows:
+        return []
+    lines = ["", text["metrics"], text["metrics_intro"], "",
+             text["metrics_head"], "| --- | --- | --- |", *rows]
+    if language == "ar":
+        lines += ["", AR_METHODS_NOTE]
+    return lines
+
+
+def _claim_lines(ctx, language, text):
+    """Every claim with its evidence. Empty when no stage claimed anything."""
+    arabic = language == "ar"
+    rows = []
+    for stage in evidence_stages(ctx):
+        for claim in ctx.get(stage + "_result", {}).get("claims", []):
+            if arabic:
+                # A custom stage may speak English only; its claim is shown
+                # as written rather than left out.
+                rows.append(f"| {claim.get('text_ar', claim['text'])} | "
+                            f"{CLAIM_KINDS_AR.get(claim['type'], claim['type'])} | "
+                            f"{', '.join(claim['evidence'])} | "
+                            f"{STATUS_AR.get(claim['status'], claim['status'])} |")
+            else:
+                rows.append(f"| {claim['text']} | {claim['type']} | "
+                            f"{', '.join(claim['evidence'])} | {claim['status']} |")
+    if not rows:
+        return []
+    return ["", "---", "", text["claims"], text["claims_head"], "| --- | --- | --- | --- |", *rows]
+
+
+def _chart_lines(ctx, language, text):
+    """Charts with their alternative text. Empty when the run drew none."""
+    charts = [f"- **{chart['title']}** ({report_display.chart_type(chart['type'], language)}): {chart['alt']}"
+              for chart in ctx["visuals"]["charts"]]
+    return ["", text["charts"], *charts] if charts else []
 
 
 def reporter(ctx):
@@ -4686,15 +4831,14 @@ def reporter(ctx):
               ctx["anomaly_result"]["summary"],
               ctx["sensitivity_result"]["summary"],
               *_custom_stage_lines(ctx),
-              "", text["metrics"],
-              text["metrics_intro"],
-              "", text["metrics_head"], "| --- | --- | --- |"]
-    for stage in evidence_stages(ctx):
-        for calc in ctx.get(stage + "_result", {}).get("calculations", []):
-            lines.append(report_display.calculation_row(
-                calc, language, builtin=stage in EVIDENCE_STAGES))
-    if arabic:
-        lines += ["", AR_METHODS_NOTE]
+              ]
+    # Headings for nothing are left out; the limitations say which.
+    left_out = []
+    metrics = _metric_lines(ctx, language, text)
+    if metrics:
+        lines += metrics
+    else:
+        left_out.append(text["metrics"].lstrip("# "))
 
     for name, _ in REPORT_SECTIONS:
         section = ctx[name].get("report_markdown", "")
@@ -4710,24 +4854,16 @@ def reporter(ctx):
             lines += ["#" + line if line.startswith("# ") else line
                       for line in section.split("\n")]
 
-    lines += ["", "---", "", text["claims"],
-              text["claims_head"], "| --- | --- | --- | --- |"]
-    for stage in evidence_stages(ctx):
-        for claim in ctx.get(stage + "_result", {}).get("claims", []):
-            if arabic:
-                # A custom stage may speak English only; its claim is shown
-                # as written rather than left out.
-                lines.append(f"| {claim.get('text_ar', claim['text'])} | "
-                             f"{CLAIM_KINDS_AR.get(claim['type'], claim['type'])} | "
-                             f"{', '.join(claim['evidence'])} | "
-                             f"{STATUS_AR.get(claim['status'], claim['status'])} |")
-            else:
-                lines.append(f"| {claim['text']} | {claim['type']} | "
-                             f"{', '.join(claim['evidence'])} | {claim['status']} |")
-    lines += ["", text["charts"]]
-    for chart in ctx["visuals"]["charts"]:
-        kind = report_display.chart_type(chart["type"], language)
-        lines.append(f"- **{chart['title']}** ({kind}): {chart['alt']}")
+    claims = _claim_lines(ctx, language, text)
+    if claims:
+        lines += claims
+    else:
+        left_out.append(text["claims"].lstrip("# "))
+    charts = _chart_lines(ctx, language, text)
+    if charts:
+        lines += charts
+    else:
+        left_out.append(text["charts"].lstrip("# "))
     lines += ["", text["validation"], ctx["validator_result"]["summary"]]
     for check in ctx["validator_result"]["quality_checks"]:
         verdict = text["pass"] if check["passed"] else text["fail"]
@@ -4746,6 +4882,8 @@ def reporter(ctx):
     lines += [line.format(snapshot=ctx["collector"]["snapshot"],
                           forecast_limit=forecast_limit)
               for line in text["limits_lines"]]
+    if left_out:
+        lines.append(text["left_out"].format(sections=text["separator"].join(left_out)))
     lines += ["", text["footer"].format(run_id=ctx.get("run_id", ""),
                                         measure=prep["measure"],
                                         rows=len(_rows(ctx)))]

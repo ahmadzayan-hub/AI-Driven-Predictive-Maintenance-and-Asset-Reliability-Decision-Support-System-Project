@@ -3,9 +3,9 @@ type: concept
 aliases: []
 tags: [data]
 status: active
-updated: 2026-10-20
+updated: 2026-10-27
 review_every_days: 30
-sources: [server/joins.py, docs/adr/0030-several-datasets-per-run.md]
+sources: [server/joins.py, docs/adr/0030-several-datasets-per-run.md, docs/adr/2026-10-27-stacked-datasets.md]
 ---
 
 # Dataset joins
@@ -19,6 +19,7 @@ Dataset joins combine declared, owner-accessible tables without silently multipl
 - Left and inner joins have different population meanings, which must remain visible.
 - Repeated lookup keys are refused when they would multiply main-table rows.
 - Matched, unmatched and renamed-column information supports review of the result.
+- A stack (27 October 2026) appends an export with exactly the same columns under the main table, read with the main mapping; repeats of rows already present are dropped and counted, and a `source` column names each row's dataset so totals can be broken down by export.
 
 ## Related
 

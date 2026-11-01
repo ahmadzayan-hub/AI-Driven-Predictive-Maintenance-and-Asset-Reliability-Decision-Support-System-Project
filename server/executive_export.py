@@ -81,6 +81,21 @@ class Section:
     compact: bool = False
     after_paragraphs: list = field(default_factory=list)
     after_title: str = ""
+    # The "nothing to report" statement of a section that has no other
+    # content. Such a section is left out of the document and named once
+    # in the decision context (ADR 2026-10-27-interactive-dashboard).
+    absent: str = ""
+
+    def has_content(self):
+        return (any(str(p).strip() for p in self.paragraphs + self.after_paragraphs)
+                or any(table.rows for table in self.tables))
+
+    def note_absence(self, text):
+        """Keep an explicit statement beside real content; otherwise mark absent."""
+        if self.has_content():
+            self.paragraphs.append(text)
+        else:
+            self.absent = text
 
 
 def report_sections(brief):
@@ -247,30 +262,30 @@ def report_sections(brief):
             (tr("Assessment reason", "سبب التقييم"), measure.get("assessment", {}).get("reason")),
             (tr("Target source", "مصدر الهدف"), measure.get("assessment", {}).get("source_ref")),
         ]))
-    if not brief["kpis"]["measures"]:
-        kpis.paragraphs.append(tr("No controlled KPI is computable for this scope.", "لا يمكن حساب مؤشر أداء منضبط لهذا النطاق."))
     if brief["kpis"]["unavailable"]:
         kpis.tables.append(Table((tr("Unavailable measure", "المؤشر غير المتاح"), tr("Required evidence", "الأدلة المطلوبة")),
             [(key, value(reason)) for key, reason in brief["kpis"]["unavailable"].items()]))
+    if not brief["kpis"]["measures"]:
+        kpis.note_absence(tr("No controlled KPI is computable for this scope.", "لا يمكن حساب مؤشر أداء منضبط لهذا النطاق."))
     priorities = Section(tr("Review priorities", "أولويات المراجعة"))
     for item in brief["priorities"]:
         priorities.tables.append(properties([(tr("Priority", "الأولوية"), item["title"]),
             (tr("Review", "المراجعة"), item["detail"]), (tr("Evidence references", "مراجع الأدلة"), item["evidence_refs"])]))
     if not priorities.tables:
-        priorities.paragraphs.append(tr("No observed priority is identified in this scope.", "لم تُحدد أولوية مرصودة ضمن هذا النطاق."))
+        priorities.note_absence(tr("No observed priority is identified in this scope.", "لم تُحدد أولوية مرصودة ضمن هذا النطاق."))
     questions = Section(tr("Decision questions", "أسئلة القرار"))
     for item in brief["questions"]:
         questions.paragraphs.extend([item["text"], refs(item)])
     if not questions.paragraphs:
-        questions.paragraphs.append(tr("No additional question is recorded.", "لا يوجد سؤال إضافي مسجل."))
+        questions.note_absence(tr("No additional question is recorded.", "لا يوجد سؤال إضافي مسجل."))
     whole = tr("These stored findings and model evaluations describe the whole run. They were not recomputed or retrained for the selected filters and do not establish future failure or remaining useful life.",
                "تصف النتائج وتقييمات النماذج المخزنة التشغيل الكامل. لم تُعد حساباتها أو تدريبها وفق المرشحات المحددة، ولا تثبت الأعطال المستقبلية أو العمر المتبقي.")
-    findings = Section(tr("Whole-run findings", "نتائج التشغيل الكامل"), [whole])
+    findings = Section(tr("Whole-run findings", "نتائج التشغيل الكامل"), [whole] if brief["findings"] else [])
     for item in brief["findings"]:
         findings.paragraphs.extend([item["text"], tr("Stage", "المرحلة") + ": " + value(item["stage"]), refs(item)])
     if not brief["findings"]:
-        findings.paragraphs.append(tr("No verified findings are available in this briefing.", "لا تتوفر نتائج متحقق منها في هذا الموجز."))
-    models = Section(tr("Whole-run model evaluations", "تقييمات نماذج التشغيل الكامل"), [whole])
+        findings.note_absence(tr("No verified findings are available in this briefing.", "لا تتوفر نتائج متحقق منها في هذا الموجز."))
+    models = Section(tr("Whole-run model evaluations", "تقييمات نماذج التشغيل الكامل"), [whole] if brief["models"] else [])
     for card in brief["models"]:
         # Plugin model cards can contain arbitrary payloads. Only known scalar
         # evaluation metadata belongs in a document; never copy nested raw data.
@@ -308,7 +323,7 @@ def report_sections(brief):
         rows.extend((item["label_ar" if ar else "label_en"], item["value"]) for item in model_audit(card))
         models.tables.append(properties(rows))
     if not brief["models"]:
-        models.paragraphs.append(tr("No model evaluation is available; predictive performance is not claimed.", "لا يتوفر تقييم نموذج؛ ولا يُدّعى وجود أداء تنبؤي."))
+        models.note_absence(tr("No model evaluation is available; predictive performance is not claimed.", "لا يتوفر تقييم نموذج؛ ولا يُدّعى وجود أداء تنبؤي."))
     evidence = Section(tr("Evidence appendix", "ملحق الأدلة"), [tr(
         "Every reference below is part of this snapshot. Filtered calculations and whole-run calculations have different scopes.",
         "كل مرجع أدناه جزء من هذه اللقطة. يختلف نطاق الحسابات المرشحة عن حسابات التشغيل الكامل.")])
@@ -397,14 +412,19 @@ def report_sections(brief):
                 *coverage_sections, *definitions, targets, kpis, *scorecards,
                 findings, models, *readiness_sections, priorities,
                 *decisions_requested, *decision_records, limitations, evidence]
+    # Sections with nothing to report are left out, and named once here so
+    # their absence stays explicit without an empty heading each.
+    omitted = [section for section in sections if section.absent and not section.has_content()]
+    if omitted:
+        summary.paragraphs.append(
+            tr("Left out because there is nothing to report: ", "أُسقطت الأقسام التالية لعدم وجود ما يُبلَّغ عنه: ")
+            + (tr("; ", "؛ ")).join(f"{section.title} ({section.absent})" for section in omitted))
     return title, _present_sections(sections)
 
 
 def _present_sections(sections):
     """Do not advertise empty headings; explicit unavailable statements remain."""
-    return [section for section in sections if
-            any(str(p).strip() for p in section.paragraphs + section.after_paragraphs)
-            or any(table.rows for table in section.tables)]
+    return [section for section in sections if section.has_content()]
 
 
 def _section_label(index, section):

@@ -249,8 +249,8 @@ probabilities or commercial readiness by displaying a score.
   content revision reject changed evidence until the brief is refreshed;
   exporting does not approve or publish a run (ADR 0059).
 - **Models, each against a plain guess** — a run on the `models` profile
-  adds a regression, a classification, a clustering and a seasonal
-  forecast as governed stages. Each is tested on held-out data against
+  adds a regression, a tree ensemble, a classification, a clustering
+  and a seasonal forecast as governed stages. Each is tested on held-out data against
   the obvious baseline (the average, the most common class, last
   season), reports a weak model as weak, and shows a model card with the
   verdict first (ADR 0033)
@@ -943,6 +943,165 @@ cd frontend && npm run typecheck
 # --e2e adds both the main and Miyaar Playwright suites.
 python scripts/verify.py
 ```
+
+### Agent cards: each stage shows its evidence; hosted migration packaged — 28 October 2026
+
+Interface change ([decision](docs/adr/2026-10-28-agent-cards.md)): each stage
+in the run timeline is a card that states its claims and how many of its
+checks passed, with its edge coloured by state. The card rules load with the
+runs view, so the first-load stylesheet is unchanged. The script total is 256.9 of 257 KB after removing
+five unused string keys in both languages.
+
+Hosted migration ([runbook](docs/HOSTED_MIGRATION_20261027.md)): the
+`dashboard_views` migration now refuses a table of another shape, and it is
+tested on a disposable schema: it applies, re-applies, and refuses drift. It is
+not applied to any hosted database; the database operator applies it after
+review.
+
+Checked by the full Python suite against PostgreSQL 16 (2,366 tests, 19
+skipped), 529 frontend unit tests, and the runs, accessibility, Arabic and
+dashboard journeys on desktop and phone (28 cases).
+
+### The live pipeline names the stage running now — 28 October 2026
+
+Interface change ([decision](docs/adr/2026-10-28-live-pipeline.md)): the run
+timeline names the stage running now and marks it as the current step, and its
+progress count is a live status, so a screen reader hears the pipeline move.
+Progress still arrives by the run's poll. Agent cards per stage are not in this
+slice. Checked by a new timeline unit test (English and Arabic), the runs,
+accessibility and Arabic journeys on desktop and phone (18 cases), 528
+frontend unit tests, and the script budget at 256.9 of 257 KB.
+
+### Stage reports leave out empty sections — 28 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-28-stage-report-sections.md)):
+the comprehensive analysis report prints key metrics, every claim and charts
+only when a stage produced one, and its limitations name the sections left
+out. Checked with the full Python suite against PostgreSQL 16 (2,365 tests,
+19 skipped; 4 new in `tests/test_stage_report_sections.py`), the existing run,
+analytics and report suites unchanged. Histogram bins are clickable; the
+scatter plot is deliberately not (see the dashboard decision).
+
+### Interactive dashboard: click to filter, a saved view per dataset, no empty brief sections — 27 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-27-interactive-dashboard.md)):
+a bar or a line point is clicked to keep its group alone on every figure,
+and clicked again to release it, the filter staying in the address; one
+dashboard view per owner and dataset is saved on the server (`GET`, `PUT`
+and `DELETE /api/runs/{run_id}/view`, a backend-only `dashboard_views` table
+with its hosted migration and the initial schema mirror) and applied when a
+run over that dataset opens from a bare address; the executive HTML and
+DOCX brief leaves out sections whose only content is their "nothing to
+report" statement and names them once in the decision context. Checked with
+the full Python suite against PostgreSQL 16 (2,361 tests, 19 skipped; 9 new
+in `tests/test_dashboard_views.py` and `tests/test_report_navigation.py`),
+526 frontend unit tests (11 new), type check, build, brain check, and the
+browser journeys for the dashboard and the executive opening on desktop and
+phone. A histogram bin is clickable too, and its bins keep their edges under
+their own filter. The script ceiling moves to 257 KB after trimming; first load stays
+99.7 of 100 KB script and 10.5 of 10.5 KB style.
+
+### Tree ensemble: threshold rules against the average and the line — 27 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-27-tree-ensemble.md)): a
+fifth model on the `models` profile, 16 bagged regression trees in the
+standard library, scored on held-out records against the training average
+and against the straight-line model, so the card says whether the
+relationship has thresholds a line misses; each input's share of the
+explained variance is reported as an association. Checked with the full
+Python suite against PostgreSQL 16 (2,352 tests, 19 skipped; 5 new in
+`tests/test_modelling.py`, and the governed models run now lists the
+`trees` card in both languages), 515 frontend unit tests, type check,
+brain check, build and budget unchanged (no interface change).
+
+### Fiscal year: quarters and years named by the start month — 27 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-27-fiscal-year.md)): a
+column mapping may name the month its fiscal year starts in; quarter and
+year labels then read `FY2026-Q1` and `FY2026`, named by the year the
+fiscal year ends in; forecasts continue the fiscal calendar; joins and
+stacks follow the main table; day, week and month labels are unchanged,
+as is every mapping saved before. The mapping panel offers *Fiscal year
+starts in* with month names from the browser's locale data. Checked with
+the full Python suite against PostgreSQL 16 (2,347 tests, 19 skipped; 5
+new in `tests/test_mapping.py`), 515 frontend unit tests (1 new), type
+check, brain check, build and budget (JS 99.7 of 100 KB first load and
+255.5 of 256 KB in total; CSS 10.46 of 10.5 KB and 34.1 of 35 KB).
+
+### Derived columns: arithmetic over the measures — 27 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-27-derived-columns.md)): a
+column mapping may declare up to five derived columns, each a name and an
+arithmetic formula over the measures (`cost / hours`), checked when saved
+in both languages, computed after cleaning with empty cells where a value
+is missing or a divisor is zero, available as the measure analysed, and
+carried through stacked exports and the analysis table. The mapping panel
+has a *Derived columns* section. Checked with the full Python suite
+against PostgreSQL 16 (2,342 tests, 19 skipped; 8 new in
+`tests/test_mapping.py` and `tests/test_joins.py`), 514 frontend unit
+tests (2 new), type check, brain check, build and budget (JS 99.6 of 100
+KB first load and 255.1 of 256 KB in total, the ceiling moved by 1 KB and
+recorded; CSS 10.46 of 10.5 KB and 34.1 of 35 KB), and the mapping journey
+in Playwright on desktop with axe (3 passed).
+
+### Miyaar visual layer: the brief, the AI core and a bounded glow — 27 October 2026
+
+Interface change ([decision](docs/adr/2026-10-27-miyaar-visual-layer.md)):
+the Command Centre opens with a brief (a greeting by the hour and name,
+one sentence from counted runs, one action that opens the longest-waiting
+analysis, and analyses started in the last 14 days with a sparkline, all
+counted from the runs' own dates); the Miyaar hero carries an AI-core
+motif with a decorative glow; the action grid goes to three columns from
+1280px. Strings in both languages in the Overview's lazy pack. Checked
+with the full Python suite against PostgreSQL 16 (2,334 tests, 19
+skipped), 512 frontend unit tests (4 new), type check, brain check, build
+and budget (JS 99.6 of 100 KB first load and 254.3 of 255 KB in total;
+CSS 10.46 of 10.5 KB first load and 33.97 of 35 KB in total: the total
+ceilings moved by 1 KB and 1.5 KB, recorded in the decision; first load
+unchanged), the Miyaar workspace suite (12 passed with axe, both
+languages, four viewports) and the Command Centre and screenshot journeys
+on desktop. Screenshots in `docs/screenshots/` refreshed.
+
+### Week grain: dates summed by ISO week — 27 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-27-week-grain.md)): a column
+mapping can sum dates by week (`2025-W03`, ISO, Monday to Sunday, the year
+of the Thursday); week values in the data read as periods and roll up to
+the month of their Thursday; the automatic roll-up never chooses weeks, so
+earlier runs keep their periods; forecasts continue the week calendar and
+the seasonal model uses a season of 52. Checked with the full Python suite
+against PostgreSQL 16 (2,334 tests, 19 skipped; 3 new in
+`tests/test_mapping.py` and 1 in `tests/test_modelling.py`, plus new cases
+in the date-format table), 508 frontend unit tests, type check, brain
+check, build and budget (JS 99.7 of 100 KB first load and 253.3 of 254 KB
+in total).
+
+### Stacked exports: a union of datasets with the same columns — 27 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-27-stacked-datasets.md)): a
+declared join may be a stack (`how: "stack"`, no key): the dataset's rows go
+under the main table, read with the main mapping, under exactly the same
+columns or refused with the columns named; repeats of rows already present
+are dropped and counted; a `source` column says which export each row came
+from. The builder offers *Stack its rows underneath*. Checked with the full
+Python suite against PostgreSQL 16 (2,330 tests, 19 skipped; 12 new in
+`tests/test_joins.py`), 508 frontend unit tests, type check, brain check,
+build and budget (JS 99.6 of 100 KB first load and 253.2 of 254 KB in
+total: the ceiling moved by 1 KB after trimming, recorded in the decision),
+and the four join journeys in Playwright on desktop, the stack one new.
+
+### Dataset lifecycle: a stored dataset can be removed — 27 October 2026
+
+Behaviour change ([decision](docs/adr/2026-10-27-dataset-deletion.md)):
+`DELETE /api/datasets/{id}` and a Remove control in the Datasets view;
+refused with 409 `dataset_in_use`, naming the analyses in the reader's
+language, while a run reads the dataset as its main or a joined table;
+a live source forgets the snapshot it last stored. Checked with the full
+Python suite against PostgreSQL 16 (2,318 tests, 19 skipped; 14 new in
+`tests/test_dataset_deletion.py`), 484 frontend unit tests (3 new), type
+check, brain check, build and budget (JS 99.6 of 100 KB first load and
+253.0 of 253 KB in total, the ceiling: the next interface slice trims or
+records a budget change first).
 
 ### Standards lint: blind set v2 into dev, blind set v3 — 23 October 2026
 

@@ -4,7 +4,6 @@ import type { MessageKey } from '../../i18n'
 import { Icon } from '../../shared/components/Icon'
 import type { IconName } from '../../shared/components/Icon'
 import { MiyaarMark } from '../../shared/components/MiyaarMark'
-import { StatusBadge } from '../../shared/components/StatusBadge'
 import type { ConnectionStatus, SessionState } from '../../shared/types'
 import { Composer } from './Composer'
 import type { ComposerHandle } from './Composer'
@@ -43,24 +42,24 @@ interface ChatViewProps {
   onAction?: (action: WorkspaceAction) => void
 }
 
-/** A decorative industrial motif. No metric or status is encoded in the artwork. */
-function IndustrialMotif() {
-  return <div className="miyaar-hero__motif" aria-hidden="true">
+/** A decorative AI-core motif: rings, an orbit and streams around the
+ *  mark. No metric, status or activity is encoded in the artwork. */
+function CoreMotif() {
+  return <div className="miyaar-hero__motif miyaar-core" aria-hidden="true">
     <svg viewBox="0 0 320 220" fill="none" stroke="currentColor" focusable="false">
-      <path d="M0 64h45l30 30h40M320 158h-45l-32-32h-40M25 190h58l32-32M290 25h-50l-30 30" strokeOpacity=".3" />
-      <circle cx="160" cy="110" r="87" strokeOpacity=".2" />
-      <circle cx="160" cy="110" r="67" strokeDasharray="2 8" strokeOpacity=".6" />
-      <circle cx="160" cy="110" r="49" strokeOpacity=".5" />
-      {Array.from({ length: 12 }, (_, i) => <path key={i} d="M161 61l15 15-5 14" transform={`rotate(${i * 30} 160 110)`} strokeOpacity=".65" />)}
-      <circle cx="160" cy="110" r="23" strokeWidth="2" />
-      <path d="M148 116v-12l12 8 12-8v12" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="45" cy="64" r="4" /><circle cx="275" cy="158" r="4" />
+      {Array.from({ length: 16 }, (_, i) => <path key={i} d="M160 110 L160 8" strokeOpacity={i % 2 ? '.12' : '.22'} transform={`rotate(${i * 22.5} 160 110)`} />)}
+      <circle cx="160" cy="110" r="96" strokeOpacity=".18" />
+      <circle cx="160" cy="110" r="74" strokeDasharray="3 9" strokeOpacity=".55" className="miyaar-core__orbit" />
+      <circle cx="160" cy="110" r="52" strokeOpacity=".4" />
+      <circle cx="160" cy="110" r="34" strokeWidth="2" />
+      <path d="M146 118v-16l14 10 14-10v16" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="234" cy="110" r="4" fill="currentColor" /><circle cx="86" cy="110" r="4" fill="currentColor" />
     </svg>
   </div>
 }
 
 export function ChatView({
-  session, sending, failedText, pendingText, requestError, connectionStatus,
+  session, sending, failedText, pendingText, requestError,
   offline, userName, onSend, onRetry, onDismissFailed, composerRef, onOpenRun, onAction,
 }: ChatViewProps) {
   const { t, formatNumber } = useI18n()
@@ -69,7 +68,6 @@ export function ChatView({
   const [waiting, setWaiting] = useState(false)
   const transcriptLength = session.transcript.length
   const latest = session.transcript.filter((entry) => entry.role === 'agent').at(-1)
-  const status = connectionStatus ?? (offline ? 'offline' : session.ended ? 'ended' : sending ? 'working' : 'ready')
   useEffect(() => {
     const container = scrollRef.current
     if (container && pinnedToBottom) container.scrollTop = transcriptLength || sending || failedText ? container.scrollHeight : 0
@@ -86,16 +84,9 @@ export function ChatView({
   }
   const empty = transcriptLength === 0 && !failedText && !sending
   return <div className="assistant-workspace">
-    <aside className="assistant-context" aria-label={session.data_chat_labels?.title ?? t('miyaar.workspace')}>
-      <div className="assistant-context__state"><strong>{t('miyaar.session')}</strong><StatusBadge status={status} announce={false} /></div>
-      {session.assistant_status && <p className="miyaar-notice" role="status" dir="auto">{session.assistant_status.message}</p>}
-      <DataChatContext key={session.session_id} session={session} disabled={session.ended || offline || sending} />
-      <p className="assistant-context__boundary"><Icon name="shield" size={18} />{t('miyaar.review')}</p>
-    </aside>
     <section className="chat" aria-label={t('chat.aria')}>
     <div className="miyaar-toolbar">
-      <MiyaarMark />
-      <div><strong>{t('assistant.name')}</strong><span>{t('assistant.tagline')}</span></div>
+      <strong>{t('nav.assistant')}</strong>
       <span className="miyaar-toolbar__count">{formatNumber(transcriptLength)} · {t('rail.messages')}</span>
     </div>
     <div className="chat__scroll" ref={scrollRef} onScroll={handleScroll}>
@@ -112,11 +103,11 @@ export function ChatView({
               <span><Icon name="shield" size={14} />{t('miyaar.step3')}</span>
             </div>
           </div>
-          <div className="miyaar-hero__art"><IndustrialMotif /><span>{t('miyaar.art')}</span></div>
+          <div className="miyaar-hero__art"><CoreMotif /><span>{t('miyaar.art')}</span></div>
         </div>
         <h3 className="miyaar-welcome__heading">{t('miyaar.start')}</h3>
         <div className="miyaar-actions">
-          {ACTIONS.map((action) => <button key={action.id} type="button" className="miyaar-action"
+          {ACTIONS.map((action) => <button key={action.id} type="button" className={`miyaar-action${action.id === 'analyse' ? ' miyaar-action--primary' : ''}`}
             onClick={() => onAction?.(action.id)} disabled={!onAction}>
             <span className="miyaar-action__icon"><Icon name={action.icon} size={20} /></span>
             <span><strong>{t(action.title)}</strong><small>{t(action.description)}</small></span>
@@ -160,6 +151,11 @@ export function ChatView({
       if (container) container.scrollTop = container.scrollHeight
       setPinnedToBottom(true)
     }}><Icon name="arrowDown" size={14} />{t('chat.latest')}</button> : null}
+    <div className="assistant-context" aria-label={t('miyaar.context')} role="region">
+      {session.assistant_status && <p className="assistant-context__notice" role="status" dir="auto">{session.assistant_status.message}</p>}
+      <DataChatContext key={session.session_id} session={session} disabled={session.ended || offline || sending} />
+      <p className="assistant-context__boundary"><Icon name="shield" size={15} />{t('miyaar.review')}</p>
+    </div>
     <Composer sessionId={session.session_id} draftKey={`${session.session_id}:composer`} ref={composerRef} onSend={onSend}
       busy={sending} disabled={session.ended || offline} offline={offline} />
   </section></div>

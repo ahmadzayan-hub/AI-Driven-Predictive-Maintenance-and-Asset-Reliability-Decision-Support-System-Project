@@ -9,7 +9,7 @@ import { Icon } from '../../shared/components/Icon'
 import { stateLabel, typeLabel } from '../../shared/labels'
 import type { RunDetail, RunExecutive, RunSummary, Usage } from '../../shared/types'
 import type { RunPreset } from '../runs/RunsView'
-import { countRuns, latestWithFindings, recentRuns, RUN_PAGE, waitingForApproval } from './summary'
+import { countRuns, dailyStarts, greetingKey, latestWithFindings, recentRuns, RUN_PAGE, waitingForApproval } from './summary'
 import { CommandCentre } from './CommandCentre'
 import { DecisionActions } from './DecisionActions'
 import { summarizeRunEvidence } from './evidence'
@@ -27,13 +27,30 @@ interface OverviewViewProps {
   onOpenDashboard?: (runId?: string) => void
   /** The list of analyses. Falls back to the new-analysis form when absent. */
   onSeeAll?: () => void
+  /** The signed-in person's name, for the greeting; null when unknown. */
+  userName?: string | null
+}
+
+const TREND_DAYS = 14
+
+/** A tiny line of the last days' starts: decoration for a number the
+ *  text beside it states, so it carries no label of its own. */
+function Sparkline({ counts }: { counts: number[] }) {
+  const peak = Math.max(1, ...counts)
+  const step = 100 / Math.max(1, counts.length - 1)
+  const points = counts.map((n, i) => `${(i * step).toFixed(1)},${(30 - (n / peak) * 26).toFixed(1)}`).join(' ')
+  return (
+    <svg className="brief__spark" viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true">
+      <polyline points={points} fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  )
 }
 
 /** Where the workspace stands, on one screen: the figures, the latest
  *  findings, what is waiting at the approval gate, and the newest runs.
  *  Everything comes from existing endpoints; nothing is computed here
  *  that the server did not already say. */
-export function OverviewView({ onOpenRun, onStart, onAddDataset, onApprovals, onOpenDashboard, onSeeAll, canStart = true }: OverviewViewProps) {
+export function OverviewView({ onOpenRun, onStart, onAddDataset, onApprovals, onOpenDashboard, onSeeAll, canStart = true, userName = null }: OverviewViewProps) {
   const { t, tx, locale, formatNumber, formatDate } = useI18n()
   const { t: j } = usePack(journeyMessages)
   const next = (items: RunSummary[]) => <NextAction runs={items} canStart={canStart} onUpload={() => onAddDataset ? onAddDataset() : onStart({ kind: 'upload' })} onOpenRun={onOpenRun} />
@@ -190,6 +207,33 @@ export function OverviewView({ onOpenRun, onStart, onAddDataset, onApprovals, on
   const waiting = waitingForApproval(runs)
   const recent = recentRuns(runs)
   const source = latestWithFindings(runs)
+  const trend = dailyStarts(runs, TREND_DAYS)
+  const delta = trend.total - trend.previous
+  // The brief: who is reading, what the workspace holds, and the one thing
+  // to do next. Every figure is a count over the loaded runs.
+  const briefing = (
+    <section className="card brief" aria-label={j('briefAria')}>
+      <div className="brief__body">
+        <p className="brief__greeting">{j(greetingKey(new Date().getHours()))}{userName ? <>, <bdi>{userName}</bdi></> : null}.</p>
+        <p className="brief__line" dir="auto">
+          {counts.waiting > 0
+            ? j('briefWaiting', { closed: formatNumber(counts.finished), waiting: formatNumber(counts.waiting) })
+            : j('briefClear', { closed: formatNumber(counts.finished) })}
+        </p>
+        {waiting.length > 0
+          ? <button type="button" className="btn btn--primary" onClick={() => onOpenRun(waiting[0].id)}><Icon name="shield" size={16} />{t('overview.review')}</button>
+          : canStart ? <button type="button" className="btn btn--primary" onClick={() => onStart({ kind: 'upload' })}><Icon name="plus" size={16} />{t('overview.start')}</button> : null}
+      </div>
+      <div className="brief__trend">
+        <span className="brief__trend-label">{j('trend', { n: formatNumber(TREND_DAYS) })}</span>
+        <strong className="brief__trend-value"><bdi>{formatNumber(trend.total)}</bdi></strong>
+        <Sparkline counts={trend.counts} />
+        <span className="brief__trend-delta" data-delta={delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'}>
+          {j('trendDelta', { delta: (delta > 0 ? '+' : '') + formatNumber(delta), n: formatNumber(TREND_DAYS) })}
+        </span>
+      </div>
+    </section>
+  )
   const findings = latest ? latest.reports.filter((report) => (report.headline ?? '').trim()) : []
   const reportLang = latest?.report_language === 'ar' ? 'ar' : 'en'
   // A run's independent validator is evidence about that run, not a claim
@@ -243,6 +287,7 @@ export function OverviewView({ onOpenRun, onStart, onAddDataset, onApprovals, on
     <section className="panel" aria-label={t('overview.aria')}>
       <div className="panel__inner panel__inner--wide">
         {header}
+        {briefing}
         {next(runs)}
 
         {source ? <CommandCentre run={source} brief={brief} failed={briefFailed} onOpenDashboard={onOpenDashboard} /> : null}

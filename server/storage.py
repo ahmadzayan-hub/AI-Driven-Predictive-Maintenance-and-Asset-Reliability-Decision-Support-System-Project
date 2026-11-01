@@ -13,6 +13,7 @@ engine never sees a driver type.
 """
 
 import hashlib
+import json
 import threading
 import time
 from contextlib import contextmanager
@@ -53,6 +54,7 @@ TABLES = (
     "datasets",
     "connectors",
     "kpi_policies",
+    "dashboard_views",
     "organizations", "organization_members", "operation_sites", "operation_assets",
     "work_orders", "operation_audit", "operation_requests", "worker_heartbeats", "reliability_trials",
 ) + RMD_TABLES
@@ -65,6 +67,7 @@ RESTORE_ORDER = (
     "datasets",
     "runs",
     "kpi_policies",
+    "dashboard_views",
     "tasks",
     "approvals",
     "artifacts",
@@ -152,6 +155,14 @@ SCHEMA_STATEMENTS = [
       version INTEGER NOT NULL, revision TEXT NOT NULL, rules_json TEXT NOT NULL,
       actor TEXT NOT NULL, created_at TEXT NOT NULL,
       UNIQUE (run_id, version))""",
+    # One saved dashboard view per owner and dataset (ADR
+    # 2026-10-27-interactive-dashboard): the page and the address query
+    # a reader chose, applied when a run over that dataset opens.
+    """CREATE TABLE IF NOT EXISTS dashboard_views (
+      id TEXT PRIMARY KEY, owner TEXT NOT NULL, dataset_key TEXT NOT NULL,
+      run_id TEXT NOT NULL, page TEXT NOT NULL, query TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE (owner, dataset_key))""",
     """CREATE TABLE IF NOT EXISTS approvals (
       id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(id),
       action TEXT NOT NULL, target TEXT NOT NULL, risk TEXT NOT NULL,
@@ -585,6 +596,29 @@ class SqlStore:
                           "ORDER BY version DESC LIMIT 1", (run_id,))
         return rows[0] if rows else None
 
+    # -- saved dashboard views -------------------------------------------
+    def get_dashboard_view(self, owner, dataset_key):
+        rows = self._exec("SELECT * FROM dashboard_views WHERE owner = ? AND dataset_key = ?",
+                          (owner, dataset_key))
+        return rows[0] if rows else None
+
+    def save_dashboard_view(self, identifier, owner, dataset_key, run_id, page, query, updated_at):
+        """Replace the owner's view of this dataset in one statement. Two
+        processes saving at once both succeed; the later write wins, and no
+        unique-key error reaches the reader."""
+        self._exec_rowcount(
+            "INSERT INTO dashboard_views (id, owner, dataset_key, run_id, page, query, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT (owner, dataset_key) DO UPDATE SET run_id = excluded.run_id, "
+            "page = excluded.page, query = excluded.query, updated_at = excluded.updated_at",
+            (identifier, owner, dataset_key, run_id, page, query, updated_at))
+        return self.get_dashboard_view(owner, dataset_key)
+
+    def delete_dashboard_view(self, owner, dataset_key):
+        return bool(self._exec_rowcount(
+            "DELETE FROM dashboard_views WHERE owner = ? AND dataset_key = ?",
+            (owner, dataset_key)))
+
     def save_kpi_policy(self, identifier, run_id, expected_revision, revision,
                         rules_json, actor, created_at, empty_revision):
         """One conditional insert; unique run/version excludes a second winner.
@@ -895,6 +929,38 @@ class SqlStore:
             "SELECT id, sha256, name, byte_size, created_at, source_format, "
             "row_count, column_count, mapping_updated_at FROM datasets "
             "WHERE owner = ? ORDER BY created_at DESC LIMIT 50", (owner,))
+
+    def runs_using_dataset(self, dataset_id, owner):
+        """The owner's runs that read this dataset, as their main table or
+        as a joined one (ADR 0030), newest first. The LIKE narrows the
+        candidates; the declared joins decide, so an id that merely appears
+        inside another string never counts."""
+        rows = self._exec(
+            "SELECT id, goal, state, created_at, dataset_id, joins_json FROM runs "
+            "WHERE owner = ? AND (dataset_id = ? OR joins_json LIKE ?) "
+            "ORDER BY created_at DESC, id DESC",
+            (owner, dataset_id, f'%"{dataset_id}"%'))
+        found = []
+        for row in rows:
+            if row.get("dataset_id") == dataset_id:
+                found.append(row)
+                continue
+            try:
+                declared = json.loads(row.get("joins_json") or "{}")
+            except ValueError:
+                declared = {}
+            if any(item.get("dataset_id") == dataset_id
+                   for item in declared.get("joins", []) if isinstance(item, dict)):
+                found.append(row)
+        return found
+
+    def delete_dataset(self, dataset_id):
+        """Remove one stored dataset. A live source that last stored it
+        forgets that snapshot, so its next refresh stores and analyses the
+        fetched table again instead of calling it unchanged."""
+        self._exec("UPDATE connectors SET last_dataset_id = NULL, last_sha256 = NULL "
+                   "WHERE last_dataset_id = ?", (dataset_id,))
+        self._exec("DELETE FROM datasets WHERE id = ?", (dataset_id,))
 
     # -- backup and restore ----------------------------------------------
     def export_all(self):

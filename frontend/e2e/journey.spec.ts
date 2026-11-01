@@ -21,7 +21,10 @@ test.describe('main user journey', () => {
     test.setTimeout(60_000)
     // Projects share the owner's store. Count this journey's records and use
     // returned keys rather than assuming earlier tests emptied the account.
-    const fixture = `${testInfo.project.name} ${randomUUID()}`
+    // A random decimal run in a UUID can resemble a phone number in saved
+    // memory. Preserve uniqueness with letters so privacy guards stay active.
+    const fixtureId = randomUUID().replace(/\d/g, digit => String.fromCharCode(103 + Number(digit)))
+    const fixture = `${testInfo.project.name} ${fixtureId}`
     const profileText = `My preferred language is English (${fixture})`
     const coffeeText = `Coffee at 8am (${fixture})`
     const editedCoffeeText = `Coffee at 7am sharp (${fixture})`

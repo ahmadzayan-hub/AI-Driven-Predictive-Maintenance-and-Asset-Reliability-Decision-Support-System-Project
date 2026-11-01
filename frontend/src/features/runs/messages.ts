@@ -18,6 +18,10 @@ export const joinMessages = definePack(
     'joins.how': 'Rows without a match',
     'joins.keepAll': 'Keep every row',
     'joins.onlyMatched': 'Keep only matched rows',
+    'joins.stack': 'Stack its rows underneath',
+    'joins.stackHelp': 'Same columns only. A “source” column names each row’s dataset; a row already present is dropped.',
+    'joins.stacked': '{name}: {added} rows stacked underneath.',
+    'joins.stackedDropped': '{n} already present were dropped.',
     'joins.remove': 'Remove join {n}',
     'joins.add': 'Join a dataset',
     'joins.breakdown': 'Break totals down by',
@@ -51,6 +55,10 @@ export const joinMessages = definePack(
     'joins.how': 'الصفوف التي لا تطابق',
     'joins.keepAll': 'الإبقاء على كل الصفوف',
     'joins.onlyMatched': 'الإبقاء على الصفوف المتطابقة فقط',
+    'joins.stack': 'رصّ صفوفها تحت الجدول',
+    'joins.stackHelp': 'الأعمدة نفسها فقط. يسمّي عمود «source» مصدر كل صف، ويُحذف الصف الموجود أصلاً.',
+    'joins.stacked': '{name}: رُصّ {added} صفاً في الأسفل.',
+    'joins.stackedDropped': 'حُذف {n} صفاً موجوداً أصلاً.',
     'joins.remove': 'إزالة الدمج {n}',
     'joins.add': 'دمج مجموعة بيانات',
     'joins.breakdown': 'تقسيم المجاميع حسب',
@@ -234,3 +242,18 @@ export const decisionMessages = definePack(
 )
 
 export type DecisionKey = keyof typeof decisionMessages.en
+
+/** The live pipeline's lines (ADR 2026-10-28-live-pipeline). */
+export const timelineMessages = definePack(
+  {
+    'timeline.now': 'Now: {stage}',
+    'timeline.evidence': '{claims} claims · {passed} of {checks} checks passed',
+  },
+  {
+    'timeline.now': 'الآن: {stage}',
+    'timeline.evidence': '{claims} ادعاءً · اجتاز {passed} من {checks} فحصاً',
+  },
+)
+
+export type TimelineKey = keyof typeof timelineMessages.en
+

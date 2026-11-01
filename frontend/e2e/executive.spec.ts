@@ -81,7 +81,7 @@ test('the opening shows governed KPIs and a real comparison before the detailed 
     const duration = await card.evaluate((element) => getComputedStyle(element).animationDuration)
     expect(parseFloat(duration)).toBeLessThanOrEqual(0.00001)
   }
-  const chart = page.locator('.dash-overview-charts').getByRole('img').first()
+  const chart = page.locator('.dash-overview-charts .dash-bars').first()
   await expect(chart).toBeVisible()
   // Capture the actual opening before layout assertions, including failures.
   // This remains a synthetic test preview, never live-data acceptance evidence.

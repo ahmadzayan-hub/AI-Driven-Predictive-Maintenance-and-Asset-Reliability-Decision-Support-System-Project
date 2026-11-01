@@ -192,3 +192,16 @@
 }
 
 .overview__findings > summary { cursor: pointer; min-height: 44px; font-weight: 600; }
+
+/* The brief (27 October 2026): greeting, the workspace in one sentence
+   from counted runs, the one action, and a sparkline of starts. */
+.brief { display: grid; grid-template-columns: minmax(0, 1fr) minmax(200px, 280px); gap: var(--space-5); align-items: center; padding: var(--space-5); margin-block: var(--space-4); border: 1px solid var(--hero-border); border-radius: var(--radius-xl); background: var(--hero-fill); box-shadow: var(--shadow-1), inset 0 1px 0 var(--glow-edge); }
+.brief__greeting { font-size: var(--text-xl); font-weight: 600; letter-spacing: var(--tracking-tight); }
+.brief__line { color: var(--text-muted); font-size: var(--text-s); line-height: 1.7; margin-block: var(--space-2) var(--space-4); max-width: 60ch; }
+.brief__trend { display: grid; grid-template-columns: 1fr auto; gap: 2px var(--space-3); align-items: end; padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-l); background: var(--surface-sunken); color: var(--accent); }
+.brief__trend-label { grid-column: 1 / -1; font-size: var(--text-xs); color: var(--text-muted); }
+.brief__trend-value { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--text-display); line-height: 1; color: var(--text); }
+.brief__spark { width: 100%; max-width: 150px; height: 32px; justify-self: end; filter: drop-shadow(0 0 6px var(--glow)); }
+.brief__trend-delta { grid-column: 1 / -1; font-size: var(--text-xs); color: var(--text-muted); }
+.brief__trend-delta[data-delta=up] { color: var(--success); }
+@media (max-width: 767px) { .brief { grid-template-columns: minmax(0, 1fr); padding: var(--space-4); } .brief__trend { grid-template-columns: 1fr; } .brief__spark { justify-self: start; } }
