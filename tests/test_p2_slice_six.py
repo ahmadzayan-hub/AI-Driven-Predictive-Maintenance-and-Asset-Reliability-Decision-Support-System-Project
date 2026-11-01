@@ -38,6 +38,7 @@ class AssetEvidenceEndpointTest(unittest.TestCase):
         self.assertIsNone(answer["run"])
         self.assertEqual(answer["scope"], "latest_completed_maintenance_stage")
         self.assertTrue(answer["prepared_at"])
+        self.assertTrue(answer["prepared_at"])
 
     def test_a_run_with_a_succeeded_screen_is_returned_in_full(self):
         created = self.client.post("/api/runs", json={"goal": "Audit test run"}).json()
@@ -52,6 +53,7 @@ class AssetEvidenceEndpointTest(unittest.TestCase):
         self.assertEqual(answer["run"]["id"], created["id"])
         self.assertIn("tasks", answer["run"])
         self.assertEqual(answer["scope"], "latest_completed_maintenance_stage")
+        self.assertTrue(answer["prepared_at"])
 
     def test_the_endpoint_is_registered(self):
         self.assertIn("/api/assets/evidence", {getattr(r, "path", None) for r in self.app.routes})

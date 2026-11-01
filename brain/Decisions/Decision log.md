@@ -154,6 +154,13 @@ See the composition decision in docs/adr/2026-10-25-dataset-workspace-compositio
 
 Separate navigation from evidence with semantic navy/blue/cyan tokens; retain dark mode and accessibility. Contain the phone shell without suppressing content scrolling. Full filenames remain available through bidirectional text and accessible actions. See docs/adr/2026-10-25-shared-visual-identity-and-mobile-reflow.md.
 
+### 2026-10-26 - Report planning probability and forecast validity
+
+Preserve numerical results and historical artifacts while making planning power
+probabilistic and distinguishing no forecast, an unmeasured projection and a
+backtested forecast. Review-branch automatic deployment is disabled pending owner
+approval. See docs/adr/2026-10-26-report-wording-current-main.md and [[Approval gate]].
+
 ## Records added on the 27 October catch-up
 
 One line per record, read from its title and decision; the record itself is the source (`docs/adr`).

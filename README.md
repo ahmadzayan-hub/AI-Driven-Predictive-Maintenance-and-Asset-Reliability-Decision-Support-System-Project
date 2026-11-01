@@ -552,6 +552,56 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+### Approved integration of all six open PRs, 26 October 2026
+
+The final candidate incorporates #29, #30, #31, #45, #61 and #63 on main `9fa13b4`.
+Backend execution passed **2,316 collected tests: 2,059 executed, 257 skipped**
+(PostgreSQL and optional dependencies unavailable locally). After the responsive
+keyboard correction, **505 frontend tests** and the TypeScript/production build
+passed. A clean sequential build passed all existing bundle ceilings, including
+252.5 KB total JavaScript and 33.5 KB rounded total CSS (the exact byte checks pass).
+The initial CSS overage was repaired by consolidating duplicate tab styles, without
+raising a ceiling. The isolated Arabic frame/audio-video test passed **1 test** with
+real RAQM and FFmpeg. It uses a synthetic tone, not spoken Arabic evaluation.
+
+The statistical/saved-history acceptance below remains the dedicated evidence for
+#63. Local Playwright browser installation failed on the downloaded archive, so no
+local browser pass is claimed. Exact published-head hosted CI, PostgreSQL, optional
+runtimes and browser evidence are required before merge. Owner approval now covers
+branch publication and merges; production deployment remains excluded. See the
+[integration decision](docs/adr/2026-10-26-approved-pr-integration.md).
+
+### PR63 statistical wording review on current main, 26 October 2026
+
+Review branch incorporates main `9fa13b4240c64be78669ed09b630ad5929ea26d4` without
+rewriting either history. Final local Python execution passed **2,316 tests with
+257 skips** (unavailable PostgreSQL and optional extras); **2,059 executed tests
+passed**, with no failure or error. The focused bilingual/statistical selection
+passed **78 tests**. Its new file contains **12 tests**, including the normal
+power curve and forecast/backtest boundaries. Running those against unmodified
+main fails; an inverted forecast-state predicate is also detected.
+
+The full `python scripts/verify.py` run passed all **8 gates**, including **505
+frontend tests**, TypeScript, native run logic, build and unchanged interface
+budgets. That initial run preceded the last wording-only clarification and had
+259 Python skips before a frontend build existed; the final verbose Python run
+above rechecked the final application source after the build. No frontend code
+changed. Brain verification retains one existing stale note. The final Python
+process emits an unclosed-socket ResourceWarning after its successful result;
+no failure is suppressed. Local browser E2E and PostgreSQL were not run.
+
+Isolated two-source acceptance generated **34 reports per revision** (17 synthetic
+cases in both languages). Every calculation, input snapshot, forecast and claim
+evidence identifier matched main. Reopening **4 historical synthetic runs**
+(English/Arabic, draft/approved), then producing new pending reports preserved
+all historical run/task/artifact/approval/note row hashes and **4 saved-file
+hashes**. This does not claim access to or an audit of the owner's live data.
+No provider was invoked. Final-head hosted CI remains separate evidence; older
+PR successes are not treated as verification of this update. Merge, activation
+and deployment require owner approval. The exact review branch has automatic
+Vercel deployment disabled. See the
+[decision](docs/adr/2026-10-26-report-wording-current-main.md).
+
 ### RMD navigation selector repair - 26 October 2026
 
 Hosted main CI, the interface budget and application-platform journeys passed
