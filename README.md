@@ -552,6 +552,48 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+### PR76/PR78 follow-up verification, 2 November 2026
+
+Reviewed main `d529921`, whose tree is identical to merged PR76's final head.
+[The review](docs/reviews/2026-11-02-pr76-pr78-review.md) records the six-request
+mapping and why PR78 would add only a duplicate Motion error alert.
+
+Fresh local `python scripts/verify.py` passed **all 8 steps** on the follow-up:
+**2,389 Python tests collected, 2,117 passed, 272 skipped** (unavailable test
+PostgreSQL and optional extras), **533 frontend unit tests**, TypeScript, native
+run logic, build and budget. The strict brain check has no broken links and two
+existing stale notes. JavaScript first load is 99.6 KB, total 257.1 KB under the
+already raised 258 KB ceiling; CSS first load is 10.4 KB and total 34.5 KB.
+No budget was raised in this follow-up.
+
+An isolated environment with the pinned optional runtimes passed **24 tests,
+no skips**. The new delayed-write test fails when sequential Pydantic tools are
+disabled and passes with the unchanged runtime. All **4 reviewed-skill package
+tests** pass, including Windows-relative-path simulation; that simulation fails
+before the checksum test fix. The bilingual wording/language selection passed
+**50 tests**. **20 synthetic report cases** (10 datasets in English/Arabic)
+preserve pre-PR76 snapshots, calculations, forecasts, backtest errors and claim
+evidence exactly; every validator passed. Hash-locked Python installation,
+`npm ci`, `pip check`, pip-audit and npm audit passed with no known vulnerabilities.
+
+Hosted current-main evidence: **23 optional runtime tests**, **1 real Arabic
+media test**, **533 frontend tests**, **12 design comparisons**, **19 responsive
+cases**, **10 RMD/platform cases**, **5 navigation cases plus 1 intentional skip**,
+**14 Miyaar bilingual/voice fixture cases**, and **13 actual-API platform journeys
+on each of Windows Edge and macOS WebKit** passed. These are separate suites,
+not a count of unique cases. The main comprehensive CI subsequently completed:
+**2,387 Python tests: 2,363 passed, 24 optional/build-dependent skips**, plus
+**3 worker/restart tests**; broad Playwright **225 passed, 35 explicit skips**,
+and the separate Miyaar suite **14 passed**. Browser skips reflect single-run
+viewport matrices and platform-specific cases. Follow-up exact-head CI is still
+required. The main Python job also logged a non-failing unclosed-socket warning.
+
+Local Chromium installation failed on an invalid downloaded archive. The local
+broad browser attempt was stopped after missing-executable errors; **no local
+E2E pass is claimed**. Arabic media uses a synthetic tone, not an Arabic speech
+assessment. No production deployment, database access or hosted migration.
+
+
 ### Approved integration of all six open PRs, 26 October 2026
 
 The final candidate incorporates #29, #30, #31, #45, #61 and #63 on main `9fa13b4`.

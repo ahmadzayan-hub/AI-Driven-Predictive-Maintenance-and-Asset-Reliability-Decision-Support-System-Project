@@ -1,5 +1,15 @@
 # Project progress
 
+PR76/PR78 review (2 November 2026): PR76 is already squash-merged into main
+`d529921`; its tree matches the integration candidate containing all six original
+heads. PR78 would add a duplicate Motion error alert and should not be merged.
+Follow-up fixes Windows checksum-test paths and strengthens the existing sequential
+Pydantic regression without changing application code or dependency pins.
+Fresh verification and remaining hosted/browser gates are in README Testing and
+[the review](docs/reviews/2026-11-02-pr76-pr78-review.md). Production and the hosted
+dashboard-view migration remain separate, unperformed operations.
+
+
 PR72 corrective review (29 October): direct trend-point clicks and compact Arabic axis labels have fixes and browser regressions in PR #73. Original merged head `206a0a5` is preserved; final hosted CI is the merge gate. Database migration and production deployment remain separate.
 
 Assistant focus candidate (27 October): prepared against `1dd392c` in an isolated

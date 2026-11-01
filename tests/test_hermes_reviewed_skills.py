@@ -1,21 +1,35 @@
 """Storage-only skill package checks; no Hermes execution or network calls."""
 import hashlib
 import json
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import re
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1] / "docs/hermes-reviewed-skills"
 
 
 class ReviewedHermesSkillsTests(unittest.TestCase):
-    def test_manifest_exact_and_hashes_match(self):
-        manifest = json.loads((ROOT / "CHECKSUMS.json").read_text())
-        files = {str(p.relative_to(ROOT)): p for p in ROOT.rglob("*") if p.is_file() and p.name != "CHECKSUMS.json"}
+    def assert_manifest_matches(self):
+        manifest = json.loads((ROOT / "CHECKSUMS.json").read_text(encoding="utf-8"))
+        # Manifest keys use forward slashes on every operating system.
+        files = {p.relative_to(ROOT).as_posix(): p for p in ROOT.rglob("*") if p.is_file() and p.name != "CHECKSUMS.json"}
         self.assertEqual(set(files), set(manifest))
         for name, path in files.items():
             self.assertFalse(path.is_symlink())
             self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), manifest[name])
+
+    def test_manifest_exact_and_hashes_match(self):
+        self.assert_manifest_matches()
+
+    def test_manifest_matches_with_windows_relative_paths(self):
+        relative_to = Path.relative_to
+
+        def windows_relative(path, *args, **kwargs):
+            return PureWindowsPath(relative_to(path, *args, **kwargs))
+
+        with patch.object(Path, "relative_to", windows_relative):
+            self.assert_manifest_matches()
 
     def test_portable_text_only_metadata_and_licenses(self):
         skills = sorted((ROOT / "skills").iterdir())
