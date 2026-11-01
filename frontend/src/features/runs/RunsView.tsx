@@ -466,7 +466,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
     event.preventDefault()
     const type = types[target]
     setOpenReport(type)
-    document.getElementById(`reporttab-${type}`)?.focus()
+    window.setTimeout(() => document.getElementById(`reporttab-${type}`)?.focus(), 0)
   }
 
 
