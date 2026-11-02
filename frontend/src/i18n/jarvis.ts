@@ -1,8 +1,8 @@
 import { definePack } from './pack'
 export const jarvisMessages = definePack({
-  title: 'Jarvis OS', subtitle: 'Miyaar · Evidence to decision', demo: 'RTA hackathon · Synthetic demonstration',
+  title: 'Jarvis OS', subtitle: 'Miyaar · Evidence to decision', demo: 'Hackathon · Synthetic demonstration',
   boundary: 'Calculated analytics. No LLM contribution. No operational action is dispatched here.',
-  input: '01 · Input', function: '02 · AI function', output: '03 · Output', value: '04 · RTA value',
+  input: '01 · Input', function: '02 · AI function', output: '03 · Output', value: '04 · Business value',
   functionText: 'A bounded bilingual question selects a reviewed calculation in Miyaar’s KPI register. Unsupported questions abstain.',
   valueText: 'A traceable maintenance review and better prioritisation; savings and safety are not measured.',
   question: 'Question or follow-up', ask: 'Calculate from selected report', cost: 'What is total maintenance cost?',
@@ -23,9 +23,9 @@ export const jarvisMessages = definePack({
   selectFirst: 'Select a completed report to begin.',
   boot: 'Open synthetic workspace', bootError: 'Workspace unavailable. Start the documented synthetic server; the original database is not used.',
 }, {
-  title: 'Jarvis OS', subtitle: 'معيار · من الدليل إلى القرار', demo: 'هاكاثون RTA · عرض ببيانات اصطناعية',
+  title: 'Jarvis OS', subtitle: 'معيار · من الدليل إلى القرار', demo: 'هاكاثون · عرض ببيانات اصطناعية',
   boundary: 'تحليلات محسوبة دون مساهمة نموذج لغوي. لا يُرسل أي إجراء تشغيلي من هنا.',
-  input: '01 · المدخلات', function: '02 · وظيفة الذكاء الاصطناعي', output: '03 · المخرجات', value: '04 · القيمة لهيئة الطرق والمواصلات',
+  input: '01 · المدخلات', function: '02 · وظيفة الذكاء الاصطناعي', output: '03 · المخرجات', value: '04 · قيمة الأعمال',
   functionText: 'يختار سؤال محدد بالعربية أو الإنجليزية عملية حسابية مراجعة من سجل مؤشرات معيار. الأسئلة غير المدعومة لا تنتج تخمينات.',
   valueText: 'مراجعة صيانة قابلة للتتبع وترتيب أفضل للأولويات؛ لم تُقَس الوفورات أو السلامة.',
   question: 'السؤال أو سؤال المتابعة', ask: 'احسب من التقرير المحدد', cost: 'ما إجمالي تكلفة الصيانة؟',
