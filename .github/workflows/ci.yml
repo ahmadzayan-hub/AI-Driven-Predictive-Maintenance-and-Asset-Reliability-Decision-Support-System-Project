@@ -187,7 +187,7 @@ jobs:
             docs/screenshots/*.png
             frontend/dist
             frontend/test-results
-            frontend/test-results-jarvis
+            frontend/e2e/.tmp/jarvis-results
           retention-days: 14
 
       - name: Upload Playwright report on failure

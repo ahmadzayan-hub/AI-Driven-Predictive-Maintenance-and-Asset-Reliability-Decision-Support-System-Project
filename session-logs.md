@@ -2204,3 +2204,5 @@ Fresh final-head hosted checks are required; the failed run is retained as evide
 - Verified: focused API/component/browser tests, TypeScript, build and budget; exact counts and limitations in README. Full quick verification tracked separately in the local delivery evidence.
 - Decided: new dated ADR; no live LLM claim, no report approval or dispatch from local review, local-only playback voices, explicit browser recognition disclosure.
 - Next: exact-head hosted CI, actual microphone/Arabic voice and model acceptance; independent backup/database-target/auth gates before deployment.
+
+Jarvis verification follow-up: the broad Python run found a stale bundle-budget contract and a documentation scan racing with ephemeral browser error files. Updated exact-byte boundaries and moved browser output under the existing excluded temporary tree. The combined focused rerun and all Jarvis browser scenarios passed (counts in README); broad frontend verification was interrupted and full hosted CI remains required.

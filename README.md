@@ -566,9 +566,12 @@ with deterministic browser-offline simulation. TypeScript and production build
 passed with existing packages; no dependency installation occurred.
 Interface budget passes at 99.9 KB first-load JavaScript, 262.4 KB total,
 10.4 KB first-load CSS and 35.1 KB total. Total-only allocations are documented
-in the decision; initial-load limits are unchanged. Full repository quick
-verification is separately reported in the delivery log, not inferred from
-these focused passes. Installed local Vite/Vitest versions differ from the
+in the decision; initial-load limits are unchanged. The broad quick run completed 2,390 Python tests with 260 skips, one failure
+and two errors: the budget contract still expected the former allocation, and
+two documentation checks raced with regenerated browser error-context files.
+The contract was updated with exact-byte boundary assertions, and Jarvis test
+output moved beneath the already-excluded `.tmp` directory. The combined verifier, documentation and DataChat rerun passed all 48 tests. The broad frontend step was
+interrupted, so the entire quick verifier is not claimed green. Installed local Vite/Vitest versions differ from the
 lockfile; hosted exact-head CI remains necessary.
 
 Actual LLM inference, physical microphone and audible Arabic pronunciation
