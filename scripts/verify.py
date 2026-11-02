@@ -56,7 +56,9 @@ DIST = FRONTEND / "dist"
 # Explicit session recovery allocation: ADR 2026-11-02-session-scope-recovery.
 # Jarvis command deck (agent map, celestial core, speaking head) adds 1.4 KB
 # script and 0.6 KB style to the totals only: ADR 2026-11-02-jarvis-command-deck.
-BUDGET_KB = {"js": 100, "js_total": 273, "js_chunk": 30, "css": 10.5, "css_total": 37,
+# The generative layout page adds 3.1 KB script and 0.5 KB style to the totals
+# only, as a lazy chunk: ADR 2026-11-03-generative-layout.
+BUDGET_KB = {"js": 100, "js_total": 276, "js_chunk": 30, "css": 10.5, "css_total": 37.5,
              "fonts": 145}
 LABELS = {"js": "js first load", "js_total": "js total", "js_chunk": "largest js chunk",
           "css": "css first load", "css_total": "css total", "fonts": "fonts"}

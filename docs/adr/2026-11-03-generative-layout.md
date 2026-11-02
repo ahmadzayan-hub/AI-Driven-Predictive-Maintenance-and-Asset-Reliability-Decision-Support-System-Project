@@ -146,8 +146,8 @@ been observed.
 | Script total | 272,570 B | 275,715 B | +3,145 B |
 | Style total | 36,875 B | 37,371 B | +496 B |
 
-First load is unchanged, because the page is a lazy chunk. Raising the
-limits to 276 KB and 37.5 KB awaits the owner's approval.
+First load is unchanged, because the page is a lazy chunk. The owner approved
+raising the limits to 276 KB and 37.5 KB ("Ok go", 3 November 2026).
 
 **Verification:**
 
