@@ -45,9 +45,9 @@ it('says so when agent states cannot be read, inventing none', async () => {
   expect(await screen.findByText('Agent states unavailable.')).toBeInTheDocument()
 })
 
-it('turns the orb into a head outline only while speaking', () => {
+it('replaces the microphone with an abstract waveform only while speaking', () => {
   const { container, rerender } = render(<JarvisCore state="ready" />)
-  expect(container.querySelector('.jarvis-core__head')).not.toBeNull()
+  expect(container.querySelector('.jarvis-core__wave')).not.toBeNull()
   expect(container.querySelector('.jarvis-core')).toHaveAttribute('data-state', 'ready')
   rerender(<JarvisCore state="speaking" />)
   expect(container.querySelector('.jarvis-core')).toHaveAttribute('data-state', 'speaking')

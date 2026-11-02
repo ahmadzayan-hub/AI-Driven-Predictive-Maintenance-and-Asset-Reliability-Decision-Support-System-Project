@@ -1,4 +1,4 @@
-# Jarvis command deck: celestial core, speaking head, live agent map
+# Jarvis command deck: celestial core, speaking waveform, live agent map
 
 Date: 2026-11-02 · Status: Proposed. The owner approved the design from the
 clickable mockup on 2 November 2026 and asked for a head while speaking. The
@@ -17,10 +17,11 @@ work on Jarvis (owner confirmation, 2 November), so its files could change.
    gradient with a field of particles drawn in CSS, and has a gold outer ring.
    The particles drift slowly and stop under *Reduce motion* or the system's
    reduced-motion setting.
-2. **Speaking head.** While the state is `speaking`, the microphone fades into
-   a gold line-art outline of a human head. It is a state cue, not anyone's
-   face, and no audio level is implied. Every other state keeps the
-   microphone.
+2. **Speaking waveform.** While the state is `speaking`, the microphone fades
+   into a gold abstract waveform. It is a state cue, not an audio level. A
+   human-head outline was tried first. The owner's 2 November brief rules out
+   human likeness in the default design, so it was replaced. Every other state
+   keeps the microphone.
 3. **Live agent map** (`AgentMap`, beside Jarvis on the dashboard). It reads
    the run's real tasks from `GET /api/runs/{id}` and groups them in the
    existing bands: data, analytics, assurance, publish.
@@ -53,6 +54,6 @@ for a chunk that loads only when Jarvis opens.
   - the server states are shown, grouped by band, with interface-language names;
   - the map refreshes while the run is live and stops once it settles;
   - a read failure shows no invented state;
-  - the head outline is tied to the `speaking` state.
+  - the waveform is tied to the `speaking` state.
 - The 10 Jarvis browser tests (`playwright.jarvis.config.ts`) pass.
 - Screenshots were checked in Arabic and English.
