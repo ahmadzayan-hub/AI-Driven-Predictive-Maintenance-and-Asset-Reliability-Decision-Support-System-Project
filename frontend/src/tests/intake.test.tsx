@@ -33,6 +33,28 @@ afterEach(() => {
 })
 
 describe('real data intake', () => {
+  it.each(['available', 'unavailable'] as const)('holds run submission until optional profiles are settled: %s', async (outcome) => {
+    const user = userEvent.setup()
+    let finish!: (value: Awaited<ReturnType<typeof api.pipelines>>) => void
+    let fail!: (error: Error) => void
+    vi.mocked(api.pipelines).mockImplementation(() => new Promise((resolve, reject) => { finish = resolve; fail = reject }))
+    render(<RunsView />)
+    const start = screen.getByRole('button', { name: 'Start run' })
+    expect(start).toBeDisabled()
+    fireEvent.submit(start.closest('form')!)
+    expect(api.createRun).not.toHaveBeenCalled()
+    await act(async () => {
+      if (outcome === 'available') finish({ stages: [], profiles: { synthetic: [] }, default: [], problems: [] })
+      else fail(new ApiError('Optional endpoint unavailable', 404))
+    })
+    await waitFor(() => expect(start).toBeEnabled())
+    if (outcome === 'available') await user.selectOptions(screen.getByLabelText('Pipeline profile'), 'synthetic')
+    else expect(screen.queryByLabelText('Pipeline profile')).not.toBeInTheDocument()
+    await user.click(start)
+    await waitFor(() => expect(api.createRun).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(api.createRun).mock.calls[0][3]).toBe(outcome === 'available' ? 'synthetic' : undefined)
+  })
+
   it('reuses an uncertain request key while preserving the question and changes it for new inputs', async () => {
     const user = userEvent.setup()
     render(<RunsView draftScope="synthetic-session" />)
@@ -177,6 +199,10 @@ describe('real data intake', () => {
     render(<RunsView preset={{ kind: 'upload' }} />)
     const csv = 'plant,cost\nNorth,320\nSouth,180'
     fireEvent.change(screen.getByRole('textbox', { name: /CSV/ }), { target: { value: csv } })
+    // Direct submission still exercises Arabic CSV handling, after the same
+    // metadata readiness gate that an enabled user action now requires.
+    const submit = screen.getByRole('textbox', { name: /CSV/ }).closest('form')!.querySelector('button[type="submit"]')!
+    await waitFor(() => expect(submit).toBeEnabled())
     fireEvent.submit(screen.getByLabelText('الهدف').closest('form')!)
     await waitFor(() => expect(api.createRun).toHaveBeenCalled())
     expect(vi.mocked(api.createRun).mock.calls[0][1]).toBe(csv)

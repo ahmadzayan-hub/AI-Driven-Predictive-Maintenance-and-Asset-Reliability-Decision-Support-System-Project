@@ -552,6 +552,39 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+### Post-merge run-start follow-up (2 November 2026)
+
+PR81 merged as `a0e2cf5`, with the same Git tree as tested head `76a442a`.
+Pre-merge full CI runs `41440631944` and `41440625315` passed: **2366 Python
+tests passed, 25 skipped; 556 frontend unit tests passed; 225 broad browser
+tests passed, 35 skipped; 14 bilingual/voice/accessibility and 10 Jarvis boundary
+tests passed**. Worker restart checks, typecheck, build and budget also passed.
+Platform run `41440625297` passed both Windows Edge and macOS WebKit.
+
+The subsequent main platform run `41446105867` passed Windows Edge but macOS
+WebKit had **12 passed, 1 failed**: `workspace.spec.ts:9` timed out waiting for
+a run creation request. Its trace shows the optional profile picker inserted
+between pointer-down and pointer-up; no POST `/api/runs` was sent. The follow-up
+holds submission until metadata settles, preserves the optional-endpoint fallback,
+and adds delayed success/failure component regressions plus browser coverage.
+The original browser timeout and durable-run assertions remain unchanged.
+
+The local baseline component attempts could not start either a single fork or
+single thread worker; **zero tests executed**. These are infrastructure failures,
+not passing regressions. Fresh hosted checks are required for the follow-up.
+The corrected isolated Chromium journey passed on desktop and phone (**2 tests**,
+41.2 seconds). **11 documentation tests**, TypeScript, production build and the
+interface budget passed locally. Initial JavaScript is 96,059 bytes and total
+JavaScript 270,809 bytes, within the existing limits.
+No production deployment or database/auth changes were performed.
+
+The first follow-up evidence run (`41449634240`, head `1bd7b6c`) passed **557
+frontend tests and failed 1**: an existing Arabic CSV test submitted directly
+before the new readiness gate settled. Both new delayed-metadata cases passed.
+That test now waits for the actual submit action to enable while retaining all
+CSV, language and upload-reset assertions. Downstream evidence browser/build
+steps in that failed run were skipped. Fresh complete checks remain required.
+
 ### Jarvis OS local hackathon acceptance (2 November 2026)
 
 Short-screen follow-up: both full CI runs for `3110f7b` passed the backend,
