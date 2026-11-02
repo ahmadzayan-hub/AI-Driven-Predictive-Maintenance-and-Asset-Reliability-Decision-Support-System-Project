@@ -2262,3 +2262,8 @@ required full CI is rerun on the corrected head before merging.
   Follow-up work is isolated from the merged feature branch and user datastore.
 - Next: exact follow-up hosted validation and review. Keep production deployment,
   provider activation, physical voice validation and wider redesign gates separate.
+
+Follow-up validation: the first hosted component run identified one older direct
+Arabic CSV submission before metadata readiness. It now waits for the enabled
+action while keeping its data/language/upload-reset assertions. New readiness
+regressions passed. The full failure and skipped later steps remain in README.

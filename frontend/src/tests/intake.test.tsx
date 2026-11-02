@@ -199,6 +199,10 @@ describe('real data intake', () => {
     render(<RunsView preset={{ kind: 'upload' }} />)
     const csv = 'plant,cost\nNorth,320\nSouth,180'
     fireEvent.change(screen.getByRole('textbox', { name: /CSV/ }), { target: { value: csv } })
+    // Direct submission still exercises Arabic CSV handling, after the same
+    // metadata readiness gate that an enabled user action now requires.
+    const submit = screen.getByRole('textbox', { name: /CSV/ }).closest('form')!.querySelector('button[type="submit"]')!
+    await waitFor(() => expect(submit).toBeEnabled())
     fireEvent.submit(screen.getByLabelText('الهدف').closest('form')!)
     await waitFor(() => expect(api.createRun).toHaveBeenCalled())
     expect(vi.mocked(api.createRun).mock.calls[0][1]).toBe(csv)

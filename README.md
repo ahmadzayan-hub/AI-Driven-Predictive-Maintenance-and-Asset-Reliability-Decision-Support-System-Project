@@ -578,6 +578,13 @@ interface budget passed locally. Initial JavaScript is 96,059 bytes and total
 JavaScript 270,809 bytes, within the existing limits.
 No production deployment or database/auth changes were performed.
 
+The first follow-up evidence run (`41449634240`, head `1bd7b6c`) passed **557
+frontend tests and failed 1**: an existing Arabic CSV test submitted directly
+before the new readiness gate settled. Both new delayed-metadata cases passed.
+That test now waits for the actual submit action to enable while retaining all
+CSV, language and upload-reset assertions. Downstream evidence browser/build
+steps in that failed run were skipped. Fresh complete checks remain required.
+
 ### Jarvis OS local hackathon acceptance (2 November 2026)
 
 Short-screen follow-up: both full CI runs for `3110f7b` passed the backend,
