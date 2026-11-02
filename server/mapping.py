@@ -11,6 +11,7 @@ person reading a refusal is the person who has to fix the mapping.
 """
 
 import calendar
+import math
 import csv
 import io
 import re
@@ -648,6 +649,7 @@ def validate(mapping, columns, rows):
     dates = [c for c in columns if roles.get(c) == "date"]
     measure, dimension = mapping.get("measure"), mapping.get("dimension")
     derived = _validate_derived(mapping, columns, roles, problems)
+    limits = _validate_limits(mapping, measures, problems)
     if not measures:
         problems.append(Problem("measure", None,
                                 "Map at least one column as a measure: the number the analysis is about.",
@@ -701,11 +703,82 @@ def validate(mapping, columns, rows):
 
     if problems:
         raise MappingError(problems)
-    return {"version": MAPPING_VERSION,
-            "roles": {c: roles[c] for c in columns},
-            "measure": measure, "dimension": dimension,
-            "date_order": order, "grain": grain, "currency": currency,
-            "derived": derived, "fiscal_start": fiscal_start}
+    saved = {"version": MAPPING_VERSION,
+             "roles": {c: roles[c] for c in columns},
+             "measure": measure, "dimension": dimension,
+             "date_order": order, "grain": grain, "currency": currency,
+             "derived": derived, "fiscal_start": fiscal_start}
+    # Only a mapping that declares limits records them, so every mapping
+    # saved before them reads, and compares, exactly as it did.
+    if limits:
+        saved["limits"] = limits
+    return saved
+
+
+# ---------------------------------------------------------------------------
+# Validity limits (31 October 2026): the values a measure can physically
+# take, declared by the owner. A value outside them is a data error, not an
+# unusual value: the cleaner leaves it out of every figure and records it.
+# ---------------------------------------------------------------------------
+
+def _bound(value):
+    if value is None:
+        return None, True
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        return None, False
+    return value, True
+
+
+def _validate_limits(mapping, measures, problems):
+    raw = mapping.get("limits")
+    if raw in (None, {}):
+        return {}
+    if not isinstance(raw, dict):
+        problems.append(Problem("limits", None,
+                                "Limits are given per measure, as a lowest and a highest allowed value.",
+                                "تُحدَّد الحدود لكل مقياس بأدنى قيمة وأعلى قيمة مسموح بهما."))
+        return {}
+    clean = {}
+    for column, limit in raw.items():
+        if column not in measures:
+            problems.append(Problem("limits", column,
+                                    f"“{column}” has limits but is not mapped as a measure.",
+                                    f"للعمود «{column}» حدود لكنه غير مربوط بوصفه مقياساً."))
+            continue
+        limit = limit if isinstance(limit, dict) else {}
+        low, low_ok = _bound(limit.get("min"))
+        high, high_ok = _bound(limit.get("max"))
+        if not (low_ok and high_ok):
+            problems.append(Problem("limits", column,
+                                    f"The limits of “{column}” must be plain numbers.",
+                                    f"يجب أن تكون حدود «{column}» أرقاماً عادية."))
+            continue
+        if low is None and high is None:
+            continue
+        if low is not None and high is not None and low > high:
+            problems.append(Problem("limits", column,
+                                    f"The lowest allowed value of “{column}” is above its highest.",
+                                    f"أدنى قيمة مسموح بها لـ«{column}» أعلى من أعلاها."))
+            continue
+        clean[column] = {k: v for k, v in (("min", low), ("max", high)) if v is not None}
+    return clean
+
+
+def limits_of(mapping):
+    """The saved validity limits, {measure: {min?, max?}}; empty when none."""
+    items = mapping.get("limits") if isinstance(mapping, dict) else None
+    return {c: dict(v) for c, v in items.items()} if isinstance(items, dict) else {}
+
+
+def breaks_limit(value, limit):
+    """'min' or 'max' when a number is outside its limit, else None."""
+    if value is None or not limit:
+        return None
+    if "min" in limit and value < limit["min"]:
+        return "min"
+    if "max" in limit and value > limit["max"]:
+        return "max"
+    return None
 
 
 # ---------------------------------------------------------------------------

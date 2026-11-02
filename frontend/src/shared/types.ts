@@ -135,7 +135,7 @@ export interface RunTask {
   state: string
   summary: string | null
   quality_checks: Array<{ name: string; passed: boolean; detail: string }>
-  claims: Array<{ id: string; text: string; type: string; evidence: string[]; status: string }>
+  claims: Array<{ id: string; text: string; text_ar?: string; type: string; evidence: string[]; status: string }>
 }
 
 export interface RunApproval {
@@ -310,6 +310,9 @@ export interface ColumnMapping {
   /** The month the fiscal year starts in, 1 to 12; 1 or absent means the
    *  calendar year. Quarter and year labels then read FY2026-Q1, FY2026. */
   fiscal_start?: number
+  /** Validity limits per measure (31 October 2026): a value outside them is
+   *  left out of every figure and recorded so it can be restored. */
+  limits?: Record<string, { min?: number; max?: number }>
 }
 
 export interface DerivedColumn {
@@ -349,7 +352,7 @@ export interface DatasetDetail {
  *  column; a join's problems also say which join (ADR 0030). */
 export interface MappingProblem {
   field:
-    | 'roles' | 'measure' | 'dimension' | 'date_order' | 'grain' | 'currency' | 'derived' | 'fiscal_start'
+    | 'roles' | 'measure' | 'dimension' | 'date_order' | 'grain' | 'currency' | 'derived' | 'fiscal_start' | 'limits'
     | 'joins' | 'keys' | 'how' | 'alias' | 'breakdown' | 'dataset'
   column: string | null
   message: string
@@ -374,6 +377,8 @@ export interface JoinSpec {
   keys: JoinKey[]
   how: JoinHow
   alias?: string | null
+  /** Compare text keys ignoring letter case and spaces (30 October 2026). */
+  match?: 'loose'
 }
 
 /** What one join did: rows in and out, matches, and the columns it added.
@@ -397,6 +402,8 @@ export interface JoinRecord {
   renamed: Record<string, string>
   rows_added?: number
   duplicates_dropped?: number
+  /** Unmatched rows a loose comparison would have matched. */
+  near_matches?: number
   source_column?: string
   source_label?: string
 }

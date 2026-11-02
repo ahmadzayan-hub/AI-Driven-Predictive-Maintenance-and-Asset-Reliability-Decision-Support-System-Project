@@ -3,7 +3,7 @@ type: log
 aliases: [Brain maintenance log]
 tags: [meta]
 status: active
-updated: 2026-10-23
+updated: 2026-10-31
 review_every_days: 7
 sources: [scripts/brain_check.py]
 ---
@@ -124,3 +124,11 @@ What each round of brain maintenance changed, newest last. The SessionStart hook
 - Merged no notes and linked no new mentions: the checker reported none.
 - `scripts/brain_check.py --strict` exits 0 after the edits.
 
+## 2026-10-31
+
+- `scripts/brain_check.py --json` before the edits: 47 notes, 750 links, no broken links, missing fields, bad dates, missing sources, orphans, duplicate candidates, unlinked mentions or weak links; two stale notes ([[Team 3 Capstone]], this log); maintenance due since 30 October.
+- Refreshed [[Team 3 Capstone]]: no submission or presentation outcome is recorded in `Memory.md`, `project-progress.md` or the git log since 27 October, so its state stays as on 21 October. Added one inferred point, marked as such: by the reliability model's rule and the recorded one-date-per-asset fact, R1 would fit nothing on the capstone file; not run, because the record file is not in this checkout (sources: `Memory.md`, `server/maintenance/reliability.py`).
+- Refreshed [[Agentic OS]] and [[Maintenance pilot]] with the five 31 October capabilities, each with its decision record as a source.
+- Checked the 15 decision records of 29 to 31 October against [[Decision log]]: 14 have a row; the asset imagery record is still proposed and stays out.
+- Merged no notes and linked no new mentions: the checker reported none.
+- `scripts/brain_check.py --strict` exits 0 after the edits; [[Home]] still lists every note.

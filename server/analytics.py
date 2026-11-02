@@ -503,6 +503,91 @@ def collector(ctx):
     )
 
 
+# Understanding the data (30 October 2026): what the profile reports beyond
+# completeness. It changes nothing; it says what a reader should check.
+SPARSE_SHARE = 0.5        # a column at least this empty is named
+OUTLIER_FENCE = 1.5       # Tukey's fences: beyond 1.5 x IQR from the quartiles
+OUTLIER_EXAMPLES = 5      # source rows kept per measure, to look them up
+MIN_FOR_QUARTILES = 4     # fewer values give no meaningful quartiles
+
+
+# Data policy point 2 (31 October 2026): unusual values are judged within
+# each group of the breakdown, so a large asset is not unusual only for
+# being large, and on a log scale when a measure's values are all positive
+# and spread far to the high side (costs, durations), where the plain
+# fences flag every expensive repair. When leaving them out moves the
+# measure's average by at least OUTLIER_EFFECT, both figures are reported.
+OUTLIER_METHOD = ("measure values below Q1 - 1.5 x IQR or above Q3 + 1.5 x IQR, within each "
+                  "group of the breakdown holding at least 4 values, on a log scale for "
+                  "positive measures leaning high")
+SKEW_FOR_LOG = 0.25       # quartile skew, (Q3 + Q1 - 2 x median) / (Q3 - Q1), at or above it
+OUTLIER_EFFECT = 0.10     # a change in the average at least this large is material
+
+
+def _fences(values):
+    q1, _, q3 = statistics.quantiles(values, n=4, method="inclusive")
+    spread = q3 - q1
+    return q1 - OUTLIER_FENCE * spread, q3 + OUTLIER_FENCE * spread
+
+
+def _log_scale(values):
+    """True when values are all positive and lean far to the high side."""
+    if len(values) < MIN_FOR_QUARTILES or values[0] <= 0:
+        return False
+    q1, median, q3 = statistics.quantiles(values, n=4, method="inclusive")
+    return q3 > q1 and (q3 + q1 - 2 * median) / (q3 - q1) >= SKEW_FOR_LOG
+
+
+def _measure_profile(numbers, groups=None):
+    """Range, median, signs and unusual values of one measure's values,
+    given as (source_row, number) pairs; groups maps a source row to its
+    group in the breakdown. None with no numbers."""
+    if not numbers:
+        return None
+    values = sorted(n for _, n in numbers)
+    out = {"count": len(values), "min": values[0], "max": values[-1],
+           "median": statistics.median(values),
+           "negatives": sum(1 for v in values if v < 0),
+           "zeros": sum(1 for v in values if v == 0),
+           "outliers": 0, "outlier_rows": [], "fences": None,
+           "scale": "linear", "grouped": False}
+    if len(values) < MIN_FOR_QUARTILES:
+        return out
+    log = _log_scale(values)
+    scaled = (lambda v: math.log(v)) if log else (lambda v: v)
+    overall = _fences([scaled(v) for v in values])
+    by_group = {}
+    for row, n in numbers:
+        if groups and groups.get(row) is not None:
+            by_group.setdefault(groups[row], []).append(scaled(n))
+    group_fences = {g: _fences(sorted(v)) for g, v in by_group.items()
+                    if len(v) >= MIN_FOR_QUARTILES}
+    out["scale"] = "log" if log else "linear"
+    out["grouped"] = bool(group_fences)
+    out["fences"] = [round(math.exp(f) if log else f, 6) for f in overall]
+    flagged = []
+    for row, n in numbers:
+        low, high = group_fences.get(groups.get(row) if groups else None, overall)
+        if scaled(n) < low or scaled(n) > high:
+            flagged.append((row, n))
+    out["outliers"] = len(flagged)
+    out["outlier_rows"] = [row for row, _ in flagged[:OUTLIER_EXAMPLES]]
+    mean = math.fsum(values) / len(values)
+    flagged_rows = {row for row, _ in flagged}
+    kept = [n for row, n in numbers if row not in flagged_rows]
+    out["mean"] = round(mean, 6)
+    if flagged and kept:
+        without = math.fsum(kept) / len(kept)
+        out["mean_without_outliers"] = round(without, 6)
+        out["outlier_effect"] = round(abs(without - mean) / abs(mean), 6) if mean else None
+    return out
+
+
+def _listed(items, limit=5):
+    shown = list(items)[:limit]
+    return shown, len(list(items)) - len(shown)
+
+
 def profiler(ctx):
     rows = ctx["collector"]["rows"]
     columns = ctx["collector"]["columns"]
@@ -521,8 +606,12 @@ def profiler(ctx):
             profile[col] = {"missing": missing, "distinct": len(set(values)),
                             "numeric": is_numeric}
             continue
-        numbers = [n for n in (_to_number(v) for v in values if str(v).strip()) if n is not None]
-        is_numeric = len(numbers) >= max(1, (len(values) - missing) * 0.9)
+        # A missing-value marker (N/A, -) is neither a number nor text that
+        # fails to read as one, so it does not count against the 90% rule.
+        filled = [v for v in values
+                  if str(v).strip() and str(v).strip().casefold() not in MISSING_MARKERS]
+        numbers = [n for n in (_to_number(v) for v in filled) if n is not None]
+        is_numeric = len(numbers) >= max(1, len(filled) * 0.9)
         if is_numeric and numbers:
             numeric_columns.append(col)
         profile[col] = {"missing": missing, "distinct": len(set(values)),
@@ -541,6 +630,128 @@ def profiler(ctx):
         {"id": "c_dupes", "name": "duplicate_rows", "value": duplicates,
          "method": "exact row comparison"},
     ]
+    # Each column's shape, and each measure's range and unusual values.
+    to_number = colmap.parse_number if mapping else _to_number
+    group_col = ((mapping or {}).get("dimension") if mapping else
+                 _automatic_group(columns, numeric_columns, _date_like_column(columns), rows))
+    groups = ({i: (str(r.get(group_col) or "").strip() or None) for i, r in enumerate(rows)}
+              if group_col in columns else None)
+    for col in columns:
+        entry = profile[col]
+        filled = len(rows) - entry["missing"]
+        entry["missing_share"] = round(entry["missing"] / len(rows), 4) if rows else 0.0
+        distinct_filled = len({str(r.get(col, "")).strip() for r in rows
+                               if str(r.get(col, "") or "").strip()})
+        entry["constant"] = filled > 1 and distinct_filled == 1
+        if col in numeric_columns:
+            # A value outside a declared limit is a data error the cleaner
+            # removes; it is not also counted here as unusual or negative.
+            limit = colmap.limits_of(mapping).get(col) if mapping else None
+            numbers = [(i, n) for i, n in ((i, to_number(str(r.get(col, "") or "").strip()))
+                                           for i, r in enumerate(rows))
+                       if n is not None and not colmap.breaks_limit(n, limit)]
+            entry["measure"] = _measure_profile(numbers, groups)
+    claims = [_claim(ctx, "cl_quality", "fact",
+                     f"Data completeness is {completeness:.0%} with {duplicates} duplicate rows.",
+                     f"اكتمال البيانات {completeness:.0%}، وعدد الصفوف المكررة "
+                     f"{duplicates}.",
+                     ["c_completeness", "c_dupes"])]
+    sparse = [(c, profile[c]["missing_share"]) for c in columns
+              if rows and profile[c]["missing_share"] >= SPARSE_SHARE]
+    if sparse:
+        shown, more = _listed(sparse)
+        calcs.append({"id": "c_sparse_columns", "name": "mostly_empty_columns",
+                      "value": len(sparse),
+                      "method": f"columns with at least {SPARSE_SHARE:.0%} of their cells empty"})
+        claims.append(_claim(
+            ctx, "cl_sparse_columns", "limitation",
+            f"{len(sparse)} column(s) are at least half empty: "
+            + ", ".join(f"{c} ({s:.0%})" for c, s in shown)
+            + (f" and {more} more" if more else "")
+            + ". Figures that read them rest on the rows that have a value.",
+            f"{len(sparse)} من الأعمدة فارغة بمقدار النصف على الأقل: "
+            + "، ".join(f"{c} ({s:.0%})" for c, s in shown)
+            + (f" و{more} أخرى" if more else "")
+            + ". تقوم الأرقام التي تقرؤها على الصفوف التي فيها قيمة فقط.",
+            ["c_sparse_columns"]))
+    constant = [c for c in columns if profile[c]["constant"]]
+    if constant:
+        shown, more = _listed(constant)
+        calcs.append({"id": "c_constant_columns", "name": "single_value_columns",
+                      "value": len(constant),
+                      "method": "columns whose filled cells all hold the same value"})
+        claims.append(_claim(
+            ctx, "cl_constant_columns", "fact",
+            f"{len(constant)} column(s) hold one value throughout and cannot explain any "
+            f"difference between rows: {', '.join(shown)}" + (f" and {more} more" if more else "") + ".",
+            f"{len(constant)} من الأعمدة تحمل قيمة واحدة في كل الصفوف ولا تفسّر أي فرق "
+            f"بينها: {'، '.join(shown)}" + (f" و{more} أخرى" if more else "") + ".",
+            ["c_constant_columns"]))
+    measured = [(c, profile[c]["measure"]) for c in numeric_columns if profile[c].get("measure")]
+    unusual = [(c, m["outliers"]) for c, m in measured if m["outliers"]]
+    logged = [c for c, m in measured if m["scale"] == "log"]
+    how_en = ((f" They were judged within each group of {group_col}" if any(m["grouped"] for _, m in measured)
+               else " They were judged across all rows")
+              + (f", and by ratio rather than difference for {', '.join(logged)}." if logged else "."))
+    how_ar = ((f" قُيّمت داخل كل مجموعة من {group_col}" if any(m["grouped"] for _, m in measured)
+               else " قُيّمت على كل الصفوف")
+              + (f"، وبالنسبة لا بالفرق في {'، '.join(logged)}." if logged else "."))
+    if unusual:
+        shown, more = _listed(unusual)
+        calcs.append({"id": "c_outliers", "name": "values_far_outside_the_usual_range",
+                      "value": sum(n for _, n in unusual),
+                      "method": OUTLIER_METHOD})
+        claims.append(_claim(
+            ctx, "cl_outliers", "limitation",
+            f"{sum(n for _, n in unusual)} value(s) lie far outside the range where most values "
+            f"of their measure fall: "
+            + ", ".join(f"{c} {n}" for c, n in shown) + (f" and {more} more" if more else "")
+            + ". They are kept, not removed or changed; check them before reading totals "
+            "and averages." + how_en,
+            f"تقع {sum(n for _, n in unusual)} من القيم بعيداً عن النطاق الذي تقع فيه أغلب "
+            f"قيم مقياسها: "
+            + "، ".join(f"{c} {n}" for c, n in shown) + (f" و{more} أخرى" if more else "")
+            + ". أُبقيت كما هي دون حذف أو تعديل؛ راجعها قبل قراءة المجاميع والمتوسطات."
+            + how_ar,
+            ["c_outliers"]))
+    material = [(c, m) for c, m in measured
+                if m.get("outlier_effect") is not None and m["outlier_effect"] >= OUTLIER_EFFECT]
+    if material:
+        shown, more = _listed(material)
+        listed = "; ".join(f"{c}: {m['mean']:,.2f} with, {m['mean_without_outliers']:,.2f} without"
+                           for c, m in shown)
+        listed_ar = "؛ ".join(f"{c}: {m['mean']:,.2f} معها، و{m['mean_without_outliers']:,.2f} دونها"
+                              for c, m in shown)
+        calcs.append({"id": "c_outlier_effect", "name": "average_with_and_without_unusual_values",
+                      "value": listed,
+                      "method": "average of each measure with and without its unusual values, "
+                                f"shown when they differ by at least {OUTLIER_EFFECT:.0%}"})
+        claims.append(_claim(
+            ctx, "cl_outlier_effect", "limitation",
+            f"The unusual values move the average of {len(material)} measure(s) by at least "
+            f"{OUTLIER_EFFECT:.0%}. Average with and without them: {listed}"
+            + (f" and {more} more" if more else "")
+            + ". Read figures built on these measures with both in mind.",
+            f"تحرّك القيم غير المعتادة متوسط {len(material)} من المقاييس بنسبة "
+            f"{OUTLIER_EFFECT:.0%} على الأقل. المتوسط معها ودونها: {listed_ar}"
+            + (f" و{more} أخرى" if more else "")
+            + ". اقرأ الأرقام المبنية على هذه المقاييس مع مراعاة الرقمين.",
+            ["c_outlier_effect"]))
+    negative = [(c, m["negatives"]) for c, m in measured if m["negatives"]]
+    if negative:
+        shown, more = _listed(negative)
+        calcs.append({"id": "c_negatives", "name": "negative_measure_values",
+                      "value": sum(n for _, n in negative),
+                      "method": "measure values below zero, per measure"})
+        claims.append(_claim(
+            ctx, "cl_negatives", "limitation",
+            f"{sum(n for _, n in negative)} measure value(s) are negative: "
+            + ", ".join(f"{c} {n}" for c, n in shown) + (f" and {more} more" if more else "")
+            + ". They count in totals as they are; check whether they are corrections or errors.",
+            f"{sum(n for _, n in negative)} من قيم المقاييس سالبة: "
+            + "، ".join(f"{c} {n}" for c, n in shown) + (f" و{more} أخرى" if more else "")
+            + ". تدخل في المجاميع كما هي؛ تحقق هل هي تصحيحات أم أخطاء.",
+            ["c_negatives"]))
     return _result(
         "succeeded",
         _say(ctx,
@@ -553,11 +764,7 @@ def profiler(ctx):
         output={"profile": profile, "numeric_columns": numeric_columns,
                 "duplicates": duplicates, "completeness": completeness},
         calculations=calcs,
-        claims=[_claim(ctx, "cl_quality", "fact",
-                       f"Data completeness is {completeness:.0%} with {duplicates} duplicate rows.",
-                       f"اكتمال البيانات {completeness:.0%}، وعدد الصفوف المكررة "
-                       f"{duplicates}.",
-                       ["c_completeness", "c_dupes"])],
+        claims=claims,
         checks=[{"name": "has_numeric_column", "passed": bool(numeric_columns),
                  "detail": _say(ctx,
                                 "At least one numeric measure is required for analysis.",
@@ -595,6 +802,79 @@ def _period_labels_unmapped(values):
 
 # How many unreadable values the cleaner records by row and column (A18).
 MAX_UNREADABLE_RECORDED = 200
+# What exports write for "no value" in a number column (30 October 2026).
+# Such a cell is missing, as an empty one is, and is counted apart from
+# text that genuinely does not read as a number.
+MISSING_MARKERS = frozenset({
+    "n/a", "na", "n.a.", "-", "--", "—", "–", "null", "none", "nan", "#n/a",
+    "not available", "غير متوفر", "غير متاح", "لا يوجد"})
+# Categories spelled more than one way: text columns with at most this many
+# distinct values are checked, and at most this many examples are named.
+VARIANT_MAX_DISTINCT = 200
+VARIANT_EXAMPLES = 3
+
+
+def _spelling_variants(rows, columns, skip):
+    """Text values that differ only in letter case or spacing, per column:
+    {column: [[(spelling, count), ...], ...]}, most frequent group first.
+    They are reported, never merged: merging would move group totals."""
+    found = {}
+    for col in columns:
+        if col in skip:
+            continue
+        counts = {}
+        for row in rows:
+            value = row.get(col)
+            if isinstance(value, str) and value:
+                counts[value] = counts.get(value, 0) + 1
+        if not counts or len(counts) > VARIANT_MAX_DISTINCT:
+            continue
+        groups = {}
+        for value, n in counts.items():
+            groups.setdefault(" ".join(value.split()).casefold(), []).append((value, n))
+        clashes = [sorted(g, key=lambda vn: -vn[1]) for g in groups.values() if len(g) > 1]
+        if clashes:
+            found[col] = sorted(clashes, key=lambda g: -sum(n for _, n in g))
+    return found
+
+def _data_health(ctx, cells, blank, marked, unreadable, outside, numeric_columns):
+    """Data health (owner slice R4): the share of measure values usable as
+    recorded, after cleaning, with every loss named. Unusual values are
+    still used, so they are counted beside the share, not against it."""
+    if not cells:
+        return None
+    usable = cells - blank - marked - unreadable - outside
+    profile = ctx["profiler"].get("profile", {})
+    unusual = sum((profile.get(col, {}).get("measure") or {}).get("outliers", 0)
+                  for col in numeric_columns)
+    share = round(100 * usable / cells, 1)
+    figures = {"share": share, "usable": usable, "cells": cells, "empty": blank,
+               "marked_missing": marked, "unreadable": unreadable,
+               "outside_limits": outside, "unusual_kept": unusual}
+    calcs = [
+        {"id": "c_health", "name": "data_health_share", "value": share,
+         "method": "measure values usable as recorded / measure cells in the cleaned rows × 100"},
+        {"id": "c_health_cells", "name": "data_health_counts",
+         "value": (f"{usable:,} of {cells:,} usable; {blank:,} empty, {marked:,} marked "
+                   f"missing, {unreadable:,} unreadable, {outside:,} outside limits; "
+                   f"{unusual:,} unusual and kept"),
+         "method": "cells in the measure columns of the rows kept after cleaning"},
+    ]
+    lost = [(n, en, ar) for n, en, ar in (
+        (blank, "empty", "فارغة"), (marked, "marked missing", "معلَّمة مفقودة"),
+        (unreadable, "unreadable", "متعذرة القراءة"),
+        (outside, "outside a declared limit", "خارج حد مُعلن")) if n]
+    detail_en = ("; ".join(f"{n:,} {en}" for n, en, _ in lost) + ".") if lost else         "none is empty, unreadable or outside a limit."
+    detail_ar = ("؛ ".join(f"{n:,} {ar}" for n, _, ar in lost) + ".") if lost else         "لا قيمة فارغة أو متعذرة القراءة أو خارج حد."
+    claim = _claim(
+        ctx, "cl_health", "fact",
+        f"Data health: {share}% of measure values ({usable:,} of {cells:,}) are usable as "
+        f"recorded; {detail_en} Of the usable values, {unusual:,} are unusual and still used.",
+        f"صحة البيانات: {share}% من قيم المقاييس ({usable:,} من {cells:,}) صالحة كما سُجّلت؛ "
+        f"{detail_ar} ومن القيم الصالحة {unusual:,} غير معتادة وما زالت مستخدمة.",
+        ["c_health", "c_health_cells"])
+    return {"figures": figures, "calculations": calcs, "claim": claim}
+
 
 def cleaner(ctx):
     rows = ctx["collector"]["rows"]
@@ -608,6 +888,12 @@ def cleaner(ctx):
     to_number = colmap.parse_number if mapping else _to_number
     before = len(rows)
     cleaned, seen, dropped_empty, dropped_dupes, coercion_failures = [], set(), 0, 0, 0
+    marked_missing, unreadable_columns, blank_cells = 0, set(), 0
+    # Validity limits (31 October 2026): a value outside its measure's
+    # declared limits is a data error. It is left out of every figure and
+    # recorded with the limit it broke, so the cleaning can be reversed.
+    limits = colmap.limits_of(mapping) if mapping else {}
+    invalid, invalid_count, invalid_by = [], 0, {}
     source_indices = []
     # Every removal is recorded by source row (assessment A18): the
     # indices of the empty and the repeated rows, and each value a numeric
@@ -627,9 +913,30 @@ def cleaner(ctx):
             continue
         seen.add(key)
         for col in numeric_columns:
+            text = str(stripped.get(col, "")).strip()
+            if text.casefold() in MISSING_MARKERS:
+                # Counted apart, but recorded with every other value the
+                # cleaning set to empty, so it can still be reversed (A18).
+                marked_missing += 1
+                if len(unreadable) < MAX_UNREADABLE_RECORDED:
+                    unreadable.append({"row": source_index, "column": col, "value": text[:80]})
+                stripped[col] = None
+                continue
+            if not text:
+                blank_cells += 1
             number = to_number(stripped.get(col, ""))
+            broke = colmap.breaks_limit(number, limits.get(col))
+            if broke:
+                invalid_count += 1
+                invalid_by[(col, broke)] = invalid_by.get((col, broke), 0) + 1
+                if len(invalid) < MAX_UNREADABLE_RECORDED:
+                    invalid.append({"row": source_index, "column": col, "value": number,
+                                    "broke": broke, "limit": limits[col][broke]})
+                stripped[col] = None
+                continue
             if number is None and str(stripped.get(col, "")).strip():
                 coercion_failures += 1
+                unreadable_columns.add(col)
                 if len(unreadable) < MAX_UNREADABLE_RECORDED:
                     unreadable.append({"row": source_index, "column": col,
                                        "value": str(stripped.get(col, ""))[:80]})
@@ -645,8 +952,13 @@ def cleaner(ctx):
          "method": "empty + exact-duplicate removal"},
         {"id": "c_coercion", "name": "values_not_read_as_numbers", "value": coercion_failures,
          "method": "non-empty values in numeric columns that could not be read as a "
-                   "number and were set to empty"},
+                   "number and were set to empty (missing-value markers counted apart)"},
     ]
+    if marked_missing:
+        calcs.append({"id": "c_missing_markers", "name": "missing_value_markers",
+                      "value": marked_missing,
+                      "method": "cells in numeric columns written as a missing-value marker "
+                                "(such as N/A, -, null or غير متوفر), read as empty"})
     if derived:
         calcs.append({"id": "c_derived", "name": "derived_columns", "value": len(derived),
                       "method": "columns computed from the mapping's formulas: " + ", ".join(
@@ -670,8 +982,34 @@ def cleaner(ctx):
             + ". يُترك الصف فارغاً حين تنقص قيمة يقرؤها أو يقسم على صفر"
             + (f" ({'، '.join(f'{d}: {n}' for d, n in empty.items() if n)})" if any(empty.values()) else "") + ".",
             ["c_derived"]))
+    if invalid_count:
+        parts = [(col, broke, n, limits[col][broke]) for (col, broke), n in invalid_by.items()]
+        listed = ", ".join(f"{col} {'below' if broke == 'min' else 'above'} {bound:g} ({n})"
+                           for col, broke, n, bound in parts)
+        listed_ar = "، ".join(f"{col} {'أقل من' if broke == 'min' else 'أعلى من'} {bound:g} ({n})"
+                              for col, broke, n, bound in parts)
+        calcs.append({"id": "c_invalid_values", "name": "values_outside_declared_limits",
+                      "value": invalid_count,
+                      "method": "measure values below the lowest or above the highest value the "
+                                "mapping allows, left out of every figure"})
+        claims.append(_claim(
+            ctx, "cl_invalid_values", "limitation",
+            f"{invalid_count} value(s) break a limit declared for their measure and were left out "
+            f"of every figure as data errors: {listed}. Each is recorded by row; correct it at the "
+            "source.",
+            f"تخالف {invalid_count} من القيم حداً مُعلناً لمقياسها فاستُبعدت من كل رقم بوصفها "
+            f"أخطاء بيانات: {listed_ar}. سُجّلت كل قيمة بصفّها؛ صحّحها في المصدر.",
+            ["c_invalid_values"]))
+    if marked_missing:
+        claims.append(_claim(
+            ctx, "cl_missing_markers", "fact",
+            f"{marked_missing} cell(s) in numeric columns were written as a missing-value "
+            "marker (such as N/A or -) and were read as empty, not as unreadable numbers.",
+            f"كُتبت {marked_missing} من خلايا الأعمدة الرقمية بعلامة قيمة مفقودة (مثل N/A أو -) "
+            "فقُرئت فارغة، لا أرقاماً متعذرة القراءة.",
+            ["c_missing_markers"]))
     if coercion_failures:
-        columns_hit = sorted({item["column"] for item in unreadable})
+        columns_hit = sorted(unreadable_columns)
         claims.append(_claim(
             ctx, "cl_coercion", "limitation",
             f"{coercion_failures} value(s) in numeric columns ({', '.join(columns_hit)}) could "
@@ -742,6 +1080,33 @@ def cleaner(ctx):
                 f"في {dates['dates_unreadable']} من الصفوف قيمة {date_col} لم تُقرأ "
                 "تاريخاً، فاستُبعدت من كل اتجاه زمني.",
                 ["c_dates_unread"]))
+    health = _data_health(ctx, after * len(numeric_columns), blank_cells, marked_missing,
+                          coercion_failures, invalid_count, numeric_columns)
+    if health:
+        calcs += health["calculations"]
+        claims.append(health["claim"])
+    variants = _spelling_variants(cleaned, ctx["collector"]["columns"],
+                                  set(numeric_columns) | {dates.get("date_col")} | set(derived))
+    if variants:
+        groups = sum(len(g) for g in variants.values())
+        examples = [(col, group) for col, found in variants.items() for group in found][:VARIANT_EXAMPLES]
+        listed = "; ".join(f"{col}: " + ", ".join(f"“{v}” ({n})" for v, n in group)
+                           for col, group in examples)
+        listed_ar = "؛ ".join(f"{col}: " + "، ".join(f"«{v}» ({n})" for v, n in group)
+                              for col, group in examples)
+        calcs.append({"id": "c_spelling_variants", "name": "categories_spelled_more_than_one_way",
+                      "value": groups,
+                      "method": "text values that differ only in letter case or spacing, "
+                                "grouped per column (columns with at most "
+                                f"{VARIANT_MAX_DISTINCT} distinct values)"})
+        claims.append(_claim(
+            ctx, "cl_spelling_variants", "limitation",
+            f"{groups} categor{'y is' if groups == 1 else 'ies are'} spelled more than one way, "
+            f"so each spelling is counted as its own group: {listed}. They are not merged; "
+            "correct the source or the mapping if they are the same thing.",
+            f"{groups} من الفئات مكتوبة بأكثر من صيغة، فتُحسب كل صيغة مجموعة مستقلة: "
+            f"{listed_ar}. لم تُدمج؛ صحّح المصدر أو الربط إن كانت الشيء نفسه.",
+            ["c_spelling_variants"]))
     return _result(
         "succeeded",
         _say(ctx,
@@ -756,7 +1121,12 @@ def cleaner(ctx):
         output={"dropped_indices": dropped, "unreadable_values": unreadable,
                 "rows": cleaned, "source_indices": source_indices, "derived": derived,
                 "rows_before": before, "rows_after": after,
-                "dropped": before - after, **dates},
+                "dropped": before - after, "missing_markers": marked_missing,
+                "invalid_values": invalid, "invalid_count": invalid_count,
+                "health": health["figures"] if health else None,
+                "spelling_variants": {col: [[list(vn) for vn in group] for group in found]
+                                      for col, found in variants.items()},
+                **dates},
         calculations=calcs,
         claims=claims,
     )
@@ -942,6 +1312,39 @@ def merge(ctx):
                 f"احتُفظ بالصفوف المتطابقة وحدها: استُبعد {record['unmatched']} صفاً "
                 f"بلا تطابق في {name}، فكل مجموع يغطي {record['rows_out']} صفاً.",
                 [f"{prefix}_rows_out", f"{prefix}_matched"]))
+        # How keys were compared (30 October 2026): a loose join says how many
+        # matches it owes to ignoring case and spaces; an exact join says how
+        # many unmatched rows that would have matched.
+        if record.get("match") == "loose":
+            calcs.append({"id": f"{prefix}_loose",
+                          "name": f"rows_matched_ignoring_case_{record['alias']}",
+                          "value": record.get("loose_matched", 0),
+                          "method": "matched rows whose key matched only when letter case "
+                                    "and runs of spaces were ignored"})
+            claims.append(_claim(
+                ctx, f"cl_merge_{index}_loose", "fact",
+                f"Keys were compared ignoring letter case and spaces: "
+                f"{record.get('loose_matched', 0)} of the {matched} matched rows matched "
+                f"{name} only because of that.",
+                f"قورنت المفاتيح مع تجاهل حالة الأحرف والمسافات: تطابق "
+                f"{record.get('loose_matched', 0)} من أصل {matched} صفاً متطابقاً مع "
+                f"{name} بسبب ذلك وحده.",
+                [f"{prefix}_loose", f"{prefix}_matched"]))
+        elif record.get("near_matches"):
+            calcs.append({"id": f"{prefix}_near",
+                          "name": f"unmatched_rows_matching_ignoring_case_{record['alias']}",
+                          "value": record["near_matches"],
+                          "method": "unmatched rows whose key matches when letter case and "
+                                    "runs of spaces are ignored"})
+            claims.append(_claim(
+                ctx, f"cl_merge_{index}_near", "limitation",
+                f"{record['near_matches']} of the {record['unmatched']} unmatched rows would "
+                f"match {name} if letter case and spaces were ignored; the keys were "
+                f"compared exactly.",
+                f"كان {record['near_matches']} من أصل {record['unmatched']} صفاً غير متطابق "
+                f"سيتطابق مع {name} لو تُجوهلت حالة الأحرف والمسافات؛ قورنت المفاتيح "
+                f"مقارنة تامة.",
+                [f"{prefix}_near", f"{prefix}_rows_in"]))
         expected = record["rows_in"] if record["how"] == "left" else record["matched"]
         checks += [
             {"name": f"join_{record['alias']}_keeps_the_row_count",
@@ -1669,6 +2072,70 @@ def descriptive(ctx):
     )
 
 
+# Data policy point 3 (31 October 2026): a gap in a column the model reads
+# beside the measure is filled with the median of the row's group (or of the
+# whole column when the group holds too few values), only for the
+# association model, only when at most FILL_MAX_SHARE of the rows with the
+# measure lack the value, and with the result checked without the fill. The
+# measure itself is never filled, and no stored row changes.
+FILL_MAX_SHARE = 0.30
+FILL_GROUP_MIN = 3
+
+
+def _fill_for_model(rows, column, measure, group_col):
+    candidates = [r for r in rows if r.get(measure) is not None]
+    gaps = [r for r in candidates if r.get(column) is None]
+    if not candidates or not gaps or len(gaps) / len(candidates) > FILL_MAX_SHARE:
+        return None
+    observed = [r[column] for r in candidates if r.get(column) is not None]
+    if len(observed) < FILL_GROUP_MIN:
+        return None
+    overall = statistics.median(observed)
+    by_group = {}
+    if group_col:
+        for r in candidates:
+            if r.get(column) is not None:
+                by_group.setdefault(r.get(group_col), []).append(r[column])
+    filled, used_group = [], False
+    for r in gaps:
+        values = by_group.get(r.get(group_col)) if group_col else None
+        if values and len(values) >= FILL_GROUP_MIN:
+            filled.append((r, statistics.median(values)))
+            used_group = True
+        else:
+            filled.append((r, overall))
+    return {"filled": filled, "share": round(len(gaps) / len(candidates), 4),
+            "method": "group median" if used_group else "column median"}
+
+
+def _fill_claim(ctx, calcs, claims, index, column, measure, fill, observed, with_fill):
+    count = len(fill["filled"])
+    calcs += [
+        {"id": f"c_fill_{index}", "name": f"filled_for_model_{column}", "value": count,
+         "method": f"rows with {measure} but no {column}, given the "
+                   f"{fill['method']} of {column} for the association model only"},
+        {"id": f"c_fill_observed_{index}", "name": f"association_without_fill_{column}",
+         "value": round(observed, 4),
+         "method": f"Pearson correlation of {column} and {measure} over rows with both present"},
+    ]
+    moved = abs(with_fill - observed) >= 0.1 or (abs(with_fill) >= 0.5) != (abs(observed) >= 0.5)
+    tail_en = (" The result depends on the fill, so treat it as weak."
+               if moved else " The result holds either way.")
+    tail_ar = (" تتوقف النتيجة على التعبئة، فعاملها بوصفها ضعيفة."
+               if moved else " تصمد النتيجة في الحالتين.")
+    by_en = "its group's median" if fill["method"] == "group median" else "the column's median"
+    by_ar = "وسيط مجموعته" if fill["method"] == "group median" else "وسيط العمود"
+    claims.append(_claim(
+        ctx, f"cl_fill_{index}", "limitation",
+        f"{count} row(s) had {measure} but no {column}; for this comparison only they were "
+        f"given {by_en} and flagged in {column}_filled, and no stored value changed. "
+        f"Correlation with the fill {with_fill:+.2f}, without it {observed:+.2f}." + tail_en,
+        f"في {count} من الصفوف قيمة لـ{measure} دون {column}؛ ولهذه المقارنة وحدها أُعطيت "
+        f"{by_ar} ووُسمت في {column}_filled، ولم تتغير أي قيمة مخزنة. "
+        f"الارتباط مع التعبئة {with_fill:+.2f}، ودونها {observed:+.2f}." + tail_ar,
+        [f"c_fill_{index}", f"c_fill_observed_{index}", f"c_assoc_{index}"]))
+
+
 def diagnostic(ctx):
     """Type 2 — Why did it happen?
 
@@ -1751,6 +2218,7 @@ def diagnostic(ctx):
     # Which other numeric columns move together with the measure?
     associations = []
     numeric_columns = [c for c in _numeric(ctx) if c != measure]
+    filled_record = []
     for index, column in enumerate(numeric_columns[:4]):
         pairs = [(r[column], r[measure]) for r in rows
                  if r.get(column) is not None and r.get(measure) is not None]
@@ -1759,6 +2227,22 @@ def diagnostic(ctx):
         correlation = _correlation([p[0] for p in pairs], [p[1] for p in pairs])
         if correlation is None:
             continue
+        # Data policy point 3: gaps in the other column, never in the measure,
+        # are filled for this model alone, flagged, and checked both ways.
+        fill = _fill_for_model(rows, column, measure, group_col)
+        if fill:
+            filled_pairs = pairs + [(value, r[measure]) for r, value in fill["filled"]]
+            with_fill = _correlation([p[0] for p in filled_pairs], [p[1] for p in filled_pairs])
+            if with_fill is not None:
+                observed = correlation
+                correlation = with_fill
+                pairs = filled_pairs
+                filled_record.append({"column": column, "filled": len(fill["filled"]),
+                                      "share": fill["share"], "method": fill["method"],
+                                      "correlation_observed": round(observed, 4),
+                                      "correlation_filled": round(with_fill, 4),
+                                      "flag_column": f"{column}_filled"})
+                _fill_claim(ctx, calcs, claims, index, column, measure, fill, observed, with_fill)
         associations.append({"column": column, "correlation": round(correlation, 4),
                              "rows": len(pairs)})
         calcs.append({"id": f"c_assoc_{index}", "name": f"association_{column}",
@@ -1875,6 +2359,7 @@ def diagnostic(ctx):
         "succeeded", headline,
         output={"headline": headline,
                 "contributions": contributions, "associations": associations,
+                "filled_for_model": filled_record,
                 "report_markdown": report},
         calculations=calcs, claims=claims,
     )
@@ -4768,6 +5253,63 @@ def _chart_lines(ctx, language, text):
     return ["", text["charts"], *charts] if charts else []
 
 
+def _policy_lines(ctx, arabic):
+    """Data policy point 4: the report states the data policy and what it did
+    on this run, in the run's language."""
+    cleaner = ctx.get("cleaner") or {}
+    limits = colmap.limits_of(ctx.get("mapping")) if ctx.get("mapping") else {}
+    profile = (ctx.get("profiler") or {}).get("profile") or {}
+    measured = [(c, p["measure"]) for c, p in profile.items() if p.get("measure")]
+    unusual = sum(m["outliers"] for _, m in measured)
+    logged = [c for c, m in measured if m["scale"] == "log"]
+    grouped = any(m["grouped"] for _, m in measured)
+    material = [c for c, m in measured
+                if m.get("outlier_effect") is not None and m["outlier_effect"] >= OUTLIER_EFFECT]
+    filled = (ctx.get("diagnostic") or {}).get("filled_for_model") or []
+    invalid = cleaner.get("invalid_count", 0)
+    health = cleaner.get("health")
+    if arabic:
+        out = ["", "## سياسة البيانات المطبقة",
+               *([f"- صحة البيانات: {health['share']}% من قيم المقاييس "
+                  f"({health['usable']:,} من {health['cells']:,}) صالحة كما سُجّلت."]
+                 if health else []),
+               (f"- حدود الصلاحية: معلنة لـ{'، '.join(limits)}؛ استُبعدت {invalid} من القيم "
+                "خارجها من كل رقم، وسُجلت لإمكان استعادتها."
+                if limits else "- حدود الصلاحية: لم تُعلن حدود، فلم تُستبعد أي قيمة."),
+               f"- القيم غير المعتادة: {unusual}، أُبقيت دون تعديل؛ قُيّمت "
+               + ("داخل كل مجموعة" if grouped else "على كل الصفوف")
+               + (f"، وبالنسبة في {'، '.join(logged)}" if logged else "")
+               + (f"؛ ويُعرض المتوسط معها ودونها لـ{'، '.join(material)} لأن الفرق "
+                  f"{OUTLIER_EFFECT:.0%} أو أكثر." if material else
+                  f"؛ ولم يتحرك متوسط أي مقياس بنسبة {OUTLIER_EFFECT:.0%} أو أكثر دونها."),
+               ("- تعبئة الفجوات: في نموذج الارتباط وحده، لـ"
+                + "، ".join(f"{f['column']} ({f['filled']})" for f in filled)
+                + "، مع عمود وسم ومقارنة النتيجة دون تعبئة."
+                if filled else "- تعبئة الفجوات: لم تُعبأ أي قيمة.")
+               + f" لا يُعبأ المقياس أبداً، ولا يُعبأ عمود تنقصه أكثر من {FILL_MAX_SHARE:.0%} من قيمه."]
+    else:
+        out = ["", "## Data policy applied",
+               *([f"- Data health: {health['share']}% of measure values "
+                  f"({health['usable']:,} of {health['cells']:,}) are usable as recorded."]
+                 if health else []),
+               (f"- Validity limits: declared for {', '.join(limits)}; {invalid} value(s) "
+                "outside them were left out of every figure and recorded so they can be restored."
+                if limits else "- Validity limits: none declared, so no value was left out."),
+               f"- Unusual values: {unusual}, kept unchanged; judged "
+               + ("within each group" if grouped else "across all rows")
+               + (f", by ratio for {', '.join(logged)}" if logged else "")
+               + (f"; the average with and without them is shown for {', '.join(material)}, "
+                  f"which differ by {OUTLIER_EFFECT:.0%} or more." if material else
+                  f"; no measure's average moves by {OUTLIER_EFFECT:.0%} or more without them."),
+               ("- Filling gaps: in the association model only, for "
+                + ", ".join(f"{f['column']} ({f['filled']})" for f in filled)
+                + ", with a flag column and the result compared without the fill."
+                if filled else "- Filling gaps: no value was filled.")
+               + f" The measure is never filled, nor a column missing more than "
+                 f"{FILL_MAX_SHARE:.0%} of its values."]
+    return out
+
+
 def reporter(ctx):
     """The comprehensive report: the four type reports in one document.
 
@@ -4871,6 +5413,7 @@ def reporter(ctx):
         lines.append(f"- {verdict}: {caption}: {detail}"
                      if arabic else
                      f"- {verdict} — {check['name']}: {check['detail']}")
+    lines += _policy_lines(ctx, arabic)
     lines += ["", text["limits"]]
     prediction = ctx.get("predictive", {})
     if not prediction.get("forecast"):

@@ -64,7 +64,9 @@ costs at most a few 64 KB reads.
 - The heuristic can be wrong both ways. A table whose header starts below a
   title row is not tabular, because the reader still takes the first
   non-blank row as the header; header-row detection inside a sheet is not
-  part of this decision.
+  part of this decision. Amended 2026-10-30: up to five single-value title
+  lines above a header are now passed over
+  (`2026-10-30-workbook-title-lines.md`).
 
 ## Tests
 

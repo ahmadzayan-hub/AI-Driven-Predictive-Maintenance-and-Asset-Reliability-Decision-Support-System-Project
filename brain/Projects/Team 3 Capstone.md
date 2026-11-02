@@ -3,9 +3,9 @@ type: project
 aliases: [Capstone, Group 9226 capstone]
 tags: [project, course]
 status: active
-updated: 2026-10-27
+updated: 2026-10-31
 review_every_days: 3
-sources: [project-progress.md, docs/AGENT_TEAM.md, Memory.md]
+sources: [project-progress.md, docs/AGENT_TEAM.md, Memory.md, server/maintenance/reliability.py]
 ---
 
 # Team 3 Capstone
@@ -41,6 +41,7 @@ The plan, the report draft and the deck draft are private documents shared with 
     - **Stockouts:** records with a stockout average twice the downtime, but also twice the failures. Downtime per failure is about the same (12.4 h against 12.0 h), so they mark repeated failure; the data cannot show that they lengthen outages.
     - **Reactive maintenance:** worst per record, by 27% on corrective records once preventive placeholders are set aside.
     - **Totals:** monthly loss "fell 39%" only because 2026 months hold half the records. Per record it was flat (ADR 0026).
+- **Asset histories (inferred, 31 October):** `Memory.md` records that each `Asset_ID` maps to exactly one `Record_Date`. The reliability model needs two dated records of the same asset to form an interval (`server/maintenance/reliability.py`), so on this file it would fit no class and say so. Not run here: the 5,000-record file is not in this checkout.
 - **Dashboard expectations:** landing page, slicers, drill-through and a ranked action queue, which feed the [[Analytics OS roadmap]].
 
 ## Related

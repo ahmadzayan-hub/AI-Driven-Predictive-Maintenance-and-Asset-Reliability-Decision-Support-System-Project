@@ -38,14 +38,16 @@ MAX_COLUMNS = 500
 # bomb stops here.
 MAX_XML_BYTES = 200_000_000
 PREVIEW_ROWS = 5
-FORMATS = ("csv", "tsv", "xlsx", "json", "jsonl")
+FORMATS = ("csv", "tsv", "xlsx", "ods", "json", "jsonl")
 
 _EXTENSIONS = {
     ".csv": "csv", ".txt": "csv", ".tsv": "tsv", ".tab": "tsv",
-    ".xlsx": "xlsx", ".xlsm": "xlsx",
+    ".xlsx": "xlsx", ".xlsm": "xlsx", ".ods": "ods",
     ".json": "json", ".jsonl": "jsonl", ".ndjson": "jsonl",
 }
 _ZIP_SIGNATURE = b"PK\x03\x04"
+# An OpenDocument file names its type in an uncompressed first entry.
+_ODS_MIMETYPE = b"application/vnd.oasis.opendocument.spreadsheet"
 _OLE_SIGNATURE = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"   # old binary .xls
 _DELIMITERS = (",", ";", "\t", "|")
 
@@ -97,6 +99,8 @@ def read(body, name, fmt=None, sheet=None):
     fmt = fmt or detect_format(name, body)
     if fmt == "xlsx":
         parsed = _read_xlsx(body, sheet)
+    elif fmt == "ods":
+        parsed = _read_ods(body, sheet)
     elif fmt == "json":
         parsed = _read_json(_decode(body), allow_lines=True)
     elif fmt == "jsonl":
@@ -118,7 +122,7 @@ def detect_format(name, body):
     if suffix in _EXTENSIONS:
         return _EXTENSIONS[suffix]
     if body.startswith(_ZIP_SIGNATURE):
-        return "xlsx"
+        return "ods" if _ODS_MIMETYPE in body[:200] else "xlsx"
     head = body.lstrip(b"\xef\xbb\xbf \t\r\n")[:1]
     if head in (b"[", b"{"):
         return "json"
@@ -129,8 +133,8 @@ def detect_format(name, body):
 
 def _unsupported():
     return DatasetError(
-        415, "This is not a format the workspace reads. Upload CSV, TSV, Excel (.xlsx), JSON or JSON Lines.",
-        "هذه ليست صيغة تقرؤها مساحة العمل. ارفع ملف CSV أو TSV أو Excel ‏(‎.xlsx‎) أو JSON أو JSON Lines.")
+        415, "This is not a format the workspace reads. Upload CSV, TSV, Excel (.xlsx), OpenDocument (.ods), JSON or JSON Lines.",
+        "هذه ليست صيغة تقرؤها مساحة العمل. ارفع ملف CSV أو TSV أو Excel ‏(‎.xlsx‎) أو OpenDocument ‏(‎.ods‎) أو JSON أو JSON Lines.")
 
 
 def _decode(body):
@@ -719,6 +723,9 @@ def _read_sheet(archive, part, budget, strings, kinds, date1904, limit=None):
 
 # How many non-blank rows of each sheet are read to describe it.
 SAMPLE_ROWS = 20
+# How many title lines (a report name, a "generated on" line) may sit above
+# a header before the sheet is no longer taken for a table.
+MAX_TITLE_ROWS = 5
 
 
 def _open_archive(body):
@@ -801,6 +808,29 @@ def _looks_tabular(rows):
     return any(sum(1 for v in row if v.strip()) >= 2 for row in rows[1:])
 
 
+def _non_blank(rows):
+    return [r for r in rows if any(str(v).strip() for v in r)]
+
+
+def _header_start(rows):
+    """How many title lines sit above the header among the non-blank rows.
+
+    0 when the first non-blank row looks like a header, as before. Otherwise
+    up to MAX_TITLE_ROWS lines of at most one value each (a report title, a
+    date line) are passed over, but only when the row after them looks like
+    a header with data below it. Anything else is 0, so a sheet that is not
+    a table is read as it always was."""
+    filled = _non_blank(rows)
+    if _looks_tabular(filled):
+        return 0
+    for start in range(1, min(MAX_TITLE_ROWS, len(filled) - 2) + 1):
+        if sum(1 for v in filled[start - 1] if str(v).strip()) > 1:
+            return 0
+        if _looks_tabular(filled[start:]):
+            return start
+    return 0
+
+
 def _describe(archive, sheet, budget, strings, kinds, date1904):
     info = {"name": sheet["name"], "hidden": sheet["hidden"], "rows": None,
             "columns": None, "tabular": False, "unreadable": False}
@@ -818,7 +848,7 @@ def _describe(archive, sheet, budget, strings, kinds, date1904):
     elif not counts["more"]:
         info["rows"] = len(rows)
         info["columns"] = max((len(r) for r in rows), default=0)
-    info["tabular"] = _looks_tabular(rows)
+    info["tabular"] = _looks_tabular(_non_blank(rows)[_header_start(rows):])
     return info
 
 
@@ -829,13 +859,15 @@ def default_sheet(details):
     return next((d for d in visible if d["tabular"]), visible[0])["name"]
 
 
-def list_sheets(body):
+def list_sheets(body, fmt="xlsx"):
     """Every sheet of a workbook, described from a sample of its rows:
     name, hidden, approximate rows and columns, whether it looks like a
     table, and whether it could not be read at all. No sheet has to parse;
     the XML budget and the document type refusal apply as when reading."""
     if len(body) > MAX_UPLOAD_BYTES:
         raise too_large()
+    if fmt == "ods":
+        return [_ods_describe(s) for s in _ods_sheets(body)]
     budget = _Budget()
     with _open_archive(body) as archive:
         sheets, strings, kinds, date1904 = _workbook(archive, budget)
@@ -847,16 +879,7 @@ def _read_xlsx(body, sheet=None):
     with _open_archive(body) as archive:
         sheets, strings, kinds, date1904 = _workbook(archive, budget)
         details = [_describe(archive, s, budget, strings, kinds, date1904) for s in sheets]
-        if sheet:
-            chosen = next((s for s in sheets if s["name"] == sheet), None) or next(
-                (s for s in sheets if s["name"].lower() == sheet.strip().lower()), None)
-            if chosen is None:
-                listed = ", ".join(s["name"] for s in sheets)
-                raise DatasetError(422, f"The workbook has no sheet called “{sheet}”. Its sheets: {listed}.",
-                                   f"لا يحتوي المصنّف على ورقة باسم «{sheet}». أوراقه: {listed}.")
-        else:
-            name = default_sheet(details)
-            chosen = next(s for s in sheets if s["name"] == name)
+        chosen = _choose_sheet(sheets, details, sheet)
         rows, counts = _read_sheet(archive, chosen["part"], budget, strings, kinds, date1904)
 
     warnings = []
@@ -868,6 +891,26 @@ def _read_xlsx(body, sheet=None):
         warnings.append({
             "en": f"{counts['uncached']:,} formulas had no saved result and were left empty; open and save the file in Excel to keep them.",
             "ar": f"تُركت {counts['uncached']:,} صيغة بلا نتيجة محفوظة فارغة؛ افتح الملف في Excel واحفظه للاحتفاظ بها."})
+    return _sheet_table("xlsx", sheets, details, chosen, sheet, rows, warnings)
+
+
+def _choose_sheet(sheets, details, sheet):
+    """The named sheet (exactly, then ignoring case), or the default one."""
+    if sheet:
+        chosen = next((s for s in sheets if s["name"] == sheet), None) or next(
+            (s for s in sheets if s["name"].lower() == sheet.strip().lower()), None)
+        if chosen is None:
+            listed = ", ".join(s["name"] for s in sheets)
+            raise DatasetError(422, f"The workbook has no sheet called “{sheet}”. Its sheets: {listed}.",
+                               f"لا يحتوي المصنّف على ورقة باسم «{sheet}». أوراقه: {listed}.")
+        return chosen
+    name = default_sheet(details)
+    return next(s for s in sheets if s["name"] == name)
+
+
+def _sheet_table(fmt, sheets, details, chosen, sheet, rows, warnings):
+    """The chosen sheet as the canonical table, saying which sheet was read
+    and how many title lines above its header were left out."""
     if len(sheets) > 1 and not sheet:
         first_visible = next((s for s in sheets if not s["hidden"]), sheets[0])
         if chosen is first_visible:
@@ -878,7 +921,152 @@ def _read_xlsx(body, sheet=None):
             warnings.append({
                 "en": f"Read the sheet “{chosen['name']}”, the first of {len(sheets)} that looks like a table.",
                 "ar": f"قُرئت الورقة «{chosen['name']}»، وهي أول ورقة من {len(sheets)} تبدو جدولًا."})
-    parsed = _table("xlsx", rows, warnings, [s["name"] for s in sheets])
+    titles = _header_start(rows)
+    if titles:
+        rows = _non_blank(rows)[titles:]
+        lines = "line" if titles == 1 else "lines"
+        warnings.append({
+            "en": f"Left out {titles} title {lines} above the header row.",
+            "ar": f"استُبعدت أسطر العنوان فوق صف عناوين الأعمدة، وعددها {titles}."})
+    parsed = _table(fmt, rows, warnings, [s["name"] for s in sheets])
     parsed.selected_sheet = chosen["name"]
     parsed.sheet_details = details
     return parsed
+
+
+# ---------------------------------------------------------------------------
+# OpenDocument spreadsheets (.ods)
+# ---------------------------------------------------------------------------
+# One part, content.xml, holds every sheet. LibreOffice writes the unused
+# grid as repeated empty rows and cells (a million rows, 16,384 columns):
+# those only move the position and are never expanded. A value past column
+# 500 is refused as in a workbook; a repeated row is copied at most until
+# the row limit is exceeded, so the table reports it.
+
+_ODS_TIME = re.compile(r"^PT(\d+)H(\d+)M(\d+(?:\.\d+)?)S$")
+
+
+def _repeat(attrs, local):
+    try:
+        return max(1, int(_attr(attrs, local) or 1))
+    except ValueError:
+        return 1
+
+
+def _ods_value(attrs):
+    """A typed cell's value as text, the way a workbook's is written; None
+    for text cells, whose value is their paragraphs."""
+    kind = _attr(attrs, "value-type")
+    if kind in ("float", "percentage", "currency"):
+        return _attr(attrs, "value") or ""
+    if kind == "date":
+        value = _attr(attrs, "date-value") or ""
+        day, _, clock = value.partition("T")
+        return day if not clock or clock == "00:00:00" else f"{day} {clock}"
+    if kind == "time":
+        match = _ODS_TIME.match(_attr(attrs, "time-value") or "")
+        if not match:
+            return ""
+        hours, minutes, seconds = match.groups()
+        return f"{int(hours):02d}:{int(minutes):02d}:{int(float(seconds)):02d}"
+    if kind == "boolean":
+        return "TRUE" if (_attr(attrs, "boolean-value") or "").lower() == "true" else "FALSE"
+    return None
+
+
+def _ods_sheets(body):
+    """Every sheet, in order: its name and its non-blank rows."""
+    budget = _Budget()
+    sheets = []
+    state = {"sheet": None, "nested": 0, "row": None, "repeat": 1, "col": 0,
+             "cell": None, "note": 0}
+
+    def start(tag, attrs):
+        local = _local(tag)
+        if local == "table":
+            if state["sheet"] is None:
+                state["sheet"] = {"name": _attr(attrs, "name") or f"Sheet{len(sheets) + 1}",
+                                  "hidden": False, "rows": []}
+            else:
+                state["nested"] += 1
+        elif state["sheet"] is None or state["nested"]:
+            return
+        elif local == "annotation":
+            state["note"] += 1
+        elif local == "table-row":
+            state["row"], state["col"] = {}, 0
+            state["repeat"] = _repeat(attrs, "number-rows-repeated")
+        elif local in ("table-cell", "covered-table-cell") and state["row"] is not None:
+            state["cell"] = {"repeat": _repeat(attrs, "number-columns-repeated"),
+                             "value": _ods_value(attrs), "text": [], "paragraphs": 0}
+        elif state["cell"] is not None and not state["note"]:
+            cell = state["cell"]
+            if local == "p":
+                if cell["paragraphs"]:
+                    cell["text"].append("\n")
+                cell["paragraphs"] += 1
+            elif local == "s":
+                cell["text"].append(" " * min(_repeat(attrs, "c"), 1000))
+            elif local == "tab":
+                cell["text"].append("\t")
+            elif local == "line-break":
+                cell["text"].append("\n")
+
+    def end(tag):
+        local = _local(tag)
+        if local == "table":
+            if state["nested"]:
+                state["nested"] -= 1
+            elif state["sheet"] is not None:
+                sheets.append(state["sheet"])
+                state["sheet"] = None
+        elif state["sheet"] is None or state["nested"]:
+            return
+        elif local == "annotation":
+            state["note"] -= 1
+        elif local in ("table-cell", "covered-table-cell") and state["cell"] is not None:
+            cell, state["cell"] = state["cell"], None
+            value = cell["value"] if cell["value"] is not None else "".join(cell["text"])
+            if value.strip():
+                if state["col"] + cell["repeat"] > MAX_COLUMNS:
+                    raise _too_many_columns()
+                for index in range(state["col"], state["col"] + cell["repeat"]):
+                    state["row"][index] = value
+            state["col"] += cell["repeat"]
+        elif local == "table-row" and state["row"] is not None:
+            values, state["row"] = state["row"], None
+            if values:
+                row = [values.get(i, "") for i in range(max(values) + 1)]
+                rows = state["sheet"]["rows"]
+                for _ in range(min(state["repeat"], MAX_ROWS + 2 - len(rows))):
+                    rows.append(list(row))
+
+    def text(data):
+        cell = state["cell"]
+        if cell is not None and cell["paragraphs"] and not state["note"]:
+            cell["text"].append(data)
+
+    with _open_archive(body) as archive:
+        if "content.xml" not in archive.namelist():
+            raise _bad_workbook("it has no content.xml")
+        _parse_part(archive, "content.xml", budget, start=start, end=end, text=text)
+    if not sheets:
+        raise _bad_workbook("it has no sheets")
+    return sheets
+
+
+def _ods_describe(sheet):
+    rows = sheet["rows"]
+    sample = rows[:SAMPLE_ROWS]
+    return {"name": sheet["name"], "hidden": False,
+            "rows": len(rows) if len(rows) <= MAX_ROWS else None,
+            "columns": max((len(r) for r in rows), default=0),
+            "tabular": _looks_tabular(_non_blank(sample)[_header_start(sample):]),
+            "unreadable": False}
+
+
+def _read_ods(body, sheet=None):
+    sheets = _ods_sheets(body)
+    details = [_ods_describe(s) for s in sheets]
+    chosen = _choose_sheet(sheets, details, sheet)
+    return _sheet_table("ods", sheets, details, chosen, sheet, chosen["rows"], [])

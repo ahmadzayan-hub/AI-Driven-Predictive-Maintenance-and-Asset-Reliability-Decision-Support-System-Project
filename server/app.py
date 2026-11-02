@@ -313,6 +313,18 @@ class JoinIn(BaseModel):
     keys: list[KeyPairIn] = Field(default_factory=list, max_length=joining.MAX_KEYS)
     how: str = Field(default="left", pattern="^(left|inner|stack)$")
     alias: str | None = Field(default=None, max_length=24)
+    # How text keys compare (30 October 2026): exact (the default) or loose,
+    # ignoring letter case and runs of spaces.
+    match: str | None = Field(default=None, pattern="^(exact|loose)$")
+
+
+def _join_dict(join):
+    """A join as the run engine takes it. `match` is left out unless given,
+    so a request written before it existed hashes as it did (idempotency)."""
+    out = join.model_dump()
+    if out.get("match") is None:
+        out.pop("match", None)
+    return out
 
 
 class JoinPreviewIn(BaseModel):
@@ -365,6 +377,10 @@ class MappingIn(BaseModel):
     # The month the fiscal year starts in, 1 to 12; January means the
     # calendar year (27 October 2026).
     fiscal_start: int = Field(default=1, ge=1, le=12)
+    # The values each measure can physically take, {measure: {min, max}}
+    # (31 October 2026); outside them is a data error. Checked by
+    # server.mapping, which explains a refusal in the reader's language.
+    limits: dict[str, dict] | None = Field(default=None, max_length=500)
 
 
 class QueryIn(BaseModel):
@@ -402,7 +418,7 @@ class ConnectorIn(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     url: str = Field(min_length=1, max_length=2000)
     goal: str = Field(min_length=1, max_length=500)
-    format: str | None = Field(default=None, pattern="^(csv|tsv|xlsx|json|jsonl)$")
+    format: str | None = Field(default=None, pattern="^(csv|tsv|xlsx|ods|json|jsonl)$")
     sheet: str | None = Field(default=None, max_length=31)
     every_minutes: int | None = None
     language: str = Field(default="en", pattern="^(en|ar)$")
@@ -1251,7 +1267,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
                                            dataset_id=run.dataset_id,
                                            profile=run.profile,
                                            language=run.language,
-                                           joins=([j.model_dump() for j in run.joins]
+                                           joins=([_join_dict(j) for j in run.joins]
                                                   if run.joins else None),
                                            breakdown=run.breakdown,
                                            assumptions=run.assumptions,
@@ -1284,7 +1300,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         def plan():
             with lock:
                 return engine.join_plan(principal.subject, body.dataset_id,
-                                        [j.model_dump() for j in body.joins],
+                                        [_join_dict(j) for j in body.joins],
                                         body.breakdown)
         try:
             primary, mapping, spec, inputs = await run_in_threadpool(plan)
@@ -1332,7 +1348,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
     async def list_workbook_sheets(
         request: Request,
         name: str = Query(min_length=1, max_length=100),
-        format: str | None = Query(default=None, pattern="^(csv|tsv|xlsx|json|jsonl)$"),
+        format: str | None = Query(default=None, pattern="^(csv|tsv|xlsx|ods|json|jsonl)$"),
         language: str = Query(default="en", pattern="^(en|ar)$"),
         principal=Depends(requires("write")),
     ):
@@ -1342,9 +1358,10 @@ def create_app(config_path=None, env=None, dist_dir=None):
         body = await read_body(request, language)
         filename = re.split(r"[\\/]", name)[-1].strip() or "dataset"
         try:
-            if (format or dataset_reader.detect_format(filename, body)) != "xlsx":
+            fmt = format or dataset_reader.detect_format(filename, body)
+            if fmt not in ("xlsx", "ods"):
                 return {"sheets": [], "default_sheet": None}
-            sheets = await run_in_threadpool(dataset_reader.list_sheets, body)
+            sheets = await run_in_threadpool(dataset_reader.list_sheets, body, fmt)
         except dataset_reader.DatasetError as error:
             raise HTTPException(error.status, detail=error.message(language))
         return {"sheets": sheets, "default_sheet": dataset_reader.default_sheet(sheets)}
@@ -1353,7 +1370,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
     async def upload_dataset(
         request: Request,
         name: str = Query(min_length=1, max_length=100),
-        format: str | None = Query(default=None, pattern="^(csv|tsv|xlsx|json|jsonl)$"),
+        format: str | None = Query(default=None, pattern="^(csv|tsv|xlsx|ods|json|jsonl)$"),
         sheet: str | None = Query(default=None, max_length=31),
         language: str = Query(default="en", pattern="^(en|ar)$"),
         principal=Depends(requires("write")),

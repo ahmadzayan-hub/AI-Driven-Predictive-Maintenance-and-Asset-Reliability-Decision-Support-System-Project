@@ -1115,6 +1115,248 @@ cd frontend && npm run typecheck
 python scripts/verify.py
 ```
 
+### Decision stages on the Assets screen: 31 October 2026
+
+Interface change ([decision](docs/adr/2026-10-31-decision-stages-on-assets.md)):
+the Assets screen shows the latest maintenance run's data-health line and, for
+each decision stage that made claims (reliability, risk ranking, scenarios),
+its title and claims in the run's language. No new interface string; the room
+came from shortening six Operations help strings in both languages (script
+total 257,090 of 257,100 bytes, no raise).
+
+
+### Declared risk options: 2 November 2026
+
+Analysis change ([decision](docs/adr/2026-11-02-declared-risk-options.md)):
+the risk ranking takes two stage options in `config.json`, `horizon_days`
+(default 90) and `criticality_weights` (default none). Weights multiply the
+ranking value only when every criticality label in the data has one;
+otherwise nothing is weighted and the claim names what is missing. Invalid
+options fail at stage load. With no options set, results are unchanged.
+
+Checked by the full Python suite against PostgreSQL 16 (2,514 tests, 20
+skipped, 6 of them new), 569 frontend unit tests, the build and budget
+(unchanged; no interface change).
+### Drift alerts for live sources: 31 October 2026
+
+Platform change ([decision](docs/adr/2026-10-31-snapshot-drift.md)): each new
+snapshot of a live source is compared with the previous one. Columns added or
+removed, a row count halved or doubled, a numeric median moving by half its
+previous spread, or empty cells moving by 10 points are stated in a note in
+the source's language, beside the refresh, asking the reader to check the
+source before approving. The analysis still runs; nothing is blocked. The
+refresh result carries the findings as `drift`.
+
+Checked by the full Python suite against PostgreSQL 16 (2,485 tests, 19
+skipped, 9 of them new), 542 frontend unit tests, the build and budget
+(unchanged; no interface change).
+
+### Data health: 31 October 2026
+
+Analysis change ([decision](docs/adr/2026-10-31-data-health.md)): every run
+now states, after cleaning, the share of measure values usable as recorded,
+and names each loss: empty, marked missing, unreadable, or outside a declared
+limit. Unusual values are still used and are counted among the usable ones.
+The figure is the first line of the report's *Data policy applied* section, in
+English and Arabic. The existing quality score over the raw table is
+unchanged.
+
+Checked by the full Python suite against PostgreSQL 16 (2,476 tests, 19
+skipped, 5 of them new), 542 frontend unit tests, the build and budget
+(unchanged; no interface change).
+
+### What-if scenarios for planned replacement: 31 October 2026
+
+Analysis change ([decision](docs/adr/2026-10-31-what-if-scenarios.md)): on the
+`maintenance` profile a new stage, `what_if_scenarios`, compares servicing or
+replacing each asset class every T running days with running it to failure:
+failures, planned jobs and cost per 1,000 asset-days, from the class's failure
+pattern and its recorded failure and preventive costs. Intervals are the
+owner's (stage option `intervals_days`) or a quarter, half and three quarters
+of the average life; the lowest-cost interval is named only when it saves
+cost. A class without a wear pattern is told that planned replacement does not
+reduce its failures. Two existing claims that failed validation on data with
+work-order types now cite every figure they state, in both languages.
+
+Checked by the full Python suite against PostgreSQL 16 (2,471 tests, 19
+skipped, 14 of them new), 542 frontend unit tests, the build and budget
+(unchanged; no interface change).
+
+### Risk ranking of assets: 31 October 2026
+
+Analysis change ([decision](docs/adr/2026-10-31-risk-ranking.md)): on the
+`maintenance` profile a new stage, `risk_ranking`, gives each asset its chance
+of failing within the next 90 days, from its class's failure pattern and the
+days since its last failure, and multiplies it by the class's recorded cost
+per failure. Assets are ranked by that expected cost (or by the chance alone
+when costs are missing, which the report says). Criticality is shown, not
+weighted. The top three become recommendation claims in English and Arabic;
+an asset that has run longer than any failure interval seen in its class is
+called an extrapolation and left unverified. A proposal for engineering
+review, not a work order.
+
+Checked by the full Python suite against PostgreSQL 16 (2,457 tests, 19
+skipped, 11 of them new), 542 frontend unit tests, the build and budget
+(unchanged; no interface change).
+
+### Reliability model per asset class: 31 October 2026
+
+Analysis change ([decision](docs/adr/2026-10-31-reliability-model.md)): on the
+`maintenance` profile a new stage, `reliability_model`, reads the days between
+failures for each asset from `Asset_ID`, `Record_Date` and `Failure_Count`,
+counts assets still running as surviving to the latest date, and fits a
+Weibull failure pattern per asset class. Each claim says whether failures come
+early in life, at random or with wear (named only when the whole likely range
+agrees), by when about 10% fail, and the average life, in English and Arabic.
+It estimates a class pattern, not one asset's remaining life. The governance
+stage's uneven-periods finding now cites every figure it states, in both
+languages.
+
+Checked by the full Python suite against PostgreSQL 16 (2,446 tests, 19
+skipped, 13 of them new), 542 frontend unit tests, the build and budget
+(unchanged; no interface change).
+
+### The data policy applied: 31 October 2026
+
+Analysis change ([decision](docs/adr/2026-10-31-data-policy.md)): unusual
+values are judged within each group of the breakdown and by ratio for positive
+measures that lean high, and are still kept; when they move a measure's
+average by 10% or more, the report gives the average with and without them.
+The association model fills a gap in the column beside the measure with its
+group's median (never the measure, and not when more than 30% is missing),
+flags it as `<column>_filled`, and states the result with and without the
+fill; no stored row changes. Every full report states the policy it applied,
+in its language, and the mapping panel sets each measure's allowed range.
+
+Checked by the full Python suite against PostgreSQL 16 (2,433 tests, 19
+skipped, 13 of them new), 542 frontend unit tests (2 new), the build and
+budget (257,099 of 257,100 bytes after trimming), and the mapping and intake
+journeys on desktop and phone (10 cases).
+
+### Validity limits per measure: 31 October 2026
+
+Analysis change ([decision](docs/adr/2026-10-31-validity-limits.md)): a mapping
+may declare the lowest and highest value a measure can hold (for example hours
+from 0 to 24). The cleaner leaves a value outside its limit out of every figure,
+records its row, value and the limit it broke so the exclusion can be reversed,
+and states it as a limitation claim tied to a calculation in English and Arabic.
+The profile no longer counts such values. Without declared limits nothing
+changes. The mapping panel sets them as *Allowed range* (see the data policy above).
+
+Checked by the full Python suite against PostgreSQL 16 (2,420 tests, 19
+skipped, 11 of them new), 540 frontend unit tests, the build and budget.
+
+### Understanding and cleaning the data: 30 October 2026
+
+Analysis change ([decision](docs/adr/2026-10-30-data-understanding-and-cleaning.md)):
+the Data Profiling Agent now reports each measure's range and median, values far
+outside its usual range with their source rows, negative values, and columns
+that are mostly empty or hold one value, each as a claim tied to a calculation,
+in English and Arabic. The cleaner reads `N/A`, `-`, `غير متوفر` and similar as
+missing in number columns (counted apart, still recorded for reversal, and no
+longer stopping a column from being numeric), and names categories spelled two
+ways without merging them. Nothing is imputed or removed: values are flagged,
+never changed, until the owner sets a policy.
+
+Checked by the full Python suite against PostgreSQL 16 (2,409 tests, 19
+skipped, 11 of them new), 540 frontend unit tests, the build and budget, and
+the runs, intake, Arabic, journey and accessibility journeys on desktop and
+phone (28 cases).
+
+### The Python suite runs in parallel: 30 October 2026
+
+Tooling change ([decision](docs/adr/2026-10-30-parallel-python-tests.md)):
+`scripts/run_python_tests.py` runs the Python suite on one worker per CPU, in
+heaviest-first batches, and `verify` uses it. PostgreSQL tests get a database
+per worker where the server allows it; otherwise they run in one batch, as
+before. Files that create roles never overlap, and the Python step waits for
+the production build because some tests read it. CI keeps `unittest discover`.
+
+Measured here (4 CPUs, PostgreSQL 16): a full `verify` took 220 s and 225 s in
+two runs, against about 540 s before; the Python step alone 182 to 220 s
+against about 520 to 560 s. Both runs: all 8 steps passed, 2,398 Python tests
+(19 skipped), 540 frontend unit tests.
+
+### A second, smaller text trim: 30 October 2026
+
+Interface text only ([decision](docs/adr/2026-10-30-loose-join-keys.md),
+Budget): the maintenance preview's method note and condition thresholds, the
+target colour legend and range help, and the sheet help were shortened in
+English and Arabic alike, with every formula, price and score band unchanged.
+137 bytes freed: script total 256.88 of 257.1 KB, 220 bytes spare. Most long
+strings left are checked word for word by tests, so a further pass would return
+little. Checked by 540 frontend unit tests, the build and budget, and the
+dashboard, intake, datasets, Arabic, accessibility and metric-colour journeys
+on desktop and phone (38 cases).
+
+### Shorter interface text, a loose-key box and .ods named: 30 October 2026
+
+Interface change ([decision](docs/adr/2026-10-30-loose-join-keys.md), Budget
+and point 6): the longest interface strings were shortened in English and
+Arabic alike, keeping every limit, number, privacy and approval statement and
+every phrase a test checks. That freed 272 bytes of script. With it, each keyed
+join in the builder has a box to ignore letter case and spaces in its keys, the
+preview names how many more rows that would match, and the upload help and
+format limits name OpenDocument `.ods`. Script total 257.0 of 257.1 KB, no
+ceiling raise; first load 99.4 KB, down from 99.6.
+
+### Join keys that differ only in case or spaces: 30 October 2026
+
+Analysis change ([decision](docs/adr/2026-10-30-loose-join-keys.md)): a join
+may declare `"match": "loose"`, so text keys compare ignoring letter case and
+spaces (`PUMP-01` matches `pump-01 `); numbers and dates compare as before, and
+a lookup whose keys repeat only once loosened is refused. Every join now
+reports how many rows matched only because it was loose, or, for an exact join,
+how many unmatched rows a loose one would have matched; the merge stage states
+these as claims tied to calculations. Exact joins, saved declarations and
+request hashes are unchanged. Server side only: the join builder does not offer
+the option yet.
+
+Checked by the full Python suite against PostgreSQL 16 (2,391 tests, 19
+skipped, 8 of them new), 536 frontend unit tests, and the build and budget.
+
+### OpenDocument spreadsheets are read: 30 October 2026
+
+Reader change ([decision](docs/adr/2026-10-30-opendocument-spreadsheets.md)):
+an `.ods` file, LibreOffice's default format, uploads and is read like an Excel
+workbook, with the same sheet choice, warnings, title-line detection and sheet
+listing, and is stored as `ods`. The repeated empty cells and rows LibreOffice
+writes for the unused grid are never expanded; the column and row limits, the
+XML budget and the document type refusal apply as for workbooks. The file
+picker accepts `.ods`; the upload help text does not name it yet, to stay within
+the script budget (257.07 of 257.1 KB).
+
+Checked by the full Python suite against PostgreSQL 16 (2,383 tests, 19
+skipped, 10 of them new: the reader on its own and the API on SQLite and
+PostgreSQL), 536 frontend unit tests, and the production build and budget.
+
+### A failed workbook upload offers its sheets: 30 October 2026
+
+Interface change ([decision](docs/adr/2026-10-30-sheet-picker-after-failure.md)):
+when a workbook's default sheet cannot be read, the Datasets and Runs screens
+ask the server for its sheets (`POST /api/datasets/sheets`, which stores
+nothing) and show the existing sheet picker beside the error, so another sheet
+can be chosen and the file uploaded again. Only Excel files trigger the call;
+no new string, component or style. The total script ceiling is 257.1 KB, up
+from 257 KB after trimming was tried; first load and the largest chunk are
+unchanged.
+
+Checked by the full Python suite against PostgreSQL 16 (2,373 tests, 19
+skipped), 536 frontend unit tests (3 new), the production build and budget,
+and the datasets, intake and runs journeys on desktop and phone (18 cases).
+
+### Workbook title lines are left out with a warning: 30 October 2026
+
+Reader change ([decision](docs/adr/2026-10-30-workbook-title-lines.md)): a
+workbook whose table sits below a report title or a date line now uploads. Up
+to five lines of one value each above a header are left out, and the upload
+says how many in English and Arabic. The sheet listing counts such a sheet as a
+table, so it can be the default after a cover. Tables that read correctly
+before read the same way; CSV, TSV and JSON are unchanged. No interface change.
+
+Checked by the full Python suite against PostgreSQL 16 (2,373 tests, 19
+skipped, including 4 new workbook tests) and 533 frontend unit tests.
+
 ### Agent cards: each stage shows its evidence; hosted migration packaged — 28 October 2026
 
 Interface change ([decision](docs/adr/2026-10-28-agent-cards.md)): each stage

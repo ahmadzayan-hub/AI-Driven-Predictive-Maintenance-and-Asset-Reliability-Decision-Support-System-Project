@@ -1927,6 +1927,73 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Next: reviewed clean-branch publication/hosted CI and a separately validated
   local release that retains existing local-only report functionality.
 
+## 2026-10-31 · `d9e3f889` · claude/tender-clarke-m4uwgq (decision stages on the Assets screen)
+
+**Goal:** the owner chose "Screen for R1–R5".
+
+- **Done:** the Assets screen shows the latest maintenance run's data-health line and each decision stage's title and claims (R1 to R3) in the run's language; R5 already shows beside a live refresh. Stage summaries now bilingual. No new interface string. Trimmed six Operations help strings in both languages (one trim that grew the gzip total was reverted); script 257,090 of 257,100 bytes, no raise. Decision record `docs/adr/2026-10-31-decision-stages-on-assets.md`. Brain maintenance also ran today (`d21d016`).
+- **Verified:** full verify all 8 steps passed (2,485 Python tests on PostgreSQL, 19 skipped; 544 frontend unit tests, 2 new); Playwright operations, overview, responsive and visual-system specs 19 passed, 3 skipped, desktop and phone, no screenshot change.
+- **Next:** the owner's numbers (criticality weights, horizon, intervals, drift thresholds); merge to main needs explicit approval.
+
+## 2026-10-31 · `d9e3f889` · claude/tender-clarke-m4uwgq (R5 snapshot drift)
+
+**Goal:** build slice R5 on the owner's instruction.
+
+- **Done:** `server/drift.py` compares each live snapshot with the previous one on four stated rules (columns, rows halved or doubled, median moving half the previous spread, empty cells moving 10 points); the alert is a note in the source's language beside the refresh, never a block; the refresh result carries `drift`. Decision record `docs/adr/2026-10-31-snapshot-drift.md`. Completes the R1 to R5 list.
+- **Verified:** 9 new tests (recorded snapshots through the fetcher seam). Full verify: all 8 steps passed; 2,485 Python tests on PostgreSQL (19 skipped), 542 frontend unit tests, build and budget unchanged.
+- **Open:** a real external host still untested from this environment; per-source thresholds need the owner's numbers.
+
+## 2026-10-31 · `d9e3f889` · claude/tender-clarke-m4uwgq (R4 data health)
+
+**Goal:** build slice R4 on the owner's instruction.
+
+- **Done:** the cleaner states data health: the share of measure values usable as recorded after cleaning, each loss named (empty, marked missing, unreadable, outside a limit), unusual values counted as usable; first line of the report's policy section in both languages. Kept the existing raw quality score unchanged rather than altering its formula. Decision record `docs/adr/2026-10-31-data-health.md`.
+- **Verified:** 5 new tests. Full verify: all 8 steps passed; 2,476 Python tests on PostgreSQL (19 skipped), 542 frontend unit tests, build and budget unchanged. A first verify failed only because PostgreSQL had stopped after the session resumed.
+- **Next:** R5 drift alerts for live sources.
+
+## 2026-10-31 · `d9e3f889` · claude/tender-clarke-m4uwgq (R3 what-if scenarios)
+
+**Goal:** build slice R3 on the owner's instruction.
+
+- **Done:** new `what_if_scenarios` stage on the `maintenance` profile: planned replacement every T running days against run to failure per class (age-replacement model), failures, planned jobs and cost per 1,000 asset-days from recorded failure and preventive costs; declared intervals as the stage option `intervals_days`; lowest-cost interval named only when it saves; no-wear classes told planned replacement does not help. Fixed two existing claims that failed validation on exports with `Work_Order_Type`. Decision record `docs/adr/2026-10-31-what-if-scenarios.md`.
+- **Verified:** 14 new tests including the optimality condition and a governed run in both languages. Full verify: all 8 steps passed; 2,471 Python tests on PostgreSQL (19 skipped), 542 frontend unit tests, build and budget unchanged.
+- **Next:** R4 data health score; the owner still owes criticality weights and the planning horizon.
+
+## 2026-10-31 · `d9e3f889` · claude/tender-clarke-m4uwgq (R2 risk ranking)
+
+**Goal:** build slice R2 on the owner's instruction.
+
+- **Done:** new `risk_ranking` stage on the `maintenance` profile: chance of failing within 90 days per asset from its class's R1 pattern and days since its last failure, times the class's recorded cost per failure; ranked by expected cost, or by chance when costs are missing. Criticality shown, not weighted. Top three as recommendation claims; ages beyond the longest interval seen are called extrapolations and left unverified. Decision record `docs/adr/2026-10-31-risk-ranking.md`.
+- **Verified:** 11 new tests including a governed run in both languages. Full verify: all 8 steps passed; 2,457 Python tests on PostgreSQL (19 skipped), 542 frontend unit tests, build and budget unchanged.
+- **Decided:** no criticality weights and a fixed 90-day horizon until the owner gives numbers.
+- **Next:** R3 what-if scenarios.
+
+## 2026-10-31 · `d9e3f889` · claude/tender-clarke-m4uwgq (R1 reliability model)
+
+**Goal:** review every stage from intake to video, then build slice R1, the reliability model, on the owner's instruction.
+
+- **Done:** stage review delivered in chat (R1 to R5 ranked). New `reliability_model` stage on the `maintenance` profile: days between failures per asset, running assets censored, Weibull fit per asset class with a profile-likelihood range; pattern named only when the range agrees, otherwise unverified. Fixed the governance uneven-periods finding, which cited none of its per-year counts and dropped them in Arabic, failing validation on any unevenly spread maintenance run. Decision record `docs/adr/2026-10-31-reliability-model.md`.
+- **Verified:** 13 new tests, including a governed maintenance run that reaches approval with the validator passing in both languages. Full verify: all 8 steps passed; 2,446 Python tests on PostgreSQL (19 skipped), 542 frontend unit tests, build and budget unchanged.
+- **Decided:** server and report only, no interface change (script budget has 1 byte left).
+- **Next:** R2, risk ranking (probability from R1 × criticality × cost).
+
+## 2026-10-31 · `d9e3f889` · claude/tender-clarke-m4uwgq (data policy points 2 to 4 and the limits control)
+
+**Goal:** apply the rest of the owner's data policy.
+
+- **Done:** unusual values judged per group of the breakdown and by ratio for positive measures leaning high (quartile skew ≥ 0.25), still kept; both averages stated when the effect is ≥ 10% (`cl_outlier_effect`). The association model fills gaps in the other column by group median, at most 30% missing, never the measure, with a flag column and the result with and without (`cl_fill_n`, `filled_for_model`). A *Data policy applied* section in every full report, in both languages. *Allowed range* in the mapping panel, sent by the transport; refusals shown at the measure. Decision record `docs/adr/2026-10-31-data-policy.md`.
+- **Verified:** verify with PostgreSQL, all 8 steps: 2,433 Python tests (19 skipped, 13 new), 542 frontend unit tests (2 new), build, budget 257,099 of 257,100 bytes; Playwright mapping and intake, 10 of 10 on desktop and phone.
+- **Decided:** no ceiling raise: three help strings were shortened in both languages and limit errors sit at the measure field. Time interpolation not applied, because the association model reads rows, not one series per asset.
+- **Next:** script headroom is now 1 byte, so the next interface change must trim or record a raise. Open owner actions unchanged.
+
+## 2026-10-31 · `d9e3f889` · claude/tender-clarke-m4uwgq (data policy point 1: validity limits)
+
+**Goal:** apply the owner's approved four-point data policy, starting with validity limits per measure.
+
+- **Done:** mappings may declare `limits` per measure, validated in both languages; the cleaner leaves values outside them out of every figure, records each for reversal (`invalid_values`) and states it as `cl_invalid_values` tied to `c_invalid_values`; the profiler stops counting them; Arabic display names; the API field. Decision record `docs/adr/2026-10-31-validity-limits.md`, README, progress board, decision log.
+- **Verified:** `scripts/verify.py` with PostgreSQL, all 8 steps: 2,420 Python tests (19 skipped, 11 new), 540 frontend unit tests, build, budget unchanged (256.9 of 257.1 KB).
+- **Decided:** limits come only from the person who knows the data; no limits, no change. The interface control is a separate step against the 220-byte script headroom.
+- **Next:** the mapping panel control for limits; policy point 2 (outliers per group and on a log scale, with and without at a 10% effect), point 3 (imputation in modelling only, flagged, sensitivity check, never the target), point 4 (each report states the policy).
 
 ## 2026-10-26 - PR63 current-main statistical wording verification
 

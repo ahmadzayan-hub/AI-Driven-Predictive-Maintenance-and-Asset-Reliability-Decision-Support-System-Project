@@ -6,8 +6,11 @@
     python scripts/verify.py --quick    # Python suite, brain, typecheck and unit tests only
     python scripts/verify.py --list     # print the steps; run nothing
 
-It runs the same commands as CI (.github/workflows/ci.yml), plus the brain
-check and the interface budget from docs/UI_PLAN.md, and prints one line per
+It runs the same checks as CI (.github/workflows/ci.yml), plus the brain
+check and the interface budget from docs/UI_PLAN.md. The Python suite is the
+same tests as CI's `unittest discover`, run in parallel by
+scripts/run_python_tests.py; steps that do not depend on each other also run
+side by side. It prints one line per
 step with the counts the tools reported. A failed step prints the end of its
 output, and the script exits 1. Standard library only.
 
@@ -22,6 +25,7 @@ import re
 import subprocess
 import sys
 import time
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -47,6 +51,8 @@ DIST = FRONTEND / "dist"
 # Fonts are the subsets scripts/subset_fonts.py writes (U19, 23 October):
 # 86 KB measured, 100 KB allowed.
 # Source handoff total-only allocation: ADR 2026-10-23-run-source-handoff.
+# The sheet picker after a failed workbook upload adds 0.1 KB to the total
+# only: docs/adr/2026-10-30-sheet-picker-after-failure.md.
 # Explicit session recovery allocation: ADR 2026-11-02-session-scope-recovery.
 BUDGET_KB = {"js": 100, "js_total": 272, "js_chunk": 30, "css": 10.5, "css_total": 36.5,
              "fonts": 145}
@@ -73,12 +79,14 @@ class Step:
 
 
 def summarise_unittest(output):
-    ran = re.search(r"Ran (\d+) tests?", output)
-    skipped = re.search(r"skipped=(\d+)", output)
+    # The last counts: the parallel runner prints a failed batch's own output
+    # above the combined line, and plain unittest prints them once.
+    ran = re.findall(r"Ran (\d+) tests?", output)
+    skipped = re.findall(r"skipped=(\d+)", output)
     if not ran:
         return ""
-    text = f"{ran.group(1)} tests"
-    return text + (f", {skipped.group(1)} skipped" if skipped else "")
+    text = f"{ran[-1]} tests"
+    return text + (f", {skipped[-1]} skipped" if skipped else "")
 
 
 def summarise_vitest(output):
@@ -158,9 +166,14 @@ def steps():
         Step("Server dependencies", [python, "-c",
              "from fastapi.testclient import TestClient; import httpx, jwt, psycopg2, uvicorn"],
              groups={"quick", "full", "e2e"}),
-        Step("Python tests", [python, "-m", "unittest", "discover", "tests"],
+        # Parallel, a PostgreSQL database per worker where the server allows
+        # it (scripts/run_python_tests.py); the same tests as `discover`.
+        # Some Python tests read frontend/dist, which the build empties and
+        # rewrites: they wait for it (about 8 s) rather than read a half-written
+        # build. In --quick there is no build, so nothing to wait for.
+        Step("Python tests", [python, "scripts/run_python_tests.py"],
              summarise=summarise_unittest, groups={"quick", "full", "e2e"},
-             needs=("Server dependencies",)),
+             needs=("Server dependencies", "Production build")),
         Step("Brain check", [python, "scripts/brain_check.py", "--strict"],
              summarise=summarise_brain, groups={"quick", "full", "e2e"}),
         Step("Type check", [npm, "run", "typecheck"], cwd=FRONTEND,
@@ -199,6 +212,50 @@ def run(step):
     return done.returncode == 0, detail, output, time.monotonic() - started
 
 
+def run_steps(chosen):
+    """Run steps side by side, each as soon as the steps it needs have passed.
+
+    The Python suite takes minutes; the type check, unit tests and brain check
+    do not depend on it, so they no longer wait behind it. A step whose needed
+    step failed is reported as not run. Returns the names of the failed steps.
+    """
+    names = {s.name for s in chosen}
+    waiting = list(chosen)
+    running = {}
+    finished = set()
+    failed = []
+    with ThreadPoolExecutor(max_workers=max(1, len(chosen))) as pool:
+        while waiting or running:
+            for s in list(waiting):
+                blocked = [name for name in s.needs if name in failed]
+                if blocked:
+                    waiting.remove(s)
+                    failed.append(s.name)
+                    print(f"FAIL {s.name:20} {0:6.1f}s  not run: {', '.join(blocked)} failed", flush=True)
+                elif all(name in finished or name not in names for name in s.needs):
+                    waiting.remove(s)
+                    print(f"… {s.name}", flush=True)
+                    running[pool.submit(run, s)] = s
+            if not running:
+                for s in waiting:
+                    failed.append(s.name)
+                    print(f"FAIL {s.name:20} {0:6.1f}s  never ready: its needs did not finish", flush=True)
+                break
+            done, _ = wait(running, return_when=FIRST_COMPLETED)
+            for future in done:
+                s = running.pop(future)
+                ok, detail, output, seconds = future.result()
+                mark = "PASS" if ok else "FAIL"
+                print(f"{mark} {s.name:20} {seconds:6.1f}s  {detail}", flush=True)
+                if ok:
+                    finished.add(s.name)
+                else:
+                    failed.append(s.name)
+                    tail = "\n".join(output.rstrip().splitlines()[-40:])
+                    print("    " + tail.replace("\n", "\n    "))
+    return failed
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     mode = parser.add_mutually_exclusive_group()
@@ -230,21 +287,7 @@ def main(argv=None):
             print(f"{s.name:20} {' '.join(Path(c).name if i == 0 else c for i, c in enumerate(s.command))}{where}")
         return 0
 
-    failed = []
-    for s in chosen:
-        print(f"… {s.name}", flush=True)
-        blocked = [name for name in s.needs if name in failed]
-        if blocked:
-            failed.append(s.name)
-            print(f"FAIL {s.name:20} {0:6.1f}s  not run: {', '.join(blocked)} failed", flush=True)
-            continue
-        ok, detail, output, seconds = run(s)
-        mark = "PASS" if ok else "FAIL"
-        print(f"{mark} {s.name:20} {seconds:6.1f}s  {detail}", flush=True)
-        if not ok:
-            failed.append(s.name)
-            tail = "\n".join(output.rstrip().splitlines()[-40:])
-            print("    " + tail.replace("\n", "\n    "))
+    failed = run_steps(chosen)
     print()
     if failed:
         print(f"{len(failed)} of {len(chosen)} steps failed: {', '.join(failed)}")

@@ -518,8 +518,9 @@ class RunEngine:
             # The run keeps its own copy of each joined mapping, as it does
             # of the main one, so a later change never reaches it.
             joins_json = json.dumps({
-                "joins": [{key: item[key] for key in
-                           ("dataset_id", "alias", "how", "keys", "mapping")}
+                "joins": [{**{key: item[key] for key in
+                              ("dataset_id", "alias", "how", "keys", "mapping")},
+                           **({"match": item["match"]} if item.get("match") else {})}
                           for item in inputs],
                 "breakdown": spec["breakdown"]}, ensure_ascii=False)
             joined_names = [item["name"] for item in inputs]
@@ -1268,7 +1269,8 @@ class RunEngine:
             decision["approval"] = ({"state": gate["state"], "decided_at": gate["decided_at"],
                                      "decided_by": gate.get("decided_by")} if gate else None)
         declared = json.loads(run.get("joins_json") or "{}")
-        joins = [{key: item.get(key) for key in ("dataset_id", "alias", "how", "keys")}
+        joins = [{**{key: item.get(key) for key in ("dataset_id", "alias", "how", "keys")},
+                  **({"match": item["match"]} if item.get("match") else {})}
                  for item in declared.get("joins") or []]
         return {"id": run["id"], "goal": run["goal"],
                 "execution": {"mode": self.execution_mode, "poll_after_ms": 2500},
