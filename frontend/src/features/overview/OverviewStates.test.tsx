@@ -61,7 +61,12 @@ it('greets the reader with counted analyses and one action, inventing nothing', 
   expect(brief.querySelector('.brief__greeting')).toHaveTextContent(/^Good (morning|afternoon|evening), Synthetic Reader\.$/)
   expect(within(brief).getByText('Miyaar has 1 analyses closed and 1 waiting for your approval.')).toBeInTheDocument()
   expect(within(brief).getByText('Analyses started, last 14 days')).toBeInTheDocument()
-  // Review opens the analysis that has waited longest, not a generic inbox.
-  fireEvent.click(within(brief).getByRole('button', { name: 'Review' }))
+  // One primary action: the brief defers to the next-step card, whose review
+  // opens the analysis that has waited longest, not a generic inbox.
+  expect(within(brief).queryByRole('button')).toBeNull()
+  const nextStep = screen.getByRole('region', { name: /awaiting your review/ })
+  const actions = within(nextStep).getAllByRole('button').filter((b) => !b.closest('details'))
+  expect(actions).toHaveLength(1)
+  fireEvent.click(actions[0])
   expect(onOpenRun).toHaveBeenCalledWith('synthetic-running')
 })

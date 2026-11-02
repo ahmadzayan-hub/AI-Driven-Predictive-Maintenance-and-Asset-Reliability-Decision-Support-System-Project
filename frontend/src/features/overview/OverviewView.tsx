@@ -220,8 +220,10 @@ export function OverviewView({ onOpenRun, onStart, onAddDataset, onApprovals, on
             ? j('briefWaiting', { closed: formatNumber(counts.finished), waiting: formatNumber(counts.waiting) })
             : j('briefClear', { closed: formatNumber(counts.finished) })}
         </p>
+        {/* One primary action per screen: when a report waits, the next-step
+            card beside this brief carries the review button. */}
         {waiting.length > 0
-          ? <button type="button" className="btn btn--primary" onClick={() => onOpenRun(waiting[0].id)}><Icon name="shield" size={16} />{t('overview.review')}</button>
+          ? null
           : canStart ? <button type="button" className="btn btn--primary" onClick={() => onStart({ kind: 'upload' })}><Icon name="plus" size={16} />{t('overview.start')}</button> : null}
       </div>
       <div className="brief__trend">
@@ -287,8 +289,10 @@ export function OverviewView({ onOpenRun, onStart, onAddDataset, onApprovals, on
     <section className="panel" aria-label={t('overview.aria')}>
       <div className="panel__inner panel__inner--wide">
         {header}
-        {briefing}
-        {next(runs)}
+        <div className="overview__top">
+          {briefing}
+          {next(runs)}
+        </div>
 
         {source ? <CommandCentre run={source} brief={brief} failed={briefFailed} onOpenDashboard={onOpenDashboard} /> : null}
 

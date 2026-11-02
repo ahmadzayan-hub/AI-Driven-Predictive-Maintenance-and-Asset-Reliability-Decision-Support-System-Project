@@ -230,6 +230,7 @@ One line per record, read from its title and decision; the record itself is the 
 | 2026-10-31-snapshot-drift | Each live snapshot compared with the previous one on four stated rules; a note, never a block; findings in the refresh result | [[Data quality contracts]] |
 | 2026-10-31-decision-stages-on-assets | The Assets screen shows data health and the decision stages' claims in the run language; no new string; room from trimming six Operations strings | [[Design system]] |
 | 2026-11-02-declared-risk-options | Risk ranking takes a declared horizon and criticality weights as stage options; defaults unchanged; weights apply only when every label has one, otherwise the gap is named; invalid options fail at load | [[Evidence and claims]] |
+| 2026-11-02-command-centre-pilot | Command Centre redesign pilot: one primary action, brief and next step side by side, larger headline, KPI tiles; no data or string change, no budget raise | [[Design system]] |
 
 - `2026-10-27-assistant-focus-and-context`: isolated candidate; native report disclosure beside composer, scoped session status and stronger first action. Browser acceptance pending.
 
