@@ -100,9 +100,11 @@ test('the opening shows governed KPIs and a real comparison before the detailed 
   if (testInfo.project.name === 'desktop') {
     await expect(featured.first()).toBeInViewport({ ratio: 1 })
     // The requested central Jarvis stage now sits between the KPIs and chart.
-    // Keep its presence measurable; the exact-value comparison remains below it.
+    // At 720px height the four governed cards occupy the opening. Scroll each
+    // following section into view, then require its entire surface to be visible.
     const core = page.locator('.jarvis-core')
-    await expect(core).toBeInViewport({ ratio: 0.5 })
+    await core.scrollIntoViewIfNeeded()
+    await expect(core).toBeInViewport({ ratio: 1 })
     expect((await core.boundingBox())!.y).toBeLessThan((await chart.boundingBox())!.y)
     await chart.scrollIntoViewIfNeeded()
     await expect(chart).toBeInViewport({ ratio: 1 })
