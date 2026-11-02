@@ -1,5 +1,12 @@
 # Project progress
 
+PR81 merged as `a0e2cf5` with a tree identical to tested head `76a442a`.
+Its pre-merge GitHub Actions passed. The subsequent main WebKit phone job
+found a run-start click race while optional profile metadata inserted a field.
+A bounded follow-up guards submission until metadata settles and strengthens
+the existing late-response regression. Exact validation belongs in README;
+production backup, database identity and managed-auth gates remain unchanged.
+
 Jarvis recovery (2 November): the disposable demo-store replacement left cached session/report IDs stale. Added explicit missing/ended-session replacement with draft preservation, conversation-only verification before manual resend, exact-scope session renewal and actionable report reselection. Central radial voice console and existing six dashboard pages remain integrated. Concurrent remote neutral-fixture naming is retained. Local broad validation hit severe memory pressure; full exact-head hosted CI remains the merge gate. The wider uploaded-reference all-pages redesign is still an acceptance task, not claimed complete by this bounded repair.
 
 Jarvis OS hackathon (2 November): implemented in an isolated checkout from `6d87d79`. Explicit data context, deterministic evidence queries, follow-up, missing-data abstention, tab-local human review and opt-in voice controls. Synthetic launcher/browser evidence documented in `docs/JARVIS_HACKATHON.md`; exact executed checks are in README. Actual LLM/device voice and hosted database/auth/recovery acceptance remain separate gates.

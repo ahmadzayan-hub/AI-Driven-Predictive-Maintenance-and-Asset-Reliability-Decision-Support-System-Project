@@ -263,6 +263,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
   // Custom stages and profiles (ADR 0020). The picker exists only when
   // an operator configured profiles; a default install shows nothing.
   const [pipelines, setPipelines] = useState<Pipelines | null>(null)
+  const [pipelinesLoading, setPipelinesLoading] = useState(true)
   const [profile, setProfile] = useState<string>(preset?.profile ?? '')
   // Other stored datasets joined onto the main one (ADR 0030).
   const [downloading, setDownloading] = useState(false)
@@ -357,6 +358,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
       .catch(() => {
         /* an older server without the endpoint: no picker */
       })
+      .finally(() => { if (!cancelled) setPipelinesLoading(false) })
     return () => {
       cancelled = true
     }
@@ -385,6 +387,9 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
     }
     if (!goal.trim()) return
     if (assumptions === null) { setErrorMessage(tDecision('decision.invalid')); return }
+    // The profile picker can move the submit button while a pointer is down.
+    // Settle its optional metadata before accepting a click or form submission.
+    if (pipelinesLoading) return
     starting.current = true
     setBusy(true)
     setErrorMessage(null)
@@ -732,8 +737,8 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                 <p className="panel__note">{t('intake.limits')}</p>
               </details>
               <div className="field">
-                <button type="submit" className="btn btn--primary" disabled={busy || uploading !== null || !goal.trim() || (source === 'stored' && !storedId) || (source === 'upload' && !uploaded && !csvDraft.trim())}>
-                  {busy ? <span className="spinner" aria-hidden="true" /> : <Icon name="sparkle" size={16} />}
+                <button type="submit" className="btn btn--primary" aria-busy={pipelinesLoading || busy} disabled={pipelinesLoading || busy || uploading !== null || !goal.trim() || (source === 'stored' && !storedId) || (source === 'upload' && !uploaded && !csvDraft.trim())}>
+                  {busy || pipelinesLoading ? <span className="spinner" aria-hidden="true" /> : <Icon name="sparkle" size={16} />}
                   {t('runs.start')}
                 </button>
               </div>

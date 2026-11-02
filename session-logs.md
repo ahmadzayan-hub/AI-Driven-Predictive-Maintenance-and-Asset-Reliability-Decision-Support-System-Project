@@ -2245,3 +2245,20 @@ required full CI is rerun on the corrected head before merging.
   dependency, provider, data mutation or production configuration change.
 - Next: normal branch push, exact-head full CI, then the specifically authorized
   PR81 merge. Production backup, database identity and auth gates still apply.
+
+## 2026-11-02 - Post-merge profile arrival and run submission
+
+- Done: confirmed PR81 merged with the tested tree. Inspected the subsequent
+  failed WebKit trace: optional profile fields moved the action during its click,
+  and no run creation request occurred. Guarded pending metadata in the button
+  and direct submit path, retaining fallback after optional endpoint failure.
+- Verified: pre-merge acceptance and the distinct main failure are recorded in
+  README. New component regressions cover delayed success/failure; the original
+  real browser journey now holds metadata before testing delayed run creation.
+  Local baseline workers failed to start, so no local regression pass is claimed.
+  The subsequent isolated desktop/phone browser journey, documentation checks,
+  typecheck, build and budget passed; exact counts remain in README.
+- Decided: fix action readiness, not the timeout or destination/durability checks.
+  Follow-up work is isolated from the merged feature branch and user datastore.
+- Next: exact follow-up hosted validation and review. Keep production deployment,
+  provider activation, physical voice validation and wider redesign gates separate.

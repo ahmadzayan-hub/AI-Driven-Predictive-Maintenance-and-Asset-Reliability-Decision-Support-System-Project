@@ -8,7 +8,21 @@ test.use({ serviceWorkers: 'block', contextOptions: { reducedMotion: 'reduce' } 
 
 test('a late start response preserves the destination and the durable run', async ({ page }) => {
   await skipOnboarding(page)
+  // The picker arrives asynchronously above Start run. Hold that response to
+  // prove the action cannot move between pointer-down and pointer-up.
+  let releaseProfiles!: () => void
+  const profilesHeld = new Promise<void>((resolve) => { releaseProfiles = resolve })
+  await page.route('**/api/pipelines', async (route) => {
+    const response = await route.fetch()
+    await profilesHeld
+    await route.fulfill({ response })
+  })
   await page.goto('/#/runs')
+  const start = page.getByRole('button', { name: 'Start run', exact: true })
+  await expect(start).toBeVisible()
+  await expect(start).toBeDisabled()
+  releaseProfiles()
+  await expect(start).toBeEnabled()
   let release!: () => void
   let received!: () => void
   let createdId = ''
