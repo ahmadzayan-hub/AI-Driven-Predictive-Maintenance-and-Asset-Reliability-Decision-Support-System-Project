@@ -2232,3 +2232,16 @@ before explicit manual resend, and cleared stale offline/error flags after that
 confirmed read. The opening test now verifies the central Jarvis stage between
 governed KPIs and the intact source-backed chart. Exact outcomes are in README;
 required full CI is rerun on the corrected head before merging.
+
+## 2026-11-02 - Strict console visibility after scrolling
+
+- Done: reproduced the remaining desktop layout failure in an isolated synthetic
+  server and inspected the CI trace. Nearest-edge scrolling left a fractional
+  lower border outside the screen; the test now centers the console while keeping
+  full visibility and checking an unobstructed control. Application bytes unchanged.
+- Verified: desktop and phone layout checks pass; the full-run failure and exact
+  counts are retained in README. Existing user store and report IDs were preserved.
+- Decided: retain strict visibility rather than lower the expected ratio. No new
+  dependency, provider, data mutation or production configuration change.
+- Next: normal branch push, exact-head full CI, then the specifically authorized
+  PR81 merge. Production backup, database identity and auth gates still apply.

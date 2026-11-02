@@ -554,6 +554,17 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ### Jarvis OS local hackathon acceptance (2 November 2026)
 
+Short-screen follow-up: both full CI runs for `3110f7b` passed the backend,
+frontend unit, typecheck and build stages; browser results were **224 passed,
+35 skipped, 1 failed**. The failure reproduced locally: nearest-edge scrolling
+left the console fractionally outside the viewport (intersection ratio 0.999365).
+The saved CI trace shows the lower panel border at the screen edge. Centering the
+panel before inspection retains the strict **100% visible** assertion and adds
+a trial click on its motion control. The corrected isolated desktop and phone
+checks both passed (**2 tests**); all source/value/chart checks remain. The later
+Miyaar, Jarvis and budget steps in those failed full runs did not execute.
+Full checks must pass on the new exact head before merging.
+
 [Walkthrough](docs/JARVIS_HACKATHON.md) and [decision](docs/adr/2026-11-02-jarvis-evidence-workspace.md).
 The subsequent [central voice-console redesign](docs/adr/2026-11-02-jarvis-central-voice-console.md)
 adds an original radial audio control between editable input and source evidence,

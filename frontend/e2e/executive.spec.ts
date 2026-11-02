@@ -103,8 +103,12 @@ test('the opening shows governed KPIs and a real comparison before the detailed 
     // At 720px height the four governed cards occupy the opening. Scroll each
     // following section into view, then require its entire surface to be visible.
     const core = page.locator('.jarvis-core')
-    await core.scrollIntoViewIfNeeded()
+    // Nearest-edge scrolling leaves the rounded bottom fractionally outside
+    // the viewport (0.999363 in Chromium's IntersectionObserver). Center the
+    // panel before retaining the strict full-visibility/actionability checks.
+    await core.evaluate(element => element.scrollIntoView({ block: 'center', inline: 'nearest' }))
     await expect(core).toBeInViewport({ ratio: 1 })
+    await core.getByRole('button', { name: 'Reduce motion', exact: true }).click({ trial: true })
     expect((await core.boundingBox())!.y).toBeLessThan((await chart.boundingBox())!.y)
     await chart.scrollIntoViewIfNeeded()
     await expect(chart).toBeInViewport({ ratio: 1 })
