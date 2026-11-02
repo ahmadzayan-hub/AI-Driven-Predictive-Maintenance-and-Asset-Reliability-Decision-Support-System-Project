@@ -85,3 +85,14 @@ it('refuses a remote or missing voice for private local-only playback', () => {
   expect(speak).not.toHaveBeenCalled()
   expect(screen.getByText('voice.playbackUnavailable')).toBeInTheDocument()
 })
+
+it('honors the explicit Arabic locale without falling back to an English voice', () => {
+  const onStateChange = vi.fn()
+  Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: {
+    speak, cancel, getVoices: () => [{ lang: 'en-US', localService: true }],
+  } })
+  render(<VoicePlayback text="SYN-01 https://example.invalid/ref ops@example.invalid" language="ar" localOnly onStateChange={onStateChange} />)
+  fireEvent.click(screen.getByRole('button', { name: 'voice.readReply' }))
+  expect(speak).not.toHaveBeenCalled()
+  expect(onStateChange).toHaveBeenLastCalledWith('error')
+})

@@ -315,9 +315,10 @@ function Dashboard({ runId, page, query, onNavigate, onOpenRun }: {
 
 
         <DashboardJarvis runId={runId} datasetName={run.data?.dataset_name ?? runId} filters={filters}>
-        <div className="dash-page">
+        {console => <div className="dash-page">
           <h3 className="visually-hidden">{t(`dash.page.${current}` as DashKey)}</h3>
-          {current === 'overview' ? <ExecutiveOverview runId={runId} filters={filters}
+          {current !== 'overview' && console}
+          {current === 'overview' ? <ExecutiveOverview runId={runId} filters={filters} workspace={console}
             onOpenRun={() => onOpenRun(runId)} canDrill={(next) => executiveDrill(next, state, roles) !== null}
             onDrill={(next) => { const scoped = executiveDrill(next, state, roles); if (scoped) setState(scoped, 'records') }}>
             <OverviewPage {...props} />
@@ -327,7 +328,7 @@ function Dashboard({ runId, page, query, onNavigate, onOpenRun }: {
           {current === 'distribution' ? <DistributionPage {...props} /> : null}
           {current === 'relationship' ? <RelationshipPage {...props} /> : null}
           {current === 'records' ? <RecordsPageView {...props} /> : null}
-        </div>
+        </div>}
         </DashboardJarvis>
       </div>
     </section>

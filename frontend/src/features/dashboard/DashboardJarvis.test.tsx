@@ -35,7 +35,7 @@ it('clears previous scope, requires reconnect and ignores late binding responses
   view.rerender(<DashboardJarvis {...props} filters={filters} />)
   await act(async () => resolve(session))
   expect(screen.queryByText('Bound js1 embedded')).not.toBeInTheDocument()
-  expect(screen.getByRole('status')).toHaveTextContent('The view changed')
+  expect(await screen.findByRole('status')).toHaveTextContent('The view changed')
   fireEvent.click(screen.getByRole('button', { name: 'Connect this view to Jarvis' }))
   expect(await screen.findByText('Bound js1 embedded')).toBeVisible()
   expect(transport.request).toHaveBeenLastCalledWith('/api/sessions/js1/data-context', expect.objectContaining({ body: JSON.stringify({ run_id: 'run1', filters }) }))

@@ -380,3 +380,13 @@ reference with pinned attribution and MIT notices, narrow agent-document links a
 bounded stdlib teaching fixtures. No runtime/approved-report changes or activation.
 Focused checks pass; quick aggregate is dependency-blocked in the cloud checkout.
 GitHub draft review and laptop installation remain separate steps.
+
+**Jarvis dashboard and voice console, 2 November 2026:** implemented the owner-requested
+bilingual central voice workspace under the governed executive KPI cards, with exact
+dataset/filter binding, evidence table, retained dashboard pages/saved views, editable
+dictation and real listening/query/speech state transitions. Original radial SVG and
+reduced-motion controls use the existing design tokens. Concurrent budget work is
+preserved by a local merge. Validation counts and limitations are in README; final-head
+CI and authorized PR integration are distinct from the unresolved production
+backup/database identity/managed-auth gates. No general LLM or operational automation
+is claimed by the deterministic Jarvis route.

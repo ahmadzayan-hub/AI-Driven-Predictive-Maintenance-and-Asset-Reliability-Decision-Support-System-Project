@@ -5,8 +5,9 @@ import { usePack } from '../../i18n/pack'
 import { jarvisMessages } from '../../i18n/jarvis'
 import { jarvisSpeech } from './jarvisSpeech'
 import { DataChatContext } from './DataChatContext'
-import { VoiceDictation } from './VoiceDictation'
+import { VoiceDictation, type CaptureState } from './VoiceDictation'
 import { VoicePlayback } from './VoicePlayback'
+import { JarvisCore, type CoreState } from './JarvisCore'
 import { useReadOnly } from '../../shared/readOnly'
 import './jarvis.css'
 
@@ -29,6 +30,9 @@ export function JarvisWorkspace({ session, disabled = false, embedded = false }:
   const [status, setStatus] = useState<'idle' | 'working' | 'failed' | 'stopped'>('idle')
   const [muted, setMuted] = useState(true)
   const [voiceKey, setVoiceKey] = useState(0)
+  const [capture, setCapture] = useState<CaptureState | 'unavailable'>('idle')
+  const [playback, setPlayback] = useState<'idle' | 'queued' | 'speaking' | 'error'>('idle')
+  const [playbackKey, setPlaybackKey] = useState(0)
   const [accepted, setAccepted] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
   const request = useRef<AbortController | null>(null)
@@ -36,6 +40,7 @@ export function JarvisWorkspace({ session, disabled = false, embedded = false }:
   function invalidate() {
     generation.current++; request.current?.abort(); request.current = null
     setAnswer(null); setAccepted(false); setConfirmed(false); setStatus('idle'); setVoiceKey(k => k + 1)
+    setCapture('idle'); setPlayback('idle')
   }
   useEffect(() => { invalidate(); setContext(session.data_context ?? null); setDraft('') }, [session.session_id, session.data_context, locale])
   useEffect(() => () => { generation.current++; request.current?.abort() }, [])
@@ -55,27 +60,38 @@ export function JarvisWorkspace({ session, disabled = false, embedded = false }:
     finally { if (token === generation.current) request.current = null }
   }
   const speechText = jarvisSpeech(answer, locale)
+  const capturing = ['requesting', 'listening', 'processing'].includes(capture)
+  const coreState: CoreState = status === 'failed' || capture === 'error' || capture === 'unavailable' || playback === 'error' ? 'unavailable'
+    : status === 'working' ? 'processing' : capture === 'listening' ? 'listening'
+    : capture === 'requesting' ? 'requesting' : capture === 'processing' ? 'transcribing' : playback === 'queued' ? 'preparing'
+    : playback === 'speaking' ? 'speaking' : 'ready'
+  const units: Record<string, string> = { percent: '%', hours: t('hours'), years: t('years'), count: t('count'), ratio: t('times'), money: answer?.result?.currency ?? t('currencyUnknown') }
   return <section className={`jarvis${embedded ? ' jarvis--embedded' : ''}`} aria-label={t('title')}>
     {embedded ? <p>{t('boundary')}</p> : <header className="jarvis__hero"><p className="eyebrow">{t('subtitle')}</p><h1>{t('title')}</h1><p>{t('boundary')}</p></header>}
-    <div className="jarvis__grid">
-      <section className="jarvis__card"><h2>{t(embedded ? 'question' : 'input')}</h2>
+    <div className="jarvis__console">
+      <JarvisCore state={coreState} muted={muted} onToggleAudio={() => { setMuted(!muted); setVoiceKey(k => k + 1); setCapture('idle'); setPlayback('idle') }}>
+        <div className="jarvis__actions"><button className="btn btn--ghost" onClick={() => { invalidate(); setStatus('stopped') }}>{t('stop')}</button></div>
+        {!muted && <><p className="jarvis-core__privacy">{t('voiceHelp')}</p><VoiceDictation key={`${voiceKey}:${locale}`} language={locale}
+          disabled={disabled || session.ended || selecting || !context || status === 'working'} onTranscript={text => edit(text)} onStateChange={setCapture}
+          onActiveChange={active => { if (active) { setPlaybackKey(k => k + 1); setPlayback('idle') } }} />
+          {answer && <VoicePlayback key={`${voiceKey}:${playbackKey}:${asked}`} text={speechText} language={locale} disabled={capturing} localOnly onStateChange={setPlayback} />}</>}
+        {playback === 'error' && <p>{t('localVoiceUnavailable')}</p>}
+      </JarvisCore>
+      <section className="jarvis__card jarvis__composer"><h2>{t(embedded ? 'question' : 'input')}</h2>
         {!embedded && <DataChatContext session={session} disabled={disabled || session.ended} onSelected={select} onPending={pending => { setSelecting(pending); if (pending) { invalidate(); setContext(null) } }} />}
         {embedded && context && <details><summary>{t('source')}</summary><bdi>{JSON.stringify(context.filters)}</bdi></details>}
         <p>{context ? <bdi>{context.dataset_name} · {context.records} / {context.total_records}</bdi> : t('selectFirst')}</p>
         <label>{t('question')}<textarea value={draft} maxLength={2000} disabled={disabled || session.ended || selecting}
           onChange={e => edit(e.target.value)} dir="auto" /></label>
         <div className="jarvis__actions">{(embedded ? ['cost', 'follow'] as const : ['cost', 'follow', 'missing'] as const).map(key => <button className="btn btn--ghost" key={key} disabled={disabled || session.ended || selecting} onClick={() => edit(t(key))}>{t(key)}</button>)}</div>
-        <div className="jarvis__actions"><button className="btn btn--primary" disabled={!context || !draft.trim() || status === 'working' || disabled || session.ended} onClick={() => void ask()}>{t('ask')}</button>
-          <button className="btn btn--ghost" onClick={() => { invalidate(); setStatus('stopped') }}>{t('stop')}</button>
-          <button className="btn btn--ghost" aria-pressed={muted} onClick={() => { setMuted(!muted); setVoiceKey(k => k + 1) }}>{t(muted ? 'unmute' : 'muted')}</button></div>
-        {!muted && <><p>{t('voiceHelp')}</p><VoiceDictation key={`${voiceKey}:${locale}`} language={locale} disabled={disabled || session.ended || status === 'working'} onTranscript={text => edit(text)} /></>}
+        <p className="jarvis__hint">{t('transcript')}</p>
+        <div className="jarvis__actions"><button className="btn btn--primary" disabled={!context || !draft.trim() || status === 'working' || disabled || session.ended || capturing} onClick={() => void ask()}>{t('ask')}</button></div>
         {status !== 'idle' && <p role={status === 'failed' ? 'alert' : 'status'}>{t(status)}</p>}
       </section>
-      {!embedded && <aside className="jarvis__card"><h2>{t('function')}</h2><p>{t('functionText')}</p><h2>{t('value')}</h2><p>{t('valueText')}</p></aside>}
-    </div>
-    <section className="jarvis__card" aria-live="polite"><h2>{t(embedded ? 'result' : 'output')}</h2>
+    <section className="jarvis__card jarvis__answer" aria-live="polite"><h2>{t(embedded ? 'result' : 'output')}</h2>
       {!answer ? <p>{t('prompt')}</p> : <><p className="jarvis__question" dir="auto">{asked}</p><pre className="jarvis__evidence" dir="auto">{answer.text}</pre>
-        {answer.result && <><h3>{t('source')}</h3><dl className="jarvis__sources"><dt>{t('source')}</dt><dd><bdi>{answer.result.dataset_name} · {answer.result.run_id}</bdi></dd>
+        {answer.result && <><details className="jarvis__measures"><summary>{t('measures')}</summary><table><caption>{t('evidenceView')}</caption><thead><tr><th>{t('metric')}</th><th>{t('valueUnit')}</th><th>{t('formula')}</th><th>{t('coverage')}</th></tr></thead><tbody>{answer.result.measures.map(m => <tr key={m.key}><th scope="row">{m.title}</th><td>{m.value === null ? t('noValue') : <bdi>{m.value} {units[m.scale ?? ''] ?? t('unitUnknown')}</bdi>}{m.reason && <p>{m.reason}</p>}</td><td><bdi>{m.formula}</bdi></td><td>{m.records ?? '—'} / {m.records_unmeasured ?? '—'}</td></tr>)}</tbody></table></details>
+          <h3>{t('source')}</h3><dl className="jarvis__sources"><dt>{t('source')}</dt><dd><bdi>{answer.result.dataset_name} · {answer.result.run_id}</bdi></dd>
           <dt>SHA-256</dt><dd><bdi>{answer.result.source_sha256}</bdi></dd><dt>{t('result')}</dt><dd><bdi>{answer.result.analysis_revision}</bdi></dd></dl>
           <a href={`/#/runs/${encodeURIComponent(answer.result.run_id)}`}>{t('source')}</a>
           <h3>{t('review')}</h3><p>{t('recommendation')}</p><p>{t('reviewLimit')}</p>
@@ -83,8 +99,9 @@ export function JarvisWorkspace({ session, disabled = false, embedded = false }:
           <button className="btn btn--primary" disabled={!accepted || confirmed || readOnly} onClick={() => setConfirmed(true)}>{t('confirm')}</button>
           {confirmed && <p role="status">{t('confirmed')}</p>}</>}
         <details><summary>{t('speech')}</summary><p>{t('speechHelp')}</p><p dir="auto">{speechText}</p></details>
-        {!muted && <VoicePlayback key={`${voiceKey}:${asked}`} text={speechText} localOnly />}
       </>}
     </section>
+    </div>
+    {!embedded && <details className="jarvis__method"><summary>{t('function')}</summary><p>{t('functionText')}</p><h2>{t('value')}</h2><p>{t('valueText')}</p></details>}
   </section>
 }

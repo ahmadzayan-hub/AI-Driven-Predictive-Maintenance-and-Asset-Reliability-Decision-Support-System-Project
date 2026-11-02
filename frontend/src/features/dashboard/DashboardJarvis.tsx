@@ -6,10 +6,11 @@ import { usePack } from '../../i18n/pack'
 import { jarvisDashboardMessages } from '../../i18n/jarvisDashboard'
 
 const Workspace = lazy(() => import('../chat/JarvisWorkspace').then(module => ({ default: module.JarvisWorkspace })))
+const Core = lazy(() => import('../chat/JarvisCore').then(module => ({ default: module.JarvisCore })))
 
 /** An explicit session binding to the exact chart scope. Never auto-select another run. */
 export function DashboardJarvis({ runId, datasetName, filters, children }: {
-  runId: string; datasetName: string; filters: TableFilter[]; children: ReactNode
+  runId: string; datasetName: string; filters: TableFilter[]; children: ReactNode | ((console: ReactNode) => ReactNode)
 }) {
   const { t, locale } = usePack(jarvisDashboardMessages)
   const readOnly = useReadOnly()
@@ -44,10 +45,19 @@ export function DashboardJarvis({ runId, datasetName, filters, children }: {
     finally { if (generation.current === token) { inFlight.current = false; setBusy(false) } }
   }
 
+  const assistant = <aside className="dash-jarvis__assistant" aria-label="Jarvis OS">
+    <Suspense fallback={<p>{t('loading')}</p>}>
+      {bound && expanded ? <Workspace session={bound} embedded /> : <div className="dash-jarvis__welcome">
+        <Core state={failed || readOnly ? 'unavailable' : busy ? 'processing' : 'ready'} />
+        <div><h3>{t('title')}</h3><p>{t('help')}</p>
+          {expanded && <p role={failed ? 'alert' : 'status'}>{busy ? t('connecting') : failed ? t('unavailable') : t('changed')}</p>}
+          <p>{t('mode')}</p></div>
+      </div>}
+    </Suspense>
+  </aside>
   return <section className="dash-jarvis" aria-label={t('title')}>
     <header className="dash-jarvis__bar">
-      <div><p className="eyebrow">{t('mode')}</p><h3>{t('title')}</h3><p>{t('help')}</p>
-        <p className="dash-jarvis__scope">{t('scope')}: <bdi>{datasetName}</bdi> · <bdi>{runId}</bdi></p></div>
+      <p className="dash-jarvis__scope">{t('scope')}: <bdi>{datasetName}</bdi> · <bdi>{runId}</bdi></p>
       <div className="dash-actions">
         <button type="button" className="btn btn--primary" disabled={readOnly || busy} onClick={() => void connect()}>{busy ? t('connecting') : bound ? t('reconnect') : t('open')}</button>
         {expanded && <button type="button" className="btn btn--ghost" onClick={() => {
@@ -56,12 +66,6 @@ export function DashboardJarvis({ runId, datasetName, filters, children }: {
       </div>
     </header>
     {readOnly && <p>{t('readonly')}</p>}
-    <div className={`dash-jarvis__workspace${expanded ? ' dash-jarvis__workspace--open' : ''}`}>
-      <div className="dash-jarvis__analytics">{children}</div>
-      {expanded && <aside className="dash-jarvis__assistant" aria-label="Jarvis OS">
-        {busy ? <p role="status">{t('connecting')}</p> : failed ? <p role="alert">{t('unavailable')}</p> : bound ?
-          <Suspense fallback={<p role="status">{t('loading')}</p>}><Workspace session={bound} embedded /></Suspense> : <p role="status">{t('changed')}</p>}
-      </aside>}
-    </div>
+    {typeof children === 'function' ? children(assistant) : <>{assistant}{children}</>}
   </section>
 }

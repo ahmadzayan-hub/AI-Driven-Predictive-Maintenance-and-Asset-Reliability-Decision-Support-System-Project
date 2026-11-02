@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { useI18n } from '../../i18n'
 import { MiyaarMark } from '../../shared/components/MiyaarMark'
 import { Icon } from '../../shared/components/Icon'
 import type { TranscriptEntry } from '../../shared/types'
 import { ResultCard, ToolCards } from './ResultCard'
-import { VoicePlayback } from './VoicePlayback'
+const VoicePlayback = lazy(() => import('./VoicePlayback').then(module => ({ default: module.VoicePlayback })))
 
 interface MessageBubbleProps {
   entry: TranscriptEntry
@@ -52,7 +52,7 @@ export function MessageBubble({ entry, onOpenRun }: MessageBubbleProps) {
               <Icon name={copied ? 'check' : 'copy'} size={13} />
               {copied ? t('msg.copied') : t('msg.copy')}
             </button>
-            <VoicePlayback text={entry.text} />
+            <Suspense fallback={null}><VoicePlayback text={entry.text} /></Suspense>
             {/* Honest about who understood: a model's phrasing is
                 labelled as such, the way a report names its narrator. */}
             {entry.source === 'rules' || entry.source === 'command' ? <span className="msg__source">{t(entry.source === 'rules' ? 'miyaar.rules' : 'miyaar.command')}</span> : null}

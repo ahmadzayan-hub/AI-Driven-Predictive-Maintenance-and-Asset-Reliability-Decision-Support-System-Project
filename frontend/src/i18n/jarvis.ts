@@ -1,5 +1,10 @@
 import { definePack } from './pack'
 export const jarvisMessages = definePack({
+  voiceStage: 'Voice console', reduceMotion: 'Reduce motion', stateAnimation: 'State animation · not an audio level',
+  transcribing: 'Preparing editable transcript', preparing: 'Preparing device speech', localVoiceUnavailable: 'Device-local English voice unavailable or playback failed.',
+  ready: 'Ready for your question', requesting: 'Waiting for microphone', listening: 'Listening', processing: 'Processing selected data', speaking: 'Speaking', unavailable: 'Voice or service unavailable · text remains available',
+  transcript: 'Editable transcript', evidenceView: 'Evidence view', measures: 'Measures', references: 'Full answer and references',
+  metric: 'Measure', valueUnit: 'Value and unit', formula: 'Calculation', coverage: 'Measured / unmeasured',
   title: 'Jarvis OS', subtitle: 'Miyaar · Evidence to decision', demo: 'RTA hackathon · Synthetic demonstration',
   boundary: 'Calculated analytics. No LLM contribution. No operational action is dispatched here.',
   input: '01 · Input', function: '02 · AI function', output: '03 · Output', value: '04 · RTA value',
@@ -23,6 +28,11 @@ export const jarvisMessages = definePack({
   selectFirst: 'Select a completed report to begin.',
   boot: 'Open synthetic workspace', bootError: 'Workspace unavailable. Start the documented synthetic server; the original database is not used.',
 }, {
+  voiceStage: 'لوحة التفاعل الصوتي', reduceMotion: 'تقليل الحركة', stateAnimation: 'حركة تعبّر عن الحالة · ليست مستوى الصوت',
+  transcribing: 'جارٍ إعداد النص القابل للتحرير', preparing: 'جارٍ تجهيز صوت الجهاز', localVoiceUnavailable: 'الصوت العربي المحلي غير متاح أو تعذر تشغيله.',
+  ready: 'جاهز لسؤالك', requesting: 'بانتظار الميكروفون', listening: 'جارٍ الاستماع', processing: 'جارٍ معالجة البيانات المحددة', speaking: 'جارٍ التحدث', unavailable: 'الصوت أو الخدمة غير متاح · الكتابة متاحة',
+  transcript: 'نص قابل للتحرير', evidenceView: 'عرض الأدلة', measures: 'المؤشرات', references: 'الإجابة الكاملة والمراجع',
+  metric: 'المؤشر', valueUnit: 'القيمة والوحدة', formula: 'العملية الحسابية', coverage: 'المقاس / غير المقاس',
   title: 'Jarvis OS · جارفيس', subtitle: 'معيار · من الدليل إلى القرار', demo: 'هاكاثون RTA · عرض ببيانات اصطناعية',
   boundary: 'تحليلات محسوبة دون مساهمة نموذج لغوي. لا يُرسل أي إجراء تشغيلي من هنا.',
   input: '01 · المدخلات', function: '02 · وظيفة الذكاء الاصطناعي', output: '03 · المخرجات', value: '04 · القيمة لهيئة الطرق والمواصلات',

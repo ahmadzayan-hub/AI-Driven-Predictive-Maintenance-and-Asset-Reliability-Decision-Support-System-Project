@@ -5,12 +5,18 @@ import { Icon } from '../../shared/components/Icon'
 // Ownership is shared so selecting a different reply also resets the old UI.
 let stopCurrent: (() => void) | null = null
 
-export function VoicePlayback({ text, localOnly = false }: { text: string; localOnly?: boolean }) {
+export function VoicePlayback({ text, localOnly = false, language: requestedLanguage, disabled = false, onStateChange }: {
+  text: string; localOnly?: boolean; language?: 'ar' | 'en'; disabled?: boolean;
+  onStateChange?: (state: 'idle' | 'queued' | 'speaking' | 'error') => void
+}) {
   const { t } = useI18n()
   const [state, setState] = useState<'idle' | 'queued' | 'speaking' | 'error'>('idle')
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const active = state === 'queued' || state === 'speaking'
+  const stateCallback = useRef(onStateChange)
+  stateCallback.current = onStateChange
+  useEffect(() => { stateCallback.current?.(state) }, [state])
 
   function release() {
     if (timer.current) clearTimeout(timer.current)
@@ -28,6 +34,7 @@ export function VoicePlayback({ text, localOnly = false }: { text: string; local
   // list again on the user's click, when device voices may have finished loading.
   useEffect(() => { window.speechSynthesis?.getVoices?.() }, [])
   useEffect(() => () => release(), [text])
+  useEffect(() => { if (disabled) stop() }, [disabled, stop])
 
   function toggle() {
     if (active) { stop(); return }
@@ -35,7 +42,7 @@ export function VoicePlayback({ text, localOnly = false }: { text: string; local
     if (!text.trim()) return
     stopCurrent?.()
     const utterance = new SpeechSynthesisUtterance(text.slice(0, 1800))
-    const language = /[\u0600-\u06ff]/.test(text) ? 'ar' : 'en'
+    const language = requestedLanguage ?? (/[\u0600-\u06ff]/.test(text) ? 'ar' : 'en')
     const voice = window.speechSynthesis.getVoices?.().find((candidate) => candidate.lang.toLowerCase().split('-')[0] === language && (!localOnly || candidate.localService))
     if (localOnly && !voice) { setState('error'); return }
     utterance.lang = voice?.lang ?? (language === 'ar' ? 'ar-AE' : 'en-US')
@@ -56,7 +63,7 @@ export function VoicePlayback({ text, localOnly = false }: { text: string; local
     try { window.speechSynthesis.speak(utterance) } catch { fail() }
   }
   return <>
-    <button type="button" className="msg__copy" onClick={toggle}
+    <button type="button" className="msg__copy" disabled={disabled} onClick={toggle}
       aria-label={active ? t('voice.stopReading') : t('voice.readReply')} aria-pressed={active}>
       <Icon name={active ? 'volumeOff' : 'volume'} size={15} />
       {active ? t('voice.stopReading') : t('voice.readReply')}

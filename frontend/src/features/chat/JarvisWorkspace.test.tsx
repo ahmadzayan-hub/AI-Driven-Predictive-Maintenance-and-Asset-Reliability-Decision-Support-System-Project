@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import type { VoiceRecognition } from './VoiceDictation'
 import { JarvisWorkspace, type JarvisAnswer } from './JarvisWorkspace'
 import { jarvisApi } from './jarvisApi'
 import { api } from '../../shared/api'
@@ -12,6 +13,7 @@ const session: SessionState = { session_id: 's1', agent_name: 'Miyaar', version:
   data_chat_labels: Object.fromEntries(Object.entries(dataChatMessages.en).map(([k,v]) => [k.replace('dataChat.', ''), v])) as SessionState['data_chat_labels'] }
 const result: JarvisAnswer = { text: '500 · https://example.invalid/ref · ops@example.invalid · SYN-01', source: 'rules', result: { ...context, currency: null, provenance: 'deterministic_kpi_register', llm_explanation: null, measures: [{ key: 'maintenance_cost', title: 'Maintenance cost', value: 500, formula: 'sum(Maintenance_Cost_USD)' }] } }
 beforeEach(() => { vi.restoreAllMocks(); applyLocale('en') })
+afterEach(() => vi.unstubAllGlobals())
 function question() { fireEvent.change(screen.getByRole('textbox'), { target: { value: 'What is total maintenance cost?' } }) }
 it('preserves evidence, separates speech and confirms only an explicit local review', async () => {
   vi.spyOn(jarvisApi, 'query').mockResolvedValue(result)
@@ -34,7 +36,9 @@ it('deduplicates active requests and ignores late replies after interrupt', asyn
   render(<JarvisWorkspace session={session} />); question()
   const ask = screen.getByRole('button', { name: 'Calculate from selected report' })
   fireEvent.click(ask); fireEvent.click(ask); expect(call).toHaveBeenCalledTimes(1)
+  expect(screen.getByRole('region', { name: 'Voice console' })).toHaveAttribute('data-state', 'processing')
   fireEvent.click(screen.getByRole('button', { name: 'Stop / interrupt' }))
+  expect(screen.getByRole('region', { name: 'Voice console' })).toHaveAttribute('data-state', 'ready')
   expect(call.mock.calls[0][4].aborted).toBe(true)
   await act(async () => resolve(result))
   expect(screen.queryByText(result.text)).not.toBeInTheDocument()
@@ -92,4 +96,67 @@ it('keeps units, currency uncertainty and coverage in both spoken summaries', ()
   for (const text of ['20 ساعة', '10 سنوات', '500 العملة غير محددة', 'غير المقاسة: 1', 'ليست قيمة صفرية']) expect(arabic).toContain(text)
   expect(jarvisSpeech({ ...answer, result: { ...answer.result!, currency: 'AED' } }, 'en')).toContain('500 AED')
   expect(answer.text).toBe(result.text)
+})
+
+class Capture implements VoiceRecognition {
+  static last: Capture
+  lang = ''; continuous = false; interimResults = false; maxAlternatives = 1
+  onstart: VoiceRecognition['onstart'] = null; onaudioend: VoiceRecognition['onaudioend'] = null
+  onresult: VoiceRecognition['onresult'] = null; onerror: VoiceRecognition['onerror'] = null; onend: VoiceRecognition['onend'] = null
+  start = vi.fn(); stop = vi.fn()
+  constructor() { Capture.last = this }
+}
+class Speech {
+  static last: Speech
+  lang = ''; voice: SpeechSynthesisVoice | null = null; rate = 1
+  onstart: (() => void) | null = null; onend: (() => void) | null = null; onerror: (() => void) | null = null
+  constructor(public text: string) { Speech.last = this }
+}
+it('reflects real capture events, keeps the transcript editable and ignores late capture after stop', () => {
+  vi.stubGlobal('webkitSpeechRecognition', Capture)
+  const query = vi.spyOn(jarvisApi, 'query')
+  render(<JarvisWorkspace session={session} />)
+  const core = screen.getByRole('region', { name: 'Voice console' })
+  fireEvent.click(screen.getByRole('button', { name: 'Reduce motion' }))
+  expect(core).toHaveAttribute('data-still', 'true')
+  fireEvent.click(screen.getByRole('button', { name: 'Enable audio controls' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Voice dictation' }))
+  expect(core).toHaveAttribute('data-state', 'ready')
+  fireEvent.click(screen.getByRole('button', { name: 'I understand, start recording' }))
+  expect(core).toHaveAttribute('data-state', 'requesting')
+  act(() => Capture.last.onstart?.())
+  expect(core).toHaveAttribute('data-state', 'listening')
+  act(() => Capture.last.onresult?.({ results: [Object.assign([{ transcript: 'total maintenance cost' }], { isFinal: true })] }))
+  expect(screen.getByRole('textbox')).toHaveValue('total maintenance cost')
+  expect(query).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: 'Voice dictation' }))
+  fireEvent.click(screen.getByRole('button', { name: 'I understand, start recording' }))
+  act(() => Capture.last.onstart?.())
+  const late = Capture.last.onresult
+  fireEvent.click(screen.getByRole('button', { name: 'Stop / interrupt' }))
+  act(() => late?.({ results: [Object.assign([{ transcript: 'stale words' }], { isFinal: true })] }))
+  expect(Capture.last.stop).toHaveBeenCalled()
+  expect(screen.getByRole('textbox')).toHaveValue('total maintenance cost')
+  expect(core).toHaveAttribute('data-state', 'ready')
+})
+it('waits for actual speech and interrupts playback when microphone input starts', async () => {
+  vi.stubGlobal('webkitSpeechRecognition', Capture); vi.stubGlobal('SpeechSynthesisUtterance', Speech)
+  const cancel = vi.fn(), speak = vi.fn()
+  vi.stubGlobal('speechSynthesis', { cancel, speak, getVoices: () => [{ lang: 'en-US', localService: true }] })
+  vi.spyOn(jarvisApi, 'query').mockResolvedValue(result)
+  render(<JarvisWorkspace session={session} />); question()
+  fireEvent.click(screen.getByRole('button', { name: 'Calculate from selected report' })); await screen.findByText(result.text)
+  fireEvent.click(screen.getByRole('button', { name: 'Enable audio controls' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Read this reply aloud' }))
+  const core = screen.getByRole('region', { name: 'Voice console' })
+  expect(core).toHaveAttribute('data-state', 'preparing')
+  act(() => Speech.last.onstart?.())
+  expect(core).toHaveAttribute('data-state', 'speaking')
+  expect(Speech.last.lang).toBe('en-US')
+  fireEvent.click(screen.getByRole('button', { name: 'Voice dictation' }))
+  fireEvent.click(screen.getByRole('button', { name: 'I understand, start recording' }))
+  expect(cancel).toHaveBeenCalled()
+  expect(core).toHaveAttribute('data-state', 'requesting')
+  fireEvent.click(screen.getByRole('button', { name: 'Mute audio' }))
+  expect(Capture.last.stop).toHaveBeenCalled()
 })
