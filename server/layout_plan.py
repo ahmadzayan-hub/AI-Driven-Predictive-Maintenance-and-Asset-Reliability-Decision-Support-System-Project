@@ -41,7 +41,9 @@ MAX_RANKED = 15
 
 COMPONENTS = {
     # name: (capability it needs, allowed binding keys)
+    "brief": ("descriptive", set()),
     "kpi": ("descriptive", {"measures", "filters"}),
+    "priorities": ("ranking", {"group_by", "measures", "filters", "sort", "limit", "drivers"}),
     "trend": ("trend", {"group_by", "measures", "filters", "sort"}),
     "ranking": ("ranking", {"group_by", "measures", "filters", "sort", "limit"}),
     "comparison": ("ranking", {"group_by", "measures", "filters", "sort", "limit"}),
@@ -161,10 +163,16 @@ def _ground(table, component, binding, prof, problems, where):
         if component == "trend" and (len(groups) != 1 or groups[0] not in _dates(prof)):
             problems.append(f"{where}: a trend groups by the run's date column.")
             return None
-        if component in ("ranking", "comparison") and (
+        if component in ("ranking", "comparison", "priorities") and (
                 len(groups) != 1 or groups[0] not in _groups(prof)):
             problems.append(f"{where}: rank by one text column with 2 to 50 groups.")
             return None
+        if component == "priorities":
+            spec["limit"] = min(spec["limit"], 3)
+            drivers = binding.get("drivers")
+            if drivers is not None and (drivers not in _groups(prof) or drivers == groups[0]):
+                problems.append(f"{where}: drivers is another text column with 2 to 50 groups.")
+                return None
         if component == "ranking" and spec["limit"] > MAX_RANKED:
             spec["limit"] = MAX_RANKED
         if component == "distribution" and not (
@@ -222,7 +230,11 @@ def validate(plan, table, prof, caps):
             continue
         item = {"id": sid, "component": component, "title": title, "purpose": purpose,
                 "span": span, "interactions": interactions, "binding": binding}
-        if component == "gap":
+        if component == "brief":
+            if binding:
+                problems.append(f"{where}: a brief takes no binding; it reads the run's own findings.")
+                continue
+        elif component == "gap":
             cap = binding.get("capability")
             if cap not in caps or caps[cap]["available"]:
                 problems.append(f"{where}: a gap names an unavailable capability.")
@@ -252,64 +264,129 @@ def _t(en, ar):
     return {"en": en, "ar": ar}
 
 
+DOMAIN_WORDS = {
+    "maintenance": ("failure", "downtime", "repair", "maintenance", "asset", "mtbf", "mttr", "breakdown"),
+    "costs": ("budget", "actual", "spend", "variance", "forecast_cost", "cost_centre", "cost_center"),
+    "contracts": ("contract", "milestone", "obligation", "due", "vendor", "supplier", "payment"),
+}
+
+
+def domain(prof):
+    """The kind of records, inferred from field names only and labelled as
+    inferred. The planner reads it as a hint, never as a fact about the data."""
+    names = " ".join(f["name"].lower() for f in prof["fields"])
+    scores = {name: sum(word in names for word in words) for name, words in DOMAIN_WORDS.items()}
+    best = max(scores, key=scores.get)
+    return best if scores[best] >= 2 else "general"
+
+
+def _find(names, words):
+    return next((n for n in names if any(w in n.lower() for w in words)), None)
+
+
+def _section(sid, component, span, title, purpose, binding, interactions=()):
+    return {"id": sid, "component": component, "span": span, "title": title, "purpose": purpose,
+            "binding": binding, "interactions": list(interactions)}
+
+
 def rule_plan(prof, caps, objective=""):
-    """A deterministic plan derived from this table's own schema. It is
-    labelled `rules`, never presented as a model's design."""
+    """A deterministic plan derived from this table's own schema and the kind
+    of records it holds. It is labelled `rules`, never a model's design."""
     measures, dates, groups = _measures(prof), _dates(prof), _groups(prof)
     if not caps["descriptive"]["available"]:
         return {"version": VERSION, "objective": objective[:MAX_OBJECTIVE], "sections": [
-            {"id": "gap-descriptive", "component": "gap", "span": 3,
-             "title": _t("No records yet", "لا توجد سجلات بعد"),
-             "purpose": _t("Add data to see an analysis.", "أضف بيانات لعرض التحليل."),
-             "binding": {"capability": "descriptive"}}]}
+            _section("gap-descriptive", "gap", 3, _t("No records yet", "لا توجد سجلات بعد"),
+                     _t("Add data to see an analysis.", "أضف بيانات لعرض التحليل."),
+                     {"capability": "descriptive"})]}
+    kind = domain(prof)
     analysed = next((f["name"] for f in prof["fields"] if f.get("role") == "analysed"), None)
-    lead = analysed or (measures[0] if measures else None)
-    sections = [{"id": "records", "component": "kpi", "span": 1,
-                 "title": _t("Records", "السجلات"),
-                 "purpose": _t("How many records the figures cover.", "عدد السجلات التي تغطيها الأرقام."),
-                 "binding": {"measures": [{"agg": "count"}]}, "interactions": ["filter"]}]
-    for name in ([lead] if lead else []) + [m for m in measures if m != lead][:2]:
-        sections.append({"id": f"kpi-{len(sections)}", "component": "kpi", "span": 1,
-                         "title": _t(f"Total {name}"[:MAX_TITLE], f"إجمالي {name}"[:MAX_TITLE]),
-                         "purpose": _t("Sum over the records in scope.", "المجموع على السجلات ضمن النطاق."),
-                         "binding": {"measures": [{"agg": "sum", "column": name}]},
-                         "interactions": ["filter", "ask_jarvis"]})
+    sections = [_section("brief", "brief", 3, _t("What needs your attention", "ما يحتاج انتباهك"),
+                         _t("What is happening, what is expected, what to decide.",
+                            "ماذا يحدث، وماذا يُتوقع، وما القرار."), {})]
+    # A column with one value per record (a record number) explains nothing.
+    filled = {f["name"]: f.get("filled") or 0 for f in prof["fields"]}
+    named = [g for g in groups if next(f.get("distinct") for f in prof["fields"] if f["name"] == g) < filled[g]]
+    group = _find(named, ("class", "category", "type", "site", "line", "status", "milestone")) \
+        or (named[0] if named else None)
+    drivers = next((g for g in named if g != group), None)
+
+    def kpi(sid, en, ar, measure, purpose=("Sum over the records in scope.",
+                                           "المجموع على السجلات ضمن النطاق.")):
+        return _section(sid, "kpi", 1, _t(en[:MAX_TITLE], ar[:MAX_TITLE]), _t(*purpose),
+                        {"measures": [measure]}, ("filter", "ask_jarvis"))
+
+    def priorities(measure, key, en, ar):
+        binding = {"group_by": [group], "measures": [measure], "sort": {"by": key, "desc": True},
+                   "limit": 3}
+        if drivers:
+            binding["drivers"] = drivers
+        return _section("priorities", "priorities", 2, _t(en[:MAX_TITLE], ar[:MAX_TITLE]),
+                        _t("The three largest; select one to see its drivers and records.",
+                           "الثلاثة الأكبر؛ اختر واحدًا لترى محركاته وسجلاته."), binding,
+                        ("filter", "drill_down", "inspect_evidence", "ask_jarvis"))
+
+    if kind == "costs" and _find(measures, ("actual",)) and _find(measures, ("budget",)):
+        actual, budget = _find(measures, ("actual",)), _find(measures, ("budget",))
+        sections += [kpi("actual", f"Actual {actual}", f"الفعلي {actual}", {"agg": "sum", "column": actual}),
+                     kpi("budget", f"Budget {budget}", f"الموازنة {budget}", {"agg": "sum", "column": budget}),
+                     kpi("ratio", "Actual against budget", "الفعلي مقابل الموازنة",
+                         {"agg": "ratio", "numerator": actual, "denominator": budget},
+                         ("Total actual divided by total budget.", "إجمالي الفعلي مقسومًا على إجمالي الموازنة."))]
+        if group:
+            sections.append(priorities({"agg": "sum", "column": actual}, f"sum:{actual}",
+                                       f"Largest spend by {group}", f"أكبر إنفاق حسب {group}"))
+            sections.append(_section("variance", "comparison", 3,
+                                     _t(f"Actual and budget by {group}"[:MAX_TITLE], f"الفعلي والموازنة حسب {group}"[:MAX_TITLE]),
+                                     _t("Side by side for each group.", "جنبًا إلى جنب لكل مجموعة."),
+                                     {"group_by": [group], "measures": [{"agg": "sum", "column": actual},
+                                                                        {"agg": "sum", "column": budget}],
+                                      "sort": {"by": f"sum:{actual}", "desc": True}, "limit": 12},
+                                     ("filter", "compare", "ask_jarvis")))
+        lead = actual
+    elif kind == "contracts":
+        value = _find(measures, ("value", "amount", "price")) or (measures[0] if measures else None)
+        sections.append(kpi("records", "Contracts and milestones", "العقود والمراحل", {"agg": "count"},
+                            ("Records in scope.", "السجلات ضمن النطاق.")))
+        if value:
+            sections.append(kpi("value", f"Total {value}", f"إجمالي {value}", {"agg": "sum", "column": value}))
+        if group:
+            sections.append(priorities({"agg": "count"}, "count", f"Most records by {group}",
+                                       f"الأكثر سجلات حسب {group}"))
+        lead = value
+    else:
+        lead = (analysed if kind != "maintenance" else
+                _find(measures, ("downtime", "failure", "cost")) or analysed) or (measures[0] if measures else None)
+        sections.append(kpi("records", "Records", "السجلات", {"agg": "count"},
+                            ("How many records the figures cover.", "عدد السجلات التي تغطيها الأرقام.")))
+        for name in ([lead] if lead else []) + [m for m in measures if m != lead][:2]:
+            sections.append(kpi(f"kpi-{len(sections)}", f"Total {name}", f"إجمالي {name}",
+                                {"agg": "sum", "column": name}))
+        if group and lead:
+            sections.append(priorities({"agg": "sum", "column": lead}, f"sum:{lead}",
+                                       f"{lead} by {group}", f"{lead} حسب {group}"))
     if caps["trend"]["available"] and lead:
-        sections.append({"id": "trend", "component": "trend", "span": 3,
-                         "title": _t(f"{lead} over time"[:MAX_TITLE], f"{lead} عبر الزمن"[:MAX_TITLE]),
-                         "purpose": _t("Recorded values by date; no forecast.", "القيم المسجلة حسب التاريخ؛ بلا تنبؤ."),
-                         "binding": {"group_by": [dates[0]], "measures": [{"agg": "sum", "column": lead}],
-                                     "sort": {"by": dates[0]}},
-                         "interactions": ["filter", "drill_down", "ask_jarvis"]})
-    if caps["ranking"]["available"] and lead:
-        sections.append({"id": "ranking", "component": "ranking", "span": 2,
-                         "title": _t(f"{lead} by {groups[0]}"[:MAX_TITLE], f"{lead} حسب {groups[0]}"[:MAX_TITLE]),
-                         "purpose": _t("Largest groups first.", "المجموعات الأكبر أولًا."),
-                         "binding": {"group_by": [groups[0]], "measures": [{"agg": "sum", "column": lead}],
-                                     "sort": {"by": f"sum:{lead}", "desc": True}, "limit": 10},
-                         "interactions": ["filter", "drill_down", "compare", "ask_jarvis"]})
-    if caps["distribution"]["available"] and lead:
-        sections.append({"id": "distribution", "component": "distribution", "span": 1,
-                         "title": _t(f"Spread of {lead}"[:MAX_TITLE], f"توزيع {lead}"[:MAX_TITLE]),
-                         "purpose": _t("How values spread across ranges.", "كيف تتوزع القيم على المدى."),
-                         "binding": {"group_by": [{"column": lead, "bins": 10}],
-                                     "measures": [{"agg": "count"}]},
-                         "interactions": ["drill_down"]})
+        sections.append(_section("trend", "trend", 3, _t(f"{lead} over time"[:MAX_TITLE], f"{lead} عبر الزمن"[:MAX_TITLE]),
+                                 _t("Recorded values by date; no forecast.", "القيم المسجلة حسب التاريخ؛ بلا تنبؤ."),
+                                 {"group_by": [dates[0]], "measures": [{"agg": "sum", "column": lead}],
+                                  "sort": {"by": dates[0]}}, ("filter", "drill_down", "ask_jarvis")))
+    if kind not in ("contracts",) and caps["distribution"]["available"] and lead:
+        sections.append(_section("distribution", "distribution", 1,
+                                 _t(f"Spread of {lead}"[:MAX_TITLE], f"توزيع {lead}"[:MAX_TITLE]),
+                                 _t("How values spread across ranges.", "كيف تتوزع القيم على المدى."),
+                                 {"group_by": [{"column": lead, "bins": 10}], "measures": [{"agg": "count"}]},
+                                 ("drill_down",)))
     for cap in ("forecast", "predictive_risk", "prescriptive"):
-        if not caps[cap]["available"]:
-            sections.append({"id": f"gap-{cap.replace('_', '-')}", "component": "gap", "span": 1,
-                             "title": _t("Not available yet", "غير متاح بعد"),
-                             "purpose": _t(f"Missing prerequisite for {cap.replace('_', ' ')}.",
-                                           "متطلب ناقص لهذا التحليل."),
-                             "binding": {"capability": cap}})
+        if not caps[cap]["available"] and (kind == "maintenance" or cap == "forecast"):
+            sections.append(_section(f"gap-{cap.replace('_', '-')}", "gap", 1,
+                                     _t("Not available yet", "غير متاح بعد"),
+                                     _t("A missing prerequisite, stated plainly.", "متطلب ناقص، مذكور بوضوح."),
+                                     {"capability": cap}))
     sections = sections[:MAX_SECTIONS - 1]
     columns = [f["name"] for f in prof["fields"]][:6]
     if columns:
-        sections.append({"id": "records-table", "component": "table", "span": 3,
-                         "title": _t("Supporting records", "السجلات الداعمة"),
-                         "purpose": _t("The rows behind the figures.", "الصفوف خلف الأرقام."),
-                         "binding": {"columns": columns, "limit": 20},
-                         "interactions": ["filter", "inspect_evidence"]})
+        sections.append(_section("records-table", "table", 3, _t("Supporting records", "السجلات الداعمة"),
+                                 _t("The rows behind the figures.", "الصفوف خلف الأرقام."),
+                                 {"columns": columns, "limit": 20}, ("filter", "inspect_evidence")))
     return {"version": VERSION, "objective": objective[:MAX_OBJECTIVE], "sections": sections}
 
 
@@ -317,7 +394,9 @@ SYSTEM = (
     "You design a data-specific analytics workspace. Reply with JSON only: "
     '{"version":1,"objective":str,"sections":[{"id","component","title":{"en","ar"},'
     '"purpose":{"en","ar"},"span":1|2|3,"binding":{...},"interactions":[...]}]}. '
-    "Components: kpi {measures}, trend {group_by:[date column],measures,sort}, "
+    "Start with a brief section (no binding): what is happening, expected, to decide. "
+    "Components: brief {}, kpi {measures}, trend {group_by:[date column],measures,sort}, "
+    "priorities {group_by:[text column],measures,sort,limit<=3,drivers:another text column}, "
     "ranking|comparison {group_by:[text column],measures,sort,limit}, "
     'distribution {group_by:[{"column":measure,"bins":2-50}],measures:[{"agg":"count"}]}, '
     "table {columns,limit}, gap {capability}. Aggregates: sum, mean, min, max, count, "
@@ -375,5 +454,6 @@ def plan_for(table, gateway=None, objective="", stages=(), model_allowed=True, l
         plan, rule_problems = validate(rule_plan(prof, caps, objective), table, prof, caps)
         if plan is None:  # a rule plan that fails its own contract is a bug
             raise ValueError("; ".join(rule_problems))
-    return {"plan": plan, "source": source, "provider": provider, "notes": notes, "problems": problems,
+    return {"plan": plan, "source": source, "provider": provider, "notes": notes,
+            "domain": {"name": domain(prof), "basis": "inferred from field names"}, "problems": problems,
             "capabilities": caps, "fingerprint": fingerprint(prof), "profile": prof}

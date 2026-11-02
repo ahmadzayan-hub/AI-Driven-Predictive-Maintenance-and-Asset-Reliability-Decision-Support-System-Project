@@ -19,12 +19,12 @@ export interface JarvisAnswer {
 }
 
 /** Read-only query transport; selection uses Miyaar's existing permission-bound API. */
-export function JarvisWorkspace({ session, disabled = false, embedded = false }: { session: SessionState; disabled?: boolean; embedded?: boolean }) {
+export function JarvisWorkspace({ session, disabled = false, embedded = false, prompt }: { session: SessionState; disabled?: boolean; embedded?: boolean; prompt?: { text: string; n: number } }) {
   const { t, locale } = usePack(jarvisMessages)
   const readOnly = useReadOnly()
   const [context, setContext] = useState(session.data_context ?? null)
   const [selecting, setSelecting] = useState(false)
-  const [draft, setDraft] = useState('')
+  const [draft, setDraft] = useState(prompt?.text ?? '')
   const [answer, setAnswer] = useState<JarvisAnswer | null>(null)
   const [asked, setAsked] = useState('')
   const [status, setStatus] = useState<'idle' | 'working' | 'failed' | 'stopped'>('idle')
@@ -43,6 +43,9 @@ export function JarvisWorkspace({ session, disabled = false, embedded = false }:
     setCapture('idle'); setPlayback('idle')
   }
   useEffect(() => { invalidate(); setContext(session.data_context ?? null); setDraft('') }, [session.session_id, session.data_context, locale])
+  // A screen section may hand over a question; it fills the draft after a
+  // (re)binding has cleared it, and the reader still presses Ask.
+  useEffect(() => { if (prompt) setDraft(prompt.text) }, [prompt, session.session_id, session.data_context])
   useEffect(() => () => { generation.current++; request.current?.abort() }, [])
   function select(next: DataContext | null) { invalidate(); setContext(next); setDraft('') }
   function edit(text: string) { invalidate(); setDraft(text) }

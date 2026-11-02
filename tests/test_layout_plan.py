@@ -127,6 +127,51 @@ class DifferentDataDifferentLayoutTests(unittest.TestCase):
                 self.assertTrue(all(g["reason"] for g in gaps))
 
 
+class DomainTests(unittest.TestCase):
+    """The kind of records shapes the page; the same cards are not forced on all."""
+
+    def sections(self, make):
+        return {s["id"]: s for s in L.plan_for(make())["plan"]["sections"]}
+
+    def test_each_kind_of_record_gets_its_own_structure(self):
+        self.assertEqual(L.domain(L.profile(maintenance())), "maintenance")
+        self.assertEqual(L.domain(L.profile(contracts())), "contracts")
+        self.assertEqual(L.domain(L.profile(budget())), "costs")
+        self.assertEqual(L.domain(L.profile(unseen())), "general")
+        m, c, b, u = (self.sections(f) for f in (maintenance, contracts, budget, unseen))
+        for page in (m, c, b, u):
+            self.assertEqual(next(iter(page)), "brief")             # the manager's question first
+        self.assertEqual(m["priorities"]["binding"]["group_by"], ["Asset_Class"])
+        self.assertEqual(m["priorities"]["binding"]["measures"], [{"agg": "sum", "column": "Downtime_Hours"}])
+        self.assertIn("gap-predictive-risk", m)                     # risk named as missing, not drawn
+        self.assertEqual(c["priorities"]["binding"]["measures"], [{"agg": "count"}])
+        self.assertNotIn("distribution", c)
+        self.assertNotIn("gap-predictive-risk", c)                 # no failure model forced on contracts
+        self.assertEqual(b["ratio"]["binding"]["measures"][0]["agg"], "ratio")
+        self.assertEqual(b["variance"]["component"], "comparison")
+        self.assertEqual(len(b["variance"]["binding"]["measures"]), 2)
+        self.assertNotIn("priorities", u) if not L._groups(L.profile(unseen())) else None
+        for page in (m, c, b):
+            self.assertLessEqual(page["priorities"]["binding"]["limit"], 3)
+            drivers = page["priorities"]["binding"].get("drivers")
+            self.assertNotEqual(drivers, page["priorities"]["binding"]["group_by"][0])
+        for table, page in ((maintenance(), m), (contracts(), c), (budget(), b)):
+            fields = {f["name"]: f for f in L.profile(table)["fields"]}
+            for col in filter(None, (page["priorities"]["binding"].get("drivers"), page["priorities"]["binding"]["group_by"][0])):
+                self.assertLess(fields[col]["distinct"], fields[col]["filled"])   # never a record number
+
+    def test_a_brief_takes_no_binding_and_drivers_must_be_real(self):
+        t = maintenance()
+        prof = L.profile(t)
+        caps = L.capabilities(prof)
+        bad = [{"id": "brief", "component": "brief", "title": section()["title"],
+                "purpose": section()["purpose"], "binding": {"measures": [{"agg": "count"}]}}]
+        self.assertIsNone(L.validate({"version": 1, "sections": bad}, t, prof, caps)[0])
+        pr = section(id="p", component="priorities", binding={
+            "group_by": ["Asset_Class"], "measures": [{"agg": "count"}], "drivers": "Asset_Class"})
+        self.assertIsNone(L.validate({"version": 1, "sections": [pr]}, t, prof, caps)[0])
+
+
 class ValidationTests(unittest.TestCase):
 
     def check(self, *sections, **plan):

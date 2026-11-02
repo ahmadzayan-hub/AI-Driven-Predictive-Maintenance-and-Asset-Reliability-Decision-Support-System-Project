@@ -162,3 +162,49 @@ raising the limits to 276 KB and 37.5 KB ("Ok go", 3 November 2026).
     dropped.
 - Screenshots of the page were taken on the synthetic maintenance run in
   English and Arabic, using the Jarvis demo server.
+
+## Slice 3: one complete decision path (2026-11-03)
+
+The owner asked for one finished path before the look spreads to the rest of
+the platform: upload, a generated page, a question to Jarvis, and a decision
+backed by evidence. The page answers the manager's three questions first.
+
+1. **The structure follows the data** (`domain(prof)`, inferred from field
+   names only, and named in the result as `domain`).
+   - Maintenance: priorities on downtime, failures or cost; risk and
+     prescriptive gaps named.
+   - Costs: actual, budget and their ratio, priorities, a variance comparison.
+   - Contracts: count and value, priorities by count; no distribution and no
+     failure model forced on them.
+   - Anything else: totals and priorities on the lead measure.
+2. **A brief first** (`brief`, no binding). Three cards from the run's
+   executive answer under the current filters: what is happening, what is
+   expected (the validated risk result, or the plain reason none exists), and
+   what to decide. The decision is marked "Proposed, awaiting your review",
+   shows its evidence on demand and opens the run's human approval.
+3. **Three priorities** (`priorities`, limit 3). Selecting one sets the shared
+   filter; the list keeps all three choices visible and marks the chosen one.
+   A focus panel shows what drives it (`drivers`, another text column) and the
+   records behind it. A column with one value per record is never used as a
+   group or a driver.
+4. **Jarvis tied to the selection.** On maintenance data the focus panel
+   offers two questions; a click fills the Jarvis question and binds it to the
+   same filters. Other domains say that Jarvis answers maintenance questions
+   only, instead of offering a question it cannot answer.
+
+**Verification:**
+
+- `tests/test_layout_plan.py`, 13 tests: each kind gets its own structure,
+  a brief takes no binding, drivers must be real, and no record number is a
+  group or driver.
+- `DesignedPage.test.tsx`, 8 tests: the brief with evidence and decision,
+  priority to focus to Jarvis prompt, and the note for contracts.
+- `e2e-jarvis/designed-path.spec.ts`, English and Arabic, on a 24-row
+  synthetic file: upload, run, generated page, three priorities, Pumps
+  selected, drivers by Asset_ID, records, Jarvis answers 2,460 for 6 of 24
+  records (checked by hand: 400 + 404 + 408 + 412 + 416 + 420), evidence
+  opened, and the run's approval reached.
+
+**Limitations:** the domain is inferred from field names, so a file with
+unhelpful names gets the general structure. Jarvis's calculated questions
+cover maintenance only. A real model has still not designed a page here.

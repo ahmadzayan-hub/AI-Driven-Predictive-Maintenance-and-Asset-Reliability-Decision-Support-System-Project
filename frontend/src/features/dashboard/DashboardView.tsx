@@ -325,7 +325,7 @@ function Dashboard({ runId, page, query, onNavigate, onOpenRun }: {
             onDrill={(next) => { const scoped = executiveDrill(next, state, roles); if (scoped) setState(scoped, 'records') }}>
             <OverviewPage {...props} />
           </ExecutiveOverview> : null}
-          {current === 'designed' ? <><Suspense fallback={null}><DesignedPage {...props} /></Suspense>{console}</> : null}
+          {current === 'designed' ? <><Suspense fallback={null}><DesignedPage {...props} onOpenRun={() => onOpenRun(runId)} /></Suspense>{console}</> : null}
           {current === 'breakdown' ? <BreakdownPage {...props} /> : null}
           {current === 'trend' ? <TrendPage {...props} /> : null}
           {current === 'distribution' ? <DistributionPage {...props} /> : null}

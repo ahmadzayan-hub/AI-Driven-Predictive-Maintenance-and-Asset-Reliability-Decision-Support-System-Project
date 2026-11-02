@@ -95,3 +95,63 @@ it('keeps the last valid layout when designing fails, and drops a late answer fo
   await new Promise((r) => setTimeout(r, 0))
   expect(readHistory('r2')).toBeNull()
 })
+
+// The decision path: brief → priority → its drivers and records → a question for Jarvis → evidence → decide.
+import { JarvisPromptContext } from './jarvisPrompt'
+import type { RunExecutive } from '../../shared/types'
+
+const brief: LayoutSection = { id: 'brief', component: 'brief', title: t('What needs your attention'), purpose: t('Three questions.'),
+  span: 3, interactions: [], binding: { measures: [] } }
+const prio: LayoutSection = { id: 'priorities', component: 'priorities', title: t('Downtime by class'), purpose: t('Top three.'),
+  span: 2, interactions: ['filter'], binding: { group_by: ['Class'], measures: [{ agg: 'sum', column: 'Downtime' }], limit: 3, drivers: 'Asset' } }
+const executive = { headline: 'Downtime is concentrated in Pumps.', priorities: [],
+  advisory: { decisions: [{ id: 'd1', title: 'Inspect the pump fleet', action: 'Plan a condition check on the three pumps with most downtime.', owner: '', gate: '', evidence_refs: ['c_downtime'] }] },
+  evidence: [{ id: 'c_downtime', kind: 'calculation', label: 'Pump downtime', value: 120, method: 'sum(Downtime) where Class = Pumps', scope: 'whole_run' }],
+} as unknown as RunExecutive
+
+it('answers the three questions, shows the evidence and leads to the decision', async () => {
+  const withDomain = { ...result([brief]), domain: { name: 'maintenance' as const, basis: 'inferred' },
+    capabilities: { forecast: { available: false, reason: { en: 'No validated forecast result.', ar: 'لا تنبؤ.' } } } }
+  vi.spyOn(api, 'planLayout').mockResolvedValue(withDomain)
+  vi.spyOn(api, 'runExecutive').mockResolvedValue(executive)
+  const open = vi.fn()
+  render(<DesignedPage runId="r1" roles={roles} state={EMPTY} filters={[]} setState={vi.fn()} onOpenRun={open} />)
+  expect(await screen.findByText('Downtime is concentrated in Pumps.')).toBeInTheDocument()
+  expect(screen.getByText('No validated forecast result.')).toBeInTheDocument()
+  expect(screen.getByText('Inspect the pump fleet')).toBeInTheDocument()
+  expect(screen.getByText('Proposed · awaiting your review')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'View evidence' }))
+  expect(screen.getByText(/sum\(Downtime\) where Class = Pumps/)).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Review and decide' }))
+  expect(open).toHaveBeenCalled()
+})
+
+it('opens a selected priority with its drivers and records and hands Jarvis a scoped question', async () => {
+  vi.spyOn(api, 'planLayout').mockResolvedValue({ ...result([prio]), domain: { name: 'maintenance', basis: 'inferred' } })
+  vi.spyOn(api, 'queryTable').mockResolvedValue(answer([['Pumps', 120], ['Doors', 40], ['Signals', 10]]))
+  vi.spyOn(api, 'tableRecords').mockResolvedValue({ columns: ['Asset', 'Class'], rows: [['P-1', 'Pumps']], total: 1 })
+  const setState = vi.fn()
+  const ask = vi.fn()
+  const view = render(<JarvisPromptContext.Provider value={ask}>
+    <DesignedPage runId="r1" roles={roles} state={EMPTY} filters={[]} setState={setState} /></JarvisPromptContext.Provider>)
+  fireEvent.click(await screen.findByRole('button', { name: /Pumps/ }))
+  expect(setState).toHaveBeenCalledWith(expect.objectContaining({ filters: { Class: ['Pumps'] } }))
+  const picked = { ...EMPTY, filters: { Class: ['Pumps'] } }
+  view.rerender(<JarvisPromptContext.Provider value={ask}><DesignedPage runId="r1" roles={roles} state={picked}
+    filters={[{ column: 'Class', op: 'in', values: ['Pumps'] }]} setState={setState} /></JarvisPromptContext.Provider>)
+  const focus = await screen.findByRole('region', { name: 'Selected: Pumps' })
+  expect(focus).toHaveTextContent('What drives it')
+  expect(await screen.findByText('P-1')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'What is total maintenance cost?' }))
+  expect(ask).toHaveBeenCalledWith('What is total maintenance cost?')
+})
+
+it('says plainly when Jarvis cannot answer this kind of data', async () => {
+  vi.spyOn(api, 'planLayout').mockResolvedValue({ ...result([prio]), domain: { name: 'contracts', basis: 'inferred' } })
+  vi.spyOn(api, 'queryTable').mockResolvedValue(answer([['Design', 4]]))
+  vi.spyOn(api, 'tableRecords').mockResolvedValue({ columns: ['Milestone'], rows: [['Design']], total: 1 })
+  render(<JarvisPromptContext.Provider value={vi.fn()}><DesignedPage runId="r1" roles={roles}
+    state={{ ...EMPTY, filters: { Class: ['Design'] } }} filters={[]} setState={vi.fn()} /></JarvisPromptContext.Provider>)
+  expect(await screen.findByText(/Jarvis answers maintenance measures only/)).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'What is total maintenance cost?' })).toBeNull()
+})
