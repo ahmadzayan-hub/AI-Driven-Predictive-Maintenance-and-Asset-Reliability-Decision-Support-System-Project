@@ -3,7 +3,7 @@ type: decision
 aliases: [ADR index, Architecture decisions]
 tags: [decisions]
 status: active
-updated: 2026-10-28
+updated: 2026-10-30
 review_every_days: 30
 sources: [docs/adr]
 ---
@@ -216,6 +216,22 @@ One line per record, read from its title and decision; the record itself is the 
 | 2026-10-28-stage-report-sections | The comprehensive analysis report prints key metrics, claims and charts only when a stage produced them, and its limitations name the sections left out | [[Scoped dashboards]], [[Business report exports]], [[Approval gate]] |
 | 2026-10-28-live-pipeline | The run timeline names the stage running now, marks it as the current step and announces its progress; progress still arrives by the run's poll; agent cards are a later slice | [[Run lifecycle]], [[Agentic OS]] |
 | 2026-10-28-agent-cards | Each stage in the run timeline is a card stating its claims and passed checks; the card rules load with the runs view, not on first load; five unused string keys removed to hold the script ceiling | [[Run lifecycle]], [[Agentic OS]] |
+| 2026-10-30-codebase-memory-mcp | codebase-memory-mcp may be installed per developer as an MCP server only, outside tracked configuration and without its own agent profiles or hooks, after a measured three-question trial; its graph snapshot is gitignored. Graft/Trail, OpenMontage and The Agency rejected | [[Agent runtimes and MCP]], [[Agent team]], [[Soul]] |
+| 2026-10-30-workbook-title-lines | Up to five single-value title lines above a workbook's header are left out with a bilingual warning, only when the row after them looks like a header; the sheet listing judges tables the same way; CSV and JSON unchanged | [[Column mapping]], [[Data quality contracts]] |
+| 2026-10-30-sheet-picker-after-failure | A failed workbook upload lists its sheets through `/api/datasets/sheets` and shows the existing picker on both upload screens; Excel files only; script total ceiling 257.1 KB after trimming was tried | [[Column mapping]], [[Verification and budgets]] |
+| 2026-10-30-opendocument-spreadsheets | `.ods` files are read like Excel workbooks from `content.xml`, stored as `ods`; repeated empty cells and rows are never expanded; same limits, XML budget and document type refusal; hidden sheets not detected; named in the upload help since the text trim | [[Column mapping]], [[Data quality contracts]] |
+| 2026-10-30-loose-join-keys | A join may compare text keys ignoring case and spaces (`match: loose`), recorded only when chosen; repeats after loosening are refused; every join reports loose and near matches as claims tied to calculations; offered in the join builder after shortening interface text to make room | [[Agentic OS]], [[Evidence and claims]] |
+| 2026-10-30-parallel-python-tests | verify runs the Python suite on one worker per CPU; a PostgreSQL database per worker when the server allows it, otherwise PostgreSQL files in one batch; role files never overlap; CI keeps discover | [[Verification and budgets]] |
+| 2026-10-30-data-understanding-and-cleaning | The profile reports measure ranges, outliers, negatives, sparse and single-value columns as claims; missing-value markers read as empty and stay reversible; spelling variants named, not merged; no imputation or outlier removal without an owner policy | [[Data quality contracts]], [[Evidence and claims]] |
+| 2026-10-31-validity-limits | A mapping may declare min and max per measure; values outside are left out of every figure, recorded for reversal and stated as a claim; no limits, no change | [[Data quality contracts]], [[Evidence and claims]] |
+| 2026-10-31-data-policy | Unusual values judged per group and by ratio for positive skewed measures, kept, both averages when the effect is 10% or more; gaps filled for the association model only (group median, flag column, with and without, never the measure, at most 30% missing); every report states the policy; the mapping panel sets the allowed range | [[Data quality contracts]], [[Evidence and claims]] |
+| 2026-10-31-reliability-model | Failure pattern per asset class on the maintenance profile: days between failures, running assets censored, Weibull fit with a likely range; pattern named only when the range agrees; class pattern, not one asset's remaining life; governance uneven-periods figures now cited in both languages | [[Evidence and claims]] |
+| 2026-10-31-risk-ranking | Assets ranked by chance of failure within 90 days times the class's recorded cost per failure; criticality shown, not weighted; extrapolations unverified; a proposal, not a work order | [[Evidence and claims]] |
+| 2026-10-31-what-if-scenarios | Planned replacement intervals against run to failure per class (age-replacement model, recorded costs); lowest-cost interval named only when it saves; no wear, no planned-replacement advice; declared intervals as a stage option | [[Evidence and claims]] |
+| 2026-10-31-data-health | Share of measure values usable as recorded after cleaning, each loss named, unusual values counted as usable; first line of the policy section; the raw quality score unchanged | [[Data quality contracts]], [[Evidence and claims]] |
+| 2026-10-31-snapshot-drift | Each live snapshot compared with the previous one on four stated rules; a note, never a block; findings in the refresh result | [[Data quality contracts]] |
+| 2026-10-31-decision-stages-on-assets | The Assets screen shows data health and the decision stages' claims in the run language; no new string; room from trimming six Operations strings | [[Design system]] |
+| 2026-11-02-declared-risk-options | Risk ranking takes a declared horizon and criticality weights as stage options; defaults unchanged; weights apply only when every label has one, otherwise the gap is named; invalid options fail at load | [[Evidence and claims]] |
 
 - `2026-10-27-assistant-focus-and-context`: isolated candidate; native report disclosure beside composer, scoped session status and stronger first action. Browser acceptance pending.
 

@@ -107,6 +107,7 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
                 <div><dt>{t('assets.stage')}</dt><dd>{stateLabel(t, evidence.screen.state)}</dd></div>
                 <div><dt>{t('assets.updated')}</dt><dd><time dateTime={evidence.run.updated_at}>{formatDate(evidence.run.updated_at)} {formatTime(evidence.run.updated_at)}</time></dd></div>
               </dl>
+              {evidence.health ? <p dir="auto">{evidence.health}</p> : null}
               {kpiState?.key === kpiKey && kpiState.loading ? <p role="status">{t('assets.kpiLoading')}</p> : null}
               {kpiState?.key === kpiKey && kpiState.error ? <div role="alert">
                 <p>{kpiState.error}</p><button type="button" className="btn btn--ghost" onClick={() => setKpiReload((n) => n + 1)}>{t('assets.kpiRetry')}</button>
@@ -160,6 +161,10 @@ export function AssetIntelligenceView({ onUpload, onOpenRun }: Props) {
                 <strong>{t('assets.modelEvidence')}</strong>
                 <p dir="auto">{evidence.risk.summary || t('assets.notAvailable')}</p>
               </div> : null}
+              {evidence.decisions.map((task) => <div key={task.id} className="asset-intelligence__finding">
+                <strong dir="auto">{task.title}</strong>
+                {task.claims.map((claim) => <p key={claim.id} dir="auto">{claim.text_ar ?? claim.text}</p>)}
+              </div>)}
               <ul className="asset-intelligence__checks">
                 {evidence.screen.quality_checks.map((check) => (
                   <li key={check.name}>

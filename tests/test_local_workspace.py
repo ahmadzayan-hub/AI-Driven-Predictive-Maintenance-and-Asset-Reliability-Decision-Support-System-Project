@@ -104,6 +104,12 @@ class WorkflowTest(unittest.TestCase):
         self.assertEqual(self.client(host="localhost").get("/api/identity").status_code, 200)
 
     def test_rate_limit_survives_restart(self):
+        # The limit counts per 60-second window. Two requests either side of
+        # a window's end would both be admitted, so start well inside one:
+        # the restart between them takes far less than ten seconds.
+        import time
+        while 60 - time.time() % 60 < 10:
+            time.sleep(0.25)
         client = self.client(env={"AGENTIC_OS_RATE_LIMIT": "1"})
         self.assertEqual(client.post("/api/sessions").status_code, 201)
         restarted = self.client(env={"AGENTIC_OS_RATE_LIMIT": "1"})

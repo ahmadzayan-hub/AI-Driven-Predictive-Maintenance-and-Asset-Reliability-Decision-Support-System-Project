@@ -227,6 +227,13 @@ export function JoinBuilder({ primaryId, datasets, disabled, joins, breakdown, o
                 ))}
               </div>
             </div>
+            {join.how === 'stack' ? null : (
+              <label className="field__help">
+                <input type="checkbox" checked={join.match === 'loose'}
+                  onChange={(event) => update(index, { match: event.target.checked ? 'loose' : undefined })} />{' '}
+                {t('joins.loose')}
+              </label>
+            )}
             <button
               type="button"
               className="btn btn--subtle"
@@ -308,6 +315,7 @@ export function JoinBuilder({ primaryId, datasets, disabled, joins, breakdown, o
                       })}
                   {record.duplicates_dropped ? <> {t('joins.stackedDropped', { n: formatNumber(record.duplicates_dropped) })}</> : null}
                   {record.unmatched_keys.length ? <> {t('joins.unmatched', { keys: record.unmatched_keys.join(', ') })}</> : null}
+                  {record.near_matches ? <> {t('joins.near', { n: formatNumber(record.near_matches) })}</> : null}
                   {record.lookup_unused ? <> {t('joins.unused', { n: formatNumber(record.lookup_unused), name: record.name })}</> : null}
                   {Object.keys(record.renamed).length ? (
                     <> {t('joins.renamed', { list: Object.entries(record.renamed).map(([a, b]) => `${a} → ${b}`).join(', ') })}</>

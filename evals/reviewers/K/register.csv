@@ -1,0 +1,120 @@
+Check,Expected
+Lifts in service,14
+Wheel lathes in service,3
+Air compressors in service,9
+Pit brake testers in service,4
+Overhead cranes in service,2
+Units in scope total,32
+Scheduled hours per unit per year,2000
+Fleet scheduled hours per year,64000
+PM tasks scheduled 2025,1200
+PM tasks completed on time 2025,1128
+PM on-time share 2025 percent,94.0
+PM tasks scheduled 2024,1150
+PM tasks completed on time 2024,1001
+PM on-time share 2024 percent,87.0
+Lathe failures 2024,3
+Lathe failures 2025,2
+Lathe failure reduction percent,33.3
+Brake tester failures 2025,3
+Brake tester scheduled hours 2025 total,8000
+Brake tester failure rate per 1000 unit-hours,0.375
+Brake tester repair cost 2025,13500
+Brake tester cost per failure,4500
+Compressor failures 2025,5
+Compressor count,9
+Compressor share of all failures percent,56
+Total unplanned failures 2025,17
+Total unplanned failures 2024,19
+FMEA severity score,7
+FMEA occurrence score,4
+FMEA detection score,8
+FMEA risk priority number,224
+Detection scale maximum,10
+Compressors in lubrication trial,8
+New lubrication interval hours,500
+Existing lubrication interval hours,250
+New-interval compressor failures 2025,0
+Existing-interval compressor failures 2025,3
+Ninth compressor failures 2025,2
+Compressor failures 2024,4
+C-7 iron reading first sample ppm,30
+C-7 iron reading second sample ppm,60
+C-7 iron reading third sample ppm,90
+C-7 sample spacing months,3
+C-7 iron trend ppm per month,10
+Iron alert limit ppm,150
+Months from last C-7 sample to alert limit,6
+Projected C-7 alert month,12
+Planned C-7 overhaul month,10
+Brake tester findings 2025,7
+Brake tester failures plus findings,10
+Brake tester inflated rate per 1000 unit-hours,1.25
+Ratio of inflated to functional brake tester rate,3.33
+Brake tester failures first half 2025,3
+Brake tester failures second half 2025,0
+Months in each half year,6
+Brake tester scheduled hours second half 2025,4000
+Unplanned downtime hours 2024,392
+Unplanned downtime hours 2025,351
+Fleet availability 2024 percent,99.39
+Fleet availability 2025 percent,99.45
+Corrective cost 2024,136000
+Corrective cost 2025,129500
+Corrective cost reduction,6500
+Corrective cost reduction percent,4.8
+Lift failures 2024,9
+Lift failures 2025,6
+Lift failures per lift 2025,0.43
+Lift failures per lift 2024,0.64
+Brake tester ranking basis test cycles,240
+Brake tester failures in ranking,3
+Brake tester rate per 100 cycles,1.25
+Ranking basis cycles per rate,100
+Crane failures 2025,1
+Cranes in ranking,2
+Crane rate per unit-year,0.50
+Lift seal trial lifts upgraded,6
+Lift seal trial lifts standard,6
+Lift seal trial lifts total,12
+Trial leak-related failures total,5
+Upgraded seal failures,1
+Standard seal failures,4
+Lifts outside trial,2
+Lifts outside trial failures,1
+Lathe 2 failures 2025,0
+Lathe 2 scheduled hours 2025,2000
+Lathe group failures 2025,2
+Lathes in group,3
+Current lathe PM interval months,6
+Proposed lathe PM interval months,12
+Compressor planned overhauls,9
+Planned overhaul hours each,8
+Planned overhaul hours total,72
+Compressor unplanned downtime hours 2025,110
+Compressor mean repair hours,22
+Lathe unplanned downtime hours 2025,60
+Lathe mean repair hours,30
+Compressor repair duration job 1 hours,2
+Compressor repair duration job 2 hours,3
+Compressor repair duration job 3 hours,4
+Compressor repair duration job 4 hours,3
+Compressor repair duration job 5 hours,98
+Compressor median repair hours,3
+Compressor C-3 repair hours,98
+Oil-level sensor fault days,21
+Compressors with at least one failure,5
+Compressor share with failure percent,55.6
+Lifts re-certified,5
+Re-certification hours each,6
+Re-certification hours total,30
+Lift unplanned downtime hours 2025,96
+Lift downtime including re-certification hours,126
+Lift failures used for mean repair,6
+Lift mean repair hours including re-certification,21
+Lift mean repair hours unplanned only,16
+Hoist replacement capital cost,48000
+Crane repair cost 2025,18000
+Simple payback years,2.67
+Oil samples 2025,12
+Oil alert limit ppm,150

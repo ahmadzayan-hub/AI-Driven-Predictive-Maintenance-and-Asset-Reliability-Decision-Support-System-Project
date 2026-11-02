@@ -1,0 +1,38 @@
+FINDING: [P05] Two failures against three is called "statistically significant" and said to "confirm" the new spindle bearing works, and the team recommends fitting it to all three lathes. 3 vs 2 events is far too few for significance, and no controlled comparison exists.
+Category: overclaim
+
+FINDING: [P07] The "56% of all unplanned workshop failures" is 5/9, which is compressors with a failure divided by compressor count. The correct share of failures is 5/17 = 29.4%.
+Category: denominator
+
+FINDING: [P08] The detection scale is defined with 10 meaning always detected. On that scale a high score means good detection, so it cannot raise the RPN priority. The scale is inverted relative to the RPN logic, and ranking the valve first on that basis is unsupported.
+Category: domain_method
+
+FINDING: [P09] With 8 compressors (4 vs 4) and 0 vs 3 failures, the memo says the trial "shows" the new interval reduced failures. Randomisation does not make such a tiny sample conclusive.
+Category: overclaim
+
+FINDING: [P10] The 150 ppm alert limit is treated as the expected failure date (month 12), from a straight line through 3 points. The limit is an alert threshold, not a functional failure. The P-F interval and the uncertainty of the extrapolation are not considered.
+Category: domain_method
+
+FINDING: [P12] Inspection findings are added to the failure numerator, giving 10 failures and a rate of 1.25. Findings are not functional failures. The "redesign" conclusion rests on this inflated count.
+Category: domain_method
+
+FINDING: [P15] Brake testers (per 100 test cycles) and cranes (per unit-year) are ranked on one list, on different exposure bases. The conclusion that brake testers are the least reliable class is unsupported.
+Category: domain_method
+
+FINDING: [P17] The memo says the new grease "caused" the fall in lift failures, based only on timing (9 to 6, after the March supplier change). This is an association from before/after data with no control.
+Category: causal_claim
+
+FINDING: [P18] Lathe 2's failure-free record (one unit, 2,000 hours) is used to set and extend the PM interval from 6 to 12 months for all three lathes. This generalises one unit to the group.
+Category: overclaim
+
+FINDING: [P20] The memo recommends approving the 48,000 hoist replacement on a simple payback from one year of repair cost (18,000). It assumes replacement removes all repair cost and ignores failure consequence.
+Category: overclaim
+
+FINDING: [P22] A mean repair time of 22 hours is used as the typical job length and the roster basis. It is skewed by one 98-hour job, and the median is 3 hours.
+Category: domain_method
+
+FINDING: [P25] Planned re-certification hours (30) are added to unplanned downtime, and the mean repair time of 21 is then computed over 6 failures. Planned work is mixed into repair time, which contradicts the memo's own definition in P03. Unplanned only gives 16 hours.
+Category: domain_method
+
+FINDING: [P27] The memo says the lubrication programme "removed the risk of compressor failure" and that the trial allows routine monitoring to stop. Failures were 5 in 2025 and 4 in 2024 (no reduction), and the trial was small. Stopping condition monitoring is unsupported.
+Category: overclaim

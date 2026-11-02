@@ -32,6 +32,7 @@ Instructions for any coding agent working in this repository: Codex, Copilot, Cu
 
 ```bash
 python scripts/verify.py            # Python suite, brain check, typecheck, unit tests, build, interface budget
+python scripts/run_python_tests.py  # the Python suite alone, in parallel (verify runs it this way)
 python scripts/verify.py --e2e      # and the Playwright end-to-end suite
 python scripts/verify.py --quick    # the fast subset, while iterating
 ```

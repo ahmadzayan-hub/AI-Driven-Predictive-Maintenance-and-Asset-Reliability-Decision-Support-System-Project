@@ -337,20 +337,23 @@ required local files. Both behaviors are covered by tests
     never an estimate; it is lost on restart and summed across tenants,
     so a per-tenant token budget is still out of scope. The daily window is calendar-based (midnight UTC), so a
     burst either side of midnight can exceed the intended daily rate.
-17. Datasets come from a file (CSV, TSV, Excel `.xlsx`, JSON or JSON
-    Lines) or pasted CSV (ADR 0024): up to 4 MB as uploaded, the limit
+17. Datasets come from a file (CSV, TSV, Excel `.xlsx`, OpenDocument
+    `.ods` since 2026-10-30, JSON or JSON Lines) or pasted CSV (ADR 0024): up to 4 MB as uploaded, the limit
     of the platform the app is deployed to, 50,000 rows, and 10 MB once
     converted to CSV. They are held in the database rather than object
-    storage. Not read: old `.xls` workbooks, OpenDocument, Parquet, CSV
+    storage. Not read: old `.xls` workbooks, Parquet, CSV
     in any encoding but UTF-8 or UTF-16, and database connectors. A
     workbook gives one sheet per upload. A stored dataset can be removed
     from the Datasets view unless an analysis reads it, in which case the
     server names the analyses and keeps it; runs themselves are never
     deleted (2026-10-27 dataset deletion). After a successful upload, the
-    interface lets you choose another sheet (ADR 0038). A cover sheet is
+    interface lets you choose another sheet (ADR 0038), and after a failed
+    workbook upload it lists the sheets so you can choose one (2026-10-30). A cover sheet is
     skipped for the first sheet that looks like a table, judged from a
-    sample of each sheet's first rows; a table whose header sits below a
-    title row is not detected (2026-10-23 workbook sheet discovery). A formula with no saved result
+    sample of each sheet's first rows (2026-10-23 workbook sheet
+    discovery). Up to five single-value title lines above a header are left
+    out, with a warning; a longer title block, or title lines with two values
+    each, are still read as the header (2026-10-30 workbook title lines). A formula with no saved result
     arrives empty, with a warning. Analysis is in-memory (no
     DuckDB/Polars), so larger-than-memory datasets are out of scope, and
     a dataset cannot yet be deleted from the interface.
