@@ -19,10 +19,12 @@ applyLocale(currentLocale(), false)
 // authenticated API calls, model calls or publishing actions (ADR 0037).
 const isDesignPreview = new URLSearchParams(window.location.search).get('design') === 'maintenance'
 const MaintenancePreview = lazy(() => import('./features/maintenance/MaintenancePreview').then((module) => ({ default: module.MaintenancePreview })))
-if (!isDesignPreview) initializeInstall()
+const isJarvis = new URLSearchParams(window.location.search).get('workspace') === 'jarvis'
+const JarvisDemo = lazy(() => import('./features/chat/JarvisDemo'))
+if (!isDesignPreview && !isJarvis) initializeInstall()
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    {isDesignPreview ? <ViewBoundary><Suspense fallback={<ViewLoading />}><MaintenancePreview /></Suspense></ViewBoundary> : <StoreProvider>
+    {isJarvis ? <ViewBoundary><Suspense fallback={<ViewLoading />}><JarvisDemo /></Suspense></ViewBoundary> : isDesignPreview ? <ViewBoundary><Suspense fallback={<ViewLoading />}><MaintenancePreview /></Suspense></ViewBoundary> : <StoreProvider>
       <App />
     </StoreProvider>}
   </StrictMode>,
@@ -30,7 +32,7 @@ createRoot(document.getElementById('root')!).render(
 
 // Installable PWA: register the service worker in production builds only,
 // so development and tests always see live code.
-if (!isDesignPreview && import.meta.env.PROD && 'serviceWorker' in navigator) {
+if (!isDesignPreview && !isJarvis && import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {
       /* offline caching is progressive enhancement — the app works without it */

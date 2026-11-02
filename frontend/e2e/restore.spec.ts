@@ -34,10 +34,18 @@ test('offline mode clears after a confirmed successful request', async ({ page }
   await sendMessage(page, 'This one fails')
   await expect(page.getByRole('status').filter({ hasText: 'Offline' })).toBeVisible()
 
-  // Backend recovers WITHOUT a browser online event. A successful retry
-  // must clear the offline badge (regression: it used to stay stuck).
+  // Recovery checks the existing conversation without sending again. Only an
+  // explicit manual-send choice may submit the retained draft after review.
   await page.unroute('**/api/**')
-  await expectModelUnavailable(page, () => page.getByRole('button', { name: 'Retry' }).click())
+  let writes = 0
+  page.on('request', request => { if (request.method() === 'POST' && request.url().endsWith('/messages')) writes++ })
+  await page.getByRole('button', { name: 'Check conversation', exact: true }).click()
+  await expect(page.getByRole('alert')).toContainText('No message was resent')
   await expect(page.getByRole('status').filter({ hasText: 'Ready' })).toBeVisible()
+  await expect(composerInput(page)).toHaveValue('This one fails')
+  expect(writes).toBe(0)
+  await page.getByRole('button', { name: 'Keep draft for manual send', exact: true }).click()
+  await expectModelUnavailable(page, () => page.getByRole('button', { name: 'Send message', exact: true }).click())
+  expect(writes).toBe(1)
   await expect(page.locator('.msg--user .msg__bubble').filter({ hasText: 'This one fails' })).toHaveCount(1)
 })

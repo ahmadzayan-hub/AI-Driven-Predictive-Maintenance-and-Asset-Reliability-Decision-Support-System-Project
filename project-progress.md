@@ -1,5 +1,30 @@
 # Project progress
 
+PR81 merged as `a0e2cf5` with a tree identical to tested head `76a442a`.
+Its pre-merge GitHub Actions passed. The subsequent main WebKit phone job
+found a run-start click race while optional profile metadata inserted a field.
+A bounded follow-up guards submission until metadata settles and strengthens
+the existing late-response regression. Exact validation belongs in README;
+production backup, database identity and managed-auth gates remain unchanged.
+
+Jarvis recovery (2 November): the disposable demo-store replacement left cached session/report IDs stale. Added explicit missing/ended-session replacement with draft preservation, conversation-only verification before manual resend, exact-scope session renewal and actionable report reselection. Central radial voice console and existing six dashboard pages remain integrated. Concurrent remote neutral-fixture naming is retained. Local broad validation hit severe memory pressure; full exact-head hosted CI remains the merge gate. The wider uploaded-reference all-pages redesign is still an acceptance task, not claimed complete by this bounded repair.
+
+Jarvis OS hackathon (2 November): implemented in an isolated checkout from `6d87d79`. Explicit data context, deterministic evidence queries, follow-up, missing-data abstention, tab-local human review and opt-in voice controls. Synthetic launcher/browser evidence documented in `docs/JARVIS_HACKATHON.md`; exact executed checks are in README. Actual LLM/device voice and hosted database/auth/recovery acceptance remain separate gates.
+
+Owner-requested unified update: Jarvis now connects from the actual dashboard to its current report and exact chart filters, with responsive side-by-side/stacked evidence, stale-scope rejection and explicit reconnection. Existing saved views, chart interactions and source navigation remain available. No operational prediction, general LLM or production activation is implied.
+
+PR76/PR78 review (2 November 2026): PR76 is already squash-merged into main
+`d529921`; its tree matches the integration candidate containing all six original
+heads. PR78 would add a duplicate Motion error alert and should not be merged.
+Follow-up fixes Windows checksum-test paths and strengthens the existing sequential
+Pydantic regression without changing application code or dependency pins.
+Fresh verification and remaining hosted/browser gates are in README Testing and
+[the review](docs/reviews/2026-11-02-pr76-pr78-review.md). Production and the hosted
+dashboard-view migration remain separate, unperformed operations.
+
+
+PR72 corrective review (29 October): direct trend-point clicks and compact Arabic axis labels have fixes and browser regressions in PR #73. Original merged head `206a0a5` is preserved; final hosted CI is the merge gate. Database migration and production deployment remain separate.
+
 Assistant focus candidate (27 October): prepared against `1dd392c` in an isolated
 checkout. Empty context rail removed in favor of a composer-adjacent native
 disclosure, compact hero and primary analysis action. No live activation. Fresh
@@ -22,6 +47,12 @@ Local regression repair is verified: explicit transaction connection closure, mi
   README. Browser coverage includes every route in both languages and sizes.
 - Next: local visual acceptance and separately authorized activation/integration.
   No live screenshot transfer, model activation or Vercel deployment occurred.
+
+**Three Stitch references, 25 October 2026 (draft PR #61):** Inspected all three screenshot/HTML exports instead of treating mock telemetry, signatures, $1.42M savings and agent quorum as facts. Adapted the real `RunsView` report tabs into a source-backed two-column report inspector with responsive stacking, plus existing API chart label legibility; added tests to the real-run journey. [Design audit](docs/design/2026-10-25-stitch-three-screen-reference.md) · [ADR](docs/adr/2026-10-25-governed-report-inspector.md). CI and same-run screenshots remain release gates; no live agent or DCS control was added, and no deployment/merge is authorized.
+
+
+**Miyaar PBIX reference and phone chart review (25 October 2026, draft branch):** Inspected the supplied eight-page PBIX definitions and Team 3 PDF; recorded two genuine design directions and chose to refine the existing merged decision-first canvas. A targeted CSS change lays out complete bar-category names and real values above full-width bars only under 480px; the existing FastAPI Playwright fixture now contains a long site label and checks the phone rendering. Full exact-SHA CI, actual app screenshot comparison and production acceptance are not yet verified. See [design reference](docs/design/2026-10-25-miyaar-powerbi-reference-ux.md) and [ADR](docs/adr/2026-10-25-mobile-chart-label-legibility.md). No main merge, deployment or Hermes change.
+
 
 KPI review visual acceptance (24 October): additive real-API browser coverage now targets the KPI families and expanded source disclosure in English/Arabic, light/dark and a 320 px phone. Local static/unit checks pass in the materialized workspace; exact-head locked-dependency hosted execution and screenshot inspection remain pending. No application code, merge or deployment changes.
 
@@ -61,6 +92,7 @@ Last updated: 2026-10-23, platform/API recovery, transactional publishing and ap
 - **PR65 browser contract follow-up, 2026-10-26:** corrected legacy greeting/fallback expectations to verify explicit model-unavailable provenance and localized replies. Demo/overview tests now open the actual Latest findings disclosure before checking content. The previously failing desktop/mobile cases, separate Miyaar bilingual/voice/accessibility suite and TypeScript pass locally; full hosted CI remains a release gate. No application behavior or live data changed.
 
 - **Hermes Desktop package candidate, 2026-10-24:** isolated portable package prepared against main `084e9fc1`, restricted to help/run-status/report-explanation capabilities. Configured startup memory reads and SQLite schema/WAL writes are explicitly disclosed. Revised package/MCP dispatch tests pass in temporary synthetic storage with network-denial guards after memory recovered; commands/counts are in README. The owner authorized branch publication and a draft PR only. Live Hermes handshake remains untested; installation, activation and data/model scope remain unapproved. Phase 1's live checkout is untouched. See [guide](docs/HERMES_DESKTOP.md).
+- **Report wording precision candidate, updated 2026-10-26:** PR #63 incorporates current main while retaining both histories. Bilingual output separates absent forecasts, unmeasured projections and backtested forecasts, and describes planning power probabilistically. Synthetic comparisons preserve calculations and evidence; reopening historical synthetic reports and generating new ones preserves stored hashes. Verification counts and execution limits are in README. The review branch explicitly disables automatic Vercel deployment. Exact-head hosted checks and owner approval remain release gates. See [decision](docs/adr/2026-10-26-report-wording-current-main.md).
 
 - **Phase 1 source revision, 2026-10-24:** prepared four controlled KPI cards, a real comparison beside the review queue, compact provenance, and three primary work areas with all old routes retained. Keyboard focus and long-filename wrapping are included. Existing interaction assertions are being aligned with the actual disclosures; no checks are skipped. The laptop memory guard deferred validation, so this source is not yet the running UI. The target is Sunday 25 October at noon Dubai; presentation/video are Phase 2. Keep the current local app and uploads intact until guarded tests/build and actual rendered acceptance pass.
 
@@ -358,3 +390,26 @@ and remote merge remain distinct gates. Existing report features are retained.
 RTL phone follow-up: remove the negative hidden-element margin and strengthen
 root-scroll assertions to use client dimensions. Restore explicit identity-control
 focus styling without changing contrast thresholds. Verification recorded separately.
+
+
+**Approved open-PR integration, 26 October 2026:** Integrated #29/#30/#31/#45/#61/#63
+on current main in a review candidate, retaining newer guards and current design.
+Added explicit Arabic-media CI and responsive report-tab keyboard semantics. Local
+backend, frontend, build and unchanged byte budgets pass; exact published-head
+hosted gates remain required. Owner approved publication/merges, not deployment.
+
+**Opt-in editorial guidance candidate, 30 October 2026:** bilingual draft-only
+reference with pinned attribution and MIT notices, narrow agent-document links and
+bounded stdlib teaching fixtures. No runtime/approved-report changes or activation.
+Focused checks pass; quick aggregate is dependency-blocked in the cloud checkout.
+GitHub draft review and laptop installation remain separate steps.
+
+**Jarvis dashboard and voice console, 2 November 2026:** implemented the owner-requested
+bilingual central voice workspace under the governed executive KPI cards, with exact
+dataset/filter binding, evidence table, retained dashboard pages/saved views, editable
+dictation and real listening/query/speech state transitions. Original radial SVG and
+reduced-motion controls use the existing design tokens. Concurrent budget work is
+preserved by a local merge. Validation counts and limitations are in README; final-head
+CI and authorized PR integration are distinct from the unresolved production
+backup/database identity/managed-auth gates. No general LLM or operational automation
+is claimed by the deterministic Jarvis route.

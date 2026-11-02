@@ -10,6 +10,8 @@ sources: [docs/adr]
 
 # Decision log
 
+- `2026-11-02-run-profile-start-readiness`: prevent run submission while optional profile metadata can insert fields above the action; preserve the older-server fallback after failure.
+
 - `2026-10-26-local-resource-lifecycle`: explicitly release Motion SQLite connections; retain only required OS bootstrap values in isolated test processes.
 
 - `2026-10-26-approved-palette-and-source-workspace`: approved navy/blue/cyan
@@ -154,6 +156,13 @@ See the composition decision in docs/adr/2026-10-25-dataset-workspace-compositio
 
 Separate navigation from evidence with semantic navy/blue/cyan tokens; retain dark mode and accessibility. Contain the phone shell without suppressing content scrolling. Full filenames remain available through bidirectional text and accessible actions. See docs/adr/2026-10-25-shared-visual-identity-and-mobile-reflow.md.
 
+### 2026-10-26 - Report planning probability and forecast validity
+
+Preserve numerical results and historical artifacts while making planning power
+probabilistic and distinguishing no forecast, an unmeasured projection and a
+backtested forecast. Review-branch automatic deployment is disabled pending owner
+approval. See docs/adr/2026-10-26-report-wording-current-main.md and [[Approval gate]].
+
 ## Records added on the 27 October catch-up
 
 One line per record, read from its title and decision; the record itself is the source (`docs/adr`).
@@ -222,3 +231,7 @@ One line per record, read from its title and decision; the record itself is the 
 | 2026-10-31-decision-stages-on-assets | The Assets screen shows data health and the decision stages' claims in the run language; no new string; room from trimming six Operations strings | [[Design system]] |
 
 - `2026-10-27-assistant-focus-and-context`: isolated candidate; native report disclosure beside composer, scoped session status and stronger first action. Browser acceptance pending.
+
+- `2026-10-29-trend-pointer-targets`: decorative SVG marks must not intercept chart controls; keep compact Arabic numeric labels inside the plot viewport. See `docs/adr/2026-10-29-trend-pointer-targets.md`.
+
+- `2026-11-02-jarvis-evidence-workspace`: owner-requested bilingual bounded analytics workspace, explicit source selection, read-only queries, tab-local review and synthetic hackathon launcher. See `docs/adr/2026-11-02-jarvis-evidence-workspace.md`.

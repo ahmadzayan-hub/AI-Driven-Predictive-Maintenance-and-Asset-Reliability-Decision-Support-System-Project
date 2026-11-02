@@ -148,9 +148,9 @@ function LineChart({ chart, language }: { chart: ChartSpec; language: Locale }) 
  *  follows focus, which is the expected behaviour when switching panels
  *  is cheap — here it only swaps already-loaded text. In a right-to-left
  *  layout the tabs run the other way, so the arrows do too (WAI-ARIA). */
-function nextTabIndex(key: string, current: number, count: number, rtl: boolean): number | null {
-  const forward = rtl ? 'ArrowLeft' : 'ArrowRight'
-  const backward = rtl ? 'ArrowRight' : 'ArrowLeft'
+function nextTabIndex(key: string, current: number, count: number, rtl: boolean, vertical: boolean): number | null {
+  const forward = vertical ? 'ArrowDown' : rtl ? 'ArrowLeft' : 'ArrowRight'
+  const backward = vertical ? 'ArrowUp' : rtl ? 'ArrowRight' : 'ArrowLeft'
   if (key === forward) return (current + 1) % count
   if (key === backward) return (current - 1 + count) % count
   if (key === 'Home') return 0
@@ -247,6 +247,14 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
   // Which analytics type's report is on screen. Descriptive is the floor
   // of the maturity ladder, so it opens first.
   const [preferredReport, setOpenReport] = useState('descriptive')
+  const [verticalTabs, setVerticalTabs] = useState(() => window.matchMedia('(min-width: 900px)').matches)
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 900px)')
+    const update = () => setVerticalTabs(media.matches)
+    media.addEventListener('change', update)
+    update()
+    return () => media.removeEventListener('change', update)
+  }, [])
   const openReport = run?.reports.some((section) => section.type === preferredReport)
     ? preferredReport : run?.reports[0]?.type ?? ''
   const [localBusy, setBusy] = useState(false)
@@ -256,6 +264,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
   // Custom stages and profiles (ADR 0020). The picker exists only when
   // an operator configured profiles; a default install shows nothing.
   const [pipelines, setPipelines] = useState<Pipelines | null>(null)
+  const [pipelinesLoading, setPipelinesLoading] = useState(true)
   const [profile, setProfile] = useState<string>(preset?.profile ?? '')
   // Other stored datasets joined onto the main one (ADR 0030).
   const [downloading, setDownloading] = useState(false)
@@ -352,6 +361,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
       .catch(() => {
         /* an older server without the endpoint: no picker */
       })
+      .finally(() => { if (!cancelled) setPipelinesLoading(false) })
     return () => {
       cancelled = true
     }
@@ -380,6 +390,9 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
     }
     if (!goal.trim()) return
     if (assumptions === null) { setErrorMessage(tDecision('decision.invalid')); return }
+    // The profile picker can move the submit button while a pointer is down.
+    // Settle its optional metadata before accepting a click or form submission.
+    if (pipelinesLoading) return
     starting.current = true
     setBusy(true)
     setErrorMessage(null)
@@ -456,12 +469,12 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
   }
 
   function moveTabFocus(event: React.KeyboardEvent, types: string[]) {
-    const target = nextTabIndex(event.key, types.indexOf(openReport), types.length, isRtl)
+    const target = nextTabIndex(event.key, types.indexOf(openReport), types.length, isRtl, verticalTabs)
     if (target === null) return
     event.preventDefault()
     const type = types[target]
     setOpenReport(type)
-    document.getElementById(`reporttab-${type}`)?.focus()
+    window.setTimeout(() => document.getElementById(`reporttab-${type}`)?.focus(), 0)
   }
 
 
@@ -727,8 +740,8 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                 <p className="panel__note">{t('intake.limits')}</p>
               </details>
               <div className="field">
-                <button type="submit" className="btn btn--primary" disabled={busy || uploading !== null || !goal.trim() || (source === 'stored' && !storedId) || (source === 'upload' && !uploaded && !csvDraft.trim())}>
-                  {busy ? <span className="spinner" aria-hidden="true" /> : <Icon name="sparkle" size={16} />}
+                <button type="submit" className="btn btn--primary" aria-busy={pipelinesLoading || busy} disabled={pipelinesLoading || busy || uploading !== null || !goal.trim() || (source === 'stored' && !storedId) || (source === 'upload' && !uploaded && !csvDraft.trim())}>
+                  {busy || pipelinesLoading ? <span className="spinner" aria-hidden="true" /> : <Icon name="sparkle" size={16} />}
                   {t('runs.start')}
                 </button>
               </div>
@@ -927,9 +940,11 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
           {run.reports.length ? (
             <div className="card report-theme report-sheet">
               <h3 className="card__title">{t('runs.reports')}</h3>
+              <div className="report-inspector">
               <div
                 className="reporttabs"
                 role="tablist"
+                aria-orientation={verticalTabs ? 'vertical' : 'horizontal'}
                 aria-label={t('runs.reportSection')}
                 onKeyDown={(event) => moveTabFocus(event, run.reports.map((s) => s.type))}
               >
@@ -954,6 +969,7 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                   </button>
                 ))}
               </div>
+              <div className="report-inspector__preview">
               {run.reports
                 .filter((section) => section.type === openReport)
                 .map((section) => (
@@ -972,6 +988,8 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                       label={t('runs.reportText', { type: typeLabel(t, section.type, section.title) })} />
                   </div>
                 ))}
+              </div>
+              </div>
             </div>
           ) : null}
 

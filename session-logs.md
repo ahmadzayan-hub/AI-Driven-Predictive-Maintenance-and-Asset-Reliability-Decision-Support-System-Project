@@ -1810,6 +1810,18 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - Decided: keep the real viewport, chart-intersection requirement, evidence and approval controls. No local build or restart during the separate advisory resource window; use the existing hosted CI and reversible static-artifact path.
 - Next: verify this bounded correction on desktop and Arabic phone, then complete the presentation handoff.
 
+## 2026-10-24 - Correct planning and forecast limitation wording
+
+- Done: reproduced two current report wording defects and corrected them in an isolated worktree based on merged main. Planning prose now expresses detection probability; the combined forecast caveat follows whether the predictive stage produced a forecast. Both languages are covered. The older counter-direction allegation did not reproduce against the current cited group and total, so its logic is unchanged.
+- Verified: new synthetic regressions failed against the baseline and pass after the correction. `python -m unittest tests.test_report_wording_precision tests.test_analytics.ExperimentAgentTestCase tests.test_period_coverage_evidence tests.test_report_language -v` passes, including an independent check of the unchanged planning arithmetic. `python -m unittest tests.test_docs -v`, `python scripts/brain_check.py --strict` and diff whitespace checks pass; the brain check reports an existing stale project note. Bounded tests passed the existing memory guard. Read-only loopback checks confirm the accepted live source, served index and both saved report hashes are unchanged. No full suite, hosted CI or live activation is claimed.
+- Decided: preserve the accepted UI, calculations, validators, approval gates and existing stored reports. No model, dependency, credential or external service is involved. Record the clarification in the dated ADR rather than overwrite historical decision prose.
+- Next: obtain independent review and exact-head verification before any live source update. Generate a separate new report only after acceptance; retain the original stored output and its provenance.
+
+
+## 2026-10-24 — Hermes and report wording integration
+
+- Combined the independently reviewed source branches, retaining both progress entries and complete session histories. Application and test blobs are unchanged from the reviewed heads.
+- Combined-head hosted verification remains required before the approved normal merge. No Hermes installation, activation, data access, saved-report rewrite, authentication change or production deployment is included.
 
 ## 2026-10-25 — `report-main-integration` — codex/miyaar-report-integration-20261025
 
@@ -1983,6 +1995,61 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Decided:** limits come only from the person who knows the data; no limits, no change. The interface control is a separate step against the 220-byte script headroom.
 - **Next:** the mapping panel control for limits; policy point 2 (outliers per group and on a log scale, with and without at a 10% effect), point 3 (imputation in modelling only, flagged, sensitivity check, never the target), point 4 (each report states the policy).
 
+## 2026-10-26 - PR63 current-main statistical wording verification
+
+- Done: integrated main `9fa13b4240c64be78669ed09b630ad5929ea26d4` into the existing review branch, preserving both parents and all session/progress entries. Clarified normal planning power, differentiated absent/unmeasured/backtested forecasts, and explained zero holdout values without claiming insufficient history. Exact-branch Vercel deployment is disabled to honor the owner's no-deployment instruction.
+- Verified: focused bilingual statistics tests, final full Python suite, full verifier, documentation, brain and whitespace checks; commands, counts and skip boundaries are in README. Two-source synthetic acceptance matched all numerical calculations, forecasts, snapshots and evidence IDs; historical synthetic database rows and saved notes retained identical hashes after reopening and creating new reports. Baseline and deliberately inverted forecast predicates fail the regressions. Independent read-only review reproduced focused tests and detected a backtest-state mutation; no blocking finding. One existing stale brain note and an end-of-process unclosed-socket warning are disclosed.
+- Decided: preserve mathematical formulas, evidence identifiers, validators, approval controls and storage code. Use isolated synthetic storage only, never rewrite live or prior reports. The owner's request authorizes this Draft PR update, not a merge or deployment.
+- Next: inspect exact-head hosted CI after the branch update; obtain owner approval before any merge, deployment or local activation. Live historical-report audit is not claimed.
+
+### Remote update blocked by automatic approval review
+
+The completed local candidate is retained on the review branch. Automatic approval
+review rejected its GitHub push, interpreting the owner's no-publication instruction
+as excluding the remote branch update. No alternate publication path was attempted.
+The remote PR and exact-head hosted CI remain unupdated; explicit permission for
+the branch push is required. The independent review's optional forecast-docstring
+correction was applied and the focused/documentation checks rerun successfully.
+
+## 2026-10-25 — Power BI reference and focused phone analytics legibility
+
+- Done: inspected the provided Team 3 eight-page PBIX package and 31-page report; confirmed PRs #59/#60 already merged into main before branching at a647e74ea8a7e8c5035160993acbafebc3860d35. Compared two layout directions and retained the working decision-first canvas. Changed the phone-only horizontal bar layout to show complete category names, full numerical values and usable bar width. Extended the existing real-FastAPI Playwright fixture with a long fictional category; added a design crosswalk, dated ADR, draft PR #61 and progress entry.
+- Verified: GitHub source comparison shows five focused files before this log entry; PR is draft, no merge or deploy. The UI Budget Fast workflow on the preceding commit completed successfully; full CI on its exact changed SHA is still in progress. No local checkout, running-app comparison, Power BI Desktop execution or end-to-end revalidation completed in this session.
+- Decided: preserve all existing features, data calculations, evidence, gates, native tables, deep links, licensed-font boundaries and separate Hermes integration. Do not raise size budgets or claim savings/preview/production success without tests.
+- Next: require final-head CI, inspect failing job logs if any, collect actual before/after English and Arabic captures at identical datasets/viewports and verify the whole saved-report journey. Do not merge/deploy until owner approves.
+
+## 2026-10-25 — Integrate actual Stitch design references while retaining governed data
+
+- Done: inspected the three uploaded screenshots and their source HTML, including report-tab content, telemetry sample, simulated agent graph, mock controls and hardcoded sign-offs. Created the source-backed three-screen implementation map and separate ADR. Reused actual `run.reports` and safe `ReportDocument` to build a desktop split inspector / mobile stacked index; preserved the existing report control and approval state. Added a selection/responsiveness E2E regression in the real pipeline journey. Updated draft PR #61.
+- Verified: all references are static mockups rather than actual operating data. ISO official references confirm the source mockups contain retired ISO 10816-3 and ISO 55001:2014 citations. GitHub UI Budget Fast detected a test TypeScript mismatch (`string | null` id), which was corrected in a subsequent branch commit. Final-head CI/build, responsive visual capture and E2E acceptance remain to be verified.
+- Decided: do not claim model/SCADA operation, achieved savings, DCS dispatch, signatures or 100% compliance from static HTML. No service, backend, schema, Hermes, source calculations, authentication, external font, deployment or main merge change.
+- Next: complete final-head CI, read any failed jobs, run real English/Arabic browser acceptance at 320/390/tablet/desktop using the same persisted report and capture before/after evidence. Merge and deployment require explicit authorization.
+
+## 2026-10-25 — StitchDesign semantic visual contract
+
+- Done: invoked the selected StitchDesign entry and taste workflows and authored root DESIGN.md as the semantic source for future three-screen Stitch generation. It ties the previously inspected HTML/screenshots to current React tokens, official-versus-fallback font boundaries, RTL, screen grids, safe motion, full-value charts, real evidence and saved approval. Linked the design brief from docs/design/DESIGN_SYSTEM.md and Draft PR #61.
+- Verified: root DESIGN.md exists on the review branch, uses actual token values, and contains explicit prohibitions on invented agent quorum, achieved savings, signed reports, standards compliance and DCS controls. No additional code, model provider, credentials or deployment was changed by this design-spec wave; no UI screenshot or full E2E pass is claimed.
+- Decided: StitchDesign's generic perpetual micro-animation advice is intentionally overridden by Miyaar's evidence-first engineering requirement and the owner's reduced-motion/no-fake-activity constraints. Existing code is authoritative for behavior.
+- Next: require exact-head CI and same-data bilingual visual/browser checks before code merge. This document itself is a design instruction, not an operational result or production release.
+
+
+## 2026-10-26 — Approved integration of remaining Miyaar PRs
+
+- Done: reconciled all six open PR histories on current main; retained newer API/storage/publication safeguards, current design tokens and statistical corrections. Kept older portfolio/design notes explicitly historical. Added explicit media CI, responsive tab orientation and bilingual keyboard/resize E2E assertions; consolidated duplicate CSS without raising budgets.
+- Verified: full local Backend, final frontend unit tests, TypeScript/build, clean bundle budgets, brain and media integration checks passed. Counts/skips are in README. Independent review identified the vertical-tab keyboard gap, now corrected. Local Playwright installation failed; no local browser success is claimed. Published-head hosted gates remain pending at commit preparation.
+- Decided: owner approval covers branch publication and merging all six open Miyaar PRs. Preserve histories using a combined candidate; no force-push, branch deletion, production deployment, live data modification or model invocation.
+- Next: publish the exact verified tree, require fresh hosted CI, merge via #63 and verify all six original heads are ancestors of main and PR statuses reflect the integration.
+
+
+### Integration CI follow-up: settled design-fixture evidence
+
+Hosted RMD detected a race in PR45's old comparison fixture: absence of the pending
+command selector was true before the command component mounted, so the baseline
+captured loading text. Require the actual next action and report headline before
+capturing text, and wait for font readiness. Keep unchanged-text, axe and overflow
+assertions intact. This corrects test synchronization, not product data or styling.
+Fresh final-head hosted checks are required; the failed run is retained as evidence.
+
 ## 2026-10-29 · `d9e3f889` · claude/tender-clarke-m4uwgq (visual agent cards)
 
 **Goal:** the visual card layout deferred from the agent-cards slice.
@@ -2149,3 +2216,121 @@ _Written by the SessionEnd hook (other) because the session-end skill did not ru
 - **Next:** capture and inspect real before/after EN/AR desktop/mobile screenshots,
   exercise report selection and composer with virtual keyboard, and run the browser
   and backend suites on an authorized capable executor before integration.
+
+
+## 2026-10-29 · Codex · PR72 corrective interaction and RTL review
+
+- **Done:** verified PR #72 had already merged at `206a0a5`, with the exact reviewed head tree preserved. Reproduced trend-point pointer interception in hosted Chromium on desktop/mobile in English/Arabic. Inspected synthetic Arabic screenshots for every dashboard page and found clipped numeric axis labels on phones. Decorative line/circle elements now ignore pointer events; trend/scatter plots reserve a wider numeric-label gutter. Retained browser regressions and removed the temporary diagnostic workflow.
+- **Verified:** original PR CI succeeded; focused saved-view authorization and report tests, frontend component tests, TypeScript and build passed locally. Explicit unauthenticated GET/PUT/DELETE were refused; unauthorized/viewer DELETE preserved the owner's view. A histogram edge mutation failed the existing suite, and the restored source passed. The diagnostic browser run `40944443034` failed on all centre-click cases and passed the Arabic page audits. Local full verification found only missing action-version comments in the temporary workflow, which is removed from the final change. Local Chromium startup is restricted; hosted final CI remains the merge gate.
+- **Decided:** owner-authorized code correction and merge only after quality gates. Preserve data, numeric results and existing roles; no hosted schema mutation, model call, production deployment, permission changes or history rewriting. `vercel.json` already disables automatic main deployments.
+- **Next:** inspect final hosted browser evidence and merge PR #73 only after the final head is green. Hosted dashboard-view migration remains a separate operator step before a future deployment.
+
+### Parallel CI fixture correction
+
+- **Observed:** PR run `40945482662` passed (213 browser cases, 14 bilingual/voice cases); all 12 Arabic dashboard screenshots were inspected. Parallel push run `40945474927` failed three conversation cases because the journey fixture UUID contained a ten-digit phone-like sequence. The privacy boundary correctly blocked the saved fixture, then the interrupted cleanup affected later tests.
+- **Corrected:** encode only the synthetic journey identifier's digits as letters. Keep the UUID's uniqueness, every assertion and all production privacy code. Reproduce the detected identifier locally and verify the encoded fixture does not trip the detector while real phone-like text still does.
+- **Gate:** rerun CI on the corrected head before merge; no hosted migration or production deployment.
+
+## 2026-10-30 — opt-in editorial guidance (GitHub draft candidate)
+
+- **Done:** added a bilingual draft-only editorial reference, concise-output guidance,
+  pinned upstream attribution and full MIT notices. Linked it narrowly from AGENTS
+  and CLAUDE; no upstream hook/skill activation or runtime/model change.
+- **Verified:** synthetic fixture script, editorial/docs unittest selection, strict
+  brain check and whitespace check pass. Quick aggregate attempted: missing
+  psycopg2 and uninstalled frontend tsc/vitest block broader suites; not a full pass.
+  No application behavior or rendered-report quality claim.
+- **Decided:** preserve claims, numbers, citations, uncertainty and approved bytes;
+  only owner-selected draft editing is in scope. Existing Claude/Hermes work retained.
+- **Next:** GitHub draft review and exact-head CI; no merge/deployment. Laptop
+  installation is separate and has not happened in this cloud workspace.
+
+
+## 2026-11-02: PR76/PR78 integration review and test corrections
+
+- **Done:** inspected current main and the actual patches/heads of PR76, PR78 and
+  the six original requests; verified integration ancestry, identical main/PR76
+  trees and the simulated PR78 merge. Fixed cross-platform manifest path comparison
+  and added a Windows-path regression. Added a delayed-write Pydantic order test.
+- **Verified:** fresh full local verifier, isolated optional runtimes, bilingual
+  reports, checksum simulation, dependency audits and a pre/post-integration
+  numerical/evidence comparison passed. The order mutation is caught. Counts and
+  environment limits are recorded in README Testing. Inspected current-main hosted
+  RMD/platform/media/optional-runtime results and bounded Arabic/English screenshots.
+- **Decided:** retain current main as the sole integration baseline; do not merge
+  PR78's duplicate alert or replay old branches. Package hashes, application logic,
+  dependency pins, hosted database and operational configuration are unchanged.
+- **Next:** review the small follow-up and its exact-head CI. The existing main
+  broad E2E gate has now passed. Production release and migration remain separate. No main
+  merge, deployment, live database access, model-provider call or report approval.
+
+
+## 2026-11-02 — Jarvis OS hackathon workspace
+
+- Done: isolated checkout from latest inspected main, bilingual Jarvis view connected to existing DataChat and source ownership checks; read-only cancellable queries; synthetic-only launcher and screenshots. Original checkout and database preserved.
+- Verified: focused API/component/browser tests, TypeScript, build and budget; exact counts and limitations in README. Full quick verification tracked separately in the local delivery evidence.
+- Decided: new dated ADR; no live LLM claim, no report approval or dispatch from local review, local-only playback voices, explicit browser recognition disclosure.
+- Next: exact-head hosted CI, actual microphone/Arabic voice and model acceptance; independent backup/database-target/auth gates before deployment.
+
+Jarvis verification follow-up: the broad Python run found a stale bundle-budget contract and a documentation scan racing with ephemeral browser error files. Updated exact-byte boundaries and moved browser output under the existing excluded temporary tree. The combined focused rerun and all Jarvis browser scenarios passed (counts in README); broad frontend verification was interrupted and full hosted CI remains required.
+
+Jarvis independent-review follow-up: reproduced the stale-tab filter defect against the previous PR head (old scope calculated the new cohort). Query requests now carry run/dataset/source/revision/filters and reject mismatches under the selection lock. Speech preserves metric units, currency uncertainty, coverage and missing-data reasons. Focused API/component and real two-tab browser regressions pass; counts and full-suite history are in README. Production auto-deployment for main remains disabled in the existing Vercel configuration. No production database/auth changes or model calls.
+
+Jarvis/dashboard scope expansion: the owner requested dashboard, UI and Jarvis together. Added a bilingual executive binding bar and responsive analytics/assistant workspace on the real dashboard. It uses the exact chart filters only after explicit connection and invalidates answers when scope changes. Existing interactive charts, saved views, report/approval routes and KPI definitions remain. Fixed a reproduced selection-pending draft race, moved Jarvis transport out of the first-load shell, and corrected contrast/landmark findings from actual browser QA. Counts and historical failures are in README. Local source/data isolation and hosted backup/auth gates remain unchanged.
+
+## 2026-11-02 - Central Jarvis voice interaction
+
+- Done: reconciled the concurrent budget-only commit with the integrated dashboard without rewriting either history. Replaced the oversized banner with a compact source bar and original radial voice console under the existing executive KPI cards. Added an editable transcript, narrow evidence panel, measure table, real state callbacks, keyboard audio control and reduced motion.
+- Verified: synthetic browser flows, consent/denial, state-event and interruption tests, TypeScript and bundle checks; executed counts and final full-suite outcomes are recorded in README. Visual inspection includes the central English console and Arabic phone layout. No physical microphone or audible Arabic voice claim.
+- Decided: use existing browser recognition and device-local matching-language playback, never a new provider or model. Rings show labelled state animation, not invented audio levels. Source hashes and exact filters remain authoritative; no general LLM fallback or operational dispatch.
+- Next: final-head hosted CI and authorized PR merge; production still requires independently verified backup, database identity and managed-auth readiness.
+
+## 2026-11-02 - Missing session and report recovery
+
+- Done: diagnosed changed disposable synthetic store identity; preserved both stores and original data. Added explicit recovery preserving drafts and visible prior conversation, a read-only check after uncertain sends, and exact-report Jarvis renewal. Retained concurrent neutral fixture naming through a normal merge. No automatic resend, cross-principal context transfer or permission relaxation.
+- Verified: focused recovery and real synthetic browser regressions passed; exact counts and broad-run failures are in README. Subsequent broad validation was interrupted after low-memory timing failures; available laptop memory was below 0.5 GB. No full-suite pass is inferred. Native/browser control also timed out, so the user's current tab is not claimed reopened.
+- Decided: preserve initial payload limits, lazy-load ChatView, record the bounded total-only recovery allocation, and use exact-head hosted CI for the final gate. Reviewed the existing UI/UX Pro Max recovery guidance. Parent-reviewed uploaded mockups inform layout only, not fake dispatch, personas or compliance evidence.
+- Next: finish required hosted checks and authorized PR81 merge; broader all-pages reference acceptance, physical voice validation and production backup/database/auth gates remain separate.
+
+CI recovery follow-up: the first combined head passed full Python and frontend
+unit stages but the broad browser suite found old automatic-retry and above-fold
+chart expectations. Updated the browser journey for read-only conversation checking
+before explicit manual resend, and cleared stale offline/error flags after that
+confirmed read. The opening test now verifies the central Jarvis stage between
+governed KPIs and the intact source-backed chart. Exact outcomes are in README;
+required full CI is rerun on the corrected head before merging.
+
+## 2026-11-02 - Strict console visibility after scrolling
+
+- Done: reproduced the remaining desktop layout failure in an isolated synthetic
+  server and inspected the CI trace. Nearest-edge scrolling left a fractional
+  lower border outside the screen; the test now centers the console while keeping
+  full visibility and checking an unobstructed control. Application bytes unchanged.
+- Verified: desktop and phone layout checks pass; the full-run failure and exact
+  counts are retained in README. Existing user store and report IDs were preserved.
+- Decided: retain strict visibility rather than lower the expected ratio. No new
+  dependency, provider, data mutation or production configuration change.
+- Next: normal branch push, exact-head full CI, then the specifically authorized
+  PR81 merge. Production backup, database identity and auth gates still apply.
+
+## 2026-11-02 - Post-merge profile arrival and run submission
+
+- Done: confirmed PR81 merged with the tested tree. Inspected the subsequent
+  failed WebKit trace: optional profile fields moved the action during its click,
+  and no run creation request occurred. Guarded pending metadata in the button
+  and direct submit path, retaining fallback after optional endpoint failure.
+- Verified: pre-merge acceptance and the distinct main failure are recorded in
+  README. New component regressions cover delayed success/failure; the original
+  real browser journey now holds metadata before testing delayed run creation.
+  Local baseline workers failed to start, so no local regression pass is claimed.
+  The subsequent isolated desktop/phone browser journey, documentation checks,
+  typecheck, build and budget passed; exact counts remain in README.
+- Decided: fix action readiness, not the timeout or destination/durability checks.
+  Follow-up work is isolated from the merged feature branch and user datastore.
+- Next: exact follow-up hosted validation and review. Keep production deployment,
+  provider activation, physical voice validation and wider redesign gates separate.
+
+Follow-up validation: the first hosted component run identified one older direct
+Arabic CSV submission before metadata readiness. It now waits for the enabled
+action while keeping its data/language/upload-reset assertions. New readiness
+regressions passed. The full failure and skipped later steps remain in README.

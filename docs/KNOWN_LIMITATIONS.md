@@ -3,6 +3,10 @@
 Honest boundaries of the current release. None of these are hidden behind
 placeholder controls — absent capabilities have no UI.
 
+## Jarvis OS hackathon boundaries (2 November 2026)
+
+The [Jarvis workspace](JARVIS_HACKATHON.md) uses bounded deterministic queries, not arbitrary model analysis. Review is tab-local, not durable operational approval. The synthetic entrance requires the isolated launcher. Actual microphone capture, Arabic device voice and live LLM responses remain unverified; source ownership and hosted recovery/authentication gates remain required.
+
 ## Maintenance pilot boundaries (21 October 2026)
 
 The Operations workspace, organization permissions, maintenance audit, worker

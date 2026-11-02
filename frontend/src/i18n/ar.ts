@@ -9,6 +9,8 @@
 import type { MessageKey, PluralForms, PluralKey } from './en'
 
 export const ar: Record<MessageKey, string> = {
+  'jarvis.launch': 'فتح Jarvis OS',
+  'jarvis.close': 'العودة إلى المحادثة',
   'nav.sources': 'مصادر البيانات',
   'nav.evidence': 'التحليل والأدلة',
   'nav.priorities': 'الأولويات والإجراءات',
@@ -252,6 +254,12 @@ export const ar: Record<MessageKey, string> = {
   'suggestion.help.insert': 'ماذا تستطيع أن تفعل؟',
   "chat.typing": "معيار يُعدّ ردًا",
   "chat.failed": "تعذر تأكيد الرد. احتُفظ بمسودتك. راجع المحادثة قبل إعادة المحاولة.",
+  "chat.sessionMissing": "هذه الجلسة لم تعد موجودة على الخادم. احتفظ بالمسودة وابدأ جلسة بديلة باختيارك؛ لن تُرسل رسالة أو يُنقل تقرير تلقائياً.",
+  "chat.recover": "جلسة جديدة مع حفظ المسودة",
+  "chat.check": "تحقق من المحادثة",
+  "chat.manual": "احتفظ بالمسودة للإرسال اليدوي",
+  "chat.checked": "حُدّثت المحادثة ولم تُعد أي رسالة. راجعها قبل السماح بالإرسال اليدوي؛ فقد يكرر طلباً سابقاً.",
+  "chat.previous": "المحادثة السابقة · نسخة ظاهرة في هذا التبويب فقط",
   'chat.retry': 'إعادة المحاولة',
   'chat.dismiss': 'إغلاق الخطأ',
   'chat.ended': 'انتهت هذه الجلسة. ابدأ جلسة جديدة للمتابعة.',

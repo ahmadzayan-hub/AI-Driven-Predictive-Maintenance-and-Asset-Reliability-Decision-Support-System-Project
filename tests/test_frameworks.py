@@ -14,6 +14,8 @@ import tempfile
 import os
 import unittest
 from pathlib import Path
+from threading import Event
+from unittest.mock import patch
 
 from agent import Agent
 from server.assistant import Assistant
@@ -215,6 +217,31 @@ class PydanticAIRuntimeTestCase(unittest.TestCase):
         self.assertIn("memory_1: Q4 review Monday", tools.steps[1]["text"])
         self.assertEqual(self.session.agent.memory, {"memory_1": "Q4 review Monday"})
         self.assertEqual(len(self.engine.list_runs(owner="local-owner")), 1)
+
+    def test_a_slow_write_finishes_before_the_next_read(self):
+        from examples.runtimes.pydantic_ai_runtime import PydanticAIRuntime
+        model = self.model([
+            ("tools", [("remember", {"information": "Synthetic ordered note"}), ("recall", {})]),
+            ("text", "Done."),
+        ])
+        tools = ToolBox(self.assistant, self.session)
+        original_call = tools.call
+        read_finished = Event()
+
+        def delayed_write(name, arguments):
+            if name == "remember":
+                # Give an incorrectly concurrent read time to overtake the
+                # write. Sequential execution waits, then saves.
+                read_finished.wait(timeout=0.5)
+            result = original_call(name, arguments)
+            if name == "recall":
+                read_finished.set()
+            return result
+
+        with patch.object(tools, "call", side_effect=delayed_write):
+            PydanticAIRuntime(model).run("save then recall", tools, {"language": "en", "notes": ""})
+        self.assertEqual([step["tool"] for step in tools.steps], ["remember", "recall"])
+        self.assertIn("memory_1: Synthetic ordered note", tools.steps[1]["text"])
 
     def test_a_refusal_reaches_the_model_and_nothing_is_deleted(self):
         from examples.runtimes.pydantic_ai_runtime import PydanticAIRuntime

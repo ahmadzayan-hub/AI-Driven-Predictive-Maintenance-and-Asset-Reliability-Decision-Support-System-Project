@@ -21,7 +21,7 @@ const CSV = [
   '2026-03,South,MIYAAR-FICTIONAL-D,Corrective,20,60,100,0,20,20,10,10,3,900,2000',
 ].join('\n') + '\n'
 const FIVE_SITE_CSV = CSV + [
-  '2026-03,East,MIYAAR-FICTIONAL-E,Corrective,4,80,100,0,10,10,8,2,1,1200,100000',
+  '2026-03,East processing and reliability campus,MIYAAR-FICTIONAL-E,Corrective,4,80,100,0,10,10,8,2,1,1200,100000',
   '2026-03,West,MIYAAR-FICTIONAL-F,Corrective,5,85,100,0,10,10,8,2,1,1500,100000',
   '2026-03,Central,MIYAAR-FICTIONAL-G,Corrective,6,90,100,0,10,10,8,2,1,2000,100000',
 ].join('\n') + '\n'
@@ -99,12 +99,37 @@ test('the opening shows governed KPIs and a real comparison before the detailed 
   expect(clipped, 'Complete values and units must fit their governed cards').toEqual([])
   if (testInfo.project.name === 'desktop') {
     await expect(featured.first()).toBeInViewport({ ratio: 1 })
+    // The requested central Jarvis stage now sits between the KPIs and chart.
+    // At 720px height the four governed cards occupy the opening. Scroll each
+    // following section into view, then require its entire surface to be visible.
+    const core = page.locator('.jarvis-core')
+    // Nearest-edge scrolling leaves the rounded bottom fractionally outside
+    // the viewport (0.999363 in Chromium's IntersectionObserver). Center the
+    // panel before retaining the strict full-visibility/actionability checks.
+    await core.evaluate(element => element.scrollIntoView({ block: 'center', inline: 'nearest' }))
+    await expect(core).toBeInViewport({ ratio: 1 })
+    await core.getByRole('button', { name: 'Reduce motion', exact: true }).click({ trial: true })
+    expect((await core.boundingBox())!.y).toBeLessThan((await chart.boundingBox())!.y)
+    await chart.scrollIntoViewIfNeeded()
     await expect(chart).toBeInViewport({ ratio: 1 })
   } else {
     expect(await featured.first().evaluate((element) => getComputedStyle(element.parentElement!).gridTemplateColumns.split(' ').length)).toBe(2)
     await chart.scrollIntoViewIfNeeded()
     await expect(chart).toBeInViewport({ ratio: 1 })
+    // A real API-backed, long fictional group name must remain legible at 320px.
+    // Keep the chart labels and exact values visible without reversing the axis.
+    const longLabel = chart.locator('.dash-bars__label').filter({ hasText: 'East processing and reliability campus' })
+    await expect(longLabel).toBeVisible()
+    await expect(longLabel).toHaveCSS('white-space', 'normal')
+    expect(await longLabel.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+    const longRow = longLabel.locator('..')
+    const trackWidth = await longRow.locator('.dash-bars__track').evaluate((element) => element.getBoundingClientRect().width)
+    const rowWidth = await longRow.evaluate((element) => element.getBoundingClientRect().width)
+    expect(trackWidth).toBeGreaterThan(rowWidth / 2)
   }
+  // Trial input checks that the visible chart is not covered by the console or
+  // a fixed overlay, without changing the selected analytic cohort.
+  await chart.locator('.dash-bars__row').first().click({ trial: true })
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
   await expect(page.locator('.dash-provenance > bdi')).toHaveText(snapshot.run.dataset_name)
   await expect(page.locator('.exec-meta')).toContainText('Deterministic')

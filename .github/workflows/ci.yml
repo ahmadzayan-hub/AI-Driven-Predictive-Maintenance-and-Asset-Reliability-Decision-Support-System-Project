@@ -169,6 +169,12 @@ jobs:
         run: npx playwright test --config=playwright.miyaar.config.ts
         working-directory: frontend
 
+      - name: Jarvis synthetic evidence, cancellation and voice boundaries
+        env:
+          JARVIS_DATA_DIR: ${{ runner.temp }}/jarvis-${{ github.run_id }}-${{ github.run_attempt }}
+        run: node node_modules/@playwright/test/cli.js test --config=playwright.jarvis.config.ts
+        working-directory: frontend
+
       - name: Interface budget
         run: python -c "from scripts.verify import check_budget; import sys; ok, detail = check_budget(); print(detail); sys.exit(0 if ok else 1)"
 
@@ -181,6 +187,7 @@ jobs:
             docs/screenshots/*.png
             frontend/dist
             frontend/test-results
+            frontend/e2e/.tmp/jarvis-results
           retention-days: 14
 
       - name: Upload Playwright report on failure
@@ -190,6 +197,27 @@ jobs:
           name: playwright-report
           path: frontend/playwright-report
           retention-days: 7
+
+  arabic-media:
+    # PR29/31's script lives outside unittest discovery; execute it explicitly.
+    # Synthetic tone proves audio encoding, not Arabic speech quality.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5.1.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        with:
+          python-version: '3.11'
+      - name: Install isolated media-test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          pip install Pillow==12.3.0
+      - name: Require real shaping, codecs and test font
+        run: |
+          python -c "from PIL import features; from pathlib import Path; import shutil; assert features.check('raqm'); assert shutil.which('ffmpeg') and shutil.which('ffprobe'); assert Path('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf').is_file()"
+      - name: Arabic frame and audio-video integration
+        run: python scripts/test_motion_studio_arabic_media.py -v
 
   optional-runtimes:
     # The optional agent runtimes (LangGraph, Pydantic AI, the MCP SDK)

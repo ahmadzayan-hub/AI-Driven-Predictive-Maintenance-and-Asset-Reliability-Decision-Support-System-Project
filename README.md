@@ -552,6 +552,227 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+### Post-merge run-start follow-up (2 November 2026)
+
+PR81 merged as `a0e2cf5`, with the same Git tree as tested head `76a442a`.
+Pre-merge full CI runs `41440631944` and `41440625315` passed: **2366 Python
+tests passed, 25 skipped; 556 frontend unit tests passed; 225 broad browser
+tests passed, 35 skipped; 14 bilingual/voice/accessibility and 10 Jarvis boundary
+tests passed**. Worker restart checks, typecheck, build and budget also passed.
+Platform run `41440625297` passed both Windows Edge and macOS WebKit.
+
+The subsequent main platform run `41446105867` passed Windows Edge but macOS
+WebKit had **12 passed, 1 failed**: `workspace.spec.ts:9` timed out waiting for
+a run creation request. Its trace shows the optional profile picker inserted
+between pointer-down and pointer-up; no POST `/api/runs` was sent. The follow-up
+holds submission until metadata settles, preserves the optional-endpoint fallback,
+and adds delayed success/failure component regressions plus browser coverage.
+The original browser timeout and durable-run assertions remain unchanged.
+
+The local baseline component attempts could not start either a single fork or
+single thread worker; **zero tests executed**. These are infrastructure failures,
+not passing regressions. Fresh hosted checks are required for the follow-up.
+The corrected isolated Chromium journey passed on desktop and phone (**2 tests**,
+41.2 seconds). **11 documentation tests**, TypeScript, production build and the
+interface budget passed locally. Initial JavaScript is 96,059 bytes and total
+JavaScript 270,809 bytes, within the existing limits.
+No production deployment or database/auth changes were performed.
+
+The first follow-up evidence run (`41449634240`, head `1bd7b6c`) passed **557
+frontend tests and failed 1**: an existing Arabic CSV test submitted directly
+before the new readiness gate settled. Both new delayed-metadata cases passed.
+That test now waits for the actual submit action to enable while retaining all
+CSV, language and upload-reset assertions. Downstream evidence browser/build
+steps in that failed run were skipped. Fresh complete checks remain required.
+
+### Jarvis OS local hackathon acceptance (2 November 2026)
+
+Short-screen follow-up: both full CI runs for `3110f7b` passed the backend,
+frontend unit, typecheck and build stages; browser results were **224 passed,
+35 skipped, 1 failed**. The failure reproduced locally: nearest-edge scrolling
+left the console fractionally outside the viewport (intersection ratio 0.999365).
+The saved CI trace shows the lower panel border at the screen edge. Centering the
+panel before inspection retains the strict **100% visible** assertion and adds
+a trial click on its motion control. The corrected isolated desktop and phone
+checks both passed (**2 tests**); all source/value/chart checks remain. The later
+Miyaar, Jarvis and budget steps in those failed full runs did not execute.
+Full checks must pass on the new exact head before merging.
+
+[Walkthrough](docs/JARVIS_HACKATHON.md) and [decision](docs/adr/2026-11-02-jarvis-evidence-workspace.md).
+The subsequent [central voice-console redesign](docs/adr/2026-11-02-jarvis-central-voice-console.md)
+adds an original radial audio control between editable input and source evidence,
+under the existing executive KPI cards. Actual recognition/query/speech events
+drive its labelled state animation. Keyboard operation, system/local reduced
+motion, explicit recognition consent and matching device-local speech are retained.
+No amplitude waveform, general conversational LLM or audible device acceptance is claimed.
+
+The broad local frontend attempt for this redesign ran **549 tests: 546 passed,
+3 failed** across 55 files. The RMD mapping and KPI policy cases exceeded the
+unchanged five-second deadline; the local Whisper UI lookup exceeded its readiness
+wait. A focused rerun passed 65 of 66 tests, including Whisper, KPI policy and
+final bilingual naming; the same RMD timeout remained. These are not a full-suite
+pass. Focused voice-event/consent/interruption checks separately passed 70 tests
+before the final explicit-locale regression was added; that regression passed
+within the broad run. Final-head hosted CI remains the complete release gate.
+
+The recovery build passes exact-byte limits: initial JavaScript 96,058/100,000,
+total 270,724/272,000; initial CSS 10,394/10,500, total 36,043/36,500. Only total
+budgets changed for the lazy voice console and explicit session recovery; the initial limits
+are preserved. Existing Vite/Vitest versions differ from the lockfile.
+
+[Session/scope recovery](docs/adr/2026-11-02-session-scope-recovery.md) preserves
+unsent drafts and keeps uncertain requests blocked until the user checks the server
+conversation. The check never resends. Missing reports require explicit reselection.
+The final focused recovery run passed 76 tests across 4 files, including forbidden,
+ended-session and sign-out-race cases; its three Chromium
+regressions passed against the disposable synthetic server. The subsequent broad
+frontend run and final-head hosted CI are tracked separately from these results.
+The subsequent broad local attempt was interrupted after timing failures in
+ExecutiveOverview, RMD, DashboardView and VoiceServerDictation. The combined
+browser attempt timed out loading the dashboard and was also interrupted; the
+earlier seven design scenarios and three recovery scenarios passed separately.
+Available physical memory fell below 0.5 GB on the 16 GB laptop. These interrupted
+runs are not passes; final-head hosted checks remain mandatory before merge.
+
+Hosted CI on `6f70963` subsequently passed the complete Python suite: **2,391 tests,
+25 skipped**, the disposable worker restart checks, and **555 frontend unit tests**.
+Its broad browser suite ran **222 passed, 35 skipped, 3 failed**: two old Retry-button
+expectations and the previous above-fold chart position after inserting the central
+Jarvis stage. The follow-up updates the recovery journey to check before explicit
+manual sending, clears the offline state after a successful read, and verifies
+the new KPI-to-Jarvis-to-chart order without removing chart/value assertions.
+This failed full run remains distinct from the focused corrections and next-head CI.
+
+The isolated checkout starts from `6d87d79`. The unified dashboard/Jarvis update
+preserves chart filtering, saved views and all six dashboard pages. Explicit
+connection binds the current run and exact chart filters; stale tabs receive
+409 and scope changes clear the old answer and local review. Spoken summaries
+retain units, currency uncertainty, coverage and missing-data reasons.
+
+Earlier integrated-dashboard validation on existing installed dependencies: the complete Python suite
+passed 2,391 tests with 260 skipped (PostgreSQL/optional environments unavailable).
+The complete frontend suite passed 546 tests across 55 files. The latest combined
+DataChat/verifier/documentation run passed 49 tests; focused dashboard/Jarvis/
+localization passed 62 tests. All 7 synthetic Chromium scenarios passed, covering
+English/Arabic RTL, phone layout, axe, chart-to-Jarvis scope, saved-view reload,
+all dashboard pages, follow-up, missing/unsupported data, review reset, repeated
+requests, interruption, service failure and mocked microphone denial. TypeScript,
+production build, brain links and exact-byte budget pass: initial JavaScript
+99.9/100 KB, total 264.5/265 KB, initial CSS 10.4/10.5 KB, total 35.4/35.7 KB.
+The additional total-only allocation covers the requested dashboard integration;
+first-load ceilings remain unchanged. Local Vite/Vitest versions differ from
+the lockfile, so final-head hosted CI is a separate release gate.
+
+Historical failures are retained separately: the first broad quick run completed
+2,390 Python tests with 260 skips, one obsolete budget-contract failure and two
+errors from scanning regenerated browser error files. The contract/output path
+were corrected, and the later full Python run above passed. Its initial frontend
+step had been interrupted; the later complete frontend runs passed. The stale-tab
+filter defect was reproduced at the previous head and corrected. A browser run
+then exposed a selection-pending draft race; input now waits for confirmed scope.
+The initial unified UI run found close-button contrast and a sidebar landmark
+issue; both were fixed without weakening axe checks. Prior-head CI `cd01fdc`
+failed only its first-load budget gate; moving Jarvis transport into the lazy
+feature bundle addresses that cause. No old-head or focused result substitutes
+for final-head CI.
+
+Actual LLM inference, physical microphone and audible Arabic pronunciation
+were not validated. No original database migration, managed-auth change,
+production deployment or operational recommendation execution is included.
+
+
+### PR76/PR78 follow-up verification, 2 November 2026
+
+Reviewed main `d529921`, whose tree is identical to merged PR76's final head.
+[The review](docs/reviews/2026-11-02-pr76-pr78-review.md) records the six-request
+mapping and why PR78 would add only a duplicate Motion error alert.
+
+Fresh local `python scripts/verify.py` passed **all 8 steps** on the follow-up:
+**2,389 Python tests collected, 2,117 passed, 272 skipped** (unavailable test
+PostgreSQL and optional extras), **533 frontend unit tests**, TypeScript, native
+run logic, build and budget. The strict brain check has no broken links and two
+existing stale notes. JavaScript first load is 99.6 KB, total 257.1 KB under the
+already raised 258 KB ceiling; CSS first load is 10.4 KB and total 34.5 KB.
+No budget was raised in this follow-up.
+
+An isolated environment with the pinned optional runtimes passed **24 tests,
+no skips**. The new delayed-write test fails when sequential Pydantic tools are
+disabled and passes with the unchanged runtime. All **4 reviewed-skill package
+tests** pass, including Windows-relative-path simulation; that simulation fails
+before the checksum test fix. The bilingual wording/language selection passed
+**50 tests**. **20 synthetic report cases** (10 datasets in English/Arabic)
+preserve pre-PR76 snapshots, calculations, forecasts, backtest errors and claim
+evidence exactly; every validator passed. Hash-locked Python installation,
+`npm ci`, `pip check`, pip-audit and npm audit passed with no known vulnerabilities.
+
+Hosted current-main evidence: **23 optional runtime tests**, **1 real Arabic
+media test**, **533 frontend tests**, **12 design comparisons**, **19 responsive
+cases**, **10 RMD/platform cases**, **5 navigation cases plus 1 intentional skip**,
+**14 Miyaar bilingual/voice fixture cases**, and **13 actual-API platform journeys
+on each of Windows Edge and macOS WebKit** passed. These are separate suites,
+not a count of unique cases. The main comprehensive CI subsequently completed:
+**2,387 Python tests: 2,363 passed, 24 optional/build-dependent skips**, plus
+**3 worker/restart tests**; broad Playwright **225 passed, 35 explicit skips**,
+and the separate Miyaar suite **14 passed**. Browser skips reflect single-run
+viewport matrices and platform-specific cases. Follow-up exact-head CI is still
+required. The main Python job also logged a non-failing unclosed-socket warning.
+
+Local Chromium installation failed on an invalid downloaded archive. The local
+broad browser attempt was stopped after missing-executable errors; **no local
+E2E pass is claimed**. Arabic media uses a synthetic tone, not an Arabic speech
+assessment. No production deployment, database access or hosted migration.
+
+
+### Approved integration of all six open PRs, 26 October 2026
+
+The final candidate incorporates #29, #30, #31, #45, #61 and #63 on main `9fa13b4`.
+Backend execution passed **2,316 collected tests: 2,059 executed, 257 skipped**
+(PostgreSQL and optional dependencies unavailable locally). After the responsive
+keyboard correction, **505 frontend tests** and the TypeScript/production build
+passed. A clean sequential build passed all existing bundle ceilings, including
+252.5 KB total JavaScript and 33.5 KB rounded total CSS (the exact byte checks pass).
+The initial CSS overage was repaired by consolidating duplicate tab styles, without
+raising a ceiling. The isolated Arabic frame/audio-video test passed **1 test** with
+real RAQM and FFmpeg. It uses a synthetic tone, not spoken Arabic evaluation.
+
+The statistical/saved-history acceptance below remains the dedicated evidence for
+#63. Local Playwright browser installation failed on the downloaded archive, so no
+local browser pass is claimed. Exact published-head hosted CI, PostgreSQL, optional
+runtimes and browser evidence are required before merge. Owner approval now covers
+branch publication and merges; production deployment remains excluded. See the
+[integration decision](docs/adr/2026-10-26-approved-pr-integration.md).
+
+### PR63 statistical wording review on current main, 26 October 2026
+
+Review branch incorporates main `9fa13b4240c64be78669ed09b630ad5929ea26d4` without
+rewriting either history. Final local Python execution passed **2,316 tests with
+257 skips** (unavailable PostgreSQL and optional extras); **2,059 executed tests
+passed**, with no failure or error. The focused bilingual/statistical selection
+passed **78 tests**. Its new file contains **12 tests**, including the normal
+power curve and forecast/backtest boundaries. Running those against unmodified
+main fails; an inverted forecast-state predicate is also detected.
+
+The full `python scripts/verify.py` run passed all **8 gates**, including **505
+frontend tests**, TypeScript, native run logic, build and unchanged interface
+budgets. That initial run preceded the last wording-only clarification and had
+259 Python skips before a frontend build existed; the final verbose Python run
+above rechecked the final application source after the build. No frontend code
+changed. Brain verification retains one existing stale note. The final Python
+process emits an unclosed-socket ResourceWarning after its successful result;
+no failure is suppressed. Local browser E2E and PostgreSQL were not run.
+
+Isolated two-source acceptance generated **34 reports per revision** (17 synthetic
+cases in both languages). Every calculation, input snapshot, forecast and claim
+evidence identifier matched main. Reopening **4 historical synthetic runs**
+(English/Arabic, draft/approved), then producing new pending reports preserved
+all historical run/task/artifact/approval/note row hashes and **4 saved-file
+hashes**. This does not claim access to or an audit of the owner's live data.
+No provider was invoked. Final-head hosted CI remains separate evidence; older
+PR successes are not treated as verification of this update. Merge, activation
+and deployment require owner approval. The exact review branch has automatic
+Vercel deployment disabled. See the
+[decision](docs/adr/2026-10-26-report-wording-current-main.md).
+
 ### RMD navigation selector repair - 26 October 2026
 
 Hosted main CI, the interface budget and application-platform journeys passed

@@ -1,6 +1,16 @@
 /* Dashboard pages (ADR 0032). Fetched with the dashboard's chunk, not on
    the first load. Tokens only, no raw colours. */
 
+.dash-jarvis__bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-3); padding: var(--space-3); margin-block: var(--space-3); background: var(--surface); border-block: 1px solid var(--border); }
+.dash-jarvis__bar > div { min-width: 0; }
+.dash-jarvis__bar h3 { margin-block: var(--space-2); font-size: var(--text-xl); }
+.dash-jarvis__bar p { margin-block: var(--space-2); max-width: 65ch; }
+.dash-jarvis__scope { color: var(--text-muted); }
+.dash-jarvis__scope { overflow-wrap: anywhere; font-size: var(--text-s); }
+.dash-jarvis__assistant { min-width: 0; margin-block: var(--space-4); }
+.dash-jarvis__welcome { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: var(--space-5); }
+@media (max-width: 700px) { .dash-jarvis__welcome { grid-template-columns: minmax(0, 1fr); } }
+
 .dash-header > div { min-width: 0; max-width: 100%; }
 .dash-header .panel__title { overflow-wrap: anywhere; }
 
@@ -244,7 +254,15 @@
 .dash-toolbar .dash-filters { margin: 0; }
 .dash-toolbar .dash-navigation > summary { padding-inline: var(--space-3); }
 .dash-provenance .dash-coverage { font: inherit; margin: 0; }
-@media (max-width: 479px) { .dash-toolbar { gap: var(--space-1); } }
+/* Keep source-backed categories readable on narrow screens without shrinking
+   full values or reversing the chart's technical left-to-right scale. */
+@media (max-width: 479px) {
+  .dash-toolbar { gap: var(--space-1); }
+  .dash-bars__row { grid-template-columns: minmax(0, 1fr) auto; row-gap: var(--space-1); }
+  .dash-bars__label { overflow: visible; white-space: normal; text-overflow: clip; overflow-wrap: anywhere; }
+  .dash-bars__track { grid-column: 1 / -1; grid-row: 2; }
+  .dash-bars__value { grid-column: 2; grid-row: 1; overflow-wrap: anywhere; text-align: end; }
+}
 
 /* Keep the first evidence comparison in view on short desktop displays.
    Compact spacing, never the figures, labels, caveats or touch targets. */

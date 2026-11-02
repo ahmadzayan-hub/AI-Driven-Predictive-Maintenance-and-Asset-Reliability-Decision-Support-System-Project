@@ -92,3 +92,4 @@ apps/android/*.iml
 # codebase-memory-mcp's optional graph snapshot (ADR 2026-10-30-codebase-memory-mcp).
 # The tool is installed per developer; its index never goes into Git.
 .codebase-memory/
+frontend/test-results-jarvis/
