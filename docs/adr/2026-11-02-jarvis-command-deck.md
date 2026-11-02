@@ -1,8 +1,8 @@
 # Jarvis command deck: celestial core, speaking waveform, live agent map
 
-Date: 2026-11-02 · Status: Proposed. The owner approved the design from the
-clickable mockup on 2 November 2026 and asked for a head while speaking. The
-budget raise below waits for the owner's approval before merge.
+Date: 2026-11-02 · Status: Accepted. The owner approved the design from the
+clickable mockup on 2 November 2026, and approved the budget raise below
+("approve the limit", 2 November 2026).
 
 ## Context
 

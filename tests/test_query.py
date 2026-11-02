@@ -244,6 +244,24 @@ class TableApiTestCase(unittest.TestCase):
             run = self.client.post(f"/api/runs/{run['id']}/advance").json()
         return run
 
+    def test_a_layout_is_planned_from_this_run_and_grounded(self):
+        sales = self.upload(SALES_CSV, "sales.csv")
+        run = self.run_analysis(dataset_id=sales)
+        response = self.client.post(f"/api/runs/{run['id']}/layout",
+                                    json={"objective": "Which category leads"})
+        self.assertEqual(response.status_code, 200, response.text)
+        body = response.json()
+        self.assertEqual(body["source"], "rules")          # no model is configured in tests
+        self.assertIn("No language model", body["notes"][0])
+        self.assertNotIn("profile", body)
+        self.assertEqual(body["plan"]["objective"], "Which category leads")
+        components = [s["component"] for s in body["plan"]["sections"]]
+        self.assertIn("kpi", components)
+        self.assertIn("table", components)
+        self.assertFalse(body["capabilities"]["forecast"]["available"])
+        too_long = self.client.post(f"/api/runs/{run['id']}/layout", json={"objective": "x" * 400})
+        self.assertEqual(too_long.status_code, 422)
+
     def test_the_table_is_not_ready_before_cleaning(self):
         run = self.run_analysis(steps=3)
         response = self.client.get(f"/api/runs/{run['id']}/fields?language=ar")
@@ -365,7 +383,8 @@ class TableTenancyTests(unittest.TestCase):
                 ("get", f"/api/runs/{run_id}/fields", None),
                 ("get", f"/api/runs/{run_id}/kpis", None),
                 ("post", f"/api/runs/{run_id}/query", {"measures": [{"agg": "count"}]}),
-                ("post", f"/api/runs/{run_id}/records", {}))
+                ("post", f"/api/runs/{run_id}/records", {}),
+                ("post", f"/api/runs/{run_id}/layout", {"objective": "Where to look"}))
 
     def finished_run(self, headers):
         run = self.client.post("/api/runs", headers=headers,
