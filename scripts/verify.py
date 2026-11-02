@@ -54,7 +54,9 @@ DIST = FRONTEND / "dist"
 # The sheet picker after a failed workbook upload adds 0.1 KB to the total
 # only: docs/adr/2026-10-30-sheet-picker-after-failure.md.
 # Explicit session recovery allocation: ADR 2026-11-02-session-scope-recovery.
-BUDGET_KB = {"js": 100, "js_total": 272, "js_chunk": 30, "css": 10.5, "css_total": 36.5,
+# Jarvis command deck (agent map, celestial core, speaking head) adds 1.4 KB
+# script and 0.6 KB style to the totals only: ADR 2026-11-02-jarvis-command-deck.
+BUDGET_KB = {"js": 100, "js_total": 273, "js_chunk": 30, "css": 10.5, "css_total": 37,
              "fonts": 145}
 LABELS = {"js": "js first load", "js_total": "js total", "js_chunk": "largest js chunk",
           "css": "css first load", "css_total": "css total", "fonts": "fonts"}

@@ -1,6 +1,7 @@
 import { definePack } from './pack'
 export const jarvisMessages = definePack({
   voiceStage: 'Voice console', reduceMotion: 'Reduce motion', stateAnimation: 'State animation · not an audio level',
+  agentMap: 'Agent map', hermes: 'Hermes sequences these agents and holds the approval gate.', agentMapNone: 'Agent states unavailable.',
   transcribing: 'Preparing editable transcript', preparing: 'Preparing device speech', localVoiceUnavailable: 'Device-local English voice unavailable or playback failed.',
   ready: 'Ready for your question', requesting: 'Waiting for microphone', listening: 'Listening', processing: 'Processing selected data', speaking: 'Speaking', unavailable: 'Voice or service unavailable · text remains available',
   transcript: 'Editable transcript', evidenceView: 'Evidence view', measures: 'Measures', references: 'Full answer and references',
@@ -29,6 +30,7 @@ export const jarvisMessages = definePack({
   boot: 'Open synthetic workspace', bootError: 'Workspace unavailable. Start the documented synthetic server; the original database is not used.',
 }, {
   voiceStage: 'لوحة التفاعل الصوتي', reduceMotion: 'تقليل الحركة', stateAnimation: 'حركة تعبّر عن الحالة · ليست مستوى الصوت',
+  agentMap: 'خريطة الوكلاء', hermes: 'يرتّب هيرمس هؤلاء الوكلاء ويحرس بوابة الاعتماد.', agentMapNone: 'حالات الوكلاء غير متاحة.',
   transcribing: 'جارٍ إعداد النص القابل للتحرير', preparing: 'جارٍ تجهيز صوت الجهاز', localVoiceUnavailable: 'الصوت العربي المحلي غير متاح أو تعذر تشغيله.',
   ready: 'جاهز لسؤالك', requesting: 'بانتظار الميكروفون', listening: 'جارٍ الاستماع', processing: 'جارٍ معالجة البيانات المحددة', speaking: 'جارٍ التحدث', unavailable: 'الصوت أو الخدمة غير متاح · الكتابة متاحة',
   transcript: 'نص قابل للتحرير', evidenceView: 'عرض الأدلة', measures: 'المؤشرات', references: 'الإجابة الكاملة والمراجع',

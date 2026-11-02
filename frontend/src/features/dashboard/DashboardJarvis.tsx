@@ -7,6 +7,7 @@ import { jarvisDashboardMessages } from '../../i18n/jarvisDashboard'
 
 const Workspace = lazy(() => import('../chat/JarvisWorkspace').then(module => ({ default: module.JarvisWorkspace })))
 const Core = lazy(() => import('../chat/JarvisCore').then(module => ({ default: module.JarvisCore })))
+const Agents = lazy(() => import('../chat/AgentMap').then(module => ({ default: module.AgentMap })))
 
 /** An explicit session binding to the exact chart scope. Never auto-select another run. */
 export function DashboardJarvis({ runId, datasetName, filters, children }: {
@@ -61,6 +62,7 @@ export function DashboardJarvis({ runId, datasetName, filters, children }: {
           {failed === 'missing' && <a href="/#/dashboard">{t('choose')}</a>}
           <p>{t('mode')}</p></div>
       </div>}
+      <Agents runId={runId} />
     </Suspense>
   </aside>
   return <section className="dash-jarvis" aria-label={t('title')}>
