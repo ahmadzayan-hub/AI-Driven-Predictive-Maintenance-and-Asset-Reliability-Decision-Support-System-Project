@@ -218,6 +218,9 @@ jobs:
           python -c "from PIL import features; from pathlib import Path; import shutil; assert features.check('raqm'); assert shutil.which('ffmpeg') and shutil.which('ffprobe'); assert Path('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf').is_file()"
       - name: Arabic frame and audio-video integration
         run: python scripts/test_motion_studio_arabic_media.py -v
+      - name: Validate existing synthetic Motion fixture without rendering
+        shell: pwsh
+        run: ./.claude/skills/motion/examples/synthetic-arabic-1080p/verify.ps1 -MiyaarRoot .
 
   optional-runtimes:
     # The optional agent runtimes (LangGraph, Pydantic AI, the MCP SDK)

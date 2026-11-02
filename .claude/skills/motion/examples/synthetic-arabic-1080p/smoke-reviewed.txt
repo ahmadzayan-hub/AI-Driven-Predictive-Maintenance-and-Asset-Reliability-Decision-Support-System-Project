@@ -1,0 +1,13 @@
+[0.0–1.5 s] title
+اختبار محلي
+تجربة فيديو محلية
+مقطع تجريبي صامت
+
+[1.5–4.0 s] kpis
+بيانات اصطناعية
+قيمة تجريبية: 42 [1]
+
+DEMO / SYNTHETIC — بيانات اصطناعية للاختبار
+
+المصادر
+[1] synthetic-values.csv, synthetic_demo_value; SYNTHETIC TEST ONLY

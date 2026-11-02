@@ -1,0 +1,27 @@
+{
+  "status": "REVIEWED_SYNTHETIC_FIXTURE",
+  "checked_at_utc": "2026-11-02T19:55:34Z",
+  "synthetic": true,
+  "spec_source_check": "PASS: 1 of 1 figure matches the named synthetic CSV",
+  "portable_verify_script_exit_code": 0,
+  "full_decode_exit_code": 0,
+  "video": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "frames": 120,
+    "duration_seconds": 4,
+    "codec": "h264",
+    "pixel_format": "yuv420p",
+    "audio_streams": 0,
+    "bytes": 89549,
+    "sha256": "bd6b3c1faaf23e7e805cb2530cc6587c840b45e9ff60d09bf42c612c224ced13"
+  },
+  "original_visual_review": "Poster, review sheet and two decoded settled frames inspected; value 42 and connected Arabic text. Original QA retained separately.",
+  "followup": "Copied existing reviewed artifacts; source check, stream contract and full decode rerun through portable verify.ps1. No new render or agent/model invocation.",
+  "not_tested": ["full visual playback", "audio listening (no audio)", "automatic agent adoption", "production execution"],
+  "source_spec_sha256": "e3cbcad120429f2e4e32215bc194543583f69854a75112bbbc85ffc34b777ca6",
+  "source_csv_sha256": "fcc79ec212fdf3c46277ed17236ec6b16fcb1b71a91bc100e9eee47af25f7d96",
+  "poster_sha256": "fca81f337c83dd248f101b996d83b058ab14919c556b508632d4c37b821db568",
+  "transcript_sha256": "3083d71bd8215db9cfa4873c287a3249d25a73b15e174b396f63d3376c5e3be3"
+}

@@ -10,6 +10,8 @@ sources: [docs/adr]
 
 # Decision log
 
+- `2026-11-02-readable-jarvis-evidence`: lead with governed values, units and coverage; keep original references accessible and voice states honest in the local design candidate.
+
 - `2026-11-02-run-profile-start-readiness`: prevent run submission while optional profile metadata can insert fields above the action; preserve the older-server fallback after failure.
 
 - `2026-10-26-local-resource-lifecycle`: explicitly release Motion SQLite connections; retain only required OS bootstrap values in isolated test processes.
