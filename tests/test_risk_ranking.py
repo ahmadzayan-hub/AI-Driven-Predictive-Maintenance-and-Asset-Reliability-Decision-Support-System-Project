@@ -129,6 +129,82 @@ class StageTests(unittest.TestCase):
         self.assertNotIn("risk_ranking", cfg["profiles"]["default"])
 
 
+class DeclaredOptionTests(unittest.TestCase):
+    """R6: the owner declares the horizon and the criticality weights."""
+
+    def test_a_declared_horizon_is_used_and_cited(self):
+        result = RiskRanking(horizon_days=30).run(context(fleet()))
+        out = result["output"]
+        self.assertEqual(out["horizon_days"], 30)
+        calcs = {c["id"]: c for c in result["calculations"]}
+        self.assertEqual(calcs["risk_ranking.c_horizon"]["value"], 30)
+        self.assertIn("declared", calcs["risk_ranking.c_horizon"]["method"])
+        longer = RiskRanking().run(context(fleet()))["output"]["ranked"]
+        shorter = {item["asset"]: item["chance"] for item in out["ranked"]}
+        for item in longer:
+            if item["asset"] in shorter:
+                self.assertLessEqual(shorter[item["asset"]], item["chance"])
+        self.assertIn("within 30 days", result["claims"][0]["text"])
+
+    def test_options_are_validated(self):
+        for bad in ({"horizon_days": 0}, {"horizon_days": 30.5}, {"horizon_days": True},
+                    {"horizon_days": 4000}, {"criticality_weights": {"High": 0}},
+                    {"criticality_weights": {"High": -1}}, {"criticality_weights": {"": 2}},
+                    {"criticality_weights": {"High": 2, "high": 3}}):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                RiskRanking(**bad)
+
+    def test_complete_weights_reorder_and_are_stated(self):
+        weights = {"High": 1, "medium": 50}
+        result = RiskRanking(criticality_weights=weights).run(context(fleet()))
+        out = result["output"]
+        self.assertTrue(out["criticality_weighted"])
+        scores = [item["score"] for item in out["ranked"]]
+        self.assertEqual(scores, sorted(scores, reverse=True))
+        for item in out["ranked"]:
+            expected = 50 if item["criticality"] == "Medium" else 1
+            self.assertEqual(item["weight"], expected)
+            self.assertAlmostEqual(item["score"], item["expected_cost"] * expected)
+        basis = next(c for c in result["claims"] if c["id"].endswith("cl_basis"))
+        self.assertIn("medium x50", basis["text"])
+        self.assertIn("risk_ranking.c_weights", basis["evidence"])
+
+    def test_incomplete_weights_are_not_applied_and_the_gap_is_named(self):
+        result = RiskRanking(criticality_weights={"High": 3}).run(context(fleet()))
+        out = result["output"]
+        self.assertFalse(out["criticality_weighted"])
+        self.assertEqual(out["weights_not_applied"]["missing_labels"], ["Medium"])
+        unweighted = RiskRanking().run(context(fleet()))["output"]["ranked"]
+        self.assertEqual([i["asset"] for i in out["ranked"]], [i["asset"] for i in unweighted])
+        basis = next(c for c in result["claims"] if c["id"].endswith("cl_basis"))
+        self.assertIn("no weight is declared for Medium", basis["text"])
+
+    def test_declared_options_keep_claims_valid_in_both_languages(self):
+        for options in ({"horizon_days": 180}, {"criticality_weights": {"High": 2.5, "Medium": 1}},
+                        {"criticality_weights": {"High": 4}}):
+            for language in ("en", "ar"):
+                with self.subTest(options=options, language=language):
+                    result = RiskRanking(**options).run(context(fleet(), language))
+                    stages.validate_result(RiskRanking.role, result)
+                    calcs = {c["id"]: c for c in result["calculations"]}
+                    for claim in result["claims"]:
+                        self.assertTrue(all(e in calcs for e in claim["evidence"]), claim["id"])
+                        self.assertTrue(analytics.claim_figures_match(claim, calcs), claim["text"])
+                        self.assertEqual(analytics._jargon_in(claim["text"]), [])
+                        if language == "ar":
+                            self.assertEqual(analytics.figures(claim["text"]),
+                                             analytics.figures(claim["text_ar"]), claim["id"])
+
+    def test_options_load_from_config(self):
+        cfg = {"stages": [{"path": "server.maintenance.risk_ranking.RiskRanking",
+                           "options": {"horizon_days": 60,
+                                       "criticality_weights": {"High": 3, "Medium": 1}}}]}
+        loaded, issues = stages.load_stages(env={}, config=cfg)
+        self.assertEqual(issues, [])
+        self.assertEqual(loaded["risk_ranking"].horizon, 60)
+        self.assertEqual(loaded["risk_ranking"].weights, {"High": 3.0, "Medium": 1.0})
+
+
 class GovernedRunTests(unittest.TestCase):
 
     def test_a_maintenance_run_reaches_approval_with_the_ranking(self):

@@ -1124,6 +1124,19 @@ its title and claims in the run's language. No new interface string; the room
 came from shortening six Operations help strings in both languages (script
 total 257,090 of 257,100 bytes, no raise).
 
+
+### Declared risk options: 2 November 2026
+
+Analysis change ([decision](docs/adr/2026-11-02-declared-risk-options.md)):
+the risk ranking takes two stage options in `config.json`, `horizon_days`
+(default 90) and `criticality_weights` (default none). Weights multiply the
+ranking value only when every criticality label in the data has one;
+otherwise nothing is weighted and the claim names what is missing. Invalid
+options fail at stage load. With no options set, results are unchanged.
+
+Checked by the full Python suite against PostgreSQL 16 (2,514 tests, 20
+skipped, 6 of them new), 569 frontend unit tests, the build and budget
+(unchanged; no interface change).
 ### Drift alerts for live sources: 31 October 2026
 
 Platform change ([decision](docs/adr/2026-10-31-snapshot-drift.md)): each new

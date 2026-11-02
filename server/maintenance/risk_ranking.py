@@ -12,6 +12,12 @@ expected cost, or by the chance alone when no cost is recorded. Criticality
 is shown beside each asset, never turned into an invented weight: how much
 a consequence class is worth is the owner's call.
 
+Two stage options let the owner declare those numbers (owner slice R6,
+2 November 2026): `horizon_days` (default 90) and `criticality_weights`, a
+mapping from criticality label to a positive multiplier. Weights apply only
+when they cover every criticality label in the data, and no asset lacks one;
+otherwise nothing is weighted and the claim names what is missing.
+
 Advisory only: a proposal for engineering review, never a work order.
 Standard library only; the fit is the reliability model's own.
 """
@@ -21,6 +27,8 @@ from server import analytics
 from server.maintenance import reliability as R
 
 HORIZON_DAYS = 90
+MAX_HORIZON_DAYS = 3650
+MAX_WEIGHTS = 12
 TOP = 10
 CLAIMED = 3
 
@@ -50,8 +58,17 @@ def ages(items):
     return {asset: (as_of - day).days for asset, day in start.items()}
 
 
+def _positive(value, upper=None):
+    return (isinstance(value, (int, float)) and not isinstance(value, bool)
+            and math.isfinite(value) and value > 0 and (upper is None or value <= upper))
+
+
+def _g(value):
+    return f"{value:g}"
+
+
 class RiskRanking:
-    """Assets ranked by expected failure cost over the next 90 days."""
+    """Assets ranked by expected failure cost over the next 90 days (or a declared horizon)."""
 
     role = "risk_ranking"
     title = "Risk Ranking Agent — which assets first?"
@@ -59,6 +76,34 @@ class RiskRanking:
     after = "sensitivity"
     question = "Which assets carry the highest expected failure cost in the next 90 days?"
     can_fail_run = False
+
+    def __init__(self, horizon_days=None, criticality_weights=None):
+        if horizon_days is not None and not (_positive(horizon_days, MAX_HORIZON_DAYS)
+                                             and float(horizon_days).is_integer()):
+            raise ValueError(f"horizon_days must be a whole number of days, 1 to {MAX_HORIZON_DAYS}")
+        weights = dict(criticality_weights or {})
+        if len(weights) > MAX_WEIGHTS or not all(
+                isinstance(k, str) and k.strip() and _positive(v) for k, v in weights.items()):
+            raise ValueError(f"criticality_weights must map up to {MAX_WEIGHTS} labels "
+                             "to positive numbers")
+        keys = [k.strip().lower() for k in weights]
+        if len(set(keys)) != len(keys):
+            raise ValueError("criticality_weights repeats a label")
+        self.horizon = int(horizon_days) if horizon_days is not None else HORIZON_DAYS
+        self.declared_horizon = horizon_days is not None
+        self.weights = {k.strip(): float(v) for k, v in weights.items()}
+
+    def _weighting(self, ranked):
+        """The weight per asset, or the reason weights cannot apply."""
+        if not self.weights:
+            return None, None
+        lookup = {k.lower(): v for k, v in self.weights.items()}
+        unrecorded = sum(1 for item in ranked if not item["criticality"])
+        missing = sorted({item["criticality"] for item in ranked
+                          if item["criticality"] and item["criticality"].lower() not in lookup})
+        if unrecorded or missing:
+            return None, {"missing_labels": missing, "unrecorded_assets": unrecorded}
+        return {item["asset"]: lookup[item["criticality"].lower()] for item in ranked}, None
 
     def _unavailable(self, en, ar):
         return {"status": "succeeded", "summary": en, "claims": [], "calculations": [],
@@ -110,7 +155,7 @@ class RiskRanking:
             total, n = spend.get(group, (0.0, 0))
             per_failure = total / n if n else None
             for unit, age in ages(items).items():
-                chance = chance_within(age, HORIZON_DAYS, result["shape"], result["scale"])
+                chance = chance_within(age, self.horizon, result["shape"], result["scale"])
                 ranked.append({"asset": unit, "group": group,
                                "criticality": critical.get(unit),
                                "days_running": age, "chance": round(chance, 3),
@@ -128,21 +173,35 @@ class RiskRanking:
                 "ترتيب المخاطر غير متاح: لا توجد فئة أصول فيها أعطال كافية لنموذج "
                 "الموثوقية. لم يُرتَّب أي أصل.")
         by_cost = all(item["expected_cost"] is not None for item in ranked)
-        ranked.sort(key=lambda item: (-(item["expected_cost"] if by_cost else item["chance"]),
-                                      -item["chance"], item["asset"]))
-        return self._result(ctx, ranked, not_fitted, by_cost, bool(cost_cols))
+        weight_of, unweighted = self._weighting(ranked)
+        for item in ranked:
+            base = item["expected_cost"] if by_cost else item["chance"]
+            item["weight"] = weight_of[item["asset"]] if weight_of else None
+            item["score"] = base * item["weight"] if weight_of else base
+        ranked.sort(key=lambda item: (-item["score"], -item["chance"], item["asset"]))
+        return self._result(ctx, ranked, not_fitted, by_cost, bool(cost_cols),
+                            bool(weight_of), unweighted)
 
-    def _result(self, ctx, ranked, not_fitted, by_cost, has_cost_columns):
+    def _result(self, ctx, ranked, not_fitted, by_cost, has_cost_columns,
+                weighted=False, unweighted=None):
         p = self.role + "."
+        h = self.horizon
         top = ranked[:TOP]
         calcs = [
             {"id": p + "c_assets", "name": "assets_ranked", "value": len(ranked),
              "method": "assets in asset classes the reliability model fitted"},
             {"id": p + "c_not_fitted", "name": "assets_not_ranked", "value": not_fitted,
              "method": "assets in classes with too few failures for a fit"},
-            {"id": p + "c_horizon", "name": "horizon_days", "value": HORIZON_DAYS,
-             "method": "fixed planning horizon"},
+            {"id": p + "c_horizon", "name": "horizon_days", "value": h,
+             "method": "planning horizon declared by the owner (stage option horizon_days)"
+                       if self.declared_horizon else "default planning horizon"},
         ]
+        if self.weights:
+            calcs.append({"id": p + "c_weights", "name": "criticality_weights",
+                          "value": ", ".join(f"{k} x{_g(v)}" for k, v in self.weights.items()),
+                          "method": "declared by the owner (stage option criticality_weights); "
+                                    + ("applied as a multiplier on the ranking value"
+                                       if weighted else "not applied, see the basis claim")})
         claims = []
         for i, item in enumerate(top):
             pct = round(item["chance"] * 100)
@@ -151,12 +210,14 @@ class RiskRanking:
             calcs.append({
                 "id": f"{p}c_rank_{i}", "name": f"rank_{i + 1}",
                 "value": f"{item['asset']} ({item['group']}): {pct}% within "
-                         f"{HORIZON_DAYS} days after {item['days_running']:,} days running{cost}; "
+                         f"{h} days after {item['days_running']:,} days running{cost}; "
                          f"longest failure interval seen in the class {item['longest_seen']:,} days",
-                "method": "1 - R(t + 90) / R(t) from the class's Weibull fit, times the "
-                          "class's average cost per failure (maintenance plus production "
-                          "loss on records with a failure)" if by_cost else
-                          "1 - R(t + 90) / R(t) from the class's Weibull fit"})
+                "method": (f"1 - R(t + {h}) / R(t) from the class's Weibull fit, times the "
+                           "class's average cost per failure (maintenance plus production "
+                           "loss on records with a failure)" if by_cost else
+                           f"1 - R(t + {h}) / R(t) from the class's Weibull fit")
+                          + (f"; ranked after weighting by criticality x{_g(item['weight'])}"
+                             if weighted else "")})
         for i, item in enumerate(top[:CLAIMED]):
             pct = round(item["chance"] * 100)
             label = item["criticality"] or "not recorded"
@@ -169,17 +230,17 @@ class RiskRanking:
                 ctx, f"{p}cl_rank_{i}", "recommendation",
                 f"Review {item['asset']} ({item['group']}, criticality {label}) "
                 f"for planned work: after {item['days_running']:,} days running it has "
-                f"about {pct}% chance of failing within {HORIZON_DAYS} days{en_cost}."
+                f"about {pct}% chance of failing within {h} days{en_cost}."
                 + (f" That is longer than any failure interval seen in the class "
                    f"({item['longest_seen']:,} days), so the figure is an extrapolation."
                    if item["beyond_data"] else ""),
                 f"يُقترح مراجعة {item['asset']} ({item['group']}، الأهمية {label_ar}) "
                 f"لعمل مخطط: بعد {item['days_running']:,} يومًا من التشغيل، احتمال تعطله "
-                f"خلال {HORIZON_DAYS} يومًا نحو {pct}%{ar_cost}."
+                f"خلال {h} يومًا نحو {pct}%{ar_cost}."
                 + (f" وهذه مدة أطول من أي فترة بين أعطال في الفئة ({item['longest_seen']:,} "
                    f"يومًا)، فالرقم استقراء خارج البيانات."
                    if item["beyond_data"] else ""),
-                [f"{p}c_rank_{i}", p + "c_horizon"])
+                [f"{p}c_rank_{i}", p + "c_horizon"] + ([p + "c_weights"] if weighted else []))
             if item["range_open"] or item["beyond_data"]:
                 claim["status"] = "unverified"
             claims.append(claim)
@@ -194,19 +255,39 @@ class RiskRanking:
                     if by_cost else
                     "الاحتمال وحده، لأن " + ("بعض الفئات بلا تكلفة كاملة في سجلات الأعطال"
                                              if has_cost_columns else "البيانات بلا أعمدة تكلفة"))
+        if weighted:
+            weight_en = ("Criticality weights declared by the owner multiply the ranking "
+                         "value: " + ", ".join(f"{k} x{_g(v)}" for k, v in self.weights.items())
+                         + ".")
+            weight_ar = ("أوزان الأهمية التي حددها المالك تضرب قيمة الترتيب: "
+                         + "، ".join(f"{k} x{_g(v)}" for k, v in self.weights.items()) + ".")
+        elif unweighted:
+            gaps_en = ([f"no weight is declared for {', '.join(unweighted['missing_labels'])}"]
+                       if unweighted["missing_labels"] else []) + \
+                      ([f"{unweighted['unrecorded_assets']} assets have no criticality recorded"]
+                       if unweighted["unrecorded_assets"] else [])
+            gaps_ar = ([f"لا وزن محددًا لـ {'، '.join(unweighted['missing_labels'])}"]
+                       if unweighted["missing_labels"] else []) + \
+                      ([f"{unweighted['unrecorded_assets']} أصلًا بلا أهمية مسجلة"]
+                       if unweighted["unrecorded_assets"] else [])
+            weight_en = ("Criticality is shown, not weighted: the declared weights were not "
+                         "applied because " + " and ".join(gaps_en) + ".")
+            weight_ar = ("تُعرض الأهمية دون ترجيح: لم تُطبَّق الأوزان المحددة لأن "
+                         + " و".join(gaps_ar) + ".")
+        else:
+            weight_en, weight_ar = "Criticality is shown, not weighted.", "تُعرض الأهمية دون ترجيح."
         claims.append(analytics._claim(
             ctx, p + "cl_basis", "assumption",
             f"{len(ranked)} assets are ranked by {basis_en}. The chance comes from the "
             f"class's failure pattern and the days since each asset's last failure, so it "
-            f"carries the reliability model's assumptions. Criticality is shown, not "
-            f"weighted. {not_fitted} assets in classes with too few failures are not ranked. "
+            f"carries the reliability model's assumptions. {weight_en} {not_fitted} assets in classes with too few failures are not ranked. "
             f"This is a proposal for engineering review, not a work order.",
             f"رُتِّب {len(ranked)} أصلًا حسب {basis_ar}. يأتي الاحتمال من نمط أعطال الفئة "
-            f"والأيام منذ آخر عطل لكل أصل، فيحمل افتراضات نموذج الموثوقية. تُعرض الأهمية "
-            f"دون ترجيح. لم يُرتَّب {not_fitted} أصلًا في فئات أعطالها قليلة. هذا مقترح "
+            f"والأيام منذ آخر عطل لكل أصل، فيحمل افتراضات نموذج الموثوقية. {weight_ar} "
+            f"لم يُرتَّب {not_fitted} أصلًا في فئات أعطالها قليلة. هذا مقترح "
             f"للمراجعة الهندسية، لا أمر عمل.",
-            [p + "c_assets", p + "c_not_fitted"]))
-        lines = [f"## Risk ranking: next {HORIZON_DAYS} days", "",
+            [p + "c_assets", p + "c_not_fitted"] + ([p + "c_weights"] if self.weights else [])))
+        lines = [f"## Risk ranking: next {h} days", "",
                  f"Ranked {len(ranked)} assets by "
                  + ("expected failure cost." if by_cost else "chance of failure."), "",
                  "| Rank | Asset | Class | Criticality | Days running | Chance | Expected cost (USD) |",
@@ -220,10 +301,10 @@ class RiskRanking:
         summary = analytics._say(
             ctx, f"Ranked {len(ranked)} assets by "
                  + ("expected failure cost" if by_cost else "chance of failure")
-                 + f" over {HORIZON_DAYS} days.",
+                 + f" over {h} days.",
             f"رُتِّب {len(ranked)} أصلًا حسب "
             + ("التكلفة المتوقعة للأعطال" if by_cost else "احتمال العطل")
-            + f" خلال {HORIZON_DAYS} يومًا.")
+            + f" خلال {h} يومًا.")
         return {"status": "succeeded", "summary": summary, "claims": claims,
                 "calculations": calcs,
                 "quality_checks": [
@@ -231,11 +312,13 @@ class RiskRanking:
                      "detail": "Asset_ID, Record_Date and Failure_Count available"},
                     {"name": "cost_basis", "passed": by_cost,
                      "detail": "ranked by expected cost" if by_cost else "ranked by chance only"}],
-                "output": {"applicable": True, "horizon_days": HORIZON_DAYS,
+                "output": {"applicable": True, "horizon_days": h,
                            "ranked_by": "expected_cost" if by_cost else "chance",
                            "ranked": top, "assets_ranked": len(ranked),
                            "assets_not_ranked": not_fitted,
-                           "criticality_weighted": False,
+                           "criticality_weighted": weighted,
+                           "criticality_weights": self.weights or None,
+                           "weights_not_applied": unweighted,
                            "human_approval_required": True,
                            "work_orders_issued": False,
                            "question": self.question,
