@@ -13,7 +13,30 @@ const props = { runId: 'run1', datasetName: 'SYNTHETIC.csv', filters: [] as Tabl
 beforeEach(() => {
   vi.restoreAllMocks(); applyLocale('en')
   vi.spyOn(transport.api, 'createSession').mockResolvedValue(session)
+  vi.spyOn(transport.api, 'getSession').mockResolvedValue(session)
   vi.spyOn(transport, 'request').mockResolvedValue(session)
+})
+
+it('replaces only an expired cached session while preserving the exact selected report', async () => {
+  render(<DashboardJarvis {...props} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Connect this view to Jarvis' }))
+  await screen.findByText('Bound js1 embedded')
+  vi.mocked(transport.api.getSession).mockRejectedValueOnce(new transport.ApiError('Session not found', 404))
+  vi.mocked(transport.api.createSession).mockResolvedValueOnce({ ...session, session_id: 'js2' })
+  vi.mocked(transport.request).mockResolvedValueOnce({ ...session, session_id: 'js2' })
+  fireEvent.click(screen.getByRole('button', { name: 'Refresh Jarvis scope' }))
+  expect(await screen.findByText('Bound js2 embedded')).toBeVisible()
+  expect(transport.request).toHaveBeenLastCalledWith('/api/sessions/js2/data-context', expect.objectContaining({ body: JSON.stringify({ run_id: 'run1', filters: [] }) }))
+})
+
+it('retains a missing report identity and offers explicit reselection instead of substituting one', async () => {
+  vi.mocked(transport.request).mockRejectedValue(new transport.ApiError('Run not found', 404))
+  render(<DashboardJarvis {...props} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Connect this view to Jarvis' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('no longer available')
+  expect(screen.getByText('SYNTHETIC.csv')).toBeVisible()
+  expect(screen.getByRole('link', { name: 'Choose an available report' })).toHaveAttribute('href', '/#/dashboard')
+  expect(transport.api.createSession).toHaveBeenCalledTimes(1)
 })
 it('binds only on explicit action, deduplicates requests and retains the charts', async () => {
   render(<DashboardJarvis {...props} />)

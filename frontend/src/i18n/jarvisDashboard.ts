@@ -10,6 +10,10 @@ export const jarvisDashboardMessages = definePack({
   readonly: 'Connecting a report requires permission to create a session and select its data. Charts remain available in read-only mode.',
   scope: 'Current report', mode: 'Recorded analysis · no live telemetry claim',
   loading: 'Opening Jarvis…',
+  missing: 'This selected report is no longer available to this session. A restarted synthetic server can have different report IDs. Your selection is shown above; choose an available report explicitly.',
+  forbidden: 'Your current account cannot connect this report. Check its access; no data selection was changed.',
+  notReady: 'This report or session is not ready. Refresh the analysis and reconnect the same scope.',
+  choose: 'Choose an available report',
 }, {
   title: 'Jarvis OS · مساحة القرار',
   help: 'اسأل عن التقرير والمرشحات نفسها في هذه الرسوم. أدلة محسوبة مع مصادر ومراجعة بشرية.',
@@ -20,4 +24,8 @@ export const jarvisDashboardMessages = definePack({
   readonly: 'يتطلب ربط التقرير صلاحية إنشاء جلسة واختيار بياناتها. تظل الرسوم متاحة في وضع القراءة فقط.',
   scope: 'التقرير الحالي', mode: 'تحليل مسجل · لا يدّعي قياسات حية',
   loading: 'جارٍ فتح Jarvis…',
+  missing: 'التقرير المحدد لم يعد متاحاً لهذه الجلسة. قد تتغير معرّفات التقارير بعد إعادة تشغيل الخادم الاصطناعي. اختيارك ظاهر أعلاه؛ اختر تقريراً متاحاً بشكل صريح.',
+  forbidden: 'الحساب الحالي لا يملك صلاحية ربط هذا التقرير. تحقق من صلاحياته؛ لم يتغير اختيار البيانات.',
+  notReady: 'التقرير أو الجلسة غير جاهز. حدّث التحليل ثم أعد ربط النطاق نفسه.',
+  choose: 'اختر تقريراً متاحاً',
 })

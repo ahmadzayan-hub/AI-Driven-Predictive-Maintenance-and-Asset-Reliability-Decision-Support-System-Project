@@ -9,6 +9,7 @@ const VoiceInput = lazy(() => import('./VoiceInput').then((module) => ({ default
 export interface ComposerHandle {
   insert: (text: string) => void
   focus: () => void
+  getDraft: () => string
 }
 
 interface ComposerProps {
@@ -19,17 +20,19 @@ interface ComposerProps {
   placeholder?: string
   draftKey?: string
   sessionId?: string
+  sendBlocked?: boolean
+  initialDraft?: string
 }
 
 /** Multiline message input. Enter sends, Shift+Enter adds a line break.
  *  While a request is in flight the send action is disabled, which also
  *  prevents duplicate submissions. */
 export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Composer(
-  { onSend, busy, disabled = false, offline = false, placeholder, draftKey = 'composer', sessionId },
+  { onSend, busy, disabled = false, offline = false, placeholder, draftKey = 'composer', sessionId, sendBlocked = false, initialDraft = '' },
   ref,
 ) {
   const { t, tx, locale } = useI18n()
-  const [text, setText] = useSessionDraft(draftKey, () => '')
+  const [text, setText] = useSessionDraft(draftKey, () => initialDraft)
   const [submitting, setSubmitting] = useState(false)
   const [capturing, setCapturing] = useState(false)
   const submittingRef = useRef(false)
@@ -49,6 +52,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
     focus() {
       textareaRef.current?.focus()
     },
+    getDraft: () => text,
   }))
 
   function autosize() {
@@ -60,7 +64,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
 
   async function submit() {
     const value = text.trim()
-    if (!value || busy || submittingRef.current || disabled || capturing) return
+    if (!value || busy || submittingRef.current || disabled || capturing || sendBlocked) return
     submittingRef.current = true
     setSubmitting(true)
     try {
@@ -80,7 +84,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
         <VoiceInput
           sessionId={sessionId}
           language={locale}
-          disabled={disabled || busy || submitting}
+          disabled={disabled || busy || submitting || sendBlocked}
           onActiveChange={setCapturing}
           onTranscript={(value) => {
             setText((existing) => [existing.trim(), value].filter(Boolean).join(' '))
@@ -124,7 +128,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
         <button
           type="submit"
           className="composer__send"
-          disabled={busy || submitting || disabled || capturing || !text.trim()}
+          disabled={busy || submitting || disabled || capturing || sendBlocked || !text.trim()}
           aria-label={busy ? t('composer.sending') : t('composer.send')}
         >
           {busy ? <span className="spinner" aria-hidden="true" /> : <Icon name="send" size={18} />}

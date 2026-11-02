@@ -8,7 +8,7 @@ async function open(page: Page, ar = false) {
   await page.getByRole('button', { name: ar ? 'فتح مساحة العرض الاصطناعي' : 'Open synthetic workspace' }).click()
   await page.locator('summary').first().click()
   await page.getByRole('button', { name: ar ? 'عرض تقاريري' : 'Show my reports' }).click()
-  const option = page.locator('select option').filter({ hasText: 'SYNTHETIC_RTA_review.csv' })
+  const option = page.locator('select option').filter({ hasText: 'SYNTHETIC_maintenance_review.csv' })
   await page.locator('select').selectOption(await option.getAttribute('value') as string)
   await page.getByRole('button', { name: ar ? 'استخدام هذا التقرير' : 'Use this report' }).click()
 }

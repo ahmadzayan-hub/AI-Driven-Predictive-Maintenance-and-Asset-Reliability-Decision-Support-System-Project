@@ -43,6 +43,11 @@ interface ChatViewProps {
   composerRef: React.RefObject<ComposerHandle | null>
   onOpenRun?: (id: string) => void
   onAction?: (action: WorkspaceAction) => void
+  sessionMissing?: boolean
+  previousConversation?: SessionState | null
+  recoveryDraft?: string | null
+  onRecover?: (draft: string) => void
+  failureChecked?: boolean
 }
 
 /** A decorative AI-core motif: rings, an orbit and streams around the
@@ -64,6 +69,7 @@ function CoreMotif() {
 export function ChatView({
   session, sending, failedText, pendingText, requestError,
   offline, userName, onSend, onRetry, onDismissFailed, composerRef, onOpenRun, onAction,
+  sessionMissing = false, previousConversation, recoveryDraft, onRecover, failureChecked = false,
 }: ChatViewProps) {
   const { t, formatNumber } = useI18n()
   const [jarvis, setJarvis] = useState(false)
@@ -86,7 +92,7 @@ export function ChatView({
     const container = scrollRef.current
     if (container) setPinnedToBottom(container.scrollHeight - container.scrollTop - container.clientHeight < 48)
   }
-  const empty = transcriptLength === 0 && !failedText && !sending
+  const empty = transcriptLength === 0 && !failedText && !sending && !sessionMissing
   if (jarvis) return <div className="chat__scroll"><button className="btn btn--ghost" onClick={() => setJarvis(false)}>{t('jarvis.close')}</button><Suspense fallback={<p>{t('chat.typing')}</p>}><JarvisWorkspace session={session} disabled={offline || sending} /></Suspense></div>
   return <div className="assistant-workspace">
     <section className="chat" aria-label={t('chat.aria')}>
@@ -134,11 +140,12 @@ export function ChatView({
         {!sending && latest?.source === 'rules' && latest.action === 'chat' ? <div className="miyaar-notice" role="status">
           <Icon name="help" size={18} /><p>{t('miyaar.fallback')}</p>
         </div> : null}
-        {failedText ? <div className="alertbar" role="alert">
+        {failedText || sessionMissing ? <div className="alertbar" role="alert">
           <Icon name="alert" size={16} />
-          <div><p>{t('chat.failed')}</p>{requestError ? <p dir="auto">{requestError}</p> : null}</div>
-          <button type="button" className="alertbar__retry" onClick={onRetry} disabled={sending}>{t('chat.retry')}</button>
-          <button type="button" className="iconbtn" onClick={onDismissFailed} aria-label={t('chat.dismiss')}><Icon name="x" size={14} /></button>
+          <div><p>{t(sessionMissing ? 'chat.sessionMissing' : 'chat.failed')}</p>{requestError ? <p dir="auto">{requestError}</p> : null}</div>
+          {sessionMissing ? <button type="button" className="alertbar__retry" disabled={sending || !onRecover} onClick={() => onRecover?.(composerRef.current?.getDraft() ?? failedText ?? '')}>{t('chat.recover')}</button> : <>
+            <button type="button" className="alertbar__retry" onClick={onRetry} disabled={sending}>{t('chat.check')}</button>
+            <button type="button" className="alertbar__retry" disabled={!failureChecked} onClick={onDismissFailed}>{t('chat.manual')}</button></>}
         </div> : null}
         {session.ended ? <div className="alertbar alertbar--info" role="status"><Icon name="power" size={16} /><span>{t('chat.ended')}</span></div> : null}
         {!sending && !session.ended && latest ? <div className="miyaar-followups" aria-label={t('miyaar.followup')}>
@@ -151,6 +158,8 @@ export function ChatView({
         </div> : null}
       </div>}
     </div>
+    {previousConversation && <details className="assistant-context"><summary>{t('chat.previous')} · <bdi>{previousConversation.session_id}</bdi></summary>
+      {previousConversation.transcript.map(entry => <p key={entry.id} dir="auto">{entry.text}</p>)}</details>}
     {!pinnedToBottom && !empty ? <button type="button" className="jump" onClick={() => {
       const container = scrollRef.current
       if (container) container.scrollTop = container.scrollHeight
@@ -162,6 +171,7 @@ export function ChatView({
       <p className="assistant-context__boundary"><Icon name="shield" size={15} />{t('miyaar.review')}</p>
     </div>
     <Composer sessionId={session.session_id} draftKey={`${session.session_id}:composer`} ref={composerRef} onSend={onSend}
+      initialDraft={recoveryDraft ?? ''} sendBlocked={sessionMissing || !!failedText}
       busy={sending} disabled={session.ended || offline} offline={offline} />
   </section></div>
 }

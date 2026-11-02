@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
-import { request, api } from '../../shared/api'
+import { request, api, ApiError } from '../../shared/api'
 import type { SessionState, TableFilter } from '../../shared/types'
 import { useReadOnly } from '../../shared/readOnly'
 import { usePack } from '../../i18n/pack'
@@ -18,22 +18,28 @@ export function DashboardJarvis({ runId, datasetName, filters, children }: {
   const [expanded, setExpanded] = useState(false)
   const [binding, setBinding] = useState<{ scope: string; session: SessionState } | null>(null)
   const [busy, setBusy] = useState(false)
-  const [failed, setFailed] = useState(false)
+  const [failed, setFailed] = useState<'unavailable' | 'missing' | 'forbidden' | 'notReady' | null>(null)
   const sessionId = useRef<string | null>(null)
   const generation = useRef(0)
   const inFlight = useRef(false)
   const bound = binding?.scope === scopeKey ? binding.session : null
   useEffect(() => {
     generation.current++; inFlight.current = false
-    setBinding(null); setBusy(false); setFailed(false)
+    setBinding(null); setBusy(false); setFailed(null)
   }, [scopeKey])
   useEffect(() => () => { generation.current++ }, [])
 
   async function connect() {
     if (readOnly || inFlight.current) return
     const token = ++generation.current
-    inFlight.current = true; setExpanded(true); setBusy(true); setFailed(false); setBinding(null)
+    inFlight.current = true; setExpanded(true); setBusy(true); setFailed(null); setBinding(null)
     try {
+      // Verify the cached session after a restart; bind only this exact report.
+      if (sessionId.current) {
+        try { if ((await api.getSession(sessionId.current)).ended) sessionId.current = null }
+        catch (error) { if (error instanceof ApiError && error.status === 404) sessionId.current = null; else throw error }
+        if (generation.current !== token) return
+      }
       const id = sessionId.current ?? (await api.createSession(locale)).session_id
       if (generation.current !== token) return
       sessionId.current = id
@@ -41,7 +47,8 @@ export function DashboardJarvis({ runId, datasetName, filters, children }: {
         method: 'PUT', body: JSON.stringify({ run_id: runId, filters }),
       })
       if (generation.current === token) setBinding({ scope: scopeKey, session })
-    } catch { if (generation.current === token) setFailed(true) }
+    } catch (error) { if (generation.current === token) setFailed(error instanceof ApiError ?
+      error.status === 404 ? 'missing' : [401, 403].includes(error.status) ? 'forbidden' : error.status === 409 ? 'notReady' : 'unavailable' : 'unavailable') }
     finally { if (generation.current === token) { inFlight.current = false; setBusy(false) } }
   }
 
@@ -50,7 +57,8 @@ export function DashboardJarvis({ runId, datasetName, filters, children }: {
       {bound && expanded ? <Workspace session={bound} embedded /> : <div className="dash-jarvis__welcome">
         <Core state={failed || readOnly ? 'unavailable' : busy ? 'processing' : 'ready'} />
         <div><h3>{t('title')}</h3><p>{t('help')}</p>
-          {expanded && <p role={failed ? 'alert' : 'status'}>{busy ? t('connecting') : failed ? t('unavailable') : t('changed')}</p>}
+          {expanded && <p role={failed ? 'alert' : 'status'}>{busy ? t('connecting') : failed ? t(failed) : t('changed')}</p>}
+          {failed === 'missing' && <a href="/#/dashboard">{t('choose')}</a>}
           <p>{t('mode')}</p></div>
       </div>}
     </Suspense>

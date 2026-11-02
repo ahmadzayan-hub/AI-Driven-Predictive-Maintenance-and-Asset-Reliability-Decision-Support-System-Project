@@ -555,13 +555,48 @@ hardware expectations, hosted configuration and acceptance limits.
 ### Jarvis OS local hackathon acceptance (2 November 2026)
 
 [Walkthrough](docs/JARVIS_HACKATHON.md) and [decision](docs/adr/2026-11-02-jarvis-evidence-workspace.md).
+The subsequent [central voice-console redesign](docs/adr/2026-11-02-jarvis-central-voice-console.md)
+adds an original radial audio control between editable input and source evidence,
+under the existing executive KPI cards. Actual recognition/query/speech events
+drive its labelled state animation. Keyboard operation, system/local reduced
+motion, explicit recognition consent and matching device-local speech are retained.
+No amplitude waveform, general conversational LLM or audible device acceptance is claimed.
+
+The broad local frontend attempt for this redesign ran **549 tests: 546 passed,
+3 failed** across 55 files. The RMD mapping and KPI policy cases exceeded the
+unchanged five-second deadline; the local Whisper UI lookup exceeded its readiness
+wait. A focused rerun passed 65 of 66 tests, including Whisper, KPI policy and
+final bilingual naming; the same RMD timeout remained. These are not a full-suite
+pass. Focused voice-event/consent/interruption checks separately passed 70 tests
+before the final explicit-locale regression was added; that regression passed
+within the broad run. Final-head hosted CI remains the complete release gate.
+
+The recovery build passes exact-byte limits: initial JavaScript 96,058/100,000,
+total 270,724/272,000; initial CSS 10,394/10,500, total 36,043/36,500. Only total
+budgets changed for the lazy voice console and explicit session recovery; the initial limits
+are preserved. Existing Vite/Vitest versions differ from the lockfile.
+
+[Session/scope recovery](docs/adr/2026-11-02-session-scope-recovery.md) preserves
+unsent drafts and keeps uncertain requests blocked until the user checks the server
+conversation. The check never resends. Missing reports require explicit reselection.
+The final focused recovery run passed 76 tests across 4 files, including forbidden,
+ended-session and sign-out-race cases; its three Chromium
+regressions passed against the disposable synthetic server. The subsequent broad
+frontend run and final-head hosted CI are tracked separately from these results.
+The subsequent broad local attempt was interrupted after timing failures in
+ExecutiveOverview, RMD, DashboardView and VoiceServerDictation. The combined
+browser attempt timed out loading the dashboard and was also interrupted; the
+earlier seven design scenarios and three recovery scenarios passed separately.
+Available physical memory fell below 0.5 GB on the 16 GB laptop. These interrupted
+runs are not passes; final-head hosted checks remain mandatory before merge.
+
 The isolated checkout starts from `6d87d79`. The unified dashboard/Jarvis update
 preserves chart filtering, saved views and all six dashboard pages. Explicit
 connection binds the current run and exact chart filters; stale tabs receive
 409 and scope changes clear the old answer and local review. Spoken summaries
 retain units, currency uncertainty, coverage and missing-data reasons.
 
-Local validation on existing installed dependencies: the complete Python suite
+Earlier integrated-dashboard validation on existing installed dependencies: the complete Python suite
 passed 2,391 tests with 260 skipped (PostgreSQL/optional environments unavailable).
 The complete frontend suite passed 546 tests across 55 files. The latest combined
 DataChat/verifier/documentation run passed 49 tests; focused dashboard/Jarvis/

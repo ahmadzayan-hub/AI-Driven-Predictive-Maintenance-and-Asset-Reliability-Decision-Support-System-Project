@@ -40,6 +40,11 @@ interface Store {
   failedText: string | null
   pendingText: string | null
   requestError: string | null
+  sessionMissing: boolean
+  previousConversation: SessionState | null
+  recoveryDraft: string | null
+  failureChecked: boolean
+  recoverSession: (draft?: string) => Promise<void>
   events: ActivityEvent[]
   lastSyncedAt: string | null
   /** A run the assistant just started from the chat; the shell opens it. */
@@ -96,6 +101,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [failedText, setFailedText] = useState<string | null>(null)
   const [pendingText, setPendingText] = useState<string | null>(null)
   const [requestError, setRequestError] = useState<string | null>(null)
+  const [sessionMissing, setSessionMissing] = useState(false)
+  const [previousConversation, setPreviousConversation] = useState<SessionState | null>(null)
+  const [recoveryDraft, setRecoveryDraft] = useState<string | null>(null)
+  const recovering = useRef(false)
+  const [failureChecked, setFailureChecked] = useState(false)
   const sessionGeneration = useRef(0)
   const sendInFlight = useRef(false)
   const [offline, setOffline] = useState(!navigator.onLine)
@@ -165,6 +175,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     storeToken(null)
     setIdentity(null)
     setSession(null)
+    setPreviousConversation(null); setSessionMissing(false); setRecoveryDraft(null)
     setNeedsSignIn(true)
   }, [])
 
@@ -190,6 +201,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const state = await api.createSession(preferenceFor(currentLocale()))
       if (generation !== sessionGeneration.current) return
       setSession(state)
+      setPreviousConversation(null); setSessionMissing(false); setRecoveryDraft(null)
       storeSessionId(state.session_id)
       setFailedText(null)
       setLastError(false)
@@ -232,7 +244,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [])
 
   // On page load, restore the previous session when the server still has
-  // it and it hasn't ended; otherwise fall back to a fresh session.
+  // it and it hasn't ended; missing/ended sessions require explicit recovery.
   const bootstrap = useCallback(async () => {
     // Ask the server whether this deployment requires an account before
     // touching any protected endpoint.
@@ -292,18 +304,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           reconcileLanguage(state)
           return
         }
+        setSession(state); setSessionMissing(true); setBootError(translate('chat.sessionMissing')); return
       } catch (error) {
         if (error instanceof ApiError && error.status === 401) {
           handleUnauthorized()
           return
         }
-        // Offline or server error: surface it instead of silently
-        // replacing the session. A 404 just means the session expired.
-        if (error instanceof ApiError && (error.status === 0 || error.status >= 500)) {
-          setBootError(error.message)
-          pushEvent('event.session.restoreFailed', 'error', error.message)
-          return
+        if (error instanceof ApiError && error.status === 404) {
+          setSessionMissing(true); setBootError(translate('chat.sessionMissing')); return
         }
+        // A refusal or uncertain transport error must not switch identity/session.
+        const message = error instanceof Error ? error.message : translate('outcome.startFailed')
+        setBootError(message)
+        pushEvent('event.session.restoreFailed', 'error', message)
+        return
       } finally {
         endWork()
       }
@@ -357,13 +371,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const send = useCallback(
     async (text: string) => {
-      if (!session || session.ended || sendInFlight.current) return false
+      if (!session || session.ended || sessionMissing || failedText || sendInFlight.current) return false
       const generation = sessionGeneration.current
       sendInFlight.current = true
       setPendingText(text)
       setRequestError(null)
       setSending(true)
       setFailedText(null)
+      setFailureChecked(false)
       beginWork()
       try {
         const result = await api.sendMessage(session.session_id, text)
@@ -392,6 +407,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (error instanceof ApiError && error.status === 401) { handleUnauthorized(); return false }
         const message = error instanceof ApiError ? error.message : translate('outcome.requestFailed')
         setRequestError(message)
+        if (error instanceof ApiError && error.status === 404) setSessionMissing(true)
         setFailedText(text)
         setLastError(true)
         if (error instanceof ApiError && error.offline) setOffline(true)
@@ -406,17 +422,60 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         endWork()
       }
     },
-    [session, beginWork, endWork, pushEvent, handleUnauthorized],
+    [session, sessionMissing, failedText, beginWork, endWork, pushEvent, handleUnauthorized],
   )
 
   const retryFailed = useCallback(async () => {
-    const text = failedText
-    if (!text) return
-    setFailedText(null)
-    await send(text)
-  }, [failedText, send])
+    if (!session || sending) return
+    const generation = sessionGeneration.current
+    try {
+      const state = await api.getSession(session.session_id)
+      if (generation !== sessionGeneration.current) return
+      setSession(state); setFailureChecked(true); setRequestError(translate('chat.checked'))
+    } catch (error) {
+      if (generation !== sessionGeneration.current) return
+      if (error instanceof ApiError && error.status === 401) { handleUnauthorized(); return }
+      if (error instanceof ApiError && error.status === 404) setSessionMissing(true)
+      setRequestError(error instanceof Error ? error.message : translate('outcome.requestFailed'))
+    }
+  }, [session, sending, handleUnauthorized])
 
-  const dismissFailed = useCallback(() => { setFailedText(null); setRequestError(null) }, [])
+  const recoverSession = useCallback(async (draft?: string) => {
+    if (!sessionMissing || recovering.current || demoRef.current) return
+    recovering.current = true
+    const old = session, oldId = old?.session_id ?? readStoredSessionId()
+    const generation = ++sessionGeneration.current
+    beginWork()
+    try {
+      if (oldId) {
+        try {
+          const restored = await api.getSession(oldId)
+          if (generation !== sessionGeneration.current) return
+          if (!restored.ended) { setSession(restored); setSessionMissing(false); setBootError(null); return }
+        } catch (error) { if (!(error instanceof ApiError && error.status === 404)) throw error }
+      }
+      const state = await api.createSession(preferenceFor(currentLocale()))
+      if (generation !== sessionGeneration.current) return
+      // Explicit user choice: preserve only the draft. Never bind old data or
+      // submit a message to the replacement session. Leave the old draft intact.
+      let kept = draft ?? ''
+      try {
+        kept = draft ?? (oldId ? sessionStorage.getItem(`aos-draft:${oldId}:composer`) ?? '' : '')
+        if (kept) sessionStorage.setItem(`aos-draft:${state.session_id}:composer`, kept)
+      } catch { /* The new composer also receives the draft in memory. */ }
+      setRecoveryDraft(kept)
+      setPreviousConversation(old); setSession(state); storeSessionId(state.session_id)
+      setSessionMissing(false); setFailedText(null); setRequestError(null); setBootError(null)
+      setLastError(false); setOffline(false)
+    } catch (error) {
+      if (generation !== sessionGeneration.current) return
+      if (error instanceof ApiError && error.status === 401) { handleUnauthorized(); return }
+      const message = error instanceof Error ? error.message : translate('outcome.startFailed')
+      setBootError(message); setRequestError(message)
+    } finally { recovering.current = false; endWork() }
+  }, [session, sessionMissing, beginWork, endWork, handleUnauthorized])
+
+  const dismissFailed = useCallback(() => { if (failureChecked) { setFailedText(null); setRequestError(null); setFailureChecked(false) } }, [failureChecked])
 
   const runOperation = useCallback(
     async (
@@ -568,6 +627,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       failedText,
       pendingText,
       requestError,
+      sessionMissing, previousConversation, recoveryDraft, recoverSession, failureChecked,
       events,
       lastSyncedAt,
       openRun,
@@ -599,6 +659,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       failedText,
       pendingText,
       requestError,
+      sessionMissing, previousConversation, recoveryDraft, recoverSession, failureChecked,
       events,
       lastSyncedAt,
       openRun,

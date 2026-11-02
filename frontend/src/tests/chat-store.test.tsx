@@ -26,6 +26,7 @@ function deferred<T>() {
 beforeEach(() => {
   vi.restoreAllMocks()
   localStorage.clear()
+  sessionStorage.clear()
   vi.spyOn(api, 'authConfig').mockResolvedValue({ mode: 'local', provider_url: '', publishable_key: '', flows: [] })
   vi.spyOn(api, 'createSession').mockImplementation(async () => session())
 })
@@ -77,16 +78,22 @@ describe('Miyaar chat request continuity', () => {
     expect(send).toHaveBeenLastCalledWith('test-session','Follow-up')
     expect(result.current.session?.transcript[1].text).toBe('Second reply')
   })
-  it('retains the failed question and exposes the actual error before manual retry', async () => {
+  it('checks the existing conversation without resending an unconfirmed request', async () => {
     vi.spyOn(api, 'sendMessage').mockRejectedValueOnce(new ApiError('Rate limited',429)).mockResolvedValueOnce(response())
+    vi.spyOn(api, 'getSession').mockResolvedValue(response().state)
     const { result } = await setup()
     await act(async () => { expect(await result.current.send('First')).toBe(false) })
     expect(result.current.failedText).toBe('First')
     expect(result.current.requestError).toBe('Rate limited')
     expect(result.current.sending).toBe(false)
     await act(async () => { await result.current.retryFailed() })
+    expect(result.current.failedText).toBe('First')
+    expect(result.current.requestError).toContain('No message was resent')
+    expect(api.sendMessage).toHaveBeenCalledTimes(1)
+    await act(async () => { await result.current.send('First') })
+    expect(api.sendMessage).toHaveBeenCalledTimes(1)
+    act(() => result.current.dismissFailed())
     expect(result.current.failedText).toBeNull()
-    expect(result.current.requestError).toBeNull()
   })
   it('does not replace a new session with a reply from the previous session', async () => {
     const request = deferred<MessageResult>()
@@ -141,6 +148,62 @@ describe('Miyaar chat request continuity', () => {
     expect(result.current.failedText).toBe('First')
     expect(result.current.session?.transcript).toHaveLength(0)
   })
+})
+
+it('requires explicit replacement after missing-session reload and retains both draft keys', async () => {
+  localStorage.setItem('aos-session', 'gone')
+  sessionStorage.setItem('aos-draft:gone:composer', 'Unsent SYN-01')
+  vi.spyOn(api, 'getSession').mockRejectedValue(new ApiError('Session not found', 404))
+  const { result } = renderHook(() => useStore(), { wrapper: StoreProvider })
+  await waitFor(() => expect(result.current.sessionMissing).toBe(true))
+  expect(api.createSession).not.toHaveBeenCalled()
+  await act(async () => { await result.current.recoverSession() })
+  expect(result.current.session?.session_id).toBe('test-session')
+  expect(sessionStorage.getItem('aos-draft:test-session:composer')).toBe('Unsent SYN-01')
+  expect(sessionStorage.getItem('aos-draft:gone:composer')).toBe('Unsent SYN-01')
+})
+
+it('keeps the visible prior conversation and edited draft without copying a report or sending', async () => {
+  const old = response().state
+  vi.mocked(api.createSession).mockResolvedValueOnce(old).mockResolvedValueOnce(session('replacement'))
+  vi.spyOn(api, 'getSession').mockRejectedValue(new ApiError('Session not found', 404))
+  const send = vi.spyOn(api, 'sendMessage').mockRejectedValue(new ApiError('Session not found', 404))
+  const { result } = await setup()
+  await act(async () => { await result.current.send('Unsent draft') })
+  expect(result.current.sessionMissing).toBe(true)
+  await act(async () => { await result.current.recoverSession('Edited unsent draft') })
+  expect(result.current.previousConversation?.transcript).toEqual(old.transcript)
+  expect(result.current.session?.data_context).toBeUndefined()
+  expect(result.current.recoveryDraft).toBe('Edited unsent draft')
+  expect(send).toHaveBeenCalledTimes(1)
+})
+
+it('does not replace a forbidden stored session', async () => {
+  localStorage.setItem('aos-session', 'forbidden')
+  vi.spyOn(api, 'getSession').mockRejectedValue(new ApiError('Forbidden', 403))
+  const { result } = renderHook(() => useStore(), { wrapper: StoreProvider })
+  await waitFor(() => expect(result.current.bootError).toBe('Forbidden'))
+  await act(async () => { await result.current.recoverSession('private draft') })
+  expect(api.createSession).not.toHaveBeenCalled()
+  expect(result.current.sessionMissing).toBe(false)
+})
+
+it('requires explicit replacement for an ended session and ignores recovery after sign-out', async () => {
+  localStorage.setItem('aos-session', 'ended')
+  vi.spyOn(api, 'getSession').mockResolvedValue({ ...session('ended'), ended: true })
+  const { result } = renderHook(() => useStore(), { wrapper: StoreProvider })
+  await waitFor(() => expect(result.current.sessionMissing).toBe(true))
+  expect(api.createSession).not.toHaveBeenCalled()
+  const pending = deferred<SessionState>()
+  vi.mocked(api.createSession).mockReturnValueOnce(pending.promise)
+  let attempt!: Promise<void>
+  act(() => { attempt = result.current.recoverSession('private draft') })
+  await waitFor(() => expect(api.createSession).toHaveBeenCalledOnce())
+  act(() => result.current.signOut())
+  await act(async () => { pending.resolve(session('late')); await attempt })
+  expect(result.current.session).toBeNull()
+  expect(result.current.previousConversation).toBeNull()
+  expect(sessionStorage.getItem('aos-draft:late:composer')).toBeNull()
 })
 
 describe('verified hosted identity', () => {

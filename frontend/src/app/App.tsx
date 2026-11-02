@@ -1,8 +1,8 @@
 import { ReadOnlyContext } from '../shared/readOnly'
-import { Activity, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Activity, lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { MiyaarMark } from '../shared/components/MiyaarMark'
-import { ChatView } from '../features/chat/ChatView'
+const ChatView = lazy(() => import('../features/chat/ChatView').then(module => ({ default: module.ChatView })))
 import type { ComposerHandle } from '../features/chat/Composer'
 import type { RunPreset } from '../features/runs/RunsView'
 import { useI18n } from '../i18n'
@@ -275,9 +275,9 @@ export function App() {
             </div>
             <p>{bootError}</p>
             <p style={{ marginTop: 'var(--space-4)' }}>
-              <button type="button" className="btn btn--primary" onClick={() => void store.start()}>
+              <button type="button" className="btn btn--primary" onClick={() => void (store.sessionMissing ? store.recoverSession() : store.start())}>
                 <Icon name="refresh" size={16} />
-                {t('boot.tryAgain')}
+                {t(store.sessionMissing ? 'chat.recover' : 'boot.tryAgain')}
               </button>
             </p>
           </div>
@@ -485,6 +485,11 @@ export function App() {
               failedText={store.failedText}
               pendingText={store.pendingText}
               requestError={store.requestError}
+              sessionMissing={store.sessionMissing}
+              previousConversation={store.previousConversation}
+              recoveryDraft={store.recoveryDraft}
+              failureChecked={store.failureChecked}
+              onRecover={draft => void store.recoverSession(draft)}
               connectionStatus={status}
               onAction={(action) => {
                 // The assistant's upload suggestion reaches the Datasets flow too (U15).

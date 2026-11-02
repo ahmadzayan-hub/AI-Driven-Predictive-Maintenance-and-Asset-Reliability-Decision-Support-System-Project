@@ -11,7 +11,7 @@ for (const locale of ['en', 'ar'] as const) test(`unified dashboard, chart scope
     localStorage.setItem('aos-onboarded', '1'); localStorage.setItem('aos-locale', language); localStorage.setItem('aos-theme', 'light')
   }, locale)
   const runs = (await (await page.request.get('/api/runs')).json()).runs
-  const run = runs.find((r: { dataset_name: string }) => r.dataset_name === 'SYNTHETIC_RTA_review.csv')
+  const run = runs.find((r: { dataset_name: string }) => r.dataset_name === 'SYNTHETIC_maintenance_review.csv')
   expect(run).toBeTruthy()
   await page.goto(`/#/dashboard/${run.id}/breakdown?by=Asset_ID`)
   await expect(page.locator('.dash-coverage')).toContainText('3')

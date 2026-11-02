@@ -47,7 +47,8 @@ DIST = FRONTEND / "dist"
 # Fonts are the subsets scripts/subset_fonts.py writes (U19, 23 October):
 # 86 KB measured, 100 KB allowed.
 # Source handoff total-only allocation: ADR 2026-10-23-run-source-handoff.
-BUDGET_KB = {"js": 100, "js_total": 268, "js_chunk": 30, "css": 10.5, "css_total": 36.5,
+# Explicit session recovery allocation: ADR 2026-11-02-session-scope-recovery.
+BUDGET_KB = {"js": 100, "js_total": 272, "js_chunk": 30, "css": 10.5, "css_total": 36.5,
              "fonts": 145}
 LABELS = {"js": "js first load", "js_total": "js total", "js_chunk": "largest js chunk",
           "css": "css first load", "css_total": "css total", "fonts": "fonts"}

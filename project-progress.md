@@ -1,5 +1,7 @@
 # Project progress
 
+Jarvis recovery (2 November): the disposable demo-store replacement left cached session/report IDs stale. Added explicit missing/ended-session replacement with draft preservation, conversation-only verification before manual resend, exact-scope session renewal and actionable report reselection. Central radial voice console and existing six dashboard pages remain integrated. Concurrent remote neutral-fixture naming is retained. Local broad validation hit severe memory pressure; full exact-head hosted CI remains the merge gate. The wider uploaded-reference all-pages redesign is still an acceptance task, not claimed complete by this bounded repair.
+
 Jarvis OS hackathon (2 November): implemented in an isolated checkout from `6d87d79`. Explicit data context, deterministic evidence queries, follow-up, missing-data abstention, tab-local human review and opt-in voice controls. Synthetic launcher/browser evidence documented in `docs/JARVIS_HACKATHON.md`; exact executed checks are in README. Actual LLM/device voice and hosted database/auth/recovery acceptance remain separate gates.
 
 Owner-requested unified update: Jarvis now connects from the actual dashboard to its current report and exact chart filters, with responsive side-by-side/stacked evidence, stale-scope rejection and explicit reconnection. Existing saved views, chart interactions and source navigation remain available. No operational prediction, general LLM or production activation is implied.
