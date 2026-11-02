@@ -55,6 +55,32 @@ test('interrupt, repeated clicks and unavailable service never keep stale eviden
   await ask.click(); await expect(page.getByRole('alert')).toContainText('No answer was confirmed')
   expect(count).toBeLessThanOrEqual(1)
 })
+test('another tab changing filters rejects the old scope until refreshed', async ({ page, context }) => {
+  const selectedResponse = page.waitForResponse(r => r.url().endsWith('/data-context') && r.request().method() === 'PUT')
+  await open(page)
+  const selected = await selectedResponse
+  const scope = (await selected.json()).data_context
+  const other = await context.newPage()
+  await other.goto('/?workspace=jarvis')
+  const status = await other.evaluate(async ({ url, run }) => (await fetch(url, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ run_id: run, filters: [{ column: 'Record_ID', op: 'in', values: ['SYN-03'] }] }),
+  })).status, { url: selected.url(), run: scope.run_id })
+  expect(status).toBe(200)
+  await other.close()
+  await page.getByRole('button', { name: 'What is total maintenance cost?' }).click()
+  const stale = page.waitForResponse(r => r.url().endsWith('/data-query'))
+  await page.getByRole('button', { name: 'Calculate from selected report' }).click()
+  expect((await stale).status()).toBe(409)
+  await expect(page.getByRole('alert')).toContainText('context changed')
+  await expect(page.locator('.jarvis__evidence')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Show my reports' }).click()
+  await expect(page.locator('.tool-cards')).toContainText('SYN-03')
+  await page.getByRole('button', { name: 'What is total maintenance cost?' }).click()
+  await page.getByRole('button', { name: 'Calculate from selected report' }).click()
+  await expect(page.locator('.jarvis__evidence')).toContainText('Maintenance cost: 80')
+})
+
 test('microphone needs consent; denied permission retains text input', async ({ page }) => {
   await page.addInitScript(() => {
     class DeniedRecognition {

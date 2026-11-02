@@ -274,9 +274,19 @@ class MessageIn(BaseModel):
     data_query: DataQueryIn | None = None
 
 
+class JarvisScopeIn(BaseModel):
+    model_config = {"extra": "forbid"}
+    run_id: str = Field(min_length=1, max_length=64)
+    dataset_id: str = Field(min_length=1, max_length=64)
+    source_sha256: str = Field(min_length=1, max_length=128)
+    analysis_revision: str = Field(min_length=1, max_length=128)
+    filters: list[dict] = Field(max_length=table_query.MAX_FILTERS)
+
+
 class JarvisQueryIn(BaseModel):
+    model_config = {"extra": "forbid"}
     text: str = Field(min_length=1, max_length=2000)
-    revision: str = Field(min_length=1, max_length=128)
+    scope: JarvisScopeIn
     language: Literal["en", "ar"] = "en"
 
 
@@ -945,7 +955,11 @@ def create_app(config_path=None, env=None, dist_dir=None):
                 session = get_session(session_id, principal)
                 if session.ended:
                     raise HTTPException(409, detail="Session ended.")
-                if not session.data_context or session.data_context["analysis_revision"] != body.revision:
+                # A source revision alone cannot distinguish two tabs selecting
+                # different cohorts from the same report. Compare the entire
+                # calculation scope while holding the selection's session lock.
+                expected = body.scope.model_dump()
+                if not session.data_context or any(session.data_context.get(key) != value for key, value in expected.items()):
                     raise HTTPException(409, detail=data_chat_text("stale", body.language))
                 query_session = Session(config, row=session.to_row(), owner=session.owner)
                 query_session.agent.preferences["language"] = body.language

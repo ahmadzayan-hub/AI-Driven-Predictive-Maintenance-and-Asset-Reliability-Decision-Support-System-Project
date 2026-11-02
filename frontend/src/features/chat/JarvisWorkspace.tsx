@@ -3,6 +3,7 @@ import { api } from '../../shared/api'
 import type { DataContext, SessionState } from '../../shared/types'
 import { usePack } from '../../i18n/pack'
 import { jarvisMessages } from '../../i18n/jarvis'
+import { jarvisSpeech } from './jarvisSpeech'
 import { DataChatContext } from './DataChatContext'
 import { VoiceDictation } from './VoiceDictation'
 import { VoicePlayback } from './VoicePlayback'
@@ -46,13 +47,13 @@ export function JarvisWorkspace({ session, disabled = false }: { session: Sessio
     const controller = new AbortController(); request.current = controller
     setStatus('working'); setAsked(draft.trim())
     try {
-      const result = await api.jarvisQuery(session.session_id, draft.trim(), context.analysis_revision, locale, controller.signal)
+      const result = await api.jarvisQuery(session.session_id, draft.trim(), context, locale, controller.signal)
       if (token !== generation.current) return
       setAnswer(result); setStatus('idle')
     } catch { if (token === generation.current) setStatus('failed') }
     finally { if (token === generation.current) request.current = null }
   }
-  const speechText = answer?.result?.measures.map(m => `${m.title}: ${m.value ?? t('noValue')}${m.scale === 'percent' ? '%' : ''}.`).join(' ') ?? answer?.text ?? ''
+  const speechText = jarvisSpeech(answer, locale)
   return <section className="jarvis" aria-label={t('title')}>
     <header className="jarvis__hero"><p className="eyebrow">{t('subtitle')}</p><h1>{t('title')}</h1><p>{t('boundary')}</p></header>
     <div className="jarvis__grid">

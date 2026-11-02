@@ -5,6 +5,7 @@ import { api } from '../../shared/api'
 import type { SessionState } from '../../shared/types'
 import { applyLocale } from '../../i18n'
 import { dataChatMessages } from './dataChatMessages'
+import { jarvisSpeech } from './jarvisSpeech'
 const context = { run_id: 'synthetic', dataset_id: 'd1', dataset_name: 'SYNTHETIC.csv', source_sha256: 'a'.repeat(64), analysis_revision: 'b'.repeat(64), filters: [], records: 3, total_records: 3 }
 const session: SessionState = { session_id: 's1', agent_name: 'Miyaar', version: 'test', welcome: '', ended: false, created_at: '', transcript: [], preferences: {}, memory: {}, memory_entries: [], history: [], memory_persisted: false, commands: [], data_context: context,
   data_chat_labels: Object.fromEntries(Object.entries(dataChatMessages.en).map(([k,v]) => [k.replace('dataChat.', ''), v])) as SessionState['data_chat_labels'] }
@@ -16,7 +17,8 @@ it('preserves evidence, separates speech and confirms only an explicit local rev
   render(<JarvisWorkspace session={session} />); question()
   fireEvent.click(screen.getByRole('button', { name: 'Calculate from selected report' }))
   await screen.findByText(result.text)
-  expect(screen.getByText('Maintenance cost: 500.')).toBeInTheDocument()
+  expect(screen.getByText(/Maintenance cost: 500 unit not declared/)).toHaveTextContent('Measurement coverage is unavailable')
+  expect(api.jarvisQuery).toHaveBeenCalledWith('s1', 'What is total maintenance cost?', context, 'en', expect.any(AbortSignal))
   expect(screen.getByRole('button', { name: 'Confirm local review' })).toBeDisabled()
   fireEvent.click(screen.getByRole('checkbox'))
   fireEvent.click(screen.getByRole('button', { name: 'Confirm local review' }))
@@ -60,4 +62,20 @@ it('renders Arabic RTL with text fallback and requires selection', () => {
   expect(screen.getByRole('button', { name: 'احسب من التقرير المحدد' })).toBeDisabled()
   expect(screen.getByRole('textbox')).toBeEnabled()
   expect(screen.getByText('اختر تقريراً مكتملاً للبدء.')).toBeInTheDocument()
+})
+
+it('keeps units, currency uncertainty and coverage in both spoken summaries', () => {
+  const answer: JarvisAnswer = { ...result, result: { ...result.result!, measures: [
+    { key: 'mtbf', title: 'MTBF', value: 20, scale: 'hours', records: 2, records_unmeasured: 1 },
+    { key: 'asset_age_summary', title: 'Age', value: 10, scale: 'years', records: 3, records_unmeasured: 0 },
+    { key: 'maintenance_cost', title: 'Cost', value: 500, scale: 'money', records: 3, records_unmeasured: 0 },
+    { key: 'availability', title: 'Availability', value: null, scale: 'percent', records: 0, records_unmeasured: 3 },
+    { key: 'mttr', title: 'MTTR', value: null, reason: 'Required columns are missing.' },
+  ] } }
+  const english = jarvisSpeech(answer, 'en')
+  for (const text of ['20 hours', '10 years', '500 currency not declared', 'Measured records: 2; unmeasured: 1', 'this is not zero', 'Required columns are missing.']) expect(english).toContain(text)
+  const arabic = jarvisSpeech(answer, 'ar')
+  for (const text of ['20 ساعة', '10 سنوات', '500 العملة غير محددة', 'غير المقاسة: 1', 'ليست قيمة صفرية']) expect(arabic).toContain(text)
+  expect(jarvisSpeech({ ...answer, result: { ...answer.result!, currency: 'AED' } }, 'en')).toContain('500 AED')
+  expect(answer.text).toBe(result.text)
 })

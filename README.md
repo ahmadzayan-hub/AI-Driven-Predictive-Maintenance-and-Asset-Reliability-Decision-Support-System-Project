@@ -574,6 +574,16 @@ output moved beneath the already-excluded `.tmp` directory. The combined verifie
 interrupted, so the entire quick verifier is not claimed green. Installed local Vite/Vitest versions differ from the
 lockfile; hosted exact-head CI remains necessary.
 
+Scope-integrity follow-up: a same-report, different-filter stale-tab defect was
+reproduced on the prior head, then fixed by binding all scope fields. The combined
+DataChat/verifier/documentation rerun passed 49 tests; focused Jarvis/playback/
+dictation components passed 23 tests; all 5 browser scenarios passed, including
+two-tab filter changes and refreshed-scope arithmetic. Speech now retains units,
+currency uncertainty, measurement coverage and missing-data reasons in both
+languages. Typecheck/build and the unchanged budget passed (262.9 KB total JS).
+Full backend/frontend reruns and exact-head hosted CI are tracked separately;
+the earlier failed broad run above remains part of the record.
+
 Actual LLM inference, physical microphone and audible Arabic pronunciation
 were not validated. No original database migration, managed-auth change,
 production deployment or operational recommendation execution is included.
