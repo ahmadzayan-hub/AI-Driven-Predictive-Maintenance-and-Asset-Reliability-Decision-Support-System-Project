@@ -1,6 +1,5 @@
-import type { JarvisAnswer } from '../features/chat/JarvisWorkspace'
 import { translate } from '../i18n'
-import type { AuthConfig, ColumnMapping, DataContext, DataContextChoices, DatasetDetail, DatasetSummary, ExportPayload, IdentityInfo, JoinPreview, JoinSpec,
+import type { AuthConfig, ColumnMapping, DataContextChoices, DatasetDetail, DatasetSummary, ExportPayload, IdentityInfo, JoinPreview, JoinSpec,
   KpiPolicy, MappingProblem, Pipelines, QueryAnswer, QuerySpec, RecordsPage, RecordsSpec, RunAssumptions, RunDetail, RunExecutive, RunKpis, RunSummary, SavedView, SessionState, TableField, TableFilter, TranscriptEntry, UploadResult, Usage } from './types'
 
 export const API_BASE = import.meta.env.VITE_API_BASE ?? ''
@@ -208,13 +207,6 @@ export const api = {
       body: JSON.stringify({ language: language ?? null }),
     }),
   getSession: (id: string) => request<SessionState>(`/api/sessions/${id}`),
-  jarvisQuery: (id: string, text: string, context: DataContext, language: 'en' | 'ar', signal: AbortSignal) =>
-    request<JarvisAnswer>(`/api/sessions/${encodeURIComponent(id)}/data-query`, {
-      method: 'POST', body: JSON.stringify({ text, language, scope: {
-        run_id: context.run_id, dataset_id: context.dataset_id, source_sha256: context.source_sha256,
-        analysis_revision: context.analysis_revision, filters: context.filters,
-      } }), signal,
-    }),
   dataContext: (id: string) => request<DataContextChoices>(`/api/sessions/${id}/data-context`),
   selectDataContext: (id: string, runId: string | null) => request<SessionState>(`/api/sessions/${id}/data-context`, {
     method: 'PUT', body: JSON.stringify({ run_id: runId, filters: [] }),

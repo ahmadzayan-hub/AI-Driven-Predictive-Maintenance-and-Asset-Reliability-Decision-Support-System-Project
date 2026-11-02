@@ -1,7 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, expect, it, vi } from 'vitest'
-import { JarvisWorkspace, type JarvisAnswer } from './JarvisWorkspace'
-import { api } from '../../shared/api'
+import { JarvisWorkspace, jarvisApi, type JarvisAnswer } from './JarvisWorkspace'
 import type { SessionState } from '../../shared/types'
 import { applyLocale } from '../../i18n'
 import { dataChatMessages } from './dataChatMessages'
@@ -13,12 +12,12 @@ const result: JarvisAnswer = { text: '500 · https://example.invalid/ref · ops@
 beforeEach(() => { vi.restoreAllMocks(); applyLocale('en') })
 function question() { fireEvent.change(screen.getByRole('textbox'), { target: { value: 'What is total maintenance cost?' } }) }
 it('preserves evidence, separates speech and confirms only an explicit local review', async () => {
-  vi.spyOn(api, 'jarvisQuery').mockResolvedValue(result)
+  vi.spyOn(jarvisApi, 'query').mockResolvedValue(result)
   render(<JarvisWorkspace session={session} />); question()
   fireEvent.click(screen.getByRole('button', { name: 'Calculate from selected report' }))
   await screen.findByText(result.text)
   expect(screen.getByText(/Maintenance cost: 500 unit not declared/)).toHaveTextContent('Measurement coverage is unavailable')
-  expect(api.jarvisQuery).toHaveBeenCalledWith('s1', 'What is total maintenance cost?', context, 'en', expect.any(AbortSignal))
+  expect(jarvisApi.query).toHaveBeenCalledWith('s1', 'What is total maintenance cost?', context, 'en', expect.any(AbortSignal))
   expect(screen.getByRole('button', { name: 'Confirm local review' })).toBeDisabled()
   fireEvent.click(screen.getByRole('checkbox'))
   fireEvent.click(screen.getByRole('button', { name: 'Confirm local review' }))
@@ -29,7 +28,7 @@ it('preserves evidence, separates speech and confirms only an explicit local rev
 })
 it('deduplicates active requests and ignores late replies after interrupt', async () => {
   let resolve!: (value: JarvisAnswer) => void
-  const call = vi.spyOn(api, 'jarvisQuery').mockReturnValue(new Promise(r => { resolve = r }))
+  const call = vi.spyOn(jarvisApi, 'query').mockReturnValue(new Promise(r => { resolve = r }))
   render(<JarvisWorkspace session={session} />); question()
   const ask = screen.getByRole('button', { name: 'Calculate from selected report' })
   fireEvent.click(ask); fireEvent.click(ask); expect(call).toHaveBeenCalledTimes(1)
@@ -40,7 +39,7 @@ it('deduplicates active requests and ignores late replies after interrupt', asyn
 })
 it('invalidates answer on dataset changes and suppresses errors from superseded requests', async () => {
   let reject!: (reason: Error) => void
-  vi.spyOn(api, 'jarvisQuery').mockReturnValue(new Promise((_,r) => { reject = r }))
+  vi.spyOn(jarvisApi, 'query').mockReturnValue(new Promise((_,r) => { reject = r }))
   const view = render(<JarvisWorkspace session={session} />); question()
   fireEvent.click(screen.getByRole('button', { name: 'Calculate from selected report' }))
   view.rerender(<JarvisWorkspace session={{ ...session, data_context: { ...context, dataset_name: 'NEW.csv', analysis_revision: 'c'.repeat(64) } }} />)
@@ -49,7 +48,7 @@ it('invalidates answer on dataset changes and suppresses errors from superseded 
   expect(screen.getByRole('textbox')).toHaveValue('')
 })
 it('shows unavailable service without making up output', async () => {
-  vi.spyOn(api, 'jarvisQuery').mockRejectedValue(new Error('offline'))
+  vi.spyOn(jarvisApi, 'query').mockRejectedValue(new Error('offline'))
   render(<JarvisWorkspace session={session} />); question()
   fireEvent.click(screen.getByRole('button', { name: 'Calculate from selected report' }))
   await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('No answer was confirmed'))

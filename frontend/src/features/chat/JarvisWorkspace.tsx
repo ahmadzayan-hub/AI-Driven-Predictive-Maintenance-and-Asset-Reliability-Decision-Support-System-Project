@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { api } from '../../shared/api'
+import { request as send } from '../../shared/api'
 import type { DataContext, SessionState } from '../../shared/types'
 import { usePack } from '../../i18n/pack'
 import { jarvisMessages } from '../../i18n/jarvis'
@@ -17,7 +17,16 @@ export interface JarvisAnswer {
       records_unmeasured?: number; scale?: string; reason?: string }[] }
 }
 
-/** Read-only query transport; selection uses Miyaar's existing permission-bound API. */
+/** Read-only query transport, kept in this lazy chunk so first load stays within budget. */
+export const jarvisApi = { query: (id: string, text: string, context: DataContext, language: 'en' | 'ar', signal: AbortSignal) =>
+  send<JarvisAnswer>(`/api/sessions/${encodeURIComponent(id)}/data-query`, {
+    method: 'POST', body: JSON.stringify({ text, language, scope: {
+      run_id: context.run_id, dataset_id: context.dataset_id, source_sha256: context.source_sha256,
+      analysis_revision: context.analysis_revision, filters: context.filters,
+    } }), signal,
+  }) }
+
+/** Selection uses Miyaar's existing permission-bound API. */
 export function JarvisWorkspace({ session, disabled = false }: { session: SessionState; disabled?: boolean }) {
   const { t, locale } = usePack(jarvisMessages)
   const readOnly = useReadOnly()
@@ -47,7 +56,7 @@ export function JarvisWorkspace({ session, disabled = false }: { session: Sessio
     const controller = new AbortController(); request.current = controller
     setStatus('working'); setAsked(draft.trim())
     try {
-      const result = await api.jarvisQuery(session.session_id, draft.trim(), context, locale, controller.signal)
+      const result = await jarvisApi.query(session.session_id, draft.trim(), context, locale, controller.signal)
       if (token !== generation.current) return
       setAnswer(result); setStatus('idle')
     } catch { if (token === generation.current) setStatus('failed') }
