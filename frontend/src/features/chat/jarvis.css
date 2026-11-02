@@ -19,3 +19,6 @@
 @media (max-width: 700px) { .jarvis__grid { grid-template-columns: minmax(0, 1fr); } .jarvis { padding: var(--space-3); } .jarvis__card, .jarvis__hero { padding: var(--space-4); } }
 
 .jarvis__hero .eyebrow { color: var(--nav-muted); }
+.jarvis--embedded { padding: 0; }
+.jarvis--embedded .jarvis__grid { grid-template-columns: minmax(0, 1fr); }
+.jarvis--embedded .jarvis__card { padding: var(--space-3); }

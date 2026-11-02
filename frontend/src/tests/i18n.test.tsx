@@ -13,6 +13,8 @@ import {
 } from '../i18n'
 import { usePack } from '../i18n/pack'
 import { dashMessages } from '../features/dashboard/messages'
+import { jarvisMessages } from '../i18n/jarvis'
+import { jarvisDashboardMessages } from '../i18n/jarvisDashboard'
 import { executiveMessages } from '../features/dashboard/executiveMessages'
 import { joinMessages, modelMessages } from '../features/runs/messages'
 import { liveMessages } from '../features/live/messages'
@@ -196,7 +198,7 @@ describe('useI18n', () => {
 // left in English, and no key that the main dictionary also defines.
 describe('message packs', () => {
   // Every pack the views define (assessment U18); a new pack is added here.
-  const packs = { journeyMessages, dashMessages, executiveMessages, joinMessages, modelMessages, decisionMessages, liveMessages, maintenanceMessages, intakeMessages, assetMessages, memoryMessages, prefsMessages, activityMessages, voiceMessages, commandMessages, decisionActionMessages, collaborationMessages, performanceMessages, validationMessages, operationsMessages, policyMessages, rmdMessages }
+  const packs = { jarvisMessages, jarvisDashboardMessages, journeyMessages, dashMessages, executiveMessages, joinMessages, modelMessages, decisionMessages, liveMessages, maintenanceMessages, intakeMessages, assetMessages, memoryMessages, prefsMessages, activityMessages, voiceMessages, commandMessages, decisionActionMessages, collaborationMessages, performanceMessages, validationMessages, operationsMessages, policyMessages, rmdMessages }
   const names = (text: string) => (text.match(/\{\w+\}/g) ?? []).sort()
 
   for (const [name, pack] of Object.entries(packs)) {

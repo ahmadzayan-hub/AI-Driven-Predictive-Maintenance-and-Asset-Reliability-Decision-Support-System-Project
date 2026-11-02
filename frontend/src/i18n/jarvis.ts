@@ -23,7 +23,7 @@ export const jarvisMessages = definePack({
   selectFirst: 'Select a completed report to begin.',
   boot: 'Open synthetic workspace', bootError: 'Workspace unavailable. Start the documented synthetic server; the original database is not used.',
 }, {
-  title: 'Jarvis OS', subtitle: 'معيار · من الدليل إلى القرار', demo: 'هاكاثون RTA · عرض ببيانات اصطناعية',
+  title: 'Jarvis OS · جارفيس', subtitle: 'معيار · من الدليل إلى القرار', demo: 'هاكاثون RTA · عرض ببيانات اصطناعية',
   boundary: 'تحليلات محسوبة دون مساهمة نموذج لغوي. لا يُرسل أي إجراء تشغيلي من هنا.',
   input: '01 · المدخلات', function: '02 · وظيفة الذكاء الاصطناعي', output: '03 · المخرجات', value: '04 · القيمة لهيئة الطرق والمواصلات',
   functionText: 'يختار سؤال محدد بالعربية أو الإنجليزية عملية حسابية مراجعة من سجل مؤشرات معيار. الأسئلة غير المدعومة لا تنتج تخمينات.',

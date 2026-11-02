@@ -555,34 +555,38 @@ hardware expectations, hosted configuration and acceptance limits.
 ### Jarvis OS local hackathon acceptance (2 November 2026)
 
 [Walkthrough](docs/JARVIS_HACKATHON.md) and [decision](docs/adr/2026-11-02-jarvis-evidence-workspace.md).
-The isolated local checkout starts from `6d87d79`. Focused DataChat/API tests:
-13 passed. Focused frontend context/Jarvis/voice tests: 34 passed. Synthetic
-Chromium browser scenarios: 4 passed, covering English/Arabic, phone layout,
-axe accessibility, follow-up, missing data, local review, cancellation,
-unavailable service and mocked denied microphone access. A real heading
-contrast defect found in the first browser run was fixed; subsequent bilingual
-axe checks passed. Initial route-interception harness failures were replaced
-with deterministic browser-offline simulation. TypeScript and production build
-passed with existing packages; no dependency installation occurred.
-Interface budget passes at 99.9 KB first-load JavaScript, 262.4 KB total,
-10.4 KB first-load CSS and 35.1 KB total. Total-only allocations are documented
-in the decision; initial-load limits are unchanged. The broad quick run completed 2,390 Python tests with 260 skips, one failure
-and two errors: the budget contract still expected the former allocation, and
-two documentation checks raced with regenerated browser error-context files.
-The contract was updated with exact-byte boundary assertions, and Jarvis test
-output moved beneath the already-excluded `.tmp` directory. The combined verifier, documentation and DataChat rerun passed all 48 tests. The broad frontend step was
-interrupted, so the entire quick verifier is not claimed green. Installed local Vite/Vitest versions differ from the
-lockfile; hosted exact-head CI remains necessary.
+The isolated checkout starts from `6d87d79`. The unified dashboard/Jarvis update
+preserves chart filtering, saved views and all six dashboard pages. Explicit
+connection binds the current run and exact chart filters; stale tabs receive
+409 and scope changes clear the old answer and local review. Spoken summaries
+retain units, currency uncertainty, coverage and missing-data reasons.
 
-Scope-integrity follow-up: a same-report, different-filter stale-tab defect was
-reproduced on the prior head, then fixed by binding all scope fields. The combined
-DataChat/verifier/documentation rerun passed 49 tests; focused Jarvis/playback/
-dictation components passed 23 tests; all 5 browser scenarios passed, including
-two-tab filter changes and refreshed-scope arithmetic. Speech now retains units,
-currency uncertainty, measurement coverage and missing-data reasons in both
-languages. Typecheck/build and the unchanged budget passed (262.9 KB total JS).
-Full backend/frontend reruns and exact-head hosted CI are tracked separately;
-the earlier failed broad run above remains part of the record.
+Local validation on existing installed dependencies: the complete Python suite
+passed 2,391 tests with 260 skipped (PostgreSQL/optional environments unavailable).
+The complete frontend suite passed 546 tests across 55 files. The latest combined
+DataChat/verifier/documentation run passed 49 tests; focused dashboard/Jarvis/
+localization passed 62 tests. All 7 synthetic Chromium scenarios passed, covering
+English/Arabic RTL, phone layout, axe, chart-to-Jarvis scope, saved-view reload,
+all dashboard pages, follow-up, missing/unsupported data, review reset, repeated
+requests, interruption, service failure and mocked microphone denial. TypeScript,
+production build, brain links and exact-byte budget pass: initial JavaScript
+99.9/100 KB, total 264.5/265 KB, initial CSS 10.4/10.5 KB, total 35.4/35.7 KB.
+The additional total-only allocation covers the requested dashboard integration;
+first-load ceilings remain unchanged. Local Vite/Vitest versions differ from
+the lockfile, so final-head hosted CI is a separate release gate.
+
+Historical failures are retained separately: the first broad quick run completed
+2,390 Python tests with 260 skips, one obsolete budget-contract failure and two
+errors from scanning regenerated browser error files. The contract/output path
+were corrected, and the later full Python run above passed. Its initial frontend
+step had been interrupted; the later complete frontend runs passed. The stale-tab
+filter defect was reproduced at the previous head and corrected. A browser run
+then exposed a selection-pending draft race; input now waits for confirmed scope.
+The initial unified UI run found close-button contrast and a sidebar landmark
+issue; both were fixed without weakening axe checks. Prior-head CI `cd01fdc`
+failed only its first-load budget gate; moving Jarvis transport into the lazy
+feature bundle addresses that cause. No old-head or focused result substitutes
+for final-head CI.
 
 Actual LLM inference, physical microphone and audible Arabic pronunciation
 were not validated. No original database migration, managed-auth change,

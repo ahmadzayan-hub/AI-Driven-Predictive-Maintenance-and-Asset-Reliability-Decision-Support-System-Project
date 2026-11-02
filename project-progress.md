@@ -2,6 +2,8 @@
 
 Jarvis OS hackathon (2 November): implemented in an isolated checkout from `6d87d79`. Explicit data context, deterministic evidence queries, follow-up, missing-data abstention, tab-local human review and opt-in voice controls. Synthetic launcher/browser evidence documented in `docs/JARVIS_HACKATHON.md`; exact executed checks are in README. Actual LLM/device voice and hosted database/auth/recovery acceptance remain separate gates.
 
+Owner-requested unified update: Jarvis now connects from the actual dashboard to its current report and exact chart filters, with responsive side-by-side/stacked evidence, stale-scope rejection and explicit reconnection. Existing saved views, chart interactions and source navigation remain available. No operational prediction, general LLM or production activation is implied.
+
 PR76/PR78 review (2 November 2026): PR76 is already squash-merged into main
 `d529921`; its tree matches the integration candidate containing all six original
 heads. PR78 would add a duplicate Motion error alert and should not be merged.

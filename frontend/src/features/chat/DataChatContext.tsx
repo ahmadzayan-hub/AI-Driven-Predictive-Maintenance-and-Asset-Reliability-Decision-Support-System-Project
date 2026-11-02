@@ -3,7 +3,7 @@ import { api } from '../../shared/api'
 import { useReadOnly } from '../../shared/readOnly'
 import type { DataContext, DataContextChoices, SessionState } from '../../shared/types'
 
-export function DataChatContext({ session, disabled, onSelected, onPending }: { session: SessionState; disabled: boolean; onSelected?: (context: DataContext | null) => void; onPending?: () => void }) {
+export function DataChatContext({ session, disabled, onSelected, onPending }: { session: SessionState; disabled: boolean; onSelected?: (context: DataContext | null) => void; onPending?: (pending: boolean) => void }) {
   const labels = session.data_chat_labels
   const readOnly = useReadOnly()
   disabled = disabled || readOnly
@@ -19,7 +19,7 @@ export function DataChatContext({ session, disabled, onSelected, onPending }: { 
 
   async function update(select?: string | null) {
     const request = ++generation.current
-    setBusy(true); setFailed(false); onPending?.()
+    setBusy(true); setFailed(false); onPending?.(true)
     try {
       if (select === undefined) {
         const answer = await api.dataContext(session.session_id)
@@ -31,7 +31,7 @@ export function DataChatContext({ session, disabled, onSelected, onPending }: { 
         setSelected(answer.data_context ?? null); onSelected?.(answer.data_context ?? null)
       }
     } catch { if (request === generation.current) setFailed(true) }
-    finally { if (request === generation.current) setBusy(false) }
+    finally { if (request === generation.current) { setBusy(false); onPending?.(false) } }
   }
 
   if (!labels) return null

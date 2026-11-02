@@ -31,6 +31,7 @@ import type { Route } from '../../app/routing'
 import { routeHash } from '../../app/routing'
 import { Bars, Figure, Histogram, Line, Scatter } from './charts'
 import { ExecutiveOverview } from './ExecutiveOverview'
+import { DashboardJarvis } from './DashboardJarvis'
 import type { Point } from './charts'
 import { drill, EMPTY, executiveDrill, filterCount, isPicked, isRangePicked, pagesFor, pick, pickRange, readState, rolesOf, toFilters, writeState } from './state'
 import type { DashState, Page, Roles } from './state'
@@ -313,6 +314,7 @@ function Dashboard({ runId, page, query, onNavigate, onOpenRun }: {
         <FilterBar fields={fields.data.fields} roles={roles} state={state} setState={setState} /></div>
 
 
+        <DashboardJarvis runId={runId} datasetName={run.data?.dataset_name ?? runId} filters={filters}>
         <div className="dash-page">
           <h3 className="visually-hidden">{t(`dash.page.${current}` as DashKey)}</h3>
           {current === 'overview' ? <ExecutiveOverview runId={runId} filters={filters}
@@ -326,6 +328,7 @@ function Dashboard({ runId, page, query, onNavigate, onOpenRun }: {
           {current === 'relationship' ? <RelationshipPage {...props} /> : null}
           {current === 'records' ? <RecordsPageView {...props} /> : null}
         </div>
+        </DashboardJarvis>
       </div>
     </section>
   )

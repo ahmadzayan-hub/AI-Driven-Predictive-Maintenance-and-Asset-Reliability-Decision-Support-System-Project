@@ -304,7 +304,7 @@ export function App() {
   }
 
   const sidebar = (
-    <div className="sidebar">
+    <div className="sidebar" role="complementary" aria-label={t('miyaar.workspace')}>
       {demo ? null : <button type="button" className="miyaar-sidebar" onClick={() => go('overview')}>
         <MiyaarMark /><span><strong>{t('assistant.name')}</strong><small>{t('miyaar.workspace')}</small></span>
       </button>}
