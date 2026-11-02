@@ -432,6 +432,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const state = await api.getSession(session.session_id)
       if (generation !== sessionGeneration.current) return
       setSession(state); setFailureChecked(true); setRequestError(translate('chat.checked'))
+      setOffline(false); setLastError(false); setLastSyncedAt(new Date().toISOString())
     } catch (error) {
       if (generation !== sessionGeneration.current) return
       if (error instanceof ApiError && error.status === 401) { handleUnauthorized(); return }

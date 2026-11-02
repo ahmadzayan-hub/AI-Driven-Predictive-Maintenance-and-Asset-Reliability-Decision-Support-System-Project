@@ -2224,3 +2224,11 @@ Jarvis/dashboard scope expansion: the owner requested dashboard, UI and Jarvis t
 - Verified: focused recovery and real synthetic browser regressions passed; exact counts and broad-run failures are in README. Subsequent broad validation was interrupted after low-memory timing failures; available laptop memory was below 0.5 GB. No full-suite pass is inferred. Native/browser control also timed out, so the user's current tab is not claimed reopened.
 - Decided: preserve initial payload limits, lazy-load ChatView, record the bounded total-only recovery allocation, and use exact-head hosted CI for the final gate. Reviewed the existing UI/UX Pro Max recovery guidance. Parent-reviewed uploaded mockups inform layout only, not fake dispatch, personas or compliance evidence.
 - Next: finish required hosted checks and authorized PR81 merge; broader all-pages reference acceptance, physical voice validation and production backup/database/auth gates remain separate.
+
+CI recovery follow-up: the first combined head passed full Python and frontend
+unit stages but the broad browser suite found old automatic-retry and above-fold
+chart expectations. Updated the browser journey for read-only conversation checking
+before explicit manual resend, and cleared stale offline/error flags after that
+confirmed read. The opening test now verifies the central Jarvis stage between
+governed KPIs and the intact source-backed chart. Exact outcomes are in README;
+required full CI is rerun on the corrected head before merging.

@@ -590,6 +590,15 @@ earlier seven design scenarios and three recovery scenarios passed separately.
 Available physical memory fell below 0.5 GB on the 16 GB laptop. These interrupted
 runs are not passes; final-head hosted checks remain mandatory before merge.
 
+Hosted CI on `6f70963` subsequently passed the complete Python suite: **2,391 tests,
+25 skipped**, the disposable worker restart checks, and **555 frontend unit tests**.
+Its broad browser suite ran **222 passed, 35 skipped, 3 failed**: two old Retry-button
+expectations and the previous above-fold chart position after inserting the central
+Jarvis stage. The follow-up updates the recovery journey to check before explicit
+manual sending, clears the offline state after a successful read, and verifies
+the new KPI-to-Jarvis-to-chart order without removing chart/value assertions.
+This failed full run remains distinct from the focused corrections and next-head CI.
+
 The isolated checkout starts from `6d87d79`. The unified dashboard/Jarvis update
 preserves chart filtering, saved views and all six dashboard pages. Explicit
 connection binds the current run and exact chart filters; stale tabs receive

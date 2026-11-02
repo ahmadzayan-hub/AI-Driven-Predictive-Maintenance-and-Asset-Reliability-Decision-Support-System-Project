@@ -188,6 +188,22 @@ it('does not replace a forbidden stored session', async () => {
   expect(result.current.sessionMissing).toBe(false)
 })
 
+it('clears the offline state after reading the conversation without resending', async () => {
+  const send = vi.spyOn(api, 'sendMessage').mockRejectedValue(new ApiError('Offline', 0, true))
+  vi.spyOn(api, 'getSession').mockRejectedValueOnce(new ApiError('Still unavailable', 503)).mockResolvedValue(session())
+  const { result } = await setup()
+  await act(async () => { await result.current.send('Uncertain draft') })
+  expect(result.current.status).toBe('offline')
+  await act(async () => { await result.current.retryFailed() })
+  expect(result.current.status).toBe('offline')
+  expect(result.current.failureChecked).toBe(false)
+  await act(async () => { await result.current.retryFailed() })
+  expect(result.current.status).toBe('ready')
+  expect(result.current.failedText).toBe('Uncertain draft')
+  expect(result.current.failureChecked).toBe(true)
+  expect(send).toHaveBeenCalledTimes(1)
+})
+
 it('requires explicit replacement for an ended session and ignores recovery after sign-out', async () => {
   localStorage.setItem('aos-session', 'ended')
   vi.spyOn(api, 'getSession').mockResolvedValue({ ...session('ended'), ended: true })
