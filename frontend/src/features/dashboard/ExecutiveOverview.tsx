@@ -22,12 +22,13 @@ interface Props {
   onDrill: (filters: TableFilter[]) => void
   canDrill: (filters: TableFilter[]) => boolean
   children: ReactNode
+  workspace?: ReactNode
 }
 
 
 /** Each response belongs to one exact run, language and filter scope.
  * No cross-user/module cache; changing scope aborts and hides old figures. */
-export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill, children }: Props) {
+export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill, children, workspace }: Props) {
   const { t, locale, isRtl, formatNumber } = usePack(executiveMessages)
   const readOnly = useReadOnly()
   const key = JSON.stringify([runId, locale, filters])
@@ -107,6 +108,7 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
       </details>
     </section>
     <div className="exec-kpis exec-featured">{featured.map((measure) => <Kpi key={measure.key} measure={measure} compact currency={data.currency ?? null} context={data} evidenceAction={refs} />)}</div>
+    {workspace}
 
     <div className="exec-insights">
       <section aria-labelledby="exec-explore"><div className="exec-section-head"><h3 id="exec-explore">{t('exec.explore')}</h3><button type="button"

@@ -31,12 +31,13 @@ export interface DictationProps {
   disabled: boolean
   onTranscript: (text: string) => void
   onActiveChange?: (active: boolean) => void
+  onStateChange?: (state: CaptureState | 'unavailable') => void
 }
-type CaptureState = 'idle' | 'requesting' | 'listening' | 'processing' | 'review' | 'error'
+export type CaptureState = 'idle' | 'requesting' | 'listening' | 'processing' | 'review' | 'error'
 
 /** Browser recognition is an optional, consented transport. Interim text is
  * preview only. Final text becomes an editable draft, never a submitted action. */
-export function VoiceDictation({ language, disabled, onTranscript, onActiveChange }: DictationProps) {
+export function VoiceDictation({ language, disabled, onTranscript, onActiveChange, onStateChange }: DictationProps) {
   const { t } = useI18n()
   const supported = speechRecognitionSupported()
   const insecure = window.isSecureContext === false
@@ -52,6 +53,9 @@ export function VoiceDictation({ language, disabled, onTranscript, onActiveChang
   transcriptCallback.current = onTranscript
   const activeCallback = useRef(onActiveChange)
   activeCallback.current = onActiveChange
+  const stateCallback = useRef(onStateChange)
+  stateCallback.current = onStateChange
+  useEffect(() => { stateCallback.current?.(!supported || insecure ? 'unavailable' : state) }, [state, supported, insecure])
   const active = state === 'requesting' || state === 'listening' || state === 'processing'
 
   function detach() {

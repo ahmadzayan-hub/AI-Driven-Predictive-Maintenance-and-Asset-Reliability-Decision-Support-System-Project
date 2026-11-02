@@ -2196,3 +2196,52 @@ Fresh final-head hosted checks are required; the failed run is retained as evide
 - **Next:** review the small follow-up and its exact-head CI. The existing main
   broad E2E gate has now passed. Production release and migration remain separate. No main
   merge, deployment, live database access, model-provider call or report approval.
+
+
+## 2026-11-02 — Jarvis OS hackathon workspace
+
+- Done: isolated checkout from latest inspected main, bilingual Jarvis view connected to existing DataChat and source ownership checks; read-only cancellable queries; synthetic-only launcher and screenshots. Original checkout and database preserved.
+- Verified: focused API/component/browser tests, TypeScript, build and budget; exact counts and limitations in README. Full quick verification tracked separately in the local delivery evidence.
+- Decided: new dated ADR; no live LLM claim, no report approval or dispatch from local review, local-only playback voices, explicit browser recognition disclosure.
+- Next: exact-head hosted CI, actual microphone/Arabic voice and model acceptance; independent backup/database-target/auth gates before deployment.
+
+Jarvis verification follow-up: the broad Python run found a stale bundle-budget contract and a documentation scan racing with ephemeral browser error files. Updated exact-byte boundaries and moved browser output under the existing excluded temporary tree. The combined focused rerun and all Jarvis browser scenarios passed (counts in README); broad frontend verification was interrupted and full hosted CI remains required.
+
+Jarvis independent-review follow-up: reproduced the stale-tab filter defect against the previous PR head (old scope calculated the new cohort). Query requests now carry run/dataset/source/revision/filters and reject mismatches under the selection lock. Speech preserves metric units, currency uncertainty, coverage and missing-data reasons. Focused API/component and real two-tab browser regressions pass; counts and full-suite history are in README. Production auto-deployment for main remains disabled in the existing Vercel configuration. No production database/auth changes or model calls.
+
+Jarvis/dashboard scope expansion: the owner requested dashboard, UI and Jarvis together. Added a bilingual executive binding bar and responsive analytics/assistant workspace on the real dashboard. It uses the exact chart filters only after explicit connection and invalidates answers when scope changes. Existing interactive charts, saved views, report/approval routes and KPI definitions remain. Fixed a reproduced selection-pending draft race, moved Jarvis transport out of the first-load shell, and corrected contrast/landmark findings from actual browser QA. Counts and historical failures are in README. Local source/data isolation and hosted backup/auth gates remain unchanged.
+
+## 2026-11-02 - Central Jarvis voice interaction
+
+- Done: reconciled the concurrent budget-only commit with the integrated dashboard without rewriting either history. Replaced the oversized banner with a compact source bar and original radial voice console under the existing executive KPI cards. Added an editable transcript, narrow evidence panel, measure table, real state callbacks, keyboard audio control and reduced motion.
+- Verified: synthetic browser flows, consent/denial, state-event and interruption tests, TypeScript and bundle checks; executed counts and final full-suite outcomes are recorded in README. Visual inspection includes the central English console and Arabic phone layout. No physical microphone or audible Arabic voice claim.
+- Decided: use existing browser recognition and device-local matching-language playback, never a new provider or model. Rings show labelled state animation, not invented audio levels. Source hashes and exact filters remain authoritative; no general LLM fallback or operational dispatch.
+- Next: final-head hosted CI and authorized PR merge; production still requires independently verified backup, database identity and managed-auth readiness.
+
+## 2026-11-02 - Missing session and report recovery
+
+- Done: diagnosed changed disposable synthetic store identity; preserved both stores and original data. Added explicit recovery preserving drafts and visible prior conversation, a read-only check after uncertain sends, and exact-report Jarvis renewal. Retained concurrent neutral fixture naming through a normal merge. No automatic resend, cross-principal context transfer or permission relaxation.
+- Verified: focused recovery and real synthetic browser regressions passed; exact counts and broad-run failures are in README. Subsequent broad validation was interrupted after low-memory timing failures; available laptop memory was below 0.5 GB. No full-suite pass is inferred. Native/browser control also timed out, so the user's current tab is not claimed reopened.
+- Decided: preserve initial payload limits, lazy-load ChatView, record the bounded total-only recovery allocation, and use exact-head hosted CI for the final gate. Reviewed the existing UI/UX Pro Max recovery guidance. Parent-reviewed uploaded mockups inform layout only, not fake dispatch, personas or compliance evidence.
+- Next: finish required hosted checks and authorized PR81 merge; broader all-pages reference acceptance, physical voice validation and production backup/database/auth gates remain separate.
+
+CI recovery follow-up: the first combined head passed full Python and frontend
+unit stages but the broad browser suite found old automatic-retry and above-fold
+chart expectations. Updated the browser journey for read-only conversation checking
+before explicit manual resend, and cleared stale offline/error flags after that
+confirmed read. The opening test now verifies the central Jarvis stage between
+governed KPIs and the intact source-backed chart. Exact outcomes are in README;
+required full CI is rerun on the corrected head before merging.
+
+## 2026-11-02 - Strict console visibility after scrolling
+
+- Done: reproduced the remaining desktop layout failure in an isolated synthetic
+  server and inspected the CI trace. Nearest-edge scrolling left a fractional
+  lower border outside the screen; the test now centers the console while keeping
+  full visibility and checking an unobstructed control. Application bytes unchanged.
+- Verified: desktop and phone layout checks pass; the full-run failure and exact
+  counts are retained in README. Existing user store and report IDs were preserved.
+- Decided: retain strict visibility rather than lower the expected ratio. No new
+  dependency, provider, data mutation or production configuration change.
+- Next: normal branch push, exact-head full CI, then the specifically authorized
+  PR81 merge. Production backup, database identity and auth gates still apply.

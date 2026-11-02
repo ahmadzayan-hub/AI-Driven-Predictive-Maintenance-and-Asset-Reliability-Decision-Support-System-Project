@@ -99,6 +99,18 @@ test('the opening shows governed KPIs and a real comparison before the detailed 
   expect(clipped, 'Complete values and units must fit their governed cards').toEqual([])
   if (testInfo.project.name === 'desktop') {
     await expect(featured.first()).toBeInViewport({ ratio: 1 })
+    // The requested central Jarvis stage now sits between the KPIs and chart.
+    // At 720px height the four governed cards occupy the opening. Scroll each
+    // following section into view, then require its entire surface to be visible.
+    const core = page.locator('.jarvis-core')
+    // Nearest-edge scrolling leaves the rounded bottom fractionally outside
+    // the viewport (0.999363 in Chromium's IntersectionObserver). Center the
+    // panel before retaining the strict full-visibility/actionability checks.
+    await core.evaluate(element => element.scrollIntoView({ block: 'center', inline: 'nearest' }))
+    await expect(core).toBeInViewport({ ratio: 1 })
+    await core.getByRole('button', { name: 'Reduce motion', exact: true }).click({ trial: true })
+    expect((await core.boundingBox())!.y).toBeLessThan((await chart.boundingBox())!.y)
+    await chart.scrollIntoViewIfNeeded()
     await expect(chart).toBeInViewport({ ratio: 1 })
   } else {
     expect(await featured.first().evaluate((element) => getComputedStyle(element.parentElement!).gridTemplateColumns.split(' ').length)).toBe(2)
@@ -115,6 +127,9 @@ test('the opening shows governed KPIs and a real comparison before the detailed 
     const rowWidth = await longRow.evaluate((element) => element.getBoundingClientRect().width)
     expect(trackWidth).toBeGreaterThan(rowWidth / 2)
   }
+  // Trial input checks that the visible chart is not covered by the console or
+  // a fixed overlay, without changing the selected analytic cohort.
+  await chart.locator('.dash-bars__row').first().click({ trial: true })
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
   await expect(page.locator('.dash-provenance > bdi')).toHaveText(snapshot.run.dataset_name)
   await expect(page.locator('.exec-meta')).toContainText('Deterministic')

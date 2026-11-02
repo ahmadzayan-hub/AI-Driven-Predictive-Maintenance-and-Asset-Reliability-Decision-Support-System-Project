@@ -1,5 +1,11 @@
 # Project progress
 
+Jarvis recovery (2 November): the disposable demo-store replacement left cached session/report IDs stale. Added explicit missing/ended-session replacement with draft preservation, conversation-only verification before manual resend, exact-scope session renewal and actionable report reselection. Central radial voice console and existing six dashboard pages remain integrated. Concurrent remote neutral-fixture naming is retained. Local broad validation hit severe memory pressure; full exact-head hosted CI remains the merge gate. The wider uploaded-reference all-pages redesign is still an acceptance task, not claimed complete by this bounded repair.
+
+Jarvis OS hackathon (2 November): implemented in an isolated checkout from `6d87d79`. Explicit data context, deterministic evidence queries, follow-up, missing-data abstention, tab-local human review and opt-in voice controls. Synthetic launcher/browser evidence documented in `docs/JARVIS_HACKATHON.md`; exact executed checks are in README. Actual LLM/device voice and hosted database/auth/recovery acceptance remain separate gates.
+
+Owner-requested unified update: Jarvis now connects from the actual dashboard to its current report and exact chart filters, with responsive side-by-side/stacked evidence, stale-scope rejection and explicit reconnection. Existing saved views, chart interactions and source navigation remain available. No operational prediction, general LLM or production activation is implied.
+
 PR76/PR78 review (2 November 2026): PR76 is already squash-merged into main
 `d529921`; its tree matches the integration candidate containing all six original
 heads. PR78 would add a duplicate Motion error alert and should not be merged.
@@ -376,3 +382,13 @@ reference with pinned attribution and MIT notices, narrow agent-document links a
 bounded stdlib teaching fixtures. No runtime/approved-report changes or activation.
 Focused checks pass; quick aggregate is dependency-blocked in the cloud checkout.
 GitHub draft review and laptop installation remain separate steps.
+
+**Jarvis dashboard and voice console, 2 November 2026:** implemented the owner-requested
+bilingual central voice workspace under the governed executive KPI cards, with exact
+dataset/filter binding, evidence table, retained dashboard pages/saved views, editable
+dictation and real listening/query/speech state transitions. Original radial SVG and
+reduced-motion controls use the existing design tokens. Concurrent budget work is
+preserved by a local merge. Validation counts and limitations are in README; final-head
+CI and authorized PR integration are distinct from the unresolved production
+backup/database identity/managed-auth gates. No general LLM or operational automation
+is claimed by the deterministic Jarvis route.

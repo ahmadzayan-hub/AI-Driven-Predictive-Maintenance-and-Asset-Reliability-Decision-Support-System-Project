@@ -1,5 +1,5 @@
 import { createRef, useRef } from 'react'
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { StoreProvider, useStore } from '../app/store'
@@ -22,8 +22,10 @@ const initial = (): SessionState => ({ session_id: 'chat-synthetic', agent_name:
 function Workspace() {
   const store = useStore()
   const composer = useRef<ComposerHandle>(null)
-  if (!store.session) return <p>{store.bootError || 'Waiting for session'}</p>
-  return <ChatView session={store.session} sending={store.sending} failedText={store.failedText}
+  if (!store.session) return <><p>{store.bootError || 'Waiting for session'}</p>{store.sessionMissing && <button onClick={() => void store.recoverSession()}>Recover missing session</button>}</>
+  return <ChatView key={store.session.session_id} session={store.session} sending={store.sending} failedText={store.failedText}
+    sessionMissing={store.sessionMissing} previousConversation={store.previousConversation} recoveryDraft={store.recoveryDraft}
+    failureChecked={store.failureChecked} onRecover={store.recoverSession}
     pendingText={store.pendingText} requestError={store.requestError} connectionStatus={store.status}
     offline={store.status === 'offline'} userName={null} onSend={store.send} onRetry={store.retryFailed}
     onDismissFailed={store.dismissFailed} composerRef={composer} />
@@ -136,6 +138,9 @@ it('restores a saved transcript and uses a new session only after an explicit 40
   view.unmount()
   vi.mocked(api.getSession).mockRejectedValue(new ApiError('Expired session', 404))
   render(<StoreProvider><Workspace /></StoreProvider>)
+  await screen.findByRole('button', { name: 'Recover missing session' })
+  expect(api.createSession).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: 'Recover missing session' }))
   await waitFor(() => expect(api.createSession).toHaveBeenCalledOnce())
 })
 

@@ -552,6 +552,102 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+### Jarvis OS local hackathon acceptance (2 November 2026)
+
+Short-screen follow-up: both full CI runs for `3110f7b` passed the backend,
+frontend unit, typecheck and build stages; browser results were **224 passed,
+35 skipped, 1 failed**. The failure reproduced locally: nearest-edge scrolling
+left the console fractionally outside the viewport (intersection ratio 0.999365).
+The saved CI trace shows the lower panel border at the screen edge. Centering the
+panel before inspection retains the strict **100% visible** assertion and adds
+a trial click on its motion control. The corrected isolated desktop and phone
+checks both passed (**2 tests**); all source/value/chart checks remain. The later
+Miyaar, Jarvis and budget steps in those failed full runs did not execute.
+Full checks must pass on the new exact head before merging.
+
+[Walkthrough](docs/JARVIS_HACKATHON.md) and [decision](docs/adr/2026-11-02-jarvis-evidence-workspace.md).
+The subsequent [central voice-console redesign](docs/adr/2026-11-02-jarvis-central-voice-console.md)
+adds an original radial audio control between editable input and source evidence,
+under the existing executive KPI cards. Actual recognition/query/speech events
+drive its labelled state animation. Keyboard operation, system/local reduced
+motion, explicit recognition consent and matching device-local speech are retained.
+No amplitude waveform, general conversational LLM or audible device acceptance is claimed.
+
+The broad local frontend attempt for this redesign ran **549 tests: 546 passed,
+3 failed** across 55 files. The RMD mapping and KPI policy cases exceeded the
+unchanged five-second deadline; the local Whisper UI lookup exceeded its readiness
+wait. A focused rerun passed 65 of 66 tests, including Whisper, KPI policy and
+final bilingual naming; the same RMD timeout remained. These are not a full-suite
+pass. Focused voice-event/consent/interruption checks separately passed 70 tests
+before the final explicit-locale regression was added; that regression passed
+within the broad run. Final-head hosted CI remains the complete release gate.
+
+The recovery build passes exact-byte limits: initial JavaScript 96,058/100,000,
+total 270,724/272,000; initial CSS 10,394/10,500, total 36,043/36,500. Only total
+budgets changed for the lazy voice console and explicit session recovery; the initial limits
+are preserved. Existing Vite/Vitest versions differ from the lockfile.
+
+[Session/scope recovery](docs/adr/2026-11-02-session-scope-recovery.md) preserves
+unsent drafts and keeps uncertain requests blocked until the user checks the server
+conversation. The check never resends. Missing reports require explicit reselection.
+The final focused recovery run passed 76 tests across 4 files, including forbidden,
+ended-session and sign-out-race cases; its three Chromium
+regressions passed against the disposable synthetic server. The subsequent broad
+frontend run and final-head hosted CI are tracked separately from these results.
+The subsequent broad local attempt was interrupted after timing failures in
+ExecutiveOverview, RMD, DashboardView and VoiceServerDictation. The combined
+browser attempt timed out loading the dashboard and was also interrupted; the
+earlier seven design scenarios and three recovery scenarios passed separately.
+Available physical memory fell below 0.5 GB on the 16 GB laptop. These interrupted
+runs are not passes; final-head hosted checks remain mandatory before merge.
+
+Hosted CI on `6f70963` subsequently passed the complete Python suite: **2,391 tests,
+25 skipped**, the disposable worker restart checks, and **555 frontend unit tests**.
+Its broad browser suite ran **222 passed, 35 skipped, 3 failed**: two old Retry-button
+expectations and the previous above-fold chart position after inserting the central
+Jarvis stage. The follow-up updates the recovery journey to check before explicit
+manual sending, clears the offline state after a successful read, and verifies
+the new KPI-to-Jarvis-to-chart order without removing chart/value assertions.
+This failed full run remains distinct from the focused corrections and next-head CI.
+
+The isolated checkout starts from `6d87d79`. The unified dashboard/Jarvis update
+preserves chart filtering, saved views and all six dashboard pages. Explicit
+connection binds the current run and exact chart filters; stale tabs receive
+409 and scope changes clear the old answer and local review. Spoken summaries
+retain units, currency uncertainty, coverage and missing-data reasons.
+
+Earlier integrated-dashboard validation on existing installed dependencies: the complete Python suite
+passed 2,391 tests with 260 skipped (PostgreSQL/optional environments unavailable).
+The complete frontend suite passed 546 tests across 55 files. The latest combined
+DataChat/verifier/documentation run passed 49 tests; focused dashboard/Jarvis/
+localization passed 62 tests. All 7 synthetic Chromium scenarios passed, covering
+English/Arabic RTL, phone layout, axe, chart-to-Jarvis scope, saved-view reload,
+all dashboard pages, follow-up, missing/unsupported data, review reset, repeated
+requests, interruption, service failure and mocked microphone denial. TypeScript,
+production build, brain links and exact-byte budget pass: initial JavaScript
+99.9/100 KB, total 264.5/265 KB, initial CSS 10.4/10.5 KB, total 35.4/35.7 KB.
+The additional total-only allocation covers the requested dashboard integration;
+first-load ceilings remain unchanged. Local Vite/Vitest versions differ from
+the lockfile, so final-head hosted CI is a separate release gate.
+
+Historical failures are retained separately: the first broad quick run completed
+2,390 Python tests with 260 skips, one obsolete budget-contract failure and two
+errors from scanning regenerated browser error files. The contract/output path
+were corrected, and the later full Python run above passed. Its initial frontend
+step had been interrupted; the later complete frontend runs passed. The stale-tab
+filter defect was reproduced at the previous head and corrected. A browser run
+then exposed a selection-pending draft race; input now waits for confirmed scope.
+The initial unified UI run found close-button contrast and a sidebar landmark
+issue; both were fixed without weakening axe checks. Prior-head CI `cd01fdc`
+failed only its first-load budget gate; moving Jarvis transport into the lazy
+feature bundle addresses that cause. No old-head or focused result substitutes
+for final-head CI.
+
+Actual LLM inference, physical microphone and audible Arabic pronunciation
+were not validated. No original database migration, managed-auth change,
+production deployment or operational recommendation execution is included.
+
+
 ### PR76/PR78 follow-up verification, 2 November 2026
 
 Reviewed main `d529921`, whose tree is identical to merged PR76's final head.
