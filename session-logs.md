@@ -2334,3 +2334,41 @@ Follow-up validation: the first hosted component run identified one older direct
 Arabic CSV submission before metadata readiness. It now waits for the enabled
 action while keeping its data/language/upload-reset assertions. New readiness
 regressions passed. The full failure and skipped later steps remain in README.
+
+## 2026-11-02 - Local readable evidence and compact interface candidate
+
+- Done: isolated a design branch from merged main `54562e5`, preserving the prior
+  checkout and user datastore. Put Jarvis values, units, measurement coverage and
+  missing-data reasons before keyboard-accessible original references. Compact
+  shared page headings; remove the nested evidence scroller; fix the navy stop
+  control's light hover override found in an actual phone screenshot.
+- Verified: TypeScript, build and unchanged bundle limits; actual synthetic
+  Arabic desktop/phone and English console visual inspection. Opened the new
+  isolated preview in the visible browser and calculated the grounded cost query.
+  Browser full-run failures, focused reruns and the component-worker startup
+  failure are kept distinct in README. No physical audio validation is claimed.
+- Decided: original answer text, sources, scope binding, review limits and
+  event-driven voice behavior stay intact. No new provider, dependency, borrowed
+  portrait or private dataset. Unsupported reference-image transfer remains a
+  limitation; this is not a pixel-match claim or a published redesign.
+- Next: complete fresh frontend/unit and cross-platform acceptance before any
+  design publication. Production backup/identity/auth inspection is separate;
+  this task made no production database, environment, auth or deployment changes.
+
+## 2026-11-02 - Authorized release reconciliation and synthetic Motion example
+
+- Done: preserved the original local design commit and merged current main
+  `a7d8f828` in an isolated release branch without conflicts. Added the small
+  synthetic Arabic fixture to the existing Motion skill examples folder, with
+  its source, silent MP4, poster, transcript, portable validator and provenance.
+- Verified: reviewed the design diff and current workflow triggers; the fixture
+  had already passed source matching, stream checks and full decoding. No model,
+  real dataset or new render is needed by its validator. Exact combined CI remains
+  a release gate; local historical tests and their failures remain in README.
+- Decided: reuse existing project instructions and renderer; no global agent
+  configuration or runtime binaries are distributed. Font fallback resolution
+  was not captured and is explicitly left unverified in the example provenance.
+- Next: inspect exact-head hosted checks before any merge. The user's software
+  synchronization authorization does not resolve production database identity,
+  backup or authentication gates, nor replace the previously pinned production
+  candidate. No production data, auth, alias or provider change was performed.

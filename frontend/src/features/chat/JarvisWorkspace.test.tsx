@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { VoiceRecognition } from './VoiceDictation'
 import { JarvisWorkspace, type JarvisAnswer } from './JarvisWorkspace'
@@ -8,6 +8,7 @@ import type { SessionState } from '../../shared/types'
 import { applyLocale } from '../../i18n'
 import { dataChatMessages } from './dataChatMessages'
 import { jarvisSpeech } from './jarvisSpeech'
+import { jarvisMessages } from '../../i18n/jarvis'
 const context = { run_id: 'synthetic', dataset_id: 'd1', dataset_name: 'SYNTHETIC.csv', source_sha256: 'a'.repeat(64), analysis_revision: 'b'.repeat(64), filters: [], records: 3, total_records: 3 }
 const session: SessionState = { session_id: 's1', agent_name: 'Miyaar', version: 'test', welcome: '', ended: false, created_at: '', transcript: [], preferences: {}, memory: {}, memory_entries: [], history: [], memory_persisted: false, commands: [], data_context: context,
   data_chat_labels: Object.fromEntries(Object.entries(dataChatMessages.en).map(([k,v]) => [k.replace('dataChat.', ''), v])) as SessionState['data_chat_labels'] }
@@ -20,6 +21,10 @@ it('preserves evidence, separates speech and confirms only an explicit local rev
   render(<JarvisWorkspace session={session} />); question()
   fireEvent.click(screen.getByRole('button', { name: 'Calculate from selected report' }))
   await screen.findByText(result.text)
+  expect(screen.getByText(result.text)).not.toBeVisible()
+  fireEvent.click(screen.getByText('Full answer and references'))
+  expect(screen.getByText(result.text)).toBeVisible()
+  expect(within(screen.getByRole('article')).getByText('500')).toHaveTextContent('unit not declared')
   expect(screen.getByText(/Maintenance cost: 500 unit not declared/)).toHaveTextContent('Measurement coverage is unavailable')
   expect(jarvisApi.query).toHaveBeenCalledWith('s1', 'What is total maintenance cost?', context, 'en', expect.any(AbortSignal))
   expect(screen.getByRole('button', { name: 'Confirm local review' })).toBeDisabled()
@@ -29,6 +34,22 @@ it('preserves evidence, separates speech and confirms only an explicit local rev
   fireEvent.click(screen.getByRole('button', { name: 'What is availability?' }))
   expect(screen.queryByText(result.text)).not.toBeInTheDocument()
   expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+})
+it.each(['en', 'ar'] as const)('keeps missing measurement reasons and coverage visible in %s before opening references', async (locale) => {
+  applyLocale(locale)
+  const copy = jarvisMessages[locale]
+  vi.spyOn(jarvisApi, 'query').mockResolvedValue({ ...result, result: { ...result.result!, measures: [
+    { key: 'availability', title: 'Availability', value: null, scale: 'percent', records: 0, records_unmeasured: 3 },
+  ] } })
+  render(<JarvisWorkspace session={session} />); question()
+  fireEvent.click(screen.getByRole('button', { name: copy.ask }))
+  const metric = await screen.findByRole('article')
+  expect(within(metric).getByText(copy.noValue)).toBeVisible()
+  expect(within(metric).getByText(copy.undefinedReason)).toBeVisible()
+  expect(metric).toHaveTextContent(copy.speechCoverage.replace('{measured}', '0').replace('{unmeasured}', '3'))
+  expect(screen.getByText(result.text)).not.toBeVisible()
+  fireEvent.click(screen.getByText(copy.references))
+  expect(screen.getByText(result.text)).toBeVisible()
 })
 it('deduplicates active requests and ignores late replies after interrupt', async () => {
   let resolve!: (value: JarvisAnswer) => void

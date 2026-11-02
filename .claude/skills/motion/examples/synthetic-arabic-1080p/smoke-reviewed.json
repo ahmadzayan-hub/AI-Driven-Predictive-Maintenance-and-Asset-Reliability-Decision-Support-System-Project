@@ -1,0 +1,30 @@
+{
+  "width": 1920,
+  "height": 1080,
+  "fps": 30,
+  "language": "ar",
+  "theme": "dark",
+  "brand": "LOCAL QA",
+  "footer": "DEMO / SYNTHETIC — بيانات اصطناعية للاختبار",
+  "scenes": [
+    {
+      "type": "title",
+      "duration": 1.5,
+      "kicker": "اختبار محلي",
+      "title": "تجربة فيديو محلية",
+      "subtitle": "مقطع تجريبي صامت"
+    },
+    {
+      "type": "kpis",
+      "duration": 2.5,
+      "heading": "بيانات اصطناعية",
+      "items": [
+        {
+          "label": "قيمة تجريبية",
+          "value": 42,
+          "source": "synthetic-values.csv, synthetic_demo_value; SYNTHETIC TEST ONLY"
+        }
+      ]
+    }
+  ]
+}

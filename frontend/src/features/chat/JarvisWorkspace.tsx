@@ -89,10 +89,17 @@ export function JarvisWorkspace({ session, disabled = false, embedded = false }:
         {status !== 'idle' && <p role={status === 'failed' ? 'alert' : 'status'}>{t(status)}</p>}
       </section>
     <section className="jarvis__card jarvis__answer" aria-live="polite"><h2>{t(embedded ? 'result' : 'output')}</h2>
-      {!answer ? <p>{t('prompt')}</p> : <><p className="jarvis__question" dir="auto">{asked}</p><pre className="jarvis__evidence" dir="auto">{answer.text}</pre>
-        {answer.result && <><details className="jarvis__measures"><summary>{t('measures')}</summary><table><caption>{t('evidenceView')}</caption><thead><tr><th>{t('metric')}</th><th>{t('valueUnit')}</th><th>{t('formula')}</th><th>{t('coverage')}</th></tr></thead><tbody>{answer.result.measures.map(m => <tr key={m.key}><th scope="row">{m.title}</th><td>{m.value === null ? t('noValue') : <bdi>{m.value} {units[m.scale ?? ''] ?? t('unitUnknown')}</bdi>}{m.reason && <p>{m.reason}</p>}</td><td><bdi>{m.formula}</bdi></td><td>{m.records ?? '—'} / {m.records_unmeasured ?? '—'}</td></tr>)}</tbody></table></details>
-          <h3>{t('source')}</h3><dl className="jarvis__sources"><dt>{t('source')}</dt><dd><bdi>{answer.result.dataset_name} · {answer.result.run_id}</bdi></dd>
-          <dt>SHA-256</dt><dd><bdi>{answer.result.source_sha256}</bdi></dd><dt>{t('result')}</dt><dd><bdi>{answer.result.analysis_revision}</bdi></dd></dl>
+      {!answer ? <p>{t('prompt')}</p> : <><p className="jarvis__question" dir="auto">{asked}</p>
+        {!answer.result && <pre className="jarvis__evidence" dir="auto">{answer.text}</pre>}
+        {answer.result && <><div className="jarvis__metrics">{answer.result.measures.map(m => <article key={m.key}>
+          <h3>{m.title}</h3><p className="jarvis__metric-value">{m.value === null ? t('noValue') : <bdi>{m.value} <small>{units[m.scale ?? ''] ?? t('unitUnknown')}</small></bdi>}</p>
+          <p>{m.records === undefined || m.records_unmeasured === undefined ? t('coverageUnknown') : t('speechCoverage', { measured: m.records, unmeasured: m.records_unmeasured })}</p>
+          {(m.reason || m.value === null) && <p>{m.reason ?? t('undefinedReason')}</p>}
+        </article>)}</div><p className="jarvis__hint">{t('speechScope', { records: answer.result.records, total: answer.result.total_records })}</p>
+          <details><summary>{t('references')}</summary><pre className="jarvis__evidence" dir="auto">{answer.text}</pre></details>
+          <details className="jarvis__measures"><summary>{t('measures')}</summary><table><caption>{t('evidenceView')}</caption><thead><tr><th>{t('metric')}</th><th>{t('valueUnit')}</th><th>{t('formula')}</th><th>{t('coverage')}</th></tr></thead><tbody>{answer.result.measures.map(m => <tr key={m.key}><th scope="row">{m.title}</th><td>{m.value === null ? t('noValue') : <bdi>{m.value} {units[m.scale ?? ''] ?? t('unitUnknown')}</bdi>}{m.reason && <p>{m.reason}</p>}</td><td><bdi>{m.formula}</bdi></td><td>{m.records ?? '-'} / {m.records_unmeasured ?? '-'}</td></tr>)}</tbody></table></details>
+          <details><summary>{t('source')}</summary><dl className="jarvis__sources"><dt>{t('source')}</dt><dd><bdi>{answer.result.dataset_name} · {answer.result.run_id}</bdi></dd>
+          <dt>SHA-256</dt><dd><bdi>{answer.result.source_sha256}</bdi></dd><dt>{t('result')}</dt><dd><bdi>{answer.result.analysis_revision}</bdi></dd></dl></details>
           <a href={`/#/runs/${encodeURIComponent(answer.result.run_id)}`}>{t('source')}</a>
           <h3>{t('review')}</h3><p>{t('recommendation')}</p><p>{t('reviewLimit')}</p>
           <label><input type="checkbox" checked={accepted} disabled={readOnly || confirmed} onChange={e => setAccepted(e.target.checked)} /> {t('acknowledge')}</label>

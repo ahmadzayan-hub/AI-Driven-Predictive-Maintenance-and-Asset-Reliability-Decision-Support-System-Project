@@ -36,6 +36,9 @@ for (const locale of ['en', 'ar'] as const) test(`unified dashboard, chart scope
   await assistant.locator('.jarvis__measures summary').click()
   await expect(assistant.getByRole('table')).toContainText('80')
   await expect(assistant.getByRole('table')).toContainText(j.currencyUnknown)
+  // Check the dark console control while the generic light ghost-button hover
+  // would otherwise override its background (including sticky touch hover).
+  await assistant.getByRole('button', { name: j.stop, exact: true }).hover()
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
   await page.getByRole('heading', { name: d['dash.title'], exact: true }).scrollIntoViewIfNeeded()
   await page.screenshot({ path: `../docs/screenshots/jarvis-dashboard-${locale}.png`, fullPage: true })
