@@ -552,6 +552,42 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+### Local evidence-card design candidate (2 November 2026)
+
+This isolated candidate starts from merged main `54562e5`; it has not been
+published. TypeScript, the production build and the unchanged interface budget
+pass: initial/total JavaScript **96,059 / 270,961 bytes**, initial/total CSS
+**10,417 / 36,242 bytes**, fonts **139,928 bytes**. No dependency was installed.
+The **11 documentation tests** and strict brain-link check pass; the latter
+reports two existing stale-note reminders, which this UI change does not modify.
+
+The synthetic Jarvis browser suite had **9 passed, 1 failed**. The failure was
+the Arabic dashboard's initial five-second rendering expectation: auth/config
+and session creation returned successfully, but the dashboard had not rendered.
+Its retained trace records no failed dashboard data response. The isolated Arabic
+rerun passed **1 test** with unchanged assertions and timeouts. This is evidence
+of a load-timing failure, not a clean full-suite result.
+
+The wider bilingual responsive/voice suite had **13 passed, 1 failed**. Its light
+theme/command-dialog case exceeded the unchanged overall timeout during the second
+accessibility scan; the trace shows the dialog opened successfully. Initial traces
+and full-run outcomes are retained separately from any focused rerun.
+
+After the screenshot-confirmed navy-control hover fix, the focused final run had
+**2 passed, 1 failed**: Arabic dashboard including hover contrast and the isolated
+light-theme/dialog case passed; English passed the hover/accessibility, filter and
+saved-view checks but reached the unchanged overall timeout during page navigation.
+No timeout or acceptance assertion was relaxed.
+The remaining English dashboard case then passed alone (**1 test**, 20.3 seconds)
+on the final build, with concurrent UI inspection stopped. These focused successes
+do not erase the two full-run failures or establish cross-platform acceptance.
+
+The focused component attempt executed **zero tests**: both existing single-thread
+Vitest workers timed out before import. No pass is inferred from that attempt.
+Full frontend/unit and cross-platform acceptance remain outstanding for this local
+candidate. Production identity/backup/auth gates and physical microphone/Arabic
+audio validation are separate. Uploaded-reference pixel matching is not claimed.
+
 ### Post-merge run-start follow-up (2 November 2026)
 
 PR81 merged as `a0e2cf5`, with the same Git tree as tested head `76a442a`.

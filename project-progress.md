@@ -1,5 +1,11 @@
 # Project progress
 
+Local design follow-up from merged `54562e5`: Jarvis values, units and coverage
+lead the evidence card; full original references remain in an accessible disclosure.
+Shared page titles and spacing are more compact. Existing source/voice/scope/review
+behavior remains. This is an isolated local candidate, not a published all-pages
+reference match. Production identity/backup/auth gates are tracked separately.
+
 PR81 merged as `a0e2cf5` with a tree identical to tested head `76a442a`.
 Its pre-merge GitHub Actions passed. The subsequent main WebKit phone job
 found a run-start click race while optional profile metadata inserted a field.

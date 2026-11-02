@@ -3,7 +3,7 @@
 .jarvis__hero h1 { font-size: var(--text-2xl); margin-block: var(--space-2); }
 .jarvis__grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--space-5); }
 .jarvis__card { min-width: 0; padding: var(--space-5); margin-block-end: var(--space-5); border: 1px solid var(--border); border-radius: var(--radius-l); background: var(--surface); }
-.jarvis__card h2 { font-size: var(--text-xl); margin-block: 0 var(--space-4); }
+.jarvis__card h2 { font-size: var(--text-l); margin-block: 0 var(--space-4); }
 .jarvis__card p { margin-block: var(--space-3); }
 .jarvis__card label { display: block; margin-block: var(--space-4); }
 .jarvis__card textarea, .jarvis__card select { display: block; width: 100%; max-width: 100%; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-s); padding: var(--space-3); }
@@ -25,7 +25,14 @@
 .jarvis__console { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 1.15fr) minmax(0, 1fr); gap: var(--space-3); align-items: start; }
 .jarvis__console > .jarvis-core { grid-column: 2; grid-row: 1; }
 .jarvis__composer { grid-column: 1; grid-row: 1; }
-.jarvis__answer { grid-column: 3; grid-row: 1; max-block-size: 34rem; overflow: auto; }
+.jarvis__answer { grid-column: 3; grid-row: 1; }
+.jarvis__answer summary { min-height: 44px; padding-block: var(--space-3); border-bottom: 1px solid var(--border); cursor: pointer; }
+.jarvis__metrics article { padding: var(--space-3); border-inline-start: 3px solid var(--accent); border-radius: var(--radius-s); background: var(--accent-soft); }
+.jarvis__metrics article + article { margin-block-start: var(--space-2); }
+.jarvis__metrics h3 { margin: 0; }
+.jarvis__metrics p { font-size: var(--text-s); }
+.jarvis__metrics .jarvis__metric-value { margin-block: var(--space-1); font-size: var(--text-xl); font-weight: 700; }
+.jarvis__metric-value small { font-size: var(--text-s); font-weight: 400; }
 .jarvis__answer h3, .jarvis__hint { font-size: var(--text-s); }
 .jarvis__hint { color: var(--text-muted); }
 .jarvis__measures { overflow: auto; }
@@ -34,7 +41,8 @@
 .jarvis-core { min-width: 0; padding: var(--space-4); border-radius: var(--radius-l); background: var(--nav-surface); color: var(--nav-text); text-align: center; }
 .jarvis-core__top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); font-size: var(--text-s); }
 .jarvis-core__top button, .jarvis-core .btn--ghost { color: var(--nav-text); background: var(--nav-active); border: 1px solid var(--nav-border); border-radius: var(--radius-s); padding: var(--space-2); }
-.jarvis-core__orb { display: block; position: relative; width: min(190px, 100%); aspect-ratio: 1; padding: 0; border: 0; background: transparent; margin: var(--space-3) auto; color: var(--nav-accent); }
+.jarvis-core .btn--ghost:hover:not(:disabled) { background: var(--nav-border); }
+.jarvis-core__orb { display: block; position: relative; width: min(190px, 100%); aspect-ratio: 1; padding: 0; border: 0; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--nav-accent) 22%, transparent), transparent 65%); margin: var(--space-3) auto; color: var(--nav-accent); }
 .jarvis-core__orb svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1; }
 .jarvis-core__orb circle { opacity: .4; transform-origin: center; }
 .jarvis-core__orb path { stroke-width: 2; }
