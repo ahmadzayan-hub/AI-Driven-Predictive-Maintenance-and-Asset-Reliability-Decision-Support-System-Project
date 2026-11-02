@@ -169,6 +169,12 @@ jobs:
         run: npx playwright test --config=playwright.miyaar.config.ts
         working-directory: frontend
 
+      - name: Jarvis synthetic evidence, cancellation and voice boundaries
+        env:
+          JARVIS_DATA_DIR: ${{ runner.temp }}/jarvis-${{ github.run_id }}-${{ github.run_attempt }}
+        run: node node_modules/@playwright/test/cli.js test --config=playwright.jarvis.config.ts
+        working-directory: frontend
+
       - name: Interface budget
         run: python -c "from scripts.verify import check_budget; import sys; ok, detail = check_budget(); print(detail); sys.exit(0 if ok else 1)"
 
@@ -181,6 +187,7 @@ jobs:
             docs/screenshots/*.png
             frontend/dist
             frontend/test-results
+            frontend/test-results-jarvis
           retention-days: 14
 
       - name: Upload Playwright report on failure

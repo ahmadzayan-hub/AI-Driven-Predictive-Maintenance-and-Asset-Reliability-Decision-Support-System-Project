@@ -81,6 +81,30 @@ class DataChatApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()["reply"]
 
+    def test_jarvis_readonly_query_repeated_scope_permissions_and_language(self):
+        selected = self.bind()
+        before = self.app.state.store.get_session(self.sid)
+        url = f"/api/sessions/{self.sid}/data-query"
+        body = {"text": "What is total maintenance cost?", "revision": selected["analysis_revision"], "language": "en"}
+        for _ in range(2):
+            response = self.client.post(url, headers=self.auth(), json=body)
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertEqual(response.json()["result"]["measures"][0]["value"], 500)
+            self.assertIsNone(response.json()["result"]["llm_explanation"])
+        self.assertEqual(before, self.app.state.store.get_session(self.sid))
+        for owner in ("bob", "root"):
+            denied = self.client.post(url, headers=self.auth(owner), json=body)
+            self.assertEqual(denied.status_code, 404)
+        self.assertEqual(self.client.post(url, json=body).status_code, 401)
+        unsupported = self.client.post(url, headers=self.auth(), json={**body, "text": "Predict failures tomorrow"})
+        self.assertEqual(unsupported.json()["why"], "unsupported_question")
+        arabic = self.client.post(url, headers=self.auth(), json={**body, "text": "ما إجمالي تكلفة الصيانة؟", "language": "ar"})
+        self.assertEqual(arabic.json()["result"]["measures"][0]["value"], 500)
+        self.assertEqual(before, self.app.state.store.get_session(self.sid))
+        self.bind(self.make_run(rows=[{**ROWS[0], "Maintenance_Cost_USD": 50}]))
+        self.assertEqual(self.client.post(url, headers=self.auth(), json=body).status_code, 409)
+        self.app.state.gateway.ask_json.assert_not_called()
+
     def test_no_selection_or_multiple_reports_never_uses_latest_or_memory(self):
         self.make_run()
         for text in ("What do you know about my data?", "ماذا تتذكر عن البيانات؟", "how much railway signaling age ?"):

@@ -76,3 +76,12 @@ describe('VoicePlayback', () => {
     expect(SpokenText.last.lang).toBe('en-US')
   })
 })
+
+it('refuses a remote or missing voice for private local-only playback', () => {
+  const getVoices = vi.fn(() => [{ name: 'Remote', lang: 'en-US', localService: false }])
+  Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: { speak, cancel, getVoices } })
+  render(<VoicePlayback text="SYN-01 https://example.invalid ops@example.invalid" localOnly />)
+  fireEvent.click(screen.getByRole('button', { name: 'voice.readReply' }))
+  expect(speak).not.toHaveBeenCalled()
+  expect(screen.getByText('voice.playbackUnavailable')).toBeInTheDocument()
+})

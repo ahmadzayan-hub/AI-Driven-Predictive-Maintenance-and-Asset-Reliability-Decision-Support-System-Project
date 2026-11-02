@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../../i18n'
 import type { MessageKey } from '../../i18n'
@@ -9,6 +10,8 @@ import { Composer } from './Composer'
 import type { ComposerHandle } from './Composer'
 import { MessageBubble } from './MessageBubble'
 import { DataChatContext } from './DataChatContext'
+
+const JarvisWorkspace = lazy(() => import('./JarvisWorkspace').then(m => ({ default: m.JarvisWorkspace })))
 
 export interface Suggestion { label: MessageKey; icon: IconName; insert: MessageKey }
 export const SUGGESTIONS: Suggestion[] = [
@@ -63,6 +66,7 @@ export function ChatView({
   offline, userName, onSend, onRetry, onDismissFailed, composerRef, onOpenRun, onAction,
 }: ChatViewProps) {
   const { t, formatNumber } = useI18n()
+  const [jarvis, setJarvis] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const [pinnedToBottom, setPinnedToBottom] = useState(true)
   const [waiting, setWaiting] = useState(false)
@@ -83,10 +87,11 @@ export function ChatView({
     if (container) setPinnedToBottom(container.scrollHeight - container.scrollTop - container.clientHeight < 48)
   }
   const empty = transcriptLength === 0 && !failedText && !sending
+  if (jarvis) return <div className="chat__scroll"><button className="btn btn--ghost" onClick={() => setJarvis(false)}>{t('jarvis.close')}</button><Suspense fallback={<p>{t('chat.typing')}</p>}><JarvisWorkspace session={session} disabled={offline || sending} /></Suspense></div>
   return <div className="assistant-workspace">
     <section className="chat" aria-label={t('chat.aria')}>
     <div className="miyaar-toolbar">
-      <strong>{t('nav.assistant')}</strong>
+      <strong>{t('nav.assistant')}</strong><button className="btn btn--ghost" onClick={() => setJarvis(true)}>{t('jarvis.launch')}</button>
       <span className="miyaar-toolbar__count">{formatNumber(transcriptLength)} · {t('rail.messages')}</span>
     </div>
     <div className="chat__scroll" ref={scrollRef} onScroll={handleScroll}>

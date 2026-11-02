@@ -14,6 +14,7 @@ import json
 import logging
 import os
 import re
+from typing import Literal
 import threading
 import time
 import uuid
@@ -271,6 +272,12 @@ class SessionIn(BaseModel):
 class MessageIn(BaseModel):
     text: str = Field(min_length=1, max_length=MAX_TEXT_LENGTH)
     data_query: DataQueryIn | None = None
+
+
+class JarvisQueryIn(BaseModel):
+    text: str = Field(min_length=1, max_length=2000)
+    revision: str = Field(min_length=1, max_length=128)
+    language: Literal["en", "ar"] = "en"
 
 
 class MemoryIn(BaseModel):
@@ -927,6 +934,24 @@ def create_app(config_path=None, env=None, dist_dir=None):
                 session.data_context = selected
                 save_session(session)
                 return session_snapshot(session)
+
+    @app.post("/api/sessions/{session_id}/data-query")
+    def jarvis_query(session_id: str, body: JarvisQueryIn, principal=Depends(requires("read"))):
+        # Read-only: cancellation may leave a bounded calculation finishing,
+        # but no transcript, report, approval or model state is changed.
+        from server.data_chat import question_metrics, natural_request
+        with session_lock_for(session_id):
+            with lock:
+                session = get_session(session_id, principal)
+                if session.ended:
+                    raise HTTPException(409, detail="Session ended.")
+                if not session.data_context or session.data_context["analysis_revision"] != body.revision:
+                    raise HTTPException(409, detail=data_chat_text("stale", body.language))
+                query_session = Session(config, row=session.to_row(), owner=session.owner)
+                query_session.agent.preferences["language"] = body.language
+            metrics = question_metrics(body.text, selected=True)
+            return assistant.data_chat.answer(natural_request(body.text, metrics) if metrics else None,
+                                              query_session, principal)
 
     # ------------------------------------------------------------------
     # Conversation

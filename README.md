@@ -552,6 +552,30 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+### Jarvis OS local hackathon acceptance (2 November 2026)
+
+[Walkthrough](docs/JARVIS_HACKATHON.md) and [decision](docs/adr/2026-11-02-jarvis-evidence-workspace.md).
+The isolated local checkout starts from `6d87d79`. Focused DataChat/API tests:
+13 passed. Focused frontend context/Jarvis/voice tests: 34 passed. Synthetic
+Chromium browser scenarios: 4 passed, covering English/Arabic, phone layout,
+axe accessibility, follow-up, missing data, local review, cancellation,
+unavailable service and mocked denied microphone access. A real heading
+contrast defect found in the first browser run was fixed; subsequent bilingual
+axe checks passed. Initial route-interception harness failures were replaced
+with deterministic browser-offline simulation. TypeScript and production build
+passed with existing packages; no dependency installation occurred.
+Interface budget passes at 99.9 KB first-load JavaScript, 262.4 KB total,
+10.4 KB first-load CSS and 35.1 KB total. Total-only allocations are documented
+in the decision; initial-load limits are unchanged. Full repository quick
+verification is separately reported in the delivery log, not inferred from
+these focused passes. Installed local Vite/Vitest versions differ from the
+lockfile; hosted exact-head CI remains necessary.
+
+Actual LLM inference, physical microphone and audible Arabic pronunciation
+were not validated. No original database migration, managed-auth change,
+production deployment or operational recommendation execution is included.
+
+
 ### PR76/PR78 follow-up verification, 2 November 2026
 
 Reviewed main `d529921`, whose tree is identical to merged PR76's final head.

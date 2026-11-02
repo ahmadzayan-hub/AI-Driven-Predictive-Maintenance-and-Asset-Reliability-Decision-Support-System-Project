@@ -2196,3 +2196,11 @@ Fresh final-head hosted checks are required; the failed run is retained as evide
 - **Next:** review the small follow-up and its exact-head CI. The existing main
   broad E2E gate has now passed. Production release and migration remain separate. No main
   merge, deployment, live database access, model-provider call or report approval.
+
+
+## 2026-11-02 — Jarvis OS hackathon workspace
+
+- Done: isolated checkout from latest inspected main, bilingual Jarvis view connected to existing DataChat and source ownership checks; read-only cancellable queries; synthetic-only launcher and screenshots. Original checkout and database preserved.
+- Verified: focused API/component/browser tests, TypeScript, build and budget; exact counts and limitations in README. Full quick verification tracked separately in the local delivery evidence.
+- Decided: new dated ADR; no live LLM claim, no report approval or dispatch from local review, local-only playback voices, explicit browser recognition disclosure.
+- Next: exact-head hosted CI, actual microphone/Arabic voice and model acceptance; independent backup/database-target/auth gates before deployment.

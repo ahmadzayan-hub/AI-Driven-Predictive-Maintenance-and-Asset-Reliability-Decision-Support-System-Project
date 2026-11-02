@@ -5,7 +5,7 @@ import { Icon } from '../../shared/components/Icon'
 // Ownership is shared so selecting a different reply also resets the old UI.
 let stopCurrent: (() => void) | null = null
 
-export function VoicePlayback({ text }: { text: string }) {
+export function VoicePlayback({ text, localOnly = false }: { text: string; localOnly?: boolean }) {
   const { t } = useI18n()
   const [state, setState] = useState<'idle' | 'queued' | 'speaking' | 'error'>('idle')
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
@@ -36,7 +36,8 @@ export function VoicePlayback({ text }: { text: string }) {
     stopCurrent?.()
     const utterance = new SpeechSynthesisUtterance(text.slice(0, 1800))
     const language = /[\u0600-\u06ff]/.test(text) ? 'ar' : 'en'
-    const voice = window.speechSynthesis.getVoices?.().find((candidate) => candidate.lang.toLowerCase().split('-')[0] === language)
+    const voice = window.speechSynthesis.getVoices?.().find((candidate) => candidate.lang.toLowerCase().split('-')[0] === language && (!localOnly || candidate.localService))
+    if (localOnly && !voice) { setState('error'); return }
     utterance.lang = voice?.lang ?? (language === 'ar' ? 'ar-AE' : 'en-US')
     if (voice) utterance.voice = voice
     utterance.rate = 0.95

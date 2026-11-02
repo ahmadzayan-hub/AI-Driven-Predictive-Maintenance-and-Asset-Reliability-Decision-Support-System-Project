@@ -1,0 +1,21 @@
+.jarvis { max-width: 1120px; margin: auto; padding: var(--space-5); overflow-wrap: anywhere; }
+.jarvis__hero { background: var(--nav-surface); color: var(--nav-text); border-radius: var(--radius-l); padding: var(--space-6); margin-block-end: var(--space-5); }
+.jarvis__hero h1 { font-size: clamp(2rem, 5vw, 3.2rem); margin-block: var(--space-2); }
+.jarvis__grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--space-5); }
+.jarvis__card { min-width: 0; padding: var(--space-5); margin-block-end: var(--space-5); border: 1px solid var(--border); border-radius: var(--radius-l); background: var(--surface); }
+.jarvis__card h2 { font-size: var(--text-xl); margin-block: 0 var(--space-4); }
+.jarvis__card p { margin-block: var(--space-3); }
+.jarvis__card label { display: block; margin-block: var(--space-4); }
+.jarvis__card textarea, .jarvis__card select { display: block; width: 100%; max-width: 100%; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-s); padding: var(--space-3); }
+.jarvis__card textarea { min-height: 100px; resize: vertical; }
+.jarvis__actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-block: var(--space-3); }
+.jarvis__actions button { white-space: normal; text-align: start; }
+.jarvis__question { border-inline-start: 3px solid var(--accent); padding-inline-start: var(--space-3); }
+.jarvis__evidence { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--font-sans); line-height: 1.7; }
+.jarvis__sources dd { margin-inline-start: 0; font-family: var(--font-mono); font-size: var(--text-s); }
+.jarvis__sources dt { margin-block-start: var(--space-3); font-weight: 700; }
+.jarvis-demo { height: 100dvh; overflow: auto; background: var(--bg); color: var(--text); }
+.jarvis-demo > header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; padding: var(--space-4) var(--space-5); background: var(--surface); }
+@media (max-width: 700px) { .jarvis__grid { grid-template-columns: minmax(0, 1fr); } .jarvis { padding: var(--space-3); } .jarvis__card, .jarvis__hero { padding: var(--space-4); } }
+
+.jarvis__hero .eyebrow { color: var(--nav-muted); }

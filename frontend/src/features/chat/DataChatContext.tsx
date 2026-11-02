@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../../shared/api'
 import { useReadOnly } from '../../shared/readOnly'
-import type { DataContextChoices, SessionState } from '../../shared/types'
+import type { DataContext, DataContextChoices, SessionState } from '../../shared/types'
 
-export function DataChatContext({ session, disabled }: { session: SessionState; disabled: boolean }) {
+export function DataChatContext({ session, disabled, onSelected, onPending }: { session: SessionState; disabled: boolean; onSelected?: (context: DataContext | null) => void; onPending?: () => void }) {
   const labels = session.data_chat_labels
   const readOnly = useReadOnly()
   disabled = disabled || readOnly
@@ -19,16 +19,16 @@ export function DataChatContext({ session, disabled }: { session: SessionState; 
 
   async function update(select?: string | null) {
     const request = ++generation.current
-    setBusy(true); setFailed(false)
+    setBusy(true); setFailed(false); onPending?.()
     try {
       if (select === undefined) {
         const answer = await api.dataContext(session.session_id)
         if (request !== generation.current) return
-        setChoices(answer.choices); setSelected(answer.selected); setRunId('')
+        setChoices(answer.choices); setSelected(answer.selected); setRunId(''); onSelected?.(answer.selected)
       } else {
         const answer = await api.selectDataContext(session.session_id, select)
         if (request !== generation.current) return
-        setSelected(answer.data_context ?? null)
+        setSelected(answer.data_context ?? null); onSelected?.(answer.data_context ?? null)
       }
     } catch { if (request === generation.current) setFailed(true) }
     finally { if (request === generation.current) setBusy(false) }

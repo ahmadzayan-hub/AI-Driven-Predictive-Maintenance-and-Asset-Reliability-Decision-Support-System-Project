@@ -7,6 +7,8 @@
  *  — the server localises its own replies from the session's language
  *  preference (agent.py). */
 export const en = {
+  'jarvis.launch': 'Open Jarvis OS',
+  'jarvis.close': 'Back to Miyaar conversation',
   'nav.sources': 'Data sources',
   'nav.evidence': 'Analysis & evidence',
   'nav.priorities': 'Priorities & actions',

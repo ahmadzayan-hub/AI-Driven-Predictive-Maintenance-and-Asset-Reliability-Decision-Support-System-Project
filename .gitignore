@@ -88,3 +88,5 @@ apps/android/*/build/
 apps/android/local.properties
 apps/android/.idea/
 apps/android/*.iml
+
+frontend/test-results-jarvis/

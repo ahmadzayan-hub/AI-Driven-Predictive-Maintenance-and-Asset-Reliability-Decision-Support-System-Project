@@ -216,3 +216,5 @@ One line per record, read from its title and decision; the record itself is the 
 - `2026-10-27-assistant-focus-and-context`: isolated candidate; native report disclosure beside composer, scoped session status and stronger first action. Browser acceptance pending.
 
 - `2026-10-29-trend-pointer-targets`: decorative SVG marks must not intercept chart controls; keep compact Arabic numeric labels inside the plot viewport. See `docs/adr/2026-10-29-trend-pointer-targets.md`.
+
+- `2026-11-02-jarvis-evidence-workspace`: owner-requested bilingual bounded analytics workspace, explicit source selection, read-only queries, tab-local review and synthetic hackathon launcher. See `docs/adr/2026-11-02-jarvis-evidence-workspace.md`.
