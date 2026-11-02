@@ -1,4 +1,4 @@
-.jarvis { max-width: 1400px; margin: auto; padding: var(--space-5); overflow-wrap: anywhere; }
+.jarvis { max-width: 1400px; margin: auto; padding: var(--space-5); overflow-wrap: break-word; }
 .jarvis__hero { padding: var(--space-3); margin-block-end: var(--space-3); }
 .jarvis__hero h1 { font-size: var(--text-2xl); margin-block: var(--space-2); }
 .jarvis__grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--space-5); }
