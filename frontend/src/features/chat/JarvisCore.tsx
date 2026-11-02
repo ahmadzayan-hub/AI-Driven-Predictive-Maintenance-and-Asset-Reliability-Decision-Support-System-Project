@@ -9,9 +9,11 @@ export function JarvisCore({ state, children, muted = true, onToggleAudio }: { s
   const { t } = usePack(jarvisMessages)
   const [still, setStill] = useState(false)
   const orb = <>
-      <svg viewBox="0 0 240 240"><circle cx="120" cy="120" r="108" /><circle cx="120" cy="120" r="88" />
+      <svg viewBox="0 0 240 240"><circle className="jarvis-core__gold" cx="120" cy="120" r="108" /><circle cx="120" cy="120" r="88" />
         <circle className="jarvis-core__arc" cx="120" cy="120" r="99" /><circle className="jarvis-core__pulse" cx="120" cy="120" r="69" />
-        <path d="M105 101v20a15 15 0 0 0 30 0v-20a15 15 0 0 0-30 0Zm-9 18a24 24 0 0 0 48 0m-24 24v14m-12 0h24" /></svg>
+        <path className="jarvis-core__mic" d="M105 101v20a15 15 0 0 0 30 0v-20a15 15 0 0 0-30 0Zm-9 18a24 24 0 0 0 48 0m-24 24v14m-12 0h24" />
+        {/* Speaking: an abstract waveform replaces the microphone. A state cue, never a face or an audio level. */}
+        <path className="jarvis-core__wave" d="M78 120h10l6-14 8 30 8-44 8 56 8-40 8 26 8-18 6 4h12" /></svg>
       <span>JARVIS</span>
     </>
   return <section className="jarvis-core" data-state={state} data-still={still} aria-label={t('voiceStage')}>

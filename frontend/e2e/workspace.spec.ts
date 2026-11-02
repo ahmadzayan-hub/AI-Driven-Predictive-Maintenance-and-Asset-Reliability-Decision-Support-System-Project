@@ -45,6 +45,9 @@ test('a late start response preserves the destination and the durable run', asyn
   await expect(page.getByRole('heading', { name: 'Datasets', exact: true })).toBeVisible()
   await page.goto(`/#/runs/${createdId}`)
   await expect(page.getByRole('region', { name: 'Run detail' })).toBeVisible()
+  // The run view requests /api/pipelines again; a held route still in flight
+  // when the test ends otherwise fails whichever test runs next.
+  await page.unrouteAll({ behavior: 'ignoreErrors' })
 })
 
 test('drafts, deep links, evidence and exact-report keyboard approval', async ({ page }, testInfo) => {

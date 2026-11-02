@@ -45,6 +45,8 @@ from server import joins as joining
 from server import live
 from server import mapping as colmap
 from server import query as table_query
+from server import layout_plan
+from server.model_privacy import run_blocks_model
 from server.executive import ExecutiveDashboardAgent, parse_filters as executive_filters
 from server import executive_export
 from server.maintenance import kpis as kpi_register
@@ -391,6 +393,13 @@ class QueryIn(BaseModel):
     filters: list = Field(default_factory=list, max_length=table_query.MAX_FILTERS)
     sort: dict | None = None
     limit: int = 100
+
+
+class LayoutIn(BaseModel):
+    """The analytical objective for a generative layout. The model is asked
+    only when the caller allows it and the run's privacy checks allow it."""
+    objective: str = Field(default="", max_length=layout_plan.MAX_OBJECTIVE)
+    use_model: bool = True
 
 
 class RecordsIn(BaseModel):
@@ -1980,6 +1989,23 @@ def create_app(config_path=None, env=None, dist_dir=None):
             return await run_in_threadpool(table_query.aggregate, table, body.model_dump())
         except table_query.QueryError as error:
             raise HTTPException(status_code=422, detail=error.detail(language))
+
+    # A generative layout for this run's table (ADR 2026-11-03-generative-layout):
+    # planned from the schema only, validated, and grounded by the query engine.
+    @app.post("/api/runs/{run_id}/layout")
+    async def plan_layout(run_id: str, body: LayoutIn,
+                          language: str = Query(default="en", pattern="^(en|ar)$"),
+                          principal=Depends(requires("read"))):
+        table, _ = await run_table(run_id, principal, language)
+        with lock:
+            tasks = engine.store.get_tasks(run_id)
+            blocked = run_blocks_model(engine.store, run_id)
+        stages = [t["role"] for t in tasks if t["state"] == "succeeded"]
+        result = await run_in_threadpool(
+            layout_plan.plan_for, table, gateway if body.use_model else None,
+            body.objective, stages, not blocked, language)
+        result.pop("profile", None)
+        return result
 
     # A saved dashboard view, one per owner and dataset (ADR
     # 2026-10-27-interactive-dashboard). Another owner's run is a 404.

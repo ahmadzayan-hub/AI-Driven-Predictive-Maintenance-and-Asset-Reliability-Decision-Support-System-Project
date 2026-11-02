@@ -126,7 +126,7 @@
 }
 .command__hero-body { flex: 1 1 320px; min-width: 0; }
 .command__eyebrow { color: var(--accent); font-size: var(--text-xs); font-weight: 600; letter-spacing: var(--tracking-label); }
-.command__headline { font-size: clamp(1.25rem, 2vw, 1.7rem); line-height: 1.55; font-weight: 500; margin-top: var(--space-1); overflow-wrap: anywhere; }
+.command__headline { font-size: clamp(1.35rem, 2.4vw, 2rem); line-height: 1.45; font-weight: 600; margin-top: var(--space-1); overflow-wrap: anywhere; }
 .command__meta, .command__owner { color: var(--text-muted); font-size: var(--text-s); margin-top: var(--space-2); }
 .command__grid {
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -140,7 +140,7 @@
 .command__n { flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: var(--text-xs); font-weight: 700; color: var(--accent); background: var(--accent-soft); }
 .command__kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
 .command__kpis dt { font-size: var(--text-xs); color: var(--text-muted); overflow-wrap: anywhere; }
-.command__kpis dd { margin: var(--space-2) 0 0; font-size: clamp(1.3rem, 2vw, 1.8rem); font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.command__kpis dd { margin: var(--space-2) 0 0; font-size: clamp(1.5rem, 2.4vw, 2.1rem); font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .command__models, .command__questions { list-style: none; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); font-size: var(--text-s); }
 .command__models li { display: flex; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
 .command__questions li { padding-inline-start: var(--space-3); border-inline-start: 2px solid var(--border-strong); }
@@ -174,7 +174,7 @@
 
 /* Scan performance, then open the context needed for a decision. */
 .command__performance { grid-column: 1 / -1; }
-.command__kpis > div { padding: var(--space-3); border-inline-start: 2px solid var(--border); min-width: 0; }
+.command__kpis > div { padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-l); background: var(--surface-raised); min-width: 0; }
 .command__kpis .performance-value__status { font-size: var(--text-xs); }
 .command__kpis small { font-size: var(--text-xs); font-weight: 400; }
 .command__list > li > div { flex: 1; min-width: 0; }
@@ -205,3 +205,6 @@
 .brief__trend-delta { grid-column: 1 / -1; font-size: var(--text-xs); color: var(--text-muted); }
 .brief__trend-delta[data-delta=up] { color: var(--success); }
 @media (max-width: 767px) { .brief { grid-template-columns: minmax(0, 1fr); padding: var(--space-4); } .brief__trend { grid-template-columns: 1fr; } .brief__spark { justify-self: start; } }
+.overview__top { display: grid; gap: var(--space-4); margin-block: var(--space-4); }
+.overview__top > * { margin: 0; }
+@media (min-width: 1100px) { .overview__top { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
