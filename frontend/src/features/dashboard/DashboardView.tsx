@@ -6,7 +6,7 @@ import '../../shared/styles/analytics.css'
  *  the reader's filters, and the rows behind them. The filters, the page
  *  and every choice live in the address, so a filtered page survives a
  *  reload and can be shared with someone who can open the run. */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useReadOnly } from '../../shared/readOnly'
 import { useI18n } from '../../i18n'
 import { usePack } from '../../i18n/pack'
@@ -36,6 +36,8 @@ import type { Point } from './charts'
 import { drill, EMPTY, executiveDrill, filterCount, isPicked, isRangePicked, pagesFor, pick, pickRange, readState, rolesOf, toFilters, writeState } from './state'
 import type { DashState, Page, Roles } from './state'
 import './dashboard.css'
+
+const DesignedPage = lazy(() => import('./DesignedPage').then((m) => ({ default: m.DesignedPage })))
 
 const READY_STATES = ['awaiting_approval', 'completed', 'partially_completed']
 const PAGE_SIZE = 25
@@ -118,7 +120,7 @@ function RunPicker({ onPick }: { onPick: (id: string) => void }) {
   )
 }
 
-function useAnswer<T>(key: string | null, load: () => Promise<T>) {
+export function useAnswer<T>(key: string | null, load: () => Promise<T>) {
   const [state, setState] = useState<{ key: string | null; data: T | null; error: string | null }>({
     key: null, data: null, error: null,
   })
@@ -317,12 +319,13 @@ function Dashboard({ runId, page, query, onNavigate, onOpenRun }: {
         <DashboardJarvis runId={runId} datasetName={run.data?.dataset_name ?? runId} filters={filters}>
         {console => <div className="dash-page">
           <h3 className="visually-hidden">{t(`dash.page.${current}` as DashKey)}</h3>
-          {current !== 'overview' && console}
+          {current !== 'overview' && current !== 'designed' && console}
           {current === 'overview' ? <ExecutiveOverview runId={runId} filters={filters} workspace={console}
             onOpenRun={() => onOpenRun(runId)} canDrill={(next) => executiveDrill(next, state, roles) !== null}
             onDrill={(next) => { const scoped = executiveDrill(next, state, roles); if (scoped) setState(scoped, 'records') }}>
             <OverviewPage {...props} />
           </ExecutiveOverview> : null}
+          {current === 'designed' ? <><Suspense fallback={null}><DesignedPage {...props} /></Suspense>{console}</> : null}
           {current === 'breakdown' ? <BreakdownPage {...props} /> : null}
           {current === 'trend' ? <TrendPage {...props} /> : null}
           {current === 'distribution' ? <DistributionPage {...props} /> : null}

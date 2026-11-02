@@ -101,3 +101,64 @@ come from a computed result, and no model output may run as code.
 - an API test on a real run;
 - the endpoint is added to the tenancy tests: another owner gets a 404, and
   a viewer and an admin can read.
+
+## Slice 2: the interface (2026-11-03)
+
+The owner asked for linked filters, Jarvis scoped to the selection, pinning
+and restoring earlier layouts.
+
+1. **A dashboard page, "Designed for this data"** (`DesignedPage`,
+   lazy-loaded).
+   - It renders a server-validated plan using registered components only:
+     KPI value, trend line, ranked bars, distribution bars, records table, and
+     "Not available yet" with the reason in the reader's language.
+   - The layout comes first. The Jarvis console follows it on this page.
+2. **Linked filters.**
+   - Every section's query adds the dashboard's shared filters to its own
+     binding.
+   - A pick on a ranking or trend updates the dashboard state, the same URL
+     state the other pages use, so every section and the coverage line change
+     together. A distribution is not pickable.
+3. **Jarvis scope.** Jarvis is bound to the same filter list
+   (`DashboardJarvis filters`). A pick therefore changes its scope, and the
+   existing scope rule asks the reader to refresh the binding instead of
+   answering about the old scope.
+4. **Versions and pins** (`layoutHistory.ts`, browser storage per run).
+   - Up to five versions are kept for one schema fingerprint.
+   - A refresh shows the stored layout and does not design again.
+   - "Redesign" adds a version, and pinned sections carry over first.
+   - "Earlier layouts" restores any kept version.
+   - A schema change starts afresh and drops pins.
+   - A late answer from an earlier request or another run is discarded.
+   - A failed design keeps the last valid layout and says so.
+5. **Bilingual server text.** Capability reasons and planner notes are now
+   `{en, ar}`. The result names the `provider` when a model designed the
+   plan.
+
+**Limitations:** versions live in this browser only, until a stored history
+has its schema migration. A layout designed by a real model has still not
+been observed.
+
+**Budget:** measured after the build, against the slice-1 head.
+
+| | Slice 1 | Slice 2 | Change |
+| --- | --- | --- | --- |
+| Script total | 272,570 B | 275,715 B | +3,145 B |
+| Style total | 36,875 B | 37,371 B | +496 B |
+
+First load is unchanged, because the page is a lazy chunk. Raising the
+limits to 276 KB and 37.5 KB awaits the owner's approval.
+
+**Verification:**
+
+- `DesignedPage.test.tsx`, 5 tests:
+  - history: five versions, pins carried within a schema and dropped on a
+    new one;
+  - a design happens once, and a refresh keeps it;
+  - shared filters reach every section's query, and a pick narrows the
+    state;
+  - pin, redesign and restore;
+  - a failure keeps the last layout, and a late answer for another run is
+    dropped.
+- Screenshots of the page were taken on the synthetic maintenance run in
+  English and Arabic, using the Jarvis demo server.

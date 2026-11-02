@@ -96,19 +96,25 @@ def capabilities(prof, stages=()):
     stages = set(stages)
     measures, dates, groups = _measures(prof), _dates(prof), _groups(prof)
     caps = {
-        "descriptive": (prof["records"] > 0, "The table has no records."),
+        "descriptive": (prof["records"] > 0, _t("The table has no records.",
+                                                "الجدول بلا سجلات.")),
         "trend": (bool(dates and measures),
-                  "No date column was recognised, so no trend over time."),
+                  _t("No date column was recognised, so no trend over time.",
+                     "لم يُتعرَّف على عمود تاريخ، فلا اتجاه عبر الزمن.")),
         "ranking": (bool(groups and measures),
-                    "No text column with 2 to 50 groups and a measure to rank."),
-        "distribution": (bool(measures), "No measure column."),
+                    _t("No text column with 2 to 50 groups and a measure to rank.",
+                       "لا يوجد عمود نصي من 2 إلى 50 مجموعة مع مقياس للترتيب.")),
+        "distribution": (bool(measures), _t("No measure column.", "لا يوجد عمود مقياس.")),
         # A forecast or a risk is shown only from a validated model result;
         # the planner cannot create one.
-        "forecast": (False, "No validated forecast result is attached to this run."),
+        "forecast": (False, _t("No validated forecast result is attached to this run.",
+                               "لا توجد نتيجة تنبؤ مُتحقَّق منها لهذا التحليل.")),
         "predictive_risk": ("risk_ranking" in stages,
-                            "No fitted risk ranking: it needs failure records with dates."),
+                            _t("No fitted risk ranking: it needs failure records with dates.",
+                               "لا يوجد ترتيب مخاطر مُطابَق: يحتاج سجلات أعطال بتواريخ.")),
         "prescriptive": ("what_if_scenarios" in stages,
-                         "No scenario model ran, so options cannot be compared."),
+                         _t("No scenario model ran, so options cannot be compared.",
+                            "لم يعمل نموذج السيناريوهات، فلا تُقارَن الخيارات.")),
     }
     return {name: {"available": ok, "reason": None if ok else why}
             for name, (ok, why) in caps.items()}
@@ -224,7 +230,7 @@ def validate(plan, table, prof, caps):
             item["reason"] = caps[cap]["reason"]
         else:
             if not caps[needs]["available"]:
-                problems.append(f"{where}: {component} needs {needs}: {caps[needs]['reason']}")
+                problems.append(f"{where}: {component} needs {needs}: {caps[needs]['reason']['en']}")
                 continue
             if _ground(table, component, binding, prof, problems, where) is None:
                 continue
@@ -325,26 +331,30 @@ def model_plan(gateway, prof, caps, objective, language="en"):
     """Ask the configured model for a plan. Returns (plan or None, note)."""
     status = gateway.status()
     if not status.get("configured"):
-        return None, "No language model is configured, so the rule planner was used."
+        return None, _t("No language model is configured, so the rule planner was used.",
+                        "لا يوجد نموذج لغوي مُعَدّ، فاستُخدم التصميم بالقواعد.")
     payload = json.dumps({"objective": objective, "language": language, "profile": prof,
                           "capabilities": {k: v["available"] for k, v in caps.items()}},
                          ensure_ascii=False)
     try:
         raw = gateway.ask_json(SYSTEM, payload, max_tokens=2000, task="layout")
     except Exception as error:  # a provider failure must not break the page
-        return None, f"The model did not answer ({type(error).__name__}); the rule planner was used."
+        return None, _t(f"The model did not answer ({type(error).__name__}); the rule planner was used.",
+                        f"لم يُجب النموذج ({type(error).__name__})؛ فاستُخدم التصميم بالقواعد.")
     try:
         plan = json.loads(raw) if isinstance(raw, str) else raw
     except ValueError:
-        return None, "The model's answer was not JSON; the rule planner was used."
-    return plan, f"Planned by {status.get('provider')} {status.get('model') or ''}".strip()
+        return None, _t("The model's answer was not JSON; the rule planner was used.",
+                        "لم تكن إجابة النموذج JSON؛ فاستُخدم التصميم بالقواعد.")
+    name = f"{status.get('provider')} {status.get('model') or ''}".strip()
+    return plan, _t(f"Planned by {name}", f"صمّمه {name}")
 
 
 def plan_for(table, gateway=None, objective="", stages=(), model_allowed=True, language="en"):
     """The whole pipeline. Always returns a validated plan and says how."""
     prof = profile(table)
     caps = capabilities(prof, stages)
-    notes, source, problems = [], "rules", []
+    notes, source, problems, provider = [], "rules", [], None
     plan = None
     if gateway is not None and model_allowed:
         proposed, note = model_plan(gateway, prof, caps, objective, language)
@@ -353,13 +363,17 @@ def plan_for(table, gateway=None, objective="", stages=(), model_allowed=True, l
             plan, problems = validate(proposed, table, prof, caps)
             if plan is not None:
                 source = "model"
+                status = gateway.status()
+                provider = f"{status.get('provider')} {status.get('model') or ''}".strip()
             else:
-                notes.append("The model's plan failed validation and was not rendered.")
+                notes.append(_t("The model's plan failed validation and was not rendered.",
+                                "لم يجتز تصميم النموذج التحقق فلم يُعرض."))
     elif not model_allowed:
-        notes.append("This run's data may not go to a model, so the rule planner was used.")
+        notes.append(_t("This run's data may not go to a model, so the rule planner was used.",
+                        "لا يجوز إرسال بيانات هذا التحليل إلى نموذج، فاستُخدم التصميم بالقواعد."))
     if plan is None:
         plan, rule_problems = validate(rule_plan(prof, caps, objective), table, prof, caps)
         if plan is None:  # a rule plan that fails its own contract is a bug
             raise ValueError("; ".join(rule_problems))
-    return {"plan": plan, "source": source, "notes": notes, "problems": problems,
+    return {"plan": plan, "source": source, "provider": provider, "notes": notes, "problems": problems,
             "capabilities": caps, "fingerprint": fingerprint(prof), "profile": prof}

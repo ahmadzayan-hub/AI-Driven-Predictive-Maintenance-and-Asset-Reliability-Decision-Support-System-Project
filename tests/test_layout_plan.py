@@ -94,7 +94,8 @@ class ProfileTests(unittest.TestCase):
     def test_capabilities_follow_the_data(self):
         caps = L.capabilities(L.profile(contracts()))
         self.assertFalse(caps["trend"]["available"])       # no recognised date
-        self.assertIn("date", caps["trend"]["reason"])
+        self.assertIn("date", caps["trend"]["reason"]["en"])
+        self.assertTrue(caps["trend"]["reason"]["ar"])
         self.assertFalse(caps["forecast"]["available"])    # never from the planner
         self.assertFalse(caps["predictive_risk"]["available"])
         self.assertTrue(L.capabilities(L.profile(maintenance()), ["risk_ranking"])["predictive_risk"]["available"])
@@ -175,7 +176,8 @@ class PlannerTests(unittest.TestCase):
         gateway = Gateway(answer)
         result = L.plan_for(maintenance(), gateway, "cost")
         self.assertEqual(result["source"], "model")
-        self.assertIn("recorded-fake", result["notes"][0])
+        self.assertIn("recorded-fake", result["notes"][0]["en"])
+        self.assertEqual(result["provider"], "recorded-fake fixture")
         sent = json.loads(gateway.calls[0])
         self.assertNotIn("Pumps", gateway.calls[0])           # no category values sent
         self.assertIn("profile", sent)
@@ -186,7 +188,7 @@ class PlannerTests(unittest.TestCase):
         result = L.plan_for(maintenance(), Gateway(answer), "uptime")
         self.assertEqual(result["source"], "rules")
         self.assertTrue(result["problems"])
-        self.assertTrue(any("failed validation" in n for n in result["notes"]))
+        self.assertTrue(any("failed validation" in n["en"] for n in result["notes"]))
 
     def test_injected_field_names_stay_data(self):
         rows = [(f"2026-01-{1 + i:02d}", float(i)) for i in range(10)]
@@ -207,12 +209,12 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual(L.plan_for(t)["plan"], result["plan"])
 
     def test_no_model_or_no_permission_says_so(self):
-        self.assertIn("No language model", L.plan_for(maintenance(), Gateway("{}", configured=False))["notes"][0])
+        self.assertIn("No language model", L.plan_for(maintenance(), Gateway("{}", configured=False))["notes"][0]["en"])
         self.assertIn("may not go to a model",
-                      L.plan_for(maintenance(), Gateway("{}"), model_allowed=False)["notes"][0])
+                      L.plan_for(maintenance(), Gateway("{}"), model_allowed=False)["notes"][0]["en"])
         broken = L.plan_for(maintenance(), Gateway(RuntimeError("down")))
         self.assertEqual(broken["source"], "rules")
-        self.assertIn("did not answer", broken["notes"][0])
+        self.assertIn("did not answer", broken["notes"][0]["en"])
 
     def test_sparse_and_empty_tables_do_not_fabricate(self):
         empty = table(["Asset", "Value"], {"Value"}, [])

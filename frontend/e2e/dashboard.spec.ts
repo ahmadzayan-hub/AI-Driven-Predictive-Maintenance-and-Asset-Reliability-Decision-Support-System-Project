@@ -56,7 +56,7 @@ test('every page of the dashboard, accessible and without sideways scrolling', a
   await expect(comparison.locator('.dash-bars')).toContainText('North')
 
   const pages = page.getByRole('navigation', { name: 'Dashboard pages' })
-  for (const name of ['Overview', 'Breakdown', 'Trend', 'Distribution', 'Relationship', 'Records']) {
+  for (const name of ['Overview', 'Designed for this data', 'Breakdown', 'Trend', 'Distribution', 'Relationship', 'Records']) {
     const menu = page.locator('.dash-navigation')
     if (!(await menu.evaluate((element) => (element as HTMLDetailsElement).open))) await menu.locator('summary').click()
     await pages.getByRole('link', { name }).click()
