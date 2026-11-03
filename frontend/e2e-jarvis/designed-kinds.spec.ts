@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { jarvisMessages } from '../src/i18n/jarvis'
 import { layoutMessages } from '../src/i18n/layout'
 
 // The same page designs itself differently for different records (ADR
@@ -13,8 +14,9 @@ const budget = ['Category,Month,Budget,Actual',
     `2026-${String(1 + (i % 9)).padStart(2, '0')}-01`, 500 + i, 480 + 3 * i].join(','))].join('\n')
 
 const KINDS = [
-  { name: 'contracts', csv: contracts, first: 'Overdue', column: 'Status', absent: 'distribution' },
-  { name: 'budget', csv: budget, first: 'IT', column: 'Category', absent: 'gap-predictive-risk' },
+  // total: the summed measure and its hand-checked total for the first group.
+  { name: 'contracts', csv: contracts, first: 'Overdue', column: 'Status', absent: 'distribution', measure: 'Value_AED', total: /355,?000|٣٥٥٬?٠٠٠/ },
+  { name: 'budget', csv: budget, first: 'IT', column: 'Category', absent: 'gap-predictive-risk', measure: 'Actual', total: /4,?833|٤٬?٨٣٣/ },
 ] as const
 
 for (const kind of KINDS) for (const locale of ['en', 'ar'] as const) test(`${kind.name} records design their own page (${locale})`, async ({ page }, info) => {
@@ -46,7 +48,15 @@ for (const kind of KINDS) for (const locale of ['en', 'ar'] as const) test(`${ki
   await expect(page).toHaveURL(new RegExp(`f\\.${kind.column}=${kind.first}`))
   const focus = page.getByRole('region', { name: l.selected.replace('{name}', kind.first) })
   await expect(focus.locator('table tbody tr').first()).toContainText(kind.first)
-  await expect(focus).toContainText(l.jarvisOnly)                       // no question Jarvis cannot answer
   await expect(cards).toHaveCount(3)
   await page.screenshot({ path: info.outputPath(`2-${kind.name}-focus-${locale}.png`), fullPage: true })
+
+  // Jarvis sums this kind's own measure for the selection, calculated, not guessed.
+  const question = l.askTotal.replace('{column}', kind.measure)
+  await focus.getByRole('button', { name: question }).click()
+  const assistant = page.locator('.dash-jarvis__assistant')
+  await expect(assistant.getByRole('textbox')).toHaveValue(question, { timeout: 20_000 })
+  await assistant.getByRole('button', { name: jarvisMessages[locale].ask, exact: true }).click()
+  await expect(assistant.locator('.jarvis__evidence, .jarvis__measures').first()).toContainText(kind.total, { timeout: 20_000 })
+  await page.screenshot({ path: info.outputPath(`3-${kind.name}-jarvis-${locale}.png`), fullPage: true })
 })

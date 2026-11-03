@@ -265,3 +265,44 @@ like).
 
 **Budget:** 277,617 of 278,000 bytes of script and 38,019 of 38,100 of style.
 No raise.
+
+## Slice 5: Jarvis answers other kinds of records (2026-11-03)
+
+Until now Jarvis's calculated answers covered maintenance measures only, so a
+contracts or budget selection ended with "Jarvis answers maintenance measures
+only". This slice gives every kind of records one calculated question.
+
+1. **"Total <column>"** (`server/data_chat.py`, metric `column_total`).
+   - With a report selected, "What is the total Value_AED?", "total value aed"
+     or "ما إجمالي Value_AED؟" sums one named numeric column over the selected
+     scope.
+   - The name must match exactly one numeric column of the selected table,
+     ignoring case and treating spaces as underscores. Otherwise the answer is
+     the usual "cannot safely calculate" refusal.
+   - Scope and forecast words still decline ("by", "next", a year), as for
+     every data question. No model is called.
+   - The answer carries the formula `sum(<column>)` and the measured and
+     unmeasured record counts, like the other calculated answers.
+   - `DataQueryIn` gains an optional `column` of at most 128 characters,
+     checked against the table when the answer is calculated.
+2. **The focus panel asks it.** For any kind other than maintenance, when the
+   priorities sum a column, the panel offers "What is the total <column>?" for
+   the selection. When they only count records, it says Jarvis has no
+   calculated question for this selection yet.
+
+**Verification:**
+
+- `tests/test_data_chat.py`, 2 new tests:
+  - a named column is summed over the selection only (12,000 for the three
+    Overdue contracts), in English and Arabic;
+  - a text column, an absent column, a scoped question and a forecast are all
+    refused.
+- `DesignedPage.test.tsx`: contracts offer "What is the total Downtime?" and
+  hand it to Jarvis; a count-only list says there is no calculated question.
+- `e2e-jarvis/designed-kinds.spec.ts`, English and Arabic. Jarvis answers the
+  selection's total, both checked by hand:
+  - Overdue contracts: Value_AED 355,000 for 10 of 30 records;
+  - IT budget lines: Actual 4,833 for 9 of 36 records.
+- The Jarvis e2e suite passes 16 of 16.
+
+**Budget:** 277.7 of 278 KB of script and 38.0 of 38.1 KB of style. No raise.

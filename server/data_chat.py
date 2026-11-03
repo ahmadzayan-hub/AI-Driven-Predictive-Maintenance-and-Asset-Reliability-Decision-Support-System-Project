@@ -16,13 +16,16 @@ from server.runs import TableNotReady
 Metric = Literal["maintenance_cost", "production_loss", "failure_count", "availability",
                  "utilisation", "mtbf", "mttr", "overdue_rate", "first_time_fix",
                  "sla_attainment", "loss_per_record", "loss_to_maintenance_ratio",
-                 "loss_per_downtime_hour", "cost_per_operating_hour", "asset_age_summary"]
+                 "loss_per_downtime_hour", "cost_per_operating_hour", "asset_age_summary",
+                 "column_total"]
 
 
 class DataQueryIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
     metrics: list[Metric] = Field(min_length=1, max_length=6)
     asset_class: Literal["railway_signaling"] | None = None
+    # A numeric column of the selected table, named exactly; checked at answer time.
+    column: str | None = Field(default=None, min_length=1, max_length=128)
 
 
 class DataContextIn(BaseModel):
@@ -77,6 +80,10 @@ def question_metrics(text, selected=False):
         ("sla_attainment", r"service target met|sla attainment|تحقيق هدف الخدمة"),
     )
     matches = [(key, match) for key, pattern in patterns if (match := re.search(pattern, normal))]
+    if selected and not matches and column_named(text):
+        # "Total <column>" on the selected data: any kind of records, summed
+        # exactly. Scope or forecast words still decline below.
+        matches, data_words = [("column_total", re.search(r".+", normal))], True
     if not data_words and not matches:
         return None
     if re.search(r"\b(by|where|between|during|before|after|site|quarter|average|median|predict|forecast|tomorrow|next|why|not)\b|\b20\d{2}\b|حسب|خلال|موقع|الربع|توقع|تنبؤ|غدا|القادم|لماذا|لا تعرض", normal):
@@ -98,8 +105,22 @@ def question_metrics(text, selected=False):
     return keys[:6]
 
 
+COLUMN_QUESTION = re.compile(
+    r"^\s*(?:what\s+is\s+|show\s+(?:me\s+)?)?(?:the\s+)?total\s+(?:of\s+)?([A-Za-z][\w ]{0,60}?)\s*\??\s*$"
+    r"|^\s*(?:ما\s+)?(?:إجمالي|اجمالي)\s+([A-Za-z][\w ]{0,60}?)\s*[؟?]?\s*$", re.I)
+
+
+def column_named(text):
+    """The column a "total <column>" question names, in Latin letters as
+    column names are, or None. Matching to a real column happens later."""
+    match = COLUMN_QUESTION.match(text or "")
+    return (match.group(1) or match.group(2)).strip() if match else None
+
+
 def natural_request(text, metrics):
     request = {"metrics": metrics}
+    if metrics == ["column_total"]:
+        request["column"] = column_named(text)
     if re.search(r"railway signal[li]*ng|إشارات السكك|اشارات السكك|إشارات السكة|اشارات السكة", text, re.I):
         request["asset_class"] = "railway_signaling"
     return request
@@ -220,6 +241,19 @@ class DataChat:
                 raise DataChatError("too_large")
             measures = []
             for key in dict.fromkeys(parsed.metrics):
+                if key == "column_total":
+                    wanted = re.sub(r"[\s_]+", "_", (parsed.column or "")).casefold()
+                    names = [c for c in table.numeric if c.casefold() == wanted]
+                    if len(names) != 1:
+                        raise DataChatError("unsupported_question")
+                    position = table.columns.index(names[0])
+                    values = [row[position] for row in selected if type(row[position]) in (float, int)
+                              and math.isfinite(row[position])]
+                    measures.append({"key": key, "title": names[0], "value": math.fsum(values) if values else None,
+                                     "numerator": math.fsum(values) if values else None, "denominator": None,
+                                     "records": len(values), "records_unmeasured": len(selected) - len(values),
+                                     "formula": f"sum({names[0]})"})
+                    continue
                 if key == "asset_age_summary":
                     if "Asset_Age_Years" not in table.columns:
                         measures.append({"key": key, "title": tr("Recorded age", "العمر المسجل"), "value": None,

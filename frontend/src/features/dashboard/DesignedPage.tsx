@@ -60,6 +60,8 @@ function Focus({ runId, name, drivers, measures, filters, maintenance, onClear }
   const { t, formatNumber } = usePack(layoutMessages)
   const { locale } = useI18n()
   const ask = useJarvisPrompt()
+  // Other kinds of records: Jarvis sums the summed column for this selection.
+  const total = measures[0]?.agg === 'sum' ? measures[0].column : undefined
   const spec = drivers ? { group_by: [drivers], measures, filters, sort: { by: measures[0]?.agg === 'count' ? 'count' : `${measures[0]?.agg}:${measures[0]?.column}`, desc: true }, limit: 5 } : null
   const split = useAnswer<QueryAnswer>(spec ? `focus:${runId}:${locale}:${JSON.stringify(spec)}` : null, () => api.queryTable(runId, spec!, locale))
   const rows = useAnswer<RecordsPage>(`focus-r:${runId}:${locale}:${JSON.stringify(filters)}`, () => api.tableRecords(runId, { filters, limit: 5 }, locale))
@@ -72,9 +74,9 @@ function Focus({ runId, name, drivers, measures, filters, maintenance, onClear }
       <thead><tr>{rows.data.columns.slice(0, 6).map((c) => <th key={c} scope="col">{c}</th>)}</tr></thead>
       <tbody>{rows.data.rows.map((r, i) => <tr key={i}>{r.slice(0, 6).map((v, j) => <td key={j} dir="auto">{v ?? ''}</td>)}</tr>)}</tbody>
     </table></div><p className="card__meta">{t('rows', { n: formatNumber(rows.data.total) })}</p></> : null}
-    {maintenance && ask ? <div className="layout__actions"><span className="card__meta">{t('jarvisScope')}</span>
-      <button type="button" className="btn btn--ghost" onClick={() => ask(t('askCost'))}>{t('askCost')}</button>
-      <button type="button" className="btn btn--ghost" onClick={() => ask(t('askFailures'))}>{t('askFailures')}</button></div>
+    {ask && (maintenance || total) ? <div className="layout__actions"><span className="card__meta">{t('jarvisScope')}</span>
+      {(maintenance ? [t('askCost'), t('askFailures')] : [t('askTotal', { column: total! })]).map((q) =>
+        <button key={q} type="button" className="btn btn--ghost" onClick={() => ask(q)}>{q}</button>)}</div>
       : <p className="card__meta">{t('jarvisOnly')}</p>}
   </section>
 }
