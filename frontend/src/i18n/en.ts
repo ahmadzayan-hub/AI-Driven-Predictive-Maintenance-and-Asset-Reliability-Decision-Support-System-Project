@@ -9,9 +9,9 @@
 export const en = {
   'jarvis.launch': 'Open Jarvis OS',
   'jarvis.close': 'Back to conversation',
-  'nav.sources': 'Data sources',
-  'nav.evidence': 'Analysis & evidence',
-  'nav.priorities': 'Priorities & actions',
+  'nav.sources': 'Data',
+  'nav.evidence': 'Analysis',
+  'nav.priorities': 'Actions',
   'nav.outputs': 'Reports',
   'nav.assistant': 'Ask Miyaar',
   'nav.tools': 'Workspace tools',

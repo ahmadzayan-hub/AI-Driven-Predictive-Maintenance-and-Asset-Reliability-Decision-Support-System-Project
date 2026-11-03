@@ -37,6 +37,8 @@ export const commandMessages = definePack({
   'command.failedChecks': '{n} original run checks did not pass',
   'command.questions': 'Questions for the approver',
   'command.evidenceLink': 'Inspect evidence',
+  'command.askJarvis': 'Ask about this report',
+  'command.proposed': 'Proposed',
 }, {
   'command.aria': 'ذكاء القرار التنفيذي',
   'command.eyebrow': 'أحدث تحليل',
@@ -73,4 +75,6 @@ export const commandMessages = definePack({
   'command.failedChecks': '{n} من فحوص التشغيل الأصلي لم تُجتَز',
   'command.questions': 'أسئلة لصاحب الموافقة',
   'command.evidenceLink': 'افحص الأدلة',
+  'command.askJarvis': 'اسأل عن هذا التقرير',
+  'command.proposed': 'مقترح',
 })

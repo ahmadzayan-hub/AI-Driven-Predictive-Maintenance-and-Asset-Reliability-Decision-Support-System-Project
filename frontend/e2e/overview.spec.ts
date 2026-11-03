@@ -112,9 +112,9 @@ test('the phone bar holds four work stages and More opens contextual tools', asy
 
   const bar = page.getByRole('navigation', { name: 'Primary' })
   await expect(bar.getByRole('button')).toHaveCount(5)
-  await expect(bar.getByRole('button')).toHaveText(['Data sources', 'Analysis & evidence', 'Priorities & actions', 'Reports', 'More'])
-  await bar.getByRole('button', { name: 'Priorities & actions', exact: true }).click()
-  await expect(bar.getByRole('button', { name: 'Priorities & actions', exact: true })).toHaveAttribute('aria-current', 'step')
+  await expect(bar.getByRole('button')).toHaveText(['Data', 'Analysis', 'Actions', 'Reports', 'More'])
+  await bar.getByRole('button', { name: 'Actions', exact: true }).click()
+  await expect(bar.getByRole('button', { name: 'Actions', exact: true })).toHaveAttribute('aria-current', 'step')
 
   const more = bar.getByRole('button', { name: 'More' })
   await more.click()
@@ -189,7 +189,7 @@ test('four work stages preserve routes, history and secondary tools', async ({ p
   await page.goto('/')
   await revealNavigation(page)
   const nav = page.getByRole('navigation', { name: 'Main', exact: true }).filter({ visible: true })
-  await expect(nav.locator('.workflow-stage__entry')).toHaveText(['1Data sources', '2Analysis & evidence', '3Priorities & actions', '4Reports'])
+  await expect(nav.locator('.workflow-stage__entry')).toHaveText(['1Data', '2Analysis', '3Actions', '4Reports'])
   const tools = nav.locator('.sidebar__group')
   const address = page.url()
   await tools.locator('summary').click()

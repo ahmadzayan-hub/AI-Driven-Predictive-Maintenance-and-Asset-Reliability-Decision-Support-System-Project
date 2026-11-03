@@ -58,8 +58,10 @@ DIST = FRONTEND / "dist"
 # script and 0.6 KB style to the totals only: ADR 2026-11-02-jarvis-command-deck.
 # The generative layout page adds 3.1 KB script and 0.5 KB style to the totals
 # only, as a lazy chunk; its decision path (slice 3) adds 1.6 KB script and
-# 0.6 KB style the same way: ADR 2026-11-03-generative-layout.
-BUDGET_KB = {"js": 100, "js_total": 278, "js_chunk": 30, "css": 10.5, "css_total": 38.1,
+# 0.6 KB style the same way: ADR 2026-11-03-generative-layout. The reference
+# design slice raises the ceilings to 282 KB and 41 KB, approved by the owner
+# ("موافق", 3 November 2026): ADR 2026-11-03-executive-dark-theme.
+BUDGET_KB = {"js": 100, "js_total": 282, "js_chunk": 30, "css": 10.5, "css_total": 41,
              "fonts": 145}
 LABELS = {"js": "js first load", "js_total": "js total", "js_chunk": "largest js chunk",
           "css": "css first load", "css_total": "css total", "fonts": "fonts"}
