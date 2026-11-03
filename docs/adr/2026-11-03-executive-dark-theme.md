@@ -120,3 +120,21 @@ routes. Strings only, so the bundle size barely moves.
 
 **Verification:** the overview and task-first end-to-end tests check the new
 labels on desktop and phone, in English and Arabic.
+
+## Slice 4: Jarvis conversation view (2026-11-03)
+
+Style only, no new strings and no new markup. The input and output panels get a
+glass look with a thin cyan edge; the asked question shows as a chat bubble;
+the answer's measures become glowing tiles with a cyan top edge and a larger
+value; the quick questions become pills. Every figure and sentence still comes
+from the calculated answer.
+
+**Measured:** style total 38.5 KB to 38.7 KB of the 41 KB ceiling; script
+unchanged at 277.8 of 282 KB.
+
+**Not done:** a separate answer card with metric chips and a baseline table, as
+in the reference, needs fields the answer does not carry; they are not invented.
+
+**Verification:** the Jarvis workspace and dashboard end-to-end tests pass (7 of
+7, with axe, English and Arabic); screenshots taken on the synthetic demo
+server.

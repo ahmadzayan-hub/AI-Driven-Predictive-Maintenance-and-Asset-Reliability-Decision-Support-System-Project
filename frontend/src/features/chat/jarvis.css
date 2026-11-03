@@ -82,3 +82,13 @@
 @media (prefers-reduced-motion: reduce) { .jarvis-core *, .jarvis-core::before { animation: none !important; } }
 @media (max-width: 1100px) { .jarvis__console { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .jarvis__console > .jarvis-core { grid-column: 1 / -1; } .jarvis__composer { grid-row: 2; } .jarvis__answer { grid-column: 2; grid-row: 2; } }
 @media (max-width: 700px) { .jarvis__console { display: flex; flex-direction: column; } .jarvis__console > * { width: 100%; } .jarvis__answer { max-block-size: none; } }
+
+/* Conversation view after the owner's reference: glass panels, the question as
+   a bubble, and answer metrics as glowing tiles. Presentation only. */
+.jarvis__composer, .jarvis__answer { background: linear-gradient(160deg, color-mix(in srgb, var(--surface) 92%, #22d3ee), var(--surface)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent), 0 12px 32px rgba(0, 0, 0, .18); }
+.jarvis__question { margin-block: 0 var(--space-3); padding: var(--space-3) var(--space-4); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)); border-radius: var(--radius-l) var(--radius-l) var(--radius-l) var(--radius-s); background: var(--accent-soft); font-weight: 600; }
+.jarvis__metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-2); }
+.jarvis__metrics article { position: relative; margin: 0; border-inline-start: 0; border: 1px solid var(--border); background: var(--surface-2, var(--surface)); box-shadow: inset 0 2px 0 #22d3ee, 0 0 18px color-mix(in srgb, #a78bfa 22%, transparent); }
+.jarvis__metrics article + article { margin-block-start: 0; }
+.jarvis__metrics .jarvis__metric-value { color: var(--accent); font-size: var(--text-2xl); }
+.jarvis__actions .btn--ghost { border-radius: 999px; }
