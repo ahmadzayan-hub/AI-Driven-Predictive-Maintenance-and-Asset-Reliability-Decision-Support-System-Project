@@ -13,7 +13,8 @@ for (const locale of ['en', 'ar'] as const) {
       test.skip(info.project.name !== 'desktop', 'Explicit viewport matrix runs once')
       await page.setViewportSize({ width, height: 900 })
       await page.addInitScript((language) => localStorage.setItem('aos-locale', language), locale)
-      if (theme === 'dark') await page.addInitScript(() => localStorage.setItem('aos-theme', 'dark'))
+      // A first visit is dark (ADR 2026-11-03-executive-dark-theme); light is a saved choice.
+      await page.addInitScript((value) => localStorage.setItem('aos-theme', value), theme)
       await page.goto('/')
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
       await viewLoaded(page)
