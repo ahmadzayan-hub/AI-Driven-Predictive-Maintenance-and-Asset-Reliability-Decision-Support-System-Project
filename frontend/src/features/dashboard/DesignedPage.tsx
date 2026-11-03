@@ -115,7 +115,10 @@ function Section({ runId, section, filters, state, roles, setState, pinned, onPi
       : {}
     if (section.component === 'kpi') {
       const value = groups[0]?.values[0]
-      body = <p className="layout__kpi"><bdi>{value === null || value === undefined ? t('noValue') : formatNumber(value)}</bdi>
+      // A ratio of two totals reads as a percentage, never as a bare 1.035.
+      const ratio = b.measures?.[0]?.agg === 'ratio'
+      body = <p className="layout__kpi"><bdi>{value === null || value === undefined ? t('noValue')
+        : ratio ? formatNumber(value, { style: 'percent', maximumFractionDigits: 1 }) : formatNumber(value)}</bdi>
         <small>{t('rows', { n: formatNumber(answer.data.matched_records) })}</small></p>
     } else if (section.component === 'priorities' && column) {
       const held = state.filters[column]?.[0]

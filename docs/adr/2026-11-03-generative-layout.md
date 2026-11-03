@@ -219,3 +219,49 @@ the page is a lazy chunk. The owner approved raising the limits to 278 KB and
 **Limitations:** the domain is inferred from field names, so a file with
 unhelpful names gets the general structure. Jarvis's calculated questions
 cover maintenance only. A real model has still not designed a page here.
+
+## Slice 4: three kinds of records through the same page (2026-11-03)
+
+The owner asked for three different datasets to be tested. Slice 3 proved the
+path on maintenance records; this slice runs contracts and budget files through
+the real server and page, and fixes what the screenshots showed.
+
+1. **Contracts read by obligation.** The priority list groups by the status
+   column first (status, milestone, stage, type) and weighs each group by the
+   contract value, so a tie of counts never decides the order. The drivers
+   column prefers the party (vendor, supplier, contractor). When a date column
+   is recognised, the trend is titled "value due by date".
+2. **Name matching follows priority.** `_find` now takes the earliest matching
+   word, not the earliest column, so "status" wins over "milestone" whatever
+   the column order.
+3. **A date is never a driver.** The rule planner leaves date columns out of
+   groups and drivers, and validation rejects a model plan that names a date
+   column as drivers.
+4. **A priority list keeps its own choices.** Its query ignores the filter on
+   its own column, so the other two choices stay visible after a selection.
+5. **Readable figures.** A ratio KPI shows as a percentage (103.5%), and a
+   KPI title does not repeat a column already named "Actual" or "Budget".
+
+**Considered and reverted:** recognising any column whose name ends in "date"
+(such as `Due_Date`) as the run's time axis. It changed how the maintenance
+models read `Failure_Date` and broke six governed-run tests, so the pipeline's
+date detection is unchanged. A contract file's due date shows as a trend only
+when it is mapped or named as the pipeline expects ("Date", "Month" and the
+like).
+
+**Verification:**
+
+- `tests/test_layout_plan.py`, 15 tests. New: a date is never a driver, a
+  dated contracts table gets "value due by date", and contracts priorities are
+  by status, weighted by value, with drivers by milestone.
+- `DesignedPage.test.tsx`, 9 tests. New: a ratio reads 103.5%, and the priority
+  query leaves out its own column's filter.
+- `e2e-jarvis/designed-kinds.spec.ts`, contracts and budget files in English
+  and Arabic. Each opens with the brief, has its own structure (contracts: no
+  distribution; budget: no failure model), shows three priorities (Overdue for
+  contracts, IT for the budget), and opens a focus panel with records and the
+  note that Jarvis covers maintenance only. The Jarvis suite has 16 of 16
+  passing.
+
+**Budget:** 277,617 of 278,000 bytes of script and 38,019 of 38,100 of style.
+No raise.

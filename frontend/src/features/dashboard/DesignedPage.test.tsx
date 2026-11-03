@@ -155,3 +155,16 @@ it('says plainly when Jarvis cannot answer this kind of data', async () => {
   expect(await screen.findByText(/Jarvis answers maintenance measures only/)).toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'What is total maintenance cost?' })).toBeNull()
 })
+
+it('reads a ratio of two totals as a percentage, and a priority list keeps its own choices', async () => {
+  const ratio: LayoutSection = { id: 'ratio', component: 'kpi', title: t('Actual against budget'), purpose: t('Total over total.'),
+    span: 1, interactions: [], binding: { measures: [{ agg: 'ratio', numerator: 'Actual', denominator: 'Budget' }] } }
+  const query = vi.spyOn(api, 'queryTable').mockResolvedValue(answer([[null, 1.035]]))
+  vi.spyOn(api, 'tableRecords').mockResolvedValue({ columns: ['Class'], rows: [['Pumps']], total: 1 })
+  vi.spyOn(api, 'planLayout').mockResolvedValue(result([ratio, prio]))
+  render(<DesignedPage runId="r1" roles={roles} state={{ ...EMPTY, filters: { Class: ['Pumps'] } }}
+    filters={[{ column: 'Class', op: 'in', value: 'Pumps' }]} setState={vi.fn()} />)
+  expect(await screen.findByText('103.5%')).toBeInTheDocument()
+  await waitFor(() => expect(query.mock.calls.some(([, spec]) => (spec.group_by ?? [])[0] === 'Class'
+    && !(spec.filters ?? []).some((f) => f.column === 'Class'))).toBe(true))
+})

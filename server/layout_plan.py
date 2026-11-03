@@ -170,8 +170,9 @@ def _ground(table, component, binding, prof, problems, where):
         if component == "priorities":
             spec["limit"] = min(spec["limit"], 3)
             drivers = binding.get("drivers")
-            if drivers is not None and (drivers not in _groups(prof) or drivers == groups[0]):
-                problems.append(f"{where}: drivers is another text column with 2 to 50 groups.")
+            if drivers is not None and (drivers not in _groups(prof) or drivers == groups[0]
+                                        or drivers in _dates(prof)):
+                problems.append(f"{where}: drivers is another text column with 2 to 50 groups, not a date.")
                 return None
         if component == "ranking" and spec["limit"] > MAX_RANKED:
             spec["limit"] = MAX_RANKED
@@ -281,7 +282,8 @@ def domain(prof):
 
 
 def _find(names, words):
-    return next((n for n in names if any(w in n.lower() for w in words)), None)
+    """The first name matching the earliest word: the words are in priority order."""
+    return next((n for w in words for n in names if w in n.lower()), None)
 
 
 def _section(sid, component, span, title, purpose, binding, interactions=()):
@@ -305,10 +307,15 @@ def rule_plan(prof, caps, objective=""):
                             "ماذا يحدث، وماذا يُتوقع، وما القرار."), {})]
     # A column with one value per record (a record number) explains nothing.
     filled = {f["name"]: f.get("filled") or 0 for f in prof["fields"]}
-    named = [g for g in groups if next(f.get("distinct") for f in prof["fields"] if f["name"] == g) < filled[g]]
-    group = _find(named, ("class", "category", "type", "site", "line", "status", "milestone")) \
-        or (named[0] if named else None)
-    drivers = next((g for g in named if g != group), None)
+    # A date is a time axis, not a group that explains anything.
+    named = [g for g in groups if g not in dates
+             and next(f.get("distinct") for f in prof["fields"] if f["name"] == g) < filled[g]]
+    # Contracts are read by obligation state first, then by who owes them.
+    order = (("status", "milestone", "stage", "type"), ("vendor", "supplier", "contractor", "party")) \
+        if kind == "contracts" else (("class", "category", "type", "site", "line", "status", "milestone"), ())
+    group = _find(named, order[0]) or (named[0] if named else None)
+    drivers = _find([g for g in named if g != group], order[1]) if order[1] else None
+    drivers = drivers or next((g for g in named if g != group), None)
 
     def kpi(sid, en, ar, measure, purpose=("Sum over the records in scope.",
                                            "المجموع على السجلات ضمن النطاق.")):
@@ -327,8 +334,11 @@ def rule_plan(prof, caps, objective=""):
 
     if kind == "costs" and _find(measures, ("actual",)) and _find(measures, ("budget",)):
         actual, budget = _find(measures, ("actual",)), _find(measures, ("budget",))
-        sections += [kpi("actual", f"Actual {actual}", f"الفعلي {actual}", {"agg": "sum", "column": actual}),
-                     kpi("budget", f"Budget {budget}", f"الموازنة {budget}", {"agg": "sum", "column": budget}),
+        def named(word, ar, column):   # "Actual" stays "Actual", never "Actual Actual"
+            return (column if column.lower() == word else f"{word.title()} {column}"), \
+                (ar if column.lower() == word else f"{ar} {column}")
+        sections += [kpi("actual", *named("actual", "الفعلي", actual), {"agg": "sum", "column": actual}),
+                     kpi("budget", *named("budget", "الموازنة", budget), {"agg": "sum", "column": budget}),
                      kpi("ratio", "Actual against budget", "الفعلي مقابل الموازنة",
                          {"agg": "ratio", "numerator": actual, "denominator": budget},
                          ("Total actual divided by total budget.", "إجمالي الفعلي مقسومًا على إجمالي الموازنة."))]
@@ -349,7 +359,10 @@ def rule_plan(prof, caps, objective=""):
                             ("Records in scope.", "السجلات ضمن النطاق.")))
         if value:
             sections.append(kpi("value", f"Total {value}", f"إجمالي {value}", {"agg": "sum", "column": value}))
-        if group:
+        if group and value:
+            sections.append(priorities({"agg": "sum", "column": value}, f"sum:{value}",
+                                       f"{value} by {group}", f"{value} حسب {group}"))
+        elif group:
             sections.append(priorities({"agg": "count"}, "count", f"Most records by {group}",
                                        f"الأكثر سجلات حسب {group}"))
         lead = value
@@ -365,7 +378,10 @@ def rule_plan(prof, caps, objective=""):
             sections.append(priorities({"agg": "sum", "column": lead}, f"sum:{lead}",
                                        f"{lead} by {group}", f"{lead} حسب {group}"))
     if caps["trend"]["available"] and lead:
-        sections.append(_section("trend", "trend", 3, _t(f"{lead} over time"[:MAX_TITLE], f"{lead} عبر الزمن"[:MAX_TITLE]),
+        title = (_t(f"{lead} due by {dates[0]}"[:MAX_TITLE], f"{lead} المستحق حسب {dates[0]}"[:MAX_TITLE])
+                 if kind == "contracts" else
+                 _t(f"{lead} over time"[:MAX_TITLE], f"{lead} عبر الزمن"[:MAX_TITLE]))
+        sections.append(_section("trend", "trend", 3, title,
                                  _t("Recorded values by date; no forecast.", "القيم المسجلة حسب التاريخ؛ بلا تنبؤ."),
                                  {"group_by": [dates[0]], "measures": [{"agg": "sum", "column": lead}],
                                   "sort": {"by": dates[0]}}, ("filter", "drill_down", "ask_jarvis")))
