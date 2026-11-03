@@ -87,12 +87,12 @@ describe('dashboard pages follow the table', () => {
     const roles = rolesOf(FIELDS)
     expect(roles).toMatchObject({ measure: 'revenue', breakdown: 'region', date: 'month', measures: ['revenue', 'units'] })
     expect(roles.texts.map((f) => f.name)).toEqual(['region', 'note'])
-    expect(pagesFor(roles)).toEqual(['overview', 'breakdown', 'trend', 'distribution', 'relationship', 'records'])
+    expect(pagesFor(roles)).toEqual(['overview', 'designed', 'breakdown', 'trend', 'distribution', 'relationship', 'records'])
   })
 
   it('has no trend without a date and no relationship with one measure', () => {
     const roles = rolesOf(FIELDS.filter((f) => f.name !== 'month' && f.name !== 'units'))
-    expect(pagesFor(roles)).toEqual(['overview', 'breakdown', 'distribution', 'records'])
+    expect(pagesFor(roles)).toEqual(['overview', 'designed', 'breakdown', 'distribution', 'records'])
   })
 })
 

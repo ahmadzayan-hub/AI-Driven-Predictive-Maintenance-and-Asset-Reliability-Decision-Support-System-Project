@@ -678,3 +678,26 @@ export interface RunExecutive {
 }
 
 export type ExecutiveBrief = RunExecutive
+
+/** A generative layout (ADR 2026-11-03-generative-layout): validated and grounded on the server. */
+export interface LayoutSection {
+  id: string
+  component: 'brief' | 'kpi' | 'trend' | 'ranking' | 'priorities' | 'comparison' | 'distribution' | 'table' | 'gap'
+  title: { en: string; ar: string }
+  purpose: { en: string; ar: string }
+  span: 1 | 2 | 3
+  interactions: string[]
+  binding: QuerySpec & { columns?: string[]; capability?: string; drivers?: string }
+  reason?: { en: string; ar: string }
+}
+
+export interface LayoutResult {
+  plan: { version: 1; objective: string; sections: LayoutSection[] }
+  source: 'model' | 'rules'
+  provider: string | null
+  domain?: { name: 'maintenance' | 'contracts' | 'costs' | 'general'; basis: string }
+  notes: Array<{ en: string; ar: string }>
+  problems: string[]
+  capabilities: Record<string, { available: boolean; reason: { en: string; ar: string } | null }>
+  fingerprint: string
+}

@@ -7,7 +7,7 @@
  *  order the records and `o` is the records page's offset. */
 import type { TableField, TableFilter } from '../../shared/types'
 
-export const PAGES = ['overview', 'breakdown', 'trend', 'distribution', 'relationship', 'records'] as const
+export const PAGES = ['overview', 'designed', 'breakdown', 'trend', 'distribution', 'relationship', 'records'] as const
 export type Page = (typeof PAGES)[number]
 
 export interface DashState {

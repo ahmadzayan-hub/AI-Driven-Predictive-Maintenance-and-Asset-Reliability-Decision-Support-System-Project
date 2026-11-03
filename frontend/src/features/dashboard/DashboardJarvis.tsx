@@ -4,6 +4,7 @@ import type { SessionState, TableFilter } from '../../shared/types'
 import { useReadOnly } from '../../shared/readOnly'
 import { usePack } from '../../i18n/pack'
 import { jarvisDashboardMessages } from '../../i18n/jarvisDashboard'
+import { JarvisPromptContext } from './jarvisPrompt'
 
 const Workspace = lazy(() => import('../chat/JarvisWorkspace').then(module => ({ default: module.JarvisWorkspace })))
 const Core = lazy(() => import('../chat/JarvisCore').then(module => ({ default: module.JarvisCore })))
@@ -19,6 +20,7 @@ export function DashboardJarvis({ runId, datasetName, filters, children }: {
   const [expanded, setExpanded] = useState(false)
   const [binding, setBinding] = useState<{ scope: string; session: SessionState } | null>(null)
   const [busy, setBusy] = useState(false)
+  const [prompt, setPrompt] = useState<{ text: string; n: number }>()
   const [failed, setFailed] = useState<'unavailable' | 'missing' | 'forbidden' | 'notReady' | null>(null)
   const sessionId = useRef<string | null>(null)
   const generation = useRef(0)
@@ -55,7 +57,7 @@ export function DashboardJarvis({ runId, datasetName, filters, children }: {
 
   const assistant = <aside className="dash-jarvis__assistant" aria-label="Jarvis OS">
     <Suspense fallback={<p>{t('loading')}</p>}>
-      {bound && expanded ? <Workspace session={bound} embedded /> : <div className="dash-jarvis__welcome">
+      {bound && expanded ? <Workspace session={bound} embedded prompt={prompt} /> : <div className="dash-jarvis__welcome">
         <Core state={failed || readOnly ? 'unavailable' : busy ? 'processing' : 'ready'} />
         <div><h3>{t('title')}</h3><p>{t('help')}</p>
           {expanded && <p role={failed ? 'alert' : 'status'}>{busy ? t('connecting') : failed ? t(failed) : t('changed')}</p>}
@@ -76,6 +78,8 @@ export function DashboardJarvis({ runId, datasetName, filters, children }: {
       </div>
     </header>
     {readOnly && <p>{t('readonly')}</p>}
+    <JarvisPromptContext.Provider value={(text) => { setPrompt((p) => ({ text, n: (p?.n ?? 0) + 1 })); if (!bound) void connect() }}>
     {typeof children === 'function' ? children(assistant) : <>{assistant}{children}</>}
+    </JarvisPromptContext.Provider>
   </section>
 }

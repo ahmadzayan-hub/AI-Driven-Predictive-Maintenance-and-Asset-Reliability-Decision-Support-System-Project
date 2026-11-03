@@ -252,7 +252,8 @@ class TableApiTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         body = response.json()
         self.assertEqual(body["source"], "rules")          # no model is configured in tests
-        self.assertIn("No language model", body["notes"][0])
+        self.assertIn("No language model", body["notes"][0]["en"])
+        self.assertTrue(body["notes"][0]["ar"])
         self.assertNotIn("profile", body)
         self.assertEqual(body["plan"]["objective"], "Which category leads")
         components = [s["component"] for s in body["plan"]["sections"]]
