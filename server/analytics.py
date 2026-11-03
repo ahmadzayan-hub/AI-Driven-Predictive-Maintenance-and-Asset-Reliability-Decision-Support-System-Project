@@ -701,6 +701,14 @@ def profiler(ctx):
         calcs.append({"id": "c_outliers", "name": "values_far_outside_the_usual_range",
                       "value": sum(n for _, n in unusual),
                       "method": OUTLIER_METHOD})
+        # The claim names a count per column, so each named count is a cited figure of its own
+        # (found with a 50,000-row synthetic file: a count of 100 or more per column differs
+        # from the total, and the figures check rejected the claim).
+        per_column = []
+        for position, (column, count) in enumerate(shown):
+            calcs.append({"id": f"c_outliers_{position}", "name": "values_far_outside_the_usual_range_in_column",
+                          "value": count, "method": OUTLIER_METHOD})
+            per_column.append(f"c_outliers_{position}")
         claims.append(_claim(
             ctx, "cl_outliers", "limitation",
             f"{sum(n for _, n in unusual)} value(s) lie far outside the range where most values "
@@ -713,7 +721,7 @@ def profiler(ctx):
             + "، ".join(f"{c} {n}" for c, n in shown) + (f" و{more} أخرى" if more else "")
             + ". أُبقيت كما هي دون حذف أو تعديل؛ راجعها قبل قراءة المجاميع والمتوسطات."
             + how_ar,
-            ["c_outliers"]))
+            ["c_outliers", *per_column]))
     material = [(c, m) for c, m in measured
                 if m.get("outlier_effect") is not None and m["outlier_effect"] >= OUTLIER_EFFECT]
     if material:

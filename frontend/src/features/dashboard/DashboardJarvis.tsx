@@ -55,7 +55,7 @@ export function DashboardJarvis({ runId, datasetName, filters, children }: {
     finally { if (generation.current === token) { inFlight.current = false; setBusy(false) } }
   }
 
-  const assistant = <aside className="dash-jarvis__assistant" aria-label="Jarvis OS">
+  const assistant = <aside className="dash-jarvis__assistant" aria-label="Ask Miyaar">
     <Suspense fallback={<p>{t('loading')}</p>}>
       {bound && expanded ? <Workspace session={bound} embedded prompt={prompt} /> : <div className="dash-jarvis__welcome">
         <Core state={failed || readOnly ? 'unavailable' : busy ? 'processing' : 'ready'} />

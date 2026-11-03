@@ -31,7 +31,7 @@ for (const ar of [false, true]) test(`grounded question, follow-up, review and m
   await page.getByRole('button', { name: ar ? 'تأكيد المراجعة المحلية' : 'Confirm local review' }).click()
   await expect(page.locator('.jarvis__card').last()).toContainText(ar ? 'لم يُنشأ اعتماد' : 'No approval, publication')
   await page.screenshot({ path: `../docs/screenshots/jarvis-${ar ? 'ar' : 'en'}-evidence.png` })
-  await page.getByRole('heading', { name: ar ? 'Jarvis OS · جارفيس' : 'Jarvis OS', exact: true }).scrollIntoViewIfNeeded()
+  await page.getByRole('heading', { name: ar ? 'اسأل معيار' : 'Ask Miyaar', exact: true }).scrollIntoViewIfNeeded()
   await page.screenshot({ path: `../docs/screenshots/jarvis-${ar ? 'ar' : 'en'}.png` })
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
   await page.getByRole('button', { name: ar ? 'ما هو التوافر؟' : 'What is availability?' }).click()

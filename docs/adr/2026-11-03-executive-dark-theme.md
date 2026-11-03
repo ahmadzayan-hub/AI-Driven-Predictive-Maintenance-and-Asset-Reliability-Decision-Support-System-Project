@@ -138,3 +138,11 @@ in the reference, needs fields the answer does not carry; they are not invented.
 **Verification:** the Jarvis workspace and dashboard end-to-end tests pass (7 of
 7, with axe, English and Arabic); screenshots taken on the synthetic demo
 server.
+
+## Slice 5: the assistant is "Ask Miyaar" everywhere (2026-11-03)
+
+The owner decided the assistant carries one name. Every visible "Jarvis" and
+"Jarvis OS" becomes "Ask Miyaar" (اسأل معيار): the workspace title, the dashboard
+open, refresh and close buttons, the launch button, the selection notes on the generated
+page, and the orb labels (now MIYAAR). Code names, file names, routes and the
+hackathon documents keep "Jarvis" as history. Strings only.

@@ -81,7 +81,7 @@ export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCe
             decorative orb and a way to ask about this report. */}
         <a className="command__jarvis" href="#/assistant">
           <span className="command__orb" aria-hidden="true" />
-          <span><strong>JARVIS</strong><small>{t('command.askJarvis')}</small></span>
+          <span><strong>MIYAAR</strong><small>{t('command.askJarvis')}</small></span>
         </a>
       </div>
 

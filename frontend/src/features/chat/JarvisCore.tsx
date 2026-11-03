@@ -14,7 +14,7 @@ export function JarvisCore({ state, children, muted = true, onToggleAudio }: { s
         <path className="jarvis-core__mic" d="M105 101v20a15 15 0 0 0 30 0v-20a15 15 0 0 0-30 0Zm-9 18a24 24 0 0 0 48 0m-24 24v14m-12 0h24" />
         {/* Speaking: an abstract waveform replaces the microphone. A state cue, never a face or an audio level. */}
         <path className="jarvis-core__wave" d="M78 120h10l6-14 8 30 8-44 8 56 8-40 8 26 8-18 6 4h12" /></svg>
-      <span>JARVIS</span>
+      <span>MIYAAR</span>
     </>
   return <section className="jarvis-core" data-state={state} data-still={still} aria-label={t('voiceStage')}>
     <div className="jarvis-core__top"><span>{t('voiceStage')}</span><button type="button" aria-pressed={still} onClick={() => setStill(!still)}>{t('reduceMotion')}</button></div>
