@@ -22,6 +22,8 @@
       // an Arabic reader never sees a left-to-right flash.
       try {
         var theme = localStorage.getItem('aos-theme')
+        // Dark is the house look (owner's reference designs); light stays a choice.
+        if (!theme) document.documentElement.dataset.theme = 'dark'
         if (theme === 'system') delete document.documentElement.dataset.theme
         if (theme === 'light' || theme === 'dark') {
           document.documentElement.dataset.theme = theme
