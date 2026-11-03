@@ -59,4 +59,15 @@ for (const kind of KINDS) for (const locale of ['en', 'ar'] as const) test(`${ki
   await assistant.getByRole('button', { name: jarvisMessages[locale].ask, exact: true }).click()
   await expect(assistant.locator('.jarvis__evidence, .jarvis__measures').first()).toContainText(kind.total, { timeout: 20_000 })
   await page.screenshot({ path: info.outputPath(`3-${kind.name}-jarvis-${locale}.png`), fullPage: true })
+
+  if (kind.name === 'contracts') {
+    // The same total split by the driver column. Overdue is i % 3 == 1 and Vendor B is
+    // i % 4 == 1, so i = 1, 13, 25: 22,000 + 34,000 + 46,000 = 102,000 (Vendor A leads, 111,000).
+    const split = l.askSplit.replace('{column}', kind.measure).replace('{group}', 'Vendor')
+    await focus.getByRole('button', { name: split }).click()
+    await expect(assistant.getByRole('textbox')).toHaveValue(split, { timeout: 20_000 })
+    await assistant.getByRole('button', { name: jarvisMessages[locale].ask, exact: true }).click()
+    await expect(assistant.locator('.jarvis__measures, .jarvis__evidence').first()).toContainText(/Vendor A/, { timeout: 20_000 })
+    await expect(assistant.locator('.jarvis__measures, .jarvis__evidence').first()).toContainText(/102,?000|١٠٢٬?٠٠٠/)
+  }
 })

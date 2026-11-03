@@ -26,6 +26,8 @@ class DataQueryIn(BaseModel):
     asset_class: Literal["railway_signaling"] | None = None
     # A numeric column of the selected table, named exactly; checked at answer time.
     column: str | None = Field(default=None, min_length=1, max_length=128)
+    # A text column of the same table to split that total by; top groups only.
+    group_by: str | None = Field(default=None, min_length=1, max_length=128)
 
 
 class DataContextIn(BaseModel):
@@ -82,7 +84,12 @@ def question_metrics(text, selected=False):
     matches = [(key, match) for key, pattern in patterns if (match := re.search(pattern, normal))]
     if selected and not matches and column_named(text):
         # "Total <column>" on the selected data: any kind of records, summed
-        # exactly. Scope or forecast words still decline below.
+        # exactly. "... by <column>" splits it; other scope or forecast words
+        # still decline below.
+        if column_split(text):
+            if re.search(r"\b(where|between|during|before|after|predict|forecast|tomorrow|next|why|not)\b|\b20\d{2}\b|خلال|توقع|تنبؤ|القادم|لماذا", normal):
+                return []
+            return ["column_total"]
         matches, data_words = [("column_total", re.search(r".+", normal))], True
     if not data_words and not matches:
         return None
@@ -110,21 +117,39 @@ COLUMN_QUESTION = re.compile(
     r"|^\s*(?:ما\s+)?(?:إجمالي|اجمالي)\s+([A-Za-z][\w ]{0,60}?)\s*[؟?]?\s*$", re.I)
 
 
+SPLIT = re.compile(r"^(.+?)\s+(?:by|حسب)\s+([A-Za-z][\w ]{0,60}?)$", re.I)
+
+
+def column_split(text):
+    """(column, group) for "total <column> by <column>", or None."""
+    named = column_named(text)
+    match = SPLIT.match(named or "")
+    return (match.group(1).strip(), match.group(2).strip()) if match else None
+
+
 def column_named(text):
     """The column a "total <column>" question names, in Latin letters as
     column names are, or None. Matching to a real column happens later."""
     match = COLUMN_QUESTION.match(text or "")
-    return (match.group(1) or match.group(2)).strip() if match else None
+    if not match:
+        match = re.match(r"^\s*(?:ما\s+)?(?:إجمالي|اجمالي)\s+([A-Za-z][\w ]{0,60}?\s+حسب\s+[A-Za-z][\w ]{0,60}?)\s*[؟?]?\s*$", text or "")
+        return match.group(1).strip() if match else None
+    return (match.group(1) or match.group(2)).strip()
 
 
 def natural_request(text, metrics):
     request = {"metrics": metrics}
     if metrics == ["column_total"]:
-        request["column"] = column_named(text)
+        split = column_split(text)
+        request["column"], group = split if split else (column_named(text), None)
+        if group:
+            request["group_by"] = group
     if re.search(r"railway signal[li]*ng|إشارات السكك|اشارات السكك|إشارات السكة|اشارات السكة", text, re.I):
         request["asset_class"] = "railway_signaling"
     return request
 
+
+SPLIT_GROUPS = 5
 
 TOTALS = {
     "maintenance_cost": ("Maintenance cost", "تكلفة الصيانة", "Maintenance_Cost_USD", contract.MONEY),
@@ -253,6 +278,26 @@ class DataChat:
                                      "numerator": math.fsum(values) if values else None, "denominator": None,
                                      "records": len(values), "records_unmeasured": len(selected) - len(values),
                                      "formula": f"sum({names[0]})"})
+                    if parsed.group_by:
+                        wanted_group = re.sub(r"[\s_]+", "_", parsed.group_by).casefold()
+                        groups = [c for c in table.columns if c not in table.numeric and c.casefold() == wanted_group]
+                        if len(groups) != 1:
+                            raise DataChatError("unsupported_question")
+                        at = table.columns.index(groups[0])
+                        split = {}
+                        for row in selected:
+                            if type(row[position]) in (float, int) and math.isfinite(row[position]):
+                                name = "" if row[at] is None else str(row[at])
+                                total_, count_ = split.get(name, (0.0, 0))
+                                split[name] = (total_ + row[position], count_ + 1)
+                        # The five largest groups, each its own calculated line.
+                        for name, (value, count) in sorted(split.items(), key=lambda kv: (-kv[1][0], kv[0]))[:SPLIT_GROUPS]:
+                            measures.append({"key": key, "title": f"{names[0]} · {groups[0]} = {name or tr('(empty)', '(فارغ)')}",
+                                             "value": value, "numerator": value, "denominator": None,
+                                             "records": count, "records_unmeasured": 0,
+                                             "formula": f"sum({names[0]}) where {groups[0]} = {name!r}"})
+                        if len(split) > SPLIT_GROUPS:
+                            measures[0]["groups_omitted"] = len(split) - SPLIT_GROUPS
                     continue
                 if key == "asset_age_summary":
                     if "Asset_Age_Years" not in table.columns:

@@ -306,3 +306,29 @@ only". This slice gives every kind of records one calculated question.
 - The Jarvis e2e suite passes 16 of 16.
 
 **Budget:** 277.7 of 278 KB of script and 38.0 of 38.1 KB of style. No raise.
+
+## Slice 6: Jarvis splits a total by a column (2026-11-03)
+
+1. **"Total <column> by <column>"** (also "إجمالي … حسب …") returns the total
+   and the five largest groups of one text column.
+   - Each group is its own calculated line, with a formula such as
+     `sum(Value_AED) where Vendor = 'Vendor B'` and its record count.
+   - When more groups exist, the answer counts the ones left out.
+   - The split column must be one text column of the selected table. A
+     numeric or unknown column is refused.
+   - "By" is now accepted only in this form. Other scope words, years and
+     forecasts still decline, as before.
+2. **The focus panel asks it.** When the priorities name a drivers column, the
+   panel offers "What is the total <measure> by <drivers>?" beside the total.
+
+**Verification:**
+
+- `tests/test_data_chat.py`: a split by Vendor gives 21,000 overall, then
+  12,000 and 9,000, in English and Arabic. A numeric or unknown split
+  column, and a split with a forecast, are refused.
+- `DesignedPage.test.tsx`: the split question is handed to Jarvis.
+- `e2e-jarvis/designed-kinds.spec.ts`: Overdue contracts by Vendor list
+  Vendor A first (111,000), and Vendor B shows 102,000. Both were checked by
+  hand.
+
+**Budget:** unchanged at 277.7 of 278 KB of script.

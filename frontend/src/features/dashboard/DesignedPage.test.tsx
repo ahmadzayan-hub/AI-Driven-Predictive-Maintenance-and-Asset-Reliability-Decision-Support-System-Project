@@ -155,6 +155,8 @@ it('offers other kinds of records the total of their own measure, and says so wh
     state={{ ...EMPTY, filters: { Class: ['Design'] } }} filters={[]} setState={vi.fn()} /></JarvisPromptContext.Provider>)
   fireEvent.click(await screen.findByRole('button', { name: 'What is the total Downtime?' }))
   expect(prompt).toHaveBeenCalledWith('What is the total Downtime?')
+  fireEvent.click(screen.getByRole('button', { name: 'What is the total Downtime by Asset?' }))
+  expect(prompt).toHaveBeenLastCalledWith('What is the total Downtime by Asset?')
   expect(screen.queryByRole('button', { name: 'What is total maintenance cost?' })).toBeNull()
   view.unmount(); localStorage.clear()
   const counted = { ...prio, binding: { ...prio.binding, measures: [{ agg: 'count' as const }] } }

@@ -75,7 +75,7 @@ function Focus({ runId, name, drivers, measures, filters, maintenance, onClear }
       <tbody>{rows.data.rows.map((r, i) => <tr key={i}>{r.slice(0, 6).map((v, j) => <td key={j} dir="auto">{v ?? ''}</td>)}</tr>)}</tbody>
     </table></div><p className="card__meta">{t('rows', { n: formatNumber(rows.data.total) })}</p></> : null}
     {ask && (maintenance || total) ? <div className="layout__actions"><span className="card__meta">{t('jarvisScope')}</span>
-      {(maintenance ? [t('askCost'), t('askFailures')] : [t('askTotal', { column: total! })]).map((q) =>
+      {(maintenance ? [t('askCost'), t('askFailures')] : [t('askTotal', { column: total! }), ...(drivers ? [t('askSplit', { column: total!, group: drivers })] : [])]).map((q) =>
         <button key={q} type="button" className="btn btn--ghost" onClick={() => ask(q)}>{q}</button>)}</div>
       : <p className="card__meta">{t('jarvisOnly')}</p>}
   </section>

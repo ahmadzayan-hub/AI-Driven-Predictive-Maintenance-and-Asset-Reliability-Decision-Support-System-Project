@@ -280,10 +280,21 @@ class DataChatApiTests(unittest.TestCase):
             self.assertEqual(measure["formula"], "sum(Value_AED)")
         self.app.state.gateway.ask_json.assert_not_called()
 
+    def test_a_total_splits_by_a_text_column_into_its_largest_groups(self):
+        run = self.make_run(rows=CONTRACTS)
+        self.bind(run)
+        for text in ("What is the total Value_AED by Vendor?", "ما إجمالي Value_AED حسب Vendor؟"):
+            measures = self.ask(text)["result"]["measures"]
+            # Vendor A holds CT-0, 2, 4 (1,000 + 3,000 + 5,000); Vendor B the rest.
+            self.assertEqual([(m["value"], m["records"]) for m in measures], [(21000, 6), (12000, 3), (9000, 3)], text)
+            self.assertEqual(measures[1]["formula"], "sum(Value_AED) where Vendor = 'Vendor B'")
+        self.app.state.gateway.ask_json.assert_not_called()
+
     def test_an_unknown_text_or_scoped_column_question_abstains(self):
         run = self.make_run(rows=CONTRACTS)
         self.bind(run)
-        for text in ("total Vendor", "total Budget", "total Value_AED by Vendor", "total Value_AED next year"):
+        for text in ("total Vendor", "total Budget", "total Value_AED by Budget", "total Value_AED by Value_AED",
+                     "total Value_AED next year", "total Value_AED by Vendor next year"):
             self.assertEqual(self.ask(text)["why"], "unsupported_question", text)
         self.assertEqual(question_metrics("total Value_AED", selected=False), None)
         with self.assertRaises(ValueError):
