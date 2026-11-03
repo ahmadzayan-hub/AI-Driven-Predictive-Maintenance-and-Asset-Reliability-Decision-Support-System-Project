@@ -2372,3 +2372,20 @@ regressions passed. The full failure and skipped later steps remain in README.
   synchronization authorization does not resolve production database identity,
   backup or authentication gates, nor replace the previously pinned production
   candidate. No production data, auth, alias or provider change was performed.
+
+## 2026-11-03: Generative layout slices 3 and 4 (session d9e3f889)
+
+- Done: slice 3, one decision path (brief, three priorities, focus with
+  drivers and records, Jarvis scoped question, evidence, approval), merged in
+  #86 after the owner approved the 278/38.1 KB budget. Slice 4 on a fresh
+  branch from main: contracts and budget files through the same page, contracts
+  by obligation status weighed by value, ratio as a percentage, no date as a
+  driver, a priority list keeps its own choices.
+- Verified: `verify.py` with PostgreSQL, all 8 steps (2,531 Python, 20 skipped;
+  584 frontend). Jarvis e2e 16 of 16, including the three kinds of records in
+  both languages. Screenshots reviewed.
+- Decided: recognising any `*_date` column as the run's time axis was reverted;
+  it changed the maintenance models' reading of `Failure_Date`.
+- Next: owner's Ollama run; Jarvis questions for costs and contracts; stored
+  layout history (schema migration); main CI on a232e2d confirmed by the
+  05:20 UTC check-in.
