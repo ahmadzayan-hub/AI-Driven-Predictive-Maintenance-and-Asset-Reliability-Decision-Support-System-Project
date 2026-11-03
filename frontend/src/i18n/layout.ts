@@ -8,8 +8,8 @@ export const layoutMessages = definePack({
   happening: 'What is happening', expected: 'What is expected', decide: 'What to decide', proposed: 'Proposed · awaiting your review',
   evidence: 'View evidence', review: 'Review and decide', noDecision: 'No decision is proposed by this analysis.',
   riskReady: 'A risk ranking is available for the assets in scope.', selected: 'Selected: {name}', drivers: 'What drives it',
-  sample: 'Records behind it', clear: 'Clear selection', askCost: 'What is total maintenance cost?', askFailures: 'How many failures?',
-  jarvisScope: 'Jarvis answers for this selection.', jarvisOnly: 'Jarvis answers maintenance measures only; this data is not that kind.',
+  sample: 'Records behind it', clear: 'Clear selection', askCost: 'What is total maintenance cost?', askFailures: 'How many failures?', askTotal: 'What is the total {column}?', askSplit: 'What is the total {column} by {group}?',
+  jarvisScope: 'Jarvis answers for this selection.', jarvisOnly: 'Jarvis has no calculated question for this selection yet.',
 }, {
   heading: 'مصمَّم لهذه البيانات', objective: 'ما الذي تريد فهمه؟', redesign: 'إعادة التصميم',
   designing: 'جارٍ التصميم…', model: 'صمّمه {name}', rules: 'تصميم بالقواعد · دون نموذج',
@@ -19,6 +19,6 @@ export const layoutMessages = definePack({
   happening: 'ماذا يحدث', expected: 'ماذا يُتوقع', decide: 'ما القرار', proposed: 'مقترح · بانتظار مراجعتك',
   evidence: 'اعرض الأدلة', review: 'راجع واتخذ القرار', noDecision: 'لا يقترح هذا التحليل قرارًا.',
   riskReady: 'ترتيب المخاطر متاح للأصول ضمن النطاق.', selected: 'المحدد: {name}', drivers: 'ما الذي يحركه',
-  sample: 'السجلات خلفه', clear: 'إلغاء التحديد', askCost: 'ما إجمالي تكلفة الصيانة؟', askFailures: 'كم عدد الأعطال؟',
-  jarvisScope: 'يجيب جارفيس عن هذا التحديد.', jarvisOnly: 'يجيب جارفيس عن مقاييس الصيانة فقط؛ وهذه البيانات ليست منها.',
+  sample: 'السجلات خلفه', clear: 'إلغاء التحديد', askCost: 'ما إجمالي تكلفة الصيانة؟', askFailures: 'كم عدد الأعطال؟', askTotal: 'ما إجمالي {column}؟', askSplit: 'ما إجمالي {column} حسب {group}؟',
+  jarvisScope: 'يجيب جارفيس عن هذا التحديد.', jarvisOnly: 'لا يوجد لدى جارفيس سؤال محسوب لهذا التحديد بعد.',
 })

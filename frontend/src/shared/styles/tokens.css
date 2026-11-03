@@ -1,4 +1,4 @@
-/* Shared Miyaar tokens (ADR 0054). Light/system remain explicit preferences.
+/* Shared Miyaar tokens (ADR 0054; dark palette: ADR 2026-11-03-executive-dark-theme). Light/system remain explicit preferences.
    Color and operational semantics are independent of decorative effects. */
 
 :root {
@@ -139,27 +139,27 @@
 }
 
 [data-theme='dark'] {
-  --bg: #0E192B;
-  --surface: #17263D;
-  --surface-raised: #17263D;
-  --surface-sunken: #0E192B;
-  --border: #3C506D;
-  --border-strong: #8EA5C5;
-  --text: #EDF4FF;
-  --text-muted: #B6C7DE;
-  --text-faint: #B6C7DE;
+  --bg: #050E1C;
+  --surface: #0A1A2F;
+  --surface-raised: #0D2038;
+  --surface-sunken: #061224;
+  --border: #1E3A5A;
+  --border-strong: #6A90B8;
+  --text: #EAF6FF;
+  --text-muted: #A9C1DC;
+  --text-faint: #A9C1DC;
 
-  --accent: #8EC5FF;
-  --accent-solid: #8EC5FF;
-  --accent-solid-hover: #AFD7FF;
-  --accent-soft: #243F62;
-  --on-accent: #0E192B;
+  --accent: #22D3EE;
+  --accent-solid: #22D3EE;
+  --accent-solid-hover: #67E8F9;
+  --accent-soft: #0E3346;
+  --on-accent: #04121F;
 
   --highlight: #fbbf24;
   --highlight-soft: #2e2208;
 
   --success: #34d399;
-  --metric-okay: #93c5fd;
+  --metric-okay: #67E8F9;
   --success-soft: #0d2b1f;
   --warning: #fbbf24;
   --warning-soft: #302408;
@@ -168,52 +168,55 @@
   --danger-soft: #331318;
   --on-danger: #2b0d12;
 
-  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-1: 0 0 0 1px rgb(34 211 238 / .06), 0 10px 30px rgb(0 0 0 / .45);
   --shadow-2: 0 4px 14px rgb(0 0 0 / 0.45);
   --shadow-3: 0 18px 48px rgb(0 0 0 / 0.6);
 
   color-scheme: dark;
-  --nav-surface: #101F36;
+  --header-bg: #061328;
+  --header-field: #0D2038;
+  --header-border: #1E4466;
+  --nav-surface: #061328;
   --nav-text: #EDF4FF;
   --nav-muted: #B6C7DE;
-  --nav-border: #3C506D;
-  --nav-active: #1B3A56;
-  --nav-accent: #72D7EA;
-  --accent-haze: rgb(158 186 212 / .04);
-  --surface-glass: #17263D;
-  --workspace-bg: radial-gradient(900px 480px at 85% -10%, rgb(114 215 234 / .10), transparent 60%), radial-gradient(700px 420px at -10% 110%, rgb(139 92 246 / .10), transparent 60%), #0E192B;
-  --panel-fill: #17263D;
-  --hero-fill: linear-gradient(135deg, #17263D, #122A3F);
-  --hero-border: #3C506D;
-  --user-message: #243F62;
-  --switch-thumb: #0E192B;
-  --glow: rgb(114 215 234 / .38);
+  --nav-border: #16304D;
+  --nav-active: #0E3346;
+  --nav-accent: #22D3EE;
+  --accent-haze: rgb(34 211 238 / .08);
+  --surface-glass: rgb(10 26 47 / .78);
+  --workspace-bg: radial-gradient(1000px 520px at 85% -10%, rgb(34 211 238 / .16), transparent 60%), radial-gradient(800px 480px at -10% 110%, rgb(167 139 250 / .16), transparent 60%), #050E1C;
+  --panel-fill: #0A1A2F;
+  --hero-fill: linear-gradient(135deg, #0D2440, #0A1A2F 60%, #18153A);
+  --hero-border: #1E4466;
+  --user-message: #12345A;
+  --switch-thumb: #050E1C;
+  --glow: rgb(34 211 238 / .45);
   --glow-edge: rgb(255 255 255 / .08);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']):not([data-theme='dark']) {
-    --bg: #0E192B;
-    --surface: #17263D;
-    --surface-raised: #17263D;
-    --surface-sunken: #0E192B;
-    --border: #3C506D;
-    --border-strong: #8EA5C5;
-    --text: #EDF4FF;
-    --text-muted: #B6C7DE;
-    --text-faint: #B6C7DE;
+    --bg: #050E1C;
+    --surface: #0A1A2F;
+    --surface-raised: #0D2038;
+    --surface-sunken: #061224;
+    --border: #1E3A5A;
+    --border-strong: #6A90B8;
+    --text: #EAF6FF;
+    --text-muted: #A9C1DC;
+    --text-faint: #A9C1DC;
 
-    --accent: #8EC5FF;
-    --accent-solid: #8EC5FF;
-    --accent-solid-hover: #AFD7FF;
-    --accent-soft: #243F62;
-    --on-accent: #0E192B;
+    --accent: #22D3EE;
+    --accent-solid: #22D3EE;
+    --accent-solid-hover: #67E8F9;
+    --accent-soft: #0E3346;
+    --on-accent: #04121F;
 
     --highlight: #fbbf24;
     --highlight-soft: #2e2208;
 
     --success: #34d399;
-    --metric-okay: #93c5fd;
+    --metric-okay: #67E8F9;
     --success-soft: #0d2b1f;
     --warning: #fbbf24;
     --warning-soft: #302408;
@@ -222,26 +225,29 @@
     --danger-soft: #331318;
     --on-danger: #2b0d12;
 
-    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-1: 0 0 0 1px rgb(34 211 238 / .06), 0 10px 30px rgb(0 0 0 / .45);
     --shadow-2: 0 4px 14px rgb(0 0 0 / 0.45);
     --shadow-3: 0 18px 48px rgb(0 0 0 / 0.6);
 
     color-scheme: dark;
-  --nav-surface: #101F36;
+  --header-bg: #061328;
+  --header-field: #0D2038;
+  --header-border: #1E4466;
+  --nav-surface: #061328;
   --nav-text: #EDF4FF;
   --nav-muted: #B6C7DE;
-  --nav-border: #3C506D;
-  --nav-active: #1B3A56;
-  --nav-accent: #72D7EA;
-  --accent-haze: rgb(158 186 212 / .04);
-  --surface-glass: #17263D;
-  --workspace-bg: radial-gradient(900px 480px at 85% -10%, rgb(114 215 234 / .10), transparent 60%), radial-gradient(700px 420px at -10% 110%, rgb(139 92 246 / .10), transparent 60%), #0E192B;
-  --panel-fill: #17263D;
-  --hero-fill: linear-gradient(135deg, #17263D, #122A3F);
-  --hero-border: #3C506D;
-  --user-message: #243F62;
-  --switch-thumb: #0E192B;
-  --glow: rgb(114 215 234 / .38);
+  --nav-border: #16304D;
+  --nav-active: #0E3346;
+  --nav-accent: #22D3EE;
+  --accent-haze: rgb(34 211 238 / .08);
+  --surface-glass: rgb(10 26 47 / .78);
+  --workspace-bg: radial-gradient(1000px 520px at 85% -10%, rgb(34 211 238 / .16), transparent 60%), radial-gradient(800px 480px at -10% 110%, rgb(167 139 250 / .16), transparent 60%), #050E1C;
+  --panel-fill: #0A1A2F;
+  --hero-fill: linear-gradient(135deg, #0D2440, #0A1A2F 60%, #18153A);
+  --hero-border: #1E4466;
+  --user-message: #12345A;
+  --switch-thumb: #050E1C;
+  --glow: rgb(34 211 238 / .45);
   --glow-edge: rgb(255 255 255 / .08);
   }
 }

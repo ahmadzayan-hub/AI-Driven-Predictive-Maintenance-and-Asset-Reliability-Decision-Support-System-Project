@@ -219,3 +219,116 @@ the page is a lazy chunk. The owner approved raising the limits to 278 KB and
 **Limitations:** the domain is inferred from field names, so a file with
 unhelpful names gets the general structure. Jarvis's calculated questions
 cover maintenance only. A real model has still not designed a page here.
+
+## Slice 4: three kinds of records through the same page (2026-11-03)
+
+The owner asked for three different datasets to be tested. Slice 3 proved the
+path on maintenance records; this slice runs contracts and budget files through
+the real server and page, and fixes what the screenshots showed.
+
+1. **Contracts read by obligation.** The priority list groups by the status
+   column first (status, milestone, stage, type) and weighs each group by the
+   contract value, so a tie of counts never decides the order. The drivers
+   column prefers the party (vendor, supplier, contractor). When a date column
+   is recognised, the trend is titled "value due by date".
+2. **Name matching follows priority.** `_find` now takes the earliest matching
+   word, not the earliest column, so "status" wins over "milestone" whatever
+   the column order.
+3. **A date is never a driver.** The rule planner leaves date columns out of
+   groups and drivers, and validation rejects a model plan that names a date
+   column as drivers.
+4. **A priority list keeps its own choices.** Its query ignores the filter on
+   its own column, so the other two choices stay visible after a selection.
+5. **Readable figures.** A ratio KPI shows as a percentage (103.5%), and a
+   KPI title does not repeat a column already named "Actual" or "Budget".
+
+**Considered and reverted:** recognising any column whose name ends in "date"
+(such as `Due_Date`) as the run's time axis. It changed how the maintenance
+models read `Failure_Date` and broke six governed-run tests, so the pipeline's
+date detection is unchanged. A contract file's due date shows as a trend only
+when it is mapped or named as the pipeline expects ("Date", "Month" and the
+like).
+
+**Verification:**
+
+- `tests/test_layout_plan.py`, 15 tests. New: a date is never a driver, a
+  dated contracts table gets "value due by date", and contracts priorities are
+  by status, weighted by value, with drivers by milestone.
+- `DesignedPage.test.tsx`, 9 tests. New: a ratio reads 103.5%, and the priority
+  query leaves out its own column's filter.
+- `e2e-jarvis/designed-kinds.spec.ts`, contracts and budget files in English
+  and Arabic. Each opens with the brief, has its own structure (contracts: no
+  distribution; budget: no failure model), shows three priorities (Overdue for
+  contracts, IT for the budget), and opens a focus panel with records and the
+  note that Jarvis covers maintenance only. The Jarvis suite has 16 of 16
+  passing.
+
+**Budget:** 277,617 of 278,000 bytes of script and 38,019 of 38,100 of style.
+No raise.
+
+## Slice 5: Jarvis answers other kinds of records (2026-11-03)
+
+Until now Jarvis's calculated answers covered maintenance measures only, so a
+contracts or budget selection ended with "Jarvis answers maintenance measures
+only". This slice gives every kind of records one calculated question.
+
+1. **"Total <column>"** (`server/data_chat.py`, metric `column_total`).
+   - With a report selected, "What is the total Value_AED?", "total value aed"
+     or "ما إجمالي Value_AED؟" sums one named numeric column over the selected
+     scope.
+   - The name must match exactly one numeric column of the selected table,
+     ignoring case and treating spaces as underscores. Otherwise the answer is
+     the usual "cannot safely calculate" refusal.
+   - Scope and forecast words still decline ("by", "next", a year), as for
+     every data question. No model is called.
+   - The answer carries the formula `sum(<column>)` and the measured and
+     unmeasured record counts, like the other calculated answers.
+   - `DataQueryIn` gains an optional `column` of at most 128 characters,
+     checked against the table when the answer is calculated.
+2. **The focus panel asks it.** For any kind other than maintenance, when the
+   priorities sum a column, the panel offers "What is the total <column>?" for
+   the selection. When they only count records, it says Jarvis has no
+   calculated question for this selection yet.
+
+**Verification:**
+
+- `tests/test_data_chat.py`, 2 new tests:
+  - a named column is summed over the selection only (12,000 for the three
+    Overdue contracts), in English and Arabic;
+  - a text column, an absent column, a scoped question and a forecast are all
+    refused.
+- `DesignedPage.test.tsx`: contracts offer "What is the total Downtime?" and
+  hand it to Jarvis; a count-only list says there is no calculated question.
+- `e2e-jarvis/designed-kinds.spec.ts`, English and Arabic. Jarvis answers the
+  selection's total, both checked by hand:
+  - Overdue contracts: Value_AED 355,000 for 10 of 30 records;
+  - IT budget lines: Actual 4,833 for 9 of 36 records.
+- The Jarvis e2e suite passes 16 of 16.
+
+**Budget:** 277.7 of 278 KB of script and 38.0 of 38.1 KB of style. No raise.
+
+## Slice 6: Jarvis splits a total by a column (2026-11-03)
+
+1. **"Total <column> by <column>"** (also "إجمالي … حسب …") returns the total
+   and the five largest groups of one text column.
+   - Each group is its own calculated line, with a formula such as
+     `sum(Value_AED) where Vendor = 'Vendor B'` and its record count.
+   - When more groups exist, the answer counts the ones left out.
+   - The split column must be one text column of the selected table. A
+     numeric or unknown column is refused.
+   - "By" is now accepted only in this form. Other scope words, years and
+     forecasts still decline, as before.
+2. **The focus panel asks it.** When the priorities name a drivers column, the
+   panel offers "What is the total <measure> by <drivers>?" beside the total.
+
+**Verification:**
+
+- `tests/test_data_chat.py`: a split by Vendor gives 21,000 overall, then
+  12,000 and 9,000, in English and Arabic. A numeric or unknown split
+  column, and a split with a forecast, are refused.
+- `DesignedPage.test.tsx`: the split question is handed to Jarvis.
+- `e2e-jarvis/designed-kinds.spec.ts`: Overdue contracts by Vendor list
+  Vendor A first (111,000), and Vendor B shows 102,000. Both were checked by
+  hand.
+
+**Budget:** unchanged at 277.7 of 278 KB of script.

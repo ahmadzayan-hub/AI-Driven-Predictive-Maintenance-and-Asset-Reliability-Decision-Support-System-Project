@@ -32,6 +32,12 @@ def jarvis_scope(context):
     return {key: context[key] for key in ("run_id", "dataset_id", "source_sha256", "analysis_revision", "filters")}
 
 
+# Contracts, not maintenance: "total <column>" sums one named numeric column of
+# the selected scope (ADR 2026-11-03-generative-layout, slice 5).
+CONTRACTS = [{"Contract_ID": f"CT-{i}", "Vendor": ["Vendor A", "Vendor B"][i % 2],
+              "Status": ["Open", "Overdue"][i % 2], "Value_AED": 1000 * (i + 1)} for i in range(6)]
+
+
 class DataChatApiTests(unittest.TestCase):
     def setUp(self):
         directory = tempfile.TemporaryDirectory()
@@ -263,6 +269,36 @@ class DataChatApiTests(unittest.TestCase):
         self.assertNotIn("deterministic_kpi_register", context)
         self.assertNotIn("SHA-256:", context)
         self.assertNotIn("sum(Maintenance_Cost_USD)", context)
+
+    def test_a_named_numeric_column_is_summed_over_the_selection_only(self):
+        run = self.make_run(rows=CONTRACTS)
+        self.bind(run, filters=[{"column": "Status", "op": "in", "values": ["Overdue"]}])
+        for text in ("What is the total Value_AED?", "total value aed", "ما إجمالي Value_AED؟"):
+            reply = self.ask(text)
+            measure = reply["result"]["measures"][0]
+            self.assertEqual((measure["title"], measure["value"], measure["records"]), ("Value_AED", 12000, 3), text)
+            self.assertEqual(measure["formula"], "sum(Value_AED)")
+        self.app.state.gateway.ask_json.assert_not_called()
+
+    def test_a_total_splits_by_a_text_column_into_its_largest_groups(self):
+        run = self.make_run(rows=CONTRACTS)
+        self.bind(run)
+        for text in ("What is the total Value_AED by Vendor?", "ما إجمالي Value_AED حسب Vendor؟"):
+            measures = self.ask(text)["result"]["measures"]
+            # Vendor A holds CT-0, 2, 4 (1,000 + 3,000 + 5,000); Vendor B the rest.
+            self.assertEqual([(m["value"], m["records"]) for m in measures], [(21000, 6), (12000, 3), (9000, 3)], text)
+            self.assertEqual(measures[1]["formula"], "sum(Value_AED) where Vendor = 'Vendor B'")
+        self.app.state.gateway.ask_json.assert_not_called()
+
+    def test_an_unknown_text_or_scoped_column_question_abstains(self):
+        run = self.make_run(rows=CONTRACTS)
+        self.bind(run)
+        for text in ("total Vendor", "total Budget", "total Value_AED by Budget", "total Value_AED by Value_AED",
+                     "total Value_AED next year", "total Value_AED by Vendor next year"):
+            self.assertEqual(self.ask(text)["why"], "unsupported_question", text)
+        self.assertEqual(question_metrics("total Value_AED", selected=False), None)
+        with self.assertRaises(ValueError):
+            DataQueryIn.model_validate({"metrics": ["column_total"], "column": "x" * 129})
 
 
 if __name__ == "__main__":

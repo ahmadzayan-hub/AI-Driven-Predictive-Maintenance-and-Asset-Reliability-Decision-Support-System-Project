@@ -144,10 +144,14 @@ class DomainTests(unittest.TestCase):
         self.assertEqual(m["priorities"]["binding"]["group_by"], ["Asset_Class"])
         self.assertEqual(m["priorities"]["binding"]["measures"], [{"agg": "sum", "column": "Downtime_Hours"}])
         self.assertIn("gap-predictive-risk", m)                     # risk named as missing, not drawn
-        self.assertEqual(c["priorities"]["binding"]["measures"], [{"agg": "count"}])
+        # Contracts: obligation state first, weighted by value, never a tie of counts.
+        self.assertEqual(c["priorities"]["binding"]["group_by"], ["Status"])
+        self.assertEqual(c["priorities"]["binding"]["measures"], [{"agg": "sum", "column": "Value_AED"}])
+        self.assertEqual(c["priorities"]["binding"]["drivers"], "Milestone")
         self.assertNotIn("distribution", c)
         self.assertNotIn("gap-predictive-risk", c)                 # no failure model forced on contracts
         self.assertEqual(b["ratio"]["binding"]["measures"][0]["agg"], "ratio")
+        self.assertEqual((b["actual"]["title"]["en"], b["budget"]["title"]["ar"]), ("Actual", "الموازنة"))
         self.assertEqual(b["variance"]["component"], "comparison")
         self.assertEqual(len(b["variance"]["binding"]["measures"]), 2)
         self.assertNotIn("priorities", u) if not L._groups(L.profile(unseen())) else None
@@ -159,6 +163,29 @@ class DomainTests(unittest.TestCase):
             fields = {f["name"]: f for f in L.profile(table)["fields"]}
             for col in filter(None, (page["priorities"]["binding"].get("drivers"), page["priorities"]["binding"]["group_by"][0])):
                 self.assertLess(fields[col]["distinct"], fields[col]["filled"])   # never a record number
+
+    def test_a_date_is_never_a_driver(self):
+        b = self.sections(budget)
+        self.assertNotIn("drivers", b["priorities"]["binding"])     # Month is a time axis
+        t = budget()
+        t.columns = t.columns + ["Region"]
+        t.rows = [row + (["North", "South"][i % 2],) for i, row in enumerate(t.rows)]
+        prof, caps = L.profile(t), L.capabilities(L.profile(t))
+        self.assertEqual(self.sections(lambda: t)["priorities"]["binding"]["drivers"], "Region")
+        pr = section(id="pick", component="priorities", binding={
+            "group_by": ["Category"], "measures": [{"agg": "count"}], "drivers": "Month"})
+        plan, problems = L.validate({"version": 1, "sections": [pr]}, t, prof, caps)[:2]
+        self.assertIsNone(plan)
+        self.assertTrue(any("not a date" in p for p in problems))
+
+    def test_dated_contracts_show_value_due_by_date(self):
+        t = contracts()
+        t.roles["Due_Date"] = "date"
+        result = L.plan_for(t)
+        trend = next(s for s in result["plan"]["sections"] if s["id"] == "trend")
+        self.assertEqual(trend["binding"]["group_by"], ["Due_Date"])
+        self.assertIn("due by Due_Date", trend["title"]["en"])
+        self.assertIn("المستحق", trend["title"]["ar"])
 
     def test_a_brief_takes_no_binding_and_drivers_must_be_real(self):
         t = maintenance()

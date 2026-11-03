@@ -77,7 +77,7 @@ from utils import load_config
 
 # The only inline script is the fixed prepaint theme/language bootstrap in
 # frontend/index.html. Pin its exact bytes, never authorize arbitrary inline JS.
-PREPAINT_SCRIPT_HASH = "sha256-VPW7AEpPmugLy0qUATyKc9v5mNJnHZkoos20wLQ3uVI="
+PREPAINT_SCRIPT_HASH = "sha256-boCymFHdeJ6BbZTpKmayLDPP7w8/57UuiZxODbFz0Js="
 API_CONTENT_POLICY = (
     "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
 )

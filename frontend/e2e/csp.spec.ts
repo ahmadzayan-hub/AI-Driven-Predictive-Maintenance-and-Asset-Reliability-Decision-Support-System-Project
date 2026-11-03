@@ -89,3 +89,9 @@ test('CSP allows the service worker, blob audio and generated downloads', async 
   })
   expect((await download).suggestedFilename()).toBe('synthetic-csp.csv')
 })
+
+test('a first visit with no saved theme opens in the dark house theme', async ({ page }) => {
+  await skipOnboarding(page)
+  await page.goto('/#/assistant')
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+})
