@@ -11,9 +11,9 @@ import type { MessageKey, PluralForms, PluralKey } from './en'
 export const ar: Record<MessageKey, string> = {
   'jarvis.launch': 'فتح Jarvis OS',
   'jarvis.close': 'العودة إلى المحادثة',
-  'nav.sources': 'مصادر البيانات',
-  'nav.evidence': 'التحليل والأدلة',
-  'nav.priorities': 'الأولويات والإجراءات',
+  'nav.sources': 'البيانات',
+  'nav.evidence': 'التحليل',
+  'nav.priorities': 'الإجراءات',
   'nav.outputs': 'التقارير',
   'nav.assistant': 'اسأل معيار',
   'nav.tools': 'أدوات مساحة العمل',

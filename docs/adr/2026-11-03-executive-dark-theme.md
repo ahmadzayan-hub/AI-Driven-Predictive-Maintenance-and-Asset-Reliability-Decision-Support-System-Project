@@ -100,3 +100,23 @@ slice.
 
 - The overview unit tests pass.
 - Screenshots were taken on the synthetic demo server, in English and Arabic.
+
+## Slice 3: shorter navigation labels (2026-11-03)
+
+The workflow groups take the short names of the reference sidebar. The order,
+the numbering and the items inside each group are unchanged.
+
+| Before | After | Arabic before | Arabic after |
+| --- | --- | --- | --- |
+| Data sources | Data | مصادر البيانات | البيانات |
+| Analysis & evidence | Analysis | التحليل والأدلة | التحليل |
+| Priorities & actions | Actions | الأولويات والإجراءات | الإجراءات |
+| Reports | Reports | التقارير | التقارير |
+
+"Ask Miyaar" keeps its name: renaming the assistant is a product decision for
+the owner. The reference's Predictions, Assets, Studio and Settings entries
+are not added; they would be links to pages that do not exist as separate
+routes. Strings only, so the bundle size barely moves.
+
+**Verification:** the overview and task-first end-to-end tests check the new
+labels on desktop and phone, in English and Arabic.
