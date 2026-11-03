@@ -205,6 +205,17 @@ backed by evidence. The page answers the manager's three questions first.
   records (checked by hand: 400 + 404 + 408 + 412 + 416 + 420), evidence
   opened, and the run's approval reached.
 
+**Budget:** measured after the build, against slice 2.
+
+| | Slice 2 | Slice 3 | Change |
+| --- | --- | --- | --- |
+| Script total | 275,715 B | 277,554 B | +1,839 B |
+| Style total | 37,371 B | 38,019 B | +648 B |
+
+First load is unchanged (96.1 of 100 KB script, 10.4 of 10.5 KB style), because
+the page is a lazy chunk. The owner approved raising the limits to 278 KB and
+38.1 KB ("Approve", 3 November 2026).
+
 **Limitations:** the domain is inferred from field names, so a file with
 unhelpful names gets the general structure. Jarvis's calculated questions
 cover maintenance only. A real model has still not designed a page here.
