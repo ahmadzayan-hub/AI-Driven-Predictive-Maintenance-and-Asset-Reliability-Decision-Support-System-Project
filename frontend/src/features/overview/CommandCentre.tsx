@@ -9,6 +9,9 @@ import type { RunExecutive, RunSummary } from '../../shared/types'
 import { formatValue } from '../assets/kpiDisplay'
 import { commandMessages } from './commandMessages'
 
+/** An icon per kind of measure, so a tile reads at a glance. */
+const SCALE_ICON: Record<string, 'activity' | 'clock' | 'chart'> = { percent: 'activity', hours: 'clock', money: 'chart' }
+
 interface CommandCentreProps {
   run: RunSummary
   brief: RunExecutive | null
@@ -74,6 +77,12 @@ export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCe
           </p>
         </div>
         {open}
+        {/* Jarvis beside the brief, as in the owner's reference designs: a
+            decorative orb and a way to ask about this report. */}
+        <a className="command__jarvis" href="#/assistant">
+          <span className="command__orb" aria-hidden="true" />
+          <span><strong>JARVIS</strong><small>{t('command.askJarvis')}</small></span>
+        </a>
       </div>
 
       <div className="command__grid">
@@ -88,7 +97,7 @@ export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCe
             const tone = performanceTone(m.value, m.assessment)
             const verdict = hasVerdict(tone)
             return <div key={m.key} data-source={`kpi.${m.key}`}>
-              <dt dir="auto">{m.title}</dt>
+              <dt dir="auto"><span className="command__icon" aria-hidden="true"><Icon name={SCALE_ICON[m.scale] ?? 'chart'} size={16} /></span>{m.title}</dt>
               <dd><PerformanceValue tone={tone} reason={verdict ? m.assessment?.reason : undefined}><bdi>{value ?? '-'}{value === null ? '' : <small>{unit}</small>}</bdi></PerformanceValue></dd>
             </div>
           })}</dl> : <p className="card__empty">{t('command.kpisNone')}</p>}
@@ -98,9 +107,9 @@ export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCe
 
         <section className="card" aria-labelledby="command-decisions">
           <h3 className="card__title" id="command-decisions">{t('command.decisions')} <span className="command__count">{formatNumber(decisions.length)}</span></h3>
-          {decisions.length ? <ol className="command__list">{decisions.slice(0, 4).map((d, i) => (
+          {decisions.length ? <ol className="command__list command__options">{decisions.slice(0, 4).map((d, i) => (
             <li key={d.id}><span className="command__n" aria-hidden="true">{formatNumber(i + 1)}</span>
-              <div><details><summary><strong dir="auto">{d.title}</strong></summary><p dir="auto">{d.detail}</p>
+              <div><span className="command__proposed">{t('command.proposed')}</span><details><summary><strong dir="auto">{d.title}</strong></summary><p dir="auto">{d.detail}</p>
                 {d.owner ? <p className="command__owner">{t('command.owner')}: <span dir="auto">{d.owner}</span> · {t('command.gate')}: <span dir="auto">{d.gate}</span></p> : null}</details></div>
             </li>))}</ol> : <p className="card__empty">{t('command.decisionsNone')}</p>}
         </section>

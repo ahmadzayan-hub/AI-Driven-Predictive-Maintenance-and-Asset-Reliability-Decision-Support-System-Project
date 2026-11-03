@@ -208,3 +208,20 @@
 .overview__top { display: grid; gap: var(--space-4); margin-block: var(--space-4); }
 .overview__top > * { margin: 0; }
 @media (min-width: 1100px) { .overview__top { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Reference design slice 2 (ADR 2026-11-03-executive-dark-theme): icon KPI
+   tiles with a glowing edge, proposed options as cards, Jarvis beside the brief. */
+.command__icon { display: inline-grid; place-items: center; width: 28px; height: 28px; margin-inline-end: var(--space-2); border-radius: 50%; color: var(--accent); background: var(--accent-soft); vertical-align: middle; }
+.command__kpis > div { position: relative; overflow: hidden; box-shadow: var(--shadow-1); }
+.command__kpis > div::before { content: ''; position: absolute; inset: 0 0 auto; height: 2px; background: linear-gradient(90deg, var(--accent), var(--violet)); opacity: .8; }
+.command__options { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.command__options > li { padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-l); background: var(--surface-raised); }
+.command__proposed { display: inline-block; margin-block-end: var(--space-1); padding: 1px var(--space-2); border: 1px solid var(--violet); border-radius: 999px; font-size: var(--text-xs); color: var(--violet); }
+.command__jarvis { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-4) var(--space-2) var(--space-2); border: 1px solid var(--border); border-radius: 999px; color: var(--text); text-decoration: none; background: var(--surface-glass, var(--surface)); }
+.command__jarvis:hover, .command__jarvis:focus-visible { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-haze, transparent); }
+.command__jarvis > span:last-child { display: grid; }
+.command__jarvis strong { letter-spacing: .3em; font-size: var(--text-s); }
+.command__jarvis small { color: var(--text-muted); font-size: var(--text-xs); }
+.command__orb { width: 52px; height: 52px; flex-shrink: 0; border-radius: 50%; background: radial-gradient(circle at 50% 50%, #e0fbff 0 6%, #22d3ee 18%, rgb(34 211 238 / .25) 45%, transparent 70%), conic-gradient(from 0deg, transparent, rgb(167 139 250 / .7), transparent 40%, rgb(34 211 238 / .7), transparent 75%); box-shadow: 0 0 24px rgb(34 211 238 / .45); animation: command-orb 9s linear infinite; }
+@keyframes command-orb { to { transform: rotate(1turn); } }
+@media (prefers-reduced-motion: reduce) { .command__orb { animation: none; } }

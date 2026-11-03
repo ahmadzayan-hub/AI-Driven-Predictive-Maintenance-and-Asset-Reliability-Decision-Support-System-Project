@@ -64,3 +64,39 @@ on a budget raise.
 - Screenshots were taken on the synthetic demo server in English and Arabic:
   Command Centre, the designed page and a run, each in the new dark theme.
   The automated end-to-end suites still set their theme explicitly.
+
+## Slice 2: the Command Centre after the references (2026-11-03)
+
+The owner approved raising the interface ceilings to 282 KB of script and
+41 KB of style ("موافق", 3 November 2026). This slice uses part of that room.
+
+1. **KPI tiles with icons.** Each controlled measure shows an icon for its
+   kind: a pulse for percentages, a clock for hours, a chart for money. Each
+   tile also has a cyan-to-violet top edge and a soft glow.
+2. **Options as cards.** The decisions that need attention appear as
+   numbered cards, each marked "Proposed" (مقترح). The words and the order
+   still come from the run.
+3. **Jarvis beside the brief.** A glowing cyan and violet orb, with "Ask
+   about this report" (اسأل عن هذا التقرير), sits next to the recommendation
+   and opens the assistant. The orb is decoration only. It stops turning when
+   reduced motion is set.
+
+**Measured:**
+
+| | Before | After | Change |
+| --- | --- | --- | --- |
+| Script total | 277,617 B | 277,913 B | +296 B |
+| Style total | 38,019 B | 38,537 B | +518 B |
+
+The ceilings are now 282 KB and 41 KB.
+
+**Still not done:** the options do not yet show scope, downtime, trade-off and
+impact rows; the run does not record those fields, and they will not be
+invented. The baseline comparison table and the shorter navigation labels also
+remain. The navigation change touches every route test, so it gets its own
+slice.
+
+**Verification:**
+
+- The overview unit tests pass.
+- Screenshots were taken on the synthetic demo server, in English and Arabic.
