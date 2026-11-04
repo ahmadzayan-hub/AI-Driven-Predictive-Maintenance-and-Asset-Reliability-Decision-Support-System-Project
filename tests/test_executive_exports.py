@@ -376,6 +376,34 @@ class ExecutiveSlidesTests(unittest.TestCase):
         self.assertIn("&lt;script&gt;", content)
 
 
+    def test_figures_never_round_onto_a_whole_number_or_zero(self):
+        from server.executive_export import faithful
+        for value, shown in ((99.996, "99.996"), (0.004, "0.004"), (-0.0004, "-0.0004"), (1.2e-7, "0.00000012"),
+                             (1517510.2300000011, "1,517,510.23"), (100, "100"), (87.54, "87.54")):
+            self.assertEqual(faithful(value), shown)
+
+    def test_forecast_slide_states_each_models_own_validation(self):
+        from server.executive_export import model_evidence, render_slides_html
+        good = {"target": "Downtime_Hours", "fitted": True, "test_records": 120, "beats_baseline": True, "details": {},
+                "metric": {"name": "MAE", "model": 3.25, "baseline": 4.5, "baseline_name": "mean"}}
+        weak = {**good, "target": "Cost", "beats_baseline": False}
+        bare = {"target": "Failures", "fitted": False, "metric": None, "details": {}}
+        for language in ("en", "ar"):
+            said = [model_evidence(m, language) for m in (good, weak, bare)]
+            for text in ("MAE 3.25", "4.5", "120"):
+                self.assertIn(text, said[0])
+            self.assertIn("past records only" if language == "en" else "السجلات السابقة فقط", said[0])
+            self.assertIn("does not beat" if language == "en" else "لا يتفوق", said[1])
+            self.assertIn("not assessed" if language == "en" else "غير مقيّم", said[2])
+            brief = self.brief(language)
+            brief["models"] = [good, weak]
+            content = render_slides_html(brief).decode("utf-8")
+            self.assertIn("MAE 3.25", content)
+            brief["models"] = []
+            self.assertIn("no forecast is claimed" if language == "en" else "فلا يُدّعى أي توقع",
+                          render_slides_html(brief).decode("utf-8"))
+
+
 class ExecutiveSlidesApiTests(ExecutiveExportApiTests):
     def test_slides_download_is_html_named_as_slides_and_changes_nothing(self):
         run = self.make_run()

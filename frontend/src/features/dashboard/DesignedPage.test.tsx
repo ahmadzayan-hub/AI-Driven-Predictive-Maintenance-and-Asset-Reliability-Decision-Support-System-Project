@@ -206,3 +206,29 @@ it('remembers how a chart is shown for this run and section', async () => {
   expect(await screen.findByRole('table', { name: 'Cost by class' })).toBeInTheDocument()
   expect(screen.getByRole('button', { name: 'Table' })).toHaveAttribute('aria-pressed', 'true')
 })
+
+it('draws and tables every measure of a comparison, never only the first', async () => {
+  const compare: LayoutSection = { id: 'variance', component: 'comparison', title: t('Actual and budget by Dept'), purpose: t('Side by side.'),
+    span: 3, interactions: ['filter', 'compare'], binding: { group_by: ['Dept'], measures: [{ agg: 'sum', column: 'Actual' }, { agg: 'sum', column: 'Budget' }] } }
+  vi.spyOn(api, 'planLayout').mockResolvedValue(result([compare]))
+  vi.spyOn(api, 'queryTable').mockResolvedValue({ group_by: [], measures: [], groups: [
+    { keys: ['IT'], records: 9, values: [4833, 4600] }, { keys: ['HR'], records: 4, values: [900, 1200] }],
+    group_count: 2, truncated: false, matched_records: 13, records: 13 })
+  const setState = vi.fn()
+  render(<DesignedPage runId="r1" roles={roles} state={EMPTY} filters={[]} setState={setState} />)
+  const region = await screen.findByRole('region', { name: 'Actual and budget by Dept' })
+  // Bars: both measures for both groups (four bars), each named.
+  await waitFor(() => expect(region).toHaveTextContent('4,833'))
+  for (const reading of ['4,833', '4,600', '900', '1,200']) expect(region).toHaveTextContent(reading)
+  expect(region.querySelectorAll('.dash-bars__series')).toHaveLength(4)
+  // A comparison has no line view; the table carries one column per measure.
+  expect(screen.queryByRole('button', { name: /line/i })).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: /table/i }))
+  expect(screen.getByRole('columnheader', { name: 'Actual' })).toBeInTheDocument()
+  expect(screen.getByRole('columnheader', { name: 'Budget' })).toBeInTheDocument()
+  const it_row = screen.getByRole('row', { name: /IT/ })
+  expect(it_row).toHaveTextContent('4,833')
+  expect(it_row).toHaveTextContent('4,600')
+  fireEvent.click(screen.getByRole('button', { name: 'HR' }))
+  expect(setState).toHaveBeenCalled()
+})

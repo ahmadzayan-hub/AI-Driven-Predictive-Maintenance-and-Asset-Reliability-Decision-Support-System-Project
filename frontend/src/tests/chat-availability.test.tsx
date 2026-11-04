@@ -183,3 +183,17 @@ it('emphasizes analysis without changing any workspace action or inventing model
   expect(view.container.querySelector('.miyaar-toolbar')).not.toHaveTextContent('AI-Powered')
   expect(screen.queryByText('Ready')).not.toBeInTheDocument()
 })
+
+it('rebinds a handed-over report to its whole scope when the chat held it with filters', async () => {
+  const held = { run_id: 'owned-report', dataset_id: 'd1', dataset_name: 'synthetic.csv', source_sha256: 'a'.repeat(64),
+    analysis_revision: 'b'.repeat(64), filters: [{ column: 'Region', op: 'in' as const, values: ['North'] }], records: 1, total_records: 3 }
+  const save = vi.spyOn(api, 'selectDataContext').mockResolvedValue({ ...initial(), data_context: { ...held, filters: [], records: 3 } })
+  const view = render(<DataChatContext session={{ ...initial(), data_context: held }} disabled={false} want="owned-report" />)
+  await waitFor(() => expect(save).toHaveBeenCalledWith(initial().session_id, 'owned-report'))
+  view.unmount()
+  // Already whole: nothing to change, no call.
+  save.mockClear()
+  render(<DataChatContext session={{ ...initial(), data_context: { ...held, filters: [], records: 3 } }} disabled={false} want="owned-report" />)
+  await new Promise(resolve => setTimeout(resolve, 20))
+  expect(save).not.toHaveBeenCalled()
+})

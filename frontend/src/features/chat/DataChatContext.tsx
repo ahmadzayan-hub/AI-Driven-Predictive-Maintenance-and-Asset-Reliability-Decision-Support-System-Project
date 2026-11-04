@@ -19,12 +19,16 @@ export function DataChatContext({ session, disabled, onSelected, onPending, want
   useEffect(() => () => { generation.current += 1 }, [])
   // A report handed over by another screen is selected once, through the same
   // permission-bound call as a manual choice; the server still decides access.
+  // The hand-over is the whole report the brief was calculated on, so an
+  // earlier binding of the same report with filters is replaced, not kept.
   const wanted = useRef<string | null>(null)
+  const bound = session.data_context
+  const whole = bound?.run_id === want && !(bound?.filters?.length)
   useEffect(() => {
-    if (!want || disabled || wanted.current === want || session.data_context?.run_id === want) return
+    if (!want || disabled || wanted.current === want || whole) return
     wanted.current = want
     void update(want)
-  }, [want, disabled, session.data_context?.run_id])
+  }, [want, disabled, whole])
 
   async function update(select?: string | null) {
     const request = ++generation.current

@@ -104,7 +104,11 @@ function Section({ runId, section, filters, state, roles, setState, pinned, onPi
   // The reader may change how a chart reads: a trend as a line, bars or a table;
   // any other chart as bars or a table. The data and the filters stay the same.
   const charted = section.component === 'trend' || section.component === 'ranking' || section.component === 'comparison' || section.component === 'distribution'
-  const views = section.component === 'trend' ? (['line', 'bars', 'table'] as const) : (['bars', 'table'] as const)
+  // A comparison names several measures per group (actual and budget): every
+  // one is drawn and tabled, never only the first.
+  const series = section.component === 'kpi' ? [] : (b.measures ?? []).map((m) => m.column ?? t('value'))
+  const multi = series.length > 1
+  const views = section.component === 'trend' && !multi ? (['line', 'bars', 'table'] as const) : (['bars', 'table'] as const)
   // Remembered per run and section in this browser only; a bad or blocked store falls back.
   const viewKey = `aos-layout-view:${runId}:${section.id}`
   const [view, setViewState] = useState<'line' | 'bars' | 'table'>(() => {
@@ -121,7 +125,9 @@ function Section({ runId, section, filters, state, roles, setState, pinned, onPi
       <tbody>{page.rows.map((row, r) => <tr key={r}>{keep.map((i) => <td key={i} dir="auto">{row[i] ?? ''}</td>)}</tr>)}</tbody></table></div>
   } else if (answer.data && 'groups' in answer.data) {
     const groups = answer.data.groups
-    const points = groups.map((g) => ({ label: label(g.keys[0] ?? null), value: g.values[0] }))
+    const points = multi
+      ? groups.flatMap((g) => series.map((name, i) => ({ label: label(g.keys[0] ?? null), value: g.values[i] ?? null, series: name })))
+      : groups.map((g) => ({ label: label(g.keys[0] ?? null), value: g.values[0] }))
     const pickable = column && section.interactions.includes('filter')
       ? { onPick: (value: string) => setState(pick(state, column, value, roles.date)), picked: (value: string) => isPicked(state, column, value, roles.date) }
       : {}
@@ -146,10 +152,10 @@ function Section({ runId, section, filters, state, roles, setState, pinned, onPi
       // The same groups as a table; a pickable group stays one press away.
       const onPick = 'onPick' in pickable ? pickable.onPick : undefined
       body = <div className="layout__scroll"><table className="table"><caption className="visually-hidden">{title}</caption>
-        <thead><tr><th scope="col" dir="auto">{column ?? title}</th><th scope="col">{t('value')}</th></tr></thead>
-        <tbody>{points.map((p) => <tr key={p.label}><th scope="row" dir="auto">{onPick ? <button type="button" className="evidence-link"
-          aria-pressed={pickable.picked?.(p.label)} onClick={() => onPick(p.label)}>{p.label}</button> : p.label}</th>
-          <td><bdi>{p.value === null ? t('noValue') : formatNumber(p.value)}</bdi></td></tr>)}</tbody></table></div>
+        <thead><tr><th scope="col" dir="auto">{column ?? title}</th>{(multi ? series : [t('value')]).map((name) => <th key={name} scope="col" dir="auto">{name}</th>)}</tr></thead>
+        <tbody>{groups.map((g) => { const name = label(g.keys[0] ?? null); return <tr key={name}><th scope="row" dir="auto">{onPick ? <button type="button" className="evidence-link"
+          aria-pressed={pickable.picked?.(name)} onClick={() => onPick(name)}>{name}</button> : name}</th>
+          {(multi ? g.values : g.values.slice(0, 1)).map((v, i) => <td key={i}><bdi>{v === null ? t('noValue') : formatNumber(v)}</bdi></td>)}</tr> })}</tbody></table></div>
     } else if (section.component === 'trend' && view === 'line') body = <Line points={points} label={title} {...pickable} />
     else body = <Bars items={points} label={title} {...(section.component === 'distribution' ? {} : pickable)} />
   }
