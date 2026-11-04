@@ -2397,3 +2397,10 @@ regressions passed. The full failure and skipped later steps remain in README.
 - Not verified: nobody listened to the narration (espeak-ng phonemes checked instead); the test Chromium cannot play H.264, so in-browser playback was not observed.
 - Decided: owner raised the script ceiling to 286 KB. External voice services stay off without approval.
 - Next: owner applies the hosted migration and fixes the production sign-in variables; then a PR and a reviewed deploy.
+
+## 2026-11-04 (later): human-voice film hand-off (session d9e3f889)
+
+- Done: PR #92 merged and main `654c500` deployed to production and verified (bundle `index-D06iQAbz.js`). Motion film and narration providers shipped.
+- Human voice, owner approved (ElevenLabs, Nasser for Arabic, Peter for English): narration is being generated in the owner's ElevenLabs flow `oZnukbBANNUW4yQyUi3T`. Done (English, Peter): title, decision, priorities, sources, about 787 credits. Remaining: English kpis and forecast, all six Arabic scenes. The free tier allows one generation at a time and refused three attempts in a row from 18:21 to 18:41 UTC; nothing was charged for those.
+- Blocked: this session still cannot reach `api.elevenlabs.io` or `elevenlabsusercontent.com` (proxy policy denial at 18:17 UTC after the owner allowed them); a new session should pick up the new network rules.
+- Next (new session): regenerate the synthetic briefs (`scripts/generate_synthetic_dataset.py --rows 1500`, run, `GET /executive` in en and ar), take the narration from `server.executive_video.storyboard`, generate the missing takes one at a time, download all twelve, render with `render(brief, folder, supplied={scene_id: {"path", "text_sha256"}})`, check the manifest says "supplied", send both films.
