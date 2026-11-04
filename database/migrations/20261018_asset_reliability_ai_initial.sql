@@ -8,6 +8,7 @@
 -- Snapshot refreshed 2026-10-22 for private evidence workspaces and governed review.
 -- Snapshot refreshed 2026-10-23 for the shared rate windows and the model budget (B6).
 -- Snapshot refreshed 2026-10-27 for the saved dashboard view per owner and dataset.
+-- Snapshot refreshed 2026-11-04 for export reviews, executive videos and layout versions.
 -- This is the initial-schema mirror; editing it does not apply a hosted migration.
 BEGIN;
 CREATE TABLE IF NOT EXISTS organizations (
@@ -107,6 +108,23 @@ CREATE TABLE IF NOT EXISTS dashboard_views (
       run_id TEXT NOT NULL, page TEXT NOT NULL, query TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       UNIQUE (owner, dataset_key));
+
+CREATE TABLE IF NOT EXISTS export_reviews (
+      id TEXT PRIMARY KEY, run_id TEXT NOT NULL, snapshot_id TEXT NOT NULL,
+      format TEXT NOT NULL, language TEXT NOT NULL, artifact_sha256 TEXT NOT NULL,
+      decision TEXT NOT NULL, comment TEXT NOT NULL, reviewer TEXT NOT NULL,
+      created_at TEXT NOT NULL);
+
+CREATE TABLE IF NOT EXISTS export_videos (
+      id TEXT PRIMARY KEY, run_id TEXT NOT NULL, owner TEXT NOT NULL,
+      snapshot_id TEXT NOT NULL, language TEXT NOT NULL, state TEXT NOT NULL,
+      error TEXT, manifest_json TEXT, created_at TEXT NOT NULL);
+
+CREATE TABLE IF NOT EXISTS layout_versions (
+      id TEXT PRIMARY KEY, owner TEXT NOT NULL, run_id TEXT NOT NULL,
+      version INTEGER NOT NULL, action TEXT NOT NULL, fingerprint TEXT NOT NULL,
+      result_json TEXT NOT NULL, pinned_json TEXT NOT NULL, created_at TEXT NOT NULL,
+      UNIQUE (owner, run_id, version));
 
 CREATE TABLE IF NOT EXISTS approvals (
       id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(id),
@@ -251,6 +269,12 @@ ALTER TABLE public.kpi_policies ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.kpi_policies FROM PUBLIC, anon, authenticated;
 ALTER TABLE public.dashboard_views ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.dashboard_views FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.export_reviews ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.export_reviews FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.export_videos ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.export_videos FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.layout_versions ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.layout_versions FROM PUBLIC, anon, authenticated;
 ALTER TABLE public.approvals ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.approvals FROM PUBLIC, anon, authenticated;
 ALTER TABLE public.artifacts ENABLE ROW LEVEL SECURITY;

@@ -1,5 +1,8 @@
 import { definePack } from './pack'
 export const layoutMessages = definePack({
+  syncAccount: 'Layout saved to your account · version {n}', syncLocal: 'Layout kept in this browser only; your account could not be reached.',
+  syncConflict: 'This layout was changed in another tab or device. The latest version is shown.', saved: 'Saved versions',
+  act_designed: 'designed', act_restored: 'layout chosen', act_pinned: 'section pinned', act_unpinned: 'section unpinned', act_restored_version: 'restored',
   heading: 'Designed for this data', objective: 'What do you want to understand?', redesign: 'Redesign',
   designing: 'Designing…', model: 'Designed by {name}', rules: 'Rule-based design · no model used',
   why: 'How it was designed', earlier: 'Earlier layouts', version: 'Version {n} · {time}', restore: 'Restore',
@@ -11,6 +14,9 @@ export const layoutMessages = definePack({
   sample: 'Records behind it', clear: 'Clear selection', askCost: 'What is total maintenance cost?', askFailures: 'How many failures?', askTotal: 'What is the total {column}?', askSplit: 'What is the total {column} by {group}?',
   jarvisScope: 'Ask Miyaar answers for this selection.', jarvisOnly: 'Ask Miyaar has no calculated question for this selection yet.',
 }, {
+  syncAccount: 'التصميم محفوظ في حسابك · الإصدار {n}', syncLocal: 'التصميم محفوظ في هذا المتصفح فقط؛ تعذر الوصول إلى حسابك.',
+  syncConflict: 'تغير هذا التصميم في تبويب أو جهاز آخر. تُعرض أحدث نسخة.', saved: 'النسخ المحفوظة',
+  act_designed: 'صُمِّم', act_restored: 'اختير تصميم', act_pinned: 'ثُبّت قسم', act_unpinned: 'أُلغي تثبيت قسم', act_restored_version: 'استُعيد',
   heading: 'مصمَّم لهذه البيانات', objective: 'ما الذي تريد فهمه؟', redesign: 'إعادة التصميم',
   designing: 'جارٍ التصميم…', model: 'صمّمه {name}', rules: 'تصميم بالقواعد · دون نموذج',
   why: 'كيف صُمِّم', earlier: 'تصاميم سابقة', version: 'الإصدار {n} · {time}', restore: 'استعادة',

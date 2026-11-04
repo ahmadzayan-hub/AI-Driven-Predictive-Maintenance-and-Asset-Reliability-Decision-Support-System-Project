@@ -16,6 +16,7 @@ import os
 import re
 from typing import Literal
 import threading
+import subprocess
 import time
 import uuid
 from datetime import datetime, timezone
@@ -1981,6 +1982,139 @@ def create_app(config_path=None, env=None, dist_dir=None):
             "Content-Security-Policy": executive_export.CONTENT_POLICY,
         })
 
+    # One human review step across every executive output, and the executive
+    # video rendered on this host from the same snapshot (ADRs
+    # 2026-11-04-shared-review and 2026-11-04-executive-video).
+    from server import executive_video, export_reviews
+    export_root = Path(local_env.get("AGENTIC_OS_EXPORT_DIR") or PROJECT_ROOT / "data" / "exports").expanduser()
+    video_busy = threading.Lock()
+    video_files = {"video.mp4": "video/mp4", "subtitles.vtt": "text/vtt; charset=utf-8",
+                   "subtitles.srt": "application/x-subrip; charset=utf-8", "manifest.json": "application/json"}
+
+    def video_view(row):
+        manifest = json.loads(row["manifest_json"]) if row.get("manifest_json") else None
+        return {"id": row["id"], "state": row["state"], "error": row.get("error"), "created_at": row["created_at"],
+                "snapshot_id": row["snapshot_id"], "language": row["language"], "manifest": manifest}
+
+    async def review_artifacts(run_id, brief):
+        found = {"dashboard": brief["snapshot_id"]}
+        for fmt, render in (("html", executive_export.render_html), ("docx", executive_export.render_docx),
+                            ("slides", executive_export.render_slides_html)):
+            found[fmt] = export_reviews.digest(await run_in_threadpool(render, brief))
+        with lock:
+            videos = engine.store.export_videos(run_id)
+        video = export_reviews.current_video(videos, brief["snapshot_id"], brief["language"])
+        found["video"] = (None if video is None else "failed" if video["state"] != "rendered"
+                          else json.loads(video["manifest_json"])["files"]["video.mp4"]["sha256"])
+        return found, video
+
+    def stale(language):
+        return HTTPException(status_code=409, detail=export_reviews.message("stale", language))
+
+    @app.get("/api/runs/{run_id}/executive/reviews")
+    async def executive_reviews(run_id: str, language: str = Query(default="en", pattern="^(en|ar)$"),
+                                filters: str = Query(default="[]"), principal=Depends(requires("read"))):
+        brief = await executive_brief(run_id, language, filters, principal)
+        found, video = await review_artifacts(run_id, brief)
+        with lock:
+            history = engine.store.export_reviews(run_id)
+        missing = executive_video.missing_tools()
+        return {"snapshot_id": brief["snapshot_id"], "language": language,
+                "formats": export_reviews.status(history, found, brief["snapshot_id"], language),
+                "history": history[:100], "video": video_view(video) if video else None,
+                "video_renderer": {"available": not missing and identity.mode != "demo", "missing": missing}}
+
+    class ReviewIn(BaseModel):
+        format: str = Field(pattern="^(dashboard|html|docx|slides|video)$")
+        language: str = Field(default="en", pattern="^(en|ar)$")
+        filters: str = Field(default="[]", max_length=16_000)
+        expected_snapshot_id: str = Field(pattern="^[a-f0-9]{64}$")
+        artifact_sha256: str = Field(pattern="^[a-f0-9]{64}$")
+        decision: str = Field(pattern="^(approved|changes_requested)$")
+        comment: str = Field(default="", max_length=export_reviews.MAX_COMMENT)
+
+    @app.post("/api/runs/{run_id}/executive/reviews")
+    async def review_executive_output(run_id: str, body: ReviewIn, principal=Depends(requires("approve"))):
+        brief = await executive_brief(run_id, body.language, body.filters, principal)
+        if brief["snapshot_id"] != body.expected_snapshot_id:
+            raise stale(body.language)
+        found, _ = await review_artifacts(run_id, brief)
+        current = found.get(body.format)
+        if body.format == "video" and current in (None, "failed"):
+            raise HTTPException(status_code=409, detail=export_reviews.message("no_video", body.language))
+        if current != body.artifact_sha256:
+            raise HTTPException(status_code=409, detail=export_reviews.message("artifact_changed", body.language))
+        try:
+            with lock:
+                row = export_reviews.record(engine.store, run_id=run_id, snapshot_id=brief["snapshot_id"],
+                                            fmt=body.format, language=body.language,
+                                            artifact_sha256=current, decision=body.decision,
+                                            comment=body.comment, reviewer=principal.subject)
+                history = engine.store.export_reviews(run_id)
+        except export_reviews.ReviewError as error:
+            raise HTTPException(status_code=error.status, detail=export_reviews.message(error.code, body.language))
+        return {"review": row, "formats": export_reviews.status(history, found, brief["snapshot_id"], body.language)}
+
+    @app.post("/api/runs/{run_id}/executive/video")
+    async def render_executive_video(run_id: str,
+                                     expected_snapshot_id: str = Query(pattern="^[a-f0-9]{64}$"),
+                                     language: str = Query(default="en", pattern="^(en|ar)$"),
+                                     filters: str = Query(default="[]"),
+                                     principal=Depends(requires("write"))):
+        missing = executive_video.missing_tools()
+        if missing or identity.mode == "demo":
+            raise HTTPException(status_code=503, detail=(
+                "لا يمكن إنتاج الفيديو على هذا الخادم: " + "، ".join(missing or ["demo"]) if language == "ar" else
+                "Video rendering is not available on this host: " + ", ".join(missing or ["view-only demo"])))
+        brief = await executive_brief(run_id, language, filters, principal)
+        if brief["snapshot_id"] != expected_snapshot_id:
+            raise stale(language)
+        if not video_busy.acquire(blocking=False):
+            raise HTTPException(status_code=429, detail=(
+                "يجري إنتاج فيديو آخر الآن. حاول بعد دقيقة." if language == "ar" else
+                "Another video is rendering. Try again in a minute."))
+        identifier = uuid.uuid4().hex
+        row = {"id": identifier, "run_id": run_id, "owner": principal.subject, "snapshot_id": brief["snapshot_id"],
+               "language": language, "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")}
+        try:
+            manifest = await run_in_threadpool(executive_video.render, brief, export_root / run_id / identifier)
+            row.update(state="rendered", manifest_json=json.dumps(manifest, ensure_ascii=False))
+        except (executive_video.VideoFailed, executive_video.VideoUnavailable, OSError, subprocess.SubprocessError) as error:
+            row.update(state="failed", error=str(error)[:600])
+        finally:
+            video_busy.release()
+        with lock:
+            engine.store.add_export_video(row)
+        if row["state"] != "rendered":
+            raise HTTPException(status_code=502, detail=(
+                "فشل إنتاج الفيديو وسُجل كتصدير فاشل." if language == "ar" else
+                "The video failed to render; it is recorded as a failed export."))
+        return {"video": video_view(row)}
+
+    @app.get("/api/runs/{run_id}/executive/video/{video_id}/{name}")
+    def executive_video_file(run_id: str, video_id: str, name: str, download: bool = False,
+                             principal=Depends(requires("read"))):
+        if name not in video_files or not re.fullmatch(r"[a-f0-9]{32}", video_id):
+            raise HTTPException(status_code=404, detail="Not found.")
+        with lock:
+            if not owns_run(principal, run_id):
+                raise HTTPException(status_code=404, detail="Run not found.")
+            row = next((r for r in engine.store.export_videos(run_id) if r["id"] == video_id), None)
+        if row is None or row["state"] != "rendered":
+            raise HTTPException(status_code=404, detail="Not found.")
+        path = export_root / run_id / video_id / name
+        manifest = json.loads(row["manifest_json"])
+        if name != "manifest.json":
+            # Serve only the bytes that were rendered and recorded.
+            if not path.is_file() or export_reviews.digest(path.read_bytes()) != manifest["files"][name]["sha256"]:
+                raise HTTPException(status_code=410, detail="The stored file is missing or changed.")
+        elif not path.is_file():
+            raise HTTPException(status_code=410, detail="The stored file is missing or changed.")
+        filename = f"{run_id}-{row['language']}-{row['snapshot_id'][:12]}-{name}"
+        return FileResponse(path, media_type=video_files[name], headers={
+            "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
+            "Content-Disposition": f'{"attachment" if download else "inline"}; filename="{filename}"'})
+
     @app.post("/api/runs/{run_id}/query")
     async def query_table(run_id: str, body: QueryIn,
                           language: str = Query(default="en", pattern="^(en|ar)$"),
@@ -2007,6 +2141,66 @@ def create_app(config_path=None, env=None, dist_dir=None):
             body.objective, stages, not blocked, language)
         result.pop("profile", None)
         return result
+
+    # Designed-page layouts kept per reader and run, with version history,
+    # restore and conflict detection (ADR 2026-11-04-layout-history).
+    from server import layout_history
+
+    class LayoutHistoryIn(BaseModel):
+        expected_version: int = Field(ge=0, le=1_000_000)
+        action: str = Field(pattern="^(designed|restored|pinned|unpinned)$")
+        history: dict
+
+    class LayoutRestoreIn(BaseModel):
+        expected_version: int = Field(ge=0, le=1_000_000)
+
+    def history_error(error, language):
+        detail = layout_history.message(error.code, language)
+        if error.head is not None:
+            return JSONResponse(status_code=error.status, content={"detail": detail, **error.head})
+        raise HTTPException(status_code=error.status, detail=detail)
+
+    async def layout_stages(run_id):
+        with lock:
+            return [t["role"] for t in engine.store.get_tasks(run_id) if t["state"] == "succeeded"]
+
+    @app.get("/api/runs/{run_id}/layout/history")
+    def get_layout_history(run_id: str, principal=Depends(requires("read"))):
+        with lock:
+            if not owns_run(principal, run_id):
+                raise HTTPException(status_code=404, detail="Run not found.")
+            return layout_history.view(engine.store.layout_versions(principal.subject, run_id))
+
+    @app.put("/api/runs/{run_id}/layout/history")
+    async def save_layout_history(run_id: str, body: LayoutHistoryIn,
+                                  language: str = Query(default="en", pattern="^(en|ar)$"),
+                                  principal=Depends(requires("write"))):
+        table, _ = await run_table(run_id, principal, language)
+        try:
+            document = await run_in_threadpool(layout_history.clean, body.history, table, await layout_stages(run_id))
+            with lock:
+                return layout_history.save(engine.store, principal.subject, run_id, document, body.action, body.expected_version)
+        except layout_history.HistoryError as error:
+            return history_error(error, language)
+
+    @app.post("/api/runs/{run_id}/layout/history/{version}/restore")
+    async def restore_layout_version(run_id: str, version: int, body: LayoutRestoreIn,
+                                     language: str = Query(default="en", pattern="^(en|ar)$"),
+                                     principal=Depends(requires("write"))):
+        table, _ = await run_table(run_id, principal, language)
+        with lock:
+            rows = engine.store.layout_versions(principal.subject, run_id)
+        row = next((r for r in rows if r["version"] == version), None)
+        try:
+            if row is None:
+                raise layout_history.HistoryError("missing", 404)
+            document = await run_in_threadpool(layout_history.clean, json.loads(row["result_json"]), table,
+                                               await layout_stages(run_id))
+            with lock:
+                return layout_history.save(engine.store, principal.subject, run_id, document, "restored_version",
+                                           body.expected_version)
+        except layout_history.HistoryError as error:
+            return history_error(error, language)
 
     # A saved dashboard view, one per owner and dataset (ADR
     # 2026-10-27-interactive-dashboard). Another owner's run is a 404.

@@ -586,6 +586,23 @@ evidence and unsupported targets stay visible. Claude dashboard skills are
 development instructions; hosted Artifact availability is account-dependent
 and was not activated by this implementation.
 
+- **The executive video's voice is synthetic and was not listened to.** Narration
+  uses espeak-ng on the host: intelligible, plainly robotic, free and offline. No
+  person has listened to it in the build environment; phoneme output and the
+  timeline were checked instead. A natural voice needs a licensed offline model or an
+  external service, which would send report text off the host and costs money, so it
+  waits for the owner's decision
+  ([decision](adr/2026-11-04-executive-video.md)).
+- **Video renders only on a host with the tools.** The Vercel functions have no
+  ffmpeg or espeak-ng; there the video control says what is missing. Rendering is
+  synchronous, one at a time, about 30 seconds for a 90-second clip.
+- **A review is not release.** The shared review records decisions on exact files;
+  publication still goes through the run's approval gate
+  ([decision](adr/2026-11-04-shared-review.md)).
+- **Layout history is per reader.** It is kept on the server with versions and
+  restore, but not shared across a workspace
+  ([decision](adr/2026-11-04-layout-history.md)).
+
 ## KPI register: what it cannot measure yet
 
 The register ([decision](adr/2026-10-21-register-availability-and-pooled-reliability-measures.md))

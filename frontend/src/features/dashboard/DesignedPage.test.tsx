@@ -232,3 +232,48 @@ it('draws and tables every measure of a comparison, never only the first', async
   fireEvent.click(screen.getByRole('button', { name: 'HR' }))
   expect(setState).toHaveBeenCalled()
 })
+
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
+
+it('opens the layout saved to the account, says so, and lists saved versions', async () => {
+  const saved = addVersion(null, result([kpi, rank], 'fp1'), '2026-11-04T08:00:00Z')
+  vi.spyOn(api, 'planLayout').mockResolvedValue(result([gap]))
+  vi.spyOn(api, 'queryTable').mockResolvedValue(answer([['Pumps', 900]]))
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async () => json({ head: { version: 3, history: saved },
+    audit: [{ version: 3, action: 'pinned', created_at: '2026-11-04T09:00:00Z' }, { version: 2, action: 'designed', created_at: '2026-11-04T08:30:00Z' }] }))
+  render(<DesignedPage runId="r-acc" roles={roles} state={EMPTY} filters={[]} setState={vi.fn()} />)
+  expect(await screen.findByText('Layout saved to your account · version 3')).toBeInTheDocument()
+  expect(await screen.findByRole('region', { name: 'Cost by class' })).toBeInTheDocument()
+  expect(readHistory('r-acc')?.fingerprint).toBe('fp1')
+  expect(screen.getByText('Saved versions')).toBeInTheDocument()
+  expect(screen.getAllByRole('button', { name: 'Restore' })).toHaveLength(1)
+})
+
+it('keeps the layout in this browser when the account cannot be reached, and says so', async () => {
+  vi.spyOn(api, 'planLayout').mockResolvedValue(result([kpi]))
+  vi.spyOn(api, 'queryTable').mockResolvedValue(answer([[null, 42]]))
+  vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('offline'))
+  render(<DesignedPage runId="r-off" roles={roles} state={EMPTY} filters={[]} setState={vi.fn()} />)
+  expect(await screen.findByRole('region', { name: 'Records' })).toBeInTheDocument()
+  expect(screen.getByText(/kept in this browser only/)).toBeInTheDocument()
+  expect(readHistory('r-off')).not.toBeNull()
+})
+
+it('shows the latest layout and says why when another tab saved first', async () => {
+  const mine = addVersion(null, result([kpi], 'fp1'), '2026-11-04T08:00:00Z')
+  const theirs = addVersion(null, result([kpi, rank], 'fp1'), '2026-11-04T08:05:00Z')
+  localStorage.setItem('aos-layout:r-race', JSON.stringify(mine))
+  vi.spyOn(api, 'queryTable').mockResolvedValue(answer([['Pumps', 900]]))
+  let calls = 0
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
+    calls += 1
+    if (init?.method === 'PUT') return json({ detail: 'conflict' }, 409)
+    return calls === 1 ? json({ head: { version: 1, history: mine }, audit: [{ version: 1, action: 'designed', created_at: '2026-11-04T08:00:00Z' }] })
+      : json({ head: { version: 2, history: theirs }, audit: [] })
+  })
+  render(<DesignedPage runId="r-race" roles={roles} state={EMPTY} filters={[]} setState={vi.fn()} />)
+  await screen.findByText('Layout saved to your account · version 1')
+  fireEvent.click(screen.getByRole('button', { name: 'Pin' }))
+  expect(await screen.findByText(/changed in another tab or device/)).toBeInTheDocument()
+  expect(await screen.findByRole('region', { name: 'Cost by class' })).toBeInTheDocument()
+})

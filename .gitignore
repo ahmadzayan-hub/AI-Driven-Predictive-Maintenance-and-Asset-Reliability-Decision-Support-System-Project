@@ -4,6 +4,7 @@ data/eval-ledger.jsonl
 data/eval-proposals.jsonl
 # The database plus the -wal/-shm sidecars WAL mode creates alongside it.
 data/agentic.db*
+data/exports/
 # A relative `database_file` resolves against the working directory, so a
 # script run from the repository root leaves one here. Runtime data, not
 # source, wherever it lands.

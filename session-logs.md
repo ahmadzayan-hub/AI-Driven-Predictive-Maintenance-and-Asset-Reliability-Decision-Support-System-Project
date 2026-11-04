@@ -2389,3 +2389,11 @@ regressions passed. The full failure and skipped later steps remain in README.
 - Next: owner's Ollama run; Jarvis questions for costs and contracts; stored
   layout history (schema migration); main CI on a232e2d confirmed by the
   05:20 UTC check-in.
+
+## 2026-11-04: Review, video, layout history and the four concerns (session d9e3f889)
+
+- Done: deployed main `91499c1` to production (owner approved) and confirmed the live bundle matches; found the hosted API failing to start because production has `DATABASE_URL` and no sign-in provider (also true of the previous deploy; owner action). Fixed the four concerns (faithful rounding, every comparison value, model evidence on slides, clean report hand-over). Added the shared review step, the executive video and server layout history with a hosted migration and operator steps.
+- Verified: verify all steps after the fixes; review, video and layout API tests; a real 1,500-row synthetic video in both languages with every KPI traced to the brief snapshot; frames inspected; full ffmpeg decode clean; browser test of review, render, preview, download, axe and phone width on desktop and mobile.
+- Not verified: nobody listened to the narration (espeak-ng phonemes checked instead); the test Chromium cannot play H.264, so in-browser playback was not observed.
+- Decided: owner raised the script ceiling to 286 KB. External voice services stay off without approval.
+- Next: owner applies the hosted migration and fixes the production sign-in variables; then a PR and a reviewed deploy.

@@ -1,6 +1,6 @@
 import './layout.css'
 import { useEffect, useRef, useState } from 'react'
-import { api, ApiError } from '../../shared/api'
+import { api, ApiError, request } from '../../shared/api'
 import type { GroupKey, LayoutResult, LayoutSection, QueryAnswer, RecordsPage, RunExecutive, TableFilter } from '../../shared/types'
 import { useI18n } from '../../i18n'
 import { usePack } from '../../i18n/pack'
@@ -182,25 +182,63 @@ export function DesignedPage({ runId, roles, state, filters, setState, onOpenRun
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
   const generation = useRef(0)
+  // Kept on the server per reader (ADR 2026-11-04-layout-history); this
+  // browser's copy is the fallback, and the line under the bar says which holds it.
+  type Saved = { head: { version: number; history: LayoutHistory } | null; audit: Array<{ version: number; action: string; created_at: string }> }
+  const [account, setAccountState] = useState<{ version: number; audit: Saved['audit'] } | null>(null)
+  const savedVersion = useRef<number | undefined>(undefined)
+  const setAccount = (next: { version: number; audit: Saved['audit'] } | null) => { savedVersion.current = next?.version; setAccountState(next) }
+  const [sync, setSync] = useState<'account' | 'local' | 'conflict'>('local')
+  const base = `/api/runs/${encodeURIComponent(runId)}/layout/history`
 
-  function save(next: LayoutHistory) { setHistory(next); writeHistory(runId, next) }
+  function adopt(saved: Saved, status: 'account' | 'conflict') {
+    setAccount({ version: saved.head?.version ?? 0, audit: saved.audit })
+    if (saved.head) { setHistory(saved.head.history); writeHistory(runId, saved.head.history) }
+    setSync(status)
+  }
+  async function keep(next: LayoutHistory, action: string, expected = savedVersion.current) {
+    if (expected === undefined) return
+    try {
+      adopt(await request<Saved>(`${base}?language=${locale}`, { method: 'PUT', body: JSON.stringify({ expected_version: expected, action, history: next }) }), 'account')
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        try { adopt(await request<Saved>(base), 'conflict') } catch { setSync('local') }
+      } else setSync('local')
+    }
+  }
+  function save(next: LayoutHistory, action = 'restored') { setHistory(next); writeHistory(runId, next); void keep(next, action) }
+  async function restoreSaved(version: number) {
+    try { adopt(await request<Saved>(`${base}/${version}/restore?language=${locale}`, { method: 'POST', body: JSON.stringify({ expected_version: savedVersion.current ?? 0 }) }), 'account') }
+    catch { setSync('local') }
+  }
   async function design(goal: string) {
     const token = ++generation.current
     setBusy(true); setFailed(false)
     try {
       const result = await api.planLayout(runId, goal, locale)
       // A newer request, or another run, wins: a late answer is dropped.
-      if (generation.current === token) save(addVersion(readHistory(runId), result, new Date().toISOString()))
+      if (generation.current === token) save(addVersion(readHistory(runId), result, new Date().toISOString()), 'designed')
     } catch (error) {
       if (generation.current === token) setFailed(error instanceof ApiError || error instanceof Error)
     } finally { if (generation.current === token) setBusy(false) }
   }
   useEffect(() => {
     const stored = readHistory(runId)
-    setHistory(stored)
-    // A refresh keeps the layout; only a first visit designs one.
+    setHistory(stored); setAccount(null); setSync('local')
+    // A refresh keeps the layout; only a first visit designs one. The
+    // account's history, when it answers, wins over this browser's copy.
     if (!stored) void design('')
-    return () => { generation.current++ }
+    let live = true
+    void request<Saved>(base).then((saved) => {
+      if (!live) return
+      if (saved.head) adopt(saved, 'account')
+      else {
+        setAccount({ version: 0, audit: [] }); setSync('account')
+        const now = readHistory(runId)
+        if (now) void keep(now, 'designed', 0)
+      }
+    }).catch(() => undefined)
+    return () => { live = false; generation.current++ }
   }, [runId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const shown = history?.versions[history.current]
@@ -214,7 +252,13 @@ export function DesignedPage({ runId, roles, state, filters, setState, onOpenRun
       {shown ? <span className="layout__source" role="status">{shown.result.source === 'model'
         ? t('model', { name: shown.result.provider ?? '' }) : t('rules')}</span> : null}
     </div>
+    <p className="card__meta layout__sync" aria-live="polite" data-sync={sync}>{sync === 'account' ? t('syncAccount', { n: String(account?.version ?? 0) })
+      : sync === 'conflict' ? t('syncConflict') : t('syncLocal')}</p>
     {failed ? <p role="alert" className="statusline statusline--error">{t('failed')}</p> : null}
+    {account && account.audit.length > 1 ? <details className="layout__history"><summary>{t('saved')}</summary><ol>
+      {account.audit.map((a) => <li key={a.version}><bdi>{t('version', { n: String(a.version), time: formatDate(a.created_at) })} · {t(`act_${a.action}` as 'act_designed')}</bdi>
+        {a.version !== account.version ? <> <button type="button" className="evidence-link" onClick={() => void restoreSaved(a.version)}>{t('restore')}</button></> : null}</li>)}
+    </ol></details> : null}
     {history && history.versions.length > 1 ? <details className="layout__history"><summary>{t('earlier')}</summary><ol>
       {history.versions.map((v, i) => <li key={v.at}><button type="button" className="evidence-link" aria-current={i === history.current ? 'true' : undefined}
         onClick={() => save(restore(history, i))}>{t('version', { n: String(i + 1), time: formatDate(v.at) })}</button></li>)}
@@ -225,7 +269,7 @@ export function DesignedPage({ runId, roles, state, filters, setState, onOpenRun
       {history ? sectionsOf(history).map((section) => <Section key={section.id} runId={runId} section={section} filters={filters}
         state={state} roles={roles} setState={setState} pinned={history.pinned.includes(section.id)}
         result={shown!.result} onOpenRun={onOpenRun ?? (() => undefined)}
-        onPin={() => save(togglePin(history, section.id))} />) : <p className="card__meta">{t('designing')}</p>}
+        onPin={() => save(togglePin(history, section.id), history.pinned.includes(section.id) ? 'unpinned' : 'pinned')} />) : <p className="card__meta">{t('designing')}</p>}
     </div>
   </div>
 }
