@@ -184,3 +184,27 @@ check on the local servers, desktop 1440 px and iPhone 13, English and Arabic: t
 North filter, the report hand-over and the answer order, with no sideways scroll.
 Voice: the consent and denied-permission paths are covered by e2e; real speech was not
 tested in a headless browser.
+
+## Slice 7: stage one of the owner's three-stage plan (2026-11-04)
+
+1. **The period, from the data's own date column.** `server/period.py` reads the column
+   the pipeline marked with the date role, and only ISO dates (YYYY-MM or YYYY-MM-DD).
+   The brief's scope and Ask Miyaar's data context now carry `period` (from, to, dated
+   records), computed over the selected records, so a filter narrows it too. With no date
+   role it is null and the screen says "period not recorded"; it is never guessed from a
+   column name. Tests: `tests/test_period.py`.
+2. **Three lines a manager reads first.** Under the decision on the Command Centre: what
+   is happening (the brief's scope line), the biggest risk or opportunity (the first
+   calculated priority; the line is left out when there is none), and the decision needed
+   (the first proposed decision).
+3. **The analysis state, said plainly.** The Command Centre says whether a validated
+   forecast exists: only a model that beat its baseline counts; otherwise "No validated
+   forecast: observed data only". Each Ask Miyaar answer opens with its kind: calculated
+   result, not enough data for part of it, or not supported (no calculation made). Load
+   errors keep their existing message.
+4. **Scope everywhere.** Ask Miyaar's scope line now reads data, records, period and
+   filters. Dates are isolated as left-to-right so they read correctly in Arabic.
+
+**Verification:** verify 8 of 8 (2,568 Python tests); Ask Miyaar e2e 16 of 16; live
+path on desktop and iPhone 13 in English and Arabic: the period 2025-01-01 to
+2026-04-01 on a generated 1,500-row file, the three lines, the forecast state.

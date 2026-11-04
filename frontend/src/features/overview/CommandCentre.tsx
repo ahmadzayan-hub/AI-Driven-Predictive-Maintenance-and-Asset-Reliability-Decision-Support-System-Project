@@ -66,6 +66,9 @@ export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCe
   const fullRecommendation = brief.advisory?.recommendation ?? brief.headline
   const lead = recommendationLead(fullRecommendation, t('command.action'))
   const limitations = brief.readiness.limitations
+  const period = brief.scope.period ?? null
+  const forecastValid = brief.models.some((model) => modelTone(model) === 'good')
+  const topRisk = brief.priorities[0]?.detail ?? null
 
   return (
     <section className="command" aria-label={t('command.aria')}>
@@ -80,7 +83,15 @@ export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCe
             </span>
             {' · '}{t('command.asOf', { date: formatDate(brief.run.updated_at ?? run.updated_at) })}
             {' · '}{t('command.scope', { records: formatNumber(brief.scope.records), measures: formatNumber(brief.kpis.measures.length) })}
+            {' · '}<bdi>{period ? t('command.period', { from: `\u2066${period.from}\u2069`, to: `\u2066${period.to}\u2069` }) : t('command.noPeriod')}</bdi>
+            {' · '}<span className="performance-value" data-performance={forecastValid ? 'good' : 'unavailable'}><span className="performance-value__status">{t(forecastValid ? 'command.forecast.good' : 'command.forecast.none')}</span></span>
           </p>
+          {/* The three questions a manager asks first, each answered from the run. */}
+          <dl className="command__brief">
+            <div><dt>{t('command.happening')}</dt><dd dir="auto">{brief.headline}</dd></div>
+            {topRisk ? <div><dt>{t('command.risk')}</dt><dd dir="auto">{topRisk}</dd></div> : null}
+            {decisions[0] ? <div><dt>{t('command.decide')}</dt><dd dir="auto">{decisions[0].title}</dd></div> : null}
+          </dl>
         </div>
         {open}
         {/* Ask Miyaar beside the brief: the link names this report, so the
@@ -109,7 +120,7 @@ export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCe
           })}</dl> : <p className="card__empty">{t('command.kpisNone')}</p>}
           {moreMeasures.length ? <details className="command__limits"><summary>{t('command.moreMeasures', { n: formatNumber(moreMeasures.length) })}</summary>
             <ul>{moreMeasures.map((m) => <li key={m.key} dir="auto">{m.title}: <bdi>{formatValue(m, locale) ?? '-'}</bdi></li>)}</ul></details> : null}
-          <p className="card__meta">{t('command.context')}</p>
+          <p className="card__meta">{t(period ? 'command.contextDated' : 'command.context')}</p>
           {unavailable ? <p className="card__meta">{t('command.unavailable', { n: formatNumber(unavailable) })}</p> : null}
         </section>
 

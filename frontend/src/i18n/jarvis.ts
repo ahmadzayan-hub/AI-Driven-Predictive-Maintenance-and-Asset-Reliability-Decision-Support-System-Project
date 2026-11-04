@@ -28,7 +28,8 @@ export const jarvisMessages = definePack({
   voiceHelp: 'Microphone is opt-in. Browser recognition may send audio to its provider; do not dictate private data. Text always works.',
   selectFirst: 'Select a completed report to begin.',
   forecastNote: 'Forecasts are not offered here. A reliable failure forecast needs a validated model, dated failure history for each asset and a stated horizon; these answers come from recorded data only.',
-  allRecords: 'all records', filtersLabel: 'Filters', lead: '{title}: {value}, from {records} of {total} selected records.',
+  allRecords: 'all records', filtersLabel: 'Filters', periodLabel: 'Period', noPeriod: 'not recorded',
+  stateCalculated: 'Calculated result', stateInsufficient: 'Not enough data for part of this answer', stateUnsupported: 'Not supported: no calculation was made', lead: '{title}: {value}, from {records} of {total} selected records.',
   boot: 'Open synthetic workspace', bootError: 'Workspace unavailable. Start the documented synthetic server; the original database is not used.',
 }, {
   voiceStage: 'لوحة التفاعل الصوتي', reduceMotion: 'تقليل الحركة', stateAnimation: 'حركة تعبّر عن الحالة · ليست مستوى الصوت',
@@ -59,6 +60,7 @@ export const jarvisMessages = definePack({
   voiceHelp: 'الميكروفون اختياري. قد يرسل التعرف الصوتي في المتصفح الصوت إلى مزوده؛ لا تُمْلِ بيانات خاصة. الكتابة متاحة دائماً.',
   selectFirst: 'اختر تقريراً مكتملاً للبدء.',
   forecastNote: 'لا تُقدَّم توقعات هنا. يحتاج التوقع الموثوق للأعطال إلى نموذج متحقَّق منه وسجل أعطال مؤرخ لكل أصل وأفق زمني محدد؛ هذه الإجابات من البيانات المسجلة فقط.',
-  allRecords: 'كل السجلات', filtersLabel: 'المرشحات', lead: '{title}: {value}، من {records} من أصل {total} سجلاً محدداً.',
+  allRecords: 'كل السجلات', filtersLabel: 'المرشحات', periodLabel: 'الفترة', noPeriod: 'غير مسجلة',
+  stateCalculated: 'نتيجة محسوبة', stateInsufficient: 'البيانات غير كافية لجزء من هذه الإجابة', stateUnsupported: 'غير مدعوم: لم يُجرَ أي حساب', lead: '{title}: {value}، من {records} من أصل {total} سجلاً محدداً.',
   boot: 'فتح مساحة العرض الاصطناعي', bootError: 'المساحة غير متاحة. شغّل خادم العرض الاصطناعي الموثّق؛ لا تُستخدم القاعدة الأصلية.',
 })

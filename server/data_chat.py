@@ -9,6 +9,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from server import query
+from server.period import period_of
 from server.executive import currency_of
 from server.maintenance import contract, kpis
 from server.runs import TableNotReady
@@ -231,7 +232,7 @@ class DataChat:
         return {"run_id": run["id"], "dataset_id": dataset["id"], "dataset_name": run["dataset_name"],
                 "source_sha256": dataset["sha256"], "analysis_revision": revision,
                 "filters": copy.deepcopy(request.filters), "records": len(selected),
-                "total_records": len(table.rows)}
+                "total_records": len(table.rows), "period": period_of(table, selected)}
 
     def answer(self, request, session, principal):
         language = session.agent.language()

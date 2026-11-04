@@ -87,7 +87,7 @@ export function JarvisWorkspace({ session, disabled = false, embedded = false, p
       <section className="jarvis__card jarvis__composer"><h2>{t(embedded ? 'question' : 'input')}</h2>
         {!embedded && <DataChatContext session={session} want={reportId} disabled={disabled || session.ended} onSelected={select} onPending={pending => { setSelecting(pending); if (pending) { invalidate(); setContext(null) } }} />}
         {/* The scope every answer is calculated on, always in view: data, records, filters. */}
-        <p className="jarvis__scope">{context ? <><bdi>{context.dataset_name}</bdi> · <bdi>{context.records} / {context.total_records}</bdi> · {t('filtersLabel')}: <bdi>{describeFilters(context.filters) || t('allRecords')}</bdi></> : t('selectFirst')}</p>
+        <p className="jarvis__scope">{context ? <><bdi>{context.dataset_name}</bdi> · <bdi>{context.records} / {context.total_records}</bdi> · {t('periodLabel')}: <bdi>{context.period ? `${context.period.from} – ${context.period.to}` : t('noPeriod')}</bdi> · {t('filtersLabel')}: <bdi>{describeFilters(context.filters) || t('allRecords')}</bdi></> : t('selectFirst')}</p>
         <label>{t('question')}<textarea value={draft} maxLength={2000} disabled={disabled || session.ended || selecting}
           onChange={e => edit(e.target.value)} dir="auto" /></label>
         <div className="jarvis__actions">{(['cost', 'follow'] as const).map(key => <button className="btn btn--ghost" key={key} disabled={disabled || session.ended || selecting} onClick={() => edit(t(key))}>{t(key)}</button>)}</div>
@@ -98,6 +98,9 @@ export function JarvisWorkspace({ session, disabled = false, embedded = false, p
       </section>
     <section className="jarvis__card jarvis__answer" aria-live="polite"><h2>{t(embedded ? 'result' : 'output')}</h2>
       {!answer ? <p>{t('prompt')}</p> : <><p className="jarvis__question" dir="auto">{asked}</p>
+        {/* What kind of answer this is, before anything else is read. */}
+        <p className="performance-value jarvis__state" data-performance={!answer.result ? 'unavailable' : answer.result.measures.some(m => m.value === null) ? 'okay' : 'good'}>
+          <span className="performance-value__status">{t(!answer.result ? 'stateUnsupported' : answer.result.measures.some(m => m.value === null) ? 'stateInsufficient' : 'stateCalculated')}</span></p>
         {!answer.result && <pre className="jarvis__evidence" dir="auto">{answer.text}</pre>}
         {answer.result && <>{answer.result.measures[0] && <p className="jarvis__lead" dir="auto">{t('lead', { title: answer.result.measures[0].title,
           value: answer.result.measures[0].value === null ? t('noValue') : `${show(answer.result.measures[0].value)} ${units[answer.result.measures[0].scale ?? ''] ?? t('unitUnknown')}`,
