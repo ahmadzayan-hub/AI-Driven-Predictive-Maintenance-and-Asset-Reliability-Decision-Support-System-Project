@@ -332,3 +332,24 @@ only". This slice gives every kind of records one calculated question.
   hand.
 
 **Budget:** unchanged at 277.7 of 278 KB of script.
+
+## Slice 7: the designed page first, and charts the reader can change (2026-11-04)
+
+Stage two of the owner's plan starts here.
+
+1. **After an upload, the page designed for that data.** "Open dashboard" on a finished
+   analysis now opens `#/dashboard/<run>/designed`, the page whose sections were chosen for
+   this file's columns, instead of the fixed overview. The Command Centre's "Open the
+   executive overview" still opens the overview, as its name says.
+2. **Change how a chart reads.** Each chart section offers "Show as": a trend as a line,
+   bars or a table; any other chart as bars or a table (no line where the order is not
+   time). The data, the shared filters and the click-to-filter stay the same: in the table,
+   each group is a button that applies the same filter. Switching asks the server nothing.
+
+**Not done yet:** the choice is not remembered across reloads; server-stored layout
+history (slice 7 of the plan) is still open.
+
+**Verification:** a component test (bars or table for a ranking, same data, same pick, no
+new query); dashboard e2e 10 of 10; Ask Miyaar and designed-page e2e 16 of 16; live on
+desktop and iPhone 13, English and Arabic: 2 switchable charts, a 16-row table, no
+sideways scroll.

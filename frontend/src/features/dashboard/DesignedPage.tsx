@@ -101,6 +101,11 @@ function Section({ runId, section, filters, state, roles, setState, pinned, onPi
     (): Promise<QueryAnswer | RecordsPage> => isTable ? api.tableRecords(runId, spec!, locale) : api.queryTable(runId, spec as never, locale))
   const title = section.title[locale]
   const column = typeof b.group_by?.[0] === 'string' ? b.group_by[0] as string : null
+  // The reader may change how a chart reads: a trend as a line, bars or a table;
+  // any other chart as bars or a table. The data and the filters stay the same.
+  const charted = section.component === 'trend' || section.component === 'ranking' || section.component === 'comparison' || section.component === 'distribution'
+  const views = section.component === 'trend' ? (['line', 'bars', 'table'] as const) : (['bars', 'table'] as const)
+  const [view, setView] = useState<'line' | 'bars' | 'table'>(views[0])
   let body: React.ReactNode = <p className="card__meta">{t('loading')}</p>
   if (section.component === 'brief') body = <Brief runId={runId} filters={filters} result={result} onOpenRun={onOpenRun} />
   else if (section.component === 'gap') body = <p className="layout__gap"><strong>{t('unavailable')}</strong> · {section.reason?.[locale]}</p>
@@ -132,13 +137,24 @@ function Section({ runId, section, filters, state, roles, setState, pinned, onPi
       })}</ol>
       {held ? <Focus runId={runId} name={held} drivers={b.drivers} measures={b.measures} filters={filters}
         maintenance={result.domain?.name === 'maintenance'} onClear={() => setState(pick(state, column, held, roles.date))} /> : null}</>
-    } else if (section.component === 'trend') body = <Line points={points} label={title} {...pickable} />
+    } else if (view === 'table') {
+      // The same groups as a table; a pickable group stays one press away.
+      const onPick = 'onPick' in pickable ? pickable.onPick : undefined
+      body = <div className="layout__scroll"><table className="table"><caption className="visually-hidden">{title}</caption>
+        <thead><tr><th scope="col" dir="auto">{column ?? title}</th><th scope="col">{t('value')}</th></tr></thead>
+        <tbody>{points.map((p) => <tr key={p.label}><th scope="row" dir="auto">{onPick ? <button type="button" className="evidence-link"
+          aria-pressed={pickable.picked?.(p.label)} onClick={() => onPick(p.label)}>{p.label}</button> : p.label}</th>
+          <td><bdi>{p.value === null ? t('noValue') : formatNumber(p.value)}</bdi></td></tr>)}</tbody></table></div>
+    } else if (section.component === 'trend' && view === 'line') body = <Line points={points} label={title} {...pickable} />
     else body = <Bars items={points} label={title} {...(section.component === 'distribution' ? {} : pickable)} />
   }
   return <section className={`card layout__section layout__section--${section.span}`} aria-label={title}>
     <header className="layout__head"><h4 dir="auto">{title}</h4>
       <button type="button" className="btn btn--ghost layout__pin" aria-pressed={pinned} onClick={onPin}>{pinned ? t('pinned') : t('pin')}</button></header>
     <p className="card__meta" dir="auto">{section.purpose[locale]}</p>
+    {charted ? <div className="layout__views" role="group" aria-label={t('showAs')}>{views.map((v) =>
+      <button key={v} type="button" className="btn btn--subtle" aria-pressed={view === v} onClick={() => setView(v)}>
+        {t(v === 'line' ? 'asLine' : v === 'bars' ? 'asBars' : 'asTable')}</button>)}</div> : null}
     {body}
   </section>
 }

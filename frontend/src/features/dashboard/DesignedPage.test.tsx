@@ -178,3 +178,20 @@ it('reads a ratio of two totals as a percentage, and a priority list keeps its o
   await waitFor(() => expect(query.mock.calls.some(([, spec]) => (spec.group_by ?? [])[0] === 'Class'
     && !(spec.filters ?? []).some((f) => f.column === 'Class'))).toBe(true))
 })
+
+it('lets the reader show a chart as a table, with the same data and the same pick', async () => {
+  vi.spyOn(api, 'planLayout').mockResolvedValue(result([rank]))
+  const query = vi.spyOn(api, 'queryTable').mockResolvedValue(answer([['Pumps', 900], ['Doors', 300]]))
+  const setState = vi.fn()
+  render(<DesignedPage runId="r1" roles={roles} state={EMPTY} filters={[]} setState={setState} />)
+  const section = await screen.findByRole('region', { name: 'Cost by class' })
+  const views = await screen.findByRole('group', { name: 'Show as' })
+  expect(Array.from(views.querySelectorAll('button')).map((b) => b.textContent)).toEqual(['Bars', 'Table'])  // no line for a ranking
+  fireEvent.click(screen.getByRole('button', { name: 'Table' }))
+  const table = await screen.findByRole('table', { name: 'Cost by class' })
+  expect(table).toHaveTextContent('Pumps'); expect(table).toHaveTextContent('900')
+  expect(query).toHaveBeenCalledTimes(1)  // switching the view asks nothing new
+  fireEvent.click(screen.getByRole('button', { name: 'Pumps' }))
+  expect(setState).toHaveBeenCalledWith(expect.objectContaining({ filters: { Class: ['Pumps'] } }))
+  expect(section).toBeInTheDocument()
+})

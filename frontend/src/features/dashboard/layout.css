@@ -35,3 +35,6 @@
 @keyframes layout-open { from { opacity: 0; transform: translateY(-4px); } }
 @media (prefers-reduced-motion: reduce) { .layout__focus, .layout__priorities button { animation: none; transition: none; } }
 @media (max-width: 900px) { .layout__brief, .layout__priorities { grid-template-columns: minmax(0, 1fr); } }
+.layout__views { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-block: 0 var(--space-2); }
+.layout__views .btn { min-height: 32px; padding-inline: var(--space-3); border-radius: 99px; font-size: var(--text-xs); }
+.layout__views .btn[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
