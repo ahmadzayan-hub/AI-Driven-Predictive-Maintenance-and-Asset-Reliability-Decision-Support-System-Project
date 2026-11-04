@@ -2,6 +2,7 @@ import { pickMeasures } from '../../shared/pickMeasures'
 export { pickMeasures } from '../../shared/pickMeasures'
 import { usePack } from '../../i18n/pack'
 import { Icon } from '../../shared/components/Icon'
+import { useReadOnly } from '../../shared/readOnly'
 import { PerformanceValue, hasVerdict, performanceTone } from '../../shared/components/PerformanceValue'
 import { formatMoney } from '../../shared/format'
 import { modelTone } from '../../shared/modelTone'
@@ -31,6 +32,8 @@ export function recommendationLead(text: string, fallback: string): string {
  *  approving. Every figure is the server's; nothing is computed here. */
 export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCentreProps) {
   const { t, locale, formatNumber, formatDate } = usePack(commandMessages)
+  // The view-only demo has no assistant session, so the link would lead nowhere.
+  const readOnly = useReadOnly()
   const open = onOpenDashboard ? (
     <button type="button" className="btn btn--ghost" onClick={() => onOpenDashboard(run.id)}>
       <Icon name="chart" size={16} />{t('command.openExecutive')}
@@ -51,7 +54,10 @@ export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCe
   const decisions = brief.advisory?.decisions?.length
     ? brief.advisory.decisions.map((d) => ({ id: d.id, title: d.title, detail: d.action, owner: d.owner, gate: d.gate }))
     : brief.priorities.map((p) => ({ id: p.id, title: p.title, detail: p.detail, owner: '', gate: '' }))
-  const measures = pickMeasures(brief.kpis.measures)
+  // Four measures on the first screen; the others one click away.
+  const picked = pickMeasures(brief.kpis.measures)
+  const measures = picked.slice(0, 4)
+  const moreMeasures = brief.kpis.measures.filter((m) => !measures.includes(m))
   const unavailable = Object.keys(brief.kpis.unavailable).length
   const recommendation = brief.findings.find((f) => f.id === 'cl_recommendation' || f.kind === 'recommendation')
   const assumption = brief.findings.find((f) => f.stage === 'prescriptive' && f.kind === 'assumption' && f !== recommendation)
@@ -77,12 +83,12 @@ export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCe
           </p>
         </div>
         {open}
-        {/* Jarvis beside the brief, as in the owner's reference designs: a
-            decorative orb and a way to ask about this report. */}
-        <a className="command__jarvis" href="#/assistant">
+        {/* Ask Miyaar beside the brief: the link names this report, so the
+            assistant opens with it selected and shows the scope it answers on. */}
+        {readOnly ? null : <a className="command__jarvis" href={`#/assistant/${encodeURIComponent(run.id)}`}>
           <span className="command__orb" aria-hidden="true" />
           <span><strong>MIYAAR</strong><small>{t('command.askJarvis')}</small></span>
-        </a>
+        </a>}
       </div>
 
       <div className="command__grid">
@@ -101,13 +107,15 @@ export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCe
               <dd><PerformanceValue tone={tone} reason={verdict ? m.assessment?.reason : undefined}><bdi>{value ?? '-'}{value === null ? '' : <small>{unit}</small>}</bdi></PerformanceValue></dd>
             </div>
           })}</dl> : <p className="card__empty">{t('command.kpisNone')}</p>}
+          {moreMeasures.length ? <details className="command__limits"><summary>{t('command.moreMeasures', { n: formatNumber(moreMeasures.length) })}</summary>
+            <ul>{moreMeasures.map((m) => <li key={m.key} dir="auto">{m.title}: <bdi>{formatValue(m, locale) ?? '-'}</bdi></li>)}</ul></details> : null}
           <p className="card__meta">{t('command.context')}</p>
           {unavailable ? <p className="card__meta">{t('command.unavailable', { n: formatNumber(unavailable) })}</p> : null}
         </section>
 
         <section className="card" aria-labelledby="command-decisions">
           <h3 className="card__title" id="command-decisions">{t('command.decisions')} <span className="command__count">{formatNumber(decisions.length)}</span></h3>
-          {decisions.length ? <ol className="command__list command__options">{decisions.slice(0, 4).map((d, i) => (
+          {decisions.length ? <ol className="command__list command__options">{decisions.slice(0, 3).map((d, i) => (
             <li key={d.id}><span className="command__n" aria-hidden="true">{formatNumber(i + 1)}</span>
               <div><span className="command__proposed">{t('command.proposed')}</span><details><summary><strong dir="auto">{d.title}</strong></summary><p dir="auto">{d.detail}</p>
                 {d.owner ? <p className="command__owner">{t('command.owner')}: <span dir="auto">{d.owner}</span> · {t('command.gate')}: <span dir="auto">{d.gate}</span></p> : null}</details></div>

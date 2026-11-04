@@ -38,6 +38,7 @@ export const commandMessages = definePack({
   'command.questions': 'Questions for the approver',
   'command.evidenceLink': 'Inspect evidence',
   'command.askJarvis': 'Ask about this report',
+  'command.moreMeasures': 'More measures ({n})',
   'command.proposed': 'Proposed',
 }, {
   'command.aria': 'ذكاء القرار التنفيذي',
@@ -76,5 +77,6 @@ export const commandMessages = definePack({
   'command.questions': 'أسئلة لصاحب الموافقة',
   'command.evidenceLink': 'افحص الأدلة',
   'command.askJarvis': 'اسأل عن هذا التقرير',
+  'command.moreMeasures': 'مؤشرات أخرى ({n})',
   'command.proposed': 'مقترح',
 })

@@ -313,7 +313,8 @@ function Dashboard({ runId, page, query, onNavigate, onOpenRun }: {
           </ul>
         </nav></details>
 
-        <FilterBar fields={fields.data.fields} roles={roles} state={state} setState={setState} /></div>
+        <FilterBar fields={fields.data.fields} roles={roles} state={state} setState={setState}
+          coverage={matched === undefined ? null : t('dash.coverage', { matched: formatNumber(matched), total: formatNumber(fields.data.records) })} /></div>
 
 
         <DashboardJarvis runId={runId} datasetName={run.data?.dataset_name ?? runId} filters={filters}>
@@ -338,11 +339,12 @@ function Dashboard({ runId, page, query, onNavigate, onOpenRun }: {
   )
 }
 
-function FilterBar({ fields, roles, state, setState }: {
+function FilterBar({ fields, roles, state, setState, coverage = null }: {
   fields: TableField[]
   roles: Roles
   state: DashState
   setState: (next: DashState) => void
+  coverage?: string | null
 }) {
   const { t, formatNumber } = usePack(dashMessages)
   const listed = roles.texts.filter((field) => field.values && field.values.length > 1)
@@ -361,17 +363,24 @@ function FilterBar({ fields, roles, state, setState }: {
     setState({ ...state, filters, offset: 0 })
   }
 
+  // What is applied stays in view even when the panel is folded: each chosen
+  // value by name ("Site: North"), the records it leaves, and a way out.
+  const applied = [
+    ...Object.entries(state.filters).filter(([, values]) => values.length)
+      .map(([column, values]) => `${column}: ${values.map((v) => v || t('dash.blank')).join(', ')}`),
+    ...(state.from || state.to ? [`${roles.date ?? ''}: ${state.from ?? t('dash.start')} – ${state.to ?? t('dash.end')}`] : []),
+    ...(roles.measure && (state.lo !== null || state.hi !== null) ? [`${roles.measure}: ${state.lo === null ? '…' : formatNumber(state.lo)} – ${state.hi === null ? '…' : formatNumber(state.hi)}`] : []),
+  ]
+  const clear = () => setState({ ...EMPTY, by: state.by, per: state.per, vs: state.vs })
   return (
     <section className="card dash-filters" aria-labelledby="dash-filters-title">
+      <div className="dash-filters__applied" role="status" aria-live="polite">
+        {applied.length ? <ul>{applied.map((text) => <li key={text} dir="auto">{text}</li>)}</ul> : <span>{t('dash.noFilters')}</span>}
+        {coverage ? <span className="dash-filters__records">{coverage}</span> : null}
+        {count ? <button type="button" className="btn btn--subtle" onClick={clear}>{t('dash.clear', { n: formatNumber(count) })}</button> : null}
+      </div>
       <details open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
       <summary><h3 className="card__title" id="dash-filters-title">{t('dash.filters')}{count ? <span className="dash-filters__count">{formatNumber(count)}</span> : null}</h3></summary>
-      <div className="dash-filters__head">
-        {count ? (
-          <button type="button" className="btn btn--subtle" onClick={() => setState({ ...EMPTY, by: state.by, per: state.per, vs: state.vs })}>
-            {t('dash.clear', { n: formatNumber(count) })}
-          </button>
-        ) : null}
-      </div>
       <div className="dash-filters__grid">
         {roles.date && periods.length > 1 ? (
           <div className="dash-range">

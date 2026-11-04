@@ -37,7 +37,9 @@ for (const ar of [false, true]) test(`grounded question, follow-up, review and m
   await page.getByRole('button', { name: ar ? 'ما هو التوافر؟' : 'What is availability?' }).click()
   await expect(page.locator('.jarvis__evidence')).toHaveCount(0)
   await ask.click(); await expect(page.locator('.jarvis__evidence')).toContainText('94')
-  await page.getByRole('button', { name: ar ? 'توقع الأعطال غداً' : 'Predict failures tomorrow' }).click()
+  // Forecasts are no longer offered as a suggestion; typed, the question still declines.
+  await expect(page.getByRole('button', { name: ar ? 'توقع الأعطال غداً' : 'Predict failures tomorrow' })).toHaveCount(0)
+  await page.locator('.jarvis__composer textarea').fill(ar ? 'توقع الأعطال غداً' : 'Predict failures tomorrow')
   await ask.click(); await expect(page.getByRole('checkbox')).toHaveCount(0)
   const sparse = page.locator('select option').filter({ hasText: 'SYNTHETIC_missing_hours.csv' })
   await page.locator('select').selectOption(await sparse.getAttribute('value') as string)

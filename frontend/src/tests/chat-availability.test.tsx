@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { StoreProvider, useStore } from '../app/store'
-import { parseRoute } from '../app/routing'
+import { parseRoute, routeHash } from '../app/routing'
 import { ChatView } from '../features/chat/ChatView'
 import { DataChatContext } from '../features/chat/DataChatContext'
 import { dataChatMessages } from '../features/chat/dataChatMessages'
@@ -102,6 +102,10 @@ it('does not show a confirmed selection when saving fails', async () => {
 it('routes both user-facing addresses to the same workspace', () => {
   expect(parseRoute('#/workspace')).toEqual({ tab: 'chat' })
   expect(parseRoute('#/assistant')).toEqual({ tab: 'chat' })
+  // A report handed over from the Command Centre travels in the address.
+  expect(parseRoute('#/assistant/run_1')).toEqual({ tab: 'chat', runId: 'run_1' })
+  expect(parseRoute('#/assistant/bad id')).toEqual({ tab: 'chat' })
+  expect(routeHash({ tab: 'chat', runId: 'run_1' })).toBe('#/assistant/run_1')
 })
 
 it('shows model availability while connected and submits a question through the store and API', async () => {

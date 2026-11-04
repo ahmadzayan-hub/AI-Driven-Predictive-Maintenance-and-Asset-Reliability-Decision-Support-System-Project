@@ -48,6 +48,8 @@ interface ChatViewProps {
   recoveryDraft?: string | null
   onRecover?: (draft: string) => void
   failureChecked?: boolean
+  /** A report handed over by another screen; the workspace opens on it. */
+  reportId?: string
 }
 
 /** A decorative AI-core motif: rings, an orbit and streams around the
@@ -69,10 +71,11 @@ function CoreMotif() {
 export function ChatView({
   session, sending, failedText, pendingText, requestError,
   offline, userName, onSend, onRetry, onDismissFailed, composerRef, onOpenRun, onAction,
-  sessionMissing = false, previousConversation, recoveryDraft, onRecover, failureChecked = false,
+  sessionMissing = false, previousConversation, recoveryDraft, onRecover, failureChecked = false, reportId,
 }: ChatViewProps) {
   const { t, formatNumber } = useI18n()
-  const [jarvis, setJarvis] = useState(false)
+  const [jarvis, setJarvis] = useState(Boolean(reportId))
+  useEffect(() => { if (reportId) setJarvis(true) }, [reportId])
   const scrollRef = useRef<HTMLDivElement>(null)
   const [pinnedToBottom, setPinnedToBottom] = useState(true)
   const [waiting, setWaiting] = useState(false)
@@ -93,7 +96,7 @@ export function ChatView({
     if (container) setPinnedToBottom(container.scrollHeight - container.scrollTop - container.clientHeight < 48)
   }
   const empty = transcriptLength === 0 && !failedText && !sending && !sessionMissing
-  if (jarvis) return <div className="chat__scroll"><button className="btn btn--ghost" onClick={() => setJarvis(false)}>{t('jarvis.close')}</button><Suspense fallback={<p>{t('chat.typing')}</p>}><JarvisWorkspace session={session} disabled={offline || sending} /></Suspense></div>
+  if (jarvis) return <div className="chat__scroll"><button className="btn btn--ghost" onClick={() => setJarvis(false)}>{t('jarvis.close')}</button><Suspense fallback={<p>{t('chat.typing')}</p>}><JarvisWorkspace session={session} disabled={offline || sending} reportId={reportId} /></Suspense></div>
   return <div className="assistant-workspace">
     <section className="chat" aria-label={t('chat.aria')}>
     <div className="miyaar-toolbar">

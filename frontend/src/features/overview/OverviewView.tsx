@@ -289,12 +289,17 @@ export function OverviewView({ onOpenRun, onStart, onAddDataset, onApprovals, on
     <section className="panel" aria-label={t('overview.aria')}>
       <div className="panel__inner panel__inner--wide">
         {header}
-        <div className="overview__top">
+        {/* The decision leads: with an analysis to read, the next step shrinks to one
+            line above the brief and the greeting follows it, instead of filling the
+            first screen. Without one, the two welcome cards stay as they were. */}
+        {source ? <>
+          <div className="overview__next--slim">{next(runs)}</div>
+          <CommandCentre run={source} brief={brief} failed={briefFailed} onOpenDashboard={onOpenDashboard} />
+          {briefing}
+        </> : <div className="overview__top">
           {briefing}
           {next(runs)}
-        </div>
-
-        {source ? <CommandCentre run={source} brief={brief} failed={briefFailed} onOpenDashboard={onOpenDashboard} /> : null}
+        </div>}
 
         {/* Counts are counts: a status reads only where a target exists. */}
         <details className="overview__disclosure">

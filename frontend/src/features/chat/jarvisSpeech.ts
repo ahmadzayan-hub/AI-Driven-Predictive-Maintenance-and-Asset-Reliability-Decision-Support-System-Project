@@ -1,4 +1,4 @@
-import { interpolate, type Locale } from '../../i18n'
+import { formatNumberIn, interpolate, type Locale } from '../../i18n'
 import { jarvisMessages } from '../../i18n/jarvis'
 import type { JarvisAnswer } from './JarvisWorkspace'
 
@@ -13,7 +13,7 @@ export function jarvisSpeech(answer: JarvisAnswer | null, locale: Locale): strin
   }
   const scope = interpolate(messages.speechScope, { records: result.records, total: result.total_records })
   return [scope, ...result.measures.map(m => {
-    const value = m.value === null ? messages.noValue : `${m.value} ${units[m.scale ?? ''] ?? messages.unitUnknown}`
+    const value = m.value === null ? messages.noValue : `${formatNumberIn(locale, m.value, { maximumFractionDigits: 2 })} ${units[m.scale ?? ''] ?? messages.unitUnknown}`
     const reason = m.reason ?? (m.value === null ? messages.undefinedReason : '')
     const coverage = m.records === undefined || m.records_unmeasured === undefined ? messages.coverageUnknown
       : interpolate(messages.speechCoverage, { measured: m.records, unmeasured: m.records_unmeasured })
