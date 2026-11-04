@@ -58,6 +58,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg espeak-ng
+          pip install Pillow==12.3.0
           python -c "from PIL import features; assert features.check('raqm')"
 
       - name: Python tests (agent, utils, API, runs)
