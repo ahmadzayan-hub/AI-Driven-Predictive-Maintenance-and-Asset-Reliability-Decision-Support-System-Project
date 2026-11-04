@@ -87,7 +87,8 @@ class ExecutiveTests(unittest.TestCase):
         filters = [{"column": "Site", "op": "in", "values": ["North"]}]
         snapshot = copy.deepcopy(filters)
         result = self.brief(filters)
-        self.assertEqual(result["scope"], {"records": 2, "total_records": 3, "filters": filters})
+        # No date role on this table, so no period is claimed.
+        self.assertEqual(result["scope"], {"records": 2, "total_records": 3, "filters": filters, "period": None})
         measures = {m["key"]: m for m in result["kpis"]["measures"]}
         self.assertEqual(measures["downtime_per_record"]["value"], 10.)
         self.assertEqual(measures["downtime_per_record"]["records"], 1)

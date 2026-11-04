@@ -12,6 +12,7 @@ import math
 from server import mapping as colmap
 from server import query
 from server.executive_advisory import advisory
+from server.period import period_of
 from server.report_contract import build_contract
 from server.maintenance import contract, kpis, performance
 from server.runs import model_cards
@@ -335,7 +336,8 @@ class ExecutiveDashboardAgent:
                         "state": run.get("state"), "updated_at": run.get("updated_at")},
                 "language": language, "source": "engine", "currency": currency_of(run),
                 "scope": {"records": len(selected),
-                "total_records": len(table.rows), "filters": filters}, "headline": headline,
+                "total_records": len(table.rows), "filters": filters,
+                "period": period_of(table, selected)}, "headline": headline,
                 "readiness": {"status": status, "limitations": limitations},
                 "kpis": {"measures": measures, "unavailable": unavailable},
                 "priorities": priorities, "questions": questions, "findings": findings,

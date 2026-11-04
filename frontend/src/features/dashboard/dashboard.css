@@ -270,3 +270,7 @@
   .dash-header { padding-block-end: 0; margin-block-end: var(--space-2); }
   .dash-overview-charts > .card { padding: var(--space-3); }
 }
+.dash-filters__applied { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-block-end: var(--space-2); font-size: var(--text-s); }
+.dash-filters__applied ul { display: contents; list-style: none; }
+.dash-filters__applied li { padding: 2px var(--space-3); border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border)); border-radius: 99px; background: var(--accent-soft); }
+.dash-filters__records { color: var(--text-muted); }

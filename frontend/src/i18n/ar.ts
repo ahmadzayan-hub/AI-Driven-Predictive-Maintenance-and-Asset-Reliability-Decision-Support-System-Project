@@ -9,7 +9,7 @@
 import type { MessageKey, PluralForms, PluralKey } from './en'
 
 export const ar: Record<MessageKey, string> = {
-  'jarvis.launch': 'فتح Jarvis OS',
+  'jarvis.launch': 'فتح اسأل معيار',
   'jarvis.close': 'العودة إلى المحادثة',
   'nav.sources': 'البيانات',
   'nav.evidence': 'التحليل',

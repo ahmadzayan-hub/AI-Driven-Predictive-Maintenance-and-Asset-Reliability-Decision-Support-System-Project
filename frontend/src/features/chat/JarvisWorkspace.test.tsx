@@ -25,7 +25,9 @@ it('preserves evidence, separates speech and confirms only an explicit local rev
   fireEvent.click(screen.getByText('Full answer and references'))
   expect(screen.getByText(result.text)).toBeVisible()
   expect(within(screen.getByRole('article')).getByText('500')).toHaveTextContent('unit not declared')
-  expect(screen.getByText(/Maintenance cost: 500 unit not declared/)).toHaveTextContent('Measurement coverage is unavailable')
+  // The spoken summary (a full stop after the value); the lead before the tiles reads it first.
+  expect(screen.getByText(/Maintenance cost: 500 unit not declared\. /)).toHaveTextContent('Measurement coverage is unavailable')
+  expect(document.querySelector('.jarvis__lead')).toHaveTextContent(/^Maintenance cost: 500 unit not declared, from \d+ of \d+ selected records\.$/)
   expect(jarvisApi.query).toHaveBeenCalledWith('s1', 'What is total maintenance cost?', context, 'en', expect.any(AbortSignal))
   expect(screen.getByRole('button', { name: 'Confirm local review' })).toBeDisabled()
   fireEvent.click(screen.getByRole('checkbox'))

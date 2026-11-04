@@ -54,8 +54,12 @@ export interface SessionState {
   commands: CommandInfo[]
 }
 
+/** The dates a set of records covers, from the run's own date column (null: none recorded). */
+export interface RecordPeriod { column: string; from: string; to: string; dated: number }
+
 export interface DataContext {
   run_id: string; dataset_id: string; dataset_name: string
+  period?: RecordPeriod | null
   source_sha256: string; analysis_revision: string
   filters: TableFilter[]; records: number; total_records: number
 }
@@ -664,7 +668,7 @@ export interface RunExecutive {
    *  or null when there is no mapping or it states none: the figures are
    *  then labelled "currency not stated" rather than given a default. */
   currency?: string | null
-  scope: { records: number; total_records: number; filters: TableFilter[] }
+  scope: { records: number; total_records: number; filters: TableFilter[]; period?: RecordPeriod | null }
   headline: string
   readiness: { status: 'ready' | 'limited' | 'empty'; limitations: string[] }
   kpis: { measures: KpiMeasure[]; unavailable: Record<string, string> }

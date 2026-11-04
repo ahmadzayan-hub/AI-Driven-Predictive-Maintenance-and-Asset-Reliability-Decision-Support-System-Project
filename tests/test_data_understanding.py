@@ -46,7 +46,9 @@ class UnderstandingTests(unittest.TestCase):
         self.assertEqual(found["cl_outliers"]["type"], "limitation")
         self.assertIn("cost 2", found["cl_outliers"]["text"])
         self.assertIn("kept, not removed or changed", found["cl_outliers"]["text"])
-        self.assertEqual(found["cl_outliers"]["evidence"], ["c_outliers"])
+        # The total, then each per-column count the claim names ("cost 2"), as its own cited figure.
+        self.assertEqual(found["cl_outliers"]["evidence"], ["c_outliers", "c_outliers_0"])
+        self.assertEqual(calcs(results, "profiler")["c_outliers_0"], 2)
         self.assertIn("cost 1", found["cl_negatives"]["text"])
         self.assertEqual(calcs(results, "profiler")["c_outliers"], 2)
         # Kept: the total still includes the unusual value and the credit.

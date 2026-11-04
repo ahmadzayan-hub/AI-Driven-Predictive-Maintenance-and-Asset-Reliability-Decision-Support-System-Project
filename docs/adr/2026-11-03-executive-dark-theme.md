@@ -138,3 +138,73 @@ in the reference, needs fields the answer does not carry; they are not invented.
 **Verification:** the Jarvis workspace and dashboard end-to-end tests pass (7 of
 7, with axe, English and Arabic); screenshots taken on the synthetic demo
 server.
+
+## Slice 5: the assistant is "Ask Miyaar" everywhere (2026-11-03)
+
+The owner decided the assistant carries one name. Every visible "Jarvis" and
+"Jarvis OS" becomes "Ask Miyaar" (اسأل معيار): the workspace title, the dashboard
+open, refresh and close buttons, the launch button, the selection notes on the generated
+page, and the orb labels (now MIYAAR). Code names, file names, routes and the
+hackathon documents keep "Jarvis" as history. Strings only.
+
+## Slice 6: the owner's review of the demo (2026-11-04)
+
+The owner reviewed the deployed demo against the latest code and asked for five
+changes. Each is taken as stated; nothing new is invented to fill a gap.
+
+1. **The decision leads.** With an analysis to read, the Command Centre opens with a
+   one-line next step, then the decision brief. The greeting card follows the brief
+   instead of sharing the first screen. Four measures show; the rest sit under "More
+   measures (n)". The decisions list shows the top three.
+2. **Filters say what they are.** Above the filter panel, even when it is folded, the
+   applied filters show by name ("Site: North"), with "Showing 60 of 240 records" and
+   the Clear button. With none: "No filters: all records".
+3. **The report travels with the question.** "Ask about this report" now opens
+   `#/assistant/<run>`: Ask Miyaar opens its calculated workspace with that report
+   selected through the same permission-checked call as a manual choice. Every answer
+   shows its scope: data, records and filters. The view-only demo has no assistant
+   session, so the link is not shown there rather than leading nowhere.
+4. **Only supported questions are suggested.** "Predict failures tomorrow" is no longer
+   offered. A note says what a reliable forecast would need: a validated model, dated
+   failure history per asset and a stated horizon. Typed, the question still declines.
+5. **The answer before the numbers.** A one-line answer ("Maintenance cost: 1,517,510.23,
+   from 1,500 of 1,500 selected records.") comes before the figure tiles; references stay
+   one click away. Figures show grouped, with at most two decimals; the full value stays
+   in the references. This also fixed a raw float (`1517510.2300000011`) seen on a
+   generated 1,500-row file.
+
+**Not done, and why.** Two charts on the Command Centre: the brief carries no series,
+so a chart would need a new query; the executive overview, one click away, has them.
+The period of the data is not in Ask Miyaar's scope line because the data context
+does not record it; it is not inferred.
+
+**Verification:** verify 8 of 8; Ask Miyaar e2e 16 of 16; overview, task-first, demo,
+responsive, accessibility, dashboard, metric colours and executive e2e 68 passed. Live
+check on the local servers, desktop 1440 px and iPhone 13, English and Arabic: the
+North filter, the report hand-over and the answer order, with no sideways scroll.
+Voice: the consent and denied-permission paths are covered by e2e; real speech was not
+tested in a headless browser.
+
+## Slice 7: stage one of the owner's three-stage plan (2026-11-04)
+
+1. **The period, from the data's own date column.** `server/period.py` reads the column
+   the pipeline marked with the date role, and only ISO dates (YYYY-MM or YYYY-MM-DD).
+   The brief's scope and Ask Miyaar's data context now carry `period` (from, to, dated
+   records), computed over the selected records, so a filter narrows it too. With no date
+   role it is null and the screen says "period not recorded"; it is never guessed from a
+   column name. Tests: `tests/test_period.py`.
+2. **Three lines a manager reads first.** Under the decision on the Command Centre: what
+   is happening (the brief's scope line), the biggest risk or opportunity (the first
+   calculated priority; the line is left out when there is none), and the decision needed
+   (the first proposed decision).
+3. **The analysis state, said plainly.** The Command Centre says whether a validated
+   forecast exists: only a model that beat its baseline counts; otherwise "No validated
+   forecast: observed data only". Each Ask Miyaar answer opens with its kind: calculated
+   result, not enough data for part of it, or not supported (no calculation made). Load
+   errors keep their existing message.
+4. **Scope everywhere.** Ask Miyaar's scope line now reads data, records, period and
+   filters. Dates are isolated as left-to-right so they read correctly in Arabic.
+
+**Verification:** verify 8 of 8 (2,568 Python tests); Ask Miyaar e2e 16 of 16; live
+path on desktop and iPhone 13 in English and Arabic: the period 2025-01-01 to
+2026-04-01 on a generated 1,500-row file, the three lines, the forecast state.

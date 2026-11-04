@@ -481,6 +481,7 @@ export function App() {
             <ChatView
               key={session.session_id}
               session={session}
+              reportId={route.tab === 'chat' ? route.runId : undefined}
               sending={store.sending}
               failedText={store.failedText}
               pendingText={store.pendingText}

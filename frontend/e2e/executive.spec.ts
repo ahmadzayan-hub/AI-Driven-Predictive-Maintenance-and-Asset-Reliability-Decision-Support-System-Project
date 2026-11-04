@@ -374,7 +374,8 @@ test('filtered executive measures, evidence and downloaded reports share the exa
   await expectScope(page, 3, 4)
 
   const expected = await executive(page.request, run.id, NORTH)
-  expect(expected.scope).toEqual({ records: 3, total_records: 4, filters: NORTH })
+  // The period is read from the month column over the three North rows (2026-02, 2026-03, 2026-03).
+  expect(expected.scope).toEqual({ records: 3, total_records: 4, filters: NORTH, period: { column: 'month', from: '2026-02', to: '2026-03', dated: 3 } })
   // These constants come from the fixture, independently of the endpoint:
   // (8 + 15) / (10 + 30), not a mean of rates. Summed over every record, as
   // the Power BI Method page defines it: the preventive record adds 0 to both.
@@ -480,7 +481,8 @@ test('an executive priority preserves the period filter when drilling into recor
     { column: 'Site', op: 'in', values: ['South'] }, { column: 'month', op: 'gte', value: '2026-03' },
   ]
   const expected = await executive(page.request, run.id, filters)
-  expect(expected.scope).toEqual({ records: 1, total_records: 4, filters })
+  // One South row from 2026-03: the filter narrows the period to that month.
+  expect(expected.scope).toEqual({ records: 1, total_records: 4, filters, period: { column: 'month', from: '2026-03', to: '2026-03', dated: 1 } })
   expect(expected.kpis.measures.find((m) => m.key === 'downtime_per_record')).toMatchObject({
     value: 20, numerator: 20, denominator: 1, records: 1,
   })

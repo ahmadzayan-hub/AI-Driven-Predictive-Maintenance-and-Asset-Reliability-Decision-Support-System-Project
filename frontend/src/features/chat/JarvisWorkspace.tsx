@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { jarvisApi } from './jarvisApi'
 import type { DataContext, SessionState } from '../../shared/types'
 import { usePack } from '../../i18n/pack'
+import { formatNumberIn } from '../../i18n'
 import { jarvisMessages } from '../../i18n/jarvis'
 import { jarvisSpeech } from './jarvisSpeech'
 import { DataChatContext } from './DataChatContext'
+import { describeFilters } from './describeFilters'
 import { VoiceDictation, type CaptureState } from './VoiceDictation'
 import { VoicePlayback } from './VoicePlayback'
 import { JarvisCore, type CoreState } from './JarvisCore'
@@ -19,7 +21,7 @@ export interface JarvisAnswer {
 }
 
 /** Read-only query transport; selection uses Miyaar's existing permission-bound API. */
-export function JarvisWorkspace({ session, disabled = false, embedded = false, prompt }: { session: SessionState; disabled?: boolean; embedded?: boolean; prompt?: { text: string; n: number } }) {
+export function JarvisWorkspace({ session, disabled = false, embedded = false, prompt, reportId }: { session: SessionState; disabled?: boolean; embedded?: boolean; prompt?: { text: string; n: number }; reportId?: string }) {
   const { t, locale } = usePack(jarvisMessages)
   const readOnly = useReadOnly()
   const [context, setContext] = useState(session.data_context ?? null)
@@ -63,6 +65,8 @@ export function JarvisWorkspace({ session, disabled = false, embedded = false, p
     finally { if (token === generation.current) request.current = null }
   }
   const speechText = jarvisSpeech(answer, locale)
+  // Figures read as figures: grouped, at most two decimals. The full value stays in the references.
+  const show = (value: number) => formatNumberIn(locale, value, { maximumFractionDigits: 2 })
   const capturing = ['requesting', 'listening', 'processing'].includes(capture)
   const coreState: CoreState = status === 'failed' || capture === 'error' || capture === 'unavailable' || playback === 'error' ? 'unavailable'
     : status === 'working' ? 'processing' : capture === 'listening' ? 'listening'
@@ -81,26 +85,33 @@ export function JarvisWorkspace({ session, disabled = false, embedded = false, p
         {playback === 'error' && <p>{t('localVoiceUnavailable')}</p>}
       </JarvisCore>
       <section className="jarvis__card jarvis__composer"><h2>{t(embedded ? 'question' : 'input')}</h2>
-        {!embedded && <DataChatContext session={session} disabled={disabled || session.ended} onSelected={select} onPending={pending => { setSelecting(pending); if (pending) { invalidate(); setContext(null) } }} />}
-        {embedded && context && <details><summary>{t('source')}</summary><bdi>{JSON.stringify(context.filters)}</bdi></details>}
-        <p>{context ? <bdi>{context.dataset_name} · {context.records} / {context.total_records}</bdi> : t('selectFirst')}</p>
+        {!embedded && <DataChatContext session={session} want={reportId} disabled={disabled || session.ended} onSelected={select} onPending={pending => { setSelecting(pending); if (pending) { invalidate(); setContext(null) } }} />}
+        {/* The scope every answer is calculated on, always in view: data, records, filters. */}
+        <p className="jarvis__scope">{context ? <><bdi>{context.dataset_name}</bdi> · <bdi>{context.records} / {context.total_records}</bdi> · {t('periodLabel')}: <bdi>{context.period ? `${context.period.from} – ${context.period.to}` : t('noPeriod')}</bdi> · {t('filtersLabel')}: <bdi>{describeFilters(context.filters) || t('allRecords')}</bdi></> : t('selectFirst')}</p>
         <label>{t('question')}<textarea value={draft} maxLength={2000} disabled={disabled || session.ended || selecting}
           onChange={e => edit(e.target.value)} dir="auto" /></label>
-        <div className="jarvis__actions">{(embedded ? ['cost', 'follow'] as const : ['cost', 'follow', 'missing'] as const).map(key => <button className="btn btn--ghost" key={key} disabled={disabled || session.ended || selecting} onClick={() => edit(t(key))}>{t(key)}</button>)}</div>
+        <div className="jarvis__actions">{(['cost', 'follow'] as const).map(key => <button className="btn btn--ghost" key={key} disabled={disabled || session.ended || selecting} onClick={() => edit(t(key))}>{t(key)}</button>)}</div>
+        <p className="jarvis__hint">{t('forecastNote')}</p>
         <p className="jarvis__hint">{t('transcript')}</p>
         <div className="jarvis__actions"><button className="btn btn--primary" disabled={!context || !draft.trim() || status === 'working' || disabled || session.ended || capturing} onClick={() => void ask()}>{t('ask')}</button></div>
         {status !== 'idle' && <p role={status === 'failed' ? 'alert' : 'status'}>{t(status)}</p>}
       </section>
     <section className="jarvis__card jarvis__answer" aria-live="polite"><h2>{t(embedded ? 'result' : 'output')}</h2>
       {!answer ? <p>{t('prompt')}</p> : <><p className="jarvis__question" dir="auto">{asked}</p>
+        {/* What kind of answer this is, before anything else is read. */}
+        <p className="performance-value jarvis__state" data-performance={!answer.result ? 'unavailable' : answer.result.measures.some(m => m.value === null) ? 'okay' : 'good'}>
+          <span className="performance-value__status">{t(!answer.result ? 'stateUnsupported' : answer.result.measures.some(m => m.value === null) ? 'stateInsufficient' : 'stateCalculated')}</span></p>
         {!answer.result && <pre className="jarvis__evidence" dir="auto">{answer.text}</pre>}
-        {answer.result && <><div className="jarvis__metrics">{answer.result.measures.map(m => <article key={m.key}>
-          <h3>{m.title}</h3><p className="jarvis__metric-value">{m.value === null ? t('noValue') : <bdi>{m.value} <small>{units[m.scale ?? ''] ?? t('unitUnknown')}</small></bdi>}</p>
+        {answer.result && <>{answer.result.measures[0] && <p className="jarvis__lead" dir="auto">{t('lead', { title: answer.result.measures[0].title,
+          value: answer.result.measures[0].value === null ? t('noValue') : `${show(answer.result.measures[0].value)} ${units[answer.result.measures[0].scale ?? ''] ?? t('unitUnknown')}`,
+          records: answer.result.records, total: answer.result.total_records })}</p>}
+          <div className="jarvis__metrics">{answer.result.measures.map(m => <article key={m.key}>
+          <h3>{m.title}</h3><p className="jarvis__metric-value">{m.value === null ? t('noValue') : <bdi>{show(m.value)} <small>{units[m.scale ?? ''] ?? t('unitUnknown')}</small></bdi>}</p>
           <p>{m.records === undefined || m.records_unmeasured === undefined ? t('coverageUnknown') : t('speechCoverage', { measured: m.records, unmeasured: m.records_unmeasured })}</p>
           {(m.reason || m.value === null) && <p>{m.reason ?? t('undefinedReason')}</p>}
         </article>)}</div><p className="jarvis__hint">{t('speechScope', { records: answer.result.records, total: answer.result.total_records })}</p>
           <details><summary>{t('references')}</summary><pre className="jarvis__evidence" dir="auto">{answer.text}</pre></details>
-          <details className="jarvis__measures"><summary>{t('measures')}</summary><table><caption>{t('evidenceView')}</caption><thead><tr><th>{t('metric')}</th><th>{t('valueUnit')}</th><th>{t('formula')}</th><th>{t('coverage')}</th></tr></thead><tbody>{answer.result.measures.map(m => <tr key={m.key}><th scope="row">{m.title}</th><td>{m.value === null ? t('noValue') : <bdi>{m.value} {units[m.scale ?? ''] ?? t('unitUnknown')}</bdi>}{m.reason && <p>{m.reason}</p>}</td><td><bdi>{m.formula}</bdi></td><td>{m.records ?? '-'} / {m.records_unmeasured ?? '-'}</td></tr>)}</tbody></table></details>
+          <details className="jarvis__measures"><summary>{t('measures')}</summary><table><caption>{t('evidenceView')}</caption><thead><tr><th>{t('metric')}</th><th>{t('valueUnit')}</th><th>{t('formula')}</th><th>{t('coverage')}</th></tr></thead><tbody>{answer.result.measures.map(m => <tr key={m.key}><th scope="row">{m.title}</th><td>{m.value === null ? t('noValue') : <bdi>{show(m.value)} {units[m.scale ?? ''] ?? t('unitUnknown')}</bdi>}{m.reason && <p>{m.reason}</p>}</td><td><bdi>{m.formula}</bdi></td><td>{m.records ?? '-'} / {m.records_unmeasured ?? '-'}</td></tr>)}</tbody></table></details>
           <details><summary>{t('source')}</summary><dl className="jarvis__sources"><dt>{t('source')}</dt><dd><bdi>{answer.result.dataset_name} · {answer.result.run_id}</bdi></dd>
           <dt>SHA-256</dt><dd><bdi>{answer.result.source_sha256}</bdi></dd><dt>{t('result')}</dt><dd><bdi>{answer.result.analysis_revision}</bdi></dd></dl></details>
           <a href={`/#/runs/${encodeURIComponent(answer.result.run_id)}`}>{t('source')}</a>

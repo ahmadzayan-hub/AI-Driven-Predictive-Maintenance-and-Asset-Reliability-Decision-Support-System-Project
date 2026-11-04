@@ -391,9 +391,16 @@ describe('Command Centre', () => {
     render(<OverviewView onOpenRun={vi.fn()} onStart={vi.fn()} onOpenDashboard={onOpenDashboard} onSeeAll={onSeeAll} />)
     expect(await screen.findByText('Endorse a scoped maintenance and reliability review.')).toBeInTheDocument()
     expect(screen.getByText('Read with care')).toBeInTheDocument()
-    expect(screen.getByText('Review overdue work')).toBeInTheDocument()
+    // The three first questions, answered from the run; the first decision also leads the list.
+    const brief = screen.getByText('What is happening').closest('dl')!
+    expect(within(brief).getByText('240 records in scope; 2 controlled measures available for review.')).toBeInTheDocument()
+    expect(within(brief).getByText('Review overdue work')).toBeInTheDocument()
+    expect(within(brief).queryByText('Biggest risk or opportunity')).toBeNull()  // no calculated priority, no line
+    expect(screen.getByText('period not recorded')).toBeInTheDocument()
+    expect(screen.getByText('No validated forecast: observed data only')).toBeInTheDocument()
+    expect(screen.getAllByText('Review overdue work')).toHaveLength(2)
     expect(screen.getByText(/Maintenance planner/)).not.toBeVisible()
-    await user.click(screen.getByText('Review overdue work'))
+    await user.click(screen.getAllByText('Review overdue work')[1])
     expect(screen.getByText(/Maintenance planner/)).toBeVisible()
     expect(screen.getByText(/Before approving a maintenance intervention/)).toBeVisible()
     const performance = screen.getByRole('heading', { name: 'Maintenance performance' }).closest('section')!

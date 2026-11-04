@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../../shared/api'
 import { useReadOnly } from '../../shared/readOnly'
 import type { DataContext, DataContextChoices, SessionState } from '../../shared/types'
+import { describeFilters } from './describeFilters'
 
-export function DataChatContext({ session, disabled, onSelected, onPending }: { session: SessionState; disabled: boolean; onSelected?: (context: DataContext | null) => void; onPending?: (pending: boolean) => void }) {
+export function DataChatContext({ session, disabled, onSelected, onPending, want }: { session: SessionState; disabled: boolean; onSelected?: (context: DataContext | null) => void; onPending?: (pending: boolean) => void; want?: string }) {
   const labels = session.data_chat_labels
   const readOnly = useReadOnly()
   disabled = disabled || readOnly
@@ -16,6 +17,14 @@ export function DataChatContext({ session, disabled, onSelected, onPending }: { 
   const generation = useRef(0)
   useEffect(() => { setSelected(session.data_context ?? null) }, [session.data_context])
   useEffect(() => () => { generation.current += 1 }, [])
+  // A report handed over by another screen is selected once, through the same
+  // permission-bound call as a manual choice; the server still decides access.
+  const wanted = useRef<string | null>(null)
+  useEffect(() => {
+    if (!want || disabled || wanted.current === want || session.data_context?.run_id === want) return
+    wanted.current = want
+    void update(want)
+  }, [want, disabled, session.data_context?.run_id])
 
   async function update(select?: string | null) {
     const request = ++generation.current
@@ -39,7 +48,7 @@ export function DataChatContext({ session, disabled, onSelected, onPending }: { 
     <summary>{labels.title}: <bdi>{selected?.dataset_name ?? labels.none}</bdi></summary>
     <p>{labels.help}</p>
     {selected ? <div><p><bdi>{selected.run_id}</bdi> · {labels.scope}: {selected.records} / {selected.total_records}</p>
-      <p>{labels.filters}: <bdi>{JSON.stringify(selected.filters)}</bdi></p></div> : null}
+      <p>{labels.filters}: <bdi>{describeFilters(selected.filters) || '-'}</bdi></p></div> : null}
     <button type="button" className="btn btn--ghost" disabled={disabled || busy} onClick={() => void update()}>{labels.load}</button>
     {choices ? <><p>{labels.limit}</p><label>{labels.choose}<select value={runId} disabled={disabled || busy}
       onChange={event => setRunId(event.target.value)}><option value="">{labels.none}</option>
