@@ -332,3 +332,47 @@ only". This slice gives every kind of records one calculated question.
   hand.
 
 **Budget:** unchanged at 277.7 of 278 KB of script.
+
+## Slice 7: the designed page first, and charts the reader can change (2026-11-04)
+
+Stage two of the owner's plan starts here.
+
+1. **After an upload, the page designed for that data.** "Open dashboard" on a finished
+   analysis now opens `#/dashboard/<run>/designed`, the page whose sections were chosen for
+   this file's columns, instead of the fixed overview. The Command Centre's "Open the
+   executive overview" still opens the overview, as its name says.
+2. **Change how a chart reads.** Each chart section offers "Show as": a trend as a line,
+   bars or a table; any other chart as bars or a table (no line where the order is not
+   time). The data, the shared filters and the click-to-filter stay the same: in the table,
+   each group is a button that applies the same filter. Switching asks the server nothing.
+
+**Not done yet:** the choice is not remembered across reloads; server-stored layout
+history (slice 7 of the plan) is still open.
+
+**Verification:** a component test (bars or table for a ranking, same data, same pick, no
+new query); dashboard e2e 10 of 10; Ask Miyaar and designed-page e2e 16 of 16; live on
+desktop and iPhone 13, English and Arabic: 2 switchable charts, a 16-row table, no
+sideways scroll.
+
+## Slice 8: remembered chart choice, the forecast's own limits, an executive presentation (2026-11-04)
+
+1. **The chart choice is remembered** per run and section in this browser (local storage,
+   with a fallback when storage is blocked).
+2. **The forecast and its limits** sit with the Command Centre's first lines: the
+   analysis's own statement (`advisory.prediction`) of what may and may not be claimed,
+   shown beside the forecast state.
+3. **An executive presentation from the same snapshot** (stage three). The export now
+   offers "Executive presentation (slides)" beside the HTML and Word reports:
+   `format=slides` on the same snapshot-guarded endpoint renders six slides (title and
+   scope, decision, four measures, biggest risks or opportunities, forecast and limits,
+   before approving). Every figure and sentence is taken from the brief as computed; it is
+   marked "Draft for review" and "Review only. Exporting does not approve or publish the
+   run" on every slide, with the snapshot id. No new library, no script, no external
+   content; the same content policy as the report.
+
+**Not done:** a video from the same snapshot (the motion storyboard exists, but is not yet
+fed from this snapshot), and one shared review step that signs off all three exports.
+
+**Verification:** export tests 16 (slides in both languages, escaping, API download,
+nothing changed on the run); dashboard unit tests 73; a real six-slide deck from a 1,500-row
+synthetic file, checked visually in English and Arabic.

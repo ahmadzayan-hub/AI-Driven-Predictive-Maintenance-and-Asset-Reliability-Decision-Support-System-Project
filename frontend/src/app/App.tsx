@@ -515,7 +515,7 @@ export function App() {
               openRunId={currentRunId}
               openNonce={runTarget?.nonce ?? 0}
               preset={route.source === 'upload' && !route.runId ? { kind: 'upload', profile: route.profile } : runPreset}
-              onOpenDashboard={openDashboard}
+              onOpenDashboard={(id) => navigate({ tab: 'dashboard', runId: id, page: 'designed' })}
               onDraftWork={(id) => navigate({ tab: 'operations', runId: id })}
             />
           ))}

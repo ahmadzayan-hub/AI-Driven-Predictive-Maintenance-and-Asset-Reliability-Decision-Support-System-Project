@@ -795,4 +795,104 @@ def render_docx(brief):
 
 def attachment_name(run_id, language, format):
     safe = re.sub(r"[^A-Za-z0-9_-]", "_", str(run_id))[:100] or "run"
+    if format == "slides":
+        return f"miyaar-executive-{safe}-{language}-slides.html"
     return f"miyaar-executive-{safe}-{language}.{format}"
+
+
+SLIDES_STYLE = """
+@page { size: 13.333in 7.5in; margin: 0; }
+* { box-sizing: border-box; }
+body { margin: 0; background: #e6e9ef; color: #0b1626; font: 18pt/1.4 Arial, Calibri, sans-serif; }
+.slide { width: 13.333in; height: 7.5in; margin: 0.25in auto; padding: 0.6in 0.8in; background: #fff; position: relative;
+  overflow: hidden; break-after: page; display: flex; flex-direction: column; gap: 14pt; border-top: 8pt solid #0e7490; }
+h1 { font-size: 34pt; margin: 0; line-height: 1.2; } h2 { font-size: 26pt; margin: 0 0 6pt; color: #0e7490; }
+p { margin: 0; overflow-wrap: break-word; } ol, ul { margin: 0; padding-inline-start: 26pt; } li { margin: 6pt 0; }
+.meta { color: #475467; font-size: 14pt; } .note { margin-top: auto; color: #475467; font-size: 12pt; border-top: 1pt solid #d0d5dd; padding-top: 8pt; }
+.kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14pt; }
+.kpi { border: 1pt solid #d0d5dd; border-inline-start: 6pt solid #0e7490; border-radius: 6pt; padding: 12pt 16pt; }
+.kpi strong { display: block; font-size: 30pt; } .kpi span { color: #475467; font-size: 14pt; }
+.badge { align-self: flex-start; display: inline-block; padding: 3pt 10pt; border-radius: 99pt; background: #fef3c7; color: #7a2e0e; font-size: 13pt; font-weight: 700; }
+bdi { unicode-bidi: isolate; }
+@media screen and (max-width: 900px) { .slide { width: auto; height: auto; min-height: 60vh; margin: 12px; padding: 24px; } .kpis { grid-template-columns: 1fr; } }
+@media print { body { background: #fff; } .slide { margin: 0; } }
+"""
+
+
+def render_slides_html(brief):
+    """An executive presentation from the same authorized snapshot as the report.
+
+    Six slides, every figure and sentence taken from the brief as the server
+    computed it; nothing is recalculated, summarised by a model or added. It is
+    marked as review material: exporting does not approve or publish the run.
+    """
+    ar = brief["language"] == "ar"
+
+    def tr(en, arabic):
+        return arabic if ar else en
+
+    def t(value):
+        return '<bdi dir="auto">' + escape(_clean(value)) + "</bdi>"
+
+    def figure(measure):
+        value = measure.get("value")
+        if value is None or not isinstance(value, (int, float)) or not math.isfinite(value):
+            return tr("Not measured", "غير مقاس")
+        scale = measure.get("scale")
+        if scale == "percent":
+            return f"{value:,.1f}%"
+        shown = f"{value:,.2f}".rstrip("0").rstrip(".")
+        if scale == "hours":
+            return shown + " " + tr("h", "ساعة")
+        if scale == "money":
+            return (brief.get("currency") + " " + shown) if brief.get("currency") else shown + " " + tr("(currency not stated)", "(العملة غير محددة)")
+        return shown
+
+    run, scope = brief.get("run", {}), brief.get("scope", {})
+    advisory = brief.get("advisory") or {}
+    period = scope.get("period")
+    period_text = (tr("from {a} to {b}", "من {a} إلى {b}").format(a="⁦" + period["from"] + "⁩", b="⁦" + period["to"] + "⁩")
+                   if period else tr("period not recorded", "الفترة غير مسجلة"))
+    review = tr("Review only. Exporting does not approve or publish the run; actions require qualified human review.",
+                "للمراجعة فقط. التصدير لا يعتمد التشغيل ولا ينشره؛ تتطلب الإجراءات مراجعة بشرية مؤهلة.")
+    footer = f'<p class="note">{t(review)} · {t(tr("Snapshot", "اللقطة"))} <bdi>{escape(str(brief.get("snapshot_id", ""))[:12])}</bdi></p>'
+    slides = []
+    slides.append(f'<section class="slide"><span class="badge">{t(tr("Draft for review", "مسودة للمراجعة"))}</span>'
+                  f'<h1>{t(advisory.get("title") or tr("Executive decision brief", "موجز القرار التنفيذي"))}</h1>'
+                  f'<p class="meta">{t(run.get("dataset_name", ""))} · {t(tr("{n} of {m} records", "{n} من {m} سجلاً").format(n=scope.get("records", 0), m=scope.get("total_records", 0)))} · {period_text}</p>'
+                  f'{footer}</section>')
+    decisions = (advisory.get("decisions") or [])[:3]
+    slides.append(f'<section class="slide"><h2>{t(tr("Decision needed", "القرار المطلوب"))}</h2>'
+                  f'<p>{t(advisory.get("recommendation") or brief.get("headline", ""))}</p>'
+                  + ("<ol>" + "".join(f"<li>{t(d.get('title', ''))}: {t(d.get('action', ''))}</li>" for d in decisions) + "</ol>" if decisions else "")
+                  + f'{footer}</section>')
+    measures = (brief.get("kpis", {}).get("measures") or [])[:4]
+    slides.append(f'<section class="slide"><h2>{t(tr("Key measures", "المؤشرات الرئيسية"))}</h2><div class="kpis">'
+                  + "".join(f'<div class="kpi"><span>{t(m.get("title", ""))}</span><strong><bdi>{escape(figure(m))}</bdi></strong></div>' for m in measures)
+                  + "</div>" + ("" if measures else f"<p>{t(tr('No controlled measure is available in this data.', 'لا يتوفر مؤشر منضبط في هذه البيانات.'))}</p>")
+                  + f'{footer}</section>')
+    priorities = (brief.get("priorities") or [])[:3]
+    slides.append(f'<section class="slide"><h2>{t(tr("Biggest risks or opportunities", "أهم المخاطر أو الفرص"))}</h2>'
+                  + ("<ol>" + "".join(f"<li><strong>{t(p.get('title', ''))}</strong>. {t(p.get('detail', ''))}</li>" for p in priorities) + "</ol>"
+                     if priorities else f"<p>{t(tr('No calculated priority for this scope.', 'لا توجد أولوية محسوبة لهذا النطاق.'))}</p>")
+                  + f'{footer}</section>')
+    limits = (brief.get("readiness", {}).get("limitations") or [])[:4]
+    slides.append(f'<section class="slide"><h2>{t(tr("Forecast and limits", "التوقع والحدود"))}</h2>'
+                  + (f"<p>{t(advisory['prediction'])}</p>" if advisory.get("prediction") else "")
+                  + ("<ul>" + "".join(f"<li>{t(x)}</li>" for x in limits) + "</ul>" if limits else "")
+                  + f'{footer}</section>')
+    questions = (brief.get("questions") or [])[:3]
+    slides.append(f'<section class="slide"><h2>{t(tr("Before approving", "قبل الاعتماد"))}</h2>'
+                  + ("<ol>" + "".join(f"<li>{t(q.get('text', ''))}</li>" for q in questions) + "</ol>" if questions else "")
+                  + f'<p>{t(review)}</p>{footer}</section>')
+    direction = "rtl" if ar else "ltr"
+    language = "ar" if ar else "en"
+    font = verified_font()
+    font_css = ("@font-face { font-family: Dubai; src: url(data:font/ttf;base64," + b64encode(font).decode("ascii") +
+                ") format('truetype'); } body { font-family: Dubai, Arial, sans-serif; }" if font else "")
+    title = advisory.get("title") or tr("Executive decision brief", "موجز القرار التنفيذي")
+    return (f'<!doctype html><html lang="{language}" dir="{direction}"><head><meta charset="utf-8">'
+            f'<meta name="viewport" content="width=device-width, initial-scale=1">'
+            f'<meta http-equiv="Content-Security-Policy" content="{escape(CONTENT_POLICY, quote=True)}">'
+            f"<title>{escape(_clean(title))}</title><style>{SLIDES_STYLE}{font_css}</style></head><body>"
+            + "".join(slides) + "</body></html>").encode("utf-8")

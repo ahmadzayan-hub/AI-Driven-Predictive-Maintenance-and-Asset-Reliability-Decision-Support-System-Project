@@ -346,3 +346,50 @@ class ExecutiveExportApiTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ExecutiveSlidesTests(unittest.TestCase):
+    """The executive presentation: the same snapshot as the report, six slides, review only."""
+    brief = ExecutiveDocumentTests.brief
+
+    def test_slides_take_every_figure_from_the_brief_and_say_review_only(self):
+        from server.executive_export import render_slides_html
+        for language in ("en", "ar"):
+            brief = self.brief(language)
+            content = render_slides_html(brief).decode("utf-8")
+            parsed = HtmlDocument(content)
+            self.assertEqual(content.count('class="slide"'), 6)
+            self.assertIn(f'dir="{"rtl" if language == "ar" else "ltr"}"', content)
+            self.assertIn(brief["snapshot_id"][:12], content)
+            self.assertIn("Review only" if language == "en" else "للمراجعة فقط", content)
+            for m in brief["kpis"]["measures"][:4]:
+                self.assertIn(m["title"], content)
+            self.assertNotIn("NEVER_EXPORT_THIS_ROW", content)
+            self.assertFalse(any(tag in {"script", "iframe", "img", "object", "link"} for tag, _ in parsed.tags))
+
+    def test_slides_escape_untrusted_text(self):
+        from server.executive_export import render_slides_html
+        brief = self.brief()
+        brief["run"]["dataset_name"] = '<script>alert(1)</script>'
+        content = render_slides_html(brief).decode("utf-8")
+        self.assertNotIn("<script", content)
+        self.assertIn("&lt;script&gt;", content)
+
+
+class ExecutiveSlidesApiTests(ExecutiveExportApiTests):
+    def test_slides_download_is_html_named_as_slides_and_changes_nothing(self):
+        run = self.make_run()
+        store = self.app.state.store
+        before = (store.get_run(run["id"]), store.approvals_for_run(run["id"]))
+        response = self.export(run, "slides", filters=json.dumps(FILTERS))
+        self.assertEqual(response.status_code, 200, response.text[:200])
+        self.assertTrue(response.headers["content-type"].startswith("text/html"))
+        self.assertIn("-en-slides.html", response.headers["content-disposition"])
+        self.assertEqual(response.headers["content-security-policy"], CONTENT_POLICY)
+        self.assertEqual(response.text.count('class="slide"'), 6)
+        self.assertEqual(before, (store.get_run(run["id"]), store.approvals_for_run(run["id"])))
+
+
+# Only the slide test runs under the subclass; the inherited API tests already run above.
+for _name in [n for n in dir(ExecutiveSlidesApiTests) if n.startswith("test_") and n != "test_slides_download_is_html_named_as_slides_and_changes_nothing"]:
+    setattr(ExecutiveSlidesApiTests, _name, None)
