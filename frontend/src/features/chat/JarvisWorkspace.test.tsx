@@ -121,6 +121,19 @@ it('keeps units, currency uncertainty and coverage in both spoken summaries', ()
   expect(answer.text).toBe(result.text)
 })
 
+it('never speaks or shows a near-100 or small value as a rounder one', () => {
+  const answer: JarvisAnswer = { ...result, result: { ...result.result!, measures: [
+    { key: 'availability', title: 'Availability', value: 99.996, scale: 'percent', records: 3, records_unmeasured: 0 },
+    { key: 'rate', title: 'Rate', value: 0.004, scale: 'ratio', records: 3, records_unmeasured: 0 },
+  ] } }
+  for (const locale of ['en', 'ar'] as const) {
+    const spoken = jarvisSpeech(answer, locale)
+    expect(spoken).toContain('99.996 %')
+    expect(spoken).toContain('0.004')
+    expect(spoken).not.toMatch(/\b100 %/)
+  }
+})
+
 class Capture implements VoiceRecognition {
   static last: Capture
   lang = ''; continuous = false; interimResults = false; maxAlternatives = 1

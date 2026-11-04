@@ -70,6 +70,8 @@ export default defineConfig({
         AGENTIC_OS_CONNECTOR_FIXTURES: 'frontend/e2e/.tmp/sources',
         // Tests refresh one source twice in a row; the cooldown is for people.
         AGENTIC_OS_CONNECTOR_COOLDOWN: '0',
+        // The quick video renderer in browser tests; the film has its own Python test.
+        AGENTIC_OS_VIDEO_RENDERER: 'pillow',
       },
       reuseExistingServer: false,
       timeout: 30_000,

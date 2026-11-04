@@ -14,6 +14,7 @@ import { policyMessages } from './policyMessages'
 import './executive.css'
 
 const KpiPolicyEditor = lazy(() => import('./KpiPolicyEditor'))
+const ReviewPanel = lazy(() => import('./ReviewPanel'))
 
 interface Props {
   runId: string
@@ -145,6 +146,7 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
           {exportError ? <div><p role="alert">{t(exportError)}</p>{exportError === 'exec.exportStale' ? <button type="button"
             className="btn btn--subtle" onClick={() => setRevision((v) => v + 1)}>{t('exec.refresh')}</button> : null}</div> : null}
           <p className="exec-muted" role="status">{exportStatus ? t(exportStatus) : exportBusy ? t('exec.exportBusy') : ''}</p>
+          <Suspense fallback={null}><ReviewPanel runId={runId} brief={data} filters={filters} language={locale} canReview={!readOnly} /></Suspense>
           {data.advisory ? <>
             <p className="exec-headline" dir="auto">{data.advisory.recommendation}</p>
             <details><summary>{data.advisory.title}</summary><p>{data.advisory.subtitle}</p></details>

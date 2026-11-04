@@ -819,6 +819,50 @@ bdi { unicode-bidi: isolate; }
 """
 
 
+def faithful(value):
+    """Two decimals, unless that rounding would land a value on a whole number
+    or zero it is not on (99.996 read as 100, 0.004 as 0): then up to six, and
+    three significant digits for anything smaller. The same rule as the
+    interface's `faithfulOptions`, so a slide and a screen never disagree."""
+    if float(value).is_integer():
+        return f"{value:,.0f}"
+    for digits in range(2, 7):
+        if not float(round(value, digits)).is_integer():
+            return f"{value:,.{digits}f}".rstrip("0").rstrip(".")
+    if abs(value) < 1:
+        return f"{value:.{2 - math.floor(math.log10(abs(value)))}f}".rstrip("0")
+    return f"{value:,.6f}".rstrip("0").rstrip(".")
+
+
+def model_evidence(model, language):
+    """One sentence per model card from its recorded validation only: the
+    metric against its baseline on the held-out records, and the verdict the
+    interface's `modelTone` gives. Nothing is inferred beyond the card."""
+    def tr(en, arabic):
+        return arabic if language == "ar" else en
+    metric = model.get("metric") or {}
+    details = model.get("details") or {}
+    target = _clean(model.get("target") or model.get("title") or "")
+    if model.get("fitted") is False or not metric or details.get("verdict") == "not_supported":
+        return tr(f"{target}: not assessed; no validated result is recorded.",
+                  f"{target}: غير مقيّم؛ لا توجد نتيجة تحقق مسجلة.")
+    def num(v):
+        return faithful(v) if isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) else tr("not recorded", "غير مسجل")
+    measured = tr(f"{target}: {_clean(metric.get('name', ''))} {num(metric.get('model'))} against "
+                  f"{_clean(metric.get('baseline_name') or 'baseline')} {num(metric.get('baseline'))} "
+                  f"on {num(model.get('test_records'))} held-out records",
+                  f"{target}: {_clean(metric.get('name', ''))} {num(metric.get('model'))} مقابل "
+                  f"{_clean(metric.get('baseline_name') or 'خط الأساس')} {num(metric.get('baseline'))} "
+                  f"على {num(model.get('test_records'))} سجلاً محجوباً")
+    if details.get("verdict") == "weak" or model.get("beats_baseline") is False:
+        return measured + tr("; it does not beat its baseline, so it supports no forecast.",
+                             "؛ لا يتفوق على خط الأساس، فلا يدعم أي توقع.")
+    if model.get("beats_baseline") is True:
+        return measured + tr("; it beats its baseline on past records only, not yet a validated forward forecast.",
+                             "؛ يتفوق على خط الأساس في السجلات السابقة فقط، وليس توقعاً مستقبلياً متحققاً بعد.")
+    return measured + tr("; not assessed against its baseline.", "؛ لم يُقيّم مقابل خط الأساس.")
+
+
 def render_slides_html(brief):
     """An executive presentation from the same authorized snapshot as the report.
 
@@ -840,8 +884,8 @@ def render_slides_html(brief):
             return tr("Not measured", "غير مقاس")
         scale = measure.get("scale")
         if scale == "percent":
-            return f"{value:,.1f}%"
-        shown = f"{value:,.2f}".rstrip("0").rstrip(".")
+            return f"{faithful(value)}%"
+        shown = faithful(value)
         if scale == "hours":
             return shown + " " + tr("h", "ساعة")
         if scale == "money":
@@ -877,8 +921,11 @@ def render_slides_html(brief):
                      if priorities else f"<p>{t(tr('No calculated priority for this scope.', 'لا توجد أولوية محسوبة لهذا النطاق.'))}</p>")
                   + f'{footer}</section>')
     limits = (brief.get("readiness", {}).get("limitations") or [])[:4]
+    models = (brief.get("models") or [])[:4]
     slides.append(f'<section class="slide"><h2>{t(tr("Forecast and limits", "التوقع والحدود"))}</h2>'
                   + (f"<p>{t(advisory['prediction'])}</p>" if advisory.get("prediction") else "")
+                  + ("<ul class=\"evidence\">" + "".join(f"<li>{t(model_evidence(m, brief['language']))}</li>" for m in models) + "</ul>"
+                     if models else f"<p>{t(tr('No model was validated for this report, so no forecast is claimed.', 'لم يُتحقق من أي نموذج لهذا التقرير، فلا يُدّعى أي توقع.'))}</p>")
                   + ("<ul>" + "".join(f"<li>{t(x)}</li>" for x in limits) + "</ul>" if limits else "")
                   + f'{footer}</section>')
     questions = (brief.get("questions") or [])[:3]

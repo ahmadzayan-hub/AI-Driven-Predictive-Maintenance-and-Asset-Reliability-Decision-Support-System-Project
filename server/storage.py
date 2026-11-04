@@ -55,6 +55,7 @@ TABLES = (
     "connectors",
     "kpi_policies",
     "dashboard_views",
+    "export_reviews", "export_videos", "layout_versions",
     "organizations", "organization_members", "operation_sites", "operation_assets",
     "work_orders", "operation_audit", "operation_requests", "worker_heartbeats", "reliability_trials",
 ) + RMD_TABLES
@@ -68,6 +69,7 @@ RESTORE_ORDER = (
     "runs",
     "kpi_policies",
     "dashboard_views",
+    "export_videos", "export_reviews", "layout_versions",
     "tasks",
     "approvals",
     "artifacts",
@@ -163,6 +165,27 @@ SCHEMA_STATEMENTS = [
       run_id TEXT NOT NULL, page TEXT NOT NULL, query TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       UNIQUE (owner, dataset_key))""",
+    # One human review of one exported artifact (ADR 2026-11-04-shared-review):
+    # append-only, bound to the brief's snapshot and the file's own digest, so
+    # any change after a decision leaves that decision behind as history.
+    """CREATE TABLE IF NOT EXISTS export_reviews (
+      id TEXT PRIMARY KEY, run_id TEXT NOT NULL, snapshot_id TEXT NOT NULL,
+      format TEXT NOT NULL, language TEXT NOT NULL, artifact_sha256 TEXT NOT NULL,
+      decision TEXT NOT NULL, comment TEXT NOT NULL, reviewer TEXT NOT NULL,
+      created_at TEXT NOT NULL)""",
+    # A rendered (or failed) executive video; the file lives in the export
+    # folder and is checked against this digest on every download.
+    """CREATE TABLE IF NOT EXISTS export_videos (
+      id TEXT PRIMARY KEY, run_id TEXT NOT NULL, owner TEXT NOT NULL,
+      snapshot_id TEXT NOT NULL, language TEXT NOT NULL, state TEXT NOT NULL,
+      error TEXT, manifest_json TEXT, created_at TEXT NOT NULL)""",
+    # Each designed-page layout a reader kept, per reader and run; a restore or
+    # a pin is a new version, so the history is the audit trail.
+    """CREATE TABLE IF NOT EXISTS layout_versions (
+      id TEXT PRIMARY KEY, owner TEXT NOT NULL, run_id TEXT NOT NULL,
+      version INTEGER NOT NULL, action TEXT NOT NULL, fingerprint TEXT NOT NULL,
+      result_json TEXT NOT NULL, pinned_json TEXT NOT NULL, created_at TEXT NOT NULL,
+      UNIQUE (owner, run_id, version))""",
     """CREATE TABLE IF NOT EXISTS approvals (
       id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(id),
       action TEXT NOT NULL, target TEXT NOT NULL, risk TEXT NOT NULL,
@@ -618,6 +641,49 @@ class SqlStore:
         return bool(self._exec_rowcount(
             "DELETE FROM dashboard_views WHERE owner = ? AND dataset_key = ?",
             (owner, dataset_key)))
+
+    # -- export reviews, videos and layout versions ------------------------
+    def add_export_review(self, row):
+        self._exec("INSERT INTO export_reviews (id, run_id, snapshot_id, format, language, artifact_sha256, "
+                   "decision, comment, reviewer, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                   tuple(row[k] for k in ("id", "run_id", "snapshot_id", "format", "language", "artifact_sha256",
+                                          "decision", "comment", "reviewer", "created_at")))
+        return row
+
+    def export_reviews(self, run_id):
+        return self._exec("SELECT * FROM export_reviews WHERE run_id = ? ORDER BY created_at DESC, id DESC", (run_id,))
+
+    def add_export_video(self, row):
+        self._exec("INSERT INTO export_videos (id, run_id, owner, snapshot_id, language, state, error, manifest_json, "
+                   "created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                   tuple(row.get(k) for k in ("id", "run_id", "owner", "snapshot_id", "language", "state", "error",
+                                              "manifest_json", "created_at")))
+        return row
+
+    def export_videos(self, run_id):
+        return self._exec("SELECT * FROM export_videos WHERE run_id = ? ORDER BY created_at DESC, id DESC", (run_id,))
+
+    def layout_versions(self, owner, run_id):
+        return self._exec("SELECT * FROM layout_versions WHERE owner = ? AND run_id = ? ORDER BY version DESC",
+                          (owner, run_id))
+
+    def add_layout_version(self, row):
+        """Insert version N only if it is free: two writers from the same
+        version cannot both win; the loser's unique-key error is a conflict."""
+        try:
+            self._exec("INSERT INTO layout_versions (id, owner, run_id, version, action, fingerprint, result_json, "
+                       "pinned_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                       tuple(row[k] for k in ("id", "owner", "run_id", "version", "action", "fingerprint",
+                                              "result_json", "pinned_json", "created_at")))
+        except Exception as error:
+            import sqlite3
+            self._rollback()
+            if (getattr(error, "pgcode", None) == "23505"
+                    or getattr(error, "sqlite_errorcode", None) in
+                    (sqlite3.SQLITE_CONSTRAINT_UNIQUE, sqlite3.SQLITE_CONSTRAINT_PRIMARYKEY)):
+                return None
+            raise
+        return row
 
     def save_kpi_policy(self, identifier, run_id, expected_revision, revision,
                         rules_json, actor, created_at, empty_revision):

@@ -708,3 +708,55 @@ for (const language of ['en', 'ar'] as const) {
   })
 }
 
+
+// One review step for every output (ADR 2026-11-04-shared-review), with the
+// executive video rendered on this host from the same snapshot.
+test('outputs are reviewed as exact files, the video renders, previews and downloads, and a decision survives a reload', async ({ page }, testInfo) => {
+  test.setTimeout(240_000)
+  await skipOnboarding(page)
+  const run = await maintenanceRun(page.request)
+  await openOverview(page, run.id)
+  await page.getByRole('button', { name: 'Prepare executive brief', exact: true }).click()
+  const review = page.getByRole('region', { name: 'Review before release', exact: true })
+  await expect(review).toBeVisible()
+  const slides = review.locator('li', { has: page.getByText('Slides', { exact: true }) })
+  await expect(slides.getByText('Draft · not reviewed')).toBeVisible()
+  await slides.getByRole('textbox', { name: 'Comment' }).fill('Checked against the dashboard.')
+  await slides.getByRole('button', { name: 'Approve', exact: true }).click()
+  await expect(slides.getByText('Approved', { exact: true })).toBeVisible()
+  const video = review.locator('li', { has: page.getByText('Executive video', { exact: true }) })
+  // A host without ffmpeg, espeak-ng or libraqm says so and renders nothing.
+  const renderer = (await (await page.request.get(`/api/runs/${run.id}/executive/reviews`, { params: { language: 'en', filters: '[]' } })).json()).video_renderer
+  if (!renderer.available) {
+    await expect(video.getByText(`Video cannot be rendered on this host: ${renderer.missing.join(', ')}.`)).toBeVisible()
+    await expect(video.getByRole('button', { name: 'Render video' })).toHaveCount(0)
+    return
+  }
+  await video.getByRole('button', { name: 'Render video' }).click()
+  await expect(video.getByRole('button', { name: 'Preview' })).toBeVisible({ timeout: 180_000 })
+  await expect(video.getByText('Draft · not reviewed')).toBeVisible()
+  await video.getByRole('button', { name: 'Preview' }).click()
+  const player = video.locator('video')
+  await expect(player).toBeVisible()
+  await expect(player).toHaveAttribute('src', /^blob:/)
+  await expect(player.locator('track[kind="subtitles"]')).toHaveAttribute('src', /^blob:/)
+  // Open-source Chromium ships without H.264/AAC; Chrome, Edge and Safari play it.
+  // Where the codec exists the clip must load; the file itself is decoded in the Python tests.
+  if (await player.evaluate((v: HTMLVideoElement) => v.canPlayType('video/mp4; codecs="avc1.42E01E, mp4a.40.2"') !== '')) {
+    await expect.poll(() => player.evaluate((v: HTMLVideoElement) => v.readyState >= 1 ? v.duration : 0)).toBeGreaterThan(20)
+  }
+  const [download] = await Promise.all([page.waitForEvent('download'), video.getByRole('button', { name: 'Download MP4' }).click()])
+  expect(download.suggestedFilename()).toMatch(/-en-[a-f0-9]{12}-video\.mp4$/)
+  // The trace names each on-screen figure and the brief's evidence it came from.
+  await video.getByText('What the video shows and where each figure comes from').click()
+  await expect(video.getByText(/^executive\.kpi\./).first()).toBeVisible()
+  const results = await new AxeBuilder({ page }).include('.exec-review').analyze()
+  expect(results.violations).toEqual([])
+  if (testInfo.project.name === 'mobile') {
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)
+  }
+  await page.reload()
+  await page.getByRole('button', { name: 'Prepare executive brief', exact: true }).click()
+  await expect(page.getByRole('region', { name: 'Review before release', exact: true })
+    .locator('li', { has: page.getByText('Slides', { exact: true }) }).getByText('Approved', { exact: true })).toBeVisible()
+})

@@ -52,6 +52,15 @@ jobs:
       - name: Install Python dependencies
         run: pip install --require-hashes -r requirements.txt
 
+      - name: Install the executive video tools
+        # ffmpeg and the offline espeak-ng voice: without them the video
+        # tests skip and the e2e review test can only check the refusal.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg espeak-ng
+          pip install Pillow==12.3.0
+          python -c "from PIL import features; assert features.check('raqm')"
+
       - name: Python tests (agent, utils, API, runs)
         # The output is kept so a failure can be summarised at the end of
         # the job, after the service container's log would otherwise bury it.

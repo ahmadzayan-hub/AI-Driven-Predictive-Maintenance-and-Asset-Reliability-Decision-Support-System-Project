@@ -11,6 +11,8 @@ import { dashMessages } from './messages'
 export interface Point {
   label: string
   value: number | null
+  /** Which measure this bar is, when a group carries several (actual, budget). */
+  series?: string
 }
 
 function span(values: number[]) {
@@ -88,7 +90,7 @@ export function Bars({ items, label, onPick, picked }: { items: Point[]; label: 
         const value = values[index]
         const width = (Math.abs(value) / range) * 100
         const text = item.value === null ? '—' : formatNumber(item.value, { maximumFractionDigits: 2 })
-        const reading = `${item.label || '—'} · ${text}`
+        const reading = `${item.label || '—'}${item.series ? ` · ${item.series}` : ''} · ${text}`
         const held = picked?.(item.label) ?? false
         const Row = onPick ? 'button' : 'div'
         return (
@@ -100,7 +102,7 @@ export function Bars({ items, label, onPick, picked }: { items: Point[]; label: 
             {...(onPick ? { type: 'button' as const, 'aria-pressed': held, 'aria-label': t(held ? 'dash.release' : 'dash.keep', { group: item.label || '—' }), onClick: () => onPick(item.label) } : {})}
           >
             <span className="dash-bars__label" dir="auto">
-              {item.label || '—'}
+              {item.label || '—'}{item.series ? <small className="dash-bars__series"> · {item.series}</small> : null}
             </span>
             <span className="dash-bars__track">
               <span

@@ -1,0 +1,204 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- The executive film (ADR 2026-11-04-executive-video, amendment 1). Every
+     frame is a pure function of time t and the storyboard below; nothing here
+     invents a figure. The renderer calls window.film.seek(t) for each frame. -->
+<style>
+/*FONT*/
+:root { --bg:#070d1b; --ink:#e8eef8; --muted:#93a3bb; --cyan:#22d3ee; --violet:#8b5cf6; --amber:#f0b95b;
+  --good:#34d399; --bad:#f87171; --panel:rgba(18,28,52,.72); --edge:rgba(120,150,210,.22); }
+* { box-sizing:border-box; margin:0; }
+html,body { width:1280px; height:720px; overflow:hidden; background:var(--bg); color:var(--ink);
+  font-family: Dubai, "DejaVu Sans", Arial, sans-serif; }
+#stage { position:absolute; inset:0; overflow:hidden; }
+.bg { position:absolute; inset:-15%; }
+.orb { position:absolute; border-radius:50%; opacity:.6; }
+.grid { position:absolute; left:-20%; right:-20%; bottom:-10%; height:55%;
+  background-image:linear-gradient(rgba(34,211,238,.13) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,.13) 1px,transparent 1px);
+  background-size:64px 64px; transform:perspective(520px) rotateX(62deg); transform-origin:bottom;
+  -webkit-mask-image:linear-gradient(to top,#000 10%,transparent 80%); }
+.dust { position:absolute; width:3px; height:3px; border-radius:50%; background:#bfe9ff; }
+.scene { position:absolute; inset:0; padding:64px 80px 96px; }
+.fit { display:flex; flex-direction:column; transform-origin:top left; }
+[dir=rtl] .fit { transform-origin:top right; }
+.chip { align-self:flex-start; font-size:15px; letter-spacing:.08em; text-transform:uppercase; color:var(--amber);
+  border:1px solid rgba(240,185,91,.45); border-radius:999px; padding:4px 14px; background:rgba(240,185,91,.08); }
+[dir=rtl] .chip { letter-spacing:0; }
+.kicker { color:var(--cyan); font-size:20px; letter-spacing:.18em; text-transform:uppercase; margin-top:28px; }
+[dir=rtl] .kicker { letter-spacing:0; }
+h1 { font-size:54px; line-height:1.15; font-weight:600; margin-top:14px; max-width:1050px; }
+h2 { font-size:40px; font-weight:600; margin-top:22px; }
+.word { display:inline-block; white-space:pre; }
+.sub { color:var(--muted); font-size:26px; margin-top:18px; }
+.rule { height:3px; margin-top:26px; background:linear-gradient(90deg,var(--cyan),var(--violet)); border-radius:2px; }
+[dir=rtl] .rule { background:linear-gradient(270deg,var(--cyan),var(--violet)); }
+.quote { font-size:38px; line-height:1.4; margin-top:30px; max-width:1080px; }
+.quote mark { background:none; color:inherit; background-image:linear-gradient(transparent 62%,rgba(34,211,238,.35) 62%);
+  background-repeat:no-repeat; }
+.cards { display:grid; grid-template-columns:repeat(2,1fr); gap:22px; margin-top:30px; }
+.card { position:relative; background:var(--panel); border:1px solid var(--edge); border-radius:20px; padding:22px 26px;
+  display:flex; align-items:center; gap:24px; box-shadow:0 20px 60px rgba(0,0,0,.35); overflow:hidden; min-height:170px; }
+.card::before { content:""; position:absolute; inset-block:18px; inset-inline-start:0; width:4px; border-radius:4px; background:var(--cyan);
+  box-shadow:0 0 18px var(--cyan); }
+.card .label { color:var(--muted); font-size:21px; line-height:1.3; }
+.card .value { font-size:46px; font-weight:600; margin-top:8px; font-variant-numeric:tabular-nums; direction:ltr; unicode-bidi:isolate; }
+[dir=rtl] .card .value { text-align:right; }
+.card .none { color:var(--muted); font-size:30px; }
+.ring { width:118px; height:118px; flex:none; }
+.list { margin-top:30px; display:flex; flex-direction:column; gap:18px; }
+.item { display:flex; gap:22px; align-items:flex-start; background:var(--panel); border:1px solid var(--edge); border-radius:18px; padding:20px 24px; }
+.num { flex:none; width:54px; height:54px; border-radius:16px; display:grid; place-items:center; font-size:26px; font-weight:600;
+  background:linear-gradient(135deg,rgba(34,211,238,.25),rgba(139,92,246,.25)); border:1px solid var(--edge); }
+.item .t { font-size:25px; font-weight:600; }
+.item .d { color:var(--muted); font-size:19px; margin-top:6px; line-height:1.4; }
+.fig { margin-inline-start:auto; font-size:34px; font-weight:600; color:var(--cyan); direction:ltr; unicode-bidi:isolate; white-space:nowrap; }
+.model { background:var(--panel); border:1px solid var(--edge); border-radius:18px; padding:18px 24px; }
+.model .t { font-size:23px; font-weight:600; }
+.bars { margin-top:12px; display:grid; grid-template-columns:150px 1fr 110px; gap:10px 16px; align-items:center; font-size:18px; color:var(--muted); }
+.track { height:14px; border-radius:8px; background:rgba(255,255,255,.07); overflow:hidden; }
+.fill { height:100%; border-radius:8px; }
+.verdict { margin-top:10px; font-size:18px; }
+.limit { color:var(--muted); font-size:19px; line-height:1.45; }
+.check { display:flex; gap:16px; align-items:center; font-size:24px; margin-top:20px; }
+.tick { width:34px; height:34px; flex:none; }
+.hash { font-family:"DejaVu Sans Mono",monospace; color:var(--cyan); direction:ltr; unicode-bidi:isolate; }
+#hud { position:absolute; inset-inline:80px; bottom:30px; display:flex; gap:8px; align-items:center; }
+#hud .seg { flex:1; height:4px; border-radius:2px; background:rgba(255,255,255,.12); overflow:hidden; }
+#hud .seg i { display:block; height:100%; background:var(--cyan); }
+#foot { position:absolute; inset-inline:80px; bottom:44px; font-size:14px; color:var(--muted); display:flex; justify-content:space-between; }
+</style></head>
+<body><div id="stage"></div>
+<script>
+const STORY = /*STORY*/null
+const W = 1280, H = 720
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v))
+const ease = (v) => 1 - Math.pow(1 - clamp(v), 3)
+const easeIO = (v) => { v = clamp(v); return v < .5 ? 4 * v * v * v : 1 - Math.pow(-2 * v + 2, 3) / 2 }
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+const rtl = STORY.language === 'ar'
+const dir = rtl ? -1 : 1
+document.documentElement.dir = rtl ? 'rtl' : 'ltr'
+document.documentElement.lang = STORY.language
+// Deterministic dust: the same film every render.
+let seed = 7; const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
+const DUST = Array.from({ length: 46 }, () => ({ x: rand() * W, y: rand() * H, s: .4 + rand() * 1.4, p: rand() * 6.28 }))
+
+function words(text, t, start, step = .06) {
+  return esc(text).split(/(\s+)/).map((w, i) => {
+    const k = ease((t - start - i * step / 2) / .5)
+    return `<span class="word" style="opacity:${k};transform:translateY(${(1 - k) * 26}px)">${w}</span>`
+  }).join('')
+}
+function format(v, digits) { return Number(v).toLocaleString('en-US', { maximumFractionDigits: digits, minimumFractionDigits: 0 }) }
+function counting(card, k) {
+  if (card.value === null || card.value === undefined) return null
+  if (k >= 1) return card.shown
+  const digits = (String(card.shown).match(/\.(\d+)/) || ['', ''])[1].length
+  return card.shown.replace(/-?[\d,]+(\.\d+)?/, format(card.value * ease(k), digits))
+}
+function ring(card, k) {
+  const r = 50, c = 2 * Math.PI * r
+  const has = card.value !== null && card.value !== undefined && card.scale === 'percent'
+  const frac = has ? clamp(card.value / 100) * ease(k) : 0
+  const tone = card.status === 'bad' ? 'var(--bad)' : card.status === 'good' ? 'var(--good)' : 'var(--cyan)'
+  return `<svg class="ring" viewBox="0 0 118 118"><circle cx="59" cy="59" r="${r}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="10"
+    ${card.value === null || card.value === undefined ? 'stroke-dasharray="6 8"' : ''}/>
+    ${has ? `<circle cx="59" cy="59" r="${r}" fill="none" stroke="${tone}" stroke-width="10" stroke-linecap="round"
+    stroke-dasharray="${c * frac} ${c}" transform="rotate(-90 59 59)${rtl ? ' scale(-1,1) translate(-118,0)' : ''}" style="filter:drop-shadow(0 0 6px ${tone})"/>` : ''}</svg>`
+}
+
+const RENDER = {
+  title(s, t) {
+    return `<span class="chip">${esc(STORY.labels.draft)}</span>
+      <div class="kicker" style="opacity:${ease(t / .8)};letter-spacing:${rtl ? 0 : (.5 - .32 * ease(t / 1.2))}em">${esc(STORY.labels.kicker)}</div>
+      <h1>${words(s.heading, t, .3)}</h1>
+      <div class="rule" style="width:${ease((t - .9) / 1.1) * 520}px"></div>
+      ${s.lines.map((l, i) => `<div class="sub" style="opacity:${ease((t - 1.2 - i * .3) / .6)}">${esc(l)}</div>`).join('')}`
+  },
+  statement(s, t) {
+    const text = esc(s.lines[0] || '')
+    const sweep = ease((t - 1.2) / 1.6) * 100
+    return `<span class="chip">${esc(STORY.labels.draft)}</span><h2>${words(s.heading, t, .1)}</h2>
+      <div class="rule" style="width:${ease((t - .4) / .8) * 160}px"></div>
+      <p class="quote" style="opacity:${ease((t - .5) / .7)};transform:translateY(${(1 - ease((t - .5) / .7)) * 20}px)"><mark style="background-size:${sweep}% 100%;background-position:${rtl ? 'right' : 'left'}">${text}</mark></p>`
+  },
+  kpis(s, t) {
+    return `<span class="chip">${esc(STORY.labels.draft)}</span><h2>${words(s.heading, t, .1)}</h2>
+      <div class="cards">${s.figures.map((card, i) => {
+        const k = clamp((t - .5 - i * .25) / 1.6)
+        const e = ease(k * 1.6)
+        const shown = counting(card, k)
+        return `<div class="card" style="opacity:${e};transform:perspective(900px) rotateX(${(1 - e) * 24}deg) translateY(${(1 - e) * 40}px)">
+          ${ring(card, k)}<div><div class="label">${esc(card.label)}</div>
+          ${shown === null ? `<div class="value none">${esc(card.shown)}</div>` : `<div class="value">${esc(shown)}</div>`}</div></div>`
+      }).join('')}</div>`
+  },
+  list(s, t) {
+    return `<span class="chip">${esc(STORY.labels.draft)}</span><h2>${words(s.heading, t, .1)}</h2>
+      <div class="list">${(s.items || s.lines.map((l) => ({ title: l }))).map((it, i) => {
+        const e = ease((t - .5 - i * .35) / .7)
+        return `<div class="item" style="opacity:${e};transform:translateX(${dir * (1 - e) * -60}px)"><div class="num">${i + 1}</div>
+          <div><div class="t">${esc(it.title)}</div>${it.detail ? `<div class="d">${esc(it.detail)}</div>` : ''}</div>
+          ${it.figure ? `<div class="fig">${esc(it.figure)}</div>` : ''}</div>`
+      }).join('')}</div>`
+  },
+  forecast(s, t) {
+    const models = s.models || []
+    const body = models.length ? models.map((m, i) => {
+      const e = ease((t - .5 - i * .4) / .7)
+      const top = Math.max(m.model ?? 0, m.baseline ?? 0) || 1
+      const grow = ease((t - .9 - i * .4) / 1.2)
+      const tone = m.verdict === 'beats' ? 'var(--good)' : m.verdict === 'weak' ? 'var(--bad)' : 'var(--muted)'
+      return `<div class="model" style="opacity:${e};transform:translateY(${(1 - e) * 24}px)"><div class="t">${esc(m.target)} · ${esc(m.metric)}</div>
+        ${m.model === null || m.model === undefined ? '' : `<div class="bars">
+          <span>${esc(STORY.labels.model)}</span><div class="track"><div class="fill" style="width:${100 * m.model / top * grow}%;background:var(--cyan)"></div></div><span dir="ltr">${esc(m.model_shown)}</span>
+          <span>${esc(STORY.labels.baseline)}</span><div class="track"><div class="fill" style="width:${100 * (m.baseline ?? 0) / top * grow}%;background:var(--violet)"></div></div><span dir="ltr">${esc(m.baseline_shown)}</span></div>`}
+        <div class="verdict" style="color:${tone}">${esc(m.sentence)}</div></div>`
+    }).join('') : `<div class="model" style="opacity:${ease((t - .5) / .7)}"><div class="t">${esc(s.lines[0])}</div></div>`
+    return `<span class="chip">${esc(STORY.labels.draft)}</span><h2>${words(s.heading, t, .1)}</h2>
+      <div class="list">${body}${(s.limits || []).map((l, i) => `<p class="limit" style="opacity:${ease((t - 2 - i * .3) / .6)}">${esc(l)}</p>`).join('')}</div>`
+  },
+  sources(s, t) {
+    return `<span class="chip">${esc(STORY.labels.draft)}</span><h2>${words(s.heading, t, .1)}</h2>
+      ${s.lines.map((l, i) => {
+        const e = ease((t - .6 - i * .5) / .6)
+        const draw = ease((t - .8 - i * .5) / .5)
+        return `<div class="check" style="opacity:${e}"><svg class="tick" viewBox="0 0 34 34"><circle cx="17" cy="17" r="15" fill="none" stroke="var(--cyan)" stroke-width="2" opacity=".5"/>
+          <path d="M10 17.5l5 5 9-11" fill="none" stroke="var(--cyan)" stroke-width="3" stroke-linecap="round" stroke-dasharray="26" stroke-dashoffset="${26 * (1 - draw)}"/></svg><span>${esc(l)}</span></div>`
+      }).join('')}
+      <div class="check" style="opacity:${ease((t - 2.4) / .6)}"><span class="hash">${esc(STORY.snapshot.slice(0, Math.round(64 * ease((t - 2.4) / 1.6))))}</span></div>`
+  },
+}
+
+const scenes = STORY.scenes
+const duration = scenes.reduce((a, s) => Math.max(a, s.end), 0)
+function background(t) {
+  const a = t * .07
+  const orbs = [[.22, .3, 520, '#2b1f6e'], [.78, .22, 460, '#0c4a6e'], [.6, .85, 600, '#1e1b4b']].map(([x, y, r, c], i) =>
+    `<div class="orb" style="width:${r}px;height:${r}px;background:radial-gradient(circle, ${c} 0%, transparent 68%);left:${(x + .06 * Math.sin(a + i * 2)) * W * 1.3 - r / 2}px;top:${(y + .05 * Math.cos(a * 1.3 + i)) * H * 1.3 - r / 2}px"></div>`).join('')
+  const dust = DUST.map((d) => `<div class="dust" style="left:${(d.x + t * 6 * d.s) % W}px;top:${(d.y - t * 9 * d.s + H * 4) % H}px;opacity:${.15 + .35 * (.5 + .5 * Math.sin(t * 1.3 + d.p))};transform:scale(${d.s})"></div>`).join('')
+  return `<div class="bg">${orbs}</div><div class="grid" style="background-position:0 ${t * 22}px"></div>${dust}`
+}
+function sceneAt(t) { return scenes.findIndex((s) => t < s.end) }
+function seek(t) {
+  const i = Math.max(0, sceneAt(t) === -1 ? scenes.length - 1 : sceneAt(t))
+  const s = scenes[i]
+  const local = t - s.start, span = s.end - s.start
+  // Camera: a slow push-in across the scene; a wipe in from the reading edge
+  // and a soft lift out over the last half second.
+  const push = 1 + .035 * easeIO(local / span)
+  const enter = ease(local / .7)
+  const leave = i === scenes.length - 1 ? 0 : clamp((local - (span - .5)) / .5)
+  const clip = rtl ? `inset(0 0 0 ${(1 - enter) * 100}%)` : `inset(0 ${(1 - enter) * 100}% 0 0)`
+  const body = (RENDER[s.kind] || RENDER.list)(s, local)
+  document.getElementById('stage').innerHTML = background(t) +
+    `<div class="scene" style="clip-path:${clip};opacity:${1 - leave};${enter < 1 || leave > 0 ? `filter:blur(${(1 - enter) * 6 + leave * 4}px);` : ''}transform:scale(${push - leave * .02})"><div class="fit">${body}</div></div>
+     <div id="foot"><span>${esc(STORY.labels.source)}</span><span class="hash">${esc(STORY.snapshot.slice(0, 12))}</span></div>
+     <div id="hud">${scenes.map((x, j) => `<span class="seg"><i style="width:${j < i ? 100 : j > i ? 0 : 100 * clamp(local / span)}%"></i></span>`).join('')}</div>`
+  // Long text never runs into the footer: the content scales to fit the frame.
+  const fit = document.querySelector('.fit'), room = H - 64 - 120
+  const tall = fit.scrollHeight
+  if (tall > room) fit.style.transform = `scale(${room / tall})`
+}
+window.film = { duration, seek, ready: true }
+</script></body></html>

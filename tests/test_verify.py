@@ -41,12 +41,12 @@ class SummaryTests(unittest.TestCase):
 class BudgetTests(unittest.TestCase):
     def test_jarvis_allocation_is_exact_and_total_only(self):
         self.assertEqual({key: verify.BUDGET_KB[key] for key in ('js', 'js_total', 'js_chunk', 'css', 'css_total')},
-                         {'js': 100, 'js_total': 282, 'js_chunk': 30, 'css': 10.5, 'css_total': 41})
+                         {'js': 100, 'js_total': 286, 'js_chunk': 30, 'css': 10.5, 'css_total': 41})
         dist = self.build(100, 0)
-        values = {'js': 99539, 'js_total': 282001, 'js_chunk': 18188, 'css': 9813, 'css_total': 32451, 'fonts': 0}
+        values = {'js': 99539, 'js_total': 286001, 'js_chunk': 18188, 'css': 9813, 'css_total': 32451, 'fonts': 0}
         with mock.patch.object(verify, 'measure_budget', return_value=values):
             self.assertFalse(verify.check_budget(dist)[0])
-            values['js_total'] = 282000
+            values['js_total'] = 286000
             self.assertTrue(verify.check_budget(dist)[0])
 
     def build(self, js_bytes, font_bytes, chunk_bytes=0, preload_bytes=0):

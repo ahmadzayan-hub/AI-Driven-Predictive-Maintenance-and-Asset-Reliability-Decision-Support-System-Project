@@ -11,6 +11,7 @@ import { VoiceDictation, type CaptureState } from './VoiceDictation'
 import { VoicePlayback } from './VoicePlayback'
 import { JarvisCore, type CoreState } from './JarvisCore'
 import { useReadOnly } from '../../shared/readOnly'
+import { faithfulOptions } from '../../shared/faithfulNumber'
 import './jarvis.css'
 
 export interface JarvisAnswer {
@@ -66,7 +67,7 @@ export function JarvisWorkspace({ session, disabled = false, embedded = false, p
   }
   const speechText = jarvisSpeech(answer, locale)
   // Figures read as figures: grouped, at most two decimals. The full value stays in the references.
-  const show = (value: number) => formatNumberIn(locale, value, { maximumFractionDigits: 2 })
+  const show = (value: number) => formatNumberIn(locale, value, faithfulOptions(value))
   const capturing = ['requesting', 'listening', 'processing'].includes(capture)
   const coreState: CoreState = status === 'failed' || capture === 'error' || capture === 'unavailable' || playback === 'error' ? 'unavailable'
     : status === 'working' ? 'processing' : capture === 'listening' ? 'listening'

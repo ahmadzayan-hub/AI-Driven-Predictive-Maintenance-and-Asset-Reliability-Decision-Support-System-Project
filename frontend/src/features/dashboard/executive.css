@@ -91,3 +91,14 @@
 }
 
 .exec-priorities summary h4 { display: inline; }
+/* One review step for every output (ADR 2026-11-04-shared-review). */
+.exec-review { margin-block-start: var(--space-4); }
+.exec-review__list { list-style: none; padding: 0; display: grid; gap: var(--space-2); }
+.exec-review__list > li { border: 1px solid var(--border); border-inline-start: 3px solid var(--text-muted); border-radius: var(--radius-sm, 8px); padding: var(--space-2) var(--space-3); }
+.exec-review__list > li[data-state="approved"] { border-inline-start-color: var(--success, #22c55e); }
+.exec-review__list > li[data-state="changes_requested"], .exec-review__list > li[data-state="failed"] { border-inline-start-color: var(--danger, #ef4444); }
+.exec-review__list > li[data-state="changed_since_review"] { border-inline-start-color: var(--warning, #e8b966); }
+.exec-review__row, .exec-review__actions, .exec-review__decide { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; justify-content: space-between; }
+.exec-review__decide .field__input { flex: 1 1 12rem; min-inline-size: 0; }
+.exec-review__state { font-size: var(--text-sm, .875rem); color: var(--text-muted); }
+.exec-review__video { inline-size: 100%; max-inline-size: 48rem; border-radius: var(--radius-sm, 8px); margin-block: var(--space-2); }
