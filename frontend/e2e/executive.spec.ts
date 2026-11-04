@@ -725,6 +725,13 @@ test('outputs are reviewed as exact files, the video renders, previews and downl
   await slides.getByRole('button', { name: 'Approve', exact: true }).click()
   await expect(slides.getByText('Approved', { exact: true })).toBeVisible()
   const video = review.locator('li', { has: page.getByText('Executive video', { exact: true }) })
+  // A host without ffmpeg, espeak-ng or libraqm says so and renders nothing.
+  const renderer = (await (await page.request.get(`/api/runs/${run.id}/executive/reviews`, { params: { language: 'en', filters: '[]' } })).json()).video_renderer
+  if (!renderer.available) {
+    await expect(video.getByText(`Video cannot be rendered on this host: ${renderer.missing.join(', ')}.`)).toBeVisible()
+    await expect(video.getByRole('button', { name: 'Render video' })).toHaveCount(0)
+    return
+  }
   await video.getByRole('button', { name: 'Render video' }).click()
   await expect(video.getByRole('button', { name: 'Preview' })).toBeVisible({ timeout: 180_000 })
   await expect(video.getByText('Draft · not reviewed')).toBeVisible()
