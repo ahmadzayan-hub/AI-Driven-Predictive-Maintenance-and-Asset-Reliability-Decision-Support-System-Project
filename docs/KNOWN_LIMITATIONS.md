@@ -586,16 +586,17 @@ evidence and unsupported targets stay visible. Claude dashboard skills are
 development instructions; hosted Artifact availability is account-dependent
 and was not activated by this implementation.
 
-- **The executive video's voice is synthetic and was not listened to.** Narration
-  uses espeak-ng on the host: intelligible, plainly robotic, free and offline. No
-  person has listened to it in the build environment; phoneme output and the
-  timeline were checked instead. A natural voice needs a licensed offline model or an
-  external service, which would send report text off the host and costs money, so it
-  waits for the owner's decision
-  ([decision](adr/2026-11-04-executive-video.md)).
+- **The human voice needs an operator key and network access.** With
+  `AGENTIC_OS_VOICE_PROVIDER=elevenlabs` and `ELEVENLABS_API_KEY` the video is narrated by
+  ElevenLabs (Nasser in Arabic, Peter in English), approved by the owner; narration text,
+  never data rows, then leaves the host. Without them the offline espeak-ng voice is used:
+  intelligible but plainly synthetic. In the build environment the ElevenLabs API and its
+  audio host are blocked, so no video with the human voice has been produced or listened
+  to yet ([decision](adr/2026-11-04-executive-video.md)).
 - **Video renders only on a host with the tools.** The Vercel functions have no
-  ffmpeg or espeak-ng; there the video control says what is missing. Rendering is
-  synchronous, one at a time, about 30 seconds for a 90-second clip.
+  ffmpeg, Chromium or espeak-ng; there the video control says what is missing. Rendering
+  is synchronous, one at a time: about 3.5 minutes for a 140-second 1080p motion film on
+  four cores, or about 30 seconds with the plain Pillow fallback.
 - **A review is not release.** The shared review records decisions on exact files;
   publication still goes through the run's approval gate
   ([decision](adr/2026-11-04-shared-review.md)).

@@ -13,6 +13,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
 import shutil
 import subprocess
 import tempfile
@@ -24,6 +25,7 @@ from server.executive_export import _clean, faithful, model_evidence
 from server.report_fonts import FONT_PATH, verified_font
 
 SIZE = (1280, 720)
+FILM_SIZE = (1920, 1080)
 FPS = 25
 ANIMATE = 30          # frames of motion at the start of each scene (1.2 s)
 MAX_SECONDS = 180
@@ -40,15 +42,18 @@ class VideoFailed(RuntimeError):
     """Rendering started and failed; the caller records it as a failed export."""
 
 
-def missing_tools():
+def missing_tools(env=None, supplied=False):
     """What this host lacks to render, so the interface can say so plainly."""
-    missing = [name for name in ("ffmpeg", "ffprobe", "espeak-ng") if not shutil.which(name)]
-    try:
-        from PIL import features
-        if not features.check("raqm"):
-            missing.append("libraqm")
-    except ImportError:
-        missing.append("Pillow")
+    missing = [name for name in ("ffmpeg", "ffprobe") if not shutil.which(name)]
+    if not supplied and voice_provider(env) == "espeak-ng" and not shutil.which("espeak-ng"):
+        missing.append("espeak-ng")
+    if not film_available():
+        try:
+            from PIL import features
+            if not features.check("raqm"):
+                missing.append("libraqm")
+        except ImportError:
+            missing.append("Pillow")
     if verified_font() is None:
         missing.append("font")
     return missing
@@ -107,13 +112,16 @@ def storyboard(brief):
     heard = (tr(f"From {spoken_date(period['from'], lang)} to {spoken_date(period['to'], lang)}",
                 f"من {spoken_date(period['from'], lang)} إلى {spoken_date(period['to'], lang)}") if period else when)
     records = tr(f"{scope['records']} of {scope['total_records']} records", f"{scope['records']} من {scope['total_records']} سجلاً")
+    heard_records = (tr(f"All {scope['records']:,} records", f"جميع السجلات وعددها {scope['records']:,}")
+                     if scope["records"] == scope["total_records"] else
+                     tr(f"{scope['records']:,} of {scope['total_records']:,} records", f"{scope['records']:,} من {scope['total_records']:,} سجلاً"))
     name = _clean(run.get("dataset_name", ""))
     scenes = [{"id": "title", "kind": "title", "heading": _clean(advisory.get("title") or tr("Executive decision brief", "موجز القرار التنفيذي")),
                "lines": [name, f"{when} · {records}"], "figures": [
                    {"label": tr("Records in scope", "السجلات ضمن النطاق"), "shown": str(scope["records"]), "value": scope["records"],
                     "source": "executive.scope.records"}],
-               "narration": tr(f"Executive brief for {name}. {records}. {heard}. This is a draft for review.",
-                               f"الموجز التنفيذي لـ {name}. {records}. {heard}. هذه مسودة للمراجعة.")}]
+               "narration": tr(f"Executive brief for {name}. {heard_records}, {heard[0].lower() + heard[1:]}. This is a draft for review.",
+                               f"الموجز التنفيذي لـ {name}. {heard_records}، {heard}. هذه مسودة للمراجعة.")}]
     decision = (advisory.get("decisions") or [{}])[0]
     lead = _clean(advisory.get("recommendation") or decision.get("title") or "")
     scenes.append({"id": "decision", "kind": "statement", "heading": tr("The decision", "القرار المطلوب"),
@@ -124,30 +132,78 @@ def storyboard(brief):
         shown, spoken, source = figure(measure)
         title = _clean(measure.get("title", ""))
         cards.append({"label": title, "shown": shown, "value": measure.get("value") if _measured(measure.get("value")) else None,
-                      "scale": measure.get("scale"), "source": f"executive.kpi.{measure.get('key')}: {_clean(source)}"})
+                      "scale": measure.get("scale"), "status": (measure.get("assessment") or {}).get("status", "unassessed"),
+                      "source": f"executive.kpi.{measure.get('key')}: {_clean(source)}"})
         said.append(f"{title}: {spoken}.")
     scenes.append({"id": "kpis", "kind": "kpis", "heading": tr("Key measures", "المؤشرات الرئيسية"), "lines": [], "figures": cards,
                    "narration": " ".join(said) or tr("No measure is calculated for this scope.", "لا يوجد مؤشر محسوب لهذا النطاق.")})
     priorities = brief.get("priorities") or []
     # The title says what to look at; the detail carries the brief's own figures.
     items = [_clean(p.get("title", "")) + (f": {_clean(p['detail'])}" if p.get("detail") else "") for p in priorities[:3]]
+    evidence = {e["id"]: e for e in brief.get("evidence") or []}
+
+    scales = {f"executive.kpi.{m.get('key')}": m.get("scale") for m in brief["kpis"]["measures"]}
+
+    def lead_figure(priority):
+        # A figure only when the priority cites exactly one measured value, with
+        # its unit; a priority naming several measures shows none rather than
+        # one that would read as its own.
+        refs = [r for r in priority.get("evidence_refs") or [] if _measured((evidence.get(r) or {}).get("value"))]
+        if len(refs) != 1:
+            return None, None
+        value, scale = evidence[refs[0]]["value"], scales.get(refs[0])
+        unit = "%" if scale == "percent" else tr(" h", " ساعة") if scale == "hours" else ""
+        return faithful(value) + unit, refs[0]
+    cards_p = []
+    for p in priorities[:3]:
+        shown, ref = lead_figure(p)
+        cards_p.append({"title": _clean(p.get("title", "")), "detail": _clean(p.get("detail", "")), "figure": shown, "source": ref})
     scenes.append({"id": "priorities", "kind": "list", "heading": tr("Biggest risks or opportunities", "أهم المخاطر أو الفرص"),
-                   "lines": items or [tr("No calculated priority for this scope.", "لا توجد أولوية محسوبة لهذا النطاق.")], "figures": [],
+                   "lines": items or [tr("No calculated priority for this scope.", "لا توجد أولوية محسوبة لهذا النطاق.")],
+                   "items": cards_p or [{"title": tr("No calculated priority for this scope.", "لا توجد أولوية محسوبة لهذا النطاق.")}],
+                   "figures": [{"label": c["title"], "shown": c["figure"], "source": c["source"]} for c in cards_p if c["figure"]],
                    "narration": " ".join(f"{i + 1}. {t.rstrip('.')}." for i, t in enumerate(items)) or tr("No calculated priority for this scope.", "لا توجد أولوية محسوبة لهذا النطاق.")})
     models = [model_evidence(m, brief["language"]) for m in (brief.get("models") or [])[:3]]
     limits = [_clean(x) for x in (brief.get("readiness", {}).get("limitations") or [])[:2]]
     forecast = models or [tr("No model was validated for this report, so no forecast is claimed.", "لم يُتحقق من أي نموذج لهذا التقرير، فلا يُدّعى أي توقع.")]
-    scenes.append({"id": "forecast", "kind": "list", "heading": tr("Forecast and limits", "التوقع والحدود"),
-                   "lines": forecast + limits, "figures": [], "narration": " ".join(forecast + limits)})
+    bars = []
+    for m in (brief.get("models") or [])[:3]:
+        metric = m.get("metric") or {}
+        verdict = ("unassessed" if m.get("fitted") is False or not metric or (m.get("details") or {}).get("verdict") == "not_supported"
+                   else "weak" if (m.get("details") or {}).get("verdict") == "weak" or m.get("beats_baseline") is False
+                   else "beats" if m.get("beats_baseline") is True else "unassessed")
+        num = lambda v: v if _measured(v) else None
+        bars.append({"target": _clean(m.get("target") or m.get("title") or ""), "metric": _clean(metric.get("name", "")),
+                     "model": num(metric.get("model")), "baseline": num(metric.get("baseline")),
+                     "model_shown": faithful(metric["model"]) if num(metric.get("model")) is not None else "",
+                     "baseline_shown": faithful(metric["baseline"]) if num(metric.get("baseline")) is not None else "",
+                     "verdict": verdict, "sentence": model_evidence(m, brief["language"])})
+    scenes.append({"id": "forecast", "kind": "forecast", "heading": tr("Forecast and limits", "التوقع والحدود"),
+                   "lines": forecast + limits, "models": bars, "limits": limits,
+                   "figures": [{"label": f"{b['target']} {b['metric']}", "shown": b["model_shown"], "source": "model card"} for b in bars if b["model_shown"]],
+                   "narration": " ".join(forecast + limits)})
     snapshot = brief["snapshot_id"]
-    scenes.append({"id": "sources", "kind": "list", "heading": tr("Sources and review", "المصادر والمراجعة"),
+    scenes.append({"id": "sources", "kind": "sources", "heading": tr("Sources and review", "المصادر والمراجعة"),
                    "lines": [tr(f"Source: {name}, run {run['id']}", f"المصدر: {name}، التشغيل {run['id']}"),
                              tr(f"Snapshot {snapshot[:12]}; every figure is the brief's own.", f"اللقطة {snapshot[:12]}؛ كل رقم من الموجز نفسه."),
                              tr("Draft for review. Release needs a recorded human approval of this file.",
                                 "مسودة للمراجعة. يتطلب النشر اعتماداً بشرياً مسجلاً لهذا الملف.")],
                    "figures": [], "narration": tr("Every figure comes from the recorded brief. This video is a draft and needs a human review before release.",
                                                   "كل رقم مأخوذ من الموجز المسجل. هذا الفيديو مسودة ويحتاج إلى مراجعة بشرية قبل النشر.")})
+    for scene in scenes:
+        scene["narration"] = speakable(scene["narration"], brief["language"])
     return scenes
+
+
+def speakable(text, language):
+    """The narration as a voice should say it, with the same facts: column
+    names lose their underscores and a currency code is said in words. The
+    subtitles show this same text, so what is heard and read never differ."""
+    import re
+    text = re.sub(r"(?<=\w)_(?=\w)", " ", text)
+    text = re.sub(r"\bUSD\b", "دولار أمريكي" if language == "ar" else "US dollars", text)
+    text = re.sub(r"\bAED\b", "درهم إماراتي" if language == "ar" else "UAE dirhams", text)
+    return text
 
 
 def _run(args, **kwargs):
@@ -283,101 +339,228 @@ class _Painter:
         return image
 
 
-def render(brief, folder):
+# ---------------------------------------------------------------------------
+# Narration: who speaks. Every provider yields one 48 kHz mono WAV per scene,
+# and the scene lasts as long as its speech plus a breath, so the voice, the
+# subtitles and the pictures share one timeline.
+# ---------------------------------------------------------------------------
+RATE = 48_000
+ELEVENLABS_VOICES = {"ar": ("K6EjAWq39CfwwPD4jafo", "Nasser"), "en": ("wldVCiOxtkWPlsr2mHyo", "Peter")}
+ELEVENLABS_MODEL = "eleven_multilingual_v2"
+
+
+def text_digest(text):
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def voice_provider(env=None):
+    """"elevenlabs" only when the operator turned it on and gave a key: it sends
+    each scene's narration text (never data rows) to ElevenLabs. Otherwise the
+    offline espeak-ng voice."""
+    env = os.environ if env is None else env
+    if env.get("AGENTIC_OS_VOICE_PROVIDER", "").lower() == "elevenlabs" and env.get("ELEVENLABS_API_KEY"):
+        return "elevenlabs"
+    return "espeak-ng"
+
+
+def _to_wav(source, target):
+    _run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-nostdin", "-y", "-i", str(source),
+          "-ac", "1", "-ar", str(RATE), "-sample_fmt", "s16", str(target)])
+    with wave.open(str(target), "rb") as w:
+        return w.getnframes() / w.getframerate()
+
+
+def _elevenlabs(text, language, target, env):
+    import urllib.request
+    voice = env.get(f"AGENTIC_OS_VOICE_ID_{language.upper()}") or ELEVENLABS_VOICES[language][0]
+    request = urllib.request.Request(
+        f"https://api.elevenlabs.io/v1/text-to-speech/{voice}?output_format=mp3_44100_128",
+        data=json.dumps({"text": text, "model_id": ELEVENLABS_MODEL,
+                         "voice_settings": {"stability": 0.55, "similarity_boost": 0.8}}).encode("utf-8"),
+        headers={"xi-api-key": env["ELEVENLABS_API_KEY"], "Content-Type": "application/json", "Accept": "audio/mpeg"})
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            target.write_bytes(response.read())
+    except OSError as error:
+        raise VideoFailed(f"ElevenLabs narration failed: {error}") from None
+
+
+def narrate(scenes, language, scratch, supplied=None, env=None):
+    """Per-scene WAV files and speech seconds, and a record of who spoke.
+
+    `supplied` maps a scene id to {"path", "text_sha256"}: recorded narration
+    made elsewhere (for example through the owner's ElevenLabs account). It is
+    used only if its text digest equals the scene's narration, so the voice can
+    never say something the screen does not."""
+    env = os.environ if env is None else env
+    provider = "supplied" if supplied else voice_provider(env)
+    for i, scene in enumerate(scenes):
+        wav = scratch / f"speech-{i}.wav"
+        if provider == "supplied":
+            take = supplied.get(scene["id"])
+            if not take or take.get("text_sha256") != text_digest(scene["narration"]):
+                raise VideoFailed(f"supplied narration does not match scene {scene['id']}")
+            scene["speech"] = _to_wav(take["path"], wav)
+        elif provider == "elevenlabs":
+            raw = scratch / f"speech-{i}.mp3"
+            _elevenlabs(scene["narration"], language, raw, env)
+            scene["speech"] = _to_wav(raw, wav)
+        else:
+            raw = scratch / f"speech-{i}-raw.wav"
+            _speak(scene["narration"], language, raw)
+            scene["speech"] = _to_wav(raw, wav)
+        scene["wav"] = wav
+    voice = (env.get(f"AGENTIC_OS_VOICE_ID_{language.upper()}") and "configured voice") or ELEVENLABS_VOICES[language][1]
+    return {"supplied": "recorded narration supplied with matching text digests",
+            "elevenlabs": f"ElevenLabs {ELEVENLABS_MODEL}, voice {voice} (narration text sent to ElevenLabs)",
+            "espeak-ng": f"espeak-ng voice {VOICES[language]} (local, synthetic)"}[provider]
+
+
+_FILM = {}
+
+
+def film_available():
+    """The cinematic renderer needs Node, the frontend's Playwright and a
+    Chromium binary that actually exists (checked once per process)."""
+    if "ok" not in _FILM:
+        root = Path(__file__).resolve().parent.parent
+        ok = bool(shutil.which("node")) and (root / "frontend" / "node_modules" / "@playwright" / "test").is_dir()
+        if ok:
+            probe = subprocess.run(
+                ["node", "-e", "const p=process.env.PLAYWRIGHT_EXECUTABLE_PATH||['/opt/pw-browsers/chromium-1194/chrome-linux/chrome','/opt/pw-browsers/chromium'].find(f=>require('fs').existsSync(f))||require('@playwright/test').chromium.executablePath();"
+                 "process.stdout.write(require('fs').existsSync(p)?'yes':'no')"],
+                cwd=root / "frontend", stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=60, check=False)
+            ok = probe.stdout == b"yes"
+        _FILM["ok"] = ok
+    return _FILM["ok"]
+
+
+def _film(brief, scenes, folder, scratch, audio, subtitles, stills=None):
+    ar = brief["language"] == "ar"
+    labels = {"draft": "مسودة للمراجعة" if ar else "Draft for review",
+              "kicker": ("موجز تنفيذي · " if ar else "Executive briefing · ") + _clean(brief["run"].get("dataset_name", "")),
+              "model": "النموذج" if ar else "Model", "baseline": "خط الأساس" if ar else "Baseline",
+              "source": (f"المصدر: {_clean(brief['run'].get('dataset_name', ''))} · للمراجعة فقط" if ar
+                         else f"Source: {_clean(brief['run'].get('dataset_name', ''))} · Review only")}
+    story = {"language": brief["language"], "snapshot": brief["snapshot_id"], "labels": labels,
+             "scenes": [{k: v for k, v in s.items() if k not in ("wav",)} | {"end": s["start"] + s["duration"]} for s in scenes]}
+    job = scratch / "film.json"
+    job.write_text(json.dumps({"story": story, "font": str(FONT_PATH), "out": str(folder / "video.mp4"),
+                               "audio": str(audio), "subtitles": str(subtitles), "language": brief["language"],
+                               "fps": FPS, "width": FILM_SIZE[0], "height": FILM_SIZE[1],
+                               "stills": str(stills) if stills else None}, ensure_ascii=False), encoding="utf-8")
+    script = Path(__file__).resolve().parent / "video" / "render_film.mjs"
+    result = subprocess.run(["node", str(script), str(job)], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            timeout=1800, check=False)
+    if result.returncode:
+        raise VideoFailed((result.stderr or b"film renderer failed")[-800:].decode("utf-8", "replace"))
+
+
+def _pillow(brief, scenes, video, audio, subtitles):
+    language = brief["language"]
+    painter = _Painter(language)
+    end = scenes[-1]["start"] + scenes[-1]["duration"]
+    encoder = subprocess.Popen(
+        ["ffmpeg", "-hide_banner", "-loglevel", "error", "-nostdin", "-y",
+         "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{SIZE[0]}x{SIZE[1]}", "-r", str(FPS), "-i", "-",
+         "-i", str(audio), "-i", str(subtitles), "-map", "0:v", "-map", "1:a", "-map", "2:s",
+         "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p", "-threads", "1",
+         "-c:a", "aac", "-ar", "48000", "-b:a", "128k", "-c:s", "mov_text",
+         "-metadata:s:s:0", f"language={'ara' if language == 'ar' else 'eng'}",
+         "-metadata:s:a:0", f"language={'ara' if language == 'ar' else 'eng'}",
+         "-t", f"{end:.3f}", "-movflags", "+faststart", str(video)],
+        stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    previous = None
+    try:
+        from PIL import Image
+        for index, scene in enumerate(scenes):
+            settled = None
+            for f in range(scene["frames"]):
+                if settled is not None:
+                    image = settled
+                else:
+                    progress = min(1.0, f / ANIMATE)
+                    image = painter.frame(scene, scenes, index, progress, brief)
+                    if progress == 1.0:
+                        settled = image
+                if previous is not None and f < 10:   # a 0.4-second dissolve from the last scene
+                    image = Image.blend(previous, image, (f + 1) / 11)
+                encoder.stdin.write(image.tobytes())
+            previous = settled or image
+        encoder.stdin.close()
+        error = encoder.stderr.read()
+        if encoder.wait(timeout=300):
+            raise VideoFailed(error[-600:].decode("utf-8", "replace") or "encoder failed")
+    except BrokenPipeError:
+        raise VideoFailed((encoder.stderr.read() or b"encoder stopped")[-600:].decode("utf-8", "replace")) from None
+    finally:
+        if encoder.poll() is None:
+            encoder.kill()
+            encoder.wait()
+        encoder.stderr.close()
+
+
+def render(brief, folder, supplied=None, env=None, renderer=None, stills=None):
     """Render video.mp4, subtitles.vtt, subtitles.srt and manifest.json into folder.
 
-    Raises VideoUnavailable before any work if a tool is missing, and
-    VideoFailed if a step fails; the caller records either as a failed export.
+    `renderer` is "film" (Chromium motion composition), "pillow" (the plain
+    fallback) or None for film when available. Raises VideoUnavailable before
+    any work if a tool is missing, and VideoFailed if a step fails; the caller
+    records either as a failed export.
     """
-    missing = missing_tools()
+    env = os.environ if env is None else env
+    missing = missing_tools(env, supplied=bool(supplied))
     if missing:
         raise VideoUnavailable(", ".join(missing))
+    renderer = renderer or ("film" if film_available() else "pillow")
     language = brief["language"]
     folder = Path(folder)
     folder.mkdir(parents=True, exist_ok=True)
     scenes = storyboard(brief)
-    painter = _Painter(language)
     with tempfile.TemporaryDirectory(prefix="exec-video-") as scratch:
         scratch = Path(scratch)
-        start, rate, pcm = 0.0, None, []
-        for i, scene in enumerate(scenes):
-            speech = _speak(scene["narration"], language, scratch / f"{i}.wav")
-            frames = math.ceil((speech + 1.0) * FPS)
-            scene.update(start=start, speech=speech, frames=frames, duration=frames / FPS)
-            with wave.open(str(scratch / f"{i}.wav"), "rb") as source:
-                rate = rate or source.getframerate()
-                if source.getframerate() != rate or source.getsampwidth() != 2 or source.getnchannels() != 1:
-                    raise VideoFailed("unexpected speech format")
+        speaker = narrate(scenes, language, scratch, supplied, env)
+        start, pcm = 0.0, []
+        for scene in scenes:
+            frames = math.ceil((max(scene["speech"] + 1.2, 4.0)) * FPS)
+            scene.update(start=start, frames=frames, duration=frames / FPS)
+            with wave.open(str(scene["wav"]), "rb") as source:
                 data = source.readframes(source.getnframes())
-            # Pad each scene's speech with silence to the scene's exact length, so
-            # voice, subtitles and pictures share one timeline.
-            pcm.append(data + b"\x00\x00" * (round(scene["duration"] * rate) - len(data) // 2))
+            # Pad each scene's speech with silence to the scene's exact length.
+            pcm.append(data + b"\x00\x00" * max(0, round(scene["duration"] * RATE) - len(data) // 2))
             start += scene["duration"]
         if start > MAX_SECONDS:
             raise VideoFailed("longer than the three-minute limit")
-        with wave.open(str(scratch / "narration.wav"), "wb") as out:
+        audio = scratch / "narration.wav"
+        with wave.open(str(audio), "wb") as out:
             out.setnchannels(1)
             out.setsampwidth(2)
-            out.setframerate(rate)
+            out.setframerate(RATE)
             out.writeframes(b"".join(pcm))
-        cues = _cues(scenes)
-        _subtitles(cues, folder)
+        _subtitles(_cues(scenes), folder)
         video = folder / "video.mp4"
-        encoder = subprocess.Popen(
-            ["ffmpeg", "-hide_banner", "-loglevel", "error", "-nostdin", "-y",
-             "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{SIZE[0]}x{SIZE[1]}", "-r", str(FPS), "-i", "-",
-             "-i", str(scratch / "narration.wav"), "-i", str(folder / "subtitles.srt"),
-             "-map", "0:v", "-map", "1:a", "-map", "2:s",
-             "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p", "-threads", "1",
-             "-c:a", "aac", "-ar", "48000", "-b:a", "128k", "-c:s", "mov_text",
-             "-metadata:s:s:0", f"language={'ara' if language == 'ar' else 'eng'}",
-             "-metadata:s:a:0", f"language={'ara' if language == 'ar' else 'eng'}",
-             "-fflags", "+bitexact", "-flags:v", "+bitexact", "-flags:a", "+bitexact",
-             "-t", f"{start:.3f}", "-movflags", "+faststart", str(video)],
-            stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-        previous = None
-        try:
-            for index, scene in enumerate(scenes):
-                settled = None
-                for f in range(scene["frames"]):
-                    if settled is not None:
-                        image = settled
-                    else:
-                        progress = min(1.0, f / ANIMATE)
-                        image = painter.frame(scene, scenes, index, progress, brief)
-                        if progress == 1.0:
-                            settled = image
-                    if previous is not None and f < 10:   # a 0.4-second dissolve from the last scene
-                        from PIL import Image
-                        image = Image.blend(previous, image, (f + 1) / 11)
-                    encoder.stdin.write(image.tobytes())
-                previous = settled or image
-            encoder.stdin.close()
-            error = encoder.stderr.read()
-            if encoder.wait(timeout=300):
-                raise VideoFailed(error[-600:].decode("utf-8", "replace") or "encoder failed")
-        except BrokenPipeError:
-            raise VideoFailed((encoder.stderr.read() or b"encoder stopped")[-600:].decode("utf-8", "replace")) from None
-        finally:
-            if encoder.poll() is None:
-                encoder.kill()
-                encoder.wait()
-            encoder.stderr.close()
+        if renderer == "film":
+            _film(brief, scenes, folder, scratch, audio, folder / "subtitles.srt", stills)
+        else:
+            _pillow(brief, scenes, video, audio, folder / "subtitles.srt")
     probe = json.loads(_run(["ffprobe", "-v", "error", "-show_entries", "format=duration:stream=codec_type,codec_name",
                              "-of", "json", str(video)]).stdout)
     streams = sorted(s["codec_type"] for s in probe.get("streams", []))
     if streams != ["audio", "subtitle", "video"] or abs(float(probe["format"]["duration"]) - start) > 0.2:
         raise VideoFailed(f"unexpected output: {streams}, {probe.get('format', {}).get('duration')}")
+    size = FILM_SIZE if renderer == "film" else SIZE
     manifest = {
-        "schema": "executive-video-v1", "status": "DRAFT_REQUIRES_HUMAN_REVIEW",
+        "schema": "executive-video-v2", "status": "DRAFT_REQUIRES_HUMAN_REVIEW",
         "run_id": brief["run"]["id"], "snapshot_id": brief["snapshot_id"], "language": language,
         "filters": brief["scope"]["filters"], "records": brief["scope"]["records"],
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "duration": round(start, 3), "size": list(SIZE), "fps": FPS,
-        "engine": {"frames": "Pillow with libraqm (local)", "speech": f"espeak-ng voice {VOICES[language]} (local, synthetic)",
-                   "encoder": "ffmpeg libx264 and AAC (local)"},
+        "duration": round(start, 3), "size": list(size), "fps": FPS,
+        "engine": {"frames": ("motion composition rendered in Chromium (local)" if renderer == "film"
+                              else "Pillow with libraqm (local)"),
+                   "speech": speaker, "encoder": "ffmpeg libx264 and AAC (local)"},
         "scenes": [{"id": s["id"], "start": round(s["start"], 3), "end": round(s["start"] + s["duration"], 3),
-                    "heading": s["heading"], "lines": s["lines"], "narration": s["narration"], "figures": s["figures"]}
+                    "heading": s["heading"], "lines": s["lines"], "narration": s["narration"],
+                    "narration_sha256": text_digest(s["narration"]), "figures": s["figures"]}
                    for s in scenes],
         "files": {name: {"sha256": _sha(folder / name), "bytes": (folder / name).stat().st_size}
                   for name in ("video.mp4", "subtitles.vtt", "subtitles.srt")},

@@ -54,7 +54,9 @@ class ReviewApiTests(unittest.TestCase):
         self.exports = root / "exports"
         self.app = create_app(config, env={"AGENTIC_OS_ENV": "production", "AGENTIC_OS_JWT_SECRET": fixtures.SECRET,
                                            "SUPABASE_URL": "https://test.supabase.invalid",
-                                           "AGENTIC_OS_EXPORT_DIR": str(self.exports)})
+                                           "AGENTIC_OS_EXPORT_DIR": str(self.exports),
+                                           # The quick renderer here; the film has its own test below.
+                                           "AGENTIC_OS_VIDEO_RENDERER": "pillow"})
         self.client = TestClient(closing(self, self.app), raise_server_exceptions=False)
 
     def status(self, run, language="en", who="alice", role="analyst"):
@@ -172,7 +174,7 @@ class VideoTimelineTests(unittest.TestCase):
         from tests.test_executive_exports import ExecutiveDocumentTests
         folder = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, folder, True)
-        manifest = executive_video.render(ExecutiveDocumentTests().brief("ar"), folder)
+        manifest = executive_video.render(ExecutiveDocumentTests().brief("ar"), folder, renderer="pillow")
         scenes = manifest["scenes"]
         self.assertEqual(scenes[0]["start"], 0)
         for a, b in zip(scenes, scenes[1:]):
@@ -205,3 +207,97 @@ class SpokenFormTests(unittest.TestCase):
             self.assertNotIn("100 ", kpis["narration"])
             self.assertIsNone(kpis["figures"][1]["value"])
             self.assertIn("not measured" if language == "en" else "غير مقاس", kpis["narration"])
+
+
+@unittest.skipIf(executive_video.missing_tools({}), "needs ffmpeg, espeak-ng and the verified font")
+class NarrationProviderTests(unittest.TestCase):
+    def brief(self, language):
+        from tests.test_executive_exports import ExecutiveDocumentTests
+        return ExecutiveDocumentTests().brief(language)
+
+    def mp3_of(self, text, folder):
+        wav, mp3 = folder / "t.wav", folder / "t.mp3"
+        executive_video._speak(text, "en", wav)
+        executive_video._run(["ffmpeg", "-v", "error", "-y", "-i", str(wav), str(mp3)])
+        return mp3.read_bytes()
+
+    def test_the_voice_leaves_the_host_only_when_the_operator_turns_it_on_with_a_key(self):
+        self.assertEqual(executive_video.voice_provider({}), "espeak-ng")
+        self.assertEqual(executive_video.voice_provider({"AGENTIC_OS_VOICE_PROVIDER": "elevenlabs"}), "espeak-ng")
+        self.assertEqual(executive_video.voice_provider({"ELEVENLABS_API_KEY": "k"}), "espeak-ng")
+        self.assertEqual(executive_video.voice_provider({"AGENTIC_OS_VOICE_PROVIDER": "ElevenLabs", "ELEVENLABS_API_KEY": "k"}),
+                         "elevenlabs")
+
+    def test_elevenlabs_receives_each_scenes_narration_only_with_the_chosen_voice(self):
+        from unittest import mock
+        folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, folder, True)
+        audio = self.mp3_of("A short take.", folder)
+        sent = []
+
+        class Reply:
+            def __init__(self, request):
+                sent.append(request)
+            def __enter__(self):
+                return self
+            def __exit__(self, *exc):
+                return False
+            def read(self):
+                return audio
+        env = {"AGENTIC_OS_VOICE_PROVIDER": "elevenlabs", "ELEVENLABS_API_KEY": "test-key-not-real"}
+        with mock.patch("urllib.request.urlopen", side_effect=lambda request, timeout: Reply(request)):
+            manifest = executive_video.render(self.brief("ar"), folder / "out", env=env, renderer="pillow")
+        self.assertEqual(len(sent), len(manifest["scenes"]))
+        for request, scene in zip(sent, manifest["scenes"]):
+            self.assertIn("/v1/text-to-speech/K6EjAWq39CfwwPD4jafo", request.full_url)   # Nasser, Arabic
+            self.assertEqual(request.get_header("Xi-api-key"), "test-key-not-real")
+            self.assertEqual(json.loads(request.data)["text"], scene["narration"])
+        self.assertIn("ElevenLabs", manifest["engine"]["speech"])
+        self.assertIn("Nasser", manifest["engine"]["speech"])
+        self.assertIn("sent to ElevenLabs", manifest["engine"]["speech"])
+
+    def test_supplied_narration_is_used_only_when_it_says_what_the_screen_shows(self):
+        folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, folder, True)
+        brief = self.brief("en")
+        take = folder / "take.mp3"
+        take.write_bytes(self.mp3_of("A recorded take.", folder))
+        scenes = executive_video.storyboard(brief)
+        good = {s["id"]: {"path": str(take), "text_sha256": executive_video.text_digest(s["narration"])} for s in scenes}
+        manifest = executive_video.render(brief, folder / "ok", supplied=good, renderer="pillow")
+        self.assertIn("supplied", manifest["engine"]["speech"])
+        self.assertEqual([s["narration_sha256"] for s in manifest["scenes"]], [good[s["id"]]["text_sha256"] for s in scenes])
+        wrong = dict(good, decision={"path": str(take), "text_sha256": executive_video.text_digest("something else")})
+        with self.assertRaises(executive_video.VideoFailed):
+            executive_video.render(brief, folder / "bad", supplied=wrong, renderer="pillow")
+
+    def test_spoken_text_keeps_the_facts_and_drops_the_underscores(self):
+        self.assertEqual(executive_video.speakable("1566.9 in Downtime_Hours, Maintenance_Cost_USD", "en"),
+                         "1566.9 in Downtime Hours, Maintenance Cost US dollars")
+        self.assertIn("دولار أمريكي", executive_video.speakable("Cost USD", "ar"))
+
+
+@unittest.skipUnless(executive_video.film_available() and not executive_video.missing_tools({}),
+                     "needs Node, the frontend's Playwright Chromium and ffmpeg")
+class FilmRendererTests(unittest.TestCase):
+    def test_the_motion_composition_renders_a_real_film_with_voice_and_subtitles(self):
+        import subprocess
+        folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, folder, True)
+        scenes = [{"id": "kpis", "kind": "kpis", "heading": "Key measures", "lines": [], "start": 0, "end": 2.5, "duration": 2.5,
+                   "figures": [{"label": "Availability", "shown": "99.996%", "value": 99.996, "scale": "percent", "status": "good"},
+                               {"label": "MTBF", "shown": "Not measured", "value": None, "scale": "hours"}]},
+                  {"id": "forecast", "kind": "forecast", "heading": "التوقع", "lines": ["لا يوجد نموذج"], "start": 2.5, "end": 5, "duration": 2.5,
+                   "models": [{"target": "Downtime", "metric": "MAE", "model": 3.25, "baseline": 4.5, "model_shown": "3.25",
+                               "baseline_shown": "4.5", "verdict": "beats", "sentence": "beats its baseline on past records only"}]}]
+        executive_video._run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "sine=frequency=220:duration=5",
+                              "-ar", "48000", "-ac", "1", str(folder / "a.wav")])
+        (folder / "s.srt").write_text("1\n00:00:00,000 --> 00:00:02,000\nKey measures.\n", encoding="utf-8")
+        brief = {"language": "en", "snapshot_id": "a" * 64, "run": {"dataset_name": "fictional.csv", "id": "r1"}}
+        executive_video._film(brief, scenes, folder, folder, folder / "a.wav", folder / "s.srt", folder / "stills")
+        probe = json.loads(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration:stream=codec_type,width",
+                                           "-of", "json", str(folder / "video.mp4")], capture_output=True, check=True).stdout)
+        self.assertEqual(sorted(s["codec_type"] for s in probe["streams"]), ["audio", "subtitle", "video"])
+        self.assertEqual(next(s["width"] for s in probe["streams"] if s["codec_type"] == "video"), 1920)
+        self.assertAlmostEqual(float(probe["format"]["duration"]), 5, delta=0.2)
+        self.assertEqual(sorted(p.name for p in (folder / "stills").iterdir()), ["scene-1-kpis.png", "scene-2-forecast.png"])

@@ -2018,7 +2018,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         found, video = await review_artifacts(run_id, brief)
         with lock:
             history = engine.store.export_reviews(run_id)
-        missing = executive_video.missing_tools()
+        missing = executive_video.missing_tools(local_env)
         return {"snapshot_id": brief["snapshot_id"], "language": language,
                 "formats": export_reviews.status(history, found, brief["snapshot_id"], language),
                 "history": history[:100], "video": video_view(video) if video else None,
@@ -2061,7 +2061,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
                                      language: str = Query(default="en", pattern="^(en|ar)$"),
                                      filters: str = Query(default="[]"),
                                      principal=Depends(requires("write"))):
-        missing = executive_video.missing_tools()
+        missing = executive_video.missing_tools(local_env)
         if missing or identity.mode == "demo":
             raise HTTPException(status_code=503, detail=(
                 "لا يمكن إنتاج الفيديو على هذا الخادم: " + "، ".join(missing or ["demo"]) if language == "ar" else
@@ -2077,7 +2077,8 @@ def create_app(config_path=None, env=None, dist_dir=None):
         row = {"id": identifier, "run_id": run_id, "owner": principal.subject, "snapshot_id": brief["snapshot_id"],
                "language": language, "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")}
         try:
-            manifest = await run_in_threadpool(executive_video.render, brief, export_root / run_id / identifier)
+            manifest = await run_in_threadpool(executive_video.render, brief, export_root / run_id / identifier, None,
+                                               local_env, local_env.get("AGENTIC_OS_VIDEO_RENDERER") or None)
             row.update(state="rendered", manifest_json=json.dumps(manifest, ensure_ascii=False))
         except (executive_video.VideoFailed, executive_video.VideoUnavailable, OSError, subprocess.SubprocessError) as error:
             row.update(state="failed", error=str(error)[:600])
