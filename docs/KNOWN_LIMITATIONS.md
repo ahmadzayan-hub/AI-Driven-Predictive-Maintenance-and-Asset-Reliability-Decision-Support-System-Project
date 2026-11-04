@@ -644,3 +644,12 @@ Three more limits on what the figures mean:
   Operations administration still show theirs; using one gets the server's
   refusal and writes nothing
   ([decision](adr/2026-10-21-view-only-demo-mode.md)).
+- **RMD V2 knowledge packs are retrieval evidence, not model-tested.** The MBA 9227
+  and Group 9226 packs are searched by the existing lexical retriever. Acceptance
+  cases K01 to K28 and QA01 to QA20 are checked for retrievable, correctly labelled
+  evidence only; a model's answers to them have not been run. Paraphrases with no
+  shared words can miss the evidence. The dataset behind the Analytics pack is
+  synthetic and educational; its scores are not validated predictions and its history
+  is not current verification
+  ([decision](adr/2026-11-04-evidence-aware-knowledge.md),
+  [results](RMD_KNOWLEDGE_ACCEPTANCE.md)).

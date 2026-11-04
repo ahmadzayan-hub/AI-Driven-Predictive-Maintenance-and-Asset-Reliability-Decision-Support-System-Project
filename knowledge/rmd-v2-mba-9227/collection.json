@@ -1,0 +1,18 @@
+{
+  "title": "RMD V2 MBA 9227 project knowledge / معرفة مقرر 9227",
+  "description": "Evidence-labelled course knowledge for AI for Business Strategy and Decision Making (9227). Academic cases only; none of it is an RMD operational rule. Owner-only sections are withheld.",
+  "document_id": "RMD_V2_MBA_9227_Project_Knowledge",
+  "version": "1.0",
+  "visibility": "public",
+  "data_classification": "public",
+  "model_context_allowed": false,
+  "prepared_on": "2026-11-04",
+  "evidence_basis": "owner-supplied handover; evidence labels preserved per passage",
+  "operational_authority": false,
+  "passages_source": "eae1fe31-RMD_V2_MBA_9227_Project_Knowledge.md",
+  "source_sha256": "4b2896e67f467010c48efd9ded129219f4dec07b060648cdf824241bd16072dd",
+  "withheld_sections": [
+    "02. Owner profile and working preferences"
+  ],
+  "collection_id": "rmd-v2-mba-9227"
+}

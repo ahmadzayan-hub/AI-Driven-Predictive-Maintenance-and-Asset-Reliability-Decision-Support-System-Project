@@ -1227,13 +1227,17 @@ def create_app(config_path=None, env=None, dist_dir=None):
     def search_knowledge(q: str = Query(..., min_length=2, max_length=400),
                          collection: str = Query(None, max_length=120),
                          limit: int = Query(5, ge=1, le=20),
+                         domain: str = Query(None, max_length=120),
+                         include_superseded: bool = Query(None),
                          principal=Depends(requires("read"))):
         """Passages for a question, each carrying the citation to its section.
 
         The text returned is reference material. It is quoted to a reader
         or handed to a model as evidence; it never instructs the system.
         """
-        hits = knowledge_store(principal).search(q, collection=collection, limit=limit)
+        hits = knowledge_store(principal).search(
+            q, collection=collection, limit=limit, domain=domain,
+            include_superseded=include_superseded)
         return {"query": q,
                 "results": [dict(h.passage.as_dict(score=h.score),
                                  matched=list(h.matched)) for h in hits]}

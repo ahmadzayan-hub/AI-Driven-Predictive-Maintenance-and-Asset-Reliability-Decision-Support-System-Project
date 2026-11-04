@@ -574,7 +574,8 @@ class Assistant:
             return {"text": notice, "result": None}
         blank, newline = chr(10) * 2, chr(10)
         passages = blank.join(
-            hit.citation + newline + _excerpt(hit.passage.text)
+            hit.citation + (f" [{hit.passage.label}]" if hit.passage.label else "")
+            + newline + _excerpt(hit.passage.text)
             for hit in hits)
         names = sorted({hit.passage.collection for hit in hits})
         return {"text": reply(language, "knowledge_found",

@@ -2404,3 +2404,11 @@ regressions passed. The full failure and skipped later steps remain in README.
 - Human voice, owner approved (ElevenLabs, Nasser for Arabic, Peter for English): narration is being generated in the owner's ElevenLabs flow `oZnukbBANNUW4yQyUi3T`. Done (English, Peter): title, decision, priorities, sources, about 787 credits. Remaining: English kpis and forecast, all six Arabic scenes. The free tier allows one generation at a time and refused three attempts in a row from 18:21 to 18:41 UTC; nothing was charged for those.
 - Blocked: this session still cannot reach `api.elevenlabs.io` or `elevenlabsusercontent.com` (proxy policy denial at 18:17 UTC after the owner allowed them); a new session should pick up the new network rules.
 - Next (new session): regenerate the synthetic briefs (`scripts/generate_synthetic_dataset.py --rows 1500`, run, `GET /executive` in en and ar), take the narration from `server.executive_video.storyboard`, generate the missing takes one at a time, download all twelve, render with `render(brief, folder, supplied={scene_id: {"path", "text_sha256"}})`, check the manifest says "supplied", send both films.
+
+## 2026-11-04 (later): MBA 9227 and Analytics knowledge packs (session d9e3f889)
+
+- Done: loader reads `kb:` directives (domain, evidence, status, synthetic, limits); superseded passages only for correction questions; `domain` and `include_superseded` on `/api/knowledge/search`; Ask Miyaar prints the label. `scripts/build_knowledge_packs.py` builds the public packs and private complete copies with a redaction guard (it caught a legal name in a contribution row). Acceptance tests for K01 to K28 and QA01 to QA20 (retrieval level), access-boundary tests, workbook reconciliation (matches SRC-29 SHA-256; the repo KPI engine reproduces availability, MTBF, MTTR, SLA, first-time fix and loss ratio).
+- Verified: see the verify run recorded in the commit; acceptance report in `docs/RMD_KNOWLEDGE_ACCEPTANCE.md`.
+- Not verified: any model answer to the cases; QA13 needed a keyword-rich wording because the retriever is lexical.
+- Decided: dataset aggregates public (no rows); owner can move them private. Packs stay `model_context_allowed: false`.
+- Next: owner decision on aggregates and model forwarding; human-voice films (new session).
