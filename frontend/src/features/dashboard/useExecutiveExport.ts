@@ -24,7 +24,7 @@ interface ExportJob {
  * changes or the view unmounts. */
 export function useExecutiveExport(brief: RunExecutive | null, data: RunExecutive | null,
                                    currentScope: { current: string }) {
-  const [exportFormat, setExportFormat] = useState<'html' | 'docx'>('html')
+  const [exportFormat, setExportFormat] = useState<'html' | 'docx' | 'slides'>('html')
   const [exportBusy, setExportBusy] = useState(false)
   const [exportError, setExportError] = useState<Message | null>(null)
   const [exportStatus, setExportStatus] = useState<Message | null>(null)

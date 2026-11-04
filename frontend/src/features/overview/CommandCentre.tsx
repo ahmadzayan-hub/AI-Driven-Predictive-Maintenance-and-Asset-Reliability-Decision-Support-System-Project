@@ -91,6 +91,8 @@ export function CommandCentre({ run, brief, failed, onOpenDashboard }: CommandCe
             <div><dt>{t('command.happening')}</dt><dd dir="auto">{brief.headline}</dd></div>
             {topRisk ? <div><dt>{t('command.risk')}</dt><dd dir="auto">{topRisk}</dd></div> : null}
             {decisions[0] ? <div><dt>{t('command.decide')}</dt><dd dir="auto">{decisions[0].title}</dd></div> : null}
+            {/* The analysis's own statement of what a forecast may and may not claim. */}
+            {brief.advisory?.prediction ? <div><dt>{t('command.forecastWhy')}</dt><dd dir="auto">{brief.advisory.prediction}</dd></div> : null}
           </dl>
         </div>
         {open}

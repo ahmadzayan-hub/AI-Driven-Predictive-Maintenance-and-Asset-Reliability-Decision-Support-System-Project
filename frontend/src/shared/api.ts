@@ -361,7 +361,7 @@ export const api = {
   /** Business files are rendered from owned server evidence. The version guard
    * prevents silently exporting a different snapshot from the prepared brief. */
   downloadExecutive: async (id: string, language: 'en' | 'ar', filters: TableFilter[], expectedUpdatedAt: string, expectedSnapshotId: string,
-    format: 'html' | 'docx' = 'html', signal?: AbortSignal) => {
+    format: 'html' | 'docx' | 'slides' = 'html', signal?: AbortSignal) => {
     const controller = new AbortController()
     const cancel = () => controller.abort()
     if (signal?.aborted) cancel()
@@ -379,7 +379,7 @@ export const api = {
         try { message = readDetail(await response.json()).message } catch { /* use the status below */ }
         throw new ApiError(message ?? translate('api.failed', { status: response.status }), response.status)
       }
-      const expectedType = format === 'html' ? 'text/html' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      const expectedType = format !== 'docx' ? 'text/html' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
       if (response.headers.get('content-type')?.split(';')[0].trim() !== expectedType) {
         throw new ApiError(translate('api.failed', { status: response.status }), response.status)
       }

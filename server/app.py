@@ -1957,7 +1957,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
     async def export_executive_brief(run_id: str,
                                     expected_updated_at: str = Query(min_length=1, max_length=160),
                                     expected_snapshot_id: str = Query(min_length=64, max_length=64, pattern="^[a-f0-9]{64}$"),
-                                    format: str = Query(default="html", pattern="^(html|docx)$"),
+                                    format: str = Query(default="html", pattern="^(html|docx|slides)$"),
                                     language: str = Query(default="en", pattern="^(en|ar)$"),
                                     filters: str = Query(default="[]"),
                                     principal=Depends(requires("read"))):
@@ -1970,7 +1970,8 @@ def create_app(config_path=None, env=None, dist_dir=None):
                 "تغير التشغيل منذ إعداد الموجز. حدّث الموجز ثم أعد التصدير."
                 if language == "ar" else
                 "The run changed after this brief was prepared. Refresh the brief before exporting."))
-        render = executive_export.render_docx if format == "docx" else executive_export.render_html
+        render = (executive_export.render_docx if format == "docx" else executive_export.render_slides_html
+                  if format == "slides" else executive_export.render_html)
         content = await run_in_threadpool(render, brief)
         mime = executive_export.DOCX_MIME if format == "docx" else executive_export.HTML_MIME
         return Response(content, media_type=mime, headers={

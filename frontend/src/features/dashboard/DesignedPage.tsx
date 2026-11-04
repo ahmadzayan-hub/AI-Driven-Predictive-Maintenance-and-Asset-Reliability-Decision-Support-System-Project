@@ -105,7 +105,12 @@ function Section({ runId, section, filters, state, roles, setState, pinned, onPi
   // any other chart as bars or a table. The data and the filters stay the same.
   const charted = section.component === 'trend' || section.component === 'ranking' || section.component === 'comparison' || section.component === 'distribution'
   const views = section.component === 'trend' ? (['line', 'bars', 'table'] as const) : (['bars', 'table'] as const)
-  const [view, setView] = useState<'line' | 'bars' | 'table'>(views[0])
+  // Remembered per run and section in this browser only; a bad or blocked store falls back.
+  const viewKey = `aos-layout-view:${runId}:${section.id}`
+  const [view, setViewState] = useState<'line' | 'bars' | 'table'>(() => {
+    try { const saved = localStorage.getItem(viewKey); return (views as readonly string[]).includes(saved ?? '') ? saved as 'line' | 'bars' | 'table' : views[0] } catch { return views[0] }
+  })
+  const setView = (next: 'line' | 'bars' | 'table') => { setViewState(next); try { localStorage.setItem(viewKey, next) } catch { /* the choice still applies here */ } }
   let body: React.ReactNode = <p className="card__meta">{t('loading')}</p>
   if (section.component === 'brief') body = <Brief runId={runId} filters={filters} result={result} onOpenRun={onOpenRun} />
   else if (section.component === 'gap') body = <p className="layout__gap"><strong>{t('unavailable')}</strong> · {section.reason?.[locale]}</p>

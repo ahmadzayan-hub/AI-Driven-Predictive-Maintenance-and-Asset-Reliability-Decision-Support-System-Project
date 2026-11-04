@@ -195,3 +195,14 @@ it('lets the reader show a chart as a table, with the same data and the same pic
   expect(setState).toHaveBeenCalledWith(expect.objectContaining({ filters: { Class: ['Pumps'] } }))
   expect(section).toBeInTheDocument()
 })
+
+it('remembers how a chart is shown for this run and section', async () => {
+  vi.spyOn(api, 'planLayout').mockResolvedValue(result([rank]))
+  vi.spyOn(api, 'queryTable').mockResolvedValue(answer([['Pumps', 900]]))
+  const first = render(<DesignedPage runId="r1" roles={roles} state={EMPTY} filters={[]} setState={vi.fn()} />)
+  fireEvent.click(await screen.findByRole('button', { name: 'Table' }))
+  first.unmount()
+  render(<DesignedPage runId="r1" roles={roles} state={EMPTY} filters={[]} setState={vi.fn()} />)
+  expect(await screen.findByRole('table', { name: 'Cost by class' })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Table' })).toHaveAttribute('aria-pressed', 'true')
+})

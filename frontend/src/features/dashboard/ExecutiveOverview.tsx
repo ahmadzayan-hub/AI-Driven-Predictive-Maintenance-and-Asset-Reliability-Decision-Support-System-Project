@@ -135,8 +135,8 @@ export function ExecutiveOverview({ runId, filters, onOpenRun, onDrill, canDrill
           <div className="exec-export" aria-busy={exportBusy}>
             <div className="field"><label className="field__label" htmlFor="exec-format">{t('exec.format')}</label><select className="field__select"
               id="exec-format" value={exportFormat} disabled={exportBusy}
-              onChange={(event) => setExportFormat(event.target.value as 'html' | 'docx')}><option value="html">{t('exec.html')}</option><option
-              value="docx">{t('exec.word')}</option></select></div>
+              onChange={(event) => setExportFormat(event.target.value as 'html' | 'docx' | 'slides')}><option value="html">{t('exec.html')}</option><option
+              value="docx">{t('exec.word')}</option><option value="slides">{t('exec.slides')}</option></select></div>
             <button type="button" className="btn btn--ghost" disabled={exportBusy} onClick={() => void exportReport(false)}><Icon name="download" size={16} />{t('exec.download')}</button>
             <button type="button" className="btn btn--ghost" disabled={exportBusy} aria-describedby="exec-pdf-help" onClick={() => void exportReport(true)}>{t('exec.print')}</button>
             {exportBusy ? <button type="button" className="btn btn--subtle" onClick={cancelExport}>{t('exec.cancelExport')}</button> : null}
