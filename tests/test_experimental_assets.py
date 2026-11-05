@@ -13,6 +13,13 @@ class AssetSafetyTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             p=Path(d)/"fake.png";p.write_bytes(b"not a png")
             with self.assertRaises(UnsupportedAsset):identify(p)
+    def test_wrong_valid_signature_is_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d)/"renamed.png"
+            p.write_bytes(bytes.fromhex("ffd8ffe000104a464946"))
+            with self.assertRaises(UnsupportedAsset):
+                identify(p)
+
     def test_pbix_metadata_not_model(self):
         with tempfile.TemporaryDirectory() as d:
             p=Path(d)/"synthetic.pbix"
