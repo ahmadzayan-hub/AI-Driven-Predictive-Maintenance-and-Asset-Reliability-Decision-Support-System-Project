@@ -53,20 +53,25 @@ def generate(rows: int = 5_000, seed: int = 2026, defects: bool = False) -> list
             cost = round(40 + failures * rng.gauss(repair, repair * 0.25) + rng.uniform(0, 160), 2)
             out.append([f"SYN-{len(out) + 1:06d}", asset_id, name, f"{year}-{m:02d}-01", max(cost, 0),
                         operating, round(planned_hours, 1), downtime, failures])
-    if len(out) < rows:  # more rows than 24 months of the fleet: repeat the months with new draws
-        month = 0
-        while len(out) < rows:
-            year, m = FIRST_YEAR + (MONTHS + month) // 12, (MONTHS + month) % 12 + 1
-            for asset_id, name, (_, rate, repair, planned) in assets:
+    # More rows than 24 months of one fleet: add whole fleets (depot 2, 3, ...)
+    # over the same 24 months. Running time forward instead reached the year
+    # 2069 at 50,000 rows (stress test, 5 November 2026).
+    depot = 2
+    while len(out) < rows:
+        fleet = [(f"{asset_id}-D{depot}", name, spec) for asset_id, name, spec in assets]
+        weak_fleet = {a for a, _, _ in fleet if rng.random() < 0.12}
+        for month in range(MONTHS):
+            year, m = FIRST_YEAR + month // 12, month % 12 + 1
+            for asset_id, name, (_, rate, repair, planned) in fleet:
                 if len(out) >= rows:
                     break
-                failures = int(rng.random() < rate * (3 if asset_id in weak else 1))
+                failures = int(rng.random() < rate * (3 if asset_id in weak_fleet else 1))
                 downtime = round(failures * rng.uniform(1.5, 14), 1)
                 out.append([f"SYN-{len(out) + 1:06d}", asset_id, name, f"{year}-{m:02d}-01",
                             round(40 + failures * repair * rng.uniform(0.6, 1.4), 2),
                             round(max(0.0, planned - downtime - rng.uniform(0, 12)), 1), planned,
                             downtime, failures])
-            month += 1
+        depot += 1
     if defects:  # the dirt a real export carries: blanks, a duplicate, a text cell, a negative
         for i in rng.sample(range(len(out)), max(1, rows // 100)):
             out[i][4] = ""

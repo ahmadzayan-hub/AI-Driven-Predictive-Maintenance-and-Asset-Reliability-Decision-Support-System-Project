@@ -658,3 +658,10 @@ Three more limits on what the figures mean:
   not-applicable line is still listed by the executive brief as a missing measurement,
   and a survey's own weighting of its criteria is not inferred
   ([decision](adr/2026-11-05-condition-surveys.md)).
+- **Gaps from the synthetic stress run (5 November).** A 1-is-best grade (UK and
+  Australian convention) is ranked as if higher were better; the owner must say which
+  way a grade runs. A decimal comma ("12,34") is refused as unreadable, not converted.
+  Ask Miyaar prints figures without thousands separators, and without a language model
+  it searches the knowledge base only when the question names it ("search the
+  knowledge base for ...")
+  ([decision](adr/2026-11-05-stress-findings.md), [results](STRESS_TEST_RESULTS.md)).

@@ -2426,3 +2426,9 @@ regressions passed. The full failure and skipped later steps remain in README.
 - Verified: re-run of the survey against an independent calculation, 50 of 50 checks; verify and dashboard e2e results in the commit.
 - Not verified: no model involved (deterministic provider); the survey's scoring weights were inferred by hand and need the survey owner's confirmation.
 - Next: separate not-applicable from missing in the executive priority rule; owner to confirm the scoring weights and the ST05 photo date (camera 23 July against sheet 12 July).
+
+## 2026-11-05 (later): Synthetic stress datasets (session d9e3f889)
+
+- Done: stress harness with 23 datasets and a feature sweep; nine defects fixed (uncited claim figures and period labels, missing markers in the contract, decimal-comma misread, formatted numbers, timestamp axis, sensor additivity, text grades, completeness rounding, generator years). A test that passed only because of a defect was corrected.
+- Verified: stress run 87 of 91 checks; verify in the commit.
+- Open: 1-is-best grades, decimal commas, thousands separators in Ask Miyaar, plain-language knowledge questions without a model.

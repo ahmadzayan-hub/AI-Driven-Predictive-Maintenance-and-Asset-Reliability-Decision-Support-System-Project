@@ -127,7 +127,9 @@ def download_name(goal, run_id):
 NON_ADDITIVE_WORDS = frozenset((
     "score", "level", "rating", "index", "grade", "rank", "pct", "percent",
     "percentage", "rate", "ratio", "share", "probability", "health",
-    "temperature", "temp", "age"))
+    "temperature", "temp", "age",
+    # Sensor readings: an average or a peak means something, a sum does not.
+    "vibration", "pressure", "reading", "voltage", "humidity", "frequency", "speed"))
 
 
 def additive(column):

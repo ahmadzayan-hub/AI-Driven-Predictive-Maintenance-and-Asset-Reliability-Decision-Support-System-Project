@@ -270,7 +270,8 @@ DOMAIN_WORDS = {
     "costs": ("budget", "actual", "spend", "variance", "forecast_cost", "cost_centre", "cost_center"),
     "contracts": ("contract", "milestone", "obligation", "due", "vendor", "supplier", "payment"),
     # A condition survey: graded assets, lower is worse (ADR 2026-11-05).
-    "condition": ("condition_score", "ageing", "rams", "survey", "deterioration", "condition_band"),
+    "condition": ("condition_score", "ageing", "rams", "survey", "deterioration", "condition_band",
+                  "condition_grade", "condition_rating", "condition_index", "inspection", "assessment"),
 }
 
 

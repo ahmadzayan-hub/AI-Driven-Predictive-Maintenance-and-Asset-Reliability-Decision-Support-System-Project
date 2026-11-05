@@ -11,6 +11,9 @@ import re
 # id: (original name, Arabic display name)
 LABELS = {
     "c_rows": ("row_count", "عدد الصفوف"),
+    "c_columns": ("column_count", "عدد الأعمدة"),
+    "c_forecast_periods": ("periods_in_the_trend", "الفترات التي بُني عليها الاتجاه"),
+    "c_outliers_more": ("columns_with_unusual_values_not_named", "أعمدة أخرى فيها قيم غير معتادة لم تُذكر"),
     "c_mapped_columns": ("mapped_columns", "الأعمدة المحددة أدوارها"),
     "c_contract_fields": ("columns_under_contract", "الأعمدة المشمولة بعقد البيانات"),
     "c_completeness": ("completeness", "اكتمال البيانات"),
@@ -93,6 +96,8 @@ LABELS = {
 }
 
 LABEL_RULES = [
+    (r"c_contract_bad_\d+", r"values_not_parsing_as_numbers", "قيم لا تُقرأ أرقاماً"),
+    (r"c_contract_present_\d+", r"non_missing_values", "قيم غير فارغة وغير مفقودة"),
     (r"c_incomplete_period", r"incomplete_last_period_records", "سجلات الفترة الأخيرة غير المكتملة بحسب التعريف السابق"),
     (r"c_total", r"total_(.+)", "إجمالي {0}"),
     (r"c_contrib_\d+", r"change_from_(.+)", "التغير من {0}"),
@@ -133,6 +138,11 @@ OPTION_LABELS = {
 # Complete exact methods; neither free-form metadata nor source values are replaced.
 METHODS = {
     "len(csv rows)": "عدد صفوف ملف CSV",
+    "len(csv header)": "عدد أعمدة ملف CSV",
+    "periods the trend line is fitted on": "الفترات التي رُسم عليها خط الاتجاه",
+    "columns with unusual values beyond those named": "أعمدة أخرى فيها قيم غير معتادة غير المذكورة",
+    "non-missing values that do not read as a number": "قيم غير مفقودة لا تُقرأ رقماً",
+    "values that are neither blank nor a missing marker": "قيم ليست فارغة ولا علامة فقدان",
     "columns given a role in the dataset's saved mapping": "الأعمدة ذات الأدوار المحددة في تعيين البيانات المحفوظ",
     "one contract row per column": "بند واحد في عقد البيانات لكل عمود",
     "1 - missing_cells/total_cells": "1 - الخلايا المفقودة/إجمالي الخلايا",

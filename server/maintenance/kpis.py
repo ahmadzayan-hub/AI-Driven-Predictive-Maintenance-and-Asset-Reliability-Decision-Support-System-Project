@@ -655,6 +655,43 @@ _add(ScaledKpi("condition_cm_fault_share", "Share with recurring CM faults",
                family="reliability", scale_columns=("Intrinsic_RAMS_Level",)))
 
 
+POOR_GRADES = frozenset(("poor", "very poor", "critical", "failed", "unserviceable",
+                         "ضعيف", "ضعيف جدا", "ضعيف جداً", "حرج", "معطل"))
+GRADE_MISSING = frozenset(("", "n/a", "na", "-", "not applicable", "غير منطبق"))
+
+
+def _grade(row):
+    return " ".join(str(row.get("Condition_Grade") or "").strip().lower().split())
+
+
+def poor_grade(row):
+    """A grade in words below Fair: Poor, Very poor, Critical or Failed."""
+    return _grade(row) in POOR_GRADES
+
+
+poor_grade.columns = ("Condition_Grade",)
+
+
+class GradeShareKpi(Kpi):
+    """A share of graded lines, read from a grade written in words.
+
+    A line is measured when it holds a grade; a blank or "not applicable"
+    is unmeasured, never a good grade."""
+
+    def measurable(self, row):
+        return _grade(row) not in GRADE_MISSING
+
+
+_add(GradeShareKpi("condition_poor_grade_share", "Share graded Poor or worse",
+                   "نسبة المصنَّف «ضعيف» أو أسوأ",
+                   Count(poor_grade, poor_grade.columns, "Condition_Grade in Poor, Very poor, Critical, Failed"),
+                   RECORDS, every_record, "all records", contract.PERCENT,
+                   "Share of graded lines whose grade in words is Poor, Very poor, Critical or Failed.",
+                   edge_cases="Fair and Average are not Poor. A grade not on the list counts as "
+                              "graded and not poor; check the file's own grade names.",
+                   family="reliability"))
+
+
 def computable(columns):
     """Which KPIs this dataset supports, and why the rest are missing.
 

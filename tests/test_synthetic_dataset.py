@@ -95,9 +95,16 @@ class SyntheticDatabaseRoundTrip(DatasetApiTestCase):
             if run["state"] not in ("queued", "running"):
                 break
             run = self.client.post(f"/api/runs/{run['id']}/advance").json()
-        # The file is stored and analysed, but the validation stage refuses to call it clean.
-        self.assertEqual(run["state"], "partially_completed", run)
-        self.assertEqual(run["error"], "Validation checks failed.")
+        # The defects are reported for the reviewer, not hidden: the duplicate is removed,
+        # the negative count flagged and the "n/a" cells read as missing. Until 5 November
+        # this run ended partially_completed, but only because a breach claim quoted a
+        # figure it did not cite; the defects alone are findings, not a failed validation.
+        self.assertEqual(run["state"], "awaiting_approval", run)
+        claims = {c["id"]: c["text"] for t in run["tasks"] for c in t.get("claims", [])}
+        self.assertIn("1 duplicates", claims["cl_rowloss"])
+        self.assertIn("negative", claims["cl_negatives"])
+        self.assertIn("missing-value marker", claims["cl_missing_markers"])
+        self.assertNotIn("is 100%", claims["cl_quality"])
 
 
 @unittest.skipUnless(FASTAPI_AVAILABLE and _postgres_available(), "PostgreSQL is not available")
