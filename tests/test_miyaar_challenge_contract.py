@@ -10,7 +10,7 @@ from server import datasets
 
 class CurrentDatasetContract(unittest.TestCase):
     def test_small_csv_is_accepted(self):
-        p=datasets.read(b"asset_id,downtime_hours\\nSYN-001,2.5\\n", "synthetic.csv")
+        p=datasets.read(b"asset_id,downtime_hours\nSYN-001,2.5\n", "synthetic.csv")
         self.assertEqual(len(p.rows),1)
         self.assertEqual(len(p.columns),2)
 
@@ -21,12 +21,12 @@ class CurrentDatasetContract(unittest.TestCase):
         self.assertEqual(len(parsed.rows),2)
 
     def test_501_columns_are_explicitly_rejected(self):
-        data=(",".join("c"+str(i) for i in range(501))+"\\n"+",".join("1" for _ in range(501))+"\\n").encode()
+        data=(",".join("c"+str(i) for i in range(501))+"\n"+",".join("1" for _ in range(501))+"\n").encode()
         with self.assertRaises(datasets.DatasetError):
             datasets.read(data,"wide.csv")
 
     def test_oversize_is_explicitly_rejected(self):
-        data=b"a,b\\n"+b"x"*(datasets.MAX_UPLOAD_BYTES+1)
+        data=b"a,b\n"+b"x"*(datasets.MAX_UPLOAD_BYTES+1)
         with self.assertRaises(datasets.DatasetError) as context:
             datasets.read(data,"oversize.csv")
         self.assertEqual(context.exception.status,413)
@@ -37,11 +37,11 @@ class CurrentDatasetContract(unittest.TestCase):
 
     def test_document_is_not_silently_a_table(self):
         with self.assertRaises(datasets.DatasetError):
-            datasets.read(b"%PDF-1.4\\nsynthetic","synthetic.pdf")
+            datasets.read(b"%PDF-1.4\nsynthetic","synthetic.pdf")
 
     def test_pbix_is_not_silently_a_table(self):
         with self.assertRaises(datasets.DatasetError):
-            datasets.read(b"PK\\x03\\x04not-a-valid-pbix","synthetic.pbix")
+            datasets.read(b"PK\x03\x04not-a-valid-pbix","synthetic.pbix")
 
 if __name__=="__main__":
     unittest.main()
