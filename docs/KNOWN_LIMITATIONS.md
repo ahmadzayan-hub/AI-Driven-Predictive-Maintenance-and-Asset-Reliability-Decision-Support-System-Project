@@ -653,3 +653,8 @@ Three more limits on what the figures mean:
   is not current verification
   ([decision](adr/2026-11-04-evidence-aware-knowledge.md),
   [results](RMD_KNOWLEDGE_ACCEPTANCE.md)).
+- **Condition surveys are read on a 1 to 9 scale.** The condition measures assume the
+  asset condition scale (9 New to 1 Failed) and refuse a file graded otherwise. A
+  not-applicable line is still listed by the executive brief as a missing measurement,
+  and a survey's own weighting of its criteria is not inferred
+  ([decision](adr/2026-11-05-condition-surveys.md)).

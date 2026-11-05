@@ -120,6 +120,22 @@ def download_name(goal, run_id):
 # Fields
 # ---------------------------------------------------------------------------
 
+# A score, level, rating, rate or share is averaged, never added up: the sum
+# of 353 condition scores is not a condition (ADR 2026-11-05, condition
+# surveys). Read from the name's words, so "Condition_Score", "Ageing_Level"
+# and "Availability_Pct" are averaged and "Downtime_Hours" is summed.
+NON_ADDITIVE_WORDS = frozenset((
+    "score", "level", "rating", "index", "grade", "rank", "pct", "percent",
+    "percentage", "rate", "ratio", "share", "probability", "health",
+    "temperature", "temp", "age"))
+
+
+def additive(column):
+    """Whether totals of this column mean something."""
+    words = re.split(r"[^a-z0-9]+", str(column).lower())
+    return not any(word in NON_ADDITIVE_WORDS for word in words)
+
+
 def _text_order(values):
     return sorted(values, key=lambda v: (v == "", v))
 
@@ -137,7 +153,8 @@ def fields(table):
         if column in table.numeric:
             numbers = [v for v in filled if isinstance(v, (int, float))]
             entry.update(min=min(numbers) if numbers else None,
-                         max=max(numbers) if numbers else None)
+                         max=max(numbers) if numbers else None,
+                         additive=additive(column))
         else:
             distinct = set(str(v) for v in values if v is not None)
             entry["distinct"] = len(distinct)
@@ -277,7 +294,7 @@ def filtered(table, filters):
 def _measure_key(measure):
     agg = measure["agg"]
     if agg == "count":
-        return "count"
+        return f"count:{measure['column']}" if "column" in measure else "count"
     if agg == "ratio":
         return f"ratio:{measure['numerator']}/{measure['denominator']}"
     return f"{agg}:{measure['column']}"
@@ -302,7 +319,15 @@ def _check_measures(table, measures, problems):
                                     f"{', '.join(AGGREGATES)}."))
             continue
         if agg == "count":
-            checked.append({"agg": "count"})
+            # With a column: how many records hold a value in it, so a
+            # group's "not applicable" lines are counted apart (ADR 2026-11-05).
+            column = item.get("column")
+            if column is None:
+                checked.append({"agg": "count"})
+            elif column not in table.columns:
+                problems.append(_unknown(column, "measures"))
+            else:
+                checked.append({"agg": "count", "column": column})
             continue
         if agg == "ratio":
             parts = [item.get("numerator"), item.get("denominator")]
@@ -437,6 +462,10 @@ def aggregate(table, spec):
             acc = slot["acc"][index]
             agg = measure["agg"]
             if agg == "count":
+                if "column" in measure:
+                    value = row[positions[measure["column"]]]
+                    if value is not None and value != "":
+                        slot["acc"][index] = (acc or 0) + 1
                 continue
             if agg == "ratio":
                 num = row[positions[measure["numerator"]]]
@@ -466,7 +495,7 @@ def aggregate(table, spec):
     def final(measure, acc, records):
         agg = measure["agg"]
         if agg == "count":
-            return records
+            return (acc or 0) if "column" in measure else records
         if acc is None:
             return 0 if agg == "distinct" else None
         if agg == "sum":

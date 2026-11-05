@@ -784,8 +784,23 @@ DATE_LIKE_NAMES = ("month", "date", "period", "week", "year",
                    "الشهر", "التاريخ", "الفترة", "الأسبوع", "السنة")
 
 
+# When a survey, inspection or reading was taken: the time the record
+# describes. Event dates (Failure_Date, Due_Date, Install_Date) are left
+# out on purpose: making them the time axis changed the maintenance models
+# (2026-11-03 generative-layout decision). ADR 2026-11-05, condition surveys.
+OBSERVATION_WORDS = ("survey", "inspection", "assessment", "audit", "reading",
+                     "observation", "measurement", "snapshot")
+
+
 def _date_like_column(columns):
-    return next((c for c in columns if c.lower() in DATE_LIKE_NAMES), None)
+    exact = next((c for c in columns if c.lower() in DATE_LIKE_NAMES), None)
+    if exact:
+        return exact
+    for column in columns:
+        words = [w for w in re.split(r"[^a-z0-9]+", column.lower()) if w]
+        if len(words) == 2 and words[0] in OBSERVATION_WORDS and words[1] in ("date", "month", "period"):
+            return column
+    return None
 
 
 def _period_labels_unmapped(values):

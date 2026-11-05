@@ -137,7 +137,7 @@ function Section({ runId, section, filters, state, roles, setState, pinned, onPi
       const ratio = b.measures?.[0]?.agg === 'ratio'
       body = <p className="layout__kpi"><bdi>{value === null || value === undefined ? t('noValue')
         : ratio ? formatNumber(value, { style: 'percent', maximumFractionDigits: 1 }) : formatNumber(value)}</bdi>
-        <small>{t('rows', { n: formatNumber(answer.data.matched_records) })}</small></p>
+        <small>{t('rows', { n: formatNumber(b.measures?.[1]?.agg === 'count' ? groups[0]?.values[1] ?? 0 : answer.data.matched_records) })}</small></p>
     } else if (section.component === 'priorities' && column) {
       const held = state.filters[column]?.[0]
       body = <><ol className="layout__priorities">{groups.slice(0, 3).map((g, i) => {

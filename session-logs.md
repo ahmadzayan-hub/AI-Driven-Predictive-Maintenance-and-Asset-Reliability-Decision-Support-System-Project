@@ -2419,3 +2419,10 @@ regressions passed. The full failure and skipped later steps remain in README.
 - Blocked: human-voice films. The container proxy refuses both ElevenLabs hosts and WebFetch cannot resolve them; a fresh-session probe was refused by the permission check. Four English takes exist in the owner's flow; eight remain, not generated so no credits are spent on audio this session cannot use.
 - Not verified: any model answer; the paraphrase set has been used once for a decision.
 - Next: owner allows the two hosts and starts a new session, or uploads the twelve MP3s.
+
+## 2026-11-05: Station electrical survey and condition-survey support (session d9e3f889)
+
+- Done: analysed the owner's ST electrical condition survey (private; dashboards, photo sheets and validation in git-ignored `private/st-electrical-2025`). Platform fixes: non-additive measures averaged; condition layout weakest first; count of a column for not-applicable lines; observation-date detection; three condition KPIs with a 1 to 9 scale guard. Tests on invented rows.
+- Verified: re-run of the survey against an independent calculation, 50 of 50 checks; verify and dashboard e2e results in the commit.
+- Not verified: no model involved (deterministic provider); the survey's scoring weights were inferred by hand and need the survey owner's confirmation.
+- Next: separate not-applicable from missing in the executive priority rule; owner to confirm the scoring weights and the ST05 photo date (camera 23 July against sheet 12 July).

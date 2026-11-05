@@ -461,8 +461,9 @@ class CorrectedMeasuresTest(unittest.TestCase):
 
     def test_the_register_holds_eighteen_measures(self):
         """Fourteen after the first 21 October decision, plus the four the
-        Power BI report shows that the register lacked."""
-        self.assertEqual(len(kpis.REGISTER), 19)
+        Power BI report shows that the register lacked, plus the three
+        condition-survey measures of 5 November."""
+        self.assertEqual(len(kpis.REGISTER), 22)
 
     def test_the_power_bi_measures_the_register_lacked(self):
         rows = self.rows()

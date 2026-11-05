@@ -563,6 +563,98 @@ _add(Kpi("cost_per_operating_hour", "Maintenance cost per operating hour",
          family="cost"))
 
 
+# ---------------------------------------------------------------------------
+# Condition surveys (ADR 2026-11-05)
+#
+# Graded on the 1 to 9 asset condition scale: 9 New, 8 Excellent, 7 Very
+# good, 6 Good, 5 Average, 4 Poor, 3 Very poor, 2 Critical, 1 Failed. A line
+# marked not applicable has no score and is unmeasured, never a zero. Every
+# measured value must sit on that scale; a file graded 0 to 100 gets no
+# figure rather than a wrong one.
+# ---------------------------------------------------------------------------
+
+CONDITION_SCALE = (1.0, 9.0)
+POOR_BELOW = 5.0          # 4.x is Poor: the band is the whole number
+FAULT_LEVEL_AT_MOST = 6.0  # level 6 and below: functioning with CM faults
+
+
+def poor_or_worse(row):
+    """Condition below Average: Poor, Very poor, Critical or Failed."""
+    score = _num(row.get("Condition_Score"))
+    return score is not None and score < POOR_BELOW
+
+
+poor_or_worse.columns = ("Condition_Score",)
+
+
+def with_cm_faults(row):
+    """The intrinsic RAMS level records corrective-maintenance faults."""
+    level = _num(row.get("Intrinsic_RAMS_Level"))
+    return level is not None and level <= FAULT_LEVEL_AT_MOST
+
+
+with_cm_faults.columns = ("Intrinsic_RAMS_Level",)
+
+
+def survey_line(row):
+    """Every line of a condition survey. Requiring the intrinsic RAMS level
+    keeps these measures off a maintenance file whose Condition_Score is a
+    0 to 100 composite: that file is not a survey on this scale."""
+    return True
+
+
+survey_line.columns = ("Intrinsic_RAMS_Level",)
+
+
+class ScaledKpi(Kpi):
+    """A register measure whose inputs must sit on a stated scale."""
+
+    def __init__(self, *args, scale_columns=(), bounds=CONDITION_SCALE, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.scale_columns = tuple(scale_columns)
+        self.bounds = bounds
+
+    def compute(self, rows):
+        result = super().compute(rows)
+        low, high = self.bounds
+        outside = sum(1 for row in self.rows_in_population(rows) if self.measurable(row)
+                      for column in self.scale_columns
+                      if not low <= _num(row.get(column)) <= high)
+        if outside:
+            result["value"] = None
+            result["undefined_reason"] = (
+                f"{outside} measured values of {', '.join(self.scale_columns)} lie outside "
+                f"the {low:g} to {high:g} condition scale, so the measure is not computed "
+                f"rather than read on the wrong scale")
+        return result
+
+
+_add(ScaledKpi("condition_score_mean", "Average condition score", "متوسط درجة الحالة",
+               "Condition_Score", RECORDS, survey_line, "all records", contract.SCORE,
+               "Average graded condition of the lines that hold a score, on the 1 to 9 scale.",
+               edge_cases="Lines marked not applicable carry no score and are reported as "
+                          "unmeasured, not counted as zero. A sum of scores means nothing and "
+                          "is never shown.",
+               family="reliability", scale_columns=("Condition_Score",)))
+
+_add(ScaledKpi("condition_poor_share", "Share Poor or worse", "نسبة «ضعيف» أو أسوأ",
+               Count(poor_or_worse, poor_or_worse.columns, "Condition_Score < 5"),
+               RECORDS, survey_line, "all records", contract.PERCENT,
+               "Share of scored lines below Average: Poor, Very poor, Critical or Failed.",
+               edge_cases="A score of exactly 5 is Average, not Poor. Not applicable lines "
+                          "are left out of both counts.",
+               family="reliability", scale_columns=("Condition_Score",)))
+
+_add(ScaledKpi("condition_cm_fault_share", "Share with recurring CM faults",
+               "نسبة البنود بأعطال تصحيحية متكررة",
+               Count(with_cm_faults, with_cm_faults.columns, "Intrinsic_RAMS_Level <= 6"),
+               RECORDS, survey_line, "all records", contract.PERCENT,
+               "Share of assessed lines whose intrinsic RAMS level records corrective-maintenance faults.",
+               edge_cases="Level 6 and below on the condition scale means the asset functions "
+                          "with occasional or repeated CM faults; 7 to 9 is fully functioning.",
+               family="reliability", scale_columns=("Intrinsic_RAMS_Level",)))
+
+
 def computable(columns):
     """Which KPIs this dataset supports, and why the rest are missing.
 

@@ -483,6 +483,8 @@ export interface TableField {
   records: number
   min?: number | null
   max?: number | null
+  /** False for a score, level, rate or share: averaged, never added up. */
+  additive?: boolean
   distinct?: number
   /** Present for text with at most 200 distinct values, sorted. */
   values?: string[]

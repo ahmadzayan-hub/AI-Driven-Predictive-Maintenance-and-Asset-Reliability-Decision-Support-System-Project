@@ -269,6 +269,8 @@ DOMAIN_WORDS = {
     "maintenance": ("failure", "downtime", "repair", "maintenance", "asset", "mtbf", "mttr", "breakdown"),
     "costs": ("budget", "actual", "spend", "variance", "forecast_cost", "cost_centre", "cost_center"),
     "contracts": ("contract", "milestone", "obligation", "due", "vendor", "supplier", "payment"),
+    # A condition survey: graded assets, lower is worse (ADR 2026-11-05).
+    "condition": ("condition_score", "ageing", "rams", "survey", "deterioration", "condition_band"),
 }
 
 
@@ -322,15 +324,31 @@ def rule_plan(prof, caps, objective=""):
         return _section(sid, "kpi", 1, _t(en[:MAX_TITLE], ar[:MAX_TITLE]), _t(*purpose),
                         {"measures": [measure]}, ("filter", "ask_jarvis"))
 
-    def priorities(measure, key, en, ar):
-        binding = {"group_by": [group], "measures": [measure], "sort": {"by": key, "desc": True},
+    def priorities(measure, key, en, ar, lowest=False):
+        binding = {"group_by": [group], "measures": [measure], "sort": {"by": key, "desc": not lowest},
                    "limit": 3}
         if drivers:
             binding["drivers"] = drivers
+        purpose = (_t("The three lowest averages; select one to see its drivers and records.",
+                      "أدنى ثلاثة متوسطات؛ اختر واحدًا لترى محركاته وسجلاته.") if lowest else
+                   _t("The three largest; select one to see its drivers and records.",
+                      "الثلاثة الأكبر؛ اختر واحدًا لترى محركاته وسجلاته."))
         return _section("priorities", "priorities", 2, _t(en[:MAX_TITLE], ar[:MAX_TITLE]),
-                        _t("The three largest; select one to see its drivers and records.",
-                           "الثلاثة الأكبر؛ اختر واحدًا لترى محركاته وسجلاته."), binding,
-                        ("filter", "drill_down", "inspect_evidence", "ask_jarvis"))
+                        purpose, binding, ("filter", "drill_down", "inspect_evidence", "ask_jarvis"))
+
+    def total_or_average(sid, name):
+        """A score or rate is averaged over the records that hold one."""
+        if query.additive(name):
+            return kpi(sid, f"Total {name}", f"إجمالي {name}", {"agg": "sum", "column": name})
+        section = kpi(sid, f"Average {name}", f"متوسط {name}", {"agg": "mean", "column": name},
+                      ("Average over the records that hold a value.",
+                       "المتوسط على السجلات التي تحمل قيمة."))
+        # The tile says how many records the average is over, not how many are in scope.
+        section["binding"]["measures"].append({"agg": "count", "column": name})
+        return section
+
+    def agg_of(name):
+        return "sum" if query.additive(name) else "mean"
 
     if kind == "costs" and _find(measures, ("actual",)) and _find(measures, ("budget",)):
         actual, budget = _find(measures, ("actual",)), _find(measures, ("budget",))
@@ -366,24 +384,42 @@ def rule_plan(prof, caps, objective=""):
             sections.append(priorities({"agg": "count"}, "count", f"Most records by {group}",
                                        f"الأكثر سجلات حسب {group}"))
         lead = value
+    elif kind == "condition":
+        lead = _find(measures, ("condition_score", "condition", "score")) or analysed or \
+            (measures[0] if measures else None)
+        sections.append(kpi("records", "Lines surveyed", "البنود الممسوحة", {"agg": "count"},
+                            ("Survey lines in scope, scored or not.", "بنود المسح ضمن النطاق، بدرجة أو بدونها.")))
+        if lead:
+            sections.append(kpi("scored", f"Lines with a {lead}", f"بنود لها {lead}",
+                                {"agg": "count", "column": lead},
+                                ("Lines that hold a value; the rest are not applicable or blank.",
+                                 "البنود التي تحمل قيمة؛ والباقي غير منطبق أو فارغ.")))
+            sections.append(total_or_average(f"kpi-{len(sections)}", lead))
+        for name in [m for m in measures if m != lead][:1]:
+            sections.append(total_or_average(f"kpi-{len(sections)}", name))
+        if group and lead:
+            sections.append(priorities({"agg": agg_of(lead), "column": lead}, f"{agg_of(lead)}:{lead}",
+                                       f"Weakest {group} by average {lead}", f"أضعف {group} حسب متوسط {lead}",
+                                       lowest=True))
     else:
         lead = (analysed if kind != "maintenance" else
                 _find(measures, ("downtime", "failure", "cost")) or analysed) or (measures[0] if measures else None)
         sections.append(kpi("records", "Records", "السجلات", {"agg": "count"},
                             ("How many records the figures cover.", "عدد السجلات التي تغطيها الأرقام.")))
         for name in ([lead] if lead else []) + [m for m in measures if m != lead][:2]:
-            sections.append(kpi(f"kpi-{len(sections)}", f"Total {name}", f"إجمالي {name}",
-                                {"agg": "sum", "column": name}))
+            sections.append(total_or_average(f"kpi-{len(sections)}", name))
         if group and lead:
-            sections.append(priorities({"agg": "sum", "column": lead}, f"sum:{lead}",
-                                       f"{lead} by {group}", f"{lead} حسب {group}"))
+            agg = agg_of(lead)
+            sections.append(priorities({"agg": agg, "column": lead}, f"{agg}:{lead}",
+                                       f"{lead} by {group}" if agg == "sum" else f"Average {lead} by {group}",
+                                       f"{lead} حسب {group}" if agg == "sum" else f"متوسط {lead} حسب {group}"))
     if caps["trend"]["available"] and lead:
         title = (_t(f"{lead} due by {dates[0]}"[:MAX_TITLE], f"{lead} المستحق حسب {dates[0]}"[:MAX_TITLE])
                  if kind == "contracts" else
                  _t(f"{lead} over time"[:MAX_TITLE], f"{lead} عبر الزمن"[:MAX_TITLE]))
         sections.append(_section("trend", "trend", 3, title,
                                  _t("Recorded values by date; no forecast.", "القيم المسجلة حسب التاريخ؛ بلا تنبؤ."),
-                                 {"group_by": [dates[0]], "measures": [{"agg": "sum", "column": lead}],
+                                 {"group_by": [dates[0]], "measures": [{"agg": agg_of(lead), "column": lead}],
                                   "sort": {"by": dates[0]}}, ("filter", "drill_down", "ask_jarvis")))
     if kind not in ("contracts",) and caps["distribution"]["available"] and lead:
         sections.append(_section("distribution", "distribution", 1,
