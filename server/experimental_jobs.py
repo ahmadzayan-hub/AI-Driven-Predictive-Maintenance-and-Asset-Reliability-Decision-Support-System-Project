@@ -100,6 +100,29 @@ def finish(db_path, *, owner, job_id, worker, success, artifact_sha256=None, err
     finally:
         db.close()
 
+def retry_failed(db_path, *, owner, job_id):
+    """Owner-authorized explicit retry; never requeue a reviewed artifact.
+
+    Failed jobs are not silently retried and the per-job attempt budget holds.
+    """
+    if not owner or not job_id:
+        raise ValueError("Owner and job ID required")
+    db=_connect(db_path)
+    try:
+        db.execute("BEGIN IMMEDIATE")
+        now=int(time.time())
+        updated=db.execute("""UPDATE isolated_jobs SET state='queued',
+            error=NULL, worker=NULL, lease_until=0, updated_at=?
+            WHERE id=? AND owner=? AND state='failed' AND attempts<?""",
+            (now,job_id,owner,MAX_ATTEMPTS)).rowcount
+        db.commit()
+        return updated==1
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
 def status(db_path, *, owner, job_id):
     with _connect(db_path) as db:
         row=db.execute("""SELECT id,kind,state,attempts,artifact_sha256,error
