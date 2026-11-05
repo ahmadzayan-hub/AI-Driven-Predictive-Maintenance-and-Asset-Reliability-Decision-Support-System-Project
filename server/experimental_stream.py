@@ -54,7 +54,10 @@ def accept(db_path, *, owner, source, event, received_at=None,
     payload=event.get("payload")
     if not isinstance(payload,dict):
         raise EventRejected("Payload must be a JSON object")
-    encoded=json.dumps(payload,sort_keys=True,separators=(",",":"),allow_nan=False)
+    try:
+        encoded=json.dumps(payload,sort_keys=True,separators=(",",":"),allow_nan=False)
+    except (ValueError,TypeError) as exc:
+        raise EventRejected("Payload contains invalid or non-finite values") from exc
     if len(encoded.encode("utf-8"))>65536:
         raise EventRejected("Event payload too large")
     db=_db(db_path)
