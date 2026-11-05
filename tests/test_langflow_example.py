@@ -181,14 +181,15 @@ async def drive():
     async with stdio_client(StdioServerParameters(**cfg)) as (read, write):
         async with ClientSession(read, write) as session:
             init = await session.initialize()
-            assert init.serverInfo.name == "miyaar-synthetic-en"
+            # Assert protocol aliases, independent of SDK Python field renames.
+            assert init.model_dump(by_alias=True)["serverInfo"]["name"] == "miyaar-synthetic-en"
             listed = await session.list_tools()
             assert [t.name for t in listed.tools] == ["help", "run_status", "explain_report"]
             for name in ("help", "run_status", "explain_report"):
                 reply = await session.call_tool(name, {})
-                assert not reply.isError
+                assert not reply.model_dump(by_alias=True)["isError"]
             reply = await session.call_tool("start_run", {"goal": "denied"})
-            assert reply.isError
+            assert reply.model_dump(by_alias=True)["isError"]
 asyncio.run(asyncio.wait_for(drive(), timeout=15))
 '''
         config = self.execute(["--print-config"])
