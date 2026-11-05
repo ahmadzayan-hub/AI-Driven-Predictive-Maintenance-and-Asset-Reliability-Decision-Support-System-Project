@@ -552,6 +552,36 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+
+### Langflow synthetic MCP example
+
+5 November 2026, isolated candidate from main `654c5004`. The optional
+[Langflow example](examples/langflow/README.md) prints a reviewed MCP configuration
+or explicitly serves a fresh temporary synthetic workspace through Miyaar's
+existing restricted transport. It exposes help, run status and report explanation;
+its sample stops at human approval and cannot publish. No Langflow connection,
+model, real workspace or account profile was activated.
+
+Bounded verification in the materialized source workspace on Python 3.12.14:
+**26 tests passed**: 7 new example checks, 8 existing Hermes package checks and
+11 existing MCP checks. The command selected only those three files:
+
+```sh
+python -B -m unittest discover -s tests -p test_langflow_example.py -v
+python -B -m unittest discover -s tests -p test_hermes_package.py -v
+python -B -m unittest discover -s tests -p test_mcp.py -v
+```
+
+English/Arabic NDJSON, the approval gate, denied direct calls, ignored ambient
+files/settings, temporary cleanup, sanitized errors and process-only network/
+subprocess refusal passed. The optional real MCP ClientSession test also passed
+with the already-installed **mcp 1.29.0**. This is not the repository's optional
+`requirements-agents.txt` pin **2.3.0**, which was not installed or tested here.
+No dependencies or lockfiles changed. Langflow v1.13.1 compatibility is based on
+its pinned parser/client source, not an installed Langflow test. The full project
+verifier, PostgreSQL, frontend/browser suites and Langflow import/flow execution
+were not run for this isolated example. No production acceptance is claimed.
+
 ### Local evidence-card design candidate (2 November 2026)
 
 The original isolated candidate started from merged main `54562e5`. Its release

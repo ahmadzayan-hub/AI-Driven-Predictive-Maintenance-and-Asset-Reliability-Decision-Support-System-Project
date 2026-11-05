@@ -2397,3 +2397,14 @@ regressions passed. The full failure and skipped later steps remain in README.
 - Not verified: nobody listened to the narration (espeak-ng phonemes checked instead); the test Chromium cannot play H.264, so in-browser playback was not observed.
 - Decided: owner raised the script ceiling to 286 KB. External voice services stay off without approval.
 - Next: owner applies the hosted migration and fixes the production sign-in variables; then a PR and a reviewed deploy.
+
+
+## 2026-11-05 · `langflow-synthetic-example` · codex/langflow-synthetic-mcp-20261105
+
+**Goal:** Prepare one bounded GitHub-first Langflow integration example without connecting real Miyaar data.
+
+- **Done:** added a print-only MCP configuration generator and an explicit temporary synthetic stdio server, reusing the existing restricted transport. Added bilingual protocol/isolation tests, operator instructions and a dated decision record. Core application, dependencies and active isolated-worker files remain unchanged.
+- **Verified:** the new example and existing Hermes/MCP tests passed in the materialized source workspace; commands, actual counts and SDK version caveat are in README testing. Source shape checked against pinned Langflow v1.13.1.
+- **Decisions:** never rely on a dropped `disabled` config flag; import can launch discovery. Expose only the existing report-reading tools and stop the deterministic sample at human approval. No Langflow registration, credentials, model calls, production changes or pull request.
+- **Open / next:** separately approved authenticated Langflow acceptance using synthetic data; real workspace and model recipients need their own scope.
+- **Blockers:** Langflow is not installed here. Its UI/import/flow behavior is not validated; the existing MCP SDK differs from the optional project pin.
