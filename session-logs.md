@@ -2432,3 +2432,8 @@ regressions passed. The full failure and skipped later steps remain in README.
 - Done: stress harness with 23 datasets and a feature sweep; nine defects fixed (uncited claim figures and period labels, missing markers in the contract, decimal-comma misread, formatted numbers, timestamp axis, sensor additivity, text grades, completeness rounding, generator years). A test that passed only because of a defect was corrected.
 - Verified: stress run 87 of 91 checks; verify in the commit.
 - Open: 1-is-best grades, decimal commas, thousands separators in Ask Miyaar, plain-language knowledge questions without a model.
+
+## 2026-11-05 (later): Stress gaps closed (session d9e3f889)
+
+- Done: mapping `better` and `decimal` (validated, suggested for decimal, panel controls EN/AR), CSV separator tie-break, grouped digits in Ask Miyaar, knowledge fallback without a model with a conversational-word gate.
+- Verified: stress run 95 of 95; verify and mapping e2e in the commit.

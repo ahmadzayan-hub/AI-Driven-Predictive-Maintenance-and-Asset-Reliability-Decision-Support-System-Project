@@ -44,7 +44,8 @@ function sameMapping(a: ColumnMapping | null, b: ColumnMapping | null): boolean 
     a.grain === b.grain &&
     (a.currency ?? null) === (b.currency ?? null) &&
     (a.fiscal_start ?? 1) === (b.fiscal_start ?? 1) &&
-    JSON.stringify([a.derived ?? [], a.limits ?? {}]) === JSON.stringify([b.derived ?? [], b.limits ?? {}]) &&
+    JSON.stringify([a.derived ?? [], a.limits ?? {}, a.decimal ?? 'point', a.better ?? {}]) ===
+      JSON.stringify([b.derived ?? [], b.limits ?? {}, b.decimal ?? 'point', b.better ?? {}]) &&
     Object.keys(a.roles).length === Object.keys(b.roles).length &&
     Object.entries(a.roles).every(([column, role]) => b.roles[column] === role)
   )
@@ -426,8 +427,27 @@ export function MappingPanel({ datasetId, focusOnOpen, onClose, onChanged, onAna
                     onChange={(event) => setLimit(side, event.target.value)}
                   />
                 ))}
+                <select className="field__select" aria-label={d('better')} value={draft.better?.[limited] ?? ''}
+                  onChange={(event) => {
+                    const better = { ...draft.better }
+                    if (event.target.value) better[limited] = event.target.value as 'higher' | 'lower'
+                    else delete better[limited]
+                    setDraft({ ...draft, better })
+                  }}>
+                  <option value="">{d('better')}: {d('unstated')}</option>
+                  <option value="higher">{d('better')}: {d('higher')}</option>
+                  <option value="lower">{d('better')}: {d('lower')}</option>
+                </select>
               </fieldset>
             ) : null}
+            <div className="field">
+              <label className="field__label" htmlFor="mapping-decimal">{d('decimal')}</label>
+              <select id="mapping-decimal" className="field__select" value={draft.decimal ?? 'point'}
+                onChange={(event) => setDraft({ ...draft, decimal: event.target.value as 'point' | 'comma' })}>
+                <option value="point">{d('point')}</option>
+                <option value="comma">{d('comma')}</option>
+              </select>
+            </div>
             <div className="field">
               <label className="field__label" htmlFor={ids.dimension}>
                 {t('mapping.dimension')}

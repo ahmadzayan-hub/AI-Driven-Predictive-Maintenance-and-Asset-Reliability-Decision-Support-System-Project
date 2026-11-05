@@ -37,3 +37,24 @@ the gaps named.
 - Unmapped files now read currency, percent and Arabic digits as numbers, and refuse
   comma-decimal values instead of misreading them.
 - The harness is not part of verify (it takes about a minute); run it before a release.
+
+## Addendum, the four open gaps (same day)
+
+5. **Direction is declared, not guessed.** `mapping.better = {measure: "higher" | "lower"}`,
+   validated against the measures, shown in the mapping panel beside the allowed range,
+   and passed to the layout planner so a 1-is-best grade ranks its highest values as the
+   weakest.
+6. **Decimal mark is declared, and suggested.** `mapping.decimal = "comma"` makes every
+   mapped read of the file use `parse_number(value, "comma")`. `suggest` proposes it only
+   when a column reads that way and at least one value is unambiguous (not three digits
+   after the comma). The CSV separator check now prefers the separator that splits the
+   header the same way as the rows, which fixed a semicolon file split on its commas.
+7. **Ask Miyaar groups digits** with `,.12g`: same precision, readable thousands.
+8. **Knowledge without a model.** When no model is configured and a question has a strong
+   public match (two or more subject words, at least half of them, and one named term: a code
+   such as P75 or G02, an identifier such as Failure_Probability, or a word written in capitals),
+   the rules route it to the cited knowledge search; the reader's own access still decides what
+   is quoted. Conversation words never count, and a general question ("What is preventive
+   maintenance?") still gets the honest no-model reply.
+
+Final run: 24 datasets, 95 of 95 checks pass.

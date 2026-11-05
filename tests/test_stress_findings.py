@@ -65,5 +65,93 @@ class Generator(unittest.TestCase):
         self.assertEqual(len({r[0] for r in rows}), 10_000)
 
 
+class DecimalComma(unittest.TestCase):
+    """Open gap 2 of the first stress run, closed on 5 November."""
+
+    def test_the_comma_is_read_only_when_the_mapping_says_so(self):
+        from server import mapping
+        self.assertIsNone(mapping.parse_number("12,34"))
+        self.assertEqual(mapping.parse_number("12,34", "comma"), 12.34)
+        self.assertEqual(mapping.parse_number("1.234,5", "comma"), 1234.5)
+        self.assertEqual(mapping.parse_number("(7,5)", "comma"), -7.5)
+        self.assertIsNone(mapping.parse_number("12.34.5", "comma"))
+
+    def test_a_semicolon_file_with_decimal_commas_splits_on_the_semicolon(self):
+        from server import datasets
+        table = datasets.read(b"Station;Downtime_Hours\nST01;12,50\nST02;3,75\nST03;8,05\n", "eu.csv")
+        self.assertEqual(table.columns, ["Station", "Downtime_Hours"])
+
+    def test_the_comma_is_suggested_and_declared_values_validate(self):
+        from server import mapping
+        rows = [{"Station": f"ST{i:02d}", "Downtime_Hours": f"{i},{i * 7 % 100:02d}"} for i in range(1, 9)]
+        suggestion = mapping.suggest(["Station", "Downtime_Hours"], rows)
+        self.assertEqual(suggestion.get("decimal"), "comma")
+        self.assertEqual(suggestion["roles"]["Downtime_Hours"], "measure")
+        saved = mapping.validate({**suggestion, "measure": "Downtime_Hours"}, ["Station", "Downtime_Hours"], rows)
+        self.assertEqual(saved["decimal"], "comma")
+
+    def test_thousands_with_three_digits_are_not_suggested_as_decimals(self):
+        from server import mapping
+        rows = [{"Cost": v} for v in ("1,250", "2,400", "3,100", "9,999")]
+        self.assertIsNone(mapping.suggest(["Cost"], rows).get("decimal"))
+
+
+class Direction(unittest.TestCase):
+    """Open gap 1: a 1-is-best grade ranks weakest first once the owner says so."""
+
+    def plan(self, better=None):
+        from server import layout_plan as L
+        rows = [{"Assessment_Date": "2025-06-01", "Station": f"ST{i % 4}", "Condition_Rating": 1 + i % 5}
+                for i in range(40)]
+        table = query.table_from(["Assessment_Date", "Station", "Condition_Rating"], ["Condition_Rating"], rows,
+                                 {"Station": "breakdown", "Condition_Rating": "analysed"})
+        prof = L.profile(table)
+        plan = L.rule_plan(prof, L.capabilities(prof), "", better)
+        return next(s for s in plan["sections"] if s["component"] == "priorities")
+
+    def test_lower_is_better_puts_the_highest_rating_first(self):
+        self.assertIs(self.plan({"Condition_Rating": "lower"})["binding"]["sort"]["desc"], True)
+        self.assertIs(self.plan({"Condition_Rating": "higher"})["binding"]["sort"]["desc"], False)
+
+    def test_a_direction_must_name_a_measure(self):
+        from server import mapping
+        rows = [{"Station": "ST01", "Condition_Rating": "2"}, {"Station": "ST02", "Condition_Rating": "4"}]
+        with self.assertRaises(mapping.MappingError):
+            mapping.validate({"roles": {"Station": "dimension", "Condition_Rating": "measure"},
+                              "measure": "Condition_Rating", "better": {"Station": "lower"}},
+                             ["Station", "Condition_Rating"], rows)
+
+
+class KnowledgeWithoutModel(unittest.TestCase):
+    """Open gap 4: a real question is answered from the knowledge base without a model."""
+
+    def gate(self, text):
+        from server.assistant import Assistant
+        assistant = Assistant.__new__(Assistant)
+        assistant.env = {}
+        return Assistant._knowledge_answers(assistant, text)
+
+    def test_subject_questions_reach_the_knowledge_base(self):
+        for text in ("What are the G02 P75 values?", "هل قيم P75 الحالية لحالة G02 معتمدة؟",
+                     "Is the synthetic Failure_Probability a validated prediction?"):
+            self.assertTrue(self.gate(text), text)
+
+    def test_conversation_does_not(self):
+        # A general question names nothing specific, so it gets the honest no-model reply.
+        for text in ("How are you today?", "Can you write me a poem?", "Tell me a joke please?", "hello",
+                     "What is the weather in Dubai?", "What is preventive maintenance?"):
+            self.assertFalse(self.gate(text), text)
+
+
+class ChatFigures(unittest.TestCase):
+    """Open gap 3: figures keep every digit and gain thousands separators."""
+
+    def test_grouped_and_exact(self):
+        self.assertEqual(format(382031.46, ",.12g"), "382,031.46")
+        self.assertEqual(format(99.996, ",.12g"), "99.996")
+        source = open("server/data_chat.py", encoding="utf-8").read()
+        self.assertNotIn('format(item["value"], ".12g")', source)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -649,7 +649,7 @@ def profiler(ctx):
          "method": "exact row comparison"},
     ]
     # Each column's shape, and each measure's range and unusual values.
-    to_number = colmap.parse_number if mapping else _to_number
+    to_number = colmap.number_reader(mapping) if mapping else _to_number
     group_col = ((mapping or {}).get("dimension") if mapping else
                  _automatic_group(columns, numeric_columns, _date_like_column(columns), rows))
     groups = ({i: (str(r.get(group_col) or "").strip() or None) for i, r in enumerate(rows)}
@@ -936,7 +936,7 @@ def cleaner(ctx):
     mapping = ctx.get("mapping")
     # A mapped measure is read as the owner declared it: currency, (300),
     # Arabic digits. Unmapped data keeps the old reading (ADR 0025).
-    to_number = colmap.parse_number if mapping else _to_number
+    to_number = colmap.number_reader(mapping) if mapping else _to_number
     before = len(rows)
     cleaned, seen, dropped_empty, dropped_dupes, coercion_failures = [], set(), 0, 0, 0
     marked_missing, unreadable_columns, blank_cells = 0, set(), 0

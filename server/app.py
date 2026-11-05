@@ -384,6 +384,10 @@ class MappingIn(BaseModel):
     # (31 October 2026); outside them is a data error. Checked by
     # server.mapping, which explains a refusal in the reader's language.
     limits: dict[str, dict] | None = Field(default=None, max_length=500)
+    # The decimal mark of the file's numbers, and which way is better for a
+    # measure (5 November 2026). Absent means a point and not stated.
+    decimal: str = Field(default="point", max_length=8)
+    better: dict[str, str] | None = Field(default=None, max_length=500)
 
 
 class QueryIn(BaseModel):
@@ -2141,9 +2145,12 @@ def create_app(config_path=None, env=None, dist_dir=None):
             tasks = engine.store.get_tasks(run_id)
             blocked = run_blocks_model(engine.store, run_id)
         stages = [t["role"] for t in tasks if t["state"] == "succeeded"]
+        with lock:
+            run_row = engine.store.get_run(run_id) or {}
+        mapping = json.loads(run_row["mapping_json"]) if run_row.get("mapping_json") else None
         result = await run_in_threadpool(
             layout_plan.plan_for, table, gateway if body.use_model else None,
-            body.objective, stages, not blocked, language)
+            body.objective, stages, not blocked, language, colmap.better_of(mapping))
         result.pop("profile", None)
         return result
 

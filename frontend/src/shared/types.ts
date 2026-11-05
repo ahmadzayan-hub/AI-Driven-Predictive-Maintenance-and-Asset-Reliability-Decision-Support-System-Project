@@ -317,6 +317,10 @@ export interface ColumnMapping {
   /** Validity limits per measure (31 October 2026): a value outside them is
    *  left out of every figure and recorded so it can be restored. */
   limits?: Record<string, { min?: number; max?: number }>
+  /** The decimal mark of the file's numbers (5 November 2026); absent means a point. */
+  decimal?: 'point' | 'comma'
+  /** Which way is better per measure, as the owner states it; never guessed. */
+  better?: Record<string, 'higher' | 'lower'>
 }
 
 export interface DerivedColumn {
@@ -356,7 +360,7 @@ export interface DatasetDetail {
  *  column; a join's problems also say which join (ADR 0030). */
 export interface MappingProblem {
   field:
-    | 'roles' | 'measure' | 'dimension' | 'date_order' | 'grain' | 'currency' | 'derived' | 'fiscal_start' | 'limits'
+    | 'roles' | 'measure' | 'dimension' | 'date_order' | 'grain' | 'currency' | 'derived' | 'fiscal_start' | 'limits' | 'decimal' | 'better'
     | 'joins' | 'keys' | 'how' | 'alias' | 'breakdown' | 'dataset'
   column: string | null
   message: string

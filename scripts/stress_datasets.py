@@ -89,7 +89,7 @@ def condition_reverse_scale(rng):
     return "condition_reverse_scale.csv", as_csv(["Assessment_Date", "Station", "Asset_Type",
                                                  "Condition_Rating"], rows), {
         "state": "awaiting_approval", "period": True, "no_sum_of": ["Condition_Rating"],
-        "gap_expected": "knowing that 1 is best on this file's grade, so the weakest rank first"}
+        "mapping": {"better": {"Condition_Rating": "lower"}}, "weakest_is_highest": "Condition_Rating"}
 
 
 def maintenance_50k(rng):
@@ -131,8 +131,10 @@ def formatted_numbers(rng):
 
 def semicolon_decimal_comma(rng):
     rows = [[rng.choice(STATIONS), f"{rng.uniform(1, 30):.2f}".replace(".", ",")] for _ in range(150)]
+    total = round(sum(float(r[1].replace(",", ".")) for r in rows), 2)
     return "semicolon_decimal_comma.csv", as_csv(["Station", "Downtime_Hours"], rows, sep=";"), {
-        "state": "awaiting_approval", "numeric": ["Downtime_Hours"]}
+        "state": "awaiting_approval", "numeric": ["Downtime_Hours"],
+        "mapping": {}, "suggests": {"decimal": "comma"}, "total": ("Downtime_Hours", total)}
 
 
 def formula_injection(rng):
@@ -258,6 +260,17 @@ def run_case(client, name, body, expect):
         return record
     dataset = up.json()["dataset"]
     record["facts"].update(rows=dataset["row_count"], columns=dataset["column_count"])
+    if "mapping" in expect:
+        # As an owner would: take the platform's suggestion, check it, add what they declare, save.
+        detail = client.get(f"/api/datasets/{dataset['id']}").json()
+        suggestion = dict(detail.get("suggestion") or {})
+        for key, value in (expect.get("suggests") or {}).items():
+            check(f"the platform suggests {key} = {value}", suggestion.get(key) == value, suggestion.get(key))
+        mapping = {k: v for k, v in suggestion.items() if k in ("roles", "measure", "dimension", "date_order",
+                                                                "grain", "decimal")}
+        mapping.update(expect["mapping"])
+        saved = client.put(f"/api/datasets/{dataset['id']}/mapping", json=mapping)
+        check("the mapping is accepted", saved.status_code == 200, saved.text[:200])
     run = client.post("/api/runs", json={"goal": f"Stress test: {name}", "dataset_id": dataset["id"]}).json()
     for _ in range(80):
         if run.get("state") not in ("queued", "running"):
@@ -324,6 +337,11 @@ def run_case(client, name, body, expect):
     if "numeric" in expect:
         bad = [c for c in expect["numeric"] if types.get(c) != "number"]
         check("formatted numbers read as numbers", not bad, f"read as text: {bad}" if bad else "all numeric")
+    if "total" in expect:
+        column, value = expect["total"]
+        got = client.post(f"/api/runs/{rid}/query", json={"measures": [{"agg": "sum", "column": column}], "limit": 1}).json()
+        total = (got.get("groups") or [{}])[0].get("values", [None])[0]
+        check(f"{column} total equals the file", total is not None and abs(total - value) < 0.01, f"{total} vs {value}")
     if "breakdown_not" in expect:
         check(f"{expect['breakdown_not']} is not used as the breakdown",
               roles.get(expect["breakdown_not"]) != "breakdown", roles)
@@ -573,11 +591,21 @@ def write_report(results, path):
         ok = sum(c["ok"] for c in r["checks"])
         lines.append(f"| {r['dataset']} | {f.get('rows', '-')} × {f.get('columns', '-')} | {r.get('state', 'not run')} | "
                      f"{r.get('seconds', '-')} | {ok}/{len(r['checks'])} |")
+    # Hand-written history ("## Round 1 ...") is kept across runs.
+    history = ""
+    if path.exists():
+        old = path.read_text(encoding="utf-8")
+        if "## Round 1" in old and "## Gaps found" in old:
+            history = old[old.index("## Round 1"):old.index("## Gaps found")].rstrip() + "\n"
+    if history:
+        lines += ["", history.rstrip()]
     lines += ["", "## Gaps found", ""]
     for r in results:
         for c in r["checks"]:
             if not c["ok"]:
                 lines.append(f"- **{r['dataset']}**: {c['check']}. Observed: {c['detail']}")
+    if passed == len(checks):
+        lines.append("None: every check passes.")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 

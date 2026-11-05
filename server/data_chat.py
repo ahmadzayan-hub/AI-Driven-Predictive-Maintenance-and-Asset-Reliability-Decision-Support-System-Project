@@ -346,7 +346,7 @@ class DataChat:
                      f"{tr('Dataset', 'البيانات')}: {selection['dataset_name']} · {tr('Report', 'التقرير')}: {run['id']}",
                      f"{tr('Filters', 'المرشحات')}: {json.dumps(filters, ensure_ascii=False)}"]
             for item in measures:
-                value = tr("undefined", "غير معرف") if item["value"] is None else format(item["value"], ".12g")
+                value = tr("undefined", "غير معرف") if item["value"] is None else format(item["value"], ",.12g")
                 suffix = "%" if item.get("scale") == contract.PERCENT else ""
                 if item.get("scale") == contract.HOURS:
                     suffix = tr(" hours", " ساعة")
@@ -354,7 +354,7 @@ class DataChat:
                 if "formula" in item:
                     lines.append(f"{item['formula']}; {tr('measured / unmeasured', 'مقاس / غير مقاس')}: {item['records']} / {item['records_unmeasured']}")
                     if item.get("denominator") is not None:
-                        lines.append(f"{tr('Numerator / denominator', 'البسط / المقام')}: {item['numerator']:.12g} / {item['denominator']:.12g}")
+                        lines.append(f"{tr('Numerator / denominator', 'البسط / المقام')}: {item['numerator']:,.12g} / {item['denominator']:,.12g}")
                     if item["value"] is None:
                         lines.append(tr("Undefined because required measurements or a nonzero denominator are unavailable.", "غير معرف لعدم توفر القياسات المطلوبة أو مقام غير صفري."))
                     if item["key"] == "asset_age_summary":

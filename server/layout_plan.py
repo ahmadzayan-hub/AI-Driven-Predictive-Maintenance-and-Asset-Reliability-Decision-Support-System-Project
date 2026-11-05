@@ -294,7 +294,7 @@ def _section(sid, component, span, title, purpose, binding, interactions=()):
             "binding": binding, "interactions": list(interactions)}
 
 
-def rule_plan(prof, caps, objective=""):
+def rule_plan(prof, caps, objective="", better=None):
     """A deterministic plan derived from this table's own schema and the kind
     of records it holds. It is labelled `rules`, never a model's design."""
     measures, dates, groups = _measures(prof), _dates(prof), _groups(prof)
@@ -399,9 +399,12 @@ def rule_plan(prof, caps, objective=""):
         for name in [m for m in measures if m != lead][:1]:
             sections.append(total_or_average(f"kpi-{len(sections)}", name))
         if group and lead:
+            # Weakest first. A grade where 1 is best (the UK and Australian
+            # convention) is weakest at the top, but only when the owner says so.
+            lower_is_better = (better or {}).get(lead) == "lower"
             sections.append(priorities({"agg": agg_of(lead), "column": lead}, f"{agg_of(lead)}:{lead}",
                                        f"Weakest {group} by average {lead}", f"أضعف {group} حسب متوسط {lead}",
-                                       lowest=True))
+                                       lowest=not lower_is_better))
     else:
         lead = (analysed if kind != "maintenance" else
                 _find(measures, ("downtime", "failure", "cost")) or analysed) or (measures[0] if measures else None)
@@ -409,7 +412,14 @@ def rule_plan(prof, caps, objective=""):
                             ("How many records the figures cover.", "عدد السجلات التي تغطيها الأرقام.")))
         for name in ([lead] if lead else []) + [m for m in measures if m != lead][:2]:
             sections.append(total_or_average(f"kpi-{len(sections)}", name))
-        if group and lead:
+        direction = (better or {}).get(lead)
+        if group and lead and direction in ("higher", "lower"):
+            agg = agg_of(lead)
+            sections.append(priorities({"agg": agg, "column": lead}, f"{agg}:{lead}",
+                                       f"Weakest {group} by {'average ' if agg == 'mean' else ''}{lead}",
+                                       f"أضعف {group} حسب {'متوسط ' if agg == 'mean' else ''}{lead}",
+                                       lowest=direction == "higher"))
+        elif group and lead:
             agg = agg_of(lead)
             sections.append(priorities({"agg": agg, "column": lead}, f"{agg}:{lead}",
                                        f"{lead} by {group}" if agg == "sum" else f"Average {lead} by {group}",
@@ -482,7 +492,7 @@ def model_plan(gateway, prof, caps, objective, language="en"):
     return plan, _t(f"Planned by {name}", f"صمّمه {name}")
 
 
-def plan_for(table, gateway=None, objective="", stages=(), model_allowed=True, language="en"):
+def plan_for(table, gateway=None, objective="", stages=(), model_allowed=True, language="en", better=None):
     """The whole pipeline. Always returns a validated plan and says how."""
     prof = profile(table)
     caps = capabilities(prof, stages)
@@ -504,7 +514,7 @@ def plan_for(table, gateway=None, objective="", stages=(), model_allowed=True, l
         notes.append(_t("This run's data may not go to a model, so the rule planner was used.",
                         "لا يجوز إرسال بيانات هذا التحليل إلى نموذج، فاستُخدم التصميم بالقواعد."))
     if plan is None:
-        plan, rule_problems = validate(rule_plan(prof, caps, objective), table, prof, caps)
+        plan, rule_problems = validate(rule_plan(prof, caps, objective, better), table, prof, caps)
         if plan is None:  # a rule plan that fails its own contract is a bug
             raise ValueError("; ".join(rule_problems))
     return {"plan": plan, "source": source, "provider": provider, "notes": notes,

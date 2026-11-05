@@ -245,7 +245,7 @@ def _sniff_delimiter(text):
     """The delimiter that splits the first lines into the same number of
     fields, more than one; a comma when nothing does."""
     sample = text[:65536].splitlines()[:20]
-    best, best_width = ",", 1
+    best, best_score = ",", None
     for delimiter in _DELIMITERS:
         try:
             widths = [len(r) for r in csv.reader(sample, delimiter=delimiter) if r]
@@ -255,8 +255,14 @@ def _sniff_delimiter(text):
             continue
         width = max(set(widths), key=widths.count)
         consistent = widths.count(width) >= max(1, int(len(widths) * 0.8))
-        if consistent and width > best_width:
-            best, best_width = delimiter, width
+        if not consistent or width < 2:
+            continue
+        # The separator must split the header as it splits the rows: a
+        # semicolon file with decimal commas ("ST03;17,51") splits two ways
+        # on the rows but only one way on its header (stress test, 5 Nov).
+        score = (widths[0] == width, widths.count(width), width)
+        if best_score is None or score > best_score:
+            best, best_score = delimiter, score
     return best
 
 

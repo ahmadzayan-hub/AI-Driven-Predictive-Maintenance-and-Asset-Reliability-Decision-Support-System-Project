@@ -69,8 +69,28 @@ PLAIN_NUMBER = re.compile(r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?")
 GROUPED = re.compile(r"[+-]?\d{1,3}(?:([, ])\d{3})(?:\1\d{3})*(?:\.\d+)?")
 
 
-def parse_number(value):
-    """A number from a cell the owner says is a number, or None."""
+# A decimal comma, as a European or a Middle-Eastern export writes it: "12,34",
+# "1.234,5". Only read when the mapping says so (ADR 2026-11-05-stress-findings).
+COMMA_DECIMAL = re.compile(r"[+-]?(?:\d{1,3}(?:[. ]\d{3})+|\d+)(?:,\d+)?")
+UNAMBIGUOUS_COMMA = re.compile(r"[+-]?\d+,(?:\d{1,2}|\d{4,})")
+DECIMALS = ("point", "comma")
+
+
+def parse_number(value, decimal="point"):
+    """A number from a cell the owner says is a number, or None.
+
+    `decimal="comma"` reads "12,34" as 12.34 and "1.234,5" as 1234.5; it is the
+    mapping's declaration, never a guess."""
+    if decimal == "comma" and isinstance(value, str):
+        text = value.strip().translate(DIGITS)
+        negative = text.startswith("(") and text.endswith(")")
+        if negative:
+            text = text[1:-1].strip()
+        text = CURRENCY.sub("", text).strip().rstrip("%").strip()
+        if not COMMA_DECIMAL.fullmatch(text):
+            return None
+        number = float(text.replace(".", "").replace(" ", "").replace(",", "."))
+        return -number if negative else number
     if value is None or isinstance(value, bool):
         return None
     if isinstance(value, (int, float)):
@@ -97,6 +117,21 @@ def parse_number(value):
         return None
     number = float(text)
     return -number if negative else number
+
+
+def decimal_of(mapping):
+    return (mapping or {}).get("decimal") or "point"
+
+
+def number_reader(mapping):
+    """The number parser a mapped run uses, with the mapping's decimal mark."""
+    decimal = decimal_of(mapping)
+    return parse_number if decimal == "point" else (lambda value: parse_number(value, decimal))
+
+
+def better_of(mapping):
+    """{measure: "higher" | "lower"}: which way is better, as the owner declared."""
+    return dict((mapping or {}).get("better") or {})
 
 
 # ---------------------------------------------------------------------------
@@ -518,6 +553,8 @@ def profile(columns, rows):
 
 
 REASONS = {
+    "decimal_comma": ("Numbers written with a decimal comma (12,34); confirm the comma is the decimal mark.",
+                      "أرقام بفاصلة عشرية (12,34)؛ أكّد أن الفاصلة هي العلامة العشرية."),
     "date": ("Reads as dates in {share} of filled cells.",
              "تُقرأ تواريخَ في {share} من الخلايا المعبأة."),
     "second_date": ("Also reads as dates, but a run has one time axis.",
@@ -581,12 +618,25 @@ def suggest(columns, rows, metrics=(), profiles=None):
             roles[name], reasons[name] = "dimension", _reason("dimension", distinct=p["distinct"])
         else:
             roles[name], reasons[name] = "ignore", _reason("unique_text")
+    # A column of "12,34"-style values is a measure written with a decimal
+    # comma: suggested, with its reason, for the owner to confirm.
+    decimal = "point"
+    for name in columns:
+        if roles.get(name) not in ("dimension", "ignore"):
+            continue
+        filled = [c.strip() for c in _cells(rows, name) if c and c.strip()]
+        if (len(filled) >= 3 and sum(bool(COMMA_DECIMAL.fullmatch(c)) for c in filled) >= SUGGEST_SHARE * len(filled)
+                and any(UNAMBIGUOUS_COMMA.fullmatch(c) for c in filled)):
+            roles[name], reasons[name], decimal = "measure", _reason("decimal_comma"), "comma"
     measures = [c for c in columns if roles.get(c) == "measure"]
     measure = glossary.resolve(list(metrics), columns, measures)[0] if measures else None
     dimension = next((c for c in columns if roles.get(c) == "dimension"), None)
-    return {"version": MAPPING_VERSION, "roles": roles, "measure": measure,
-            "dimension": dimension, "date_order": "auto", "grain": "auto",
-            "reasons": reasons}
+    out = {"version": MAPPING_VERSION, "roles": roles, "measure": measure,
+           "dimension": dimension, "date_order": "auto", "grain": "auto",
+           "reasons": reasons}
+    if decimal == "comma":
+        out["decimal"] = "comma"
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -668,9 +718,22 @@ def validate(mapping, columns, rows):
                                     f"Only one column can be the date; “{dates[0]}” already is.",
                                     f"يمكن أن يكون عمود واحد فقط هو التاريخ، و«{dates[0]}» هو التاريخ بالفعل."))
 
+    decimal = mapping.get("decimal") or "point"
+    if decimal not in DECIMALS:
+        problems.append(Problem("decimal", None, "Choose a point or a comma as the decimal mark.",
+                                "اختر النقطة أو الفاصلة علامةً عشرية."))
+        decimal = "point"
+    better = mapping.get("better") or {}
+    if not isinstance(better, dict):
+        better = {}
+    for column, direction in better.items():
+        if column not in measures or direction not in ("higher", "lower"):
+            problems.append(Problem("better", column,
+                                    f"“{column}”: say higher or lower is better, for a measure column.",
+                                    f"«{column}»: حدّد هل الأعلى أم الأدنى أفضل، لعمود مقياس."))
     for column in measures:
         filled = [c for c in _cells(rows, column) if c]
-        readable = sum(1 for c in filled if parse_number(c) is not None)
+        readable = sum(1 for c in filled if parse_number(c, decimal) is not None)
         if not filled or readable < MIN_READABLE_SHARE * len(filled):
             problems.append(Problem(
                 "roles", column,
@@ -712,6 +775,11 @@ def validate(mapping, columns, rows):
     # saved before them reads, and compares, exactly as it did.
     if limits:
         saved["limits"] = limits
+    # Likewise only when declared: a comma decimal mark, and which way is better.
+    if decimal != "point":
+        saved["decimal"] = decimal
+    if better:
+        saved["better"] = {c: better[c] for c in measures if c in better}
     return saved
 
 
