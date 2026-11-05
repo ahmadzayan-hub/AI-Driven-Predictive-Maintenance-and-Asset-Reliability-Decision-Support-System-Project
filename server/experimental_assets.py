@@ -24,12 +24,12 @@ def identify(path):
         return {"kind":"pdf","status":"requires_isolated_extraction_and_human_review"}
     if ext in (".png",".jpg",".jpeg",".webp",".tif",".tiff"):
         signatures = {
-            ".png": signature.startswith(b"\\x89PNG\\r\\n\\x1a\\n"),
-            ".jpg": signature.startswith(b"\\xff\\xd8\\xff"),
-            ".jpeg": signature.startswith(b"\\xff\\xd8\\xff"),
+            ".png": signature.startswith(bytes.fromhex("89504e470d0a1a0a")),
+            ".jpg": signature.startswith(bytes.fromhex("ffd8ff")),
+            ".jpeg": signature.startswith(bytes.fromhex("ffd8ff")),
             ".webp": signature[:4] == b"RIFF" and signature[8:12] == b"WEBP",
-            ".tif": signature[:4] in (b"II*\\x00", b"MM\\x00*"),
-            ".tiff": signature[:4] in (b"II*\\x00", b"MM\\x00*"),
+            ".tif": signature[:4] in (bytes.fromhex("49492a00"), bytes.fromhex("4d4d002a")),
+            ".tiff": signature[:4] in (bytes.fromhex("49492a00"), bytes.fromhex("4d4d002a")),
         }
         valid=signatures[ext]
         if not valid:
