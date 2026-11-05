@@ -54,6 +54,9 @@ def index_csv(source, database, *, batch_size=500):
     try:
         db.execute("CREATE TABLE IF NOT EXISTS wide_records (ordinal INTEGER PRIMARY KEY, payload TEXT NOT NULL)")
         db.execute("CREATE TABLE IF NOT EXISTS wide_meta (name TEXT PRIMARY KEY, value TEXT NOT NULL)")
+        db.execute("BEGIN IMMEDIATE")
+        db.execute("DELETE FROM wide_records")
+        db.execute("DELETE FROM wide_meta")
         with source.open(newline="",encoding="utf-8-sig") as stream:
             rows=csv.reader(stream)
             header=next(rows,None)
