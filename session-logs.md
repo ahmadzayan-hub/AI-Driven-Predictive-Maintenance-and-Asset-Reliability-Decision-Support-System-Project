@@ -2412,3 +2412,10 @@ regressions passed. The full failure and skipped later steps remain in README.
 - Not verified: any model answer to the cases; QA13 needed a keyword-rich wording because the retriever is lexical.
 - Decided: dataset aggregates public (no rows); owner can move them private. Packs stay `model_context_allowed: false`.
 - Next: owner decision on aggregates and model forwarding; human-voice films (new session).
+
+## 2026-11-05: Knowledge answer limits and paraphrase benchmark (session d9e3f889)
+
+- Done: limits block on Ask Miyaar knowledge answers (EN/AR) from directive codes; held-out paraphrase set and floors; stemmer tried and reverted with the measurement recorded.
+- Blocked: human-voice films. The container proxy refuses both ElevenLabs hosts and WebFetch cannot resolve them; a fresh-session probe was refused by the permission check. Four English takes exist in the owner's flow; eight remain, not generated so no credits are spent on audio this session cannot use.
+- Not verified: any model answer; the paraphrase set has been used once for a decision.
+- Next: owner allows the two hosts and starts a new session, or uploads the twelve MP3s.

@@ -279,6 +279,45 @@ class EvidenceHandling(unittest.TestCase):
         self.assertIn("SYNTHETIC", hit.passage.label)
 
 
+class AnswerContract(unittest.TestCase):
+    """Ask Miyaar's quote carries scope and qualification (Appendix D items 2 and 5)."""
+
+    def ask(self, query, language="en"):
+        from unittest.mock import patch
+        from server.assistant import Assistant
+        with patch.dict("os.environ", {"AGENTIC_OS_KNOWLEDGE_DIR": str(BUNDLED)}):
+            return Assistant._search_knowledge(None, {"query": query, "collection": ANA}
+                                               if "Failure" in query or "احتمال" in query
+                                               else {"query": query, "collection": MBA},
+                                               query, language)
+
+    def test_synthetic_answer_says_it_is_not_a_validated_prediction(self):
+        text = self.ask("Is Failure_Probability a synthetic score?")["text"]
+        self.assertIn("SYNTHETIC", text)
+        self.assertIn("not validated predictions of future failure", text)
+        self.assertIn("Not RMD operational performance", text)
+
+    def test_arabic_answer_carries_the_same_qualification(self):
+        text = self.ask("هل احتمالية العطل Failure_Probability تنبؤ حقيقي؟", "ar")["text"]
+        self.assertIn("قيود تنطبق", text)
+        self.assertIn("ليست تنبؤات مُتحقَّقاً منها", text)
+
+    def test_correction_answer_marks_the_superseded_value(self):
+        text = self.ask("Are the provisional P75 values superseded?")["text"]
+        self.assertIn("SUPERSEDED", text)
+        self.assertIn("not a current value", text)
+
+    def test_academic_answer_is_not_an_rmd_rule(self):
+        text = self.ask("What is the G02 late handover canonical rule?")["text"]
+        self.assertIn("Not an RMD operational rule or threshold", text)
+
+    def test_unlabelled_collections_get_no_limits_block(self):
+        from server.assistant import knowledge_limits
+        passage = knowledge.split_markdown("# D\n\n## S\n\nPlain reference text long enough to index.\n",
+                                           "c", "d.md")[0]
+        self.assertEqual(knowledge_limits([passage], "en"), [])
+
+
 class AccessBoundary(unittest.TestCase):
     """K23, QA17, QA18: owner-only content stays out; document text is data."""
 

@@ -142,6 +142,8 @@ REPLIES = {
             "From {collection}:\n\n{passages}\n\nQuoted from the knowledge "
             "base, not paraphrased. Follow a citation to read the section in "
             "full.",
+        "knowledge_limits":
+            "\n\nLimits that apply to these passages:\n{lines}",
         "knowledge_none":
             "Nothing in the knowledge base matches “{query}”. I would rather "
             "say so than answer from memory.",
@@ -234,6 +236,8 @@ REPLIES = {
         "knowledge_found":
             "من {collection}:\n\n{passages}\n\nمقتبس من قاعدة المعرفة دون "
             "إعادة صياغة. اتبع المرجع لقراءة القسم كاملاً.",
+        "knowledge_limits":
+            "\n\nقيود تنطبق على هذه المقتطفات:\n{lines}",
         "knowledge_none":
             "لا يوجد في قاعدة المعرفة ما يطابق «{query}». أقول ذلك بدل أن "
             "أجيب من الذاكرة.",

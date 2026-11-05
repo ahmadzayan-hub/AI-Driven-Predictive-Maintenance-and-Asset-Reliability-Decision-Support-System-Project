@@ -578,8 +578,13 @@ class Assistant:
             + newline + _excerpt(hit.passage.text)
             for hit in hits)
         names = sorted({hit.passage.collection for hit in hits})
-        return {"text": reply(language, "knowledge_found",
-                              collection=", ".join(names), passages=passages),
+        text = reply(language, "knowledge_found",
+                     collection=", ".join(names), passages=passages)
+        limits = knowledge_limits([hit.passage for hit in hits], language)
+        if limits:
+            text += reply(language, "knowledge_limits",
+                          lines="\n".join(f"- {line}" for line in limits))
+        return {"text": text,
                 "result": {"query": query,
                            "results": [dict(hit.passage.as_dict(score=hit.score),
                                             matched=list(hit.matched))
@@ -712,3 +717,50 @@ class Assistant:
             pending = entry.pop("pending", None)
             return pending if isinstance(pending, dict) else None
         return None
+
+
+# What each limit code in a knowledge directive means, in the reader's words
+# (ADR 2026-11-04, evidence-aware knowledge; Appendix D answer contract).
+KNOWLEDGE_LIMITS = {
+    "superseded": ("Superseded: kept for the correction history, not a current value.",
+                   "مستبدَل: محفوظ لسجل التصحيحات، وليس قيمة حالية."),
+    "unresolved": ("Unresolved: the evidence is missing or conflicting.",
+                   "غير محسوم: الدليل غير متوفر أو متعارض."),
+    "synthetic_educational_data": ("Synthetic educational data, not operational records.",
+                                   "بيانات اصطناعية تعليمية، وليست سجلات تشغيلية."),
+    "not_validated_prediction": ("Its scores are not validated predictions of future failure.",
+                                 "درجاتها ليست تنبؤات مُتحقَّقاً منها بالأعطال المستقبلية."),
+    "not_operational_rmd": ("Not RMD operational performance.",
+                            "ليست أداءً تشغيلياً في RMD."),
+    "academic_case": ("An academic course case.",
+                      "حالة أكاديمية من المقرر."),
+    "not_rmd_operational_rule": ("Not an RMD operational rule or threshold.",
+                                 "ليست قاعدة أو حداً تشغيلياً في RMD."),
+    "historical_not_current_verification": (
+        "Historical status: check current repository, CI and deployment evidence.",
+        "حالة تاريخية: يلزم التحقق من الحالة الحالية للمستودع والفحوص والنشر."),
+    "requirements_not_current_functionality": (
+        "A dated requirement, not proof that the feature works today.",
+        "متطلب مؤرخ، وليس دليلاً على أن الميزة تعمل اليوم."),
+    "proposal_not_approved_rule": ("A proposal, not an approved rule.",
+                                   "مقترح، وليس قاعدة معتمدة."),
+}
+
+
+def knowledge_limits(passages, language):
+    """The qualifications a reader needs with these quotes, once each, in order."""
+    index = 1 if language == "ar" else 0
+    codes = []
+    for passage in passages:
+        meta = getattr(passage, "meta", {}) or {}
+        if meta.get("status") in ("superseded", "unresolved"):
+            codes.append(meta["status"])
+        codes.extend(meta.get("limits", []))
+    seen, lines = set(), []
+    for code in codes:
+        if code in seen:
+            continue
+        seen.add(code)
+        known = KNOWLEDGE_LIMITS.get(code)
+        lines.append(known[index] if known else code)
+    return lines
