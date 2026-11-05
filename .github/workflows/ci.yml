@@ -253,5 +253,5 @@ jobs:
       - name: Optional runtime tests (skips are failures)
         env:
           REQUIRE_OPTIONAL_RUNTIMES: '1'
-        run: python -m unittest tests.test_frameworks tests.test_mcp -v
+        run: python -m unittest tests.test_frameworks tests.test_mcp tests.test_langflow_example -v
 

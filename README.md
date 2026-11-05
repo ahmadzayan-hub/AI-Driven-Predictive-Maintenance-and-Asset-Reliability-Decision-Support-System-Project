@@ -580,7 +580,9 @@ with the already-installed **mcp 1.29.0**. This is not the repository's optional
 No dependencies or lockfiles changed. Langflow v1.13.1 compatibility is based on
 its pinned parser/client source, not an installed Langflow test. The full project
 verifier, PostgreSQL, frontend/browser suites and Langflow import/flow execution
-were not run for this isolated example. No production acceptance is claimed.
+were not run locally for this isolated example. Existing optional-runtime CI also
+selects the new example test module with the pinned SDK; check the exact branch
+head for hosted results. No production acceptance is claimed.
 
 ### Local evidence-card design candidate (2 November 2026)
 
