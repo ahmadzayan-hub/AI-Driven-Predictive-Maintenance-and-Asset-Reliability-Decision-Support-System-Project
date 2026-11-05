@@ -23,9 +23,9 @@ def identify(path):
     if ext==".pdf" and signature.startswith(b"%PDF-"):
         return {"kind":"pdf","status":"requires_isolated_extraction_and_human_review"}
     if ext in (".png",".jpg",".jpeg",".webp",".tif",".tiff"):
-        valid=(signature.startswith(b"\\x89PNG\\r\\n\\x1a\\n") or
-               signature.startswith(b"\\xff\\xd8\\xff") or
-               signature[:4] in (b"II*\\x00",b"MM\\x00*") or
+        valid=(signature.startswith(b"\x89PNG\r\n\x1a\n") or
+               signature.startswith(b"\xff\xd8\xff") or
+               signature[:4] in (b"II*\x00",b"MM\x00*") or
                (signature[:4]==b"RIFF" and signature[8:12]==b"WEBP"))
         if not valid:
             raise UnsupportedAsset("File extension does not match recognizable image signature")
