@@ -29,3 +29,15 @@ This is a **non-production foundation**, not a declaration that the MIYAAR UI/AP
 7. Review current migrations, backups, rollback and stakeholder approval before ANY production changes.
 
 No deployment, hosted database migration, external voice request or secret rotation is authorized by this branch.
+
+## Development checkpoint, 5 Nov 2026 23:00 Gulf time
+
+Additional experimental modules on PR #93:
+- `server/experimental_jobs.py`: SQLite lease/heartbeat, per-owner task visibility, dedupe and "awaiting_review" artifact gate. No real renderer or HTTP adapter.
+- `server/experimental_assets.py`: signature and ZIP-member path inspection only; **not PDF OCR or PBIX model parsing**.
+- `server/experimental_stream.py`: synthetic event-time ingestion, duplicate IDs, lateness, skew and staleness measurements. **Not connected to an external API/message broker**.
+- `tests/test_miyaar_challenge_contract.py`: regression coverage of the actual current 4 MB/500-column reader and refusal of masquerading PDF/image/Parquet content.
+
+Historical CI 42076975901 failed because a disguised PDF was previously accepted as CSV. New `server/datasets.py` signature guard and tests aim to close that issue. Some later CI runs are queued/in progress at this checkpoint; no overall green result is claimed.
+
+**Release verdict: NOT READY.** Required missing deliveries: private multipart browser upload, partitioned analytics equivalence, secure live API/cloud connector, verified Power BI semantic-model APIs, extraction of PDF/image evidence with citations, hosted video worker with Chromium/FFmpeg, live voice evaluation, isolated integrated challenge execution, migration checks, cost/load/security tests, and documented owner approval. The goal "unlimited rows and columns" must be operationalized as storage/compute scaling with enforceable budget and time limits, not unbounded RAM.
