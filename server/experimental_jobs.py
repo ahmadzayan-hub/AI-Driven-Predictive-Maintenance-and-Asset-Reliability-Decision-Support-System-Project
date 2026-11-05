@@ -51,6 +51,7 @@ def claim(db_path, *, worker, kind, lease_seconds=120):
     try:
         db.execute("BEGIN IMMEDIATE")
         now = int(time.time())
+        db.execute("""UPDATE isolated_jobs SET state='failed', error='Lease expired after maximum retries', worker=NULL, lease_until=0, updated_at=? WHERE kind=? AND state='running' AND lease_until<? AND attempts>=?""", (now,kind,now,MAX_ATTEMPTS))
         row = db.execute("""SELECT id,owner,request_sha256,attempts
             FROM isolated_jobs WHERE kind=? AND attempts<? AND
             (state='queued' OR (state='running' AND lease_until<?))
@@ -69,6 +70,16 @@ def claim(db_path, *, worker, kind, lease_seconds=120):
         raise
     finally:
         db.close()
+
+def heartbeat(db_path, *, owner, job_id, worker, lease_seconds=120):
+    if not 30 <= lease_seconds <= 3600:
+        raise ValueError("Invalid lease")
+    with _connect(db_path) as db:
+        now=int(time.time())
+        changed=db.execute("""UPDATE isolated_jobs SET lease_until=?, updated_at=?
+            WHERE id=? AND owner=? AND worker=? AND state='running' AND lease_until>=?""",
+            (now+lease_seconds,now,job_id,owner,worker,now)).rowcount
+        return changed==1
 
 def finish(db_path, *, owner, job_id, worker, success, artifact_sha256=None, error=None):
     if success and (not artifact_sha256 or len(artifact_sha256)!=64 or
