@@ -39,6 +39,19 @@ class CurrentDatasetContract(unittest.TestCase):
         with self.assertRaises(datasets.DatasetError):
             datasets.read(b"%PDF-1.4\nsynthetic","synthetic.pdf")
 
+    def test_renamed_pdf_is_not_silently_csv(self):
+        with self.assertRaises(datasets.DatasetError) as error:
+            datasets.read(b"%PDF-1.7\\nsynthetic", "renamed.csv")
+        self.assertEqual(error.exception.status, 415)
+
+    def test_renamed_png_is_not_silently_csv(self):
+        with self.assertRaises(datasets.DatasetError):
+            datasets.read(bytes.fromhex("89504e470d0a1a0a") + b"synthetic", "renamed.csv")
+
+    def test_parquet_is_not_silently_csv(self):
+        with self.assertRaises(datasets.DatasetError):
+            datasets.read(b"PAR1synthetic", "renamed.csv")
+
     def test_pbix_is_not_silently_a_table(self):
         with self.assertRaises(datasets.DatasetError):
             datasets.read(b"PK\x03\x04not-a-valid-pbix","synthetic.pbix")
