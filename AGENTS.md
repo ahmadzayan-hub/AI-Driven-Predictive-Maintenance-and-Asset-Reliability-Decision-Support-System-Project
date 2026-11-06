@@ -20,6 +20,8 @@ Instructions for any coding agent working in this repository: Codex, Copilot, Cu
 - Preserve intentionally public MBA/course materials as instructed by the owner on 23 October 2026. Do not remove or rewrite those assets based on stale confidentiality claims. Keep secrets and genuinely non-public personal data out; changes to repository visibility, production deployments and merges to main require explicit owner approval.
 - **No weak authentication.** Do not build a custom password system; identity comes from a managed provider (ADR 0002).
 
+- **File names (owner, 6 November 2026).** New files get clear, professional names: no underscores or hyphens, no filler words (AI, Smart, Final, New, Enhanced, V2) unless part of a product name; PascalCase for source files (`ProjectDashboard.tsx`), natural words with spaces for documents and deliverables (`Risk Assessment.xlsx`). Names a language, framework, test runner or existing integration requires stay as they are: Python modules and test files named test_*.py, dated decision records named YYYY-MM-DD-slug.md (enforced by `tests/test_docs.py`), migrations, config and tool files. Existing files are not renamed unless asked. Detail: `Memory.md`, Conventions.
+
 ## How work is done here
 
 - A change in behaviour comes with a decision record in `docs/adr/` and with tests. Name a new record for the day it was decided, `YYYY-MM-DD-slug`, not with the next number; the counter is closed at 0060, because two sessions reaching for the next number collided eight times in three days.

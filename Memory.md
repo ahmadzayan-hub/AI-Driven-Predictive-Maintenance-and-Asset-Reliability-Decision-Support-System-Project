@@ -65,6 +65,12 @@ Full list: [brain/Soul.md](brain/Soul.md).
 
 ## Conventions
 
+- **File naming (owner's standing instruction, 6 November 2026).** Applies to every file generated, created, renamed or exported from now on.
+    - No `_` or `-` in a new file name. No filler or hype words: AI, Smart, Ultimate, Advanced, Revolutionary, Final, New, Enhanced, V2, unless part of an approved product name or technically meaningful.
+    - Source files in PascalCase (`ProjectDashboard.tsx`, `ProjectData.json`). Documents, reports and deliverables in natural words with spaces (`RMD Knowledge.md`, `Project Performance.pdf`, `Executive Brief English.mp4`). Standard extensions kept.
+    - Exceptions, because the rule itself says never break imports, tests or pipelines: Python modules stay snake_case (imports); Python tests stay test_*.py (unittest discovery); decision records stay YYYY-MM-DD-slug.md in docs/adr (`tests/test_docs.py` enforces it and code, the board and the brain link them); database migrations keep their timestamp names; framework and tool files keep their required names (`package.json`, `vite.config.ts`, `SKILL.md`, `README.md`, `CLAUDE.md`, frontend test files beside their component).
+    - Existing files are not renamed unless the owner asks. Names must match across the repository, docs, exports and the interface.
+    - Open: the platform's own download names (`miyaar-executive-<run>-en.docx`, `<goal>-<run>-cleaned.csv`) predate the rule; changing them is a behaviour change put to the owner on 6 November.
 - Reviewed public reference summaries live in `knowledge/`; original sources and operator-private collections remain separate. Default lookup combines reviewed and private collections; explicit roots remain exclusive. Collection visibility and model-context permission are independent. See `docs/adr/2026-10-24-reviewed-mba-reference-collection.md`.
 
 - UI handoff (ADR 0029): `docs/design/AGENTIC_UI_SPEC.md`; editable designs at https://www.figma.com/design/nLdKZ5cVOtRMTWEvhCJSEK. Current delivery targets a PWA on Windows, Android and iOS; native signing/store packages are separate. See `docs/design/VALIDATION.md` before claiming runtime verification.
