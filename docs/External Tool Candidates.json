@@ -1,0 +1,38 @@
+[
+  {
+    "name": "Open Notebook",
+    "repository": "https://github.com/lfnovo/open-notebook",
+    "license_verified": false,
+    "revision_pinned": false,
+    "security_review": "pending",
+    "data_classification": "synthetic",
+    "external_egress": null,
+    "human_owner": "Ahmed Zaian",
+    "operational_write_access": false,
+    "runtime": "isolated"
+  },
+  {
+    "name": "Book to Skill",
+    "repository": "https://github.com/virgiliojr94/book-to-skill",
+    "license_verified": false,
+    "revision_pinned": false,
+    "security_review": "pending",
+    "data_classification": "synthetic",
+    "external_egress": null,
+    "human_owner": "Ahmed Zaian",
+    "operational_write_access": false,
+    "runtime": "isolated"
+  },
+  {
+    "name": "No AI Slop",
+    "repository": "https://github.com/petergyang/no-ai-slop",
+    "license_verified": false,
+    "revision_pinned": false,
+    "security_review": "pending",
+    "data_classification": "public",
+    "external_egress": null,
+    "human_owner": "Ahmed Zaian",
+    "operational_write_access": false,
+    "runtime": "isolated"
+  }
+]
