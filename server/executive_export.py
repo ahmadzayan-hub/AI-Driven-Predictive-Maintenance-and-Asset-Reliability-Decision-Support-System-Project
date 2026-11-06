@@ -273,6 +273,17 @@ def report_sections(brief):
             (tr("Review", "المراجعة"), item["detail"]), (tr("Evidence references", "مراجع الأدلة"), item["evidence_refs"])]))
     if not priorities.tables:
         priorities.note_absence(tr("No observed priority is identified in this scope.", "لم تُحدد أولوية مرصودة ضمن هذا النطاق."))
+    crosstab = Section(tr("Records across two breakdowns", "السجلات عبر تصنيفين"))
+    cross = brief.get("crosstab")
+    if cross:
+        crosstab.paragraphs.append(tr(
+            f"Count of records in scope for each {cross['rows']} and {cross['columns']}: {cross['records']} in all. A count, not a risk ranking.",
+            f"عدد السجلات ضمن النطاق لكل {cross['rows']} و{cross['columns']}: {cross['records']} إجمالاً. عدد لا ترتيب للمخاطر."))
+        share = round(70 / len(cross["column_values"]), 2)
+        crosstab.tables.append(Table((cross["rows"], *cross["column_values"]),
+                                     [(name, *counts) for name, counts in zip(cross["row_values"], cross["cells"])],
+                                     (round(100 - share * len(cross["column_values"]), 2),) + (share,) * len(cross["column_values"]),
+                                     tr(f"{cross['rows']} by {cross['columns']}", f"{cross['rows']} حسب {cross['columns']}")))
     questions = Section(tr("Decision questions", "أسئلة القرار"))
     for item in brief["questions"]:
         questions.paragraphs.extend([item["text"], refs(item)])
@@ -410,7 +421,7 @@ def report_sections(brief):
     decision_records = contract_sections[1:]
     sections = [front, summary, questions, selected, metadata, *source_sections,
                 *coverage_sections, *definitions, targets, kpis, *scorecards,
-                findings, models, *readiness_sections, priorities,
+                findings, models, *readiness_sections, priorities, crosstab,
                 *decisions_requested, *decision_records, limitations, evidence]
     # Sections with nothing to report are left out, and named once here so
     # their absence stays explicit without an empty heading each.

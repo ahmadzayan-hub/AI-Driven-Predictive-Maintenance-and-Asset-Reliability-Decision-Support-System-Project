@@ -2452,3 +2452,9 @@ regressions passed. The full failure and skipped later steps remain in README.
 - Verified: `python scripts/verify.py`: 8 of 8 steps; Python 2658 tests (296 skipped), frontend 602 passed; js total 285.3 of 286 KB, css 39.3 of 41 KB.
 - Not done: exports do not show the matrix; no browser axe run on the shade contrast; no e2e journey.
 - Next: production still waits on the owner's Vercel sign-in variables.
+
+## 2026-11-06 (later): Matrix in the brief and documents (session d9e3f889)
+
+- Done: `crosstab` in the executive brief (same pair as the rule planner, counted over the brief's scope, cited as `executive.crosstab.records`, inside the snapshot digest); a "Records across two breakdowns" section in the HTML report and Word file, at most 8 columns.
+- Verified: `python scripts/verify.py`: 8 of 8 steps; Python 2662 tests (296 skipped), frontend 602; budget unchanged (js 285.3 of 286 KB). Shade contrast at least 8.75:1 light and 6.94:1 dark, calculated from tokens.
+- Not done: slides and video; picking columns on the page. Production still down pending the owner's Vercel sign-in variables (checked 10:55 UTC, still 500).
