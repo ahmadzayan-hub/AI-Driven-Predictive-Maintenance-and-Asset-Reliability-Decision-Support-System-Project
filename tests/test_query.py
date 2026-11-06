@@ -63,8 +63,10 @@ class DownloadTests(unittest.TestCase):
         self.assertEqual(q.to_csv(negative).splitlines()[1], "-3")
 
     def test_the_file_name(self):
-        self.assertEqual(q.download_name("Sales by region?", "r1"), "sales-by-region-r1-cleaned.csv")
-        self.assertEqual(q.download_name("تحليل", "r1"), "run-r1-cleaned.csv")
+        from server import downloads
+        self.assertEqual(downloads.CLEANED_DATA, "Cleaned Data.csv")
+        header = downloads.disposition("Cleaned Data.csv")
+        self.assertEqual(header, 'attachment; filename="Cleaned Data.csv"; filename*=UTF-8\'\'Cleaned%20Data.csv')
 
 
 class FieldTests(unittest.TestCase):
@@ -276,8 +278,7 @@ class TableApiTestCase(unittest.TestCase):
         download = self.client.get(f"/api/runs/{run['id']}/data.csv")
         self.assertEqual(download.status_code, 200)
         self.assertTrue(download.headers["content-type"].startswith("text/csv"))
-        self.assertIn(f"sales-by-category-{run['id']}-cleaned.csv",
-                      download.headers["content-disposition"])
+        self.assertIn('filename="Cleaned Data.csv"', download.headers["content-disposition"])
         rows = list(csv.DictReader(io.StringIO(download.content.decode("utf-8-sig"))))
         self.assertEqual(len(rows), 24)
         self.assertEqual(sum(float(r["revenue"]) for r in rows), SALES_TOTAL)

@@ -38,11 +38,11 @@ MAX_COLUMNS = 500
 # bomb stops here.
 MAX_XML_BYTES = 200_000_000
 PREVIEW_ROWS = 5
-FORMATS = ("csv", "tsv", "xlsx", "ods", "json", "jsonl")
+FORMATS = ("csv", "tsv", "xlsx", "xls", "ods", "json", "jsonl")
 
 _EXTENSIONS = {
     ".csv": "csv", ".txt": "csv", ".tsv": "tsv", ".tab": "tsv",
-    ".xlsx": "xlsx", ".xlsm": "xlsx", ".ods": "ods",
+    ".xlsx": "xlsx", ".xlsm": "xlsx", ".xls": "xls", ".ods": "ods",
     ".json": "json", ".jsonl": "jsonl", ".ndjson": "jsonl",
 }
 _ZIP_SIGNATURE = b"PK\x03\x04"
@@ -99,6 +99,8 @@ def read(body, name, fmt=None, sheet=None):
     fmt = fmt or detect_format(name, body)
     if fmt == "xlsx":
         parsed = _read_xlsx(body, sheet)
+    elif fmt == "xls":
+        parsed = _read_xls(body, sheet)
     elif fmt == "ods":
         parsed = _read_ods(body, sheet)
     elif fmt == "json":
@@ -115,10 +117,21 @@ def read(body, name, fmt=None, sheet=None):
 def detect_format(name, body):
     """From the file name first, then from the bytes themselves."""
     if body.startswith(_OLE_SIGNATURE) or (name or "").lower().endswith(".xls"):
-        raise DatasetError(
-            415, "Old .xls workbooks are not read. Save it as .xlsx or CSV and upload that.",
-            "لا تُقرأ مصنّفات ‎.xls‎ القديمة. احفظه بصيغة ‎.xlsx‎ أو CSV وارفعه.")
+        # Old binary Excel (6 November 2026): read by xlrd, values only.
+        return "xls"
     suffix = posixpath.splitext((name or "").lower())[1]
+    # A named document or a recognizable document signature must never be
+    # guessed into CSV. It belongs to the isolated asset extraction pipeline.
+    # Reject even when renamed .csv, to prevent false analytic claims.
+    asset_extensions = {".pdf", ".png", ".jpg", ".jpeg", ".webp",
+                        ".tif", ".tiff", ".pbix", ".parquet"}
+    image_magic = (bytes.fromhex("89504e470d0a1a0a"),
+                   bytes.fromhex("ffd8ff"))
+    if (suffix in asset_extensions or body.startswith(b"%PDF-")
+            or body.startswith(image_magic)
+            or (body[:4] == b"RIFF" and body[8:12] == b"WEBP")
+            or body.startswith(b"PAR1")):
+        raise _unsupported()
     if suffix in _EXTENSIONS:
         return _EXTENSIONS[suffix]
     if body.startswith(_ZIP_SIGNATURE):
@@ -245,7 +258,7 @@ def _sniff_delimiter(text):
     """The delimiter that splits the first lines into the same number of
     fields, more than one; a comma when nothing does."""
     sample = text[:65536].splitlines()[:20]
-    best, best_width = ",", 1
+    best, best_score = ",", None
     for delimiter in _DELIMITERS:
         try:
             widths = [len(r) for r in csv.reader(sample, delimiter=delimiter) if r]
@@ -255,8 +268,14 @@ def _sniff_delimiter(text):
             continue
         width = max(set(widths), key=widths.count)
         consistent = widths.count(width) >= max(1, int(len(widths) * 0.8))
-        if consistent and width > best_width:
-            best, best_width = delimiter, width
+        if not consistent or width < 2:
+            continue
+        # The separator must split the header as it splits the rows: a
+        # semicolon file with decimal commas ("ST03;17,51") splits two ways
+        # on the rows but only one way on its header (stress test, 5 Nov).
+        score = (widths[0] == width, widths.count(width), width)
+        if best_score is None or score > best_score:
+            best, best_score = delimiter, score
     return best
 
 
@@ -868,6 +887,12 @@ def list_sheets(body, fmt="xlsx"):
         raise too_large()
     if fmt == "ods":
         return [_ods_describe(s) for s in _ods_sheets(body)]
+    if fmt == "xls":
+        book = _xls_book(body)
+        try:
+            return _xls_details(book)[1]
+        finally:
+            book.release_resources()
     budget = _Budget()
     with _open_archive(body) as archive:
         sheets, strings, kinds, date1904 = _workbook(archive, budget)
@@ -932,6 +957,87 @@ def _sheet_table(fmt, sheets, details, chosen, sheet, rows, warnings):
     parsed.selected_sheet = chosen["name"]
     parsed.sheet_details = details
     return parsed
+
+
+# ---------------------------------------------------------------------------
+# Old binary Excel workbooks (.xls), 6 November 2026
+# ---------------------------------------------------------------------------
+# xlrd reads cell values only; formulas are their saved results and macros
+# never run (ADR 2026-11-06-xls-workbooks). Its rows take the shape the
+# .xlsx reader gives: numbers and dates as text, errors left empty.
+
+def _xls_rows(book, index, limit=None):
+    import xlrd
+    sheet = book.sheet_by_index(index)
+    if sheet.ncols > MAX_COLUMNS:
+        raise _too_many_columns()
+    rows, counts = [], {"errors": 0, "uncached": 0, "more": False}
+    for r in range(sheet.nrows):
+        if limit is not None and len(rows) >= limit:
+            counts["more"] = True
+            break
+        row = []
+        for c in range(sheet.ncols):
+            kind, value = sheet.cell_type(r, c), sheet.cell_value(r, c)
+            if kind == xlrd.XL_CELL_NUMBER:
+                row.append(format(value, ".15g") if math.isfinite(value) else "")
+            elif kind == xlrd.XL_CELL_DATE:
+                row.append(_serial_to_text(value, (True, True), book.datemode == 1) or "")
+            elif kind == xlrd.XL_CELL_BOOLEAN:
+                row.append("TRUE" if value else "FALSE")
+            elif kind == xlrd.XL_CELL_ERROR:
+                counts["errors"] += 1
+                row.append("")
+            else:
+                row.append(str(value) if value is not None else "")
+        if any(cell.strip() for cell in row):
+            rows.append(row)
+    return rows, counts
+
+
+def _xls_book(body):
+    try:
+        import xlrd
+    except ImportError:   # pragma: no cover - the declared dependency is missing
+        raise DatasetError(415, "Old .xls workbooks cannot be read on this server. Save it as .xlsx or CSV.",
+                           "لا يمكن قراءة مصنّفات ‎.xls‎ القديمة على هذا الخادم. احفظه بصيغة ‎.xlsx‎ أو CSV.") from None
+    try:
+        return xlrd.open_workbook(file_contents=body, on_demand=True, formatting_info=False, logfile=io.StringIO())
+    except Exception:   # xlrd raises several kinds; every one means the same to the reader
+        raise _bad_workbook() from None
+
+
+def _xls_details(book):
+    sheets, details = [], []
+    for index, name in enumerate(book.sheet_names()):
+        found = book.sheet_by_index(index)
+        hidden = getattr(found, "visibility", 0) != 0
+        sheets.append({"name": name, "hidden": hidden, "index": index})
+        info = {"name": name, "hidden": hidden, "rows": found.nrows, "columns": found.ncols,
+                "tabular": False, "unreadable": False}
+        try:
+            sample, _ = _xls_rows(book, index, SAMPLE_ROWS)
+            info["tabular"] = _looks_tabular(_non_blank(sample)[_header_start(sample):])
+        except DatasetError:
+            info["unreadable"] = True
+        details.append(info)
+    return sheets, details
+
+
+def _read_xls(body, sheet=None):
+    book = _xls_book(body)
+    try:
+        sheets, details = _xls_details(book)
+        chosen = _choose_sheet(sheets, details, sheet)
+        rows, counts = _xls_rows(book, chosen["index"])
+    finally:
+        book.release_resources()
+    warnings = []
+    if counts["errors"]:
+        warnings.append({
+            "en": f"{counts['errors']:,} error cells (such as #N/A or #DIV/0!) were left empty.",
+            "ar": f"تُركت {counts['errors']:,} خلية خطأ (مثل ‎#N/A‎ أو ‎#DIV/0!‎) فارغة."})
+    return _sheet_table("xls", sheets, details, chosen, sheet, rows, warnings)
 
 
 # ---------------------------------------------------------------------------

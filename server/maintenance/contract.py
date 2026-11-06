@@ -143,6 +143,12 @@ FIELDS = (
     Field("Vibration_mm_s", SCORE, UNKNOWN, "Sensor reading."),
     Field("Pressure_Bar", SCORE, UNKNOWN, "Sensor reading."),
     Field("Condition_Score", SCORE, UNKNOWN, "Composite condition."),
+    Field("Condition_Grade", CATEGORY, UNKNOWN,
+          "Condition survey: the grade in words (Very good, Good, Fair, Poor, Very poor, Critical).",
+          aliases=("condition_rating_text", "grade")),
+    Field("Intrinsic_RAMS_Level", SCORE, UNKNOWN,
+          "Condition survey: intrinsic RAMS level on the 1 to 9 asset condition scale.",
+          notes="6 and below records corrective-maintenance faults (ADR 2026-11-05)."),
 
     Field("Availability_Pct", FRACTION, DERIVED,
           "Share of planned hours the asset was available.",

@@ -10,7 +10,8 @@ from xml.etree import ElementTree as ET
 from zipfile import ZipFile
 
 from server.executive import ExecutiveDashboardAgent, MAX_FILTER_CHARS
-from server.executive_export import (render_html, render_docx, attachment_name, W,
+from server import downloads
+from server.executive_export import (render_html, render_docx, W,
                                      CONTENT_POLICY, DOCX_MIME)
 from tests import test_executive as fixtures
 
@@ -208,8 +209,9 @@ class ExecutiveDocumentTests(unittest.TestCase):
             self.assertEqual(kpi["Value"], "Not available")
             self.assertEqual(kpi["Measured records"], "0")
             self.assertIn("zero", kpi["Undefined value reason"])
-        name = attachment_name('../../a"\r\n', "ar", "docx")
-        self.assertRegex(name, r"^miyaar-executive-[A-Za-z0-9_-]+-ar\.docx$")
+        # A run identifier never reaches the name, so no hostile id can (6 November 2026).
+        self.assertEqual(downloads.executive("ar", "docx"), "Executive Brief Arabic.docx")
+        self.assertEqual(downloads.executive("en", "slides"), "Executive Slides English.html")
 
     def test_compact_summary_precedes_audits_and_preserves_values_in_both_formats(self):
         brief = self.brief()
@@ -268,7 +270,7 @@ class ExecutiveExportApiTests(unittest.TestCase):
         self.assertTrue(html.headers["content-type"].startswith("text/html"))
         self.assertEqual(word.headers["content-type"], DOCX_MIME)
         self.assertIn("attachment;", html.headers["content-disposition"])
-        self.assertIn("-ar.docx", word.headers["content-disposition"])
+        self.assertIn("Executive Brief Arabic.docx", word.headers["content-disposition"])
         for response in (html, word):
             self.assertEqual(response.headers["cache-control"], "no-store")
             self.assertEqual(response.headers["x-content-type-options"], "nosniff")
@@ -412,7 +414,7 @@ class ExecutiveSlidesApiTests(ExecutiveExportApiTests):
         response = self.export(run, "slides", filters=json.dumps(FILTERS))
         self.assertEqual(response.status_code, 200, response.text[:200])
         self.assertTrue(response.headers["content-type"].startswith("text/html"))
-        self.assertIn("-en-slides.html", response.headers["content-disposition"])
+        self.assertIn("Executive Slides English.html", response.headers["content-disposition"])
         self.assertEqual(response.headers["content-security-policy"], CONTENT_POLICY)
         self.assertEqual(response.text.count('class="slide"'), 6)
         self.assertEqual(before, (store.get_run(run["id"]), store.approvals_for_run(run["id"])))

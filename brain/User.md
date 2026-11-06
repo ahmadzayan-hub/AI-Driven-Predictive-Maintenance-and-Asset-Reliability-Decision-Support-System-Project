@@ -3,7 +3,7 @@ type: profile
 aliases: [Owner, Project owner]
 tags: [core]
 status: active
-updated: 2026-10-23
+updated: 2026-11-06
 review_every_days: 14
 sources: [README.md, Memory.md, project-progress.md]
 ---
@@ -28,6 +28,8 @@ Preserve intentionally public MBA/course materials as instructed by the owner on
 3. Keep the project explainable to a team and to examiners: every number traceable, every decision written down in the [[Decision log]].
 
 ## How they like to work
+
+- **File names:** clear, professional names with no underscores, hyphens or filler words such as AI, Final or V2; PascalCase for source files and natural words with spaces for documents, except where a tool or existing integration requires a form (6 November 2026; detail in `Memory.md`).
 
 - Finished, verified work over plans: run the tests and show the evidence.
 - Short progress notes while working, then the deliverable.

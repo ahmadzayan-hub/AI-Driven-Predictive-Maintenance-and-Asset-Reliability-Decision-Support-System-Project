@@ -56,6 +56,32 @@ def validate(page, query):
     return page, urlencode(pairs)
 
 
+# Named views (6 November 2026): several per owner and dataset, stored as rows
+# whose key is the dataset's key plus "#view:" and the name, so the table and
+# its unique key are unchanged (ADR 2026-11-06-named-views-and-scatter-picks).
+MAX_NAMED = 10
+MAX_NAME_CHARS = 40
+NAMED = "#view:"
+
+
+def named_key(dataset_key, name):
+    return dataset_key + NAMED + name
+
+
+def validate_name(name):
+    name = " ".join(str(name or "").split())
+    if not name or len(name) > MAX_NAME_CHARS or any(ord(c) < 32 for c in name):
+        raise ViewError(f"A view name is 1 to {MAX_NAME_CHARS} characters.",
+                        f"اسم العرض من 1 إلى {MAX_NAME_CHARS} حرفاً.")
+    return name
+
+
+def present_named(row, dataset_key):
+    view = present(row)
+    view["name"] = row["dataset_key"][len(dataset_key) + len(NAMED):]
+    return view
+
+
 def present(row):
     """What the API returns for a stored view."""
     if row is None:

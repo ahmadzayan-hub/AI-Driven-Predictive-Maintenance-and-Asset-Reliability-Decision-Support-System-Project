@@ -59,8 +59,20 @@ Full list: [brain/Soul.md](brain/Soul.md).
 - **Blocked hosts:** the proxy blocks designsystem.dubai.ae, dubaifont.com and fontsquirrel.com. Google Fonts, fonts.gstatic.com, raw.githubusercontent.com and PyPI work. A variable font prints into a PDF as Type 3; make static instances with fontTools (`varLib.instancer`).
 - **Lighthouse:** serve with `python scripts/serve.py --local-only --port 8011` and run `npx lighthouse` from `frontend/` with `CHROME_PATH=/opt/pw-browsers/chromium`; recipe in `.claude/skills/verify/SKILL.md`. Never `pkill -f` a pattern that also appears in your own command line: it kills the shell (exit 144).
 
+- **Production fails closed without sign-in (6 November 2026).** With `DATABASE_URL` set and no `SUPABASE_JWT_SECRET`, `AGENTIC_OS_JWT_SECRET` or `AGENTIC_OS_JWKS_URL`, every Vercel request returns 500 (`AuthNotConfigured` in the runtime log). A redeploy does not fix it. This session's Vercel token cannot list or set production variables (403); only the owner can.
+- **Film template classes.** `server/video/composition.html` already uses `.grid` for the moving background floor; a scene element with that class lands in the background. Render a frame and look at it after any film change.
+- **Read rendered output after a layout change.** The film's `statement` kind shows only its first line; a multi-line scene needs its own renderer.
+
+- **PostgreSQL tests in this cloud container (6 November 2026).** `service postgresql start` brings up PostgreSQL 16 on port 5432; the tests' default `PG_TEST_URL` points at 54329, so they skip unless run with `PG_TEST_URL=postgresql://dev@127.0.0.1:5432/agentic_test`.
+
 ## Conventions
 
+- **File naming (owner's standing instruction, 6 November 2026).** Applies to every file generated, created, renamed or exported from now on.
+    - No `_` or `-` in a new file name. No filler or hype words: AI, Smart, Ultimate, Advanced, Revolutionary, Final, New, Enhanced, V2, unless part of an approved product name or technically meaningful.
+    - Source files in PascalCase (`ProjectDashboard.tsx`, `ProjectData.json`). Documents, reports and deliverables in natural words with spaces (`RMD Knowledge.md`, `Project Performance.pdf`, `Executive Brief English.mp4`). Standard extensions kept.
+    - Exceptions, because the rule itself says never break imports, tests or pipelines: Python modules stay snake_case (imports); Python tests stay test_*.py (unittest discovery); decision records stay YYYY-MM-DD-slug.md in docs/adr (`tests/test_docs.py` enforces it and code, the board and the brain link them); database migrations keep their timestamp names; framework and tool files keep their required names (`package.json`, `vite.config.ts`, `SKILL.md`, `README.md`, `CLAUDE.md`, frontend test files beside their component).
+    - Existing files are not renamed unless the owner asks. Names must match across the repository, docs, exports and the interface.
+    - Open: the platform's own download names (`miyaar-executive-<run>-en.docx`, `<goal>-<run>-cleaned.csv`) predate the rule; changing them is a behaviour change put to the owner on 6 November.
 - Reviewed public reference summaries live in `knowledge/`; original sources and operator-private collections remain separate. Default lookup combines reviewed and private collections; explicit roots remain exclusive. Collection visibility and model-context permission are independent. See `docs/adr/2026-10-24-reviewed-mba-reference-collection.md`.
 
 - UI handoff (ADR 0029): `docs/design/AGENTIC_UI_SPEC.md`; editable designs at https://www.figma.com/design/nLdKZ5cVOtRMTWEvhCJSEK. Current delivery targets a PWA on Windows, Android and iOS; native signing/store packages are separate. See `docs/design/VALIDATION.md` before claiming runtime verification.

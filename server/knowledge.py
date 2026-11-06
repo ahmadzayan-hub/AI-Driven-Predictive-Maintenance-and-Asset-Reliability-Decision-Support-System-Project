@@ -26,6 +26,17 @@ model-context permission are checked separately on every collection.
 A passage is data, never an instruction. Text retrieved here is quoted to a
 reader or handed to a model as reference material; it never decides what
 the system does.
+
+A heading may be followed by a directive line that says what kind of
+statement its section holds (ADR 2026-11-05-evidence-aware-knowledge):
+
+    <!-- kb: domain=mba.9227.g02; evidence=DOCUMENT_REPORTED_RESULT;
+         status=superseded; sources=S05,S10; synthetic=true;
+         record=g02.p75.provisional; limits=in_sample_only|not_a_forecast -->
+
+The directive applies to that heading and the headings below it, is removed
+from the passage text, and travels with every hit. A superseded passage is
+kept for correction questions but is not returned as a current answer.
 """
 
 import hashlib
@@ -48,6 +59,15 @@ MIN_PASSAGE_CHARS = 40
 HEADING = re.compile(r"^(#{1,6})\s+(.*\S)\s*$")
 FENCE = re.compile(r"^\s*(```|~~~)")
 WORD = re.compile(r"[a-z0-9_]+|[؀-ۿ]+")
+DIRECTIVE = re.compile(r"^\s*<!--\s*kb:(.*?)-->\s*$", re.S)
+DIRECTIVE_OPEN = re.compile(r"^\s*<!--\s*kb:")
+STATUSES = ("current", "superseded", "unresolved")
+# A question about what changed, or what is stale, may see superseded
+# passages; any other question is answered from current ones only.
+CORRECTION_INTENT = re.compile(
+    r"supersed|stale|outdated|obsolete|provisional|replaced|previous|earlier|"
+    r"\bold\b|correct(?:ed|ion)|still (?:current|valid|true|used)|no longer|"
+    r"قديم|سابق|مؤقت|تصحيح|استبدل|ما زال|لا يزال|لم تعد|حل محل", re.I)
 
 # Words too common to tell two passages apart, in both languages the
 # product ships in.
@@ -72,6 +92,24 @@ class Passage:
     text: str
     anchor: str
     counts: dict = field(compare=False, default_factory=dict)
+    meta: dict = field(compare=False, default_factory=dict)
+
+    @property
+    def status(self):
+        return self.meta.get("status", "current")
+
+    @property
+    def label(self):
+        """What kind of statement this is, for a reader who sees only the quote."""
+        parts = []
+        if self.status != "current":
+            parts.append(self.status.upper())
+        for key, shown in (("evidence", None), ("domain", None)):
+            if self.meta.get(key):
+                parts.append(str(self.meta[key]))
+        if self.meta.get("synthetic"):
+            parts.append("SYNTHETIC")
+        return " · ".join(parts)
 
     @property
     def citation(self):
@@ -85,6 +123,18 @@ class Passage:
                "citation": self.citation, "text": self.text}
         if score is not None:
             out["score"] = round(score, 4)
+        if self.meta:
+            out["status"] = self.status
+            for key, name in (("domain", "domain"), ("evidence", "evidence_status"),
+                              ("record", "record_id")):
+                if self.meta.get(key):
+                    out[name] = self.meta[key]
+            for key, name in (("sources", "source_ids"), ("limits", "limitations")):
+                if self.meta.get(key):
+                    out[name] = list(self.meta[key])
+            if "synthetic" in self.meta:
+                out["synthetic"] = bool(self.meta["synthetic"])
+            out["label"] = self.label
         return out
 
 
@@ -111,6 +161,15 @@ def split_markdown(text, collection, document):
     heading_path = []
     body = []
     fenced = False
+    directives = {}      # heading level (0 = whole document) -> parsed directive
+    level_now = 0
+
+    def merged():
+        out = {}
+        for level in sorted(directives):
+            if level <= level_now:
+                out.update(directives[level])
+        return out
 
     def flush():
         content = "\n".join(body).strip()
@@ -130,7 +189,8 @@ def split_markdown(text, collection, document):
                 f"{collection}\x00{document}\x00{section}\x00{piece}".encode()).hexdigest()
             passages.append(Passage(collection=collection, document=document,
                                     section=section, text=piece, anchor=anchor,
-                                    counts=_count(f"{section} {piece}")))
+                                    counts=_count(f"{section} {piece}"),
+                                    meta=merged()))
 
     for line in text.splitlines():
         if FENCE.match(line):
@@ -143,11 +203,46 @@ def split_markdown(text, collection, document):
             trail[level] = match.group(2)
             for deeper in [k for k in trail if k > level]:
                 del trail[deeper]
+            for deeper in [k for k in directives if k >= level]:
+                del directives[deeper]
             heading_path = [trail[k] for k in sorted(trail)]
+            level_now = level
             continue
+        if not fenced and DIRECTIVE_OPEN.match(line):
+            parsed = parse_directive(line)
+            if parsed is not None:
+                directives[level_now] = {**directives.get(level_now, {}), **parsed}
+                continue
         body.append(line)
     flush()
     return passages
+
+
+def parse_directive(line):
+    """`<!-- kb: key=value; ... -->` into a clean dict, or None if malformed.
+
+    Only known keys survive and values are bounded, so a document cannot
+    use a directive to smuggle anything but a label into the index."""
+    found = DIRECTIVE.match(line)
+    if not found:
+        return None
+    out = {}
+    for part in found.group(1).split(";"):
+        key, sep, value = part.partition("=")
+        key, value = key.strip().lower(), value.strip()
+        if not sep or not value:
+            continue
+        if key == "status":
+            out["status"] = value.lower() if value.lower() in STATUSES else "current"
+        elif key in ("domain", "evidence", "record"):
+            out[key] = value[:120]
+        elif key == "synthetic":
+            out["synthetic"] = value.lower() in ("true", "yes", "1")
+        elif key == "sources":
+            out["sources"] = [v.strip()[:40] for v in value.split(",") if v.strip()][:24]
+        elif key == "limits":
+            out["limits"] = [v.strip()[:80] for v in value.split("|") if v.strip()][:12]
+    return out
 
 
 def _fit(text):
@@ -194,9 +289,16 @@ class Collection:
         # A filesystem manifest is configuration, not a response DTO. In
         # particular it must not serialize owner lists, paths or credentials.
         public = {key: self.metadata[key] for key in (
-            "title", "description", "data_classification", "version", "applicability")
+            "title", "description", "data_classification", "version", "applicability",
+            "document_id", "synthetic", "prepared_on", "source_sha256", "evidence_basis",
+            "operational_authority")
                   if key in self.metadata and isinstance(self.metadata[key], (str, int, bool))}
+        for key in ("limitations", "withheld_sections"):
+            if isinstance(self.metadata.get(key), list):
+                public[key] = [str(v)[:200] for v in self.metadata[key]][:40]
+        superseded = sum(1 for p in self.passages if p.status == "superseded")
         return {"collection_id": self.name, "passages": len(self.passages),
+                "superseded_passages": superseded,
                 "documents": [{"document": name, "sha256": info["sha256"],
                                "bytes": info["bytes"], "passages": info["passages"]}
                               for name, info in sorted(self.documents.items())],
@@ -255,7 +357,7 @@ class KnowledgeStore:
                 allowed.append(collection)
         return KnowledgeStore(allowed)
 
-    def search(self, query, collection=None, limit=5):
+    def search(self, query, collection=None, limit=5, domain=None, include_superseded=None):
         """The best passages for a question, most relevant first.
 
         Score is the rarity of each query word the passage holds, doubled
@@ -277,6 +379,17 @@ class KnowledgeStore:
         chosen = ([self.collections[collection]] if collection in self.collections
                   else list(self.collections.values()) if collection is None else [])
         passages = [p for c in chosen for p in c.passages]
+        if domain:
+            wanted_domain = str(domain).strip().lower()
+            passages = [p for p in passages
+                        if str(p.meta.get("domain", "")).lower() == wanted_domain
+                        or str(p.meta.get("domain", "")).lower().startswith(wanted_domain + ".")]
+        # A superseded statement is history. It answers a question about
+        # what changed, never a question about what is true now.
+        if include_superseded is None:
+            include_superseded = bool(CORRECTION_INTENT.search(query or ""))
+        if not include_superseded:
+            passages = [p for p in passages if p.status != "superseded"]
         if not passages:
             return []
         rarity = self._rarity(passages)

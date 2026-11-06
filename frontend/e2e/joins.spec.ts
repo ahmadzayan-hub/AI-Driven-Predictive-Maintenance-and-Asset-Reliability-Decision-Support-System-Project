@@ -109,7 +109,7 @@ test('a lookup is joined, previewed and run', async ({ page }) => {
   const saving = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Download cleaned data (CSV)' }).click()
   const download = await saving
-  expect(download.suggestedFilename()).toMatch(/-cleaned\.csv$/)
+  expect(download.suggestedFilename()).toBe('Cleaned Data.csv')
   const text = await (await download.createReadStream()).toArray()
   const csv = Buffer.concat(text).toString('utf-8')
   expect(csv.replace(/^\ufeff/, '').split('\r\n')[0]).toBe('month,item,channel,amount,family,unit_cost')

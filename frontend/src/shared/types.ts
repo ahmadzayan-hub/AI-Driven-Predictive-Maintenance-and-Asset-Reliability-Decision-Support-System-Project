@@ -317,6 +317,12 @@ export interface ColumnMapping {
   /** Validity limits per measure (31 October 2026): a value outside them is
    *  left out of every figure and recorded so it can be restored. */
   limits?: Record<string, { min?: number; max?: number }>
+  /** The decimal mark of the file's numbers (5 November 2026); absent means a point. */
+  decimal?: 'point' | 'comma'
+  /** Which way is better per measure, as the owner states it; never guessed. */
+  better?: Record<string, 'higher' | 'lower'>
+  /** Two dimensions to cross in the matrix, chosen by the owner or a proposing model. */
+  cross?: string[]
 }
 
 export interface DerivedColumn {
@@ -356,7 +362,7 @@ export interface DatasetDetail {
  *  column; a join's problems also say which join (ADR 0030). */
 export interface MappingProblem {
   field:
-    | 'roles' | 'measure' | 'dimension' | 'date_order' | 'grain' | 'currency' | 'derived' | 'fiscal_start' | 'limits'
+    | 'roles' | 'measure' | 'dimension' | 'date_order' | 'grain' | 'currency' | 'derived' | 'fiscal_start' | 'limits' | 'decimal' | 'better'
     | 'joins' | 'keys' | 'how' | 'alias' | 'breakdown' | 'dataset'
   column: string | null
   message: string
@@ -381,8 +387,10 @@ export interface JoinSpec {
   keys: JoinKey[]
   how: JoinHow
   alias?: string | null
-  /** Compare text keys ignoring letter case and spaces (30 October 2026). */
+  /** Compare text keys ignoring letter case, spaces and separators (30 October; separators 6 November 2026). */
   match?: 'loose'
+  /** Main keys the owner confirmed stand for a joined key (6 November 2026). */
+  corrections?: Array<{ from: string; to: string }>
 }
 
 /** What one join did: rows in and out, matches, and the columns it added.
@@ -408,6 +416,10 @@ export interface JoinRecord {
   duplicates_dropped?: number
   /** Unmatched rows a loose comparison would have matched. */
   near_matches?: number
+  /** Unmatched keys one letter from a joined key, never merged unless confirmed. */
+  typo_examples?: Array<{ key: string; candidate: string }>
+  /** Rows matched only through a confirmed correction. */
+  corrected?: number
   source_column?: string
   source_label?: string
 }
@@ -483,6 +495,8 @@ export interface TableField {
   records: number
   min?: number | null
   max?: number | null
+  /** False for a score, level, rate or share: averaged, never added up. */
+  additive?: boolean
   distinct?: number
   /** Present for text with at most 200 distinct values, sorted. */
   values?: string[]
@@ -513,6 +527,8 @@ export interface SavedView {
   query: string
   run_id: string
   updated_at: string
+  /** Set on a named view (6 November 2026); the default view has none. */
+  name?: string
 }
 
 export interface QuerySpec {
@@ -686,7 +702,7 @@ export type ExecutiveBrief = RunExecutive
 /** A generative layout (ADR 2026-11-03-generative-layout): validated and grounded on the server. */
 export interface LayoutSection {
   id: string
-  component: 'brief' | 'kpi' | 'trend' | 'ranking' | 'priorities' | 'comparison' | 'distribution' | 'table' | 'gap'
+  component: 'brief' | 'kpi' | 'trend' | 'ranking' | 'priorities' | 'comparison' | 'distribution' | 'matrix' | 'table' | 'gap'
   title: { en: string; ar: string }
   purpose: { en: string; ar: string }
   span: 1 | 2 | 3
@@ -704,4 +720,14 @@ export interface LayoutResult {
   problems: string[]
   capabilities: Record<string, { available: boolean; reason: { en: string; ar: string } | null }>
   fingerprint: string
+}
+
+/** POST /api/datasets/{id}/mapping/proposal: a model's proposal from the schema alone, or the rules'. */
+export interface MappingProposal {
+  source: 'model' | 'rules'
+  provider: string | null
+  mapping: ColumnMapping
+  reasons: Record<string, string>
+  cross: string[] | null
+  notes: string[]
 }

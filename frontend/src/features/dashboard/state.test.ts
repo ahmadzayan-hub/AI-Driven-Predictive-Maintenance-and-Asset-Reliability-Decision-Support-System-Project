@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { EMPTY, isPicked, isRangePicked, pick, pickRange, readState, writeState } from './state'
+import { EMPTY, isPicked, isRangePicked, pick, pickRange, readState, rolesOf, writeState } from './state'
 
 // Cross-filtering by clicking (ADR 2026-10-27-interactive-dashboard): a click
 // keeps one group alone in the address, a second click on it releases it,
@@ -50,5 +50,17 @@ describe('pickRange', () => {
     expect(last.hiop).toBe('lte')
     expect(isRangePicked(last, 90, 100, true)).toBe(true)
     expect(isRangePicked(last, 90, 100, false)).toBe(false)
+  })
+})
+
+describe('a score is read as an average (ADR 2026-11-05)', () => {
+  const field = (name: string, additive?: boolean) =>
+    ({ name, type: 'number' as const, role: 'analysed' as const, records: 4, filled: 3, additive })
+  it('marks a non-additive measure for averaging', () => {
+    expect(rolesOf([field('Condition_Score', false)]).avg).toBe(true)
+  })
+  it('keeps totals for an additive measure or an older server without the flag', () => {
+    expect(rolesOf([field('Downtime_Hours', true)]).avg).toBe(false)
+    expect(rolesOf([field('Downtime_Hours')]).avg).toBe(false)
   })
 })

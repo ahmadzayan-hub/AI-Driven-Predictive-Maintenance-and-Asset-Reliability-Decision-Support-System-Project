@@ -296,5 +296,57 @@ class PlannerTests(unittest.TestCase):
         self.assertNotIn("ranking", comps)
 
 
+def survey():
+    # Condition lines crossed with a criticality: neither is nested in the other.
+    rows = [(f"ST{i % 6:02d}", ["High", "Medium", "Low"][(i // 6) % 3],
+             ["Good", "Fair", "Poor"][(i // 18) % 3], 5.0 + (i % 4)) for i in range(72)]
+    return table(["Station", "Criticality", "Condition_Grade", "Condition_Score"], {"Condition_Score"}, rows,
+                 {"Condition_Score": "analysed"})
+
+
+class MatrixTests(unittest.TestCase):
+    """Two breakdowns against each other (ADR 2026-11-06-two-way-matrix)."""
+
+    def matrix(self, binding, make=survey):
+        t = make()
+        prof = L.profile(t)
+        return L.validate({"version": 1, "objective": "", "sections": [section(
+            id="mx", component="matrix", span=3, binding=binding)]}, t, prof, L.capabilities(prof))
+
+    def test_crossed_breakdowns_get_a_counted_matrix(self):
+        found = [s for s in L.plan_for(survey())["plan"]["sections"] if s["component"] == "matrix"]
+        self.assertEqual(len(found), 1)
+        self.assertEqual(found[0]["binding"]["measures"], [{"agg": "count"}])
+        self.assertEqual(len(set(found[0]["binding"]["group_by"])), 2)
+
+    def test_a_nested_pair_is_not_offered(self):
+        # Each asset sits inside one class: a matrix would show nothing new.
+        rows = [(f"A{i % 12}", ["Pumps", "Doors", "Signals"][i % 12 // 4], float(i % 5)) for i in range(60)]
+        t = table(["Asset_ID", "Asset_Class", "Downtime_Hours"], {"Downtime_Hours"}, rows,
+                  {"Downtime_Hours": "analysed"})
+        self.assertFalse(L.crossed(t, "Asset_Class", "Asset_ID"))
+        self.assertTrue(L.crossed(survey(), "Station", "Criticality"))
+        self.assertNotIn("matrix", [s["component"] for s in L.plan_for(t)["plan"]["sections"]])
+
+    def test_the_cells_come_from_the_query_engine(self):
+        t = survey()
+        cells = query.aggregate(t, {"group_by": ["Station", "Criticality"], "measures": [{"agg": "count"}],
+                                    "limit": L.MAX_CELLS})["groups"]
+        self.assertEqual(sum(g["values"][0] for g in cells), 72)
+
+    def test_bad_matrices_are_refused(self):
+        count = [{"agg": "count"}]
+        for binding in ({"group_by": ["Station", "Station"], "measures": count},
+                        {"group_by": ["Station"], "measures": count},
+                        {"group_by": ["Station", "Criticality"], "measures": count * 2},
+                        {"group_by": ["Station", "Condition_Score"], "measures": count}):
+            plan, problems = self.matrix(binding)
+            self.assertIsNone(plan, binding)
+        plan, problems = self.matrix({"group_by": ["Record_Date", "Asset_Class"], "measures": count}, maintenance)
+        self.assertIsNone(plan)
+        plan, problems = self.matrix({"group_by": ["Station", "Criticality"], "measures": count})
+        self.assertEqual(problems, [])
+
+
 if __name__ == "__main__":
     unittest.main()

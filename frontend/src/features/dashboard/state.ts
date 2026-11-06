@@ -108,6 +108,8 @@ export interface Roles {
   date: string | null
   measures: string[]
   texts: TableField[]
+  /** The measure is a score or rate: read as an average, never a total. */
+  avg?: boolean
 }
 
 /** The run's measure, breakdown and date, as the run itself chose them. */
@@ -120,7 +122,8 @@ export function rolesOf(fields: TableField[]): Roles {
     texts.find((f) => f.values && f.values.length > 1)?.name ??
     null
   const date = fields.find((f) => f.role === 'date')?.name ?? null
-  return { measure, breakdown, date, measures, texts }
+  const avg = fields.find((f) => f.name === measure)?.additive === false
+  return { measure, breakdown, date, measures, texts, avg }
 }
 
 /** The pages this table can fill. */

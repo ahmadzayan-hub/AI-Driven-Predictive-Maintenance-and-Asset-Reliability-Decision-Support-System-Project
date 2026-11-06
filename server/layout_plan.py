@@ -38,6 +38,8 @@ FORBIDDEN_TEXT = re.compile(r"(https?:|www\.|javascript:|data:|<|>|\{\{|\}\}|`)"
 # A low-cardinality text column can be ranked; more groups than this is a list.
 RANKABLE = (2, 50)
 MAX_RANKED = 15
+# A matrix stays readable on one screen: at most this many cells.
+MAX_CELLS = 120
 
 COMPONENTS = {
     # name: (capability it needs, allowed binding keys)
@@ -48,6 +50,8 @@ COMPONENTS = {
     "ranking": ("ranking", {"group_by", "measures", "filters", "sort", "limit"}),
     "comparison": ("ranking", {"group_by", "measures", "filters", "sort", "limit"}),
     "distribution": ("distribution", {"group_by", "measures", "filters"}),
+    # Two breakdowns against each other: rows, columns, one figure per cell.
+    "matrix": ("ranking", {"group_by", "measures", "filters"}),
     "table": ("descriptive", {"columns", "filters", "sort", "limit"}),
     "gap": ("descriptive", {"capability"}),
 }
@@ -174,6 +178,20 @@ def _ground(table, component, binding, prof, problems, where):
                                         or drivers in _dates(prof)):
                 problems.append(f"{where}: drivers is another text column with 2 to 50 groups, not a date.")
                 return None
+        if component == "matrix":
+            distinct = {f["name"]: f.get("distinct") or 0 for f in prof["fields"]}
+            if (len(groups) != 2 or groups[0] == groups[1] or any(g not in _groups(prof) or g in _dates(prof)
+                                                                  for g in groups)):
+                problems.append(f"{where}: a matrix crosses two different text columns with 2 to 50 groups, not dates.")
+                return None
+            if len(spec.get("measures") or []) != 1:
+                problems.append(f"{where}: a matrix shows one figure per cell.")
+                return None
+            if distinct[groups[0]] * distinct[groups[1]] > MAX_CELLS:
+                problems.append(f"{where}: more than {MAX_CELLS} cells; choose columns with fewer groups.")
+                return None
+            spec["limit"] = MAX_CELLS
+            spec.pop("sort", None)
         if component == "ranking" and spec["limit"] > MAX_RANKED:
             spec["limit"] = MAX_RANKED
         if component == "distribution" and not (
@@ -269,6 +287,9 @@ DOMAIN_WORDS = {
     "maintenance": ("failure", "downtime", "repair", "maintenance", "asset", "mtbf", "mttr", "breakdown"),
     "costs": ("budget", "actual", "spend", "variance", "forecast_cost", "cost_centre", "cost_center"),
     "contracts": ("contract", "milestone", "obligation", "due", "vendor", "supplier", "payment"),
+    # A condition survey: graded assets, lower is worse (ADR 2026-11-05).
+    "condition": ("condition_score", "ageing", "rams", "survey", "deterioration", "condition_band",
+                  "condition_grade", "condition_rating", "condition_index", "inspection", "assessment"),
 }
 
 
@@ -291,9 +312,11 @@ def _section(sid, component, span, title, purpose, binding, interactions=()):
             "binding": binding, "interactions": list(interactions)}
 
 
-def rule_plan(prof, caps, objective=""):
+def rule_plan(prof, caps, objective="", better=None, crossed=None, cross=None):
     """A deterministic plan derived from this table's own schema and the kind
-    of records it holds. It is labelled `rules`, never a model's design."""
+    of records it holds. It is labelled `rules`, never a model's design.
+    `crossed(a, b)` says whether two breakdowns are worth a matrix; without
+    it no matrix is proposed."""
     measures, dates, groups = _measures(prof), _dates(prof), _groups(prof)
     if not caps["descriptive"]["available"]:
         return {"version": VERSION, "objective": objective[:MAX_OBJECTIVE], "sections": [
@@ -322,15 +345,31 @@ def rule_plan(prof, caps, objective=""):
         return _section(sid, "kpi", 1, _t(en[:MAX_TITLE], ar[:MAX_TITLE]), _t(*purpose),
                         {"measures": [measure]}, ("filter", "ask_jarvis"))
 
-    def priorities(measure, key, en, ar):
-        binding = {"group_by": [group], "measures": [measure], "sort": {"by": key, "desc": True},
+    def priorities(measure, key, en, ar, lowest=False):
+        binding = {"group_by": [group], "measures": [measure], "sort": {"by": key, "desc": not lowest},
                    "limit": 3}
         if drivers:
             binding["drivers"] = drivers
+        purpose = (_t("The three lowest averages; select one to see its drivers and records.",
+                      "أدنى ثلاثة متوسطات؛ اختر واحدًا لترى محركاته وسجلاته.") if lowest else
+                   _t("The three largest; select one to see its drivers and records.",
+                      "الثلاثة الأكبر؛ اختر واحدًا لترى محركاته وسجلاته."))
         return _section("priorities", "priorities", 2, _t(en[:MAX_TITLE], ar[:MAX_TITLE]),
-                        _t("The three largest; select one to see its drivers and records.",
-                           "الثلاثة الأكبر؛ اختر واحدًا لترى محركاته وسجلاته."), binding,
-                        ("filter", "drill_down", "inspect_evidence", "ask_jarvis"))
+                        purpose, binding, ("filter", "drill_down", "inspect_evidence", "ask_jarvis"))
+
+    def total_or_average(sid, name):
+        """A score or rate is averaged over the records that hold one."""
+        if query.additive(name):
+            return kpi(sid, f"Total {name}", f"إجمالي {name}", {"agg": "sum", "column": name})
+        section = kpi(sid, f"Average {name}", f"متوسط {name}", {"agg": "mean", "column": name},
+                      ("Average over the records that hold a value.",
+                       "المتوسط على السجلات التي تحمل قيمة."))
+        # The tile says how many records the average is over, not how many are in scope.
+        section["binding"]["measures"].append({"agg": "count", "column": name})
+        return section
+
+    def agg_of(name):
+        return "sum" if query.additive(name) else "mean"
 
     if kind == "costs" and _find(measures, ("actual",)) and _find(measures, ("budget",)):
         actual, budget = _find(measures, ("actual",)), _find(measures, ("budget",))
@@ -366,24 +405,52 @@ def rule_plan(prof, caps, objective=""):
             sections.append(priorities({"agg": "count"}, "count", f"Most records by {group}",
                                        f"الأكثر سجلات حسب {group}"))
         lead = value
+    elif kind == "condition":
+        lead = _find(measures, ("condition_score", "condition", "score")) or analysed or \
+            (measures[0] if measures else None)
+        sections.append(kpi("records", "Lines surveyed", "البنود الممسوحة", {"agg": "count"},
+                            ("Survey lines in scope, scored or not.", "بنود المسح ضمن النطاق، بدرجة أو بدونها.")))
+        if lead:
+            sections.append(kpi("scored", f"Lines with a {lead}", f"بنود لها {lead}",
+                                {"agg": "count", "column": lead},
+                                ("Lines that hold a value; the rest are not applicable or blank.",
+                                 "البنود التي تحمل قيمة؛ والباقي غير منطبق أو فارغ.")))
+            sections.append(total_or_average(f"kpi-{len(sections)}", lead))
+        for name in [m for m in measures if m != lead][:1]:
+            sections.append(total_or_average(f"kpi-{len(sections)}", name))
+        if group and lead:
+            # Weakest first. A grade where 1 is best (the UK and Australian
+            # convention) is weakest at the top, but only when the owner says so.
+            lower_is_better = (better or {}).get(lead) == "lower"
+            sections.append(priorities({"agg": agg_of(lead), "column": lead}, f"{agg_of(lead)}:{lead}",
+                                       f"Weakest {group} by average {lead}", f"أضعف {group} حسب متوسط {lead}",
+                                       lowest=not lower_is_better))
     else:
         lead = (analysed if kind != "maintenance" else
                 _find(measures, ("downtime", "failure", "cost")) or analysed) or (measures[0] if measures else None)
         sections.append(kpi("records", "Records", "السجلات", {"agg": "count"},
                             ("How many records the figures cover.", "عدد السجلات التي تغطيها الأرقام.")))
         for name in ([lead] if lead else []) + [m for m in measures if m != lead][:2]:
-            sections.append(kpi(f"kpi-{len(sections)}", f"Total {name}", f"إجمالي {name}",
-                                {"agg": "sum", "column": name}))
-        if group and lead:
-            sections.append(priorities({"agg": "sum", "column": lead}, f"sum:{lead}",
-                                       f"{lead} by {group}", f"{lead} حسب {group}"))
+            sections.append(total_or_average(f"kpi-{len(sections)}", name))
+        direction = (better or {}).get(lead)
+        if group and lead and direction in ("higher", "lower"):
+            agg = agg_of(lead)
+            sections.append(priorities({"agg": agg, "column": lead}, f"{agg}:{lead}",
+                                       f"Weakest {group} by {'average ' if agg == 'mean' else ''}{lead}",
+                                       f"أضعف {group} حسب {'متوسط ' if agg == 'mean' else ''}{lead}",
+                                       lowest=direction == "higher"))
+        elif group and lead:
+            agg = agg_of(lead)
+            sections.append(priorities({"agg": agg, "column": lead}, f"{agg}:{lead}",
+                                       f"{lead} by {group}" if agg == "sum" else f"Average {lead} by {group}",
+                                       f"{lead} حسب {group}" if agg == "sum" else f"متوسط {lead} حسب {group}"))
     if caps["trend"]["available"] and lead:
         title = (_t(f"{lead} due by {dates[0]}"[:MAX_TITLE], f"{lead} المستحق حسب {dates[0]}"[:MAX_TITLE])
                  if kind == "contracts" else
                  _t(f"{lead} over time"[:MAX_TITLE], f"{lead} عبر الزمن"[:MAX_TITLE]))
         sections.append(_section("trend", "trend", 3, title,
                                  _t("Recorded values by date; no forecast.", "القيم المسجلة حسب التاريخ؛ بلا تنبؤ."),
-                                 {"group_by": [dates[0]], "measures": [{"agg": "sum", "column": lead}],
+                                 {"group_by": [dates[0]], "measures": [{"agg": agg_of(lead), "column": lead}],
                                   "sort": {"by": dates[0]}}, ("filter", "drill_down", "ask_jarvis")))
     if kind not in ("contracts",) and caps["distribution"]["available"] and lead:
         sections.append(_section("distribution", "distribution", 1,
@@ -397,6 +464,19 @@ def rule_plan(prof, caps, objective=""):
                                      _t("Not available yet", "غير متاح بعد"),
                                      _t("A missing prerequisite, stated plainly.", "متطلب ناقص، مذكور بوضوح."),
                                      {"capability": cap}))
+    distinct = {f["name"]: f.get("distinct") or 0 for f in prof["fields"]}
+    # A pair the mapping declared (by the owner or the proposing model) comes first.
+    rows_by, cols_by = (cross if cross and all(c in groups and c not in dates for c in cross)
+                        else (group, drivers))
+    if (rows_by and cols_by and distinct[rows_by] * distinct[cols_by] <= MAX_CELLS
+            and crossed is not None and crossed(rows_by, cols_by)):
+        # Counts of records, not a ranking: where the records sit across two breakdowns.
+        sections.append(_section("matrix", "matrix", 3,
+                                 _t(f"{rows_by} by {cols_by}"[:MAX_TITLE], f"{rows_by} حسب {cols_by}"[:MAX_TITLE]),
+                                 _t("Records in each pair of groups. A count, not a risk ranking.",
+                                    "عدد السجلات في كل زوج من المجموعات. عدد لا ترتيب للمخاطر."),
+                                 {"group_by": [rows_by, cols_by], "measures": [{"agg": "count"}]},
+                                 ("filter", "drill_down")))
     sections = sections[:MAX_SECTIONS - 1]
     columns = [f["name"] for f in prof["fields"]][:6]
     if columns:
@@ -415,6 +495,7 @@ SYSTEM = (
     "priorities {group_by:[text column],measures,sort,limit<=3,drivers:another text column}, "
     "ranking|comparison {group_by:[text column],measures,sort,limit}, "
     'distribution {group_by:[{"column":measure,"bins":2-50}],measures:[{"agg":"count"}]}, '
+    "matrix {group_by:[text column,another text column],measures:[one]} (at most 120 cells), "
     "table {columns,limit}, gap {capability}. Aggregates: sum, mean, min, max, count, "
     "distinct, ratio. Use only listed fields and only available capabilities; for an "
     "unavailable capability that matters to the objective, add a gap section. Never "
@@ -445,7 +526,18 @@ def model_plan(gateway, prof, caps, objective, language="en"):
     return plan, _t(f"Planned by {name}", f"صمّمه {name}")
 
 
-def plan_for(table, gateway=None, objective="", stages=(), model_allowed=True, language="en"):
+def crossed(table, a, b):
+    """Two breakdowns are worth a matrix only if neither is nested in the
+    other: an asset ID inside its class fills one cell per row and shows nothing."""
+    ia, ib = table.index(a), table.index(b)
+    pairs = {(row[ia], row[ib]) for row in table.rows if row[ia] not in (None, "") and row[ib] not in (None, "")}
+    firsts = {x for x, _ in pairs}
+    seconds = {y for _, y in pairs}
+    return len(pairs) > max(len(firsts), len(seconds))
+
+
+def plan_for(table, gateway=None, objective="", stages=(), model_allowed=True, language="en", better=None,
+             cross=None):
     """The whole pipeline. Always returns a validated plan and says how."""
     prof = profile(table)
     caps = capabilities(prof, stages)
@@ -467,7 +559,8 @@ def plan_for(table, gateway=None, objective="", stages=(), model_allowed=True, l
         notes.append(_t("This run's data may not go to a model, so the rule planner was used.",
                         "لا يجوز إرسال بيانات هذا التحليل إلى نموذج، فاستُخدم التصميم بالقواعد."))
     if plan is None:
-        plan, rule_problems = validate(rule_plan(prof, caps, objective), table, prof, caps)
+        plan, rule_problems = validate(rule_plan(prof, caps, objective, better,
+                                                 lambda a, b: crossed(table, a, b), cross), table, prof, caps)
         if plan is None:  # a rule plan that fails its own contract is a bug
             raise ValueError("; ".join(rule_problems))
     return {"plan": plan, "source": source, "provider": provider, "notes": notes,

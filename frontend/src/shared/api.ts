@@ -1,5 +1,5 @@
 import { translate } from '../i18n'
-import type { AuthConfig, ColumnMapping, DataContextChoices, DatasetDetail, DatasetSummary, ExportPayload, IdentityInfo, JoinPreview, JoinSpec,
+import type { AuthConfig, ColumnMapping, MappingProposal, DataContextChoices, DatasetDetail, DatasetSummary, ExportPayload, IdentityInfo, JoinPreview, JoinSpec,
   KpiPolicy, LayoutResult, MappingProblem, Pipelines, QueryAnswer, QuerySpec, RecordsPage, RecordsSpec, RunAssumptions, RunDetail, RunExecutive, RunKpis, RunSummary, SavedView, SessionState, TableField, TableFilter, TranscriptEntry, UploadResult, Usage } from './types'
 
 export const API_BASE = import.meta.env.VITE_API_BASE ?? ''
@@ -22,7 +22,7 @@ function sendFile<T>(path: string, file: File, language: string, extra = '') {
 /** The most one upload can be (server/datasets.py, ADR 0024). Checked
  *  here only to save a wasted transfer; the server decides. */
 export const MAX_UPLOAD_BYTES = 4_000_000
-export const UPLOAD_ACCEPT = '.csv,.tsv,.tab,.txt,.xlsx,.xlsm,.ods,.json,.jsonl,.ndjson'
+export const UPLOAD_ACCEPT = '.csv,.tsv,.tab,.txt,.xlsx,.xlsm,.xls,.ods,.json,.jsonl,.ndjson'
 
 export class ApiError extends Error {
   status: number
@@ -307,6 +307,9 @@ export const api = {
   getDataset: (id: string, language: 'en' | 'ar' = 'en') =>
     request<DatasetDetail>(`/api/datasets/${encodeURIComponent(id)}?language=${language}`, {}, UPLOAD_TIMEOUT_MS),
   /** Checked against every row; a refusal carries `problems` by field. */
+  proposeMapping: (id: string, language: 'en' | 'ar' = 'en') =>
+    request<MappingProposal>(`/api/datasets/${encodeURIComponent(id)}/mapping/proposal?language=${language}`,
+      { method: 'POST' }, UPLOAD_TIMEOUT_MS),
   saveMapping: (id: string, mapping: ColumnMapping, language: 'en' | 'ar' = 'en') =>
     request<DatasetDetail>(
       `/api/datasets/${encodeURIComponent(id)}/mapping?language=${language}`,
@@ -322,6 +325,10 @@ export const api = {
           derived: mapping.derived ?? [],
           fiscal_start: mapping.fiscal_start ?? 1,
           limits: mapping.limits,
+          // Which way is better, the decimal mark (5 November) and the pair to cross (6 November).
+          ...(mapping.better ? { better: mapping.better } : {}),
+          ...(mapping.decimal ? { decimal: mapping.decimal } : {}),
+          ...(mapping.cross ? { cross: mapping.cross } : {}),
         }),
       },
       UPLOAD_TIMEOUT_MS,
@@ -333,6 +340,10 @@ export const api = {
       { method: 'DELETE' },
       UPLOAD_TIMEOUT_MS,
     ),
+  /** Delete an analysis and keep its audit; `datasets` also removes the ones nothing else reads. */
+  deleteRun: (id: string, datasets: boolean, language: 'en' | 'ar' = 'en') =>
+    request<{ deleted: string; datasets_deleted: string[]; datasets_kept: string[]; audit_kept: number }>(
+      `/api/runs/${encodeURIComponent(id)}?datasets=${datasets}&language=${language}`, { method: 'DELETE' }),
   /** Remove a stored dataset; one an analysis reads is a 409 naming them. */
   deleteDataset: (id: string, language: 'en' | 'ar' = 'en') =>
     request<{ deleted: string; name: string; usage: { datasets: number; bytes: number } }>(
@@ -384,7 +395,8 @@ export const api = {
         throw new ApiError(translate('api.failed', { status: response.status }), response.status)
       }
       const blob = await response.blob()
-      const fallback = `miyaar-executive-${id.replace(/[^a-zA-Z0-9_-]/g, '_')}-${language}.${format}`
+      const word = language === 'ar' ? 'Arabic' : 'English'
+      const fallback = format === 'slides' ? `Executive Slides ${word}.html` : `Executive Brief ${word}.${format}`
       return { blob, name: attachmentName(response.headers.get('content-disposition'), fallback) }
     } catch (error) {
       if (error instanceof ApiError) throw error
@@ -420,6 +432,13 @@ export const api = {
     request<{ view: SavedView }>(
       `/api/runs/${encodeURIComponent(id)}/view?language=${language}`,
       { method: 'PUT', body: JSON.stringify(view) }, RUN_REQUEST_TIMEOUT_MS),
+  /** Named views of the run's dataset, besides the default one. */
+  namedViews: (id: string) => request<{ views: SavedView[] }>(`/api/runs/${encodeURIComponent(id)}/views`, {}, RUN_REQUEST_TIMEOUT_MS),
+  saveNamedView: (id: string, name: string, view: { page: string; query: string }, language: 'en' | 'ar' = 'en') =>
+    request<{ view: SavedView }>(`/api/runs/${encodeURIComponent(id)}/views/${encodeURIComponent(name)}?language=${language}`,
+      { method: 'PUT', body: JSON.stringify(view) }, RUN_REQUEST_TIMEOUT_MS),
+  deleteNamedView: (id: string, name: string) =>
+    request<void>(`/api/runs/${encodeURIComponent(id)}/views/${encodeURIComponent(name)}`, { method: 'DELETE' }, RUN_REQUEST_TIMEOUT_MS),
   forgetDashboardView: (id: string) =>
     request<void>(`/api/runs/${encodeURIComponent(id)}/view`, { method: 'DELETE' }, RUN_REQUEST_TIMEOUT_MS),
   tableRecords: (id: string, spec: RecordsSpec, language: 'en' | 'ar' = 'en') =>
@@ -452,7 +471,7 @@ export const api = {
     }
     return {
       blob: await response.blob(),
-      name: attachmentName(response.headers.get('content-disposition'), `run-${id}-cleaned.csv`),
+      name: attachmentName(response.headers.get('content-disposition'), 'Cleaned Data.csv'),
     }
   },
   refreshPublicationReview: (id: string) => request<RunDetail>(`/api/runs/${encodeURIComponent(id)}/approvals/refresh`, { method: 'POST' }, RUN_REQUEST_TIMEOUT_MS),

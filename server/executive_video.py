@@ -163,6 +163,22 @@ def storyboard(brief):
                    "items": cards_p or [{"title": tr("No calculated priority for this scope.", "لا توجد أولوية محسوبة لهذا النطاق.")}],
                    "figures": [{"label": c["title"], "shown": c["figure"], "source": c["source"]} for c in cards_p if c["figure"]],
                    "narration": " ".join(f"{i + 1}. {t.rstrip('.')}." for i, t in enumerate(items)) or tr("No calculated priority for this scope.", "لا توجد أولوية محسوبة لهذا النطاق.")})
+    cross = brief.get("crosstab")
+    if cross:
+        # One line per row, at most six; the narration says only the cited total.
+        rows = list(zip(cross["row_values"], cross["cells"]))
+        lines = [f"{_clean(str(r))} · " + " · ".join(f"{_clean(str(c))} {n}" for c, n in zip(cross["column_values"], counts))
+                 for r, counts in rows[:6]]
+        if len(rows) > 6:
+            lines.append(tr(f"{len(rows) - 6} more in the report.", f"{len(rows) - 6} أخرى في التقرير."))
+        a, b = _clean(cross["rows"]), _clean(cross["columns"])
+        scenes.append({"id": "matrix", "kind": "matrix", "heading": tr(f"Records by {a} and {b}", f"السجلات حسب {a} و{b}"),
+                       "lines": lines, "grid": {"columns": [_clean(str(c)) for c in cross["column_values"]],
+                                                "rows": [[_clean(str(r)), *counts] for r, counts in rows[:6]]},
+                       "figures": [{"label": tr("Records crossed", "السجلات المصنفة"), "shown": str(cross["records"]),
+                                                    "value": cross["records"], "source": cross["evidence_ref"]}],
+                       "narration": tr(f"{cross['records']} records spread across {a} and {b}. The report shows every pair. This is a count, not a risk ranking.",
+                                       f"{cross['records']} سجلاً موزعة حسب {a} و{b}. يعرض التقرير كل زوج. هذا عدد لا ترتيب للمخاطر.")})
     models = [model_evidence(m, brief["language"]) for m in (brief.get("models") or [])[:3]]
     limits = [_clean(x) for x in (brief.get("readiness", {}).get("limitations") or [])[:2]]
     forecast = models or [tr("No model was validated for this report, so no forecast is claimed.", "لم يُتحقق من أي نموذج لهذا التقرير، فلا يُدّعى أي توقع.")]
@@ -322,9 +338,10 @@ class _Painter:
             for line in scene["lines"]:
                 y += self.text(draw, (margin, y + 40), line, 34, COLOURS["muted"], width=SIZE[0] - 2 * margin) + 8
         else:
-            size = 34 if scene["kind"] == "statement" else 28 if sum(len(x) for x in scene["lines"]) < 360 else 24
+            size = 34 if scene["kind"] == "statement" else 30 if scene["kind"] == "matrix" else 28 if sum(len(x) for x in scene["lines"]) < 360 else 24
             for i, line in enumerate(scene["lines"]):
-                shown = line if scene["kind"] == "statement" else f"{i + 1}. {line}"
+                # A matrix row is not a rank, so it carries no number.
+                shown = line if scene["kind"] in ("statement", "matrix") else f"{i + 1}. {line}"
                 appear = min(1.0, max(0.0, progress * 2 - i * 0.3))
                 colour = tuple(int(c * appear + b * (1 - appear)) for c, b in zip(COLOURS["text"], COLOURS["bg"]))
                 y += self.text(draw, (margin, y), shown, size, colour, width=SIZE[0] - 2 * margin) + 14

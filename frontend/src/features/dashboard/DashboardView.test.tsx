@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { applyLocale } from '../../i18n'
@@ -11,7 +11,7 @@ vi.mock('./ExecutiveOverview', () => ({ ExecutiveOverview: ({ children }: { chil
 
 vi.mock('../../shared/api', async (original) => {
   const actual = await original<typeof import('../../shared/api')>()
-  return { ...actual, api: { ...actual.api, listRuns: vi.fn(), tableFields: vi.fn(), getRun: vi.fn(), queryTable: vi.fn(), tableRecords: vi.fn(), getDashboardView: vi.fn(), saveDashboardView: vi.fn(), forgetDashboardView: vi.fn() } }
+  return { ...actual, api: { ...actual.api, listRuns: vi.fn(), tableFields: vi.fn(), getRun: vi.fn(), queryTable: vi.fn(), tableRecords: vi.fn(), getDashboardView: vi.fn(), saveDashboardView: vi.fn(), forgetDashboardView: vi.fn(), namedViews: vi.fn(), saveNamedView: vi.fn(), deleteNamedView: vi.fn() } }
 })
 beforeEach(() => {
   applyLocale('en')
@@ -21,6 +21,7 @@ beforeEach(() => {
   vi.mocked(api.queryTable).mockResolvedValue({ groups: [], group_by: [], measures: [], group_count: 0, truncated: false, records: 1, matched_records: 1 })
   vi.mocked(api.tableRecords).mockResolvedValue({ columns: ['label'], rows: [['Owner A fixture']], total: 1 })
   vi.mocked(api.getDashboardView).mockResolvedValue({ view: null })
+  vi.mocked(api.namedViews).mockResolvedValue({ views: [] })
 })
 
 it.each(['en', 'ar'] as const)('keeps numeric-only uploads quantitative with an honest distribution (%s)', async (locale) => {
@@ -173,4 +174,44 @@ it.each(['en', 'ar'] as const)('a click on a histogram bin keeps that range on t
   render(<DashboardView runId="r1" page="distribution" query="lo=0&hi=10&hiop=lt" onNavigate={onNavigate} onOpenRun={vi.fn()} />)
   const release = locale === 'ar' ? 'إظهار كل المجموعات مجدداً (0 – 10)' : 'Show every group again (0 – 10)'
   expect(await screen.findByRole('button', { name: release })).toHaveAttribute('aria-pressed', 'true')
+})
+
+it.each(['en', 'ar'] as const)('keeps several named views: save one, open one, delete one (%s)', async (locale) => {
+  applyLocale(locale)
+  groupsByRegion()
+  const south = { page: 'trend', query: 'f.region=South', run_id: 'r1', updated_at: '', name: 'South trend' }
+  vi.mocked(api.namedViews).mockResolvedValueOnce({ views: [] }).mockResolvedValue({ views: [south] })
+  vi.mocked(api.saveNamedView).mockResolvedValue({ view: south })
+  vi.mocked(api.deleteNamedView).mockResolvedValue(undefined)
+  const onNavigate = vi.fn()
+  const user = userEvent.setup()
+  render(<DashboardView runId="r1" page="breakdown" query="f.region=North" onNavigate={onNavigate} onOpenRun={vi.fn()} />)
+  const ar = locale === 'ar'
+  await user.type(await screen.findByRole('textbox', { name: ar ? 'اسم لهذا العرض' : 'Name for this view' }), 'South trend')
+  await user.click(screen.getByRole('button', { name: ar ? 'حفظ كعرض مسمى' : 'Save as named view' }))
+  expect(api.saveNamedView).toHaveBeenCalledWith('r1', 'South trend', { page: 'breakdown', query: 'f.region=North' }, locale)
+  const list = await screen.findByRole('combobox', { name: ar ? 'العروض المسماة' : 'Named views' })
+  await waitFor(() => expect(list).toHaveValue('South trend'))
+  await user.selectOptions(list, 'South trend')
+  expect(onNavigate).toHaveBeenCalledWith({ tab: 'dashboard', runId: 'r1', page: 'trend', query: 'f.region=South' })
+  await user.click(screen.getByRole('button', { name: ar ? 'حذف العرض المسمى' : 'Delete named view' }))
+  expect(api.deleteNamedView).toHaveBeenCalledWith('r1', 'South trend')
+})
+
+it.each(['en', 'ar'] as const)('a scatter point shows its record and can narrow the page to its group (%s)', async (locale) => {
+  applyLocale(locale)
+  vi.mocked(api.tableFields).mockResolvedValue({ records: 2, fields: [
+    { name: 'region', type: 'text', role: 'breakdown', filled: 2, records: 2, values: ['North', 'South'] },
+    { name: 'sales', type: 'number', role: 'analysed', filled: 2, records: 2 },
+    { name: 'cost', type: 'number', role: 'measure', filled: 2, records: 2 },
+  ] })
+  vi.mocked(api.tableRecords).mockResolvedValue({ columns: ['region', 'sales', 'cost'], rows: [['North', 30, 5], ['South', 10, 9]], total: 2 })
+  const onNavigate = vi.fn()
+  const user = userEvent.setup()
+  const view = render(<DashboardView runId="r1" page="relationship" query="" onNavigate={onNavigate} onOpenRun={vi.fn()} />)
+  await waitFor(() => expect(view.container.querySelectorAll('.dash-svg circle')).toHaveLength(2))
+  await user.click(view.container.querySelectorAll('.dash-svg circle')[1])
+  expect(await screen.findByText(locale === 'ar' ? /السجل المحدد: cost 9، sales 10\./ : /Selected record: cost 9, sales 10\./)).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: locale === 'ar' ? 'اعرض South فقط' : 'Show only South' }))
+  expect(onNavigate).toHaveBeenLastCalledWith({ tab: 'dashboard', runId: 'r1', page: 'relationship', query: 'f.region=South' })
 })

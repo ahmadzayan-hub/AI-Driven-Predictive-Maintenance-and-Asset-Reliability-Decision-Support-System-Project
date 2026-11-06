@@ -28,6 +28,7 @@ do everything, and the reply says so (`source: "rules"`).
 """
 
 import json
+from types import SimpleNamespace
 import re
 from contextvars import ContextVar
 from server.data_chat import DataChat, question_metrics, natural_request
@@ -192,9 +193,54 @@ class Assistant:
         outcome = (intent("chat") if code in {"model_unavailable", "invalid_model_output"}
                    else understand(text))
         outcome["why"] = code
-        if outcome["action"] == "chat":
+        if outcome["action"] == "chat" and code == "not_configured" and self._knowledge_answers(text):
+            # No model is needed to quote the knowledge base: a real question with a
+            # strong match is answered from it, cited (stress test, 5 November).
+            outcome = intent("search_knowledge", {"query": text, "collection": None},
+                             source="rules", why="knowledge fallback without a language model")
+        elif outcome["action"] == "chat":
             outcome["reply"] = assistant_availability.message(code, session.agent.language())
         return outcome
+
+    KNOWLEDGE_QUESTION = re.compile(
+        r"\?|؟|^\s*(?:what|which|how|when|why|who|where|is|are|does|do|can|should|explain|define)\b"
+        r"|^\s*(?:ما|ماذا|كيف|متى|لماذا|من|أين|هل|اشرح|عرّف)", re.IGNORECASE)
+
+    # Words of conversation, not of subject matter: they never decide a match.
+    CONVERSATIONAL = frozenset("""
+        can could would should will shall may might must you your me my i we our us please tell
+        write give show make do does did doing about there here now today tomorrow yesterday
+        explain define mean means know think want need like just also really very much many
+        any some all good bad thing things way get got
+        لي لك انت أنت أنا نحن من فضلك اكتب أعطني اعطني اشرح عرّف الآن اليوم يعني أريد اريد
+        """.split())
+
+    def _knowledge_answers(self, text):
+        """True when a question has a strong match in the public knowledge base.
+
+        Strong: the best passage holds at least two of the question's words and
+        at least half of them. Private collections are not consulted here; the
+        search that answers applies the reader's own access as always."""
+        if not self.KNOWLEDGE_QUESTION.search(text or ""):
+            return False
+        words = set(knowledge._words(text)) - self.CONVERSATIONAL
+        if len(words) < 2:
+            return False
+        reader = SimpleNamespace(subject="knowledge-gate", provider="none", can=lambda _: True)
+        try:
+            store = knowledge.load(env=getattr(self, "env", None)).for_principal(reader, None, local=False)
+            hits = store.search(text, limit=1)
+        except Exception:   # a broken collection must not break the conversation
+            return False
+        matched = set(hits[0].matched) - self.CONVERSATIONAL if hits else set()
+        if len(matched) < 2 or len(matched) < len(words) / 2:
+            return False
+        # At least one matched word must name something: a code or identifier such
+        # as "P75", "G02", "144" or "Failure_Probability", or a term the question
+        # writes in capitals ("RAMS"). A general question ("What is preventive
+        # maintenance?") would otherwise quote passages that do not answer it.
+        capitals = {w.lower() for w in re.findall(r"\b[A-Z][A-Z0-9_]{1,}\b", text or "")}
+        return any(any(ch.isdigit() for ch in w) or "_" in w or w in capitals for w in matched)
 
     def handle(self, text, session, principal=None):
         # The real requester is distinct from a session's creator: an admin
@@ -574,11 +620,17 @@ class Assistant:
             return {"text": notice, "result": None}
         blank, newline = chr(10) * 2, chr(10)
         passages = blank.join(
-            hit.citation + newline + _excerpt(hit.passage.text)
+            hit.citation + (f" [{hit.passage.label}]" if hit.passage.label else "")
+            + newline + _excerpt(hit.passage.text)
             for hit in hits)
         names = sorted({hit.passage.collection for hit in hits})
-        return {"text": reply(language, "knowledge_found",
-                              collection=", ".join(names), passages=passages),
+        text = reply(language, "knowledge_found",
+                     collection=", ".join(names), passages=passages)
+        limits = knowledge_limits([hit.passage for hit in hits], language)
+        if limits:
+            text += reply(language, "knowledge_limits",
+                          lines="\n".join(f"- {line}" for line in limits))
+        return {"text": text,
                 "result": {"query": query,
                            "results": [dict(hit.passage.as_dict(score=hit.score),
                                             matched=list(hit.matched))
@@ -711,3 +763,50 @@ class Assistant:
             pending = entry.pop("pending", None)
             return pending if isinstance(pending, dict) else None
         return None
+
+
+# What each limit code in a knowledge directive means, in the reader's words
+# (ADR 2026-11-04, evidence-aware knowledge; Appendix D answer contract).
+KNOWLEDGE_LIMITS = {
+    "superseded": ("Superseded: kept for the correction history, not a current value.",
+                   "مستبدَل: محفوظ لسجل التصحيحات، وليس قيمة حالية."),
+    "unresolved": ("Unresolved: the evidence is missing or conflicting.",
+                   "غير محسوم: الدليل غير متوفر أو متعارض."),
+    "synthetic_educational_data": ("Synthetic educational data, not operational records.",
+                                   "بيانات اصطناعية تعليمية، وليست سجلات تشغيلية."),
+    "not_validated_prediction": ("Its scores are not validated predictions of future failure.",
+                                 "درجاتها ليست تنبؤات مُتحقَّقاً منها بالأعطال المستقبلية."),
+    "not_operational_rmd": ("Not RMD operational performance.",
+                            "ليست أداءً تشغيلياً في RMD."),
+    "academic_case": ("An academic course case.",
+                      "حالة أكاديمية من المقرر."),
+    "not_rmd_operational_rule": ("Not an RMD operational rule or threshold.",
+                                 "ليست قاعدة أو حداً تشغيلياً في RMD."),
+    "historical_not_current_verification": (
+        "Historical status: check current repository, CI and deployment evidence.",
+        "حالة تاريخية: يلزم التحقق من الحالة الحالية للمستودع والفحوص والنشر."),
+    "requirements_not_current_functionality": (
+        "A dated requirement, not proof that the feature works today.",
+        "متطلب مؤرخ، وليس دليلاً على أن الميزة تعمل اليوم."),
+    "proposal_not_approved_rule": ("A proposal, not an approved rule.",
+                                   "مقترح، وليس قاعدة معتمدة."),
+}
+
+
+def knowledge_limits(passages, language):
+    """The qualifications a reader needs with these quotes, once each, in order."""
+    index = 1 if language == "ar" else 0
+    codes = []
+    for passage in passages:
+        meta = getattr(passage, "meta", {}) or {}
+        if meta.get("status") in ("superseded", "unresolved"):
+            codes.append(meta["status"])
+        codes.extend(meta.get("limits", []))
+    seen, lines = set(), []
+    for code in codes:
+        if code in seen:
+            continue
+        seen.add(code)
+        known = KNOWLEDGE_LIMITS.get(code)
+        lines.append(known[index] if known else code)
+    return lines

@@ -299,7 +299,7 @@ async function downloadReport(page: Page, prepared: Locator, snapshot: RunExecut
   expect(params.get('expected_snapshot_id')).toBe(snapshot.snapshot_id)
   expect(response.headers()['content-type']).toContain(format === 'html'
     ? 'text/html' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-  expect(download.suggestedFilename()).toBe(`miyaar-executive-${snapshot.run.id}-${snapshot.language}.${format}`)
+  expect(download.suggestedFilename()).toBe(`Executive Brief ${snapshot.language === 'ar' ? 'Arabic' : 'English'}.${format}`)
   const document = format === 'html'
     ? await inspectHtml(page, await readFile(await downloadPath(download), 'utf8'), snapshot.language)
     : await inspectDocx(download, snapshot.language)

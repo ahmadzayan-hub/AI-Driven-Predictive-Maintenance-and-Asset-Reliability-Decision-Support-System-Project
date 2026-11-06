@@ -90,6 +90,7 @@ ARABIC_ERRORS = {
     "organization_not_found": "لم يتم العثور على المؤسسة.",
     "record_not_found": "لم يتم العثور على السجل في هذه المؤسسة.",
     "permission_denied": "لا تسمح صلاحياتك بتنفيذ هذا الإجراء في المؤسسة.",
+    "self_authorization": "لا يمكنك اعتماد عمل أعددت مسودته؛ يجب أن يعتمده مالك أو مدير آخر.",
     "run_not_found": "لم يتم العثور على تحليل مصدر تملكه.",
     "evidence_not_ready": "يجب اكتمال التحليل قبل إعداد أمر الصيانة.",
     "asset_mismatch": "معرّف الأصل في المصدر لا يطابق الأصل المسجل.",
@@ -120,8 +121,8 @@ ARABIC_ERRORS = {
 }
 
 
-def install_operations_api(app, store, current_principal):
-    service = Operations(store)
+def install_operations_api(app, store, current_principal, separate_approver=False):
+    service = Operations(store, separate_approver=separate_approver)
     router = APIRouter(prefix="/api/operations")
 
     def invoke(language, function, *args):

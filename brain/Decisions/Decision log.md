@@ -3,7 +3,7 @@ type: decision
 aliases: [ADR index, Architecture decisions]
 tags: [decisions]
 status: active
-updated: 2026-10-30
+updated: 2026-11-06
 review_every_days: 30
 sources: [docs/adr]
 ---
@@ -235,6 +235,18 @@ One line per record, read from its title and decision; the record itself is the 
 | 2026-11-02-command-centre-pilot | Command Centre redesign pilot: one primary action, brief and next step side by side, larger headline, KPI tiles; no data or string change, no budget raise | [[Design system]] |
 | 2026-11-02-jarvis-command-deck | Jarvis core on a celestial background with a gold ring, a head outline while speaking, and a live agent map of the run's real task states; totals raised to 273 KB script and 37 KB style, approved by the owner | [[Design system]] |
 | 2026-11-03-generative-layout | Data-specific layouts as a declarative, validated plan of registered components bound to query-engine bindings; schema-only profile to the planner; model planner when privacy allows, labelled rule planner otherwise; whole-plan rejection on any problem | [[Evidence and claims]] |
+| 2026-11-02-session-scope-recovery | A vanished local session or report is said plainly and recovered on request, never silently replaced | [[Agentic OS]] |
+| 2026-11-03-executive-dark-theme | Dark executive theme by default after the owner's reference designs; light theme kept | [[Design system]] |
+| 2026-11-03-synthetic-dataset | Seeded synthetic maintenance generator; the outlier claim it exposed fixed | [[Evidence and claims]] |
+| 2026-11-04-shared-review | One append-only review step for every executive output, bound to the snapshot and file digest | [[Approval gate]] |
+| 2026-11-04-executive-video | Executive video rendered on the host from the brief, every figure traced in its manifest | [[Evidence and claims]] |
+| 2026-11-04-layout-history | Designed-page layouts kept per reader on the server, with versions, restore and conflict refusal | [[Agentic OS]] |
+| 2026-11-04-faithful-figures-and-full-comparisons | Figures keep their precision, comparisons draw every measure, hand-overs drop stale filters | [[Evidence and claims]] |
+| 2026-11-04-evidence-aware-knowledge | RMD V2 knowledge packs with evidence status, domain and superseded values | [[Evidence and claims]] |
+| 2026-11-05-condition-surveys | Scores, levels and rates averaged, observation dates as the time axis, condition measures | [[Weighted KPIs]] |
+| 2026-11-05-knowledge-answer-limits-and-paraphrase-benchmark | Knowledge answers carry their limits; paraphrase floors fixed; a stemmer measured worse and reverted | [[Agent evaluation]] |
+| 2026-11-05-stress-findings | Synthetic stress harness; claims, numbers, dates, grades, decimal commas and direction fixed | [[Governed pipeline]] |
+| 2026-11-06-two-way-matrix | Two breakdowns crossed on the page, in the brief, documents, slides and video; nested pairs refused | [[Governed pipeline]] |
 
 - `2026-10-27-assistant-focus-and-context`: isolated candidate; native report disclosure beside composer, scoped session status and stronger first action. Browser acceptance pending.
 

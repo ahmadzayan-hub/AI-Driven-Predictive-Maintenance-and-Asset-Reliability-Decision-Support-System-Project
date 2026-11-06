@@ -273,6 +273,17 @@ def report_sections(brief):
             (tr("Review", "المراجعة"), item["detail"]), (tr("Evidence references", "مراجع الأدلة"), item["evidence_refs"])]))
     if not priorities.tables:
         priorities.note_absence(tr("No observed priority is identified in this scope.", "لم تُحدد أولوية مرصودة ضمن هذا النطاق."))
+    crosstab = Section(tr("Records across two breakdowns", "السجلات عبر تصنيفين"))
+    cross = brief.get("crosstab")
+    if cross:
+        crosstab.paragraphs.append(tr(
+            f"Count of records in scope for each {cross['rows']} and {cross['columns']}: {cross['records']} in all. A count, not a risk ranking.",
+            f"عدد السجلات ضمن النطاق لكل {cross['rows']} و{cross['columns']}: {cross['records']} إجمالاً. عدد لا ترتيب للمخاطر."))
+        share = round(70 / len(cross["column_values"]), 2)
+        crosstab.tables.append(Table((cross["rows"], *cross["column_values"]),
+                                     [(name, *counts) for name, counts in zip(cross["row_values"], cross["cells"])],
+                                     (round(100 - share * len(cross["column_values"]), 2),) + (share,) * len(cross["column_values"]),
+                                     tr(f"{cross['rows']} by {cross['columns']}", f"{cross['rows']} حسب {cross['columns']}")))
     questions = Section(tr("Decision questions", "أسئلة القرار"))
     for item in brief["questions"]:
         questions.paragraphs.extend([item["text"], refs(item)])
@@ -410,7 +421,7 @@ def report_sections(brief):
     decision_records = contract_sections[1:]
     sections = [front, summary, questions, selected, metadata, *source_sections,
                 *coverage_sections, *definitions, targets, kpis, *scorecards,
-                findings, models, *readiness_sections, priorities,
+                findings, models, *readiness_sections, priorities, crosstab,
                 *decisions_requested, *decision_records, limitations, evidence]
     # Sections with nothing to report are left out, and named once here so
     # their absence stays explicit without an empty heading each.
@@ -793,12 +804,6 @@ def render_docx(brief):
     return stream.getvalue()
 
 
-def attachment_name(run_id, language, format):
-    safe = re.sub(r"[^A-Za-z0-9_-]", "_", str(run_id))[:100] or "run"
-    if format == "slides":
-        return f"miyaar-executive-{safe}-{language}-slides.html"
-    return f"miyaar-executive-{safe}-{language}.{format}"
-
 
 SLIDES_STYLE = """
 @page { size: 13.333in 7.5in; margin: 0; }
@@ -812,6 +817,7 @@ p { margin: 0; overflow-wrap: break-word; } ol, ul { margin: 0; padding-inline-s
 .kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14pt; }
 .kpi { border: 1pt solid #d0d5dd; border-inline-start: 6pt solid #0e7490; border-radius: 6pt; padding: 12pt 16pt; }
 .kpi strong { display: block; font-size: 30pt; } .kpi span { color: #475467; font-size: 14pt; }
+.cross { border-collapse: collapse; font-size: 13pt; } .cross th, .cross td { border: 1pt solid #d0d5dd; padding: 3pt 9pt; text-align: center; }
 .badge { align-self: flex-start; display: inline-block; padding: 3pt 10pt; border-radius: 99pt; background: #fef3c7; color: #7a2e0e; font-size: 13pt; font-weight: 700; }
 bdi { unicode-bidi: isolate; }
 @media screen and (max-width: 900px) { .slide { width: auto; height: auto; min-height: 60vh; margin: 12px; padding: 24px; } .kpis { grid-template-columns: 1fr; } }
@@ -916,10 +922,22 @@ def render_slides_html(brief):
                   + "</div>" + ("" if measures else f"<p>{t(tr('No controlled measure is available in this data.', 'لا يتوفر مؤشر منضبط في هذه البيانات.'))}</p>")
                   + f'{footer}</section>')
     priorities = (brief.get("priorities") or [])[:3]
+    cross = brief.get("crosstab")
+    if cross and len(cross["row_values"]) <= 6 and len(cross["column_values"]) <= 6:
+        # Small enough to read on a slide; the report carries any larger one.
+        cross_html = (
+                      f'<table class="cross"><caption>{t(tr("Records by {a} and {b}; a count, not a risk ranking", "السجلات حسب {a} و{b}؛ عدد لا ترتيب للمخاطر").format(a=cross["rows"], b=cross["columns"]))}</caption>'
+                      f'<tr><th></th>' + "".join(f'<th scope="col">{t(c)}</th>' for c in cross["column_values"]) + "</tr>"
+                      + "".join(f'<tr><th scope="row">{t(r)}</th>' + "".join(f"<td><bdi>{n}</bdi></td>" for n in counts) + "</tr>"
+                                for r, counts in zip(cross["row_values"], cross["cells"])) + "</table>")
+    elif cross:
+        cross_html = f"<p>{t(tr('The report shows how the records spread across {a} and {b}.', 'يعرض التقرير توزع السجلات حسب {a} و{b}.').format(a=cross['rows'], b=cross['columns']))}</p>"
+    else:
+        cross_html = ""
     slides.append(f'<section class="slide"><h2>{t(tr("Biggest risks or opportunities", "أهم المخاطر أو الفرص"))}</h2>'
                   + ("<ol>" + "".join(f"<li><strong>{t(p.get('title', ''))}</strong>. {t(p.get('detail', ''))}</li>" for p in priorities) + "</ol>"
                      if priorities else f"<p>{t(tr('No calculated priority for this scope.', 'لا توجد أولوية محسوبة لهذا النطاق.'))}</p>")
-                  + f'{footer}</section>')
+                  + cross_html + f'{footer}</section>')
     limits = (brief.get("readiness", {}).get("limitations") or [])[:4]
     models = (brief.get("models") or [])[:4]
     slides.append(f'<section class="slide"><h2>{t(tr("Forecast and limits", "التوقع والحدود"))}</h2>'

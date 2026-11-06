@@ -1,0 +1,17 @@
+{
+  "title": "RMD V2 data analytics project knowledge / معرفة مشروع تحليلات البيانات",
+  "description": "Group 9226 analytics knowledge: synthetic educational dataset, calculation register, data-quality limits and the proposed RMD V2 capability. Synthetic scores are not validated predictions.",
+  "document_id": "RMD_V2_Data_Analytics_Project_Knowledge",
+  "version": "1.0",
+  "synthetic": true,
+  "visibility": "public",
+  "data_classification": "public",
+  "model_context_allowed": false,
+  "prepared_on": "2026-11-04",
+  "evidence_basis": "owner-supplied handover; evidence labels preserved per passage",
+  "operational_authority": false,
+  "passages_source": "09e7ff11-RMD_V2_Data_Analytics_Project_Knowledge.md",
+  "source_sha256": "2a8148a5e7918a143218b3bb95d56e41c087df55d17d2ea53aa00cd4e54be712",
+  "withheld_sections": [],
+  "collection_id": "rmd-v2-analytics-9226"
+}

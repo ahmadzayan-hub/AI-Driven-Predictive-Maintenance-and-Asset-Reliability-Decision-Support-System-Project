@@ -87,6 +87,43 @@ def currency_of(run):
     return colmap.currency_of(mapping)
 
 
+MAX_CROSSTAB_COLUMNS = 8
+
+
+def cross_tabulate(table, selected, language, add_evidence, cross=None):
+    """The page's two-way matrix, counted over the brief's own scope
+    (ADR 2026-11-06-two-way-matrix). The pair comes from the rule planner on
+    the whole run, so a filter never changes which columns are crossed; the
+    counts are the query engine's. None when no informative pair fits."""
+    from server import layout_plan
+    prof = layout_plan.profile(table)
+    plan = layout_plan.rule_plan(prof, layout_plan.capabilities(prof),
+                                 crossed=lambda a, b: layout_plan.crossed(table, a, b), cross=cross)
+    section = next((s for s in plan["sections"] if s["component"] == "matrix"), None)
+    if section is None or not selected:
+        return None
+    first, second = section["binding"]["group_by"]
+    scoped = query.Table(table.columns, table.numeric, list(selected), table.roles)
+    groups = query.aggregate(scoped, {"group_by": [first, second], "measures": [{"agg": "count"}],
+                                      "limit": layout_plan.MAX_CELLS})["groups"]
+    rows = sorted({g["keys"][0] for g in groups}, key=str)
+    columns = sorted({g["keys"][1] for g in groups}, key=str)
+    if len(columns) > MAX_CROSSTAB_COLUMNS and len(rows) <= MAX_CROSSTAB_COLUMNS:
+        first, second, rows, columns = second, first, columns, rows
+        groups = [{**g, "keys": [g["keys"][1], g["keys"][0]]} for g in groups]
+    if len(columns) > MAX_CROSSTAB_COLUMNS:
+        return None
+    cell = {(g["keys"][0], g["keys"][1]): g["values"][0] for g in groups}
+    total = sum(cell.values())
+    add_evidence("executive.crosstab.records", "calculation",
+                 _say(language, f"Records crossed by {first} and {second}", f"السجلات حسب {first} و{second}"),
+                 total, _say(language, "Count of scoped records holding both values, by pair.",
+                             "عدد سجلات النطاق التي تحمل القيمتين، لكل زوج."))
+    return {"rows": first, "columns": second, "row_values": rows, "column_values": columns,
+            "cells": [[cell.get((r, c), 0) for c in columns] for r in rows], "records": total,
+            "evidence_ref": "executive.crosstab.records"}
+
+
 class ExecutiveDashboardAgent:
     """Deterministic decision support. Existing permissions remain the API's job."""
 
@@ -326,6 +363,11 @@ class ExecutiveDashboardAgent:
                                     "لم يكتمل التشغيل بنجاح؛ وهذا ملخص للأدلة الجزئية."))
         limitations.append(_say(language, "Observed maintenance records do not establish future asset failure, remaining useful life, physical asset identity, or causal savings. Actions require qualified human review.",
                                 "لا تثبت سجلات الصيانة المرصودة الأعطال المستقبلية أو العمر المتبقي أو هوية الأصل الفعلية أو الوفورات السببية. تتطلب الإجراءات مراجعة بشرية مؤهلة."))
+        try:
+            declared = json.loads(run.get("mapping_json") or "null")
+        except ValueError:
+            declared = None
+        crosstab = cross_tabulate(table, selected, language, add_evidence, colmap.cross_of(declared))
         decision_advisory = advisory(table, selected, measures, priorities, models, language, add_evidence)
         status = "empty" if not selected else "limited" if len(limitations) > 1 else "ready"
         headline = (_say(language, "No cleaned records match the selected scope.", "لا توجد سجلات منظفة تطابق النطاق المحدد.")
@@ -340,7 +382,7 @@ class ExecutiveDashboardAgent:
                 "period": period_of(table, selected)}, "headline": headline,
                 "readiness": {"status": status, "limitations": limitations},
                 "kpis": {"measures": measures, "unavailable": unavailable},
-                "priorities": priorities, "questions": questions, "findings": findings,
+                "priorities": priorities, "crosstab": crosstab, "questions": questions, "findings": findings,
                 "models": models, "evidence": evidence, "drilldowns": drilldowns,
                 "kpi_policy": copy.deepcopy(selected_policy), "advisory": decision_advisory}
         # Task results may change without advancing the run row's timestamp.

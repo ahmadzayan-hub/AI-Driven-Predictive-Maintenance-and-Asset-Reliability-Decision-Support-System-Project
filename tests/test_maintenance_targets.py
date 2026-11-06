@@ -412,5 +412,20 @@ class MaintenanceInGovernedRunTest(unittest.TestCase):
                     store.close()
 
 
+class CleanedValuesStandTests(unittest.TestCase):
+    """6 November 2026 review: maintenance models never reintroduce a raw value the cleaner removed."""
+
+    def test_an_out_of_limits_reading_stays_out(self):
+        from server.maintenance import targets
+        raw = [{"Record_ID": "R1", "Asset_ID": "A1", "Downtime_Hours": "9999", "Work_Order_Type": "Corrective"},
+               {"Record_ID": "R2", "Asset_ID": "A2", "Downtime_Hours": "4", "Work_Order_Type": "Corrective"}]
+        cleaned = [{**raw[0], "Downtime_Hours": None}, {**raw[1], "Downtime_Hours": 4.0}]
+        ctx = {"collector": {"columns": list(raw[0]), "rows": raw},
+               "cleaner": {"rows": cleaned, "source_indices": [0, 1]}}
+        rows = targets._model_table(ctx)[0]
+        self.assertEqual([r["Downtime_Hours"] for r in rows], [None, 4.0])
+        self.assertEqual([r["Work_Order_Type"] for r in rows], ["Corrective", "Corrective"])   # text still from source
+
+
 if __name__ == "__main__":
     unittest.main()

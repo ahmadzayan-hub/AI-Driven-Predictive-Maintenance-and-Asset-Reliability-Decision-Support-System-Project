@@ -3,7 +3,7 @@ type: project
 aliases: [Capstone, Group 9226 capstone]
 tags: [project, course]
 status: active
-updated: 2026-10-31
+updated: 2026-11-06
 review_every_days: 3
 sources: [project-progress.md, docs/AGENT_TEAM.md, Memory.md, server/maintenance/reliability.py]
 ---

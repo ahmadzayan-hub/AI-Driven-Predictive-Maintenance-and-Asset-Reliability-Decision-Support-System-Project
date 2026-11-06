@@ -16,6 +16,7 @@ import os
 import re
 from typing import Literal
 import threading
+import shutil
 import subprocess
 import time
 import uuid
@@ -36,6 +37,7 @@ from starlette.concurrency import run_in_threadpool
 
 from agent import Agent, language_code
 from server.agent_runtime import build_runtime
+from server import downloads
 from server import knowledge as knowledge_module
 from server import analytics
 from server.api_contract import document_errors, error_body, install_error_handlers
@@ -58,7 +60,7 @@ from server.model_gateway import ModelGateway
 from server.orchestration import ModelRoles
 from server.routing import RoutedGateway, build_router
 from server.stages import describe, load_stages
-from server.runs import (DatasetInUse, IdempotencyConflict, PublicationDestinationChanged, RunEngine, TableNotReady, dataset_summary,
+from server.runs import (DatasetInUse, RunActive, IdempotencyConflict, PublicationDestinationChanged, RunEngine, SelfApprovalRefused, TableNotReady, dataset_summary,
                          resolve_publish_target, resolve_vault_dir)
 from server import demo
 from server.auth import DEMO_PRINCIPAL, AuthError, build_identity, public_auth_config
@@ -310,6 +312,11 @@ class KeyPairIn(BaseModel):
     right: str = Field(min_length=1, max_length=200)
 
 
+class CorrectionIn(BaseModel):
+    from_: str = Field(alias="from", min_length=1, max_length=200)
+    to: str = Field(min_length=1, max_length=200)
+
+
 class JoinIn(BaseModel):
     dataset_id: str = Field(min_length=1, max_length=32)
     # A stack needs no key; `normalise` refuses a left or inner join without one.
@@ -319,14 +326,18 @@ class JoinIn(BaseModel):
     # How text keys compare (30 October 2026): exact (the default) or loose,
     # ignoring letter case and runs of spaces.
     match: str | None = Field(default=None, pattern="^(exact|loose)$")
+    # Main keys the owner confirmed stand for a joined key (6 November 2026).
+    corrections: list[CorrectionIn] | None = Field(default=None, max_length=joining.MAX_CORRECTIONS)
 
 
 def _join_dict(join):
     """A join as the run engine takes it. `match` is left out unless given,
     so a request written before it existed hashes as it did (idempotency)."""
-    out = join.model_dump()
+    out = join.model_dump(by_alias=True)
     if out.get("match") is None:
         out.pop("match", None)
+    if out.get("corrections") is None:
+        out.pop("corrections", None)
     return out
 
 
@@ -384,6 +395,12 @@ class MappingIn(BaseModel):
     # (31 October 2026); outside them is a data error. Checked by
     # server.mapping, which explains a refusal in the reader's language.
     limits: dict[str, dict] | None = Field(default=None, max_length=500)
+    # The decimal mark of the file's numbers, and which way is better for a
+    # measure (5 November 2026). Absent means a point and not stated.
+    decimal: str = Field(default="point", max_length=8)
+    better: dict[str, str] | None = Field(default=None, max_length=500)
+    # Two dimensions to cross in the matrix (6 November 2026).
+    cross: list[str] | None = Field(default=None, max_length=2)
 
 
 class QueryIn(BaseModel):
@@ -554,6 +571,8 @@ def create_app(config_path=None, env=None, dist_dir=None):
         roles=model_roles if model_roles.active else None,
         publish_target=resolve_publish_target(env, config),
         specialist_driver=specialist_driver,
+        separate_approver=str((os.environ if env is None else env).get(
+            "AGENTIC_OS_SEPARATE_APPROVER", "")).strip().lower() in ("1", "true", "yes", "on"),
     )
     app.state.engine = engine
     app.state.store = store
@@ -820,7 +839,8 @@ def create_app(config_path=None, env=None, dist_dir=None):
         """Objects belong to their creator; admins may act across owners."""
         return owner == principal.subject or principal.can("admin")
 
-    install_operations_api(app, store, current_principal)
+    install_operations_api(app, store, current_principal,
+                           separate_approver=engine.separate_approver)
     install_reliability_api(app, store, current_principal)
     install_pilot_api(app, store, engine, current_principal, identity.mode)
     rmd = install_rmd_api(app, store, current_principal, identity.mode, env=env, engine=engine)
@@ -1162,7 +1182,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
                     "transcript": session.transcript,
                 },
                 headers={
-                    "Content-Disposition": 'attachment; filename="agentic-os-export.json"'
+                    "Content-Disposition": downloads.disposition(downloads.SESSION_EXPORT)
                 },
             )
 
@@ -1227,13 +1247,17 @@ def create_app(config_path=None, env=None, dist_dir=None):
     def search_knowledge(q: str = Query(..., min_length=2, max_length=400),
                          collection: str = Query(None, max_length=120),
                          limit: int = Query(5, ge=1, le=20),
+                         domain: str = Query(None, max_length=120),
+                         include_superseded: bool = Query(None),
                          principal=Depends(requires("read"))):
         """Passages for a question, each carrying the citation to its section.
 
         The text returned is reference material. It is quoted to a reader
         or handed to a model as evidence; it never instructs the system.
         """
-        hits = knowledge_store(principal).search(q, collection=collection, limit=limit)
+        hits = knowledge_store(principal).search(
+            q, collection=collection, limit=limit, domain=domain,
+            include_superseded=include_superseded)
         return {"query": q,
                 "results": [dict(h.passage.as_dict(score=h.score),
                                  matched=list(h.matched)) for h in hits]}
@@ -1255,6 +1279,8 @@ def create_app(config_path=None, env=None, dist_dir=None):
             raise HTTPException(status_code=429, detail=error.message)
         except PublicationDestinationChanged as error:
             raise HTTPException(status_code=409, detail={"code": "publication_destination_changed", "message": str(error)})
+        except SelfApprovalRefused as error:
+            raise HTTPException(status_code=403, detail={"code": "self_approval", "message": error.message})
         except ValueError as error:
             raise HTTPException(status_code=409, detail=str(error))
 
@@ -1369,7 +1395,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         filename = re.split(r"[\\/]", name)[-1].strip() or "dataset"
         try:
             fmt = format or dataset_reader.detect_format(filename, body)
-            if fmt not in ("xlsx", "ods"):
+            if fmt not in ("xlsx", "xls", "ods"):
                 return {"sheets": [], "default_sheet": None}
             sheets = await run_in_threadpool(dataset_reader.list_sheets, body, fmt)
         except dataset_reader.DatasetError as error:
@@ -1428,6 +1454,17 @@ def create_app(config_path=None, env=None, dist_dir=None):
                 return engine.dataset_detail(dataset_id, principal.subject, language)
             except KeyError:
                 raise HTTPException(status_code=404, detail="Dataset not found.")
+
+    @app.post("/api/datasets/{dataset_id}/mapping/proposal")
+    async def propose_mapping(dataset_id: str,
+                              language: str = Query(default="en", pattern="^(en|ar)$"),
+                              principal=Depends(requires("read"))):
+        """A proposed mapping, model-made from the schema alone when one may be
+        used, the rules' otherwise; nothing is saved."""
+        try:
+            return await run_in_threadpool(engine.propose_mapping, dataset_id, principal.subject, gateway, language)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="Dataset not found.")
 
     @app.put("/api/datasets/{dataset_id}/mapping")
     def save_mapping(dataset_id: str, mapping: MappingIn,
@@ -1729,7 +1766,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
             return FileResponse(
                 video, media_type="video/mp4",
                 headers={"Cache-Control": "private, no-store", "X-Robots-Tag": "noindex"},
-                filename=f"INTERNAL-DRAFT-{job_id}.mp4",
+                filename=downloads.DRAFT_PREVIEW,
             )
 
         @app.post("/api/motion/jobs/{job_id}/submit")
@@ -1819,11 +1856,9 @@ def create_app(config_path=None, env=None, dist_dir=None):
                              language: str = Query(default="en", pattern="^(en|ar)$"),
                              principal=Depends(requires("read"))):
         table, run = await run_table(run_id, principal, language)
-        name = table_query.download_name(run["goal"], run_id)
         text = await run_in_threadpool(table_query.to_csv, table)
         return Response(content=text.encode("utf-8"), media_type="text/csv; charset=utf-8",
-                        headers={"Content-Disposition":
-                                 f'attachment; filename="{name}"; filename*=UTF-8\'\'{name}'})
+                        headers={"Content-Disposition": downloads.disposition(downloads.CLEANED_DATA)})
 
     @app.get("/api/runs/{run_id}/fields")
     async def table_fields(run_id: str,
@@ -1976,7 +2011,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         content = await run_in_threadpool(render, brief)
         mime = executive_export.DOCX_MIME if format == "docx" else executive_export.HTML_MIME
         return Response(content, media_type=mime, headers={
-            "Content-Disposition": 'attachment; filename="' + executive_export.attachment_name(run_id, language, format) + '"',
+            "Content-Disposition": downloads.disposition(downloads.executive(language, format)),
             "Cache-Control": "no-store",
             "X-Content-Type-Options": "nosniff",
             "Content-Security-Policy": executive_export.CONTENT_POLICY,
@@ -1987,6 +2022,28 @@ def create_app(config_path=None, env=None, dist_dir=None):
     # 2026-11-04-shared-review and 2026-11-04-executive-video).
     from server import executive_video, export_reviews
     export_root = Path(local_env.get("AGENTIC_OS_EXPORT_DIR") or PROJECT_ROOT / "data" / "exports").expanduser()
+
+    @app.delete("/api/runs/{run_id}")
+    def delete_run(run_id: str, datasets: bool = Query(default=False),
+                   language: str = Query(default="en", pattern="^(en|ar)$"),
+                   principal=Depends(requires("write"))):
+        """Delete an analysis and keep its audit (ADR 2026-11-06-delete-a-run-keep-its-audit).
+        Another owner's run, or one already deleted, is a 404; a running one a 409."""
+        with lock:
+            try:
+                owner = engine.owner_of(run_id)
+                if owner != principal.subject:
+                    raise KeyError(run_id)
+                result = engine.delete_run(run_id, owner, principal.subject, datasets, language)
+            except KeyError:
+                raise HTTPException(status_code=404, detail="Run not found.")
+            except RunActive as error:
+                raise HTTPException(status_code=409, detail={"code": "run_active", "message": error.message})
+        # Rendered films live on disk; the run's folder goes with its rows.
+        folder = (export_root / run_id).resolve()
+        if folder.parent == export_root.resolve() and folder.is_dir():
+            shutil.rmtree(folder, ignore_errors=True)
+        return result
     video_busy = threading.Lock()
     video_files = {"video.mp4": "video/mp4", "subtitles.vtt": "text/vtt; charset=utf-8",
                    "subtitles.srt": "application/x-subrip; charset=utf-8", "manifest.json": "application/json"}
@@ -2044,6 +2101,11 @@ def create_app(config_path=None, env=None, dist_dir=None):
             raise HTTPException(status_code=409, detail=export_reviews.message("no_video", body.language))
         if current != body.artifact_sha256:
             raise HTTPException(status_code=409, detail=export_reviews.message("artifact_changed", body.language))
+        if body.decision == "approved":
+            try:
+                engine.check_approver(run_id, principal.subject)
+            except SelfApprovalRefused as error:
+                raise HTTPException(status_code=403, detail={"code": "self_approval", "message": error.message})
         try:
             with lock:
                 row = export_reviews.record(engine.store, run_id=run_id, snapshot_id=brief["snapshot_id"],
@@ -2111,10 +2173,9 @@ def create_app(config_path=None, env=None, dist_dir=None):
                 raise HTTPException(status_code=410, detail="The stored file is missing or changed.")
         elif not path.is_file():
             raise HTTPException(status_code=410, detail="The stored file is missing or changed.")
-        filename = f"{run_id}-{row['language']}-{row['snapshot_id'][:12]}-{name}"
         return FileResponse(path, media_type=video_files[name], headers={
             "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
-            "Content-Disposition": f'{"attachment" if download else "inline"}; filename="{filename}"'})
+            "Content-Disposition": downloads.disposition(downloads.film(row["language"], name), inline=not download)})
 
     @app.post("/api/runs/{run_id}/query")
     async def query_table(run_id: str, body: QueryIn,
@@ -2137,9 +2198,12 @@ def create_app(config_path=None, env=None, dist_dir=None):
             tasks = engine.store.get_tasks(run_id)
             blocked = run_blocks_model(engine.store, run_id)
         stages = [t["role"] for t in tasks if t["state"] == "succeeded"]
+        with lock:
+            run_row = engine.store.get_run(run_id) or {}
+        mapping = json.loads(run_row["mapping_json"]) if run_row.get("mapping_json") else None
         result = await run_in_threadpool(
             layout_plan.plan_for, table, gateway if body.use_model else None,
-            body.objective, stages, not blocked, language)
+            body.objective, stages, not blocked, language, colmap.better_of(mapping), colmap.cross_of(mapping))
         result.pop("profile", None)
         return result
 
@@ -2240,6 +2304,45 @@ def create_app(config_path=None, env=None, dist_dir=None):
         owner, key = _view_scope(principal, run_id, "write")
         with lock:
             engine.store.delete_dashboard_view(owner, key)
+        return Response(status_code=204)
+
+    @app.get("/api/runs/{run_id}/views")
+    def list_named_views(run_id: str, principal=Depends(requires("read"))):
+        owner, key = _view_scope(principal, run_id)
+        prefix = key + dashboard_views.NAMED
+        with lock:
+            rows = engine.store.named_dashboard_views(owner, prefix)
+        return {"views": [dashboard_views.present_named(r, key) for r in rows]}
+
+    @app.put("/api/runs/{run_id}/views/{name}")
+    def save_named_view(run_id: str, name: str, body: ViewIn,
+                        language: str = Query(default="en", pattern="^(en|ar)$"),
+                        principal=Depends(requires("write"))):
+        owner, key = _view_scope(principal, run_id, "write")
+        try:
+            name = dashboard_views.validate_name(name)
+            page, query = dashboard_views.validate(body.page, body.query)
+        except dashboard_views.ViewError as error:
+            raise HTTPException(status_code=422, detail=error.detail(language))
+        with lock:
+            existing = {r["dataset_key"] for r in engine.store.named_dashboard_views(owner, key + dashboard_views.NAMED)}
+            full = dashboard_views.named_key(key, name)
+            if full not in existing and len(existing) >= dashboard_views.MAX_NAMED:
+                raise HTTPException(status_code=409, detail=(
+                    f"يمكن حفظ {dashboard_views.MAX_NAMED} عروض مسماة على الأكثر لكل مجموعة بيانات؛ احذف واحداً أولاً."
+                    if language == "ar" else
+                    f"At most {dashboard_views.MAX_NAMED} named views per dataset; delete one first."))
+            row = engine.store.save_dashboard_view(uuid.uuid4().hex, owner, full, run_id, page, query,
+                                                   datetime.now(timezone.utc).isoformat())
+        return {"view": dashboard_views.present_named(row, key)}
+
+    @app.delete("/api/runs/{run_id}/views/{name}", status_code=204)
+    def delete_named_view(run_id: str, name: str, principal=Depends(requires("write"))):
+        owner, key = _view_scope(principal, run_id, "write")
+        with lock:
+            found = engine.store.delete_dashboard_view(owner, dashboard_views.named_key(key, " ".join(name.split())))
+        if not found:
+            raise HTTPException(status_code=404, detail="View not found.")
         return Response(status_code=204)
 
     @app.post("/api/runs/{run_id}/records")

@@ -120,7 +120,8 @@ test('a file the server cannot read is explained, not stored', async ({ page }) 
     mimeType: 'application/vnd.ms-excel',
     buffer: Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1, 0, 0, 0, 0]),
   })
-  await expect(page.getByRole('alert')).toContainText('Save it as .xlsx or CSV')
+  // .xls is read with xlrd now (ADR 2026-11-06); a damaged one is refused, not stored.
+  await expect(page.getByRole('alert')).toContainText('The file is not a workbook the workspace can read')
   await expect(page.locator('.dataset').filter({ hasText: 'legacy.xls' })).toHaveCount(0)
 })
 

@@ -172,6 +172,35 @@ function useSavedView(runId: string, page: string | null, query: string, current
   }
 }
 
+/** Several named views of the dataset (6 November 2026): open one, save the
+ *  current one under a name, or delete the one chosen. */
+function NamedViews({ runId, current, state, onNavigate }: { runId: string; current: Page; state: DashState; onNavigate: (route: Route) => void }) {
+  const { t, locale } = usePack(dashMessages)
+  const [views, setViews] = useState<SavedView[]>([])
+  const [chosen, setChosen] = useState('')
+  const [name, setName] = useState('')
+  const [notice, setNotice] = useState<string | null>(null)
+  const load = useCallback(() => api.namedViews(runId).then((r) => setViews(r.views)).catch(() => setViews([])), [runId])
+  useEffect(() => { void load() }, [load])
+  const fail = (error: unknown) => setNotice(t('dash.view.failed', { reason: error instanceof ApiError ? error.message : String(error) }))
+  const open = (value: string) => {
+    setChosen(value)
+    const view = views.find((v) => v.name === value)
+    if (view) onNavigate({ tab: 'dashboard', runId, page: view.page, query: view.query || undefined })
+  }
+  return <span className="dash-views">
+    <select aria-label={t('dash.views.label')} value={chosen} onChange={(e) => open(e.target.value)}>
+      <option value="">{t('dash.views.choose')}</option>
+      {views.map((v) => <option key={v.name} value={v.name}>{v.name}</option>)}</select>
+    {chosen ? <button type="button" className="btn btn--ghost" onClick={() => void api.deleteNamedView(runId, chosen)
+      .then(() => { setChosen(''); setNotice(t('dash.view.forgotten')); return load() }).catch(fail)}>{t('dash.views.delete')}</button> : null}
+    <input aria-label={t('dash.views.name')} value={name} maxLength={40} onChange={(e) => setName(e.target.value)} />
+    <button type="button" className="btn btn--ghost" disabled={!name.trim()} onClick={() => void api.saveNamedView(runId, name, { page: current, query: writeState(state) }, locale)
+      .then((r) => { setName(''); setChosen(r.view.name ?? ''); setNotice(t('dash.view.saved')); return load() }).catch(fail)}>{t('dash.views.saveAs')}</button>
+    {notice ? <span role="status" className="dash-view__notice" dir="auto">{notice}</span> : null}
+  </span>
+}
+
 function useQuery(runId: string, spec: QuerySpec | null) {
   const { locale } = useI18n()
   const key = spec ? `q:${runId}:${locale}:${JSON.stringify(spec)}` : null
@@ -277,6 +306,7 @@ function Dashboard({ runId, page, query, onNavigate, onOpenRun }: {
               <>
                 <button type="button" className="btn btn--ghost" onClick={() => void saved.save()}>{t('dash.view.save')}</button>
                 {saved.view ? <button type="button" className="btn btn--ghost" onClick={() => void saved.forget()}>{t('dash.view.forget')}</button> : null}
+                <NamedViews runId={runId} current={current} state={state} onNavigate={onNavigate} />
               </>
             ) : null}
             <button type="button" className="btn btn--ghost" onClick={() => onOpenRun(runId)}>
@@ -493,13 +523,15 @@ function GroupTable({ head, rows, onDrill }: {
 function OverviewPage({ runId, roles, state, filters, setState }: PageProps) {
   const { t, formatNumber } = usePack(dashMessages)
   const m = roles.measure!
+  const agg = roles.avg ? 'mean' : 'sum'
   const top = useQuery(runId, roles.breakdown ? {
-    group_by: [roles.breakdown], measures: [{ agg: 'sum', column: m }, { agg: 'count' }], filters,
-    sort: { by: `sum:${m}`, desc: true }, limit: 5,
+    group_by: [roles.breakdown], measures: [{ agg, column: m }, { agg: 'count' }], filters,
+    sort: { by: `${agg}:${m}`, desc: true }, limit: 5,
   } : null)
   const trend = useQuery(runId, roles.date ? {
-    group_by: [roles.date], measures: [{ agg: 'sum', column: m }, { agg: 'count' }], filters, limit: 1000,
+    group_by: [roles.date], measures: [{ agg, column: m }, { agg: 'count' }], filters, limit: 1000,
   } : null)
+  const head = t(roles.avg ? 'dash.col.avg' : 'dash.col.total')
   const trendPoints: Point[] = (trend.data?.groups ?? []).map((g) => ({ label: keyText(g.keys[0]), value: g.values[0] }))
   const topPoints: Point[] = (top.data?.groups ?? []).map((g) => ({ label: keyText(g.keys[0]), value: g.values[0] }))
   const number = (value: number | null | undefined) => (value === null || value === undefined ? '—' : formatNumber(value, { maximumFractionDigits: 2 }))
@@ -512,10 +544,10 @@ function OverviewPage({ runId, roles, state, filters, setState }: PageProps) {
           <div className="card">
             {top.loading ? <Loading /> : (
               <Figure
-                title={t('dash.chart.top', { n: formatNumber(topPoints.length), measure: m, breakdown: roles.breakdown })}
+                title={t(roles.avg ? 'dash.chart.topAvg' : 'dash.chart.top', { n: formatNumber(topPoints.length), measure: m, breakdown: roles.breakdown })}
                 chart={<Bars items={topPoints} label={t('dash.alt.bars', { measure: m, breakdown: roles.breakdown, n: formatNumber(topPoints.length) })}
                   {...picker(state, roles.breakdown, roles.date, setState)} />}
-                table={<GroupTable head={[roles.breakdown, t('dash.col.total'), t('dash.col.records')]} onDrill
+                table={<GroupTable head={[roles.breakdown, head, t('dash.col.records')]} onDrill
                   rows={(top.data?.groups ?? []).map((g) => ({
                     label: keyText(g.keys[0]), cells: [number(g.values[0]), number(g.records)],
                     drill: () => setState(drill(state, roles.breakdown!, keyText(g.keys[0]), roles.date), 'records'),
@@ -528,10 +560,10 @@ function OverviewPage({ runId, roles, state, filters, setState }: PageProps) {
           <details className="card" open={!roles.breakdown}><summary>{t('dash.page.trend')}</summary>
             {trend.loading ? <Loading /> : (
               <Figure
-                title={t('dash.chart.trend', { measure: m, date: roles.date })}
+                title={t(roles.avg ? 'dash.chart.trendAvg' : 'dash.chart.trend', { measure: m, date: roles.date })}
                 chart={<Line points={trendPoints} label={t('dash.alt.trend', { measure: m, n: formatNumber(trendPoints.length) })}
                   {...picker(state, roles.date, roles.date, setState)} />}
-                table={<GroupTable head={[roles.date, t('dash.col.total'), t('dash.col.records')]} onDrill
+                table={<GroupTable head={[roles.date, head, t('dash.col.records')]} onDrill
                   rows={(trend.data?.groups ?? []).map((g) => ({
                     label: keyText(g.keys[0]), cells: [number(g.values[0]), number(g.records)],
                     drill: () => setState(drill(state, roles.date!, keyText(g.keys[0]), roles.date), 'records'),
@@ -550,13 +582,16 @@ function BreakdownPage({ runId, roles, state, filters, setState }: PageProps) {
   const { t, formatNumber } = usePack(dashMessages)
   const m = roles.measure!
   const by = roles.texts.some((f) => f.name === state.by) ? state.by! : roles.breakdown ?? roles.texts[0].name
-  const key = state.per ? `mean:${m}` : `sum:${m}`
+  const per = state.per || !!roles.avg
+  const key = per ? `mean:${m}` : `sum:${m}`
   const answer = useQuery(runId, {
-    group_by: [by], measures: [{ agg: 'sum', column: m }, { agg: 'mean', column: m }, { agg: 'count' }],
+    group_by: [by], measures: [{ agg: 'sum', column: m }, { agg: 'mean', column: m }, { agg: 'count' }, { agg: 'count', column: m }],
     filters, sort: { by: key, desc: true }, limit: 50,
   })
   const groups = answer.data?.groups ?? []
-  const points: Point[] = groups.map((g) => ({ label: keyText(g.keys[0]), value: g.values[state.per ? 1 : 0] }))
+  const points: Point[] = groups.map((g) => ({ label: keyText(g.keys[0]), value: g.values[per ? 1 : 0] }))
+  // Lines with no value (not applicable, blank) are counted apart, never averaged in.
+  const na = groups.some((g) => g.records > (g.values[3] ?? 0))
   const number = (value: number | null) => (value === null ? '—' : formatNumber(value, { maximumFractionDigits: 2 }))
   return (
     <div className="card">
@@ -570,22 +605,23 @@ function BreakdownPage({ runId, roles, state, filters, setState }: PageProps) {
         </div>
         <div className="field">
           <span className="field__label" id="dash-per-label">{t('dash.read')}</span>
+          {roles.avg ? <p className="field__help">{t('dash.avgOnly', { measure: m })}</p> : (
           <div className="segmented" role="group" aria-labelledby="dash-per-label">
             <button type="button" className="segmented__option" aria-pressed={!state.per} onClick={() => setState({ ...state, per: false })}>{t('dash.totals')}</button>
             <button type="button" className="segmented__option" aria-pressed={state.per} onClick={() => setState({ ...state, per: true })}>{t('dash.perRecord')}</button>
-          </div>
+          </div>)}
         </div>
       </div>
       <Problem message={answer.error} />
       {answer.loading ? <Loading /> : (
         <Figure
           open
-          title={t(state.per ? 'dash.chart.byPer' : 'dash.chart.by', { measure: m, breakdown: by })}
+          title={t(roles.avg ? 'dash.chart.byAvg' : per ? 'dash.chart.byPer' : 'dash.chart.by', { measure: m, breakdown: by })}
           chart={<Bars items={points} label={t('dash.alt.bars', { measure: m, breakdown: by, n: formatNumber(points.length) })}
             {...picker(state, by, roles.date, setState)} />}
-          table={<GroupTable head={[by, t('dash.col.total'), t('dash.col.perRecord'), t('dash.col.records')]} onDrill
+          table={<GroupTable head={[by, ...(roles.avg ? [] : [t('dash.col.total')]), t(roles.avg ? 'dash.col.avg' : 'dash.col.perRecord'), t('dash.col.records'), ...(na ? [t('dash.col.na')] : [])]} onDrill
             rows={groups.map((g) => ({
-              label: keyText(g.keys[0]), cells: [number(g.values[0]), number(g.values[1]), number(g.records)],
+              label: keyText(g.keys[0]), cells: [...(roles.avg ? [] : [number(g.values[0])]), number(g.values[1]), number(g.records), ...(na ? [number(g.records - (g.values[3] ?? 0))] : [])],
               drill: () => setState(drill(state, by, keyText(g.keys[0]), roles.date), 'records'),
             }))} />}
         />
@@ -684,10 +720,15 @@ function RelationshipPage({ runId, roles, state, filters, setState }: PageProps)
     if (!sample.data) return []
     const xi = sample.data.columns.indexOf(vs)
     const yi = sample.data.columns.indexOf(m)
+    const gi = roles.breakdown ? sample.data.columns.indexOf(roles.breakdown) : -1
     return sample.data.rows
-      .map((row) => ({ x: row[xi], y: row[yi] }))
-      .filter((p): p is { x: number; y: number } => typeof p.x === 'number' && typeof p.y === 'number')
-  }, [sample.data, vs, m])
+      .map((row) => ({ x: row[xi], y: row[yi], group: gi >= 0 ? row[gi] : null }))
+      .filter((p): p is { x: number; y: number; group: string | number | null } => typeof p.x === 'number' && typeof p.y === 'number')
+  }, [sample.data, vs, m, roles.breakdown])
+  // A picked point (6 November 2026) shows its record and can narrow the page to its group.
+  const [picked, setPicked] = useState<number | null>(null)
+  useEffect(() => setPicked(null), [points])
+  const point = picked !== null ? points[picked] : undefined
   return (
     <div className="card">
       <div className="field">
@@ -701,11 +742,16 @@ function RelationshipPage({ runId, roles, state, filters, setState }: PageProps)
       {sample.loading ? <Loading /> : (
         <Figure
           title={t('dash.chart.relationship', { measure: m, other: vs })}
-          chart={<Scatter points={points} label={t('dash.alt.relationship', { measure: m, other: vs, n: formatNumber(points.length) })} />}
+          chart={<Scatter points={points} picked={picked} onPick={setPicked} label={t('dash.alt.relationship', { measure: m, other: vs, n: formatNumber(points.length) })} />}
           table={<GroupTable head={[vs, m]}
             rows={points.map((p) => ({ label: formatNumber(p.x), cells: [formatNumber(p.y)] }))} />}
         />
       )}
+      {point ? <p className="field__help" role="status" dir="auto">
+        {t('dash.point', { other: vs, x: formatNumber(point.x), measure: m, y: formatNumber(point.y) })}
+        {roles.breakdown && point.group !== null && point.group !== '' ? <> <button type="button" className="btn btn--subtle"
+          onClick={() => setState(pick(state, roles.breakdown!, String(point.group), roles.date))}>
+          {t('dash.pointOnly', { group: String(point.group) })}</button></> : null}</p> : null}
       {sample.data ? (
         <p className="field__help">
           {sample.data.sampled

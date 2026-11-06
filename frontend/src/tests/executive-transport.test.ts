@@ -32,7 +32,7 @@ it('cancels obsolete executive requests through the shared transport', async () 
 it('downloads a genuine Word attachment for the exact prepared Arabic snapshot with authentication', async () => {
   const blob = new Blob(['PK synthetic package'], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true,
-    headers: new Headers({ 'content-type': blob.type, 'content-disposition': 'attachment; filename="miyaar-executive-r1-ar.docx"' }),
+    headers: new Headers({ 'content-type': blob.type, 'content-disposition': 'attachment; filename="Executive Brief Arabic.docx"' }),
     blob: async () => blob,
   }))
   localStorage.setItem('aos-token', 'executive-download-token')
@@ -40,7 +40,7 @@ it('downloads a genuine Word attachment for the exact prepared Arabic snapshot w
   const version = '2026-10-19T10:01:02.123456+00:00'
   const snapshot = 'a'.repeat(64)
   const result = await api.downloadExecutive('run/1', 'ar', filters, version, snapshot, 'docx')
-  expect(result).toEqual({ blob, name: 'miyaar-executive-r1-ar.docx' })
+  expect(result).toEqual({ blob, name: 'Executive Brief Arabic.docx' })
   const [path, init] = vi.mocked(fetch).mock.calls[0]
   const url = new URL(String(path), 'http://localhost')
   expect(url.pathname).toBe('/api/runs/run%2F1/executive/export')

@@ -313,3 +313,43 @@ class OperationsApiTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SeparateAuthorizerTests(unittest.TestCase):
+    """Separation of duties for work orders (ADR 2026-11-06-separate-approver).
+    Borrows the operational fixture without re-running its tests."""
+
+    setUp_fixture = OperationsTest.setUp
+    error, member, draft, transition = (OperationsTest.error, OperationsTest.member,
+                                        OperationsTest.draft, OperationsTest.transition)
+
+    def setUp(self):
+        self.setUp_fixture()
+        self.ops.separate_approver = True
+
+    def test_the_drafter_cannot_authorize_and_nothing_changes(self):
+        order = self.draft()
+        self.error("self_authorization", self.transition, order, "authorized")
+        again = self.ops.work_order(self.alice, self.oid, order["id"])
+        self.assertEqual(again["status"], "draft")
+        self.assertIsNone(again["authorized_by"])
+        self.assertEqual(again["version"], order["version"])
+
+    def test_another_manager_authorizes_and_is_recorded(self):
+        self.member("carol", "manager", key="member-carol")
+        order = self.draft()
+        order = self.transition(order, "authorized", Principal("carol", "analyst", "test"))
+        self.assertEqual(order["authorized_by"], "carol")
+        self.assertEqual(order["created_by"], "alice")
+
+    def test_the_drafter_may_still_cancel(self):
+        order = self.draft()
+        self.assertEqual(self.transition(order, "cancelled")["status"], "cancelled")
+
+    def test_off_the_drafter_authorizes_as_before(self):
+        self.ops.separate_approver = False
+        self.assertEqual(self.transition(self.draft(), "authorized")["authorized_by"], "alice")
+
+    def test_the_refusal_has_an_arabic_message(self):
+        from server.operations_api import ARABIC_ERRORS
+        self.assertIn("مالك أو مدير آخر", ARABIC_ERRORS["self_authorization"])

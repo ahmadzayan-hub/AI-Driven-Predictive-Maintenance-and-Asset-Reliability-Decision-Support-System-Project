@@ -303,7 +303,7 @@ export function JoinBuilder({ primaryId, datasets, disabled, joins, breakdown, o
               })}
             </p>
             <ul className={preview.joins.some((record) => record.unmatched) ? 'warnings' : 'joinbuilder__list'}>
-              {preview.joins.map((record) => (
+              {preview.joins.map((record, at) => (
                 <li key={record.alias} dir="auto">
                   {record.how === 'stack'
                     ? t('joins.stacked', { name: record.name, added: formatNumber(record.rows_added ?? 0) })
@@ -316,6 +316,10 @@ export function JoinBuilder({ primaryId, datasets, disabled, joins, breakdown, o
                   {record.duplicates_dropped ? <> {t('joins.stackedDropped', { n: formatNumber(record.duplicates_dropped) })}</> : null}
                   {record.unmatched_keys.length ? <> {t('joins.unmatched', { keys: record.unmatched_keys.join(', ') })}</> : null}
                   {record.near_matches ? <> {t('joins.near', { n: formatNumber(record.near_matches) })}</> : null}
+                  {record.corrected ? <> {t('joins.corrected', { n: formatNumber(record.corrected) })}</> : null}
+                  {record.typo_examples?.map((typo) => <button key={typo.key} type="button" className="btn btn--subtle" disabled={disabled}
+                    onClick={() => update(at, { corrections: [...(joins[at]?.corrections ?? []), { from: typo.key, to: typo.candidate }] })}>
+                    {t('joins.useFix', { key: typo.key, candidate: typo.candidate })}</button>)}
                   {record.lookup_unused ? <> {t('joins.unused', { n: formatNumber(record.lookup_unused), name: record.name })}</> : null}
                   {Object.keys(record.renamed).length ? (
                     <> {t('joins.renamed', { list: Object.entries(record.renamed).map(([a, b]) => `${a} → ${b}`).join(', ') })}</>

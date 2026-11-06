@@ -1,0 +1,24 @@
+{
+  "about": "Held-out paraphrases of RMD V2 acceptance cases, written on 2026-11-05 before any retrieval change and not used to tune it. Each question avoids the source's key terms where it can. A case passes when one of the top 5 passages (acceptance sections excluded) is in an expected section.",
+  "frozen_on": "2026-11-05",
+  "cases": [
+    {"id": "P-K03", "collection": "rmd-v2-mba-9227", "q": "How much of the final mark do the solo and team assignments carry?", "sections": ["course control", "assessment"]},
+    {"id": "P-K05", "collection": "rmd-v2-mba-9227", "q": "Which 75th percentile delivery days did the group set for each Brazilian state in the trial?", "sections": ["p75", "canonical rule", "benchmarks", "critical facts"]},
+    {"id": "P-K07", "collection": "rmd-v2-mba-9227", "q": "If the buffer left is exactly the same as the benchmark, does the order get flagged?", "sections": ["canonical rule"]},
+    {"id": "P-K11", "collection": "rmd-v2-mba-9227", "q": "List the twelve requirements the team agreed in the deck.", "sections": ["final requirements"]},
+    {"id": "P-K13", "collection": "rmd-v2-mba-9227", "q": "How many automated checks ran in the workflow and did the count change between versions?", "sections": ["correction", "evidence chronology", "zapier"]},
+    {"id": "P-K16", "collection": "rmd-v2-mba-9227", "q": "Does the share of flagged parcels that arrived late measure how accurate the warning is?", "sections": ["backtest"]},
+    {"id": "P-K17", "collection": "rmd-v2-mba-9227", "q": "Do the orders the pilot would protect prove it pays for itself?", "sections": ["financial", "correction"]},
+    {"id": "P-K19", "collection": "rmd-v2-mba-9227", "q": "Are the helpdesk software subscription costs up to date?", "sections": ["alternatives", "solution selection"]},
+    {"id": "P-QA02", "collection": "rmd-v2-analytics-9226", "q": "The file has no empty cells and no repeated record numbers, so can we trust it completely?", "sections": ["findings", "data quality", "data-quality"]},
+    {"id": "P-QA03", "collection": "rmd-v2-analytics-9226", "q": "Show how one pump wore out over three years and when it will break next.", "sections": ["findings", "data quality", "identity", "modelling"]},
+    {"id": "P-QA06", "collection": "rmd-v2-analytics-9226", "q": "What share of jobs were finished within the agreed service time?", "sections": ["kpi", "catalogue", "calculat", "reconcile"]},
+    {"id": "P-QA07", "collection": "rmd-v2-analytics-9226", "q": "Why do two reports give slightly different uptime percentages?", "sections": ["kpi", "catalogue", "calculat", "reconcile"]},
+    {"id": "P-QA08", "collection": "rmd-v2-analytics-9226", "q": "What is the average running time between breakdowns across the fleet?", "sections": ["kpi", "catalogue", "calculat", "reconcile"]},
+    {"id": "P-QA12", "collection": "rmd-v2-analytics-9226", "q": "How much money did condition-based upkeep save us?", "sections": ["kpi", "catalogue", "calculat", "reconcile", "strategy"]},
+    {"id": "P-QA13", "collection": "rmd-v2-analytics-9226", "q": "This year shows fewer breakdowns and lower spending; is that real progress?", "sections": ["coverage", "data profile", "findings", "kpi"]},
+    {"id": "P-QA15", "collection": "rmd-v2-analytics-9226", "q": "Can we reuse the trained classifier and its reported area under the curve?", "sections": ["modelling", "historical", "evaluation"]},
+    {"id": "P-AR1", "collection": "rmd-v2-analytics-9226", "q": "هل احتمالية العطل في الملف تنبؤ حقيقي بالأعطال القادمة؟", "sections": ["بطاقة", "modelling", "findings"]},
+    {"id": "P-AR2", "collection": "rmd-v2-mba-9227", "q": "ما هي القيم الحالية لمعيار التسليم في حالة المجموعة؟", "sections": ["بطاقة", "p75"]}
+  ]
+}

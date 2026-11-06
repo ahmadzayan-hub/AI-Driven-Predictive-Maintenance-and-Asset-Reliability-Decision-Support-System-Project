@@ -89,9 +89,13 @@ def _first_upper(name):
     return name[:1].upper() + name[1:]
 
 
-def _claim(ctx, claim_id, kind, en, ar, evidence):
+def _claim(ctx, claim_id, kind, en, ar, evidence, labels=()):
     claim = {"id": claim_id, "type": kind, "text": en,
              "evidence": evidence, "status": "verified"}
+    # A period or group named in the text ("2025", "2025-03") is a label,
+    # not a figure, so the figures check reads past it (stress test, 5 Nov).
+    if labels:
+        claim["labels"] = [str(label) for label in labels if label not in (None, "")]
     if report_language(ctx) == "ar":
         claim["text_ar"] = ar
     return claim
@@ -204,7 +208,10 @@ def claim_figures_match(claim, calculations):
         calc = calculations.get(ref)
         if calc is not None:
             cited += _cited_values(calc.get("value"))
-    for token in _CLAIM_FIGURE.findall(claim.get("text") or ""):
+    text = claim.get("text") or ""
+    for label in sorted(claim.get("labels") or [], key=len, reverse=True):
+        text = text.replace(label, " ")
+    for token in _CLAIM_FIGURE.findall(text):
         raw = token.lstrip("+-−").rstrip("%").replace(",", "")
         if not raw or raw.count(".") > 1:
             continue
@@ -238,9 +245,18 @@ def _fail(summary):
 
 
 def _to_number(value):
+    if isinstance(value, str):
+        try:
+            return float(value)
+        except ValueError:
+            # Commas only as thousands groups ("1,234"): stripping every comma
+            # read a decimal comma "12,34" as 1234 (stress test, 5 November).
+            # "85%", "AED 12,000", "(300)" and Arabic digits read as a mapped
+            # column does; text such as an asset tag or a date reads as none.
+            return colmap.parse_number(value)
     try:
-        return float(value.replace(",", "")) if isinstance(value, str) else float(value)
-    except (ValueError, AttributeError, TypeError):
+        return float(value)
+    except (ValueError, TypeError):
         return None
 
 
@@ -472,12 +488,14 @@ def collector(ctx):
             for row in rows:
                 row[item["name"]] = ""
     calculations = [{"id": "c_rows", "name": "row_count", "value": len(rows),
-                     "method": "len(csv rows)"}]
+                     "method": "len(csv rows)"},
+                    {"id": "c_columns", "name": "column_count", "value": len(columns),
+                     "method": "len(csv header)"}]
     claims = [_claim(ctx, "cl_ingest", "fact",
                      f"The dataset contains {len(rows)} rows and {len(columns)} columns.",
                      f"تحتوي البيانات على {_ar_n(len(rows), 'row')} "
                      f"و{_ar_n(len(columns), 'column')}.",
-                     ["c_rows"])]
+                     ["c_rows", "c_columns"])]
     mapping = ctx.get("mapping")
     if mapping:
         # The owner said what each column is (ADR 0025). The report says
@@ -631,7 +649,7 @@ def profiler(ctx):
          "method": "exact row comparison"},
     ]
     # Each column's shape, and each measure's range and unusual values.
-    to_number = colmap.parse_number if mapping else _to_number
+    to_number = colmap.number_reader(mapping) if mapping else _to_number
     group_col = ((mapping or {}).get("dimension") if mapping else
                  _automatic_group(columns, numeric_columns, _date_like_column(columns), rows))
     groups = ({i: (str(r.get(group_col) or "").strip() or None) for i, r in enumerate(rows)}
@@ -651,9 +669,13 @@ def profiler(ctx):
                                            for i, r in enumerate(rows))
                        if n is not None and not colmap.breaks_limit(n, limit)]
             entry["measure"] = _measure_profile(numbers, groups)
+    # 99.84% printed as "100%" hid 22 empty cells (stress test, 5 November):
+    # whole percent only when nothing is missing or the share is not near 100.
+    shown_completeness = (f"{completeness:.0%}" if completeness == 1 or completeness < 0.995
+                          else f"{completeness:.1%}" if completeness < 0.9995 else f"{completeness:.2%}")
     claims = [_claim(ctx, "cl_quality", "fact",
-                     f"Data completeness is {completeness:.0%} with {duplicates} duplicate rows.",
-                     f"اكتمال البيانات {completeness:.0%}، وعدد الصفوف المكررة "
+                     f"Data completeness is {shown_completeness} with {duplicates} duplicate rows.",
+                     f"اكتمال البيانات {shown_completeness}، وعدد الصفوف المكررة "
                      f"{duplicates}.",
                      ["c_completeness", "c_dupes"])]
     sparse = [(c, profile[c]["missing_share"]) for c in columns
@@ -709,6 +731,10 @@ def profiler(ctx):
             calcs.append({"id": f"c_outliers_{position}", "name": "values_far_outside_the_usual_range_in_column",
                           "value": count, "method": OUTLIER_METHOD})
             per_column.append(f"c_outliers_{position}")
+        if more:
+            calcs.append({"id": "c_outliers_more", "name": "columns_with_unusual_values_not_named",
+                          "value": more, "method": "columns with unusual values beyond those named"})
+            per_column.append("c_outliers_more")
         claims.append(_claim(
             ctx, "cl_outliers", "limitation",
             f"{sum(n for _, n in unusual)} value(s) lie far outside the range where most values "
@@ -780,12 +806,27 @@ def profiler(ctx):
     )
 
 
-DATE_LIKE_NAMES = ("month", "date", "period", "week", "year",
+DATE_LIKE_NAMES = ("month", "date", "period", "week", "year", "timestamp", "datetime", "date_time",
                    "الشهر", "التاريخ", "الفترة", "الأسبوع", "السنة")
 
 
+# When a survey, inspection or reading was taken: the time the record
+# describes. Event dates (Failure_Date, Due_Date, Install_Date) are left
+# out on purpose: making them the time axis changed the maintenance models
+# (2026-11-03 generative-layout decision). ADR 2026-11-05, condition surveys.
+OBSERVATION_WORDS = ("survey", "inspection", "assessment", "audit", "reading",
+                     "observation", "measurement", "snapshot")
+
+
 def _date_like_column(columns):
-    return next((c for c in columns if c.lower() in DATE_LIKE_NAMES), None)
+    exact = next((c for c in columns if c.lower() in DATE_LIKE_NAMES), None)
+    if exact:
+        return exact
+    for column in columns:
+        words = [w for w in re.split(r"[^a-z0-9]+", column.lower()) if w]
+        if len(words) == 2 and words[0] in OBSERVATION_WORDS and words[1] in ("date", "month", "period"):
+            return column
+    return None
 
 
 def _period_labels_unmapped(values):
@@ -815,7 +856,9 @@ MAX_UNREADABLE_RECORDED = 200
 # text that genuinely does not read as a number.
 MISSING_MARKERS = frozenset({
     "n/a", "na", "n.a.", "-", "--", "—", "–", "null", "none", "nan", "#n/a",
-    "not available", "غير متوفر", "غير متاح", "لا يوجد"})
+    "not available", "غير متوفر", "غير متاح", "لا يوجد",
+    # Condition surveys mark an asset that is not there this way (5 November).
+    "not applicable", "غير منطبق"})
 # Categories spelled more than one way: text columns with at most this many
 # distinct values are checked, and at most this many examples are named.
 VARIANT_MAX_DISTINCT = 200
@@ -893,7 +936,7 @@ def cleaner(ctx):
     mapping = ctx.get("mapping")
     # A mapped measure is read as the owner declared it: currency, (300),
     # Arabic digits. Unmapped data keeps the old reading (ADR 0025).
-    to_number = colmap.parse_number if mapping else _to_number
+    to_number = colmap.number_reader(mapping) if mapping else _to_number
     before = len(rows)
     cleaned, seen, dropped_empty, dropped_dupes, coercion_failures = [], set(), 0, 0, 0
     marked_missing, unreadable_columns, blank_cells = 0, set(), 0
@@ -1321,20 +1364,20 @@ def merge(ctx):
                 f"بلا تطابق في {name}، فكل مجموع يغطي {record['rows_out']} صفاً.",
                 [f"{prefix}_rows_out", f"{prefix}_matched"]))
         # How keys were compared (30 October 2026): a loose join says how many
-        # matches it owes to ignoring case and spaces; an exact join says how
+        # matches it owes to ignoring case, spaces and separators; an exact join says how
         # many unmatched rows that would have matched.
         if record.get("match") == "loose":
             calcs.append({"id": f"{prefix}_loose",
                           "name": f"rows_matched_ignoring_case_{record['alias']}",
                           "value": record.get("loose_matched", 0),
-                          "method": "matched rows whose key matched only when letter case "
-                                    "and runs of spaces were ignored"})
+                          "method": "matched rows whose key matched only when letter case, "
+                                    "spaces and separators were ignored"})
             claims.append(_claim(
                 ctx, f"cl_merge_{index}_loose", "fact",
-                f"Keys were compared ignoring letter case and spaces: "
+                f"Keys were compared ignoring letter case, spaces and separators: "
                 f"{record.get('loose_matched', 0)} of the {matched} matched rows matched "
                 f"{name} only because of that.",
-                f"قورنت المفاتيح مع تجاهل حالة الأحرف والمسافات: تطابق "
+                f"قورنت المفاتيح مع تجاهل حالة الأحرف والمسافات والفواصل: تطابق "
                 f"{record.get('loose_matched', 0)} من أصل {matched} صفاً متطابقاً مع "
                 f"{name} بسبب ذلك وحده.",
                 [f"{prefix}_loose", f"{prefix}_matched"]))
@@ -1342,17 +1385,46 @@ def merge(ctx):
             calcs.append({"id": f"{prefix}_near",
                           "name": f"unmatched_rows_matching_ignoring_case_{record['alias']}",
                           "value": record["near_matches"],
-                          "method": "unmatched rows whose key matches when letter case and "
-                                    "runs of spaces are ignored"})
+                          "method": "unmatched rows whose key matches when letter case, "
+                                    "spaces and separators are ignored"})
             claims.append(_claim(
                 ctx, f"cl_merge_{index}_near", "limitation",
                 f"{record['near_matches']} of the {record['unmatched']} unmatched rows would "
-                f"match {name} if letter case and spaces were ignored; the keys were "
+                f"match {name} if letter case, spaces and separators were ignored; the keys were "
                 f"compared exactly.",
                 f"كان {record['near_matches']} من أصل {record['unmatched']} صفاً غير متطابق "
-                f"سيتطابق مع {name} لو تُجوهلت حالة الأحرف والمسافات؛ قورنت المفاتيح "
+                f"سيتطابق مع {name} لو تُجوهلت حالة الأحرف والمسافات والفواصل؛ قورنت المفاتيح "
                 f"مقارنة تامة.",
                 [f"{prefix}_near", f"{prefix}_rows_in"]))
+        if record.get("corrected"):
+            pairs = record.get("corrections") or []
+            calcs.append({"id": f"{prefix}_corrected", "name": f"rows_matched_by_correction_{record['alias']}",
+                          "value": record["corrected"],
+                          "method": "matched rows whose key matched only through a correction the owner declared"})
+            shown = "; ".join(f"{c['from']} / {c['to']}" for c in pairs[:3])
+            claims.append(_claim(
+                ctx, f"cl_merge_{index}_corrected", "fact",
+                f"{record['corrected']} rows matched {name} only through {len(pairs)} key corrections "
+                f"the owner declared, for example {shown}.",
+                f"تطابق {record['corrected']} صفاً مع {name} عبر {len(pairs)} من تصحيحات المفاتيح "
+                f"التي أقرّها المالك فقط، مثل {shown}.",
+                [f"{prefix}_corrected", f"{prefix}_matched"],
+                [part for c in pairs[:3] for part in (c["from"], c["to"])]))
+        if record.get("typo_keys"):
+            # Named for a person to check, never merged (ADR 2026-11-06-separator-keys-and-typo-candidates).
+            calcs.append({"id": f"{prefix}_typos", "name": f"unmatched_rows_one_letter_from_{record['alias']}",
+                          "value": record["typo_rows"],
+                          "method": "unmatched rows whose key is one letter changed, added or dropped "
+                                    "from exactly one key of the joined dataset; not merged"})
+            shown = "; ".join(f"{e['key']} / {e['candidate']}" for e in record.get("typo_examples", [])[:3])
+            claims.append(_claim(
+                ctx, f"cl_merge_{index}_typos", "limitation",
+                f"{record['typo_rows']} unmatched rows have a key one letter away from a key in {name}, "
+                f"for example {shown}. They were not merged; check whether they are typing slips.",
+                f"لدى {record['typo_rows']} صفاً غير متطابق مفتاح يختلف بحرف واحد عن مفتاح في {name}، "
+                f"مثل {shown}. لم تُدمج؛ تحقق مما إذا كانت أخطاء كتابة.",
+                [f"{prefix}_typos", f"{prefix}_rows_in"],
+                [part for e in record.get("typo_examples", [])[:3] for part in (e["key"], e["candidate"])]))
         expected = record["rows_in"] if record["how"] == "left" else record["matched"]
         checks += [
             {"name": f"join_{record['alias']}_keeps_the_row_count",
@@ -3108,10 +3180,11 @@ def contract(ctx):
     rows, columns = ctx["collector"]["rows"], ctx["collector"]["columns"]
     # Each breach in English (the audited record) and in Arabic (for an
     # Arabic reader); the English claim must never embed the Arabic.
-    fields, breaches, breaches_ar = [], [], []
+    fields, breaches, breaches_ar, breach_calcs = [], [], [], []
     for column in columns:
         values = [(r.get(column) or "").strip() for r in rows]
-        present = [v for v in values if v]
+        # "N/A", "-" or "Not applicable" is a missing cell, not a broken number.
+        present = [v for v in values if v and v.lower() not in MISSING_MARKERS]
         numbers = [_to_number(v) for v in present]
         numbers = [n for n in numbers if n is not None]
         parse_rate = len(numbers) / len(present) if present else 0.0
@@ -3137,6 +3210,7 @@ def contract(ctx):
         # source of silent wrong totals, so it is named here rather than
         # discovered later.
         if numeric and len(numbers) < len(present):
+            breach_calcs.append((len(present) - len(numbers), len(present)))
             breaches.append(
                 f"{column}: {len(present) - len(numbers)} of {len(present)} value(s) "
                 "will not parse as a number"
@@ -3162,6 +3236,13 @@ def contract(ctx):
         + "، ".join(f"{f['name']} ({kinds_ar[f['type']]})" for f in fields[:6])
         + ("…" if len(fields) > 6 else "") + ".",
         ["c_contract_fields"])]
+    cited = ["c_contract_fields"]
+    for position, (bad, present_count) in enumerate(breach_calcs[:3]):
+        calcs += [{"id": f"c_contract_bad_{position}", "name": "values_not_parsing_as_numbers",
+                   "value": bad, "method": "non-missing values that do not read as a number"},
+                  {"id": f"c_contract_present_{position}", "name": "non_missing_values",
+                   "value": present_count, "method": "values that are neither blank nor a missing marker"}]
+        cited += [f"c_contract_bad_{position}", f"c_contract_present_{position}"]
     if breaches:
         claims.append(_claim(
             ctx, "cl_contract_breach", "finding",
@@ -3171,7 +3252,7 @@ def contract(ctx):
             "بعض القيم لا تطابق العمود الذي تقع فيه: "
             + "؛ ".join(breaches_ar[:3])
             + ". وتُعامل تلك الخلايا على أنها مفقودة، ولا تُخمَّن.",
-            ["c_contract_fields"]))
+            cited))
     return _result(
         "succeeded",
         _say(ctx,
@@ -3478,7 +3559,7 @@ def _incomplete_period_claim(ctx, claim_id, dropped, what_en, what_ar):
         f"تضم الفترة الأخيرة، {dropped['period']}، {dropped['records']:,} من السجلات مقابل "
         f"{dropped['most']:,} على الأكثر في الفترات السابقة. استُبعد انخفاض تغطيتها بالسجلات من "
         f"{what_ar} احترازيًا؛ فالعدد وحده لا يثبت أن الفترة التقويمية غير مكتملة.",
-        ["c_incomplete_period", "c_earlier_period_max_records"])
+        ["c_incomplete_period", "c_earlier_period_max_records"], labels=[dropped["period"]])
 
 
 def _incomplete_period_calcs(dropped):
@@ -3610,7 +3691,7 @@ def anomaly(ctx):
             f"{'أعلى' if worst['gap'] > 0 else 'أدنى'} بمقدار "
             f"{abs(worst['gap']):,.0f} مما يعطيه الاتجاه، ويستحق السؤال عما حدث "
             "حينها.",
-            ["c_anom_spread", f"c_anom_{worst_index}"]))
+            ["c_anom_spread", f"c_anom_{worst_index}"], labels=[worst["period"]]))
     else:
         claims.append(_claim(
             ctx, "cl_anom_clear", "fact",
@@ -4115,6 +4196,8 @@ def predictive(ctx):
                   f"roughly {low:,.0f}–{high:,.0f}."
         band_ar = (f" وعند اختبارها على بيانات سابقة أخطأت هذه الطريقة بنحو {error:.1%}، "
                    f"فاعتبره تقريباً بين {low:,.0f} و{high:,.0f}.")
+    calcs.append({"id": "c_forecast_periods", "name": "periods_in_the_trend", "value": len(series),
+                  "method": "periods the trend line is fitted on"})
     claims.append(_claim(
         ctx, "cl_forecast", "forecast",
         f"If the pattern of the last {len(series)} periods continues, {measure} "
@@ -4124,7 +4207,9 @@ def predictive(ctx):
         f"{_period_label(ctx, forecast_labels[0])} سيكون نحو "
         f"{predictions[0]:,.2f}.{band_ar} "
         "ويفترض هذا ألا يتغير شيء في طريقة عمل النشاط.",
-        ["c_forecast_0"] + (["c_backtest", "c_band_low", "c_band_high"] if error is not None else [])))
+        ["c_forecast_0", "c_forecast_periods"]
+        + (["c_backtest", "c_band_low", "c_band_high"] if error is not None else []),
+        labels=[forecast_labels[0]]))
     claims.append(_claim(
         ctx, "cl_fit", "calculation",
         f"The trend line explains {explained:.0%} of the period-to-period "

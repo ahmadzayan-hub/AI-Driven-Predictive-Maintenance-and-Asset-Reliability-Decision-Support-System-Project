@@ -2397,3 +2397,114 @@ regressions passed. The full failure and skipped later steps remain in README.
 - Not verified: nobody listened to the narration (espeak-ng phonemes checked instead); the test Chromium cannot play H.264, so in-browser playback was not observed.
 - Decided: owner raised the script ceiling to 286 KB. External voice services stay off without approval.
 - Next: owner applies the hosted migration and fixes the production sign-in variables; then a PR and a reviewed deploy.
+
+## 2026-11-04 (later): human-voice film hand-off (session d9e3f889)
+
+- Done: PR #92 merged and main `654c500` deployed to production and verified (bundle `index-D06iQAbz.js`). Motion film and narration providers shipped.
+- Human voice, owner approved (ElevenLabs, Nasser for Arabic, Peter for English): narration is being generated in the owner's ElevenLabs flow `oZnukbBANNUW4yQyUi3T`. Done (English, Peter): title, decision, priorities, sources, about 787 credits. Remaining: English kpis and forecast, all six Arabic scenes. The free tier allows one generation at a time and refused three attempts in a row from 18:21 to 18:41 UTC; nothing was charged for those.
+- Blocked: this session still cannot reach `api.elevenlabs.io` or `elevenlabsusercontent.com` (proxy policy denial at 18:17 UTC after the owner allowed them); a new session should pick up the new network rules.
+- Next (new session): regenerate the synthetic briefs (`scripts/generate_synthetic_dataset.py --rows 1500`, run, `GET /executive` in en and ar), take the narration from `server.executive_video.storyboard`, generate the missing takes one at a time, download all twelve, render with `render(brief, folder, supplied={scene_id: {"path", "text_sha256"}})`, check the manifest says "supplied", send both films.
+
+## 2026-11-04 (later): MBA 9227 and Analytics knowledge packs (session d9e3f889)
+
+- Done: loader reads `kb:` directives (domain, evidence, status, synthetic, limits); superseded passages only for correction questions; `domain` and `include_superseded` on `/api/knowledge/search`; Ask Miyaar prints the label. `scripts/build_knowledge_packs.py` builds the public packs and private complete copies with a redaction guard (it caught a legal name in a contribution row). Acceptance tests for K01 to K28 and QA01 to QA20 (retrieval level), access-boundary tests, workbook reconciliation (matches SRC-29 SHA-256; the repo KPI engine reproduces availability, MTBF, MTTR, SLA, first-time fix and loss ratio).
+- Verified: see the verify run recorded in the commit; acceptance report in `docs/RMD_KNOWLEDGE_ACCEPTANCE.md`.
+- Not verified: any model answer to the cases; QA13 needed a keyword-rich wording because the retriever is lexical.
+- Decided: dataset aggregates public (no rows); owner can move them private. Packs stay `model_context_allowed: false`.
+- Next: owner decision on aggregates and model forwarding; human-voice films (new session).
+
+## 2026-11-05: Knowledge answer limits and paraphrase benchmark (session d9e3f889)
+
+- Done: limits block on Ask Miyaar knowledge answers (EN/AR) from directive codes; held-out paraphrase set and floors; stemmer tried and reverted with the measurement recorded.
+- Blocked: human-voice films. The container proxy refuses both ElevenLabs hosts and WebFetch cannot resolve them; a fresh-session probe was refused by the permission check. Four English takes exist in the owner's flow; eight remain, not generated so no credits are spent on audio this session cannot use.
+- Not verified: any model answer; the paraphrase set has been used once for a decision.
+- Next: owner allows the two hosts and starts a new session, or uploads the twelve MP3s.
+
+## 2026-11-05: Station electrical survey and condition-survey support (session d9e3f889)
+
+- Done: analysed the owner's ST electrical condition survey (private; dashboards, photo sheets and validation in git-ignored `private/st-electrical-2025`). Platform fixes: non-additive measures averaged; condition layout weakest first; count of a column for not-applicable lines; observation-date detection; three condition KPIs with a 1 to 9 scale guard. Tests on invented rows.
+- Verified: re-run of the survey against an independent calculation, 50 of 50 checks; verify and dashboard e2e results in the commit.
+- Not verified: no model involved (deterministic provider); the survey's scoring weights were inferred by hand and need the survey owner's confirmation.
+- Next: separate not-applicable from missing in the executive priority rule; owner to confirm the scoring weights and the ST05 photo date (camera 23 July against sheet 12 July).
+
+## 2026-11-05 (later): Synthetic stress datasets (session d9e3f889)
+
+- Done: stress harness with 23 datasets and a feature sweep; nine defects fixed (uncited claim figures and period labels, missing markers in the contract, decimal-comma misread, formatted numbers, timestamp axis, sensor additivity, text grades, completeness rounding, generator years). A test that passed only because of a defect was corrected.
+- Verified: stress run 87 of 91 checks; verify in the commit.
+- Open: 1-is-best grades, decimal commas, thousands separators in Ask Miyaar, plain-language knowledge questions without a model.
+
+## 2026-11-05 (later): Stress gaps closed (session d9e3f889)
+
+- Done: mapping `better` and `decimal` (validated, suggested for decimal, panel controls EN/AR), CSV separator tie-break, grouped digits in Ask Miyaar, knowledge fallback without a model with a conversational-word gate.
+- Verified: stress run 95 of 95; verify and mapping e2e in the commit.
+
+## 2026-11-06: Human-voice films and hosted migrations (session d9e3f889)
+
+- Done: 12 ElevenLabs takes (eleven_multilingual_v2, Peter EN, Nasser AR) rendered into both executive films through the supplied-audio path; manifests read "recorded narration supplied with matching text digests". Films and takes stay in git-ignored `private/films/`. Applied hosted migrations `20261027_dashboard_views` and `20261104_reviews_videos_layouts` to Supabase `asset-reliability-ai-saas` with the owner's approval.
+- Verified: ffprobe shows H.264, AAC and a subtitle track in each film; frames checked by eye. Hosted: four new tables with RLS on, the grants query returns no rows, the security advisor lists only the expected RLS-without-policy notice.
+- Not done: no transcription check of the takes; no backup confirmed before applying (every table held 0 rows). Production sign-in variables not set: Vercel refuses this session's token (403) for environment variables, so the owner sets them.
+- Next: the owner sets the Vercel sign-in variables, then a check of `/api/health`, sign-in and cross-owner isolation with test accounts.
+- Found 2026-11-06: production (`dpl_7Ns4ccqt…`, main at `654c500`) answers every request with 500 FUNCTION_INVOCATION_FAILED. Runtime log: `AuthNotConfigured: A hosted deployment with DATABASE_URL needs a sign-in provider`. `DATABASE_URL` is set and no token-verification variable is, so the server fails closed as designed. Not redeployed: a redeploy does not change this. Adding even `SUPABASE_URL` was refused (403, production variables need more permission), so the owner adds the sign-in variables, then redeploys.
+
+## 2026-11-06 (later): Two-way breakdown matrix (session d9e3f889)
+
+- Done: `matrix` layout component (two text columns, one measure, at most 120 cells, nested pairs refused), rule plan proposes a counted matrix after the gap notices, page renders a shaded table with row filtering. ADR 2026-11-06-two-way-matrix.
+- Verified: `python scripts/verify.py`: 8 of 8 steps; Python 2658 tests (296 skipped), frontend 602 passed; js total 285.3 of 286 KB, css 39.3 of 41 KB.
+- Not done: exports do not show the matrix; no browser axe run on the shade contrast; no e2e journey.
+- Next: production still waits on the owner's Vercel sign-in variables.
+
+## 2026-11-06 (later): Matrix in the brief and documents (session d9e3f889)
+
+- Done: `crosstab` in the executive brief (same pair as the rule planner, counted over the brief's scope, cited as `executive.crosstab.records`, inside the snapshot digest); a "Records across two breakdowns" section in the HTML report and Word file, at most 8 columns.
+- Verified: `python scripts/verify.py`: 8 of 8 steps; Python 2662 tests (296 skipped), frontend 602; budget unchanged (js 285.3 of 286 KB). Shade contrast at least 8.75:1 light and 6.94:1 dark, calculated from tokens.
+- Not done: slides and video; picking columns on the page. Production still down pending the owner's Vercel sign-in variables (checked 10:55 UTC, still 500).
+
+## 2026-11-06 (later): Matrix on slides, video and a column picker (session d9e3f889)
+
+- Done: compact matrix on the priorities slide (deck stays six slides), a `matrix` video scene (grid of up to six rows, narration says only the cited total), row and column pickers on the page with a refusal over 120 cells.
+- Verified: `python scripts/verify.py`: 8 of 8; Python 2664 (296 skipped), frontend 603; js total 285.6 of 286 KB. Films rendered in both languages from the synthetic survey; the first showed only one row, the second hid the grid behind the background (class clash `.grid`); both fixed and re-checked by eye. A race in my own page test (cells read before the data arrived) failed once under load; fixed to wait for the data.
+- Not done: the reader's picked pair is not saved, and documents use the planner's pair. 0.4 KB of script budget left.
+
+## 2026-11-06 (later): Separator-insensitive keys and typo candidates (session d9e3f889)
+
+- Done: loose join keys ignore separators (`ST-01` = `st_01` = `ST 01`, leading zeros kept); one-letter typo candidates for one-column text keys counted and named in a cited, bilingual report limitation, never merged; join builder label and near-match line updated in English and Arabic. ADR 2026-11-06-separator-keys-and-typo-candidates.
+- Verified: `python scripts/verify.py`: 8 of 8; Python 2669 tests (297 skipped), frontend 603; js total 285.6 of 286 KB. Stress harness re-run: 95 of 95.
+- Not done: typo fixes offered in the join builder; composite and numeric keys. Production still 500 (checked 11:52 UTC).
+
+## 2026-11-06 (later): Download names, budget, confirmed corrections (session d9e3f889)
+
+- Owner decisions: script ceiling 292 KB; readable download names.
+- Done: `server/downloads.py` names every download with RFC 5987 headers; confirmed key corrections on one-column joins (API, run engine, report claim, builder button in English and Arabic). ADRs 2026-11-06-readable-download-names, -script-ceiling-for-remaining-gaps, -confirmed-key-corrections.
+- Verified: `python scripts/verify.py`: 8 of 8; Python 2673 (298 skipped), frontend 605; js total 285.8 of 292 KB. End-to-end specs whose expected names changed were edited but not run in this slice.
+- Done (later): delete an analysis, keep its audit: tombstone in storage, deletion recorded in approvals, datasets only it read removable, `DELETE /api/runs/{id}`, run view control with confirmation in English and Arabic. ADR 2026-11-06-delete-a-run-keep-its-audit.
+- Verified: verify 8 of 8; Python 2681 (302 skipped), frontend 608; js total 286.3 of 292 KB, first load 96.4. The 4 API cases also pass on PostgreSQL (port 5432; the default test URL points at 54329, so verify skips them here).
+- Done (later): named views (up to 10 per dataset, schema unchanged) and scatter picks; ADR 2026-11-06-named-views-and-scatter-picks. Verify 8 of 8; Python 2683 (303 skipped), frontend 612; js total 287.0 of 292 KB. Named views API also passes on PostgreSQL (port 5432).
+- Done (later): bagged classification trees beside naive Bayes in the classification stage, fixed settings, never chosen by the test; gap filling along time considered and not adopted. ADR 2026-11-06-classification-trees. Verify 8 of 8 (Python 2684, frontend 612); stress harness 95 of 95.
+- Verified (later): the three end-to-end specs whose download names changed (journey, executive, metric colours) pass: 26 of 26, desktop and mobile, with `PLAYWRIGHT_EXECUTABLE_PATH=/opt/pw-browsers/chromium`. Screenshots restored.
+- Next: the full end-to-end suite has not been run in this push; production still needs the owner's Vercel sign-in variables.
+
+## 2026-11-06 (evening): Old .xls workbooks (session d9e3f889)
+
+- Owner decisions: read `.xls` with xlrd, Parquet stays unsupported; next, AI-proposed executive mapping and the dashboard built from it.
+- Done: xlrd 2.0.1 declared and hash-locked (only addition to the lock); `_read_xls` gives the `.xlsx` table shape, sheet picker included; interface accepts `.xls` with EN/AR help; fixture `tests/fixtures/Station Work Orders.xls` made by LibreOffice from synthetic rows. ADR 2026-11-06-xls-workbooks.
+- Verified: verify 8 of 8; Python 2686 (303 skipped), frontend 612. The Arabic label first matched the English one and the bilingual check caught it.
+- Done (evening): AI-proposed executive mapping (schema-only profile to the model, validated on every row, labelled rules fallback, reasons per column in EN/AR), `cross` kept in the mapping and used by the page's matrix and the brief, "Propose with AI" in the mapping panel. Found and fixed: the panel's save never sent `better` or `decimal`. ADR 2026-11-06-ai-proposed-mapping.
+- Verified: verify 8 of 8; Python 2693 (303 skipped), frontend 613; js total 287.5 of 292 KB; stress harness re-run. No model is configured here, so no real provider's proposal was exercised.
+
+## 2026-11-06 (night): Platform review brief, Phases 1 and 4 (session d9e3f889)
+
+- Owner brief replaced "merge everything": do not merge drafts blindly, nor anything that triggers an unapproved production deployment. Cancelled the scheduled auto-merge of #96; the merge is held.
+- Phase 1: #95's safety tests never ran under unittest (0 of 3) and its gate accepted self-declared flags; both fixed, all candidates still BLOCKED. #94's unpinned-comment SBOM failures fixed by copying the releases of the same commits. The 300 MB benchmark, configured twice and skipped on every PR, is one manual workflow. #93's experimental modules are not wired to any API route.
+- Phase 4: four leads reproduced (each test fails on the old code) and corrected: inputs and levels chosen from training rows only; blank classes left out; cleaner-removed values kept out of maintenance models; per-asset censoring. Card version 2026-11-06. ADR 2026-11-06-model-validity-corrections.
+- Phase 2: inventory and safe plan only (`docs/Platform Review November 2026.md`); the RMD binding is an authorization boundary and is not removed.
+- Verified: verify 8 of 8 on b3f4700; Python 2766 (303 skipped), frontend 613.
+- Not started: Phases 3, 5, 6. Decisions needed: production deploy approval for #96, CI push trigger, RMD knowledge packs, rta-style skill name.
+
+### 2026-11-06 (continued): risk ranking backtest
+
+- Done: PR #96's CI failure was two end-to-end specs I had not updated for `.xls` reading and readable download names; fixed (`ab5423b`). Phase 4: the risk ranking backtests its chances on the window after a cutoff one horizon back, against a constant-rate baseline, with calibration bands, top-ten hits and false alerts per asset-month ([decision](docs/adr/2026-11-06-risk-ranking-backtest.md)).
+- Verified: `scripts/verify.py --quick` 6 of 6; Python 2,771 tests, 303 skipped; frontend 613. Five new backtest tests, including one showing records after the cutoff never change the chances.
+- Next: owner decisions on the #96 production merge and the Phase 2 RMD retirement; asset and site holdouts.
+- Phase 3: `AGENTIC_OS_SEPARATE_APPROVER` (off by default) stops the starter of an analysis approving its report or exports; 403 `self_approval`, bilingual, no state change; rejecting stays open ([decision](docs/adr/2026-11-06-separate-approver.md)). verify --quick 6 of 6; Python 2,780 tests, 303 skipped.
+- The same setting stops whoever drafted a work order authorizing it (403 `self_authorization`, bilingual; another owner or manager must). Phase 5 loop (draft from evidence, separate authorization, recorded outcome) was already built and tested; recorded in the platform review. Python 2,785 tests, 303 skipped.
+- Phase 6: proposal for one read-only integration (work-order history export from the organisation's CMMS through the existing connector, no write-back), `docs/Enterprise Integration Proposal.md`.

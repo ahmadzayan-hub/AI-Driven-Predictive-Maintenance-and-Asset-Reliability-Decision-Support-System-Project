@@ -18,9 +18,20 @@ mapping from criticality label to a positive multiplier. Weights apply only
 when they cover every criticality label in the data, and no asset lacks one;
 otherwise nothing is weighted and the claim names what is missing.
 
+A backtest asks whether the chances came true (6 November 2026 review,
+Phase 4): the class fits are made again from records up to a cutoff one
+horizon before the latest date, each asset still observed at the end is
+given its chance from its age at the cutoff, and the chances are scored
+against the failures that followed (Brier score, five calibration bands,
+hits among the top ten) beside a constant-rate baseline fitted on the same
+records. It is retrospective and one window wide: a check that the method
+is not worse than a flat rate on this data, not a prospective validation,
+which is the shadow ledger's job (server/reliability_validation.py).
+
 Advisory only: a proposal for engineering review, never a work order.
 Standard library only; the fit is the reliability model's own.
 """
+import datetime
 import math
 
 from server import analytics
@@ -31,6 +42,9 @@ MAX_HORIZON_DAYS = 3650
 MAX_WEIGHTS = 12
 TOP = 10
 CLAIMED = 3
+MIN_BACKTEST_ASSETS = 20   # fewer assets scored than this: no backtest result
+MIN_BACKTEST_FAILURES = 5  # fewer failures in the window than this: no result
+DAYS_PER_MONTH = 365.25 / 12
 
 
 def _money(value):
@@ -56,6 +70,91 @@ def ages(items):
         if asset not in start or count > 0:
             start[asset] = day
     return {asset: (as_of - day).days for asset, day in start.items()}
+
+
+def _ages_at(items, cutoff):
+    """Days each asset had run at `cutoff` since its last failure or first record."""
+    start = {}
+    for asset, day, count in sorted(items, key=lambda item: item[1]):
+        if day > cutoff:
+            break
+        if asset not in start or count > 0:
+            start[asset] = day
+    return {asset: (cutoff - day).days for asset, day in start.items()}
+
+
+def backtest(records, horizon):
+    """Score the ranking's chances on the window after a cutoff.
+
+    `records` maps a class to (asset, date, failures) tuples. The cutoff is
+    one horizon before the latest date. Only records up to the cutoff fit the
+    class (Weibull, and a constant failure rate as the baseline); an asset is
+    scored when it was seen by the cutoff and is either recorded failing in
+    the window or recorded at its end. Returns a dict with "applicable".
+    """
+    days = [day for items in records.values() for _, day, _ in items]
+    if not days:
+        return {"applicable": False, "reason": "no_records"}
+    as_of = max(days)
+    cutoff = as_of - datetime.timedelta(days=horizon)
+    if min(days) >= cutoff:
+        return {"applicable": False, "reason": "history_shorter_than_horizon",
+                "cutoff": cutoff.isoformat()}
+    scored, unobserved, classes = [], 0, 0
+    prepared = []
+    for group, items in records.items():
+        before = [item for item in items if item[1] <= cutoff]
+        if before:
+            prepared.append((R.intervals(before), group, items))
+    prepared.sort(key=lambda item: (-len(item[0][0]), item[1]))
+    for index, ((failed, running, _), group, items) in enumerate(prepared):
+        if len(failed) < R.MIN_FAILURES or index >= R.MAX_GROUPS:
+            continue
+        result = R.fit(failed, running)
+        if result is None:
+            continue
+        classes += 1
+        exposure = sum(failed) + sum(running)
+        base = 1 - math.exp(-len(failed) / exposure * horizon) if exposure else 0.0
+        last, hit = {}, set()
+        for asset, day, count in items:
+            last[asset] = max(last.get(asset, day), day)
+            if cutoff < day <= as_of and count > 0:
+                hit.add(asset)
+        for asset, age in _ages_at(items, cutoff).items():
+            if asset not in hit and last[asset] < as_of:
+                unobserved += 1
+                continue
+            scored.append((chance_within(age, horizon, result["shape"], result["scale"]),
+                           base, asset in hit, asset))
+    failures = sum(1 for item in scored if item[2])
+    out = {"cutoff": cutoff.isoformat(), "window_end": as_of.isoformat(),
+           "horizon_days": horizon, "classes": classes, "assets_scored": len(scored),
+           "assets_unobserved": unobserved, "failures": failures}
+    if len(scored) < MIN_BACKTEST_ASSETS or failures < MIN_BACKTEST_FAILURES:
+        out.update(applicable=False, reason="too_few_assets_or_failures")
+        return out
+    n = len(scored)
+    brier = sum((c - f) ** 2 for c, _, f, _ in scored) / n
+    brier_base = sum((b - f) ** 2 for _, b, f, _ in scored) / n
+    bands = []
+    for low, high in ((0, .2), (.2, .4), (.4, .6), (.6, .8), (.8, 1.0001)):
+        cohort = [item for item in scored if low <= item[0] < high]
+        bands.append({"lower": low, "upper": min(high, 1), "assets": len(cohort),
+                      "mean_chance": (round(sum(i[0] for i in cohort) / len(cohort), 3)
+                                      if cohort else None),
+                      "observed_rate": (round(sum(i[2] for i in cohort) / len(cohort), 3)
+                                        if cohort else None)})
+    top = sorted(scored, key=lambda item: (-item[0], item[3]))[:TOP]
+    hits = sum(1 for item in top if item[2])
+    out.update(applicable=True, brier=round(brier, 3), brier_baseline=round(brier_base, 3),
+               better_than_baseline=brier < brier_base,
+               expected_failures=round(sum(item[0] for item in scored), 1),
+               calibration=bands, top=len(top), top_hits=hits,
+               top_hits_at_base_rate=round(len(top) * failures / n, 1),
+               false_alerts_per_asset_month=round(
+                   (len(top) - hits) / (len(top) * horizon / DAYS_PER_MONTH), 3))
+    return out
 
 
 def _positive(value, upper=None):
@@ -110,6 +209,66 @@ class RiskRanking:
                 "quality_checks": [{"name": "field_contract", "passed": False, "detail": en}],
                 "output": {"applicable": False, "reason": en, "reason_ar": ar,
                            "ranked": [], "human_approval_required": True}}
+
+    def _backtest_claim(self, ctx, calcs, checked):
+        """One claim stating how the chances did on the window after the cutoff."""
+        p = self.role + "."
+        if not checked["applicable"]:
+            calcs.append({"id": p + "c_backtest", "name": "backtest", "value": "not run",
+                          "method": "needs history longer than the horizon, at least "
+                                    f"{MIN_BACKTEST_ASSETS} assets scored and "
+                                    f"{MIN_BACKTEST_FAILURES} failures in the window"})
+            return analytics._claim(
+                ctx, p + "cl_backtest", "limitation",
+                "The chances above are not backtested: the history is too short, or too few "
+                "assets or failures fall in a window one horizon long, to check them against "
+                "what happened.",
+                "الاحتمالات أعلاه غير مختبرة على الماضي: السجل أقصر من اللازم، أو الأصول أو "
+                "الأعطال في نافذة بطول الأفق قليلة، فلا يمكن مقارنتها بما حدث.",
+                [p + "c_backtest"])
+        c = checked
+        calcs += [
+            {"id": p + "c_bt_window", "name": "backtest_window",
+             "value": f"{c['cutoff']} to {c['window_end']}",
+             "method": "cutoff one horizon before the latest record; classes refitted "
+                       "on records up to the cutoff only"},
+            {"id": p + "c_bt_scored", "name": "backtest_assets_scored", "value": c["assets_scored"],
+             "method": "assets seen by the cutoff and recorded failing in the window or "
+                       "at its end; " + f"{c['assets_unobserved']} not observed to the end left out"},
+            {"id": p + "c_bt_failures", "name": "backtest_failures", "value": c["failures"],
+             "method": "scored assets with a failure recorded in the window"},
+            {"id": p + "c_bt_brier", "name": "backtest_brier", "value": f"{c['brier']:.3f}",
+             "method": "mean squared gap between each asset's chance and 1 or 0"},
+            {"id": p + "c_bt_brier_base", "name": "backtest_brier_baseline",
+             "value": f"{c['brier_baseline']:.3f}",
+             "method": "the same score for a constant failure rate per class, fitted on the "
+                       "same records (no ageing)"},
+            {"id": p + "c_bt_top", "name": "backtest_top_hits",
+             "value": f"{c['top_hits']} of {c['top']}",
+             "method": f"failures among the {c['top']} highest chances at the cutoff; "
+                       f"{c['top_hits_at_base_rate']} expected at the window's failure rate; "
+                       f"{c['false_alerts_per_asset_month']} false alerts per asset-month"},
+        ]
+        better = c["better_than_baseline"]
+        en = (f"Backtest, {c['cutoff']} to {c['window_end']}: {c['failures']} of "
+              f"{c['assets_scored']} assets failed in the window. The chances scored "
+              f"{c['brier']:.3f} (Brier, lower is better) against {c['brier_baseline']:.3f} "
+              f"for a constant rate, so they did "
+              + ("better than" if better else "no better than")
+              + f" a flat rate here; {c['top_hits']} of the top {c['top']} failed. "
+              "One past window, not a prospective validation.")
+        ar = (f"اختبار على الماضي، من {c['cutoff']} إلى {c['window_end']}: تعطّل "
+              f"{c['failures']} من {c['assets_scored']} أصلًا في النافذة. سجّلت الاحتمالات "
+              f"{c['brier']:.3f} (مقياس براير، الأقل أفضل) مقابل {c['brier_baseline']:.3f} "
+              "لمعدل ثابت، فكانت "
+              + ("أفضل من" if better else "ليست أفضل من")
+              + f" المعدل الثابت هنا؛ وتعطّل {c['top_hits']} من أعلى {c['top']}. "
+              "نافذة واحدة من الماضي، لا تحقق مستقبلي.")
+        claim = analytics._claim(
+            ctx, p + "cl_backtest", "calculation" if better else "limitation", en, ar,
+            [p + "c_bt_window", p + "c_bt_scored", p + "c_bt_failures", p + "c_bt_brier",
+             p + "c_bt_brier_base", p + "c_bt_top"], labels=(c["cutoff"], c["window_end"]))
+        return claim
 
     def run(self, ctx):
         rows = analytics._rows(ctx)
@@ -180,10 +339,10 @@ class RiskRanking:
             item["score"] = base * item["weight"] if weight_of else base
         ranked.sort(key=lambda item: (-item["score"], -item["chance"], item["asset"]))
         return self._result(ctx, ranked, not_fitted, by_cost, bool(cost_cols),
-                            bool(weight_of), unweighted)
+                            bool(weight_of), unweighted, backtest(records, self.horizon))
 
     def _result(self, ctx, ranked, not_fitted, by_cost, has_cost_columns,
-                weighted=False, unweighted=None):
+                weighted=False, unweighted=None, checked=None):
         p = self.role + "."
         h = self.horizon
         top = ranked[:TOP]
@@ -287,6 +446,8 @@ class RiskRanking:
             f"لم يُرتَّب {not_fitted} أصلًا في فئات أعطالها قليلة. هذا مقترح "
             f"للمراجعة الهندسية، لا أمر عمل.",
             [p + "c_assets", p + "c_not_fitted"] + ([p + "c_weights"] if self.weights else [])))
+        checked = checked or {"applicable": False, "reason": "not_run"}
+        claims.append(self._backtest_claim(ctx, calcs, checked))
         lines = [f"## Risk ranking: next {h} days", "",
                  f"Ranked {len(ranked)} assets by "
                  + ("expected failure cost." if by_cost else "chance of failure."), "",
@@ -297,6 +458,11 @@ class RiskRanking:
             lines.append(f"| {i} | {item['asset']} | {item['group']} | "
                          f"{item['criticality'] or 'n/a'} | {item['days_running']:,} | "
                          f"{round(item['chance'] * 100)}% | {cost} |")
+        if checked["applicable"]:
+            lines += ["", f"Backtest from {checked['cutoff']} to {checked['window_end']}: "
+                      f"{checked['failures']} of {checked['assets_scored']} assets failed; "
+                      f"Brier score {checked['brier']:.3f} against {checked['brier_baseline']:.3f} "
+                      f"for a constant rate; {checked['top_hits']} of the top {checked['top']} failed."]
         lines += ["", "A proposal for engineering review; it issues no work order."]
         summary = analytics._say(
             ctx, f"Ranked {len(ranked)} assets by "
@@ -321,5 +487,6 @@ class RiskRanking:
                            "weights_not_applied": unweighted,
                            "human_approval_required": True,
                            "work_orders_issued": False,
+                           "backtest": checked,
                            "question": self.question,
                            "report_markdown": "\n".join(lines)}}

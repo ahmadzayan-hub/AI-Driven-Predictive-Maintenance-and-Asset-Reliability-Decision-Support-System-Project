@@ -172,6 +172,24 @@ class PublicationDestinationChanged(ValueError):
     """A pending review names a different destination from current settings."""
 
 
+class SelfApprovalRefused(PermissionError):
+    """Separation of duties (6 November 2026 review, Phase 3): with
+    AGENTIC_OS_SEPARATE_APPROVER on, the person who started an analysis
+    cannot approve its report or its exports; someone else with the
+    approve permission must."""
+
+    def __init__(self, language="en"):
+        self.message = ("لا يمكنك اعتماد تحليل بدأته بنفسك؛ يجب أن يعتمده شخص آخر لديه صلاحية الاعتماد."
+                        if language == "ar" else
+                        "You cannot approve an analysis you started; another person with the "
+                        "approve permission must decide.")
+        super().__init__(self.message)
+
+
+def separate_approver_from_env():
+    return os.environ.get("AGENTIC_OS_SEPARATE_APPROVER", "").strip().lower() in ("1", "true", "yes", "on")
+
+
 class DatasetInUse(ValueError):
     """A dataset an analysis still reads stays: runs cannot be deleted, and
     a run whose table vanished could not be reopened or re-read."""
@@ -185,22 +203,36 @@ class DatasetInUse(ValueError):
         if language == "ar":
             listed = "، ".join(f"«{g}»" for g in goals) + (f" و{more} غيرها" if more > 0 else "")
             message = (f"تبقى مجموعة البيانات ما دام تحليل يقرؤها ({len(runs)}): {listed}. "
-                       "لا يمكن حذف التحليلات، فالنتيجة المنشورة تشير إلى جدولها.")
+                       "احذف تلك التحليلات أولاً، أو أبقِ مجموعة البيانات.")
         else:
             listed = ", ".join(f"\u201c{g}\u201d" for g in goals) + (f" and {more} more" if more > 0 else "")
             message = (f"The dataset stays while an analysis reads it ({len(runs)}): {listed}. "
-                       "Analyses are not deleted, because a published result points at its table.")
+                       "Delete those analyses first, or keep the dataset.")
         super().__init__(message)
         self.message = message
+
+
+class RunActive(ValueError):
+    """A queued or running analysis is not deleted: a stage may still be writing."""
+
+    def __init__(self, run_id, language="en"):
+        self.run_id = run_id
+        self.message = ("هذا التحليل قيد التشغيل؛ أوقفه أو انتظر انتهاءه قبل حذفه." if language == "ar"
+                        else "This analysis is still running; cancel it or wait for it to finish before deleting it.")
+        super().__init__(self.message)
 
 class RunEngine:
     def __init__(self, store, vault_dir, gateway, limits=None, glossary=None,
                  stages=None, profiles=None, execution_mode="client", roles=None,
                  stage_timeout=None, publish_target=None, specialist_driver=None,
-                 specialist_limits=None):
+                 specialist_limits=None, separate_approver=None):
         if execution_mode not in ("client", "worker"):
             raise ValueError("AGENTIC_OS_RUN_EXECUTION must be client or worker.")
         self.execution_mode = execution_mode
+        # Separation of duties (Phase 3): off unless the operator sets
+        # AGENTIC_OS_SEPARATE_APPROVER, so a one-person workspace still works.
+        self.separate_approver = (separate_approver_from_env() if separate_approver is None
+                                  else bool(separate_approver))
         self.store = store
         # The last reasons an orchestration note is missing (G12), shown
         # by /api/health to a signed-in reader.
@@ -338,6 +370,23 @@ class RunEngine:
             "suggestion": suggestion,
         }
 
+    def propose_mapping(self, dataset_id, owner, gateway=None, language="en"):
+        """The executive mapping a model proposes from the schema alone, or the
+        rules' suggestion when no model may or can (ADR 2026-11-06-ai-proposed-mapping)."""
+        from server import mapping_advisor
+        dataset = self._owned_dataset(dataset_id, owner)
+        columns, rows = colmap.table(dataset["content"])
+        sampled = colmap.sample(rows)
+        profiles = colmap.profile(columns, sampled)
+        rules = colmap.suggest(columns, sampled, self._metrics(), profiles)
+        personal = any(r.get("code") == "personal" for r in rules["reasons"].values())
+        proposal = mapping_advisor.propose(columns, rows, profiles, rules, gateway,
+                                           model_allowed=not personal, language=language)
+        proposal["reasons"] = {name: (r["ar"] if language == "ar" else r["en"])
+                               for name, r in proposal["reasons"].items()}
+        proposal["notes"] = [n["ar"] if language == "ar" else n["en"] for n in proposal["notes"]]
+        return proposal
+
     def save_mapping(self, dataset_id, owner, mapping, language="en"):
         """Validate a mapping against every row and keep it with the
         dataset. Raises mapping.MappingError with every problem."""
@@ -359,7 +408,7 @@ class RunEngine:
     def delete_dataset(self, dataset_id, owner, language="en"):
         """Remove a stored dataset no analysis reads. Another owner's dataset
         is missing (KeyError); one a run reads is refused (DatasetInUse) with
-        the runs named, because runs are never deleted. Checked and deleted
+        the runs named; deleting those runs first frees it (6 November 2026). Checked and deleted
         in one transaction so a run created meanwhile cannot lose its table."""
         with self.store.atomic("owner:" + owner):
             dataset = self._owned_dataset(dataset_id, owner)
@@ -369,6 +418,47 @@ class RunEngine:
             self.store.delete_dataset(dataset_id)
             return {"deleted": dataset_id, "name": dataset["name"],
                     "usage": self.store.dataset_usage(owner)}
+
+    def delete_run(self, run_id, owner, by, datasets=False, language="en"):
+        """Delete an analysis and keep its audit. A queued or running run is
+        refused (RunActive). The deletion itself is recorded, append-only, in
+        the approvals table. With `datasets`, every dataset the run read that
+        no other analysis reads is removed too."""
+        arabic = language == "ar"
+        with self.store.atomic("owner:" + owner):
+            run = self.store.get_run(run_id)
+            if run is None or (run.get("owner") or "local-owner") != owner or run["state"] == "deleted":
+                raise KeyError(run_id)
+            if run["state"] in ("queued", "running"):
+                raise RunActive(run_id, language)
+            declared = json.loads(run.get("joins_json") or "{}")
+            read = [run.get("dataset_id")] + [j.get("dataset_id") for j in declared.get("joins") or []
+                                              if isinstance(j, dict)]
+            read = list(dict.fromkeys(d for d in read if d))
+            removed = {"tasks": len(self.store.get_tasks(run_id))}
+            self.store.tombstone_run(run_id, _now())
+            self.store.insert("approvals", {
+                "id": self.new_id(), "run_id": run_id,
+                "action": "حذف بيانات هذا التحليل ومخرجاته" if arabic else "Delete this analysis's data and outputs",
+                "target": run_id, "risk": "high",
+                "impact": ("أُزيلت نسخة البيانات ومخرجات المراحل والتقارير والتخطيطات والأفلام؛ بقي سجل التدقيق."
+                           if arabic else "Removed the data copy, stage outputs, reports, layouts and films; the audit stays."),
+                "reversibility": "غير قابل للتراجع." if arabic else "Not reversible.",
+                "content_hash": hashlib.sha256(json.dumps({"run": run_id, **removed}).encode()).hexdigest(),
+                "state": "recorded", "created_at": _now(), "decided_at": _now(), "decided_by": by})
+            gone = []
+            if datasets:
+                for dataset_id in read:
+                    try:
+                        self._owned_dataset(dataset_id, owner)
+                    except KeyError:
+                        continue
+                    if not self.store.runs_using_dataset(dataset_id, owner):
+                        self.store.delete_dataset(dataset_id)
+                        gone.append(dataset_id)
+            return {"deleted": run_id, "datasets_deleted": gone,
+                    "datasets_kept": [d for d in read if d not in gone],
+                    "audit_kept": len(self.store.approvals_for_run(run_id))}
 
     def custom_roles_for(self, profile=None):
         """Which registered stages a run includes. A profile names a
@@ -520,7 +610,8 @@ class RunEngine:
             joins_json = json.dumps({
                 "joins": [{**{key: item[key] for key in
                               ("dataset_id", "alias", "how", "keys", "mapping")},
-                           **({"match": item["match"]} if item.get("match") else {})}
+                           **({"match": item["match"]} if item.get("match") else {}),
+                           **({"corrections": item["corrections"]} if item.get("corrections") else {})}
                           for item in inputs],
                 "breakdown": spec["breakdown"]}, ensure_ascii=False)
             joined_names = [item["name"] for item in inputs]
@@ -986,10 +1077,21 @@ class RunEngine:
                 raise ValueError("Specialist verification is unavailable; publication is blocked.")
             self.specialists.ensure_verified(run_id)
 
+    def check_approver(self, run_id, approver):
+        """Refuse an approval by the run's own starter when duties are separated.
+        Rejecting is not refused: anyone may stop their own report."""
+        if not self.separate_approver:
+            return
+        run = self._row(run_id)
+        if approver is None or approver == run.get("owner"):
+            raise SelfApprovalRefused(run.get("report_language") or "en")
+
     def _decide_approval_atomic(self, run_id, approval_id, decision, approver=None):
         approval = self.store.get_approval(approval_id, run_id)
         if approval is None:
             raise KeyError(approval_id)
+        if decision == "approve":
+            self.check_approver(run_id, approver)
         if approval["state"] != "pending":
             raise ValueError(f"Approval already {approval['state']}.")
         tasks = self.store.get_tasks(run_id)
@@ -1211,10 +1313,16 @@ class RunEngine:
         return self.store.list_runs(owner=owner, state=state)
 
     def owner_of(self, run_id):
-        return self._row(run_id).get("owner") or "local-owner"
+        run = self._row(run_id)
+        if run["state"] == "deleted":
+            # Every route reads a deleted analysis as missing; its audit stays in storage.
+            raise KeyError(run_id)
+        return run.get("owner") or "local-owner"
 
     def get_run(self, run_id):
         run = self._row(run_id)
+        if run["state"] == "deleted":
+            raise KeyError(run_id)
         tasks = []
         charts, report, reports, models = [], None, [], []
         questions = dict(analytics.REPORT_SECTIONS)
@@ -1270,7 +1378,8 @@ class RunEngine:
                                      "decided_by": gate.get("decided_by")} if gate else None)
         declared = json.loads(run.get("joins_json") or "{}")
         joins = [{**{key: item.get(key) for key in ("dataset_id", "alias", "how", "keys")},
-                  **({"match": item["match"]} if item.get("match") else {})}
+                  **({"match": item["match"]} if item.get("match") else {}),
+                  **({"corrections": item["corrections"]} if item.get("corrections") else {})}
                  for item in declared.get("joins") or []]
         return {"id": run["id"], "goal": run["goal"],
                 "execution": {"mode": self.execution_mode, "poll_after_ms": 2500},

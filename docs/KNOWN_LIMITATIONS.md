@@ -341,7 +341,7 @@ required local files. Both behaviors are covered by tests
     `.ods` since 2026-10-30, JSON or JSON Lines) or pasted CSV (ADR 0024): up to 4 MB as uploaded, the limit
     of the platform the app is deployed to, 50,000 rows, and 10 MB once
     converted to CSV. They are held in the database rather than object
-    storage. Not read: old `.xls` workbooks, Parquet, CSV
+    storage. Not read: Parquet (old `.xls` workbooks are read since 6 November 2026, values only), CSV
     in any encoding but UTF-8 or UTF-16, and database connectors. A
     workbook gives one sheet per upload. A stored dataset can be removed
     from the Datasets view unless an analysis reads it, in which case the
@@ -644,3 +644,23 @@ Three more limits on what the figures mean:
   Operations administration still show theirs; using one gets the server's
   refusal and writes nothing
   ([decision](adr/2026-10-21-view-only-demo-mode.md)).
+- **RMD V2 knowledge packs are retrieval evidence, not model-tested.** The MBA 9227
+  and Group 9226 packs are searched by the existing lexical retriever. Acceptance
+  cases K01 to K28 and QA01 to QA20 are checked for retrievable, correctly labelled
+  evidence only; a model's answers to them have not been run. Paraphrases with no
+  shared words can miss the evidence. The dataset behind the Analytics pack is
+  synthetic and educational; its scores are not validated predictions and its history
+  is not current verification
+  ([decision](adr/2026-11-04-evidence-aware-knowledge.md),
+  [results](RMD_KNOWLEDGE_ACCEPTANCE.md)).
+- **Condition surveys are read on a 1 to 9 scale.** The condition measures assume the
+  asset condition scale (9 New to 1 Failed) and refuse a file graded otherwise. A
+  not-applicable line is still listed by the executive brief as a missing measurement,
+  and a survey's own weighting of its criteria is not inferred
+  ([decision](adr/2026-11-05-condition-surveys.md)).
+- **Scale direction and decimal mark are declared, not inferred.** A 1-is-best grade
+  ranks correctly only once the owner sets "lower is better" in the mapping, and a
+  decimal comma is read only once the mapping says so (the platform suggests it). Without
+  a language model, Ask Miyaar answers knowledge questions only on a strong match of
+  subject words
+  ([decision](adr/2026-11-05-stress-findings.md), [results](STRESS_TEST_RESULTS.md)).

@@ -42,7 +42,11 @@ class ReviewedKnowledgeTests(unittest.TestCase):
         loaded = self.default_store()
         self.assertIn("private-example", loaded.collections)
         scoped = loaded.for_principal(self.principal)
-        self.assertEqual(set(scoped.collections), {COLLECTION})
+        # Every bundled collection is public; the private fixture is not offered.
+        self.assertIn(COLLECTION, scoped.collections)
+        self.assertNotIn("private-example", scoped.collections)
+        self.assertTrue(all(c.metadata.get("data_classification") == "public"
+                            for c in scoped.collections.values()))
         self.assertNotIn("canary", json.dumps(scoped.describe()))
         self.assertFalse(scoped.for_principal(None))
 

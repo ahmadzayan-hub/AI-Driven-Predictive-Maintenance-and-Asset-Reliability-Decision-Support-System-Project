@@ -3,9 +3,9 @@ type: project
 aliases: [Agentic OS project]
 tags: [project]
 status: active
-updated: 2026-10-31
+updated: 2026-11-06
 review_every_days: 14
-sources: [docs/implementation/PLATFORM_RELEASE.md, README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/RMD_EVIDENCE.md, docs/assessments/2026-10-20-project-review.md, docs/assessments/2026-10-21-saas-competitive-benchmark.md, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0024-the-dataset-api.md, docs/adr/0028-views-load-on-demand.md, scripts/verify.py, docs/adr/0058-executive-dashboard-agent-and-scoped-evidence.md, docs/adr/2026-10-31-reliability-model.md, docs/adr/2026-10-31-risk-ranking.md, docs/adr/2026-10-31-what-if-scenarios.md, docs/adr/2026-10-31-data-health.md, docs/adr/2026-10-31-snapshot-drift.md]
+sources: [docs/implementation/PLATFORM_RELEASE.md, README.md, docs/ROADMAP.md, docs/VERCEL_DEPLOYMENT.md, project-progress.md, docs/RMD_EVIDENCE.md, docs/assessments/2026-10-20-project-review.md, docs/assessments/2026-10-21-saas-competitive-benchmark.md, docs/adr/0023-the-analytics-workspace-interface.md, docs/adr/0024-the-dataset-api.md, docs/adr/0028-views-load-on-demand.md, scripts/verify.py, docs/adr/0058-executive-dashboard-agent-and-scoped-evidence.md, docs/adr/2026-10-31-reliability-model.md, docs/adr/2026-10-31-risk-ranking.md, docs/adr/2026-10-31-what-if-scenarios.md, docs/adr/2026-10-31-data-health.md, docs/adr/2026-10-31-snapshot-drift.md, docs/adr/2026-11-06-two-way-matrix.md, docs/HOSTED_MIGRATION_20261104.md]
 ---
 
 # Agentic OS
@@ -19,6 +19,8 @@ The engine in this repository, described in [[Identity]]: a governed business-an
 - **Production:** read-only metadata on 20 October identifies the older `42e53d00` Vercel deployment behind Vercel Authentication. Current application identity, durable storage and the corrected source still require hosted acceptance; earlier owner-access observations are historical.
 
 ## What it does today
+
+- **6 November 2026:** the designed page, brief, HTML report, Word file, slides and film cross two breakdowns in a counted matrix, a nested pair refused ([[Governed pipeline]]); executive films narrate with recorded ElevenLabs voices accepted only when each take's text digest matches its scene; the hosted database holds every table the server expects. Production was down that day because `DATABASE_URL` was set without a sign-in provider, so the server failed closed as designed; the fix is the owner's Vercel setting.
 
 - The platform shares an authenticated API schema and readable error contract,
   retains exact-request retry identity across a web reload and queries owned
