@@ -96,7 +96,8 @@ def read(body, name, fmt=None, sheet=None):
         raise too_large()
     if not body.strip():
         raise DatasetError(422, "The file is empty.", "الملف فارغ.")
-    fmt = fmt or detect_format(name, body)
+    detected = detect_format(name, body)  # Always enforce magic/asset safety checks, even when fmt is supplied.
+    fmt = fmt or detected
     if fmt == "xlsx":
         parsed = _read_xlsx(body, sheet)
     elif fmt == "ods":
