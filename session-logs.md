@@ -2490,3 +2490,12 @@ regressions passed. The full failure and skipped later steps remain in README.
 - Verified: verify 8 of 8; Python 2686 (303 skipped), frontend 612. The Arabic label first matched the English one and the bilingual check caught it.
 - Done (evening): AI-proposed executive mapping (schema-only profile to the model, validated on every row, labelled rules fallback, reasons per column in EN/AR), `cross` kept in the mapping and used by the page's matrix and the brief, "Propose with AI" in the mapping panel. Found and fixed: the panel's save never sent `better` or `decimal`. ADR 2026-11-06-ai-proposed-mapping.
 - Verified: verify 8 of 8; Python 2693 (303 skipped), frontend 613; js total 287.5 of 292 KB; stress harness re-run. No model is configured here, so no real provider's proposal was exercised.
+
+## 2026-11-06 (night): Platform review brief, Phases 1 and 4 (session d9e3f889)
+
+- Owner brief replaced "merge everything": do not merge drafts blindly, nor anything that triggers an unapproved production deployment. Cancelled the scheduled auto-merge of #96; the merge is held.
+- Phase 1: #95's safety tests never ran under unittest (0 of 3) and its gate accepted self-declared flags; both fixed, all candidates still BLOCKED. #94's unpinned-comment SBOM failures fixed by copying the releases of the same commits. The 300 MB benchmark, configured twice and skipped on every PR, is one manual workflow. #93's experimental modules are not wired to any API route.
+- Phase 4: four leads reproduced (each test fails on the old code) and corrected: inputs and levels chosen from training rows only; blank classes left out; cleaner-removed values kept out of maintenance models; per-asset censoring. Card version 2026-11-06. ADR 2026-11-06-model-validity-corrections.
+- Phase 2: inventory and safe plan only (`docs/Platform Review November 2026.md`); the RMD binding is an authorization boundary and is not removed.
+- Verified: verify 8 of 8 on b3f4700; Python 2766 (303 skipped), frontend 613.
+- Not started: Phases 3, 5, 6. Decisions needed: production deploy approval for #96, CI push trigger, RMD knowledge packs, rta-style skill name.
