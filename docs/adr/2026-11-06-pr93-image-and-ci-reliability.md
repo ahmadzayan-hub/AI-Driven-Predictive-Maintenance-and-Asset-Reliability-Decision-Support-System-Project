@@ -29,7 +29,11 @@ acceptance branch likewise ran out of time after a slow package download.
   assertion, use blanket test retries, or call the transport cause resolved.
 - Keep every CI stage, reduce apt's optional recommended packages, and allow
   bounded job time for the observed slow setup followed by the full suites.
-  This provides headroom, not a guarantee of faster package mirrors.
+  This provides headroom, not a guarantee of faster package mirrors. The
+  separate Arabic-media job also needs setup headroom: on repair head
+  `856008b1`, its PR job hit the former 10-minute limit downloading 66.4 MB
+  before tests, while the push job fetched the same packages in four seconds
+  and passed. Allow 45 minutes there without skipping any media assertions.
 - Retain browser/server output, Python output, HTML reports and failure traces
   with failure exit codes preserved through `pipefail`. Fixtures are synthetic.
 
@@ -52,3 +56,6 @@ gates remain open; isolated module tests are not end-to-end acceptance.
 - [Passing same-head CI](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/42099704191)
 - [Cancelled PR run after slow package download](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/42099716713/job/127499011735)
 - [Original image correction](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/commit/abfc81593864d8f5255c94c8b8e0fed13998622e)
+
+- [Arabic-media PR download timeout](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/42169555544/job/127733903767)
+- [Passing same-head Arabic-media job](https://github.com/ahmadzayan-hub/AI-Driven-Predictive-Maintenance-and-Asset-Reliability-Decision-Support-System-Project/actions/runs/42169550671/job/127733888799)

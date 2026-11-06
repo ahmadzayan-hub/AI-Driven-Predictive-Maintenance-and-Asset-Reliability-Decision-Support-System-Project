@@ -579,6 +579,11 @@ server output were retained. No sandbox bypass or browser assertion change.
 CI retains all stages, installs fewer optional recommended OS packages, allows
 90 minutes for the measured slow setup plus full suites, and retains Python,
 browser and server logs with failure status preserved through `pipefail`.
+On first repair head `856008b1`, the separate Arabic-media PR job was cancelled
+at its former 10-minute limit while downloading OS packages, before tests. The
+same-head push job fetched 66.4 MB in four seconds and passed its media checks.
+That separate job now permits 45 minutes; mirror download speed is not claimed
+resolved. Platform journeys, RMD evidence and UI budgets passed on `856008b1`.
 The historical `ECONNRESET` cause remains unproven; safe fixture replay is a
 bounded resilience measure. Exact repair-head hosted CI remains pending at
 this commit. No merge, production deployment, or completed large-upload platform

@@ -221,8 +221,10 @@ jobs:
   arabic-media:
     # PR29/31's script lives outside unittest discovery; execute it explicitly.
     # Synthetic tone proves audio encoding, not Arabic speech quality.
+    # This job installs the same media packages as the main job. A slow
+    # mirror exhausted its former 10-minute limit before any test ran.
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5.1.0
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
