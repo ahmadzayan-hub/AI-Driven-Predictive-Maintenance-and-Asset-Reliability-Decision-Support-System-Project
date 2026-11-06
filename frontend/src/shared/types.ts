@@ -692,7 +692,7 @@ export type ExecutiveBrief = RunExecutive
 /** A generative layout (ADR 2026-11-03-generative-layout): validated and grounded on the server. */
 export interface LayoutSection {
   id: string
-  component: 'brief' | 'kpi' | 'trend' | 'ranking' | 'priorities' | 'comparison' | 'distribution' | 'table' | 'gap'
+  component: 'brief' | 'kpi' | 'trend' | 'ranking' | 'priorities' | 'comparison' | 'distribution' | 'matrix' | 'table' | 'gap'
   title: { en: string; ar: string }
   purpose: { en: string; ar: string }
   span: 1 | 2 | 3

@@ -38,6 +38,8 @@ FORBIDDEN_TEXT = re.compile(r"(https?:|www\.|javascript:|data:|<|>|\{\{|\}\}|`)"
 # A low-cardinality text column can be ranked; more groups than this is a list.
 RANKABLE = (2, 50)
 MAX_RANKED = 15
+# A matrix stays readable on one screen: at most this many cells.
+MAX_CELLS = 120
 
 COMPONENTS = {
     # name: (capability it needs, allowed binding keys)
@@ -48,6 +50,8 @@ COMPONENTS = {
     "ranking": ("ranking", {"group_by", "measures", "filters", "sort", "limit"}),
     "comparison": ("ranking", {"group_by", "measures", "filters", "sort", "limit"}),
     "distribution": ("distribution", {"group_by", "measures", "filters"}),
+    # Two breakdowns against each other: rows, columns, one figure per cell.
+    "matrix": ("ranking", {"group_by", "measures", "filters"}),
     "table": ("descriptive", {"columns", "filters", "sort", "limit"}),
     "gap": ("descriptive", {"capability"}),
 }
@@ -174,6 +178,20 @@ def _ground(table, component, binding, prof, problems, where):
                                         or drivers in _dates(prof)):
                 problems.append(f"{where}: drivers is another text column with 2 to 50 groups, not a date.")
                 return None
+        if component == "matrix":
+            distinct = {f["name"]: f.get("distinct") or 0 for f in prof["fields"]}
+            if (len(groups) != 2 or groups[0] == groups[1] or any(g not in _groups(prof) or g in _dates(prof)
+                                                                  for g in groups)):
+                problems.append(f"{where}: a matrix crosses two different text columns with 2 to 50 groups, not dates.")
+                return None
+            if len(spec.get("measures") or []) != 1:
+                problems.append(f"{where}: a matrix shows one figure per cell.")
+                return None
+            if distinct[groups[0]] * distinct[groups[1]] > MAX_CELLS:
+                problems.append(f"{where}: more than {MAX_CELLS} cells; choose columns with fewer groups.")
+                return None
+            spec["limit"] = MAX_CELLS
+            spec.pop("sort", None)
         if component == "ranking" and spec["limit"] > MAX_RANKED:
             spec["limit"] = MAX_RANKED
         if component == "distribution" and not (
@@ -294,9 +312,11 @@ def _section(sid, component, span, title, purpose, binding, interactions=()):
             "binding": binding, "interactions": list(interactions)}
 
 
-def rule_plan(prof, caps, objective="", better=None):
+def rule_plan(prof, caps, objective="", better=None, crossed=None):
     """A deterministic plan derived from this table's own schema and the kind
-    of records it holds. It is labelled `rules`, never a model's design."""
+    of records it holds. It is labelled `rules`, never a model's design.
+    `crossed(a, b)` says whether two breakdowns are worth a matrix; without
+    it no matrix is proposed."""
     measures, dates, groups = _measures(prof), _dates(prof), _groups(prof)
     if not caps["descriptive"]["available"]:
         return {"version": VERSION, "objective": objective[:MAX_OBJECTIVE], "sections": [
@@ -444,6 +464,16 @@ def rule_plan(prof, caps, objective="", better=None):
                                      _t("Not available yet", "غير متاح بعد"),
                                      _t("A missing prerequisite, stated plainly.", "متطلب ناقص، مذكور بوضوح."),
                                      {"capability": cap}))
+    distinct = {f["name"]: f.get("distinct") or 0 for f in prof["fields"]}
+    if (group and drivers and distinct[group] * distinct[drivers] <= MAX_CELLS
+            and crossed is not None and crossed(group, drivers)):
+        # Counts of records, not a ranking: where the records sit across two breakdowns.
+        sections.append(_section("matrix", "matrix", 3,
+                                 _t(f"{group} by {drivers}"[:MAX_TITLE], f"{group} حسب {drivers}"[:MAX_TITLE]),
+                                 _t("Records in each pair of groups. A count, not a risk ranking.",
+                                    "عدد السجلات في كل زوج من المجموعات. عدد لا ترتيب للمخاطر."),
+                                 {"group_by": [group, drivers], "measures": [{"agg": "count"}]},
+                                 ("filter", "drill_down")))
     sections = sections[:MAX_SECTIONS - 1]
     columns = [f["name"] for f in prof["fields"]][:6]
     if columns:
@@ -462,6 +492,7 @@ SYSTEM = (
     "priorities {group_by:[text column],measures,sort,limit<=3,drivers:another text column}, "
     "ranking|comparison {group_by:[text column],measures,sort,limit}, "
     'distribution {group_by:[{"column":measure,"bins":2-50}],measures:[{"agg":"count"}]}, '
+    "matrix {group_by:[text column,another text column],measures:[one]} (at most 120 cells), "
     "table {columns,limit}, gap {capability}. Aggregates: sum, mean, min, max, count, "
     "distinct, ratio. Use only listed fields and only available capabilities; for an "
     "unavailable capability that matters to the objective, add a gap section. Never "
@@ -492,6 +523,16 @@ def model_plan(gateway, prof, caps, objective, language="en"):
     return plan, _t(f"Planned by {name}", f"صمّمه {name}")
 
 
+def crossed(table, a, b):
+    """Two breakdowns are worth a matrix only if neither is nested in the
+    other: an asset ID inside its class fills one cell per row and shows nothing."""
+    ia, ib = table.index(a), table.index(b)
+    pairs = {(row[ia], row[ib]) for row in table.rows if row[ia] not in (None, "") and row[ib] not in (None, "")}
+    firsts = {x for x, _ in pairs}
+    seconds = {y for _, y in pairs}
+    return len(pairs) > max(len(firsts), len(seconds))
+
+
 def plan_for(table, gateway=None, objective="", stages=(), model_allowed=True, language="en", better=None):
     """The whole pipeline. Always returns a validated plan and says how."""
     prof = profile(table)
@@ -514,7 +555,8 @@ def plan_for(table, gateway=None, objective="", stages=(), model_allowed=True, l
         notes.append(_t("This run's data may not go to a model, so the rule planner was used.",
                         "لا يجوز إرسال بيانات هذا التحليل إلى نموذج، فاستُخدم التصميم بالقواعد."))
     if plan is None:
-        plan, rule_problems = validate(rule_plan(prof, caps, objective, better), table, prof, caps)
+        plan, rule_problems = validate(rule_plan(prof, caps, objective, better,
+                                                 lambda a, b: crossed(table, a, b)), table, prof, caps)
         if plan is None:  # a rule plan that fails its own contract is a bug
             raise ValueError("; ".join(rule_problems))
     return {"plan": plan, "source": source, "provider": provider, "notes": notes,

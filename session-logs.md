@@ -2445,3 +2445,10 @@ regressions passed. The full failure and skipped later steps remain in README.
 - Not done: no transcription check of the takes; no backup confirmed before applying (every table held 0 rows). Production sign-in variables not set: Vercel refuses this session's token (403) for environment variables, so the owner sets them.
 - Next: the owner sets the Vercel sign-in variables, then a check of `/api/health`, sign-in and cross-owner isolation with test accounts.
 - Found 2026-11-06: production (`dpl_7Ns4ccqt…`, main at `654c500`) answers every request with 500 FUNCTION_INVOCATION_FAILED. Runtime log: `AuthNotConfigured: A hosted deployment with DATABASE_URL needs a sign-in provider`. `DATABASE_URL` is set and no token-verification variable is, so the server fails closed as designed. Not redeployed: a redeploy does not change this. Adding even `SUPABASE_URL` was refused (403, production variables need more permission), so the owner adds the sign-in variables, then redeploys.
+
+## 2026-11-06 (later): Two-way breakdown matrix (session d9e3f889)
+
+- Done: `matrix` layout component (two text columns, one measure, at most 120 cells, nested pairs refused), rule plan proposes a counted matrix after the gap notices, page renders a shaded table with row filtering. ADR 2026-11-06-two-way-matrix.
+- Verified: `python scripts/verify.py`: 8 of 8 steps; Python 2658 tests (296 skipped), frontend 602 passed; js total 285.3 of 286 KB, css 39.3 of 41 KB.
+- Not done: exports do not show the matrix; no browser axe run on the shade contrast; no e2e journey.
+- Next: production still waits on the owner's Vercel sign-in variables.

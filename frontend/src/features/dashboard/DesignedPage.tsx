@@ -84,6 +84,26 @@ function Focus({ runId, name, drivers, measures, filters, maintenance, onClear }
 /** One planned section. Its numbers come from the query engine under the
  *  dashboard's shared filters, so a pick anywhere narrows every section and
  *  Jarvis, whose scope is the same filter list. */
+/** Two breakdowns against each other: one figure per cell, shaded by size,
+ * from the query engine's own groups. A missing pair holds no records. */
+function Matrix({ groups, title, counted, onPick, picked }: {
+  groups: QueryAnswer['groups']; title: string; counted: boolean
+  onPick?: (value: string) => void; picked?: (value: string) => boolean
+}) {
+  const { t, formatNumber } = usePack(layoutMessages)
+  const rows = [...new Set(groups.map((g) => label(g.keys[0] ?? null)))]
+  const cols = [...new Set(groups.map((g) => label(g.keys[1] ?? null)))].sort()
+  const cell = new Map(groups.map((g) => [`${label(g.keys[0] ?? null)}\u0000${label(g.keys[1] ?? null)}`, g.values[0]]))
+  const top = Math.max(1, ...groups.map((g) => Math.abs(g.values[0] ?? 0)))
+  return <div className="layout__scroll"><table className="table layout__matrix"><caption className="visually-hidden">{title}</caption>
+    <thead><tr><td />{cols.map((c) => <th key={c} scope="col" dir="auto">{c}</th>)}</tr></thead>
+    <tbody>{rows.map((r) => <tr key={r}><th scope="row" dir="auto">{onPick ? <button type="button" className="evidence-link"
+      aria-pressed={picked?.(r)} onClick={() => onPick(r)}>{r}</button> : r}</th>
+      {cols.map((c) => { const v = cell.get(`${r}\u0000${c}`)
+        return <td key={c} style={{ '--w': v ? Math.abs(v) / top : 0 } as React.CSSProperties}>
+          <bdi>{v === undefined || v === null ? (counted ? formatNumber(0) : t('noValue')) : formatNumber(v)}</bdi></td> })}</tr>)}</tbody></table></div>
+}
+
 function Section({ runId, section, filters, state, roles, setState, pinned, onPin, result, onOpenRun }: {
   runId: string; section: LayoutSection; filters: TableFilter[]; state: DashState; roles: Roles
   setState: (next: DashState) => void; pinned: boolean; onPin: () => void; result: LayoutResult; onOpenRun: () => void
@@ -148,6 +168,9 @@ function Section({ runId, section, filters, state, roles, setState, pinned, onPi
       })}</ol>
       {held ? <Focus runId={runId} name={held} drivers={b.drivers} measures={b.measures} filters={filters}
         maintenance={result.domain?.name === 'maintenance'} onClear={() => setState(pick(state, column, held, roles.date))} /> : null}</>
+    } else if (section.component === 'matrix') {
+      body = <Matrix groups={groups} title={title} counted={b.measures?.[0]?.agg === 'count'}
+        {...('onPick' in pickable ? pickable : {})} />
     } else if (view === 'table') {
       // The same groups as a table; a pickable group stays one press away.
       const onPick = 'onPick' in pickable ? pickable.onPick : undefined

@@ -277,3 +277,19 @@ it('shows the latest layout and says why when another tab saved first', async ()
   expect(await screen.findByText(/changed in another tab or device/)).toBeInTheDocument()
   expect(await screen.findByRole('region', { name: 'Cost by class' })).toBeInTheDocument()
 })
+
+it('crosses two breakdowns in a matrix: every pair, an empty pair as zero, a row picks its group', async () => {
+  const matrix: LayoutSection = { id: 'matrix', component: 'matrix', title: t('Station by criticality'), purpose: t('A count.'),
+    span: 3, interactions: ['filter'], binding: { group_by: ['Class', 'Criticality'], measures: [{ agg: 'count' }] } }
+  vi.spyOn(api, 'planLayout').mockResolvedValue(result([matrix]))
+  vi.spyOn(api, 'queryTable').mockResolvedValue({ group_by: [], measures: [], group_count: 3, truncated: false,
+    matched_records: 9, records: 9, groups: [{ keys: ['ST01', 'High'], records: 4, values: [4] },
+      { keys: ['ST01', 'Low'], records: 2, values: [2] }, { keys: ['ST02', 'High'], records: 3, values: [3] }] })
+  const setState = vi.fn()
+  render(<DesignedPage runId="r1" roles={roles} state={EMPTY} filters={[]} setState={setState} />)
+  const region = await screen.findByRole('region', { name: 'Station by criticality' })
+  const cells = [...region.querySelectorAll('tbody tr')].map((tr) => [...tr.children].map((c) => c.textContent))
+  expect(cells).toEqual([['ST01', '4', '2'], ['ST02', '3', '0']])
+  fireEvent.click(screen.getByRole('button', { name: 'ST02' }))
+  expect(setState).toHaveBeenCalledWith(expect.objectContaining({ filters: { Class: ['ST02'] } }))
+})
