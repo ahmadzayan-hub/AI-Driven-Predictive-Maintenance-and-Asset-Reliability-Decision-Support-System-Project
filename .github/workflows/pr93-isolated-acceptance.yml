@@ -1,0 +1,44 @@
+name: PR93 Isolated 300MB Acceptance Evidence
+on:
+  push:
+    branches:
+      - test/pr93-verified-acceptance-20261106
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-pr93-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    env:
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - name: Checkout exact candidate revision
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - name: Configure Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: '3.11'
+      - name: Identify candidate and isolated runner
+        run: |
+          git rev-parse HEAD
+          python --version
+          df -h /tmp
+          free -h
+      - name: Core isolated acceptance suite
+        run: |
+          set -o pipefail
+          python -m unittest -v             tests.test_experimental_ingest             tests.test_experimental_assets             tests.test_experimental_jobs             tests.test_experimental_stream             tests.test_experimental_query             tests.test_miyaar_challenge_contract             tests.test_pr93_isolated_acceptance             2>&1 | tee pr93-isolated-tests.log
+      - name: Real 300 MB isolated ingestion, index, projection and independent numeric oracle
+        run: |
+          set -o pipefail
+          python scripts/benchmark_pr93_queries.py --run 2>&1 | tee pr93-300mb-benchmark.log
+          grep -q '"all_checks_passed": true' pr93-300mb-benchmark.log
+          grep -q '"temporary_directory_removed": true' pr93-300mb-benchmark.log
+      - name: Summary on failure
+        if: failure()
+        run: |
+          echo "::group::PR93 isolated test summary"
+          tail -n 80 pr93-isolated-tests.log 2>/dev/null || true
+          tail -n 40 pr93-300mb-benchmark.log 2>/dev/null || true
+          echo "::endgroup::"

@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import type { APIRequestContext, Page } from '@playwright/test'
 import { openTab, skipOnboarding, openFilters } from './helpers'
+import { createFixtureRun } from './create-fixture-run'
 
 // Dashboard pages (ADR 0032) over the bundled sample's cleaned table: 72
 // records, months, two regions and three categories. Every page is
@@ -12,7 +13,7 @@ import { openTab, skipOnboarding, openFilters } from './helpers'
 test.use({ contextOptions: { reducedMotion: 'reduce' } })
 
 async function finishedRun(request: APIRequestContext, goal: string) {
-  let run = await (await request.post('/api/runs', { data: { goal } })).json()
+  let run = await createFixtureRun(request, goal)
   for (let step = 0; step < 80 && ['queued', 'running'].includes(run.state); step += 1) {
     run = await (await request.post(`/api/runs/${run.id}/advance`)).json()
   }

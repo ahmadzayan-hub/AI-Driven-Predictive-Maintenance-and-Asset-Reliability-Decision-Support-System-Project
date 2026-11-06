@@ -120,6 +120,18 @@ def detect_format(name, body):
         # Old binary Excel (6 November 2026): read by xlrd, values only.
         return "xls"
     suffix = posixpath.splitext((name or "").lower())[1]
+    # A named document or a recognizable document signature must never be
+    # guessed into CSV. It belongs to the isolated asset extraction pipeline.
+    # Reject even when renamed .csv, to prevent false analytic claims.
+    asset_extensions = {".pdf", ".png", ".jpg", ".jpeg", ".webp",
+                        ".tif", ".tiff", ".pbix", ".parquet"}
+    image_magic = (bytes.fromhex("89504e470d0a1a0a"),
+                   bytes.fromhex("ffd8ff"))
+    if (suffix in asset_extensions or body.startswith(b"%PDF-")
+            or body.startswith(image_magic)
+            or (body[:4] == b"RIFF" and body[8:12] == b"WEBP")
+            or body.startswith(b"PAR1")):
+        raise _unsupported()
     if suffix in _EXTENSIONS:
         return _EXTENSIONS[suffix]
     if body.startswith(_ZIP_SIGNATURE):

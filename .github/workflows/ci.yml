@@ -20,9 +20,9 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    # Two Playwright suites after a browser install: the install alone has
-    # taken 12 minutes on a slow hosted runner (22 October 2026).
-    timeout-minutes: 45
+    # A measured apt download took 35 minutes before tests even started.
+    # Keep all checks and allow bounded setup headroom plus the browser suites.
+    timeout-minutes: 90
     services:
       postgres:
         image: postgres:16
@@ -57,7 +57,7 @@ jobs:
         # tests skip and the e2e review test can only check the refusal.
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg espeak-ng
+          sudo apt-get install -y --no-install-recommends ffmpeg espeak-ng
           pip install Pillow==12.3.0
           python -c "from PIL import features; assert features.check('raqm')"
 
@@ -148,6 +148,7 @@ jobs:
         run: |
           python scripts/brain_check.py --strict
           node --experimental-strip-types frontend/src/tests/native-run-logic.test.mjs
+          node --experimental-strip-types frontend/src/tests/native-fixture-transport.test.mjs
 
       - name: Type check and production build
         run: npm run build
@@ -171,17 +172,23 @@ jobs:
         working-directory: frontend
 
       - name: End-to-end and accessibility tests
-        run: npx playwright test
+        run: |
+          set -o pipefail
+          npx playwright test 2>&1 | tee e2e.log
         working-directory: frontend
 
       - name: Miyaar bilingual, voice and accessibility tests
-        run: npx playwright test --config=playwright.miyaar.config.ts
+        run: |
+          set -o pipefail
+          npx playwright test --config=playwright.miyaar.config.ts 2>&1 | tee e2e-miyaar.log
         working-directory: frontend
 
       - name: Jarvis synthetic evidence, cancellation and voice boundaries
         env:
           JARVIS_DATA_DIR: ${{ runner.temp }}/jarvis-${{ github.run_id }}-${{ github.run_attempt }}
-        run: node node_modules/@playwright/test/cli.js test --config=playwright.jarvis.config.ts
+        run: |
+          set -o pipefail
+          node node_modules/@playwright/test/cli.js test --config=playwright.jarvis.config.ts 2>&1 | tee e2e-jarvis.log
         working-directory: frontend
 
       - name: Interface budget
@@ -197,6 +204,10 @@ jobs:
             frontend/dist
             frontend/test-results
             frontend/e2e/.tmp/jarvis-results
+            python-tests.log
+            frontend/e2e.log
+            frontend/e2e-miyaar.log
+            frontend/e2e-jarvis.log
           retention-days: 14
 
       - name: Upload Playwright report on failure
@@ -210,8 +221,10 @@ jobs:
   arabic-media:
     # PR29/31's script lives outside unittest discovery; execute it explicitly.
     # Synthetic tone proves audio encoding, not Arabic speech quality.
+    # This job installs the same media packages as the main job. A slow
+    # mirror exhausted its former 10-minute limit before any test ran.
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5.1.0
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
@@ -220,7 +233,7 @@ jobs:
       - name: Install isolated media-test dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          sudo apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core
           pip install Pillow==12.3.0
       - name: Require real shaping, codecs and test font
         run: |
@@ -255,3 +268,24 @@ jobs:
           REQUIRE_OPTIONAL_RUNTIMES: '1'
         run: python -m unittest tests.test_frameworks tests.test_mcp -v
 
+  pr93-isolated-300mb:
+    if: github.head_ref == 'test/pr93-verified-acceptance-20261106' || github.ref == 'refs/heads/test/pr93-verified-acceptance-20261106'
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: '3.11'
+      - name: Isolated PR93 contract and integration tests
+        run: |
+          set -o pipefail
+          python -m unittest -v tests.test_experimental_ingest tests.test_experimental_query tests.test_experimental_assets tests.test_experimental_jobs tests.test_experimental_stream tests.test_miyaar_challenge_contract tests.test_pr93_isolated_acceptance
+      - name: Synthetic 300 MB spool index projection and independent oracle
+        run: |
+          set -o pipefail
+          python scripts/benchmark_pr93_queries.py --run | tee pr93-benchmark.log
+          grep -q '"all_checks_passed": true' pr93-benchmark.log
+          grep -q '"temporary_directory_removed": true' pr93-benchmark.log
