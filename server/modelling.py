@@ -614,6 +614,56 @@ def predict_forest(forest, vector):
     return sum(predict_tree(tree, vector) for tree in forest) / len(forest)
 
 
+# Classification trees (6 November 2026): Gini splits, bagged, fixed settings,
+# reported beside naive Bayes and never chosen by their held-out score.
+def fit_class_tree(vectors, labels, indices, depth, min_leaf, rng, features):
+    counts = Counter(labels[i] for i in indices)
+    majority = counts.most_common(1)[0][0]
+    n = len(indices)
+    if depth == 0 or n < 2 * min_leaf or len(counts) == 1:
+        return ("leaf", majority)
+
+    def gini(group):
+        c = Counter(labels[i] for i in group)
+        return 1.0 - sum((v / len(group)) ** 2 for v in c.values())
+
+    parent, best = gini(indices), None
+    for feature in rng.sample(range(len(vectors[0])), min(features, len(vectors[0]))):
+        values = sorted({vectors[i][feature] for i in indices})
+        if len(values) < 2:
+            continue
+        step = max(1, len(values) // SPLIT_CANDIDATES)
+        for k in range(step, len(values), step):
+            threshold = (values[k - 1] + values[k]) / 2
+            left = [i for i in indices if vectors[i][feature] <= threshold]
+            if len(left) < min_leaf or n - len(left) < min_leaf:
+                continue
+            right = [i for i in indices if vectors[i][feature] > threshold]
+            gain = parent - (len(left) * gini(left) + len(right) * gini(right)) / n
+            if best is None or gain > best[0]:
+                best = (gain, feature, threshold, left, right)
+    if best is None or best[0] <= 0:
+        return ("leaf", majority)
+    _, feature, threshold, left, right = best
+    return ("split", feature, threshold,
+            fit_class_tree(vectors, labels, left, depth - 1, min_leaf, rng, features),
+            fit_class_tree(vectors, labels, right, depth - 1, min_leaf, rng, features))
+
+
+def fit_class_forest(vectors, labels, trees=TREES, depth=TREE_DEPTH, min_leaf=MIN_LEAF, seed=23):
+    rng = random.Random(seed)
+    n, p = len(vectors), len(vectors[0])
+    features = max(1, round(p ** 0.5))
+    return [fit_class_tree(vectors, labels, [rng.randrange(n) for _ in range(n)], depth, min_leaf, rng, features)
+            for _ in range(trees)]
+
+
+def predict_class_forest(forest, vector):
+    votes = Counter(predict_tree(tree, vector) for tree in forest)
+    top = max(votes.values())
+    return min(label for label, n in votes.items() if n == top)   # ties broken by name, not chance
+
+
 class TreeModel:
     role = "tree_model"
     title = "Tree Ensemble Agent — do simple rules predict the measure?"
@@ -979,6 +1029,11 @@ class ClassificationModel:
 
         model_score = balanced(predicted)
         base_score = balanced([majority] * len(actual))
+        # Bagged classification trees on the same training records, fixed in advance.
+        tree_rows = _even(train_rows, TREE_CAP)
+        forest = fit_class_forest([vector(r) for r in tree_rows], [labels_of(r) for r in tree_rows])
+        tree_score = balanced([predict_class_forest(forest, vector(r)) for r in test_rows])
+        tree_improvement = _improvement(tree_score, base_score, lower_is_better=False)
         accuracy = sum(1 for a, p in zip(actual, predicted) if a == p) / len(actual)
         improvement = _improvement(model_score, base_score, lower_is_better=False)
         beats = improvement >= BEATS
@@ -1001,6 +1056,11 @@ class ClassificationModel:
                   "share of held-out records classified correctly"),
             _calc(role, "c_improvement", "improvement_over_baseline", round(improvement, 4),
                   "(model − baseline) / baseline, balanced accuracy"),
+            _calc(role, "c_tree_score", "tree_balanced_accuracy", round(tree_score, 4),
+                  f"the same score for {TREES} bagged classification trees of depth at most {TREE_DEPTH} "
+                  f"on the same training and held-out records; settings fixed in advance"),
+            _calc(role, "c_tree_improvement", "tree_improvement_over_baseline", round(tree_improvement, 4),
+                  "(trees − baseline) / baseline, balanced accuracy"),
             _calc(role, "c_brier", "brier_score", probabilities["brier"],
                   f"mean squared gap between the model's probability of “{positive}” and "
                   "what happened, on the held-out records"),
@@ -1019,6 +1079,14 @@ class ClassificationModel:
                    f"«{majority}» دائماً: أفضل بنسبة {improvement:.0%}.",
                    ["c_model_score", "c_base_score", "c_improvement", "c_test"]),
             _leakage(ctx, role, screened),
+            _claim(ctx, role, "cl_trees", "fact",
+                   f"Classification trees on the same records score {tree_score:.0%} against the same "
+                   f"{base_score:.0%} baseline ({tree_improvement:.0%} better). Both models were set in "
+                   "advance and neither was chosen by these scores, so neither is flattered by the comparison.",
+                   f"تحقق أشجار التصنيف على السجلات نفسها {tree_score:.0%} مقابل الأساس نفسه "
+                   f"{base_score:.0%} (أفضل بنسبة {tree_improvement:.0%}). حُدد النموذجان مسبقاً ولم يُختر "
+                   "أيهما بهذه النتائج، فلا تحابي المقارنة أياً منهما.",
+                   ["c_tree_score", "c_base_score", "c_tree_improvement", "c_test"]),
         ]
         if not beats:
             claims.append(_weak(ctx, role, "classifier", "نموذج التصنيف", improvement))
@@ -1068,7 +1136,9 @@ class ClassificationModel:
                     "most_common_class", round(improvement, 4), beats,
                     {"classes": present, "hit_rates": hit_rates, "confusion": confusion,
                      "accuracy": round(accuracy, 4), "majority": majority,
-                     "probabilities": probabilities},
+                     "probabilities": probabilities,
+                     "trees": {"balanced_accuracy": round(tree_score, 4), "improvement": round(tree_improvement, 4),
+                               "count": TREES, "depth": TREE_DEPTH, "chosen_by_test": False}},
                     window=_window(train_rows, date), ctx=ctx, excluded=screened),
             },
         }

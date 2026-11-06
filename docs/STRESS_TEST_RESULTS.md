@@ -4,30 +4,30 @@ Run 2026-11-06: 24 synthetic datasets, 95 of 95 checks pass. Every dataset is in
 
 | Dataset | Rows × columns | Run state | Seconds | Checks passed |
 |---|---|---|---|---|
-| condition_1_to_9.csv | 120 × 6 | awaiting_approval | 0.3 | 5/5 |
+| condition_1_to_9.csv | 120 × 6 | awaiting_approval | 0.4 | 5/5 |
 | condition_0_to_100.csv | 300 × 5 | awaiting_approval | 0.3 | 4/4 |
-| condition_text_grades.csv | 240 × 5 | awaiting_approval | 0.3 | 4/4 |
+| condition_text_grades.csv | 240 × 5 | awaiting_approval | 0.4 | 4/4 |
 | condition_reverse_scale.csv | 240 × 4 | awaiting_approval | 0.3 | 5/5 |
-| maintenance_50k.csv | 50000 × 9 | awaiting_approval | 19.5 | 3/3 |
-| maintenance_defects.csv | 2000 × 9 | awaiting_approval | 0.9 | 2/2 |
+| maintenance_50k.csv | 50000 × 9 | awaiting_approval | 20.0 | 3/3 |
+| maintenance_defects.csv | 2000 × 9 | awaiting_approval | 1.0 | 2/2 |
 | arabic_assets.csv | 240 × 5 | awaiting_approval | 0.3 | 2/2 |
 | mixed_dates.csv | 300 × 3 | awaiting_approval | 0.3 | 2/2 |
 | formatted_numbers.csv | 200 × 4 | awaiting_approval | 0.3 | 3/3 |
-| semicolon_decimal_comma.csv | 150 × 2 | awaiting_approval | 0.2 | 5/5 |
+| semicolon_decimal_comma.csv | 150 × 2 | awaiting_approval | 0.3 | 5/5 |
 | formula_injection.csv | 80 × 3 | awaiting_approval | 0.2 | 2/2 |
 | prompt_injection.csv | 120 × 3 | awaiting_approval | 0.2 | 2/2 |
-| wide_300.csv | 120 × 301 | awaiting_approval | 1.6 | 2/2 |
+| wide_300.csv | 120 × 301 | awaiting_approval | 1.7 | 2/2 |
 | high_cardinality.csv | 5000 × 3 | awaiting_approval | 0.8 | 2/2 |
 | all_text.csv | 60 × 3 | failed | 0.1 | 2/2 |
 | single_row.csv | 1 × 2 | awaiting_approval | 0.2 | 1/1 |
 | duplicate_headers.csv | 50 × 3 | awaiting_approval | 0.2 | 1/1 |
 | na_markers.csv | 300 × 5 | awaiting_approval | 0.3 | 3/3 |
-| outliers_negative.csv | 302 × 2 | awaiting_approval | 0.2 | 2/2 |
+| outliers_negative.csv | 302 × 2 | awaiting_approval | 0.3 | 2/2 |
 | sensor_timestamps.csv | 2000 × 3 | awaiting_approval | 0.5 | 3/3 |
-| costs_budget.csv | 48 × 4 | awaiting_approval | 0.2 | 3/3 |
-| contracts.csv | 150 × 5 | awaiting_approval | 0.2 | 2/2 |
+| costs_budget.csv | 48 × 4 | awaiting_approval | 0.3 | 3/3 |
+| contracts.csv | 150 × 5 | awaiting_approval | 0.3 | 2/2 |
 | workbook_cover.xlsx | 120 × 5 | awaiting_approval | 0.3 | 3/3 |
-| feature_sweep (maintenance 1,500 rows) | - × - | awaiting_approval | 0.7 | 32/32 |
+| feature_sweep (maintenance 1,500 rows) | - × - | awaiting_approval | 0.8 | 32/32 |
 
 ## Round 1: found and fixed
 

@@ -137,6 +137,26 @@ class TreeTests(unittest.TestCase):
         line = next(c for c in result["claims"] if c["id"] == "tree_model.cl_line")
         self.assertIn("easier to read", line["text"])
 
+    def test_trees_find_a_rule_naive_bayes_cannot(self):
+        """ADR 2026-11-06-classification-trees: a class set by two thresholds together
+        (both readings high) is a rule; naive Bayes sees each input alone."""
+        rng = random.Random(4)
+        rows = []
+        for _ in range(400):
+            a, b = rng.uniform(-1, 1), rng.uniform(-1, 1)
+            rows.append({"kind": "alarm" if (a > 0) == (b > 0) else "normal", "a": a, "b": b, "sales": rng.random()})
+        result = checked(m.ClassificationModel(target="kind"),
+                         context(rows, ["kind", "a", "b", "sales"], ["a", "b", "sales"], "sales"))
+        card = result["output"]["model_card"]
+        trees = card["details"]["trees"]
+        self.assertGreater(trees["balanced_accuracy"], 0.85)
+        self.assertGreater(trees["balanced_accuracy"], card["metric"]["model"] + 0.2)
+        self.assertFalse(trees["chosen_by_test"])
+        claim = next(c for c in result["claims"] if c["id"].endswith("cl_trees"))
+        self.assertIn("neither was chosen by these scores", claim["text"])
+        noise = checked(m.ClassificationModel(), context(noise_rows(), ["a", "b", "sales"], ["a", "b", "sales"], "sales"))
+        self.assertLess(noise["output"]["model_card"]["details"]["trees"]["improvement"], 0.2)
+
     def test_noise_is_reported_as_weak(self):
         result = checked(m.TreeModel(), context(noise_rows(), ["a", "b", "sales"],
                                                 ["a", "b", "sales"], "sales"))
