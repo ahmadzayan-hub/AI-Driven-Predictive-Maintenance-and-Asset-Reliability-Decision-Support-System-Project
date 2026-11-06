@@ -2464,3 +2464,9 @@ regressions passed. The full failure and skipped later steps remain in README.
 - Done: compact matrix on the priorities slide (deck stays six slides), a `matrix` video scene (grid of up to six rows, narration says only the cited total), row and column pickers on the page with a refusal over 120 cells.
 - Verified: `python scripts/verify.py`: 8 of 8; Python 2664 (296 skipped), frontend 603; js total 285.6 of 286 KB. Films rendered in both languages from the synthetic survey; the first showed only one row, the second hid the grid behind the background (class clash `.grid`); both fixed and re-checked by eye. A race in my own page test (cells read before the data arrived) failed once under load; fixed to wait for the data.
 - Not done: the reader's picked pair is not saved, and documents use the planner's pair. 0.4 KB of script budget left.
+
+## 2026-11-06 (later): Separator-insensitive keys and typo candidates (session d9e3f889)
+
+- Done: loose join keys ignore separators (`ST-01` = `st_01` = `ST 01`, leading zeros kept); one-letter typo candidates for one-column text keys counted and named in a cited, bilingual report limitation, never merged; join builder label and near-match line updated in English and Arabic. ADR 2026-11-06-separator-keys-and-typo-candidates.
+- Verified: `python scripts/verify.py`: 8 of 8; Python 2669 tests (297 skipped), frontend 603; js total 285.6 of 286 KB. Stress harness re-run: 95 of 95.
+- Not done: typo fixes offered in the join builder; composite and numeric keys. Production still 500 (checked 11:52 UTC).

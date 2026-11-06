@@ -27,6 +27,16 @@ HOWS = ("left", "inner", "stack")
 # ignoring letter case and runs of spaces, so "PUMP-01" and "pump-01 " are
 # one key. Numbers and dates compare the same way under either.
 MATCHES = ("exact", "loose")
+# Since 6 November 2026 a loose key also ignores the separators IDs are
+# written with, so "ST-01", "st_01" and "ST 01" are one key. Leading zeros
+# stay: "ST-01" is not "ST1". A lookup that collides this way is refused by
+# the repeated-key check, as any repeat is.
+SEPARATORS = re.compile(r"[\s\-_./\\]+")
+# Unmatched keys one character away from a lookup key are named as
+# candidates to check, never merged (ADR 2026-11-06-separator-keys-and-typo-candidates).
+TYPO_MIN_LENGTH = 4
+TYPO_EXAMPLES = 5
+MAX_TYPO_KEYS = 5000
 # The same ceiling one dataset has (server/datasets.py, ADR 0024).
 MAX_MERGED_COLUMNS = 500
 # A stacked table may not grow past what one dataset may hold
@@ -276,8 +286,49 @@ def key_text(value, numeric, loose=False):
         return str(int(number)) if number.is_integer() else format(number, ".15g")
     text = str(value).strip()
     if loose:
-        text = " ".join(text.split()).casefold()
+        text = SEPARATORS.sub("", text).casefold()
     return text or None
+
+
+def _deletions(text):
+    return {text[:i] + text[i + 1:] for i in range(len(text))}
+
+
+def typo_candidates(unmatched, lookup_keys):
+    """Pairs (unmatched key, lookup key) one edit apart: a letter changed,
+    added or dropped, compared loosely. Keys shorter than TYPO_MIN_LENGTH are
+    skipped, since "P1" and "P2" are different things, not typos. Returns the
+    unmatched keys with exactly one candidate and a few examples; a key with
+    two candidates is ambiguous and named as neither."""
+    index = {}
+    for key in list(lookup_keys)[:MAX_TYPO_KEYS]:
+        if len(key) < TYPO_MIN_LENGTH:
+            continue
+        for variant in _deletions(key) | {key}:
+            index.setdefault(variant, set()).add(key)
+    found, examples = [], []
+    for raw, key in list(unmatched.items())[:MAX_TYPO_KEYS]:
+        if len(key) < TYPO_MIN_LENGTH:
+            continue
+        near = set()
+        for variant in _deletions(key) | {key}:
+            near |= index.get(variant, set())
+        near.discard(key)
+        near = {k for k in near if _one_edit(key, k)}
+        if len(near) == 1:
+            found.append(raw)
+            if len(examples) < TYPO_EXAMPLES:
+                examples.append({"key": raw, "candidate": next(iter(near))})
+    return found, examples
+
+
+def _one_edit(a, b):
+    if a == b or abs(len(a) - len(b)) > 1:
+        return False
+    if len(a) == len(b):
+        return sum(x != y for x, y in zip(a, b)) == 1
+    short, long_ = (a, b) if len(a) < len(b) else (b, a)
+    return any(long_[:i] + long_[i + 1:] == short for i in range(len(long_)))
 
 
 def _quoted(keys):
@@ -437,7 +488,7 @@ def merge(columns, rows, numeric, joined, date=None, source_name=None):
         # Both ways of comparing are kept for the lookup: a loose join says
         # how many rows matched only because it was loose, and an exact one
         # how many unmatched rows would have matched loosely.
-        exact_keys, loose_keys = set(), set()
+        exact_keys, loose_keys, spelling = set(), set(), {}
         for position, row in enumerate(table.rows):
             raw = [right_values[right][position] if right in right_values else row.get(right)
                    for right in rights]
@@ -449,6 +500,7 @@ def merge(columns, rows, numeric, joined, date=None, source_name=None):
                 continue
             exact_keys.add(exact)
             loose_keys.add(relaxed)
+            spelling.setdefault(relaxed, exact)
             counts[key] += 1
             lookup.setdefault(key, row)
         repeated = [(key, n) for key, n in counts.most_common() if n > 1]
@@ -456,8 +508,8 @@ def merge(columns, rows, numeric, joined, date=None, source_name=None):
             examples = repeated[:DUPLICATE_EXAMPLES]
             shown = "; ".join(f"“{_quoted([key])}” ({n} times)" for key, n in examples)
             shown_ar = "؛ ".join(f"«{_quoted([key])}» ({n} مرات)" for key, n in examples)
-            how_en = " when case and spaces are ignored" if loose else ""
-            how_ar = " عند تجاهل حالة الأحرف والمسافات" if loose else ""
+            how_en = " when case, spaces and separators are ignored" if loose else ""
+            how_ar = " عند تجاهل حالة الأحرف والمسافات والفواصل" if loose else ""
             problems.append(Problem(
                 "keys", ", ".join(rights),
                 f"Join {index + 1}: {len(repeated)} key value(s) appear more than once in "
@@ -493,6 +545,9 @@ def merge(columns, rows, numeric, joined, date=None, source_name=None):
 
         merged, matched, unmatched_keys, used = [], 0, [], set()
         loose_only, near = 0, 0
+        # One-column text keys only: a composite key has no single spelling to check.
+        typo_check = len(lefts) == 1 and not as_number[0]
+        unmatched_loose, typo_rows = {}, Counter()
         # An unmatched row gets what a blank cell becomes after cleaning:
         # no number for a measure, empty text otherwise. A breakdown on a
         # joined column then groups the unmatched rows together, and the
@@ -512,6 +567,9 @@ def merge(columns, rows, numeric, joined, date=None, source_name=None):
                     near += 1
                 if len(unmatched_keys) < UNMATCHED_EXAMPLES and exact not in unmatched_keys:
                     unmatched_keys.append(exact)
+                if typo_check and None not in relaxed:
+                    unmatched_loose.setdefault(exact[0], relaxed[0])
+                    typo_rows[exact[0]] += 1
                 if how == "left":
                     merged.append({**row, **blank})
                 continue
@@ -521,6 +579,10 @@ def merge(columns, rows, numeric, joined, date=None, source_name=None):
             used.add(key)
             merged.append({**row, **{new: match[old] for old, new in zip(source, added)}})
         rows_in = len(rows)
+        typos, typo_examples = (typo_candidates(unmatched_loose, {k[0] for k in loose_keys})
+                                if typo_check and unmatched_loose else ([], []))
+        # Name the candidate as the joined dataset spells it.
+        typo_examples = [{"key": e["key"], "candidate": spelling[(e["candidate"],)][0]} for e in typo_examples]
         records.append({
             "dataset_id": item.get("dataset_id"), "name": name, "alias": alias,
             "how": how, "keys": keys, "snapshot": item.get("snapshot"),
@@ -535,9 +597,12 @@ def merge(columns, rows, numeric, joined, date=None, source_name=None):
             "lookup_dropped_duplicates": table.dropped_duplicates,
             "added_columns": added, "renamed": renamed,
             "match": "loose" if loose else "exact",
-            # Rows matched only because case and spaces were ignored (loose),
+            # Rows matched only because case, spaces and separators were ignored (loose),
             # and unmatched rows that would match if they were (exact).
             "loose_matched": loose_only, "near_matches": near,
+            # Unmatched keys one character from a lookup key; never merged.
+            "typo_keys": len(typos), "typo_rows": sum(typo_rows[raw] for raw in typos),
+            "typo_examples": typo_examples,
         })
         columns += added
         numeric += [renamed.get(c, c) for c in table.numeric if c not in rights]

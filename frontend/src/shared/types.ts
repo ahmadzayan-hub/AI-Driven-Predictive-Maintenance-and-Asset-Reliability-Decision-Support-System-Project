@@ -385,7 +385,7 @@ export interface JoinSpec {
   keys: JoinKey[]
   how: JoinHow
   alias?: string | null
-  /** Compare text keys ignoring letter case and spaces (30 October 2026). */
+  /** Compare text keys ignoring letter case, spaces and separators (30 October; separators 6 November 2026). */
   match?: 'loose'
 }
 

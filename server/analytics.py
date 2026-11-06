@@ -1364,20 +1364,20 @@ def merge(ctx):
                 f"بلا تطابق في {name}، فكل مجموع يغطي {record['rows_out']} صفاً.",
                 [f"{prefix}_rows_out", f"{prefix}_matched"]))
         # How keys were compared (30 October 2026): a loose join says how many
-        # matches it owes to ignoring case and spaces; an exact join says how
+        # matches it owes to ignoring case, spaces and separators; an exact join says how
         # many unmatched rows that would have matched.
         if record.get("match") == "loose":
             calcs.append({"id": f"{prefix}_loose",
                           "name": f"rows_matched_ignoring_case_{record['alias']}",
                           "value": record.get("loose_matched", 0),
-                          "method": "matched rows whose key matched only when letter case "
-                                    "and runs of spaces were ignored"})
+                          "method": "matched rows whose key matched only when letter case, "
+                                    "spaces and separators were ignored"})
             claims.append(_claim(
                 ctx, f"cl_merge_{index}_loose", "fact",
-                f"Keys were compared ignoring letter case and spaces: "
+                f"Keys were compared ignoring letter case, spaces and separators: "
                 f"{record.get('loose_matched', 0)} of the {matched} matched rows matched "
                 f"{name} only because of that.",
-                f"قورنت المفاتيح مع تجاهل حالة الأحرف والمسافات: تطابق "
+                f"قورنت المفاتيح مع تجاهل حالة الأحرف والمسافات والفواصل: تطابق "
                 f"{record.get('loose_matched', 0)} من أصل {matched} صفاً متطابقاً مع "
                 f"{name} بسبب ذلك وحده.",
                 [f"{prefix}_loose", f"{prefix}_matched"]))
@@ -1385,17 +1385,32 @@ def merge(ctx):
             calcs.append({"id": f"{prefix}_near",
                           "name": f"unmatched_rows_matching_ignoring_case_{record['alias']}",
                           "value": record["near_matches"],
-                          "method": "unmatched rows whose key matches when letter case and "
-                                    "runs of spaces are ignored"})
+                          "method": "unmatched rows whose key matches when letter case, "
+                                    "spaces and separators are ignored"})
             claims.append(_claim(
                 ctx, f"cl_merge_{index}_near", "limitation",
                 f"{record['near_matches']} of the {record['unmatched']} unmatched rows would "
-                f"match {name} if letter case and spaces were ignored; the keys were "
+                f"match {name} if letter case, spaces and separators were ignored; the keys were "
                 f"compared exactly.",
                 f"كان {record['near_matches']} من أصل {record['unmatched']} صفاً غير متطابق "
-                f"سيتطابق مع {name} لو تُجوهلت حالة الأحرف والمسافات؛ قورنت المفاتيح "
+                f"سيتطابق مع {name} لو تُجوهلت حالة الأحرف والمسافات والفواصل؛ قورنت المفاتيح "
                 f"مقارنة تامة.",
                 [f"{prefix}_near", f"{prefix}_rows_in"]))
+        if record.get("typo_keys"):
+            # Named for a person to check, never merged (ADR 2026-11-06-separator-keys-and-typo-candidates).
+            calcs.append({"id": f"{prefix}_typos", "name": f"unmatched_rows_one_letter_from_{record['alias']}",
+                          "value": record["typo_rows"],
+                          "method": "unmatched rows whose key is one letter changed, added or dropped "
+                                    "from exactly one key of the joined dataset; not merged"})
+            shown = "; ".join(f"{e['key']} / {e['candidate']}" for e in record.get("typo_examples", [])[:3])
+            claims.append(_claim(
+                ctx, f"cl_merge_{index}_typos", "limitation",
+                f"{record['typo_rows']} unmatched rows have a key one letter away from a key in {name}, "
+                f"for example {shown}. They were not merged; check whether they are typing slips.",
+                f"لدى {record['typo_rows']} صفاً غير متطابق مفتاح يختلف بحرف واحد عن مفتاح في {name}، "
+                f"مثل {shown}. لم تُدمج؛ تحقق مما إذا كانت أخطاء كتابة.",
+                [f"{prefix}_typos", f"{prefix}_rows_in"],
+                [part for e in record.get("typo_examples", [])[:3] for part in (e["key"], e["candidate"])]))
         expected = record["rows_in"] if record["how"] == "left" else record["matched"]
         checks += [
             {"name": f"join_{record['alias']}_keeps_the_row_count",

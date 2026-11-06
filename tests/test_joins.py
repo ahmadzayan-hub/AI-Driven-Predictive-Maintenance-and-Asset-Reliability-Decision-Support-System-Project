@@ -146,9 +146,14 @@ class KeyTests(unittest.TestCase):
         self.assertIn("use exact or loose", problem.en)
         self.assertIn("استخدم exact أو loose", problem.ar)
 
-    def test_loose_text_ignores_case_and_runs_of_spaces_but_not_numbers(self):
+    def test_loose_text_ignores_case_spaces_and_separators_but_not_numbers(self):
         self.assertEqual(j.key_text("  PUMP-01 ", False, True), j.key_text("pump-01", False, True))
-        self.assertEqual(j.key_text("Lift   Bay 2", False, True), "lift bay 2")
+        self.assertEqual(j.key_text("Lift   Bay 2", False, True), "liftbay2")
+        # Since 6 November the separators IDs are written with do not matter...
+        for spelling in ("ST-01", "st_01", "ST 01", "ST.01", "ST/01"):
+            self.assertEqual(j.key_text(spelling, False, True), "st01", spelling)
+        # ...but leading zeros do: ST-01 is not ST1.
+        self.assertNotEqual(j.key_text("ST-01", False, True), j.key_text("ST1", False, True))
         self.assertNotEqual(j.key_text("PUMP-01", False), j.key_text("pump-01", False))
         self.assertEqual(j.key_text("003", True, True), "3")
         self.assertIsNone(j.key_text("   ", False, True))
@@ -242,8 +247,8 @@ class MergeTests(unittest.TestCase):
         with self.assertRaises(j.JoinError) as caught:
             j.merge(columns, rows, numeric, [item])
         problem = caught.exception.problems[0]
-        self.assertIn("when case and spaces are ignored", problem.en)
-        self.assertIn("عند تجاهل حالة الأحرف والمسافات", problem.ar)
+        self.assertIn("when case, spaces and separators are ignored", problem.en)
+        self.assertIn("عند تجاهل حالة الأحرف والمسافات والفواصل", problem.ar)
 
     def test_a_repeated_lookup_key_is_refused(self):
         columns, rows, numeric = base()
@@ -587,6 +592,19 @@ class JoinApiTestCase(unittest.TestCase):
                       claim["text"])
         self.assertTrue(all(c["passed"] for c in self.task(run, "validator")["quality_checks"]))
 
+    def test_a_typing_slip_is_named_in_the_report_and_not_merged(self):
+        rows = [(f"2025-{m:02d}", asset, 10 + m) for m in range(1, 7) for asset in ("PUMP-01", "PUMP-02", "PMP-03")]
+        work = self.upload("month,asset,hours\n" + "\n".join(f"{a},{b},{c}" for a, b, c in rows) + "\n", "work.csv")
+        assets = self.upload("code,class\nPUMP-01,Pumps\nPUMP-02,Pumps\nPUMP-03,Pumps\n", "assets.csv")
+        run = self.run_to_gate(dataset_id=work, joins=[{"dataset_id": assets, "how": "left",
+                                                        "keys": [{"left": "asset", "right": "code"}]}])
+        record = self.output(run, "merge")["joins"][0]
+        self.assertEqual((record["matched"], record["typo_rows"]), (12, 6))
+        claim = next(c for c in self.task(run, "merge")["claims"] if c["id"] == "cl_merge_0_typos")
+        self.assertIn("PMP-03 / PUMP-03", claim["text"])
+        self.assertIn("They were not merged", claim["text"])
+        self.assertTrue(all(c["passed"] for c in self.task(run, "validator")["quality_checks"]))
+
     def test_a_stacked_export_is_counted_once_and_told_apart_by_source(self):
         h1 = self.upload(SALES_CSV, "h1.csv")
         q3 = self.upload(Q3_CSV, "q3.csv")
@@ -816,6 +834,33 @@ class JoinMigrationTests(unittest.TestCase):
             self.assertIn("joins_json", names)
             with contextlib.closing(open_store(sqlite_path=str(path))):
                 pass  # repeatable
+
+
+class TypoCandidateTests(unittest.TestCase):
+    """ADR 2026-11-06-separator-keys-and-typo-candidates: named, never merged."""
+
+    def merge(self, main_keys, lookup_keys, match="exact"):
+        rows = [{"asset": k, "hours": float(i)} for i, k in enumerate(main_keys)]
+        lookup = "code,class\n" + "\n".join(f"{k},Pumps" for k in lookup_keys)
+        item = joined(lookup, [{"left": "asset", "right": "code"}])
+        item["match"] = match
+        return j.merge(["asset", "hours"], rows, ["hours"], [item])["joins"][0]
+
+    def test_a_one_letter_slip_is_named_and_not_merged(self):
+        record = self.merge(["PMP-01", "PMP-01", "PUMP-02", "FAN-9"], ["PUMP-01", "PUMP-02"])
+        self.assertEqual(record["matched"], 1)
+        self.assertEqual((record["typo_keys"], record["typo_rows"]), (1, 2))
+        self.assertEqual(record["typo_examples"], [{"key": "PMP-01", "candidate": "PUMP-01"}])
+
+    def test_short_or_ambiguous_keys_are_not_guessed(self):
+        self.assertEqual(self.merge(["P3"], ["P1"])["typo_keys"], 0)            # too short to call a typo
+        self.assertEqual(self.merge(["PUMP-0"], ["PUMP-01", "PUMP-02"])["typo_keys"], 0)  # two candidates
+
+    def test_separators_match_under_loose_and_count_as_near_under_exact(self):
+        loose = self.merge(["ST-01", "st_02"], ["ST01", "ST02"], "loose")
+        self.assertEqual((loose["matched"], loose["loose_matched"]), (2, 2))
+        exact = self.merge(["ST-01", "st_02"], ["ST01", "ST02"])
+        self.assertEqual((exact["matched"], exact["near_matches"]), (0, 2))
 
 
 if __name__ == "__main__":
