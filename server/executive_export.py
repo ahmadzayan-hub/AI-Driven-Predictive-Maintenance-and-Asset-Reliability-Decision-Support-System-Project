@@ -804,12 +804,6 @@ def render_docx(brief):
     return stream.getvalue()
 
 
-def attachment_name(run_id, language, format):
-    safe = re.sub(r"[^A-Za-z0-9_-]", "_", str(run_id))[:100] or "run"
-    if format == "slides":
-        return f"miyaar-executive-{safe}-{language}-slides.html"
-    return f"miyaar-executive-{safe}-{language}.{format}"
-
 
 SLIDES_STYLE = """
 @page { size: 13.333in 7.5in; margin: 0; }

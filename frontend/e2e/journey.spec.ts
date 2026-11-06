@@ -88,7 +88,7 @@ test.describe('main user journey', () => {
     const downloadPromise = page.waitForEvent('download')
     await page.getByRole('button', { name: /Export my data/ }).click()
     const download = await downloadPromise
-    expect(download.suggestedFilename()).toBe('agentic-os-export.json')
+    expect(download.suggestedFilename()).toBe('Session Export.json')
 
     // Individual deletion is destructive and must be confirmed.
     await coffeeItem.getByRole('button', { name: `Forget ${coffeeKey}`, exact: true }).click()

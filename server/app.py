@@ -36,6 +36,7 @@ from starlette.concurrency import run_in_threadpool
 
 from agent import Agent, language_code
 from server.agent_runtime import build_runtime
+from server import downloads
 from server import knowledge as knowledge_module
 from server import analytics
 from server.api_contract import document_errors, error_body, install_error_handlers
@@ -1166,7 +1167,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
                     "transcript": session.transcript,
                 },
                 headers={
-                    "Content-Disposition": 'attachment; filename="agentic-os-export.json"'
+                    "Content-Disposition": downloads.disposition(downloads.SESSION_EXPORT)
                 },
             )
 
@@ -1737,7 +1738,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
             return FileResponse(
                 video, media_type="video/mp4",
                 headers={"Cache-Control": "private, no-store", "X-Robots-Tag": "noindex"},
-                filename=f"INTERNAL-DRAFT-{job_id}.mp4",
+                filename=downloads.DRAFT_PREVIEW,
             )
 
         @app.post("/api/motion/jobs/{job_id}/submit")
@@ -1827,11 +1828,9 @@ def create_app(config_path=None, env=None, dist_dir=None):
                              language: str = Query(default="en", pattern="^(en|ar)$"),
                              principal=Depends(requires("read"))):
         table, run = await run_table(run_id, principal, language)
-        name = table_query.download_name(run["goal"], run_id)
         text = await run_in_threadpool(table_query.to_csv, table)
         return Response(content=text.encode("utf-8"), media_type="text/csv; charset=utf-8",
-                        headers={"Content-Disposition":
-                                 f'attachment; filename="{name}"; filename*=UTF-8\'\'{name}'})
+                        headers={"Content-Disposition": downloads.disposition(downloads.CLEANED_DATA)})
 
     @app.get("/api/runs/{run_id}/fields")
     async def table_fields(run_id: str,
@@ -1984,7 +1983,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         content = await run_in_threadpool(render, brief)
         mime = executive_export.DOCX_MIME if format == "docx" else executive_export.HTML_MIME
         return Response(content, media_type=mime, headers={
-            "Content-Disposition": 'attachment; filename="' + executive_export.attachment_name(run_id, language, format) + '"',
+            "Content-Disposition": downloads.disposition(downloads.executive(language, format)),
             "Cache-Control": "no-store",
             "X-Content-Type-Options": "nosniff",
             "Content-Security-Policy": executive_export.CONTENT_POLICY,
@@ -2119,10 +2118,9 @@ def create_app(config_path=None, env=None, dist_dir=None):
                 raise HTTPException(status_code=410, detail="The stored file is missing or changed.")
         elif not path.is_file():
             raise HTTPException(status_code=410, detail="The stored file is missing or changed.")
-        filename = f"{run_id}-{row['language']}-{row['snapshot_id'][:12]}-{name}"
         return FileResponse(path, media_type=video_files[name], headers={
             "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
-            "Content-Disposition": f'{"attachment" if download else "inline"}; filename="{filename}"'})
+            "Content-Disposition": downloads.disposition(downloads.film(row["language"], name), inline=not download)})
 
     @app.post("/api/runs/{run_id}/query")
     async def query_table(run_id: str, body: QueryIn,

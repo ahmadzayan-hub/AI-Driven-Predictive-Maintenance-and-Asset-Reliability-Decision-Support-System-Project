@@ -111,10 +111,6 @@ def to_csv(table):
     return out.getvalue()
 
 
-def download_name(goal, run_id):
-    slug = re.sub(r"[^a-z0-9]+", "-", str(goal or "").lower()).strip("-")[:48] or "run"
-    return f"{slug}-{run_id}-cleaned.csv"
-
 
 # ---------------------------------------------------------------------------
 # Fields

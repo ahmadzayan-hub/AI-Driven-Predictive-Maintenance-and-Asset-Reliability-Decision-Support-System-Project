@@ -199,13 +199,13 @@ describe('api client', () => {
     localStorage.setItem('aos-token', 'tok')
     mockFetchOnce({
       blob: () => Promise.resolve(new Blob(['a,b'])),
-      headers: new Headers({ 'content-disposition': 'attachment; filename="sales-r1-cleaned.csv"' }),
+      headers: new Headers({ 'content-disposition': 'attachment; filename="Cleaned Data.csv"' }),
     })
     const { name, blob } = await api.downloadTable('r1', 'ar')
     const [path, init] = vi.mocked(fetch).mock.calls[0]
     expect(path).toBe('/api/runs/r1/data.csv?language=ar')
     expect((init?.headers as Record<string, string>).Authorization).toBe('Bearer tok')
-    expect(name).toBe('sales-r1-cleaned.csv')
+    expect(name).toBe('Cleaned Data.csv')
     expect(await blob.text()).toBe('a,b')
     localStorage.removeItem('aos-token')
   })

@@ -384,7 +384,8 @@ export const api = {
         throw new ApiError(translate('api.failed', { status: response.status }), response.status)
       }
       const blob = await response.blob()
-      const fallback = `miyaar-executive-${id.replace(/[^a-zA-Z0-9_-]/g, '_')}-${language}.${format}`
+      const word = language === 'ar' ? 'Arabic' : 'English'
+      const fallback = format === 'slides' ? `Executive Slides ${word}.html` : `Executive Brief ${word}.${format}`
       return { blob, name: attachmentName(response.headers.get('content-disposition'), fallback) }
     } catch (error) {
       if (error instanceof ApiError) throw error
@@ -452,7 +453,7 @@ export const api = {
     }
     return {
       blob: await response.blob(),
-      name: attachmentName(response.headers.get('content-disposition'), `run-${id}-cleaned.csv`),
+      name: attachmentName(response.headers.get('content-disposition'), 'Cleaned Data.csv'),
     }
   },
   refreshPublicationReview: (id: string) => request<RunDetail>(`/api/runs/${encodeURIComponent(id)}/approvals/refresh`, { method: 'POST' }, RUN_REQUEST_TIMEOUT_MS),

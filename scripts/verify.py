@@ -63,7 +63,9 @@ DIST = FRONTEND / "dist"
 # ("موافق", 3 November 2026): ADR 2026-11-03-executive-dark-theme. The shared
 # review, executive video and layout history raise scripts to 286 KB, approved
 # by the owner on 4 November 2026: ADR 2026-11-04-shared-review.
-BUDGET_KB = {"js": 100, "js_total": 286, "js_chunk": 30, "css": 10.5, "css_total": 41,
+# 6 November 2026: the owner approved 292 KB for the remaining interface gaps (typo
+# confirmations, run deletion, named views, clickable scatter).
+BUDGET_KB = {"js": 100, "js_total": 292, "js_chunk": 30, "css": 10.5, "css_total": 41,
              "fonts": 145}
 LABELS = {"js": "js first load", "js_total": "js total", "js_chunk": "largest js chunk",
           "css": "css first load", "css_total": "css total", "fonts": "fonts"}

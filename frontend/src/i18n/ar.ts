@@ -353,7 +353,7 @@ export const ar: Record<MessageKey, string> = {
   'outcome.noSession': 'لا توجد جلسة نشطة.',
   'outcome.requestFailed': 'فشل الطلب.',
   'outcome.exportFailed': 'فشل التصدير.',
-  'outcome.exported': 'نُزّلت بياناتك باسم agentic-os-export.json.',
+  'outcome.exported': 'نُزّلت بياناتك باسم Session Export.json.',
   'outcome.sessionEnded': 'انتهت الجلسة.',
   'outcome.startFailed': 'تعذّر بدء جلسة.',
   'api.timeout': 'استغرق الخادم وقتًا طويلًا للرد. يُرجى المحاولة مرة أخرى.',

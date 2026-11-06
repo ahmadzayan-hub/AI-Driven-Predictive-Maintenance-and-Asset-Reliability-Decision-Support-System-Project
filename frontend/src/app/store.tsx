@@ -561,13 +561,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = 'agentic-os-export.json'
+      link.download = 'Session Export.json'
       document.body.appendChild(link)
       link.click()
       link.remove()
       URL.revokeObjectURL(url)
       setLastSyncedAt(new Date().toISOString())
-      pushEvent('event.export.done', 'success', 'agentic-os-export.json')
+      pushEvent('event.export.done', 'success', 'Session Export.json')
       return { ok: true, message: translate('outcome.exported') }
     } catch (error) {
       const message = error instanceof ApiError ? error.message : translate('outcome.exportFailed')

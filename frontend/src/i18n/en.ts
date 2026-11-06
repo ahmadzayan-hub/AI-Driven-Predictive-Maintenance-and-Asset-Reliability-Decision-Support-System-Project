@@ -371,7 +371,7 @@ export const en = {
   'outcome.noSession': 'No active session.',
   'outcome.requestFailed': 'The request failed.',
   'outcome.exportFailed': 'The export failed.',
-  'outcome.exported': 'Your data was downloaded as agentic-os-export.json.',
+  'outcome.exported': 'Your data was downloaded as Session Export.json.',
   'outcome.sessionEnded': 'Session ended.',
   'outcome.startFailed': 'Could not start a session.',
   'api.timeout': 'The server took too long to respond. Please try again.',

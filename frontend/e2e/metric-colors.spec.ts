@@ -308,7 +308,7 @@ for (const language of ['en', 'ar'] as const) {
         prepared.getByRole('button', { name: language === 'ar' ? 'تنزيل التقرير' : 'Download report', exact: true }).click(),
       ])
       expectExportRequest(response, snapshot, format)
-      expect(download.suggestedFilename()).toBe(`miyaar-executive-${run.id}-${language}.${format}`)
+      expect(download.suggestedFilename()).toBe(`Executive Brief ${language === 'ar' ? 'Arabic' : 'English'}.${format}`)
       documents.push(format === 'html' ? await inspectHtml(page, download) : await inspectWord(download))
     }
     for (const document of documents) {
