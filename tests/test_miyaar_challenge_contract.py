@@ -56,5 +56,17 @@ class CurrentDatasetContract(unittest.TestCase):
         with self.assertRaises(datasets.DatasetError):
             datasets.read(b"PK\x03\x04not-a-valid-pbix","synthetic.pbix")
 
+
+    def test_explicit_csv_override_cannot_bypass_pdf_guard(self):
+        with self.assertRaises(datasets.DatasetError) as error:
+            datasets.read(b"%PDF-1.7\\nsynthetic", "renamed.csv", fmt="csv")
+        self.assertEqual(error.exception.status, 415)
+
+    def test_explicit_tsv_override_cannot_bypass_image_guard(self):
+        with self.assertRaises(datasets.DatasetError) as error:
+            datasets.read(bytes.fromhex("89504e470d0a1a0a") + b"synthetic",
+                          "renamed.tsv", fmt="tsv")
+        self.assertEqual(error.exception.status, 415)
+
 if __name__=="__main__":
     unittest.main()
