@@ -585,9 +585,55 @@ same-head push job fetched 66.4 MB in four seconds and passed its media checks.
 That separate job now permits 45 minutes; mirror download speed is not claimed
 resolved. Platform journeys, RMD evidence and UI budgets passed on `856008b1`.
 The historical `ECONNRESET` cause remains unproven; safe fixture replay is a
-bounded resilience measure. Exact repair-head hosted CI remains pending at
-this commit. No merge, production deployment, or completed large-upload platform
-acceptance is claimed. [Decision and source runs](docs/adr/2026-11-06-pr93-image-and-ci-reliability.md).
+bounded resilience measure. Complete push CI passed on both `856008b1` and
+`59b6141`: **2,622 Python tests, OK with 26 skipped**, **3 worker/PostgreSQL tests**;
+**229 broad browser tests passed with 35 explicit skips**, then **14 Miyaar** and
+**16 Jarvis** tests passed. The PR-event CI on `59b6141` also passed completely,
+including the formerly timed-out separate media job under its new bounded limit.
+No merge, production deployment, or completed large-upload platform acceptance
+is claimed. [Decision and source runs](docs/adr/2026-11-06-pr93-image-and-ci-reliability.md).
+
+### Isolated wide-table projection and exact summaries (6 November 2026)
+
+The separate `server.experimental_query` reader adds ordered named-column pages
+and complete-column numeric/blank/invalid counts with exact decimal sum/min/max.
+It opens an existing index read-only, keeps one snapshot, and bounds metadata,
+record, selection, output and scan sizes. It does not change the legacy reader,
+public routes, `server.datasets`, tenant authorization or production storage.
+
+The **28 new query tests passed**, including wide projection, >28-digit sums,
+1,000-digit/500-place bounds, malformed input, pre-fetch scan limits, connection
+closure and concurrent WAL snapshot consistency. Together with legacy ingestion
+and acceptance checks, **39 tests passed**. Full available local discovery:
+**2,650 tests, OK with 296 skipped**. PostgreSQL/optional/media skips remain local
+limits. The same non-failing unclosed-socket warning occurred before and after
+this slice; query connection-closure tests pass. Documentation checks passed
+**11 tests** and strict brain links/whitespace checks passed.
+
+An opt-in synthetic pipeline run used an **exactly 300,000,000-byte CSV**, **50,000
+rows and 607 columns**. Generated, streamed-spool and independently reread hashes
+matched. Selected nonadjacent columns preserved requested order and beginning/end
+page boundaries. All summary counts/sums/min/max matched independent arithmetic
+series and Fraction calculations, including fractional values, invalid text and
+large signed cancellation. Representative exact sums were `1250025000`,
+`-227.24`, `-25` and `150003`.
+
+Reproduction: `python scripts/benchmark_pr93_queries.py --run` (explicit opt-in,
+more than 3 GB free in `/tmp` required). The included script was rerun successfully
+with the same exact fixture hash and independent results. Measured seconds for
+that rerun: generation **0.998**, 64 KiB-chunk spool **0.282**, independent hash
+**0.207**, indexing **4.392**, projected pages/assertions **0.0028**, and summary
+with tracemalloc **15.967**. Summary-only Python allocation peak was
+**162,661 bytes**; the SQLite file was **410,165,248 bytes**. Maximum observed temporary files
+totaled **1,010,165,248 bytes** and were removed. Input SHA-256:
+`abd364e8d751f71b0deed89eacb1e0d5f94af2b2d1bfdd7056754bf003d8149b`.
+
+These timings used memory-backed `/tmp`, not durable disk. Tracemalloc excludes
+native SQLite, OS cache, ingestion and whole-process RSS. JSON storage still
+decodes each permitted full row; projection is not columnar I/O. This is one
+synthetic isolated pipeline run, not HTTP/UI, authenticated upload, production
+KPI equivalence or the 34-challenge application acceptance. Exact new-head hosted
+CI remains a separate gate. [Contract and limits](docs/adr/2026-11-06-isolated-wide-table-queries.md).
 
 ### Local evidence-card design candidate (2 November 2026)
 
