@@ -1,7 +1,10 @@
 # Hosted migration of 4 November 2026: reviews, videos and layout versions
 
-Status: ready for operator review. **Not applied** to any hosted database by
-this repository. Applying it is the database operator's step, after review.
+Status: **applied** on 6 November 2026, with the owner's approval, to the hosted
+Supabase project `asset-reliability-ai-saas` (every table then held 0 rows).
+Checked after applying: row level security on, no grant to `PUBLIC`, `anon` or
+`authenticated`. Supabase's advisor reports only the expected notice that RLS has
+no policies, as for every backend-only table.
 
 ## What it changes
 

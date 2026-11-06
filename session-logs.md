@@ -2437,3 +2437,10 @@ regressions passed. The full failure and skipped later steps remain in README.
 
 - Done: mapping `better` and `decimal` (validated, suggested for decimal, panel controls EN/AR), CSV separator tie-break, grouped digits in Ask Miyaar, knowledge fallback without a model with a conversational-word gate.
 - Verified: stress run 95 of 95; verify and mapping e2e in the commit.
+
+## 2026-11-06: Human-voice films and hosted migrations (session d9e3f889)
+
+- Done: 12 ElevenLabs takes (eleven_multilingual_v2, Peter EN, Nasser AR) rendered into both executive films through the supplied-audio path; manifests read "recorded narration supplied with matching text digests". Films and takes stay in git-ignored `private/films/`. Applied hosted migrations `20261027_dashboard_views` and `20261104_reviews_videos_layouts` to Supabase `asset-reliability-ai-saas` with the owner's approval.
+- Verified: ffprobe shows H.264, AAC and a subtitle track in each film; frames checked by eye. Hosted: four new tables with RLS on, the grants query returns no rows, the security advisor lists only the expected RLS-without-policy notice.
+- Not done: no transcription check of the takes; no backup confirmed before applying (every table held 0 rows). Production sign-in variables not set: Vercel refuses this session's token (403) for environment variables, so the owner sets them.
+- Next: the owner sets the Vercel sign-in variables, then a check of `/api/health`, sign-in and cross-owner isolation with test accounts.
