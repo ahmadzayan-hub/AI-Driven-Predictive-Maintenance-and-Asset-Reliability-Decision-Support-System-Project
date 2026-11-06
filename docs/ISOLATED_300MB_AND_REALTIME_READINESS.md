@@ -41,3 +41,11 @@ Additional experimental modules on PR #93:
 Historical CI 42076975901 failed because a disguised PDF was previously accepted as CSV. New `server/datasets.py` signature guard and tests aim to close that issue. Some later CI runs are queued/in progress at this checkpoint; no overall green result is claimed.
 
 **Release verdict: NOT READY.** Required missing deliveries: private multipart browser upload, partitioned analytics equivalence, secure live API/cloud connector, verified Power BI semantic-model APIs, extraction of PDF/image evidence with citations, hosted video worker with Chromium/FFmpeg, live voice evaluation, isolated integrated challenge execution, migration checks, cost/load/security tests, and documented owner approval. The goal "unlimited rows and columns" must be operationalized as storage/compute scaling with enforceable budget and time limits, not unbounded RAM.
+
+## 6 November 2026 development continuation
+
+- Latest prior head `6fa89f89` had successful CI, application platform journeys, RMD evidence and UI budget checks. New commits must be evaluated independently.
+- Hardened experimental PBIX archive inspection against symbolic links, encrypted entries, unsupported compression and extreme expansion ratios. This is metadata screening, **not** safe general extraction or verified Power BI integration.
+- Introduced `server/experimental_worker.py` to exercise a trusted callback, atomic private artifact write, SHA-256 digest, owner-linked job completion and an awaiting-review gate. Synthetic bytes are not a rendered video; no public endpoint, deployment, real TTS, voiceover review, or production side effects occur.
+- Remaining P0 release gates: secure authenticated upload/storage, complete 300 MB UI/worker journey, external streaming connector security, scalable business analytics/KPI parity, real Chromium/FFmpeg worker, verified hosted data migration/permissions and independent 34-case application challenge. P1: OCR positional provenance, Power BI semantic-model connector, live voice acceptance, visual RTL QA and cost measurement.
+- No merge to main, Vercel changes, external audio transmission, database changes or secret changes in this phase.
