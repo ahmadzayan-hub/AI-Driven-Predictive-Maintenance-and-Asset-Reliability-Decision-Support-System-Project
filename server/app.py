@@ -311,6 +311,11 @@ class KeyPairIn(BaseModel):
     right: str = Field(min_length=1, max_length=200)
 
 
+class CorrectionIn(BaseModel):
+    from_: str = Field(alias="from", min_length=1, max_length=200)
+    to: str = Field(min_length=1, max_length=200)
+
+
 class JoinIn(BaseModel):
     dataset_id: str = Field(min_length=1, max_length=32)
     # A stack needs no key; `normalise` refuses a left or inner join without one.
@@ -320,14 +325,18 @@ class JoinIn(BaseModel):
     # How text keys compare (30 October 2026): exact (the default) or loose,
     # ignoring letter case and runs of spaces.
     match: str | None = Field(default=None, pattern="^(exact|loose)$")
+    # Main keys the owner confirmed stand for a joined key (6 November 2026).
+    corrections: list[CorrectionIn] | None = Field(default=None, max_length=joining.MAX_CORRECTIONS)
 
 
 def _join_dict(join):
     """A join as the run engine takes it. `match` is left out unless given,
     so a request written before it existed hashes as it did (idempotency)."""
-    out = join.model_dump()
+    out = join.model_dump(by_alias=True)
     if out.get("match") is None:
         out.pop("match", None)
+    if out.get("corrections") is None:
+        out.pop("corrections", None)
     return out
 
 

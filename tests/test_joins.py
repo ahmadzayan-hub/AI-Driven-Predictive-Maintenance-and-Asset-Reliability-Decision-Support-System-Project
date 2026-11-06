@@ -605,6 +605,19 @@ class JoinApiTestCase(unittest.TestCase):
         self.assertIn("They were not merged", claim["text"])
         self.assertTrue(all(c["passed"] for c in self.task(run, "validator")["quality_checks"]))
 
+    def test_a_confirmed_correction_matches_and_is_said(self):
+        rows = [(f"2025-{m:02d}", asset, 10 + m) for m in range(1, 7) for asset in ("PUMP-01", "PMP-03")]
+        work = self.upload("month,asset,hours\n" + "\n".join(f"{a},{b},{c}" for a, b, c in rows) + "\n", "work.csv")
+        assets = self.upload("code,class\nPUMP-01,Pumps\nPUMP-03,Pumps\n", "assets.csv")
+        join = {"dataset_id": assets, "how": "left", "keys": [{"left": "asset", "right": "code"}],
+                "corrections": [{"from": "PMP-03", "to": "PUMP-03"}]}
+        run = self.run_to_gate(dataset_id=work, joins=[join])
+        record = self.output(run, "merge")["joins"][0]
+        self.assertEqual((record["matched"], record["corrected"], record["typo_keys"]), (12, 6, 0))
+        claim = next(c for c in self.task(run, "merge")["claims"] if c["id"] == "cl_merge_0_corrected")
+        self.assertIn("6 rows matched assets.csv only through 1 key corrections", claim["text"])
+        self.assertTrue(all(c["passed"] for c in self.task(run, "validator")["quality_checks"]))
+
     def test_a_stacked_export_is_counted_once_and_told_apart_by_source(self):
         h1 = self.upload(SALES_CSV, "h1.csv")
         q3 = self.upload(Q3_CSV, "q3.csv")
@@ -834,6 +847,26 @@ class JoinMigrationTests(unittest.TestCase):
             self.assertIn("joins_json", names)
             with contextlib.closing(open_store(sqlite_path=str(path))):
                 pass  # repeatable
+
+
+class CorrectionTests(unittest.TestCase):
+    def test_corrections_are_validated(self):
+        keys = [{"left": "a", "right": "b"}]
+        ok = j.normalise([{"dataset_id": "d", "keys": keys, "corrections": [{"from": " X1 ", "to": "Y1"}]}])
+        self.assertEqual(ok["joins"][0]["corrections"], [{"from": "X1", "to": "Y1"}])
+        for bad in ([{"from": "X1"}], [{"from": "X1", "to": "Y1"}] * 2, "X1", [{"from": "", "to": "Y"}]):
+            with self.assertRaises(j.JoinError, msg=str(bad)):
+                j.normalise([{"dataset_id": "d", "keys": keys, "corrections": bad}])
+        with self.assertRaises(j.JoinError):
+            j.normalise([{"dataset_id": "d", "keys": keys * 2, "corrections": [{"from": "X", "to": "Y"}]}])
+
+    def test_a_correction_to_a_key_that_does_not_exist_is_refused(self):
+        rows = [{"asset": "PMP-03", "hours": 1.0}]
+        item = joined("code,class\nPUMP-01,Pumps\n", [{"left": "asset", "right": "code"}])
+        item["corrections"] = [{"from": "PMP-03", "to": "PUMP-09"}]
+        with self.assertRaises(j.JoinError) as caught:
+            j.merge(["asset", "hours"], rows, ["hours"], [item])
+        self.assertEqual(caught.exception.problems[0].field, "corrections")
 
 
 class TypoCandidateTests(unittest.TestCase):

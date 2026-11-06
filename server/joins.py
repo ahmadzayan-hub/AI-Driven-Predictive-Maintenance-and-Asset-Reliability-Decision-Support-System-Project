@@ -37,6 +37,8 @@ SEPARATORS = re.compile(r"[\s\-_./\\]+")
 TYPO_MIN_LENGTH = 4
 TYPO_EXAMPLES = 5
 MAX_TYPO_KEYS = 5000
+# Corrections the owner confirmed: a main-table key read as a joined key.
+MAX_CORRECTIONS = 50
 # The same ceiling one dataset has (server/datasets.py, ADR 0024).
 MAX_MERGED_COLUMNS = 500
 # A stacked table may not grow past what one dataset may hold
@@ -175,7 +177,27 @@ def normalise(joins, breakdown=None):
                     f"الدمج رقم {index + 1}: البادئة «{alias}» يجب أن تبدأ بحرف وأن "
                     "تتكون من حروف إنجليزية صغيرة وأرقام وشرطات سفلية (24 على الأكثر).",
                     index))
+        corrections = item.get("corrections")
+        if corrections is not None:
+            if (how == "stack" or len(keys) != 1 or not isinstance(corrections, list)
+                    or len(corrections) > MAX_CORRECTIONS
+                    or not all(isinstance(c, dict) and set(c) == {"from", "to"}
+                               and all(isinstance(c[k], str) and c[k].strip() and len(c[k]) <= 200 for k in ("from", "to"))
+                               for c in corrections)
+                    or len({c["from"].strip() for c in corrections}) != len(corrections)):
+                problems.append(Problem(
+                    "corrections", None,
+                    f"Join {index + 1}: corrections are up to {MAX_CORRECTIONS} pairs of a main key "
+                    "and the joined key it stands for, each main key once, on a one-column key.",
+                    f"الدمج رقم {index + 1}: التصحيحات حتى {MAX_CORRECTIONS} زوجاً من مفتاح رئيسي "
+                    "والمفتاح المدمج الذي يقابله، كل مفتاح رئيسي مرة واحدة، على مفتاح من عمود واحد.",
+                    index))
+                corrections = None
+            else:
+                corrections = [{"from": c["from"].strip(), "to": c["to"].strip()} for c in corrections] or None
         entry = {"dataset_id": dataset_id, "how": how, "keys": keys, "alias": alias}
+        if corrections:
+            entry["corrections"] = corrections
         # Only a loose join records how it compares, so every declaration
         # saved before this option reads, and hashes, exactly as it did.
         if match == "loose" and how != "stack":
@@ -545,6 +567,15 @@ def merge(columns, rows, numeric, joined, date=None, source_name=None):
 
         merged, matched, unmatched_keys, used = [], 0, [], set()
         loose_only, near = 0, 0
+        corrected, fixes = 0, {}
+        for pair in item.get("corrections") or []:
+            target = tuple([key_text(pair["to"], False, loose)])
+            if target not in lookup:
+                problems.append(Problem(
+                    "corrections", pair["to"],
+                    f"Join {index + 1}: the correction to “{pair['to']}” names no key of {name}.",
+                    f"الدمج رقم {index + 1}: التصحيح إلى «{pair['to']}» لا يطابق أي مفتاح في {name}.", index))
+            fixes[key_text(pair["from"], False)] = target
         # One-column text keys only: a composite key has no single spelling to check.
         typo_check = len(lefts) == 1 and not as_number[0]
         unmatched_loose, typo_rows = {}, Counter()
@@ -562,6 +593,11 @@ def merge(columns, rows, numeric, joined, date=None, source_name=None):
                             for left, number in zip(lefts, as_number))
             key = relaxed if loose else exact
             match = lookup.get(key) if None not in key else None
+            if match is None and len(exact) == 1 and exact[0] in fixes:
+                # A key the owner confirmed stands for another; counted apart.
+                key = fixes[exact[0]]
+                match = lookup.get(key)
+                corrected += 1 if match is not None else 0
             if match is None:
                 if not loose and None not in relaxed and relaxed in loose_keys:
                     near += 1
@@ -603,6 +639,8 @@ def merge(columns, rows, numeric, joined, date=None, source_name=None):
             # Unmatched keys one character from a lookup key; never merged.
             "typo_keys": len(typos), "typo_rows": sum(typo_rows[raw] for raw in typos),
             "typo_examples": typo_examples,
+            # Rows matched only through a correction the owner declared.
+            "corrected": corrected, "corrections": list(item.get("corrections") or []),
         })
         columns += added
         numeric += [renamed.get(c, c) for c in table.numeric if c not in rights]

@@ -1396,6 +1396,20 @@ def merge(ctx):
                 f"سيتطابق مع {name} لو تُجوهلت حالة الأحرف والمسافات والفواصل؛ قورنت المفاتيح "
                 f"مقارنة تامة.",
                 [f"{prefix}_near", f"{prefix}_rows_in"]))
+        if record.get("corrected"):
+            pairs = record.get("corrections") or []
+            calcs.append({"id": f"{prefix}_corrected", "name": f"rows_matched_by_correction_{record['alias']}",
+                          "value": record["corrected"],
+                          "method": "matched rows whose key matched only through a correction the owner declared"})
+            shown = "; ".join(f"{c['from']} / {c['to']}" for c in pairs[:3])
+            claims.append(_claim(
+                ctx, f"cl_merge_{index}_corrected", "fact",
+                f"{record['corrected']} rows matched {name} only through {len(pairs)} key corrections "
+                f"the owner declared, for example {shown}.",
+                f"تطابق {record['corrected']} صفاً مع {name} عبر {len(pairs)} من تصحيحات المفاتيح "
+                f"التي أقرّها المالك فقط، مثل {shown}.",
+                [f"{prefix}_corrected", f"{prefix}_matched"],
+                [part for c in pairs[:3] for part in (c["from"], c["to"])]))
         if record.get("typo_keys"):
             # Named for a person to check, never merged (ADR 2026-11-06-separator-keys-and-typo-candidates).
             calcs.append({"id": f"{prefix}_typos", "name": f"unmatched_rows_one_letter_from_{record['alias']}",

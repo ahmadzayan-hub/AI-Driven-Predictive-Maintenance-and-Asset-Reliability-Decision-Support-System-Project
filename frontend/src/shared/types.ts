@@ -387,6 +387,8 @@ export interface JoinSpec {
   alias?: string | null
   /** Compare text keys ignoring letter case, spaces and separators (30 October; separators 6 November 2026). */
   match?: 'loose'
+  /** Main keys the owner confirmed stand for a joined key (6 November 2026). */
+  corrections?: Array<{ from: string; to: string }>
 }
 
 /** What one join did: rows in and out, matches, and the columns it added.
@@ -412,6 +414,10 @@ export interface JoinRecord {
   duplicates_dropped?: number
   /** Unmatched rows a loose comparison would have matched. */
   near_matches?: number
+  /** Unmatched keys one letter from a joined key, never merged unless confirmed. */
+  typo_examples?: Array<{ key: string; candidate: string }>
+  /** Rows matched only through a confirmed correction. */
+  corrected?: number
   source_column?: string
   source_label?: string
 }

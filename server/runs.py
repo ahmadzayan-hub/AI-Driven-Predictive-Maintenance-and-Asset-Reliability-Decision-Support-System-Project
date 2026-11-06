@@ -520,7 +520,8 @@ class RunEngine:
             joins_json = json.dumps({
                 "joins": [{**{key: item[key] for key in
                               ("dataset_id", "alias", "how", "keys", "mapping")},
-                           **({"match": item["match"]} if item.get("match") else {})}
+                           **({"match": item["match"]} if item.get("match") else {}),
+                           **({"corrections": item["corrections"]} if item.get("corrections") else {})}
                           for item in inputs],
                 "breakdown": spec["breakdown"]}, ensure_ascii=False)
             joined_names = [item["name"] for item in inputs]
@@ -1270,7 +1271,8 @@ class RunEngine:
                                      "decided_by": gate.get("decided_by")} if gate else None)
         declared = json.loads(run.get("joins_json") or "{}")
         joins = [{**{key: item.get(key) for key in ("dataset_id", "alias", "how", "keys")},
-                  **({"match": item["match"]} if item.get("match") else {})}
+                  **({"match": item["match"]} if item.get("match") else {}),
+                  **({"corrections": item["corrections"]} if item.get("corrections") else {})}
                  for item in declared.get("joins") or []]
         return {"id": run["id"], "goal": run["goal"],
                 "execution": {"mode": self.execution_mode, "poll_after_ms": 2500},

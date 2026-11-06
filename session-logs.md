@@ -2470,3 +2470,9 @@ regressions passed. The full failure and skipped later steps remain in README.
 - Done: loose join keys ignore separators (`ST-01` = `st_01` = `ST 01`, leading zeros kept); one-letter typo candidates for one-column text keys counted and named in a cited, bilingual report limitation, never merged; join builder label and near-match line updated in English and Arabic. ADR 2026-11-06-separator-keys-and-typo-candidates.
 - Verified: `python scripts/verify.py`: 8 of 8; Python 2669 tests (297 skipped), frontend 603; js total 285.6 of 286 KB. Stress harness re-run: 95 of 95.
 - Not done: typo fixes offered in the join builder; composite and numeric keys. Production still 500 (checked 11:52 UTC).
+
+## 2026-11-06 (later): Download names, budget, confirmed corrections (session d9e3f889)
+
+- Owner decisions: script ceiling 292 KB; readable download names.
+- Done: `server/downloads.py` names every download with RFC 5987 headers; confirmed key corrections on one-column joins (API, run engine, report claim, builder button in English and Arabic). ADRs 2026-11-06-readable-download-names, -script-ceiling-for-remaining-gaps, -confirmed-key-corrections.
+- Verified: `python scripts/verify.py`: 8 of 8; Python 2673 (298 skipped), frontend 605; js total 285.8 of 292 KB. End-to-end specs whose expected names changed were edited but not run in this slice.
