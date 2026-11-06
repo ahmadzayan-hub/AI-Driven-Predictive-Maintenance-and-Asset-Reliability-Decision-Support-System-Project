@@ -2482,3 +2482,9 @@ regressions passed. The full failure and skipped later steps remain in README.
 - Done (later): bagged classification trees beside naive Bayes in the classification stage, fixed settings, never chosen by the test; gap filling along time considered and not adopted. ADR 2026-11-06-classification-trees. Verify 8 of 8 (Python 2684, frontend 612); stress harness 95 of 95.
 - Verified (later): the three end-to-end specs whose download names changed (journey, executive, metric colours) pass: 26 of 26, desktop and mobile, with `PLAYWRIGHT_EXECUTABLE_PATH=/opt/pw-browsers/chromium`. Screenshots restored.
 - Next: the full end-to-end suite has not been run in this push; production still needs the owner's Vercel sign-in variables.
+
+## 2026-11-06 (evening): Old .xls workbooks (session d9e3f889)
+
+- Owner decisions: read `.xls` with xlrd, Parquet stays unsupported; next, AI-proposed executive mapping and the dashboard built from it.
+- Done: xlrd 2.0.1 declared and hash-locked (only addition to the lock); `_read_xls` gives the `.xlsx` table shape, sheet picker included; interface accepts `.xls` with EN/AR help; fixture `tests/fixtures/Station Work Orders.xls` made by LibreOffice from synthetic rows. ADR 2026-11-06-xls-workbooks.
+- Verified: verify 8 of 8; Python 2686 (303 skipped), frontend 612. The Arabic label first matched the English one and the bilingual check caught it.

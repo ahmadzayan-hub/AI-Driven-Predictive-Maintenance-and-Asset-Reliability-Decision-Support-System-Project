@@ -16,7 +16,7 @@ export const intakeMessages = definePack({
   'intake.step3': 'Run the agents',
   'intake.step4': 'Approve and explore',
   'intake.more': 'Files, limits and models',
-  'intake.limits': 'Supported tabular files: CSV/TSV, Excel (.xlsx/.xlsm), OpenDocument (.ods), JSON and JSON Lines, up to 4 MB, 50,000 rows and 500 columns (10 MB once converted). Convert PDF, images, Parquet and old .xls first.',
+  'intake.limits': 'Supported tabular files: CSV/TSV, Excel (.xlsx/.xlsm and old .xls), OpenDocument (.ods), JSON and JSON Lines, up to 4 MB, 50,000 rows and 500 columns (10 MB once converted). Convert PDF, images and Parquet first.',
   'intake.models': 'The models profile adds regression, classification, clustering and seasonal analysis, each tested against a baseline. Unsuitable data gives limitations, not invented predictions.',
 }, {
   'intake.reportLanguage': 'لغة التقرير',
@@ -34,6 +34,6 @@ export const intakeMessages = definePack({
   'intake.step3': 'تشغيل الوكلاء',
   'intake.step4': 'الموافقة والاستكشاف',
   'intake.more': 'الملفات والحدود والنماذج',
-  'intake.limits': 'الملفات الجدولية المدعومة: CSV وTSV وExcel ‏(.xlsx/.xlsm) وOpenDocument ‏(.ods) وJSON وJSON Lines، حتى 4 ميغابايت و50,000 صف و500 عمود (و10 ميغابايت بعد التحويل). حوّل PDF والصور وParquet وملفات .xls القديمة أولًا.',
+  'intake.limits': 'الملفات الجدولية المدعومة: CSV وTSV وExcel ‏(.xlsx/.xlsm و.xls القديمة) وOpenDocument ‏(.ods) وJSON وJSON Lines، حتى 4 ميغابايت و50,000 صف و500 عمود (و10 ميغابايت بعد التحويل). حوّل PDF والصور وParquet أولًا.',
   'intake.models': 'يضيف ملف models الانحدار والتصنيف والتجميع والتحليل الموسمي مقارنةً بخط أساس. وتُعرض قيود البيانات غير المناسبة بدل اختلاق تنبؤات.',
 })

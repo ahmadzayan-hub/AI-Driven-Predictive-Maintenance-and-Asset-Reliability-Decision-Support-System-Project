@@ -75,13 +75,15 @@ class FormatDetectionTests(unittest.TestCase):
         self.assertEqual(datasets.detect_format("export", b"\xef\xbb\xbf [1]"), "json")
         self.assertEqual(datasets.detect_format("export", b"a,b\n1,2"), "csv")
 
-    def test_old_workbooks_and_binary_files_are_refused_by_name(self):
-        for name, body in (("old.xls", b"anything"),
-                           ("renamed.bin", b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1....")):
-            with self.assertRaises(DatasetError) as caught:
-                datasets.detect_format(name, body)
-            self.assertEqual(caught.exception.status, 415)
-            self.assertIn(".xlsx", caught.exception.en)
+    def test_old_workbooks_are_read_and_other_binary_files_refused(self):
+        """Old .xls is read since 6 November 2026 (ADR 2026-11-06-xls-workbooks)."""
+        self.assertEqual(datasets.detect_format("old.xls", b"anything"), "xls")
+        self.assertEqual(datasets.detect_format("renamed.bin", b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1...."), "xls")
+        with self.assertRaises(DatasetError) as caught:
+            read(b"not really a workbook", "old.xls")
+        self.assertEqual(caught.exception.status, 422)
+        self.assertIn("not a workbook", caught.exception.en)
+        self.assertIn("ليس مصنّفًا", caught.exception.ar)
         with self.assertRaises(DatasetError) as caught:
             datasets.detect_format("image", b"\x89PNG\r\n\x1a\n\x00\x00\x00")
         self.assertEqual(caught.exception.status, 415)
@@ -457,6 +459,29 @@ class XlsxTests(unittest.TestCase):
         self.assertEqual(parsed.sheets, ["Sales", "Notes"])
 
 
+class XlsTests(unittest.TestCase):
+    """A real Excel 97 workbook made by LibreOffice from synthetic rows: a cover
+    sheet, a title line, dates, decimals, true/false and one error cell."""
+
+    BODY = (Path(__file__).parent / "fixtures" / "Station Work Orders.xls").read_bytes()
+
+    def test_the_table_sheet_is_read_like_an_xlsx_one(self):
+        table = read(self.BODY, "Station Work Orders.xls")
+        self.assertEqual(table.columns, ["Record_Date", "Station", "Downtime_Hours", "Closed"])
+        self.assertEqual(table.rows[0], ["2025-01-01", "ST02", "2.5", "FALSE"])
+        self.assertEqual(len(table.rows), 13)
+        self.assertEqual(table.selected_sheet, "Work Orders")
+        said = " ".join(w["en"] for w in table.warnings)
+        for needle in ("1 error cells", "first of 2 that looks like a table", "1 title line"):
+            self.assertIn(needle, said)
+
+    def test_its_sheets_are_listed_and_one_can_be_chosen(self):
+        sheets = datasets.list_sheets(self.BODY, "xls")
+        self.assertEqual([(s["name"], s["tabular"]) for s in sheets], [("Cover", False), ("Work Orders", True)])
+        with self.assertRaises(DatasetError):
+            read(self.BODY, "Station Work Orders.xls", sheet="Missing")
+
+
 class OdsTests(unittest.TestCase):
     """OpenDocument spreadsheets (2026-10-30): read like a workbook, with
     LibreOffice's repeated empty grid never expanded."""
@@ -730,8 +755,8 @@ class DatasetApiTestCase(unittest.TestCase):
 
     def test_errors_come_back_in_the_readers_language(self):
         response = self.upload(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1....", "old.xls", language="ar")
-        self.assertEqual(response.status_code, 415)
-        self.assertIn("‎.xlsx‎", response.json()["detail"])
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("ليس مصنّفًا", response.json()["detail"])
         response = self.upload(b"a,b\n", "empty.csv")
         self.assertEqual(response.status_code, 422)
         self.assertEqual(response.json()["detail"], "The file has a header row but no data rows.")

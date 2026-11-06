@@ -22,6 +22,11 @@ psycopg2-binary>=2.9
 # Hosted-mode token verification; local mode needs no authentication:
 pyjwt[crypto]>=2.8
 
+# Old Excel .xls workbooks (server/datasets.py, ADR 2026-11-06-xls-workbooks):
+# pure Python, reads cell values only; macros and formulas never run. Owner
+# approved 6 November 2026. Parquet stays unsupported (pyarrow is ~40 MB).
+xlrd==2.0.1
+
 # Deliberately absent: LLMRouter (github.com/ulab-uiuc/LLMRouter).
 #
 # Per-report model routing is optional (ADR 0017) and the contract is one

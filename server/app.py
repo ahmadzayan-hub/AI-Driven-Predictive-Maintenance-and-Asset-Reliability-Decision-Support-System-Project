@@ -1388,7 +1388,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         filename = re.split(r"[\\/]", name)[-1].strip() or "dataset"
         try:
             fmt = format or dataset_reader.detect_format(filename, body)
-            if fmt not in ("xlsx", "ods"):
+            if fmt not in ("xlsx", "xls", "ods"):
                 return {"sheets": [], "default_sheet": None}
             sheets = await run_in_threadpool(dataset_reader.list_sheets, body, fmt)
         except dataset_reader.DatasetError as error:

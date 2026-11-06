@@ -510,6 +510,7 @@ export const ar: Record<MessageKey, string> = {
   'format.csv': 'CSV',
   'format.tsv': 'TSV',
   'format.xlsx': 'Excel',
+  'format.xls': 'Excel القديم (.xls)',
   'format.json': 'JSON',
   'format.jsonl': 'JSON Lines',
   'format.sample': 'نموذجية',

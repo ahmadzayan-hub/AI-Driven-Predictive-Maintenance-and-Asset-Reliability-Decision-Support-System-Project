@@ -530,6 +530,7 @@ export const en = {
   'format.csv': 'CSV',
   'format.tsv': 'TSV',
   'format.xlsx': 'Excel',
+  'format.xls': 'Excel (.xls)',
   'format.json': 'JSON',
   'format.jsonl': 'JSON Lines',
   'format.sample': 'Sample',

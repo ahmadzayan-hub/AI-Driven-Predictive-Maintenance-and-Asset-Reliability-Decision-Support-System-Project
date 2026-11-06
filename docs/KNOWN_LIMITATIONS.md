@@ -341,7 +341,7 @@ required local files. Both behaviors are covered by tests
     `.ods` since 2026-10-30, JSON or JSON Lines) or pasted CSV (ADR 0024): up to 4 MB as uploaded, the limit
     of the platform the app is deployed to, 50,000 rows, and 10 MB once
     converted to CSV. They are held in the database rather than object
-    storage. Not read: old `.xls` workbooks, Parquet, CSV
+    storage. Not read: Parquet (old `.xls` workbooks are read since 6 November 2026, values only), CSV
     in any encoding but UTF-8 or UTF-16, and database connectors. A
     workbook gives one sheet per upload. A stored dataset can be removed
     from the Datasets view unless an analysis reads it, in which case the
