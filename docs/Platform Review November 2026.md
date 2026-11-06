@@ -129,7 +129,10 @@ Not done:
   deployment, which is blocked while production sign-in is down;
 - natural voice or cinematic review, which needs a person to listen.
 
-## Phase 6
+## Phase 6: enterprise integration
 
-Not started: the read-only enterprise integration proposal. They depend on Phase 2's separation and on a reachable,
+Proposed, not built or connected: one scheduled read-only export of work-order and failure
+history from the organisation's own maintenance system, through the existing fenced connector
+with an operator-held credential alias; no write-back; RMD and RTA excluded
+([proposal](Enterprise%20Integration%20Proposal.md)). They depend on Phase 2's separation and on a reachable,
 signed-in hosted deployment for the authenticated journey.
