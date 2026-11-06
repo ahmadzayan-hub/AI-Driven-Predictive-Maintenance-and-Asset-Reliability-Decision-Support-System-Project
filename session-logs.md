@@ -2476,3 +2476,5 @@ regressions passed. The full failure and skipped later steps remain in README.
 - Owner decisions: script ceiling 292 KB; readable download names.
 - Done: `server/downloads.py` names every download with RFC 5987 headers; confirmed key corrections on one-column joins (API, run engine, report claim, builder button in English and Arabic). ADRs 2026-11-06-readable-download-names, -script-ceiling-for-remaining-gaps, -confirmed-key-corrections.
 - Verified: `python scripts/verify.py`: 8 of 8; Python 2673 (298 skipped), frontend 605; js total 285.8 of 292 KB. End-to-end specs whose expected names changed were edited but not run in this slice.
+- Done (later): delete an analysis, keep its audit: tombstone in storage, deletion recorded in approvals, datasets only it read removable, `DELETE /api/runs/{id}`, run view control with confirmation in English and Arabic. ADR 2026-11-06-delete-a-run-keep-its-audit.
+- Verified: verify 8 of 8; Python 2681 (302 skipped), frontend 608; js total 286.3 of 292 KB, first load 96.4. The 4 API cases also pass on PostgreSQL (port 5432; the default test URL points at 54329, so verify skips them here).

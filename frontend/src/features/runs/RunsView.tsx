@@ -5,6 +5,7 @@ import { ReportDocument } from './ReportDocument'
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { hasWorkSource } from '../../shared/sourceHandoff'
 import { useReadOnly } from '../../shared/readOnly'
+import { ConfirmDialog } from '../../shared/components/ConfirmDialog'
 import { useSessionDraft } from '../../shared/useSessionDraft'
 import { formatNumberIn, translate } from '../../i18n'
 import type { Locale } from '../../i18n'
@@ -433,6 +434,25 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
   const primaryId =
     source === 'stored' ? storedId || null : source === 'upload' ? uploaded?.dataset.id ?? null : null
 
+  // Deleting an analysis (6 November 2026): confirmed first, the audit stays.
+  const [deleting, setDeleting] = useState(false)
+  const [deleteData, setDeleteData] = useState(false)
+  async function deleteRun(id: string) {
+    setBusy(true)
+    setErrorMessage(null)
+    try {
+      await api.deleteRun(id, deleteData, locale)
+      setRuns((all) => all.filter((r) => r.id !== id))
+      setDeleting(false)
+      setRun(null)
+    } catch (error) {
+      setErrorMessage(error instanceof ApiError ? error.message : t('runs.deleteFailed'))
+      setDeleting(false)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   /** Save the run's cleaned (and merged) table as CSV (ADR 0031). */
   async function downloadTable(id: string) {
     setDownloading(true)
@@ -858,11 +878,17 @@ export function RunsView({ openRunId = null, openNonce = 0, preset = null, onRun
                   {t('runs.download')}
                 </button>
               ) : null}
+              {!readOnly && !ACTIVE_STATES.includes(run.state) ? <button type="button" className="btn btn--subtle" disabled={busy}
+                onClick={() => { setDeleteData(false); setDeleting(true) }}>{t('runs.delete')}</button> : null}
               <button type="button" className="btn btn--ghost" onClick={() => setRun(null)}>
                 {t('runs.all')}
               </button>
             </div>
           </div>
+          {deleting ? <ConfirmDialog title={t('runs.deleteTitle')} message={t('runs.deleteMessage')} confirmLabel={t('runs.delete')}
+            busy={busy} onConfirm={() => void deleteRun(run.id)} onCancel={() => setDeleting(false)}>
+            <label className="field__help"><input type="checkbox" checked={deleteData} onChange={(e) => setDeleteData(e.target.checked)} /> {t('runs.deleteData')}</label>
+          </ConfirmDialog> : null}
 
           <p className="cockpit__continuity"><Icon name="shield" size={14} />{t('cockpit.keepOpen')}</p>
           {reportLang !== locale ? <p className="report-language-note">{t('intake.reportLanguageFixed', { language: languageLabel(t, reportLang) })}</p> : null}

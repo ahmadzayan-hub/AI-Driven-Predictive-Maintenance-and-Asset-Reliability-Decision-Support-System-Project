@@ -614,6 +614,11 @@ export const en = {
   'runs.openDashboard': 'Open dashboard',
   // A run's cleaned table (ADR 0031).
   'runs.download': 'Download cleaned data (CSV)',
+  'runs.delete': 'Delete analysis',
+  'runs.deleteTitle': 'Delete this analysis?',
+  'runs.deleteMessage': 'Its data copy, results, reports, layouts and films are removed for good. Its approvals and reviews stay as the record.',
+  'runs.deleteData': 'Also delete the datasets no other analysis reads',
+  'runs.deleteFailed': 'The analysis could not be deleted.',
   'runs.downloadFailed': 'The cleaned data could not be downloaded.',
   // Several datasets per run (ADR 0030).
   'cockpit.role.merge': 'Data merge',

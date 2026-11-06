@@ -8,6 +8,8 @@ interface ConfirmDialogProps {
   busy?: boolean
   onConfirm: () => void
   onCancel: () => void
+  /** An option the action takes, such as a checkbox, shown under the message. */
+  children?: React.ReactNode
 }
 
 /** Confirmation step for destructive actions (clear history, clear memory). */
@@ -18,11 +20,13 @@ export function ConfirmDialog({
   busy = false,
   onConfirm,
   onCancel,
+  children,
 }: ConfirmDialogProps) {
   const { t } = useI18n()
   return (
     <Dialog title={title} onClose={onCancel} labelledById="confirm-title">
       <p className="dialog__body">{message}</p>
+      {children}
       <div className="dialog__actions">
         <button type="button" className="btn btn--ghost" onClick={onCancel} disabled={busy}>
           {t('common.cancel')}

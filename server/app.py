@@ -16,6 +16,7 @@ import os
 import re
 from typing import Literal
 import threading
+import shutil
 import subprocess
 import time
 import uuid
@@ -59,7 +60,7 @@ from server.model_gateway import ModelGateway
 from server.orchestration import ModelRoles
 from server.routing import RoutedGateway, build_router
 from server.stages import describe, load_stages
-from server.runs import (DatasetInUse, IdempotencyConflict, PublicationDestinationChanged, RunEngine, TableNotReady, dataset_summary,
+from server.runs import (DatasetInUse, RunActive, IdempotencyConflict, PublicationDestinationChanged, RunEngine, TableNotReady, dataset_summary,
                          resolve_publish_target, resolve_vault_dir)
 from server import demo
 from server.auth import DEMO_PRINCIPAL, AuthError, build_identity, public_auth_config
@@ -2003,6 +2004,28 @@ def create_app(config_path=None, env=None, dist_dir=None):
     # 2026-11-04-shared-review and 2026-11-04-executive-video).
     from server import executive_video, export_reviews
     export_root = Path(local_env.get("AGENTIC_OS_EXPORT_DIR") or PROJECT_ROOT / "data" / "exports").expanduser()
+
+    @app.delete("/api/runs/{run_id}")
+    def delete_run(run_id: str, datasets: bool = Query(default=False),
+                   language: str = Query(default="en", pattern="^(en|ar)$"),
+                   principal=Depends(requires("write"))):
+        """Delete an analysis and keep its audit (ADR 2026-11-06-delete-a-run-keep-its-audit).
+        Another owner's run, or one already deleted, is a 404; a running one a 409."""
+        with lock:
+            try:
+                owner = engine.owner_of(run_id)
+                if owner != principal.subject:
+                    raise KeyError(run_id)
+                result = engine.delete_run(run_id, owner, principal.subject, datasets, language)
+            except KeyError:
+                raise HTTPException(status_code=404, detail="Run not found.")
+            except RunActive as error:
+                raise HTTPException(status_code=409, detail={"code": "run_active", "message": error.message})
+        # Rendered films live on disk; the run's folder goes with its rows.
+        folder = (export_root / run_id).resolve()
+        if folder.parent == export_root.resolve() and folder.is_dir():
+            shutil.rmtree(folder, ignore_errors=True)
+        return result
     video_busy = threading.Lock()
     video_files = {"video.mp4": "video/mp4", "subtitles.vtt": "text/vtt; charset=utf-8",
                    "subtitles.srt": "application/x-subrip; charset=utf-8", "manifest.json": "application/json"}

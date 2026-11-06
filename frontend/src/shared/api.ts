@@ -333,6 +333,10 @@ export const api = {
       { method: 'DELETE' },
       UPLOAD_TIMEOUT_MS,
     ),
+  /** Delete an analysis and keep its audit; `datasets` also removes the ones nothing else reads. */
+  deleteRun: (id: string, datasets: boolean, language: 'en' | 'ar' = 'en') =>
+    request<{ deleted: string; datasets_deleted: string[]; datasets_kept: string[]; audit_kept: number }>(
+      `/api/runs/${encodeURIComponent(id)}?datasets=${datasets}&language=${language}`, { method: 'DELETE' }),
   /** Remove a stored dataset; one an analysis reads is a 409 naming them. */
   deleteDataset: (id: string, language: 'en' | 'ar' = 'en') =>
     request<{ deleted: string; name: string; usage: { datasets: number; bytes: number } }>(

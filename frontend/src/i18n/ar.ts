@@ -594,6 +594,11 @@ export const ar: Record<MessageKey, string> = {
   'runs.openDashboard': 'فتح لوحة المعلومات',
   // جدول التشغيل المنظَّف (ADR 0031).
   'runs.download': 'تنزيل البيانات المنظَّفة (CSV)',
+  'runs.delete': 'حذف التحليل',
+  'runs.deleteTitle': 'حذف هذا التحليل؟',
+  'runs.deleteMessage': 'تُحذف نسخة بياناته ونتائجه وتقاريره وتخطيطاته وأفلامه نهائياً. وتبقى موافقاته ومراجعاته سجلاً.',
+  'runs.deleteData': 'احذف أيضاً مجموعات البيانات التي لا يقرؤها تحليل آخر',
+  'runs.deleteFailed': 'تعذّر حذف التحليل.',
   'runs.downloadFailed': 'تعذّر تنزيل البيانات المنظَّفة.',
   // عدة مجموعات بيانات في التشغيل الواحد (ADR 0030).
   'cockpit.role.merge': 'دمج البيانات',

@@ -582,6 +582,19 @@ class SqlStore:
                        (owner, day))
             return self.model_calls_today(owner, day)
 
+    def tombstone_run(self, run_id, now):
+        """Remove a run's data and outputs, keep its audit (ADR
+        2026-11-06-delete-a-run-keep-its-audit). The run row stays, emptied
+        and marked deleted, so approvals, reviews and policy history still
+        point at something; nothing it read is kept: no dataset copy, no
+        mapping, no joins, no stage outputs, reports, layouts, views or films."""
+        self._exec("UPDATE runs SET state = 'deleted', dataset_text = '', mapping_json = NULL, "
+                   "joins_json = NULL, assumptions_json = NULL, dataset_id = NULL, connector_id = NULL, "
+                   "error = NULL, lease_owner = NULL, lease_expires_at = NULL, updated_at = ? WHERE id = ?",
+                   (now, run_id))
+        for table in ("tasks", "artifacts", "layout_versions", "dashboard_views", "export_videos"):
+            self._exec(f"DELETE FROM {table} WHERE run_id = ?", (run_id,))
+
     def list_runs(self, owner=None, limit=50, state=None):
         """The newest `limit` runs, or every run in one `state` up to a
         larger ceiling: the approval queue must never lose its oldest
@@ -592,6 +605,9 @@ class SqlStore:
         if state is not None:
             where.append("state = ?"); params.append(state)
             limit = max(limit, STATE_LIST_LIMIT)
+        else:
+            # A deleted run keeps only its audit; it is not an analysis to list.
+            where.append("state <> 'deleted'")
         clause = (" WHERE " + " AND ".join(where)) if where else ""
         return self._exec(
             "SELECT id, goal, dataset_name, state, created_at, updated_at "
