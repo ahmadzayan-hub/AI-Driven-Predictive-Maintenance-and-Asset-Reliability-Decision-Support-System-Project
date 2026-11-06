@@ -63,6 +63,8 @@ Full list: [brain/Soul.md](brain/Soul.md).
 - **Film template classes.** `server/video/composition.html` already uses `.grid` for the moving background floor; a scene element with that class lands in the background. Render a frame and look at it after any film change.
 - **Read rendered output after a layout change.** The film's `statement` kind shows only its first line; a multi-line scene needs its own renderer.
 
+- **PostgreSQL tests in this cloud container (6 November 2026).** `service postgresql start` brings up PostgreSQL 16 on port 5432; the tests' default `PG_TEST_URL` points at 54329, so they skip unless run with `PG_TEST_URL=postgresql://dev@127.0.0.1:5432/agentic_test`.
+
 ## Conventions
 
 - **File naming (owner's standing instruction, 6 November 2026).** Applies to every file generated, created, renamed or exported from now on.
