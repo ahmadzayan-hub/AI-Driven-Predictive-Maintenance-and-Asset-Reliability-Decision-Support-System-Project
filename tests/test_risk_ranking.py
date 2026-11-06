@@ -304,3 +304,65 @@ class BacktestTests(unittest.TestCase):
         result = RiskRanking().run(context(fleet(), language="ar"))
         claim = next(c for c in result["claims"] if c["id"] == "risk_ranking.cl_backtest")
         self.assertIn("لا تحقق مستقبلي", claim["text_ar"])
+
+
+class HoldoutTests(unittest.TestCase):
+    """Asset and site holdout (6 November 2026 review, Phase 4)."""
+
+    records = BacktestTests.records
+
+    def test_a_fold_s_own_records_never_reach_its_fit(self):
+        from unittest.mock import patch
+        records = self.records(fleet())
+        assets = sorted({a for items in records.values() for a, _, _ in items})
+        _, folds = K.asset_folds(assets)
+        seen = []
+        real = K.R.intervals
+
+        def spy(items):
+            seen.append({a for a, _, _ in items})
+            return real(items)
+
+        cutoff, as_of = datetime.date(2025, 10, 2), datetime.date(2025, 12, 31)
+        with patch.object(K.R, "intervals", side_effect=spy):
+            scored, _, _ = K._score(records, 90, cutoff, as_of,
+                                    fitted_on=lambda a: folds[a] != 0,
+                                    scored_on=lambda a: folds[a] == 0)
+        held = {a for a in assets if folds[a] == 0}
+        self.assertTrue(held and seen)
+        for fitted in seen:
+            self.assertFalse(fitted & held)
+        self.assertEqual({a for *_, a in scored}, held)
+
+    def test_sites_are_the_folds_when_every_asset_has_one(self):
+        rows = [dict(r, Site=("North" if int(r["Asset_ID"].split("-")[1]) % 2 else "South"))
+                for r in fleet()]
+        result = RiskRanking().run(context(rows))
+        stages.validate_result(RiskRanking.role, result)
+        held = result["output"]["backtest"]["holdout"]
+        self.assertEqual(held["by"], "site")
+        self.assertEqual(held["folds"], 2)
+        self.assertTrue(held["applicable"])
+        claim = next(c for c in result["claims"] if c["id"] == "risk_ranking.cl_backtest")
+        self.assertIn("never saw the site", claim["text"])
+        self.assertIn("risk_ranking.c_bt_holdout", claim["evidence"])
+
+    def test_without_sites_five_asset_folds_are_used(self):
+        held = RiskRanking().run(context(fleet()))["output"]["backtest"]["holdout"]
+        self.assertEqual((held["by"], held["folds"]), ("asset", 5))
+        self.assertEqual(held["assets_scored"], 80)
+
+    def test_one_site_falls_back_to_asset_folds(self):
+        by, folds = K.asset_folds(["A", "B", "C"], {"A": "X", "B": "X", "C": "X"})
+        self.assertEqual(by, "asset")
+        self.assertTrue(set(folds.values()) <= set(range(5)))
+        self.assertEqual(K.asset_folds(["A", "B"], {"A": "X", "B": "Y"})[0], "site")
+
+    def test_a_single_fold_is_not_a_holdout(self):
+        self.assertFalse(K.holdout(self.records(fleet()), 90,
+                                   {r["Asset_ID"]: 0 for r in fleet()})["applicable"])
+
+    def test_the_arabic_claim_names_the_holdout(self):
+        result = RiskRanking().run(context(fleet(), language="ar"))
+        claim = next(c for c in result["claims"] if c["id"] == "risk_ranking.cl_backtest")
+        self.assertIn("لم يرَ سجلاته", claim["text_ar"])

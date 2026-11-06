@@ -101,7 +101,8 @@ All four static-review leads were reproduced and corrected; see
 backtests itself on the window after a cutoff one horizon back: a stated future-failure target
 and horizon, refits on records up to the cutoff only, Brier score against a constant-rate
 baseline, calibration bands, top-ten hits and false alerts per asset-month
-([decision](adr/2026-11-06-risk-ranking-backtest.md)). Remaining: asset and site holdouts,
+([decision](adr/2026-11-06-risk-ranking-backtest.md)). An asset or site holdout repeats it with every
+asset scored by fits that never saw its own records. Remaining:
 feature availability timestamps, and prospective shadow-ledger outcomes (the ledger exists;
 no real outcomes are recorded).
 

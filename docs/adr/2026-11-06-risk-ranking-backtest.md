@@ -44,10 +44,32 @@ Tests also prove three things:
 - an asset not observed to the end is left out;
 - a history shorter than the horizon gives no result.
 
+## Asset and site holdout (added the same day)
+
+The backtest is repeated with every asset scored by class fits that never read its own
+records.
+
+- **Folds:** each site is a fold when every asset has a `Site` and there are at least two
+  sites. Otherwise five stable asset folds, from a checksum of the asset ID.
+- **Fitting:** each fold is scored by fits made from the other folds' records up to the
+  cutoff.
+- **Reporting:** the scores are pooled into one Brier score against the constant-rate
+  baseline, reported beside the main backtest, cited, and in the claim.
+- **Claim type:** the claim stays a calculation only when both the backtest and the holdout
+  beat the flat rate.
+
+On the synthetic fleet, with five asset folds over 80 assets and 27 failures, the holdout
+scored 0.196 against 0.241. `HoldoutTests` (6 cases) show that:
+- no held-out asset reaches its fold's fit (the test fails when the fit may see the fold);
+- sites are used as the folds when recorded;
+- five asset folds are used otherwise;
+- a single fold is not a holdout;
+- the Arabic claim carries the holdout result.
+
 ## Limits
 
-- One window, on the same assets the fit learned from: a chronological holdout, not an asset
-  or site holdout.
+- One window. Assets in a fold still share their class with the training folds, and sites
+  share a calendar, so the folds are not fully independent.
 - Assets in one class share a fit, so they are not independent.
 - Feature availability timestamps are not modelled: the only input is the failure history,
   which is known at the cutoff.

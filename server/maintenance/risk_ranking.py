@@ -33,6 +33,7 @@ Standard library only; the fit is the reliability model's own.
 """
 import datetime
 import math
+import zlib
 
 from server import analytics
 from server.maintenance import reliability as R
@@ -83,27 +84,18 @@ def _ages_at(items, cutoff):
     return {asset: (cutoff - day).days for asset, day in start.items()}
 
 
-def backtest(records, horizon):
-    """Score the ranking's chances on the window after a cutoff.
+def _score(records, horizon, cutoff, as_of, fitted_on=None, scored_on=None):
+    """Fit each class on records up to the cutoff and score assets after it.
 
-    `records` maps a class to (asset, date, failures) tuples. The cutoff is
-    one horizon before the latest date. Only records up to the cutoff fit the
-    class (Weibull, and a constant failure rate as the baseline); an asset is
-    scored when it was seen by the cutoff and is either recorded failing in
-    the window or recorded at its end. Returns a dict with "applicable".
+    `fitted_on` and `scored_on` pick assets (a function asset -> bool); by
+    default every asset is used for both. Returns (scored, unobserved,
+    classes), scored as (chance, baseline chance, failed, asset).
     """
-    days = [day for items in records.values() for _, day, _ in items]
-    if not days:
-        return {"applicable": False, "reason": "no_records"}
-    as_of = max(days)
-    cutoff = as_of - datetime.timedelta(days=horizon)
-    if min(days) >= cutoff:
-        return {"applicable": False, "reason": "history_shorter_than_horizon",
-                "cutoff": cutoff.isoformat()}
     scored, unobserved, classes = [], 0, 0
     prepared = []
     for group, items in records.items():
-        before = [item for item in items if item[1] <= cutoff]
+        before = [item for item in items if item[1] <= cutoff
+                  and (fitted_on is None or fitted_on(item[0]))]
         if before:
             prepared.append((R.intervals(before), group, items))
     prepared.sort(key=lambda item: (-len(item[0][0]), item[1]))
@@ -122,11 +114,84 @@ def backtest(records, horizon):
             if cutoff < day <= as_of and count > 0:
                 hit.add(asset)
         for asset, age in _ages_at(items, cutoff).items():
+            if scored_on is not None and not scored_on(asset):
+                continue
             if asset not in hit and last[asset] < as_of:
                 unobserved += 1
                 continue
             scored.append((chance_within(age, horizon, result["shape"], result["scale"]),
                            base, asset in hit, asset))
+    return scored, unobserved, classes
+
+
+def _window(records, horizon):
+    days = [day for items in records.values() for _, day, _ in items]
+    if not days:
+        return None, None
+    as_of = max(days)
+    cutoff = as_of - datetime.timedelta(days=horizon)
+    return (cutoff, as_of) if min(days) < cutoff else (cutoff, None)
+
+
+def holdout(records, horizon, folds):
+    """The backtest again, with every asset scored by a fit that never saw it.
+
+    `folds` maps an asset to its fold: its site when sites are recorded (a
+    site holdout), otherwise one of five stable asset folds. Each fold is
+    scored by class fits made from the other folds' records up to the
+    cutoff; the scores are pooled. Returns a dict with "applicable".
+    """
+    cutoff, as_of = _window(records, horizon)
+    keys = sorted({folds[a] for items in records.values() for a, _, _ in items if a in folds})
+    if as_of is None or len(keys) < 2:
+        return {"applicable": False, "reason": "fewer_than_two_folds" if as_of else
+                "history_shorter_than_horizon"}
+    scored, unobserved = [], 0
+    for key in keys:
+        found, missing, _ = _score(records, horizon, cutoff, as_of,
+                                   fitted_on=lambda a, k=key: folds.get(a) != k,
+                                   scored_on=lambda a, k=key: folds.get(a) == k)
+        scored += found
+        unobserved += missing
+    failures = sum(1 for item in scored if item[2])
+    out = {"folds": len(keys), "assets_scored": len(scored), "assets_unobserved": unobserved,
+           "failures": failures}
+    if len(scored) < MIN_BACKTEST_ASSETS or failures < MIN_BACKTEST_FAILURES:
+        out.update(applicable=False, reason="too_few_assets_or_failures")
+        return out
+    n = len(scored)
+    brier = sum((c - f) ** 2 for c, _, f, _ in scored) / n
+    brier_base = sum((b - f) ** 2 for _, b, f, _ in scored) / n
+    out.update(applicable=True, brier=round(brier, 3), brier_baseline=round(brier_base, 3),
+               better_than_baseline=brier < brier_base)
+    return out
+
+
+def asset_folds(assets, sites=None):
+    """Sites when at least two are recorded for every asset, else five asset folds."""
+    if sites and all(a in sites for a in assets) and len(set(sites.values())) >= 2:
+        return "site", {a: sites[a] for a in assets}
+    return "asset", {a: zlib.crc32(a.encode()) % 5 for a in assets}
+
+
+def backtest(records, horizon):
+    """Score the ranking's chances on the window after a cutoff.
+
+    `records` maps a class to (asset, date, failures) tuples. The cutoff is
+    one horizon before the latest date. Only records up to the cutoff fit the
+    class (Weibull, and a constant failure rate as the baseline); an asset is
+    scored when it was seen by the cutoff and is either recorded failing in
+    the window or recorded at its end. Returns a dict with "applicable".
+    """
+    days = [day for items in records.values() for _, day, _ in items]
+    if not days:
+        return {"applicable": False, "reason": "no_records"}
+    as_of = max(days)
+    cutoff = as_of - datetime.timedelta(days=horizon)
+    if min(days) >= cutoff:
+        return {"applicable": False, "reason": "history_shorter_than_horizon",
+                "cutoff": cutoff.isoformat()}
+    scored, unobserved, classes = _score(records, horizon, cutoff, as_of)
     failures = sum(1 for item in scored if item[2])
     out = {"cutoff": cutoff.isoformat(), "window_end": as_of.isoformat(),
            "horizon_days": horizon, "classes": classes, "assets_scored": len(scored),
@@ -210,6 +275,14 @@ class RiskRanking:
                 "output": {"applicable": False, "reason": en, "reason_ar": ar,
                            "ranked": [], "human_approval_required": True}}
 
+    def _checked(self, records, sites):
+        checked = backtest(records, self.horizon)
+        if checked["applicable"]:
+            assets = sorted({a for items in records.values() for a, _, _ in items})
+            by, folds = asset_folds(assets, sites)
+            checked["holdout"] = dict(holdout(records, self.horizon, folds), by=by)
+        return checked
+
     def _backtest_claim(self, ctx, calcs, checked):
         """One claim stating how the chances did on the window after the cutoff."""
         p = self.role + "."
@@ -250,24 +323,45 @@ class RiskRanking:
                        f"{c['false_alerts_per_asset_month']} false alerts per asset-month"},
         ]
         better = c["better_than_baseline"]
+        held = c.get("holdout") or {}
+        held_en = held_ar = ""
+        evidence_extra = []
+        if held.get("applicable"):
+            by_en = "site" if held["by"] == "site" else "asset group"
+            by_ar = "موقع" if held["by"] == "site" else "مجموعة أصول"
+            calcs.append({
+                "id": p + "c_bt_holdout", "name": "backtest_holdout_brier",
+                "value": f"{held['brier']:.3f} against {held['brier_baseline']:.3f}",
+                "method": f"each {by_en} ({held['folds']}) scored by class fits made without "
+                          f"its own records; {held['assets_scored']} assets, "
+                          f"{held['failures']} failures"})
+            evidence_extra = [p + "c_bt_holdout"]
+            held_en = (f" Scored by fits that never saw the {by_en}, they scored "
+                       f"{held['brier']:.3f} against {held['brier_baseline']:.3f}"
+                       + ("." if held["better_than_baseline"] else ", no better than the flat rate."))
+            held_ar = (f" وعند تقييم كل {by_ar} بنموذج لم يرَ سجلاته، سجّلت "
+                       f"{held['brier']:.3f} مقابل {held['brier_baseline']:.3f}"
+                       + ("." if held["better_than_baseline"] else "، وليست أفضل من المعدل الثابت."))
+            better = better and held["better_than_baseline"]
         en = (f"Backtest, {c['cutoff']} to {c['window_end']}: {c['failures']} of "
               f"{c['assets_scored']} assets failed in the window. The chances scored "
               f"{c['brier']:.3f} (Brier, lower is better) against {c['brier_baseline']:.3f} "
               f"for a constant rate, so they did "
               + ("better than" if better else "no better than")
-              + f" a flat rate here; {c['top_hits']} of the top {c['top']} failed. "
-              "One past window, not a prospective validation.")
+              + f" a flat rate here; {c['top_hits']} of the top {c['top']} failed."
+              + held_en + " One past window, not a prospective validation.")
         ar = (f"اختبار على الماضي، من {c['cutoff']} إلى {c['window_end']}: تعطّل "
               f"{c['failures']} من {c['assets_scored']} أصلًا في النافذة. سجّلت الاحتمالات "
               f"{c['brier']:.3f} (مقياس براير، الأقل أفضل) مقابل {c['brier_baseline']:.3f} "
               "لمعدل ثابت، فكانت "
               + ("أفضل من" if better else "ليست أفضل من")
-              + f" المعدل الثابت هنا؛ وتعطّل {c['top_hits']} من أعلى {c['top']}. "
-              "نافذة واحدة من الماضي، لا تحقق مستقبلي.")
+              + f" المعدل الثابت هنا؛ وتعطّل {c['top_hits']} من أعلى {c['top']}."
+              + held_ar + " نافذة واحدة من الماضي، لا تحقق مستقبلي.")
         claim = analytics._claim(
             ctx, p + "cl_backtest", "calculation" if better else "limitation", en, ar,
             [p + "c_bt_window", p + "c_bt_scored", p + "c_bt_failures", p + "c_bt_brier",
-             p + "c_bt_brier_base", p + "c_bt_top"], labels=(c["cutoff"], c["window_end"]))
+             p + "c_bt_brier_base", p + "c_bt_top"] + evidence_extra,
+            labels=(c["cutoff"], c["window_end"]))
         return claim
 
     def run(self, ctx):
@@ -284,6 +378,8 @@ class RiskRanking:
                 "لم يُرتَّب أي أصل.")
         group_col = next((c for c in columns if c.strip().lower() == "asset_class"), None)
         critical_col = R._column(columns, "Criticality")
+        site_col = R._column(columns, "Site")
+        sites = {}
         cost_cols = [c for c in (R._column(columns, "Maintenance_Cost_USD"),
                                  R._column(columns, "Production_Loss_USD")) if c]
         records, critical, spend = {}, {}, {}
@@ -294,6 +390,8 @@ class RiskRanking:
             group = (str(row.get(group_col) or "").strip() or "unclassified") \
                 if group_col else "all assets"
             records.setdefault(group, []).append((str(unit), day, failures))
+            if site_col and str(row.get(site_col) or "").strip():
+                sites[str(unit)] = str(row[site_col]).strip()
             if critical_col and row.get(critical_col) not in (None, ""):
                 critical[str(unit)] = str(row[critical_col]).strip()
             if failures > 0 and cost_cols:
@@ -339,7 +437,7 @@ class RiskRanking:
             item["score"] = base * item["weight"] if weight_of else base
         ranked.sort(key=lambda item: (-item["score"], -item["chance"], item["asset"]))
         return self._result(ctx, ranked, not_fitted, by_cost, bool(cost_cols),
-                            bool(weight_of), unweighted, backtest(records, self.horizon))
+                            bool(weight_of), unweighted, self._checked(records, sites))
 
     def _result(self, ctx, ranked, not_fitted, by_cost, has_cost_columns,
                 weighted=False, unweighted=None, checked=None):
