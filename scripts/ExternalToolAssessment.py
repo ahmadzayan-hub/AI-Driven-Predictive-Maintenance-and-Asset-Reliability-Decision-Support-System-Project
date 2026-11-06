@@ -3,10 +3,20 @@ Owner: Ahmed Zaian
 """
 import argparse
 import json
+import re
 
 REQUIRED = ("name", "repository", "license_verified", "revision_pinned", "security_review", "data_classification", "external_egress", "human_owner", "operational_write_access", "runtime")
 
+SHA = re.compile(r"[0-9a-f]{40}")
+EVIDENCE = re.compile(r"[0-9a-f]{64}")
+
+
 def assess(candidate):
+    """Fail closed. A declaration is not evidence (6 November 2026 review): a
+    revision counts as pinned only when the candidate names its full 40-hex
+    commit; blocked egress and isolation count only with a recorded sandbox run
+    digest (`isolation_evidence`, 64 hex); a passed security review names its
+    reviewer and date. Without all three every candidate stays BLOCKED."""
     issues = ["Missing: " + key for key in REQUIRED if key not in candidate or candidate[key] is None or candidate[key] == ""]
     if not str(candidate.get("repository", "")).startswith("https://github.com/"):
         issues.append("Canonical repository missing")
@@ -14,6 +24,14 @@ def assess(candidate):
         issues.append("Licence not verified")
     if candidate.get("revision_pinned") is not True:
         issues.append("Immutable revision not pinned")
+    if not (isinstance(candidate.get("revision"), str) and SHA.fullmatch(candidate["revision"])):
+        issues.append("Pinned revision not evidenced by a full commit SHA")
+    if not (isinstance(candidate.get("isolation_evidence"), str) and EVIDENCE.fullmatch(candidate["isolation_evidence"])):
+        issues.append("Isolation and blocked egress not evidenced by a recorded sandbox run")
+    review = candidate.get("security_review_record") or {}
+    if not (isinstance(review, dict) and str(review.get("reviewer") or "").strip()
+            and re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(review.get("date") or ""))):
+        issues.append("Security review not recorded with reviewer and date")
     if candidate.get("security_review") != "passed":
         issues.append("Security review not passed")
     if candidate.get("data_classification") not in ("public", "synthetic"):

@@ -1,8 +1,10 @@
 name: PR93 Isolated 300MB Acceptance Evidence
+# The one copy of the 300 MB benchmark (6 November 2026 review): about an hour
+# of runner time, so it runs only when started by hand on the revision under
+# review, never on every push. The former duplicate job in ci.yml is removed.
+# It exercises the isolated experimental components; it does not prove an
+# authenticated application upload of 300 MB.
 on:
-  push:
-    branches:
-      - test/pr93-verified-acceptance-20261106
   workflow_dispatch:
 permissions:
   contents: read

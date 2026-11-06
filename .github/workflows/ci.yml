@@ -267,25 +267,3 @@ jobs:
         env:
           REQUIRE_OPTIONAL_RUNTIMES: '1'
         run: python -m unittest tests.test_frameworks tests.test_mcp -v
-
-  pr93-isolated-300mb:
-    if: github.head_ref == 'test/pr93-verified-acceptance-20261106' || github.ref == 'refs/heads/test/pr93-verified-acceptance-20261106'
-    runs-on: ubuntu-latest
-    timeout-minutes: 65
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5.1.0
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
-        with:
-          python-version: '3.11'
-      - name: Isolated PR93 contract and integration tests
-        run: |
-          set -o pipefail
-          python -m unittest -v tests.test_experimental_ingest tests.test_experimental_query tests.test_experimental_assets tests.test_experimental_jobs tests.test_experimental_stream tests.test_miyaar_challenge_contract tests.test_pr93_isolated_acceptance
-      - name: Synthetic 300 MB spool index projection and independent oracle
-        run: |
-          set -o pipefail
-          python scripts/benchmark_pr93_queries.py --run | tee pr93-benchmark.log
-          grep -q '"all_checks_passed": true' pr93-benchmark.log
-          grep -q '"temporary_directory_removed": true' pr93-benchmark.log
