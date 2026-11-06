@@ -525,6 +525,8 @@ export interface SavedView {
   query: string
   run_id: string
   updated_at: string
+  /** Set on a named view (6 November 2026); the default view has none. */
+  name?: string
 }
 
 export interface QuerySpec {

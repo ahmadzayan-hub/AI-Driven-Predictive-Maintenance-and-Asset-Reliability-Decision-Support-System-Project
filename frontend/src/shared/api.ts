@@ -425,6 +425,13 @@ export const api = {
     request<{ view: SavedView }>(
       `/api/runs/${encodeURIComponent(id)}/view?language=${language}`,
       { method: 'PUT', body: JSON.stringify(view) }, RUN_REQUEST_TIMEOUT_MS),
+  /** Named views of the run's dataset, besides the default one. */
+  namedViews: (id: string) => request<{ views: SavedView[] }>(`/api/runs/${encodeURIComponent(id)}/views`, {}, RUN_REQUEST_TIMEOUT_MS),
+  saveNamedView: (id: string, name: string, view: { page: string; query: string }, language: 'en' | 'ar' = 'en') =>
+    request<{ view: SavedView }>(`/api/runs/${encodeURIComponent(id)}/views/${encodeURIComponent(name)}?language=${language}`,
+      { method: 'PUT', body: JSON.stringify(view) }, RUN_REQUEST_TIMEOUT_MS),
+  deleteNamedView: (id: string, name: string) =>
+    request<void>(`/api/runs/${encodeURIComponent(id)}/views/${encodeURIComponent(name)}`, { method: 'DELETE' }, RUN_REQUEST_TIMEOUT_MS),
   forgetDashboardView: (id: string) =>
     request<void>(`/api/runs/${encodeURIComponent(id)}/view`, { method: 'DELETE' }, RUN_REQUEST_TIMEOUT_MS),
   tableRecords: (id: string, spec: RecordsSpec, language: 'en' | 'ar' = 'en') =>

@@ -2283,6 +2283,45 @@ def create_app(config_path=None, env=None, dist_dir=None):
             engine.store.delete_dashboard_view(owner, key)
         return Response(status_code=204)
 
+    @app.get("/api/runs/{run_id}/views")
+    def list_named_views(run_id: str, principal=Depends(requires("read"))):
+        owner, key = _view_scope(principal, run_id)
+        prefix = key + dashboard_views.NAMED
+        with lock:
+            rows = engine.store.named_dashboard_views(owner, prefix)
+        return {"views": [dashboard_views.present_named(r, key) for r in rows]}
+
+    @app.put("/api/runs/{run_id}/views/{name}")
+    def save_named_view(run_id: str, name: str, body: ViewIn,
+                        language: str = Query(default="en", pattern="^(en|ar)$"),
+                        principal=Depends(requires("write"))):
+        owner, key = _view_scope(principal, run_id, "write")
+        try:
+            name = dashboard_views.validate_name(name)
+            page, query = dashboard_views.validate(body.page, body.query)
+        except dashboard_views.ViewError as error:
+            raise HTTPException(status_code=422, detail=error.detail(language))
+        with lock:
+            existing = {r["dataset_key"] for r in engine.store.named_dashboard_views(owner, key + dashboard_views.NAMED)}
+            full = dashboard_views.named_key(key, name)
+            if full not in existing and len(existing) >= dashboard_views.MAX_NAMED:
+                raise HTTPException(status_code=409, detail=(
+                    f"يمكن حفظ {dashboard_views.MAX_NAMED} عروض مسماة على الأكثر لكل مجموعة بيانات؛ احذف واحداً أولاً."
+                    if language == "ar" else
+                    f"At most {dashboard_views.MAX_NAMED} named views per dataset; delete one first."))
+            row = engine.store.save_dashboard_view(uuid.uuid4().hex, owner, full, run_id, page, query,
+                                                   datetime.now(timezone.utc).isoformat())
+        return {"view": dashboard_views.present_named(row, key)}
+
+    @app.delete("/api/runs/{run_id}/views/{name}", status_code=204)
+    def delete_named_view(run_id: str, name: str, principal=Depends(requires("write"))):
+        owner, key = _view_scope(principal, run_id, "write")
+        with lock:
+            found = engine.store.delete_dashboard_view(owner, dashboard_views.named_key(key, " ".join(name.split())))
+        if not found:
+            raise HTTPException(status_code=404, detail="View not found.")
+        return Response(status_code=204)
+
     @app.post("/api/runs/{run_id}/records")
     async def table_records(run_id: str, body: RecordsIn,
                             language: str = Query(default="en", pattern="^(en|ar)$"),

@@ -241,7 +241,8 @@ export function Histogram({ bins, label, onPick, picked }: {
 }
 
 /** One point per sampled record. */
-export function Scatter({ points, label }: { points: Array<{ x: number; y: number }>; label: string }) {
+export function Scatter({ points, label, onPick, picked }: { points: Array<{ x: number; y: number }>; label: string
+  onPick?: (index: number) => void; picked?: number | null }) {
   const { formatNumber } = useI18n()
   const xs = span(points.map((p) => p.x))
   const ys = span(points.map((p) => p.y))
@@ -251,7 +252,8 @@ export function Scatter({ points, label }: { points: Array<{ x: number; y: numbe
       <line x1="18" y1="4" x2="18" y2="48" stroke="var(--border-strong)" strokeWidth="0.4" />
       {points.map((point, index) => (
         <circle key={index} cx={18 + ((point.x - xs.min) / xs.range) * 80} cy={48 - ((point.y - ys.min) / ys.range) * 44}
-          r="0.8" fill="var(--accent-solid)" fillOpacity="0.55" />
+          r={picked === index ? 1.6 : 0.8} fill="var(--accent-solid)" fillOpacity={picked === index ? 1 : 0.55}
+          onClick={onPick ? () => onPick(index) : undefined} style={onPick ? { cursor: 'pointer' } : undefined} />
       ))}
       <text x="18" y="55" fontSize="3.2" fill="var(--text-faint)">{formatNumber(xs.min, { notation: 'compact' })}</text>
       <text x="98" y="55" fontSize="3.2" textAnchor="end" fill="var(--text-faint)">{formatNumber(xs.max, { notation: 'compact' })}</text>

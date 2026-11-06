@@ -653,6 +653,11 @@ class SqlStore:
             (identifier, owner, dataset_key, run_id, page, query, updated_at))
         return self.get_dashboard_view(owner, dataset_key)
 
+    def named_dashboard_views(self, owner, prefix):
+        """The owner's named views of one dataset: keys that start with the prefix."""
+        return self._exec("SELECT * FROM dashboard_views WHERE owner = ? AND substr(dataset_key, 1, ?) = ? "
+                          "ORDER BY updated_at DESC", (owner, len(prefix), prefix))
+
     def delete_dashboard_view(self, owner, dataset_key):
         return bool(self._exec_rowcount(
             "DELETE FROM dashboard_views WHERE owner = ? AND dataset_key = ?",

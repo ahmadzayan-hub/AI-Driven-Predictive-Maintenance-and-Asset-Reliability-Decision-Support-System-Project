@@ -142,6 +142,32 @@ class SavedViewMixin:
         self.assertEqual(self.save(first, "alice", {"page": "nowhere", "query": ""}).status_code, 422)
         self.assertEqual(self.view(second, "alice")["query"], "sort=sales&desc=1")
 
+    def test_named_views_sit_beside_the_default_one(self):
+        """ADR 2026-11-06-named-views-and-scatter-picks."""
+        sales = self.upload("alice")
+        run = self.start("alice", dataset_id=sales)
+        put = lambda name, body=VIEW, subject="alice", language="en": self.client.put(
+            f"/api/runs/{run}/views/{name}?language={language}", json=body, headers=self.auth(subject))
+        listed = lambda subject="alice": self.client.get(f"/api/runs/{run}/views", headers=self.auth(subject))
+        self.assertEqual(put("North  region").json()["view"]["name"], "North region")
+        self.assertEqual(put("Trend", {"page": "trend", "query": ""}).status_code, 200)
+        self.assertEqual(sorted(v["name"] for v in listed().json()["views"]), ["North region", "Trend"])
+        self.assertIsNone(self.view(run, "alice"))          # the default view is separate
+        self.assertEqual(listed("mallory").status_code, 404)
+        self.assertEqual(put("Mine", subject="mallory").status_code, 404)
+        # Saving under the same name replaces; a long name is refused in both languages.
+        self.assertEqual(put("Trend", {"page": "records", "query": ""}).json()["view"]["page"], "records")
+        for language, needle in (("en", "1 to 40 characters"), ("ar", "من 1 إلى 40")):
+            response = put("x" * 41, language=language)
+            self.assertEqual(response.status_code, 422)
+            self.assertIn(needle, response.json()["error"]["message"])
+        for i in range(8):
+            self.assertEqual(put(f"View {i}").status_code, 200)
+        self.assertEqual(put("Eleventh").status_code, 409)
+        self.assertEqual(self.client.delete(f"/api/runs/{run}/views/Trend", headers=self.auth("alice")).status_code, 204)
+        self.assertEqual(self.client.delete(f"/api/runs/{run}/views/Trend", headers=self.auth("alice")).status_code, 404)
+        self.assertEqual(len(listed().json()["views"]), 9)
+
 
 class SqliteSavedViewTestCase(SavedViewMixin, unittest.TestCase):
     def build_client(self, root):
