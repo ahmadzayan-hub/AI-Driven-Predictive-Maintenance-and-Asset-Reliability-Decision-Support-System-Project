@@ -38,7 +38,7 @@ export default defineConfig({
   timeout: 30_000,
   fullyParallel: false,
   workers: 1,
-  reporter: [['list']],
+  reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: 'http://127.0.0.1:8123',
     trace: 'retain-on-failure',
@@ -63,6 +63,9 @@ export default defineConfig({
       command: `${PREPARE_CONFIG} && ${PYTHON} -m uvicorn server.app:app --host 127.0.0.1 --port 8123`,
       cwd: '..',
       url: 'http://127.0.0.1:8123/api/health',
+      // Preserve synthetic server access output alongside retained failure traces.
+      stdout: 'pipe',
+      stderr: 'pipe',
       // Live sources (ADR 0034) read files from this folder at the
       // reserved https://fixtures.invalid/ host; never set outside tests.
       env: {
@@ -89,6 +92,8 @@ export default defineConfig({
         `&& ${PYTHON} -m uvicorn server.app:app --host 127.0.0.1 --port 8124`,
       cwd: '..',
       url: 'http://127.0.0.1:8124/api/health',
+      stdout: 'pipe',
+      stderr: 'pipe',
       env: {
         AGENTIC_OS_CONFIG: 'frontend/e2e/.tmp/auth/config.json',
         AGENTIC_OS_JWT_SECRET: 'e2e-test-signing-secret',
@@ -119,6 +124,8 @@ export default defineConfig({
         `&& ${PYTHON} -m uvicorn server.app:app --host 127.0.0.1 --port 8125`,
       cwd: '..',
       url: 'http://127.0.0.1:8125/api/health',
+      stdout: 'pipe',
+      stderr: 'pipe',
       env: {
         AGENTIC_OS_CONFIG: 'frontend/e2e/.tmp/demo/config.json',
         AGENTIC_OS_DEMO: '1',
@@ -132,6 +139,8 @@ export default defineConfig({
         `${PYTHON} scripts/local_workspace.py start --port 8127 --workspace frontend/e2e/.tmp/local-workspace`,
       cwd: '..',
       url: 'http://127.0.0.1:8127/api/health',
+      stdout: 'pipe',
+      stderr: 'pipe',
       // A user's optional local-model settings must not enable generation in tests.
       env: { OLLAMA_MODEL: '', OLLAMA_HOST: '', AGENTIC_OS_TASK_MODELS: '',
         AGENTIC_OS_HERMES_MODEL: '', AGENTIC_OS_AGENT_MODEL: '', AGENTIC_OS_CONSULTANTS: '' },
@@ -144,6 +153,8 @@ export default defineConfig({
       command: `${PYTHON} -m uvicorn tests.specialist_browser_app:app --host 127.0.0.1 --port 8126`,
       cwd: '..',
       url: 'http://127.0.0.1:8126/api/health',
+      stdout: 'pipe',
+      stderr: 'pipe',
       env: { MIYAAR_SYNTHETIC_SPECIALIST_BROWSER: '1' },
       reuseExistingServer: false,
       timeout: 30_000,

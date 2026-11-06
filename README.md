@@ -552,6 +552,38 @@ hardware expectations, hosted configuration and acceptance limits.
 
 ## Testing
 
+### PR #93 image inspection and CI repair (6 November 2026)
+
+Isolated repair from `e888ad6c`, reusing acceptance-branch commits `11a0103f`
+and `abfc8159`. Binary PNG/JPEG/TIFF headers are recognized, aliases and both
+TIFF byte orders are covered, and literal escape text remains rejected.
+Dashboard fixture creation uses one idempotency key and at most one transport
+reset retry. It does not retry stage advancement or relax any UI assertion.
+
+Local Python 3.12 discovery: **2,622 tests, OK with 296 skipped**. PostgreSQL,
+optional agent runtimes and media-dependent cases are not all available here;
+this result does not replace required hosted checks. The focused module/API
+selection passed **33 tests**. Frontend: **599 tests passed** in **61 files**.
+Real loopback HTTP fault injection passed **7 tests**, including response loss
+after creation, same-key replay, repeated-reset failure and non-retried HTTP
+errors. The existing native run-logic tests passed **5 tests**. Documentation
+checks passed **11 tests**; strict brain links, TypeScript, build and the
+unchanged interface budget pass.
+
+The repeated desktop/mobile dashboard attempt did not enter any browser test
+body: Chromium failed at launch with `socket() failed: Operation not permitted`
+in this execution sandbox. The **10 launch failures** are an environment block,
+not passing browser coverage or an application regression. Its HTML report and
+server output were retained. No sandbox bypass or browser assertion change.
+
+CI retains all stages, installs fewer optional recommended OS packages, allows
+90 minutes for the measured slow setup plus full suites, and retains Python,
+browser and server logs with failure status preserved through `pipefail`.
+The historical `ECONNRESET` cause remains unproven; safe fixture replay is a
+bounded resilience measure. Exact repair-head hosted CI remains pending at
+this commit. No merge, production deployment, or completed large-upload platform
+acceptance is claimed. [Decision and source runs](docs/adr/2026-11-06-pr93-image-and-ci-reliability.md).
+
 ### Local evidence-card design candidate (2 November 2026)
 
 The original isolated candidate started from merged main `54562e5`. Its release
