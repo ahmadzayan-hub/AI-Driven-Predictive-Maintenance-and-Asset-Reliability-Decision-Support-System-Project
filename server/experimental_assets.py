@@ -6,6 +6,7 @@ No OCR, text extraction, DAX evaluation or external services.
 from __future__ import annotations
 import hashlib
 import os
+import stat
 import zipfile
 from pathlib import Path, PurePosixPath
 
@@ -14,6 +15,7 @@ class UnsupportedAsset(ValueError):
 
 MAX_PACKAGE_ENTRIES=4000
 MAX_UNCOMPRESSED_BYTES=700_000_000
+MAX_MEMBER_EXPANSION_RATIO=1000
 
 def identify(path):
     path=Path(path)
@@ -48,6 +50,17 @@ def identify(path):
                 segments=PurePosixPath(n).parts
                 if n.startswith("/") or ".." in segments or ":" in n.split("/")[0]:
                     raise UnsupportedAsset("Unsafe archive member path")
+                if info.flag_bits & 1:
+                    raise UnsupportedAsset("Encrypted archive entries require a separate approved reader")
+                if info.compress_type not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED):
+                    raise UnsupportedAsset("Unsupported archive compression method")
+                if info.create_system == 3 and stat.S_ISLNK(info.external_attr >> 16):
+                    raise UnsupportedAsset("Archive symbolic links are not allowed")
+                if info.file_size > 1024 * 1024 and (
+                    info.compress_size == 0 or
+                    info.file_size > MAX_MEMBER_EXPANSION_RATIO * info.compress_size
+                ):
+                    raise UnsupportedAsset("Suspicious archive compression ratio")
                 total+=info.file_size
                 if total>MAX_UNCOMPRESSED_BYTES:
                     raise UnsupportedAsset("Potential decompression bomb")
