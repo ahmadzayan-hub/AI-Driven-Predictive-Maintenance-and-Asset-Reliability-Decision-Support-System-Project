@@ -132,3 +132,11 @@ What each round of brain maintenance changed, newest last. The SessionStart hook
 - Checked the 15 decision records of 29 to 31 October against [[Decision log]]: 14 have a row; the asset imagery record is still proposed and stays out.
 - Merged no notes and linked no new mentions: the checker reported none.
 - `scripts/brain_check.py --strict` exits 0 after the edits; [[Home]] still lists every note.
+
+## 2026-11-06
+
+- `scripts/brain_check.py --json` before the edits: 47 notes, 763 links, no broken links, missing fields, bad dates, missing sources, orphans, duplicate candidates or unlinked mentions; one stale note ([[Team 3 Capstone]]); maintenance due since 31 October.
+- Refreshed [[Team 3 Capstone]]: no submission or presentation outcome is recorded in `Memory.md`, `project-progress.md` or the session logs since 31 October, so its values stand.
+- Caught [[Decision log]] up with 12 accepted records from 2 to 6 November. Proposed records (the three Tier 2 gates and their 1 November drafts) stay out; `2026-11-02-jarvis-central-voice-console` states no status and stays out until it does.
+- Refreshed [[Agentic OS]] with the 6 November capabilities and the production outage cause (sources: the matrix decision record, `docs/HOSTED_MIGRATION_20261104.md`).
+- Merged no notes and linked no new mentions: the checker reported none.

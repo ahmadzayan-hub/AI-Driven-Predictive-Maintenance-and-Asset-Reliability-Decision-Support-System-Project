@@ -59,6 +59,10 @@ Full list: [brain/Soul.md](brain/Soul.md).
 - **Blocked hosts:** the proxy blocks designsystem.dubai.ae, dubaifont.com and fontsquirrel.com. Google Fonts, fonts.gstatic.com, raw.githubusercontent.com and PyPI work. A variable font prints into a PDF as Type 3; make static instances with fontTools (`varLib.instancer`).
 - **Lighthouse:** serve with `python scripts/serve.py --local-only --port 8011` and run `npx lighthouse` from `frontend/` with `CHROME_PATH=/opt/pw-browsers/chromium`; recipe in `.claude/skills/verify/SKILL.md`. Never `pkill -f` a pattern that also appears in your own command line: it kills the shell (exit 144).
 
+- **Production fails closed without sign-in (6 November 2026).** With `DATABASE_URL` set and no `SUPABASE_JWT_SECRET`, `AGENTIC_OS_JWT_SECRET` or `AGENTIC_OS_JWKS_URL`, every Vercel request returns 500 (`AuthNotConfigured` in the runtime log). A redeploy does not fix it. This session's Vercel token cannot list or set production variables (403); only the owner can.
+- **Film template classes.** `server/video/composition.html` already uses `.grid` for the moving background floor; a scene element with that class lands in the background. Render a frame and look at it after any film change.
+- **Read rendered output after a layout change.** The film's `statement` kind shows only its first line; a multi-line scene needs its own renderer.
+
 ## Conventions
 
 - Reviewed public reference summaries live in `knowledge/`; original sources and operator-private collections remain separate. Default lookup combines reviewed and private collections; explicit roots remain exclusive. Collection visibility and model-context permission are independent. See `docs/adr/2026-10-24-reviewed-mba-reference-collection.md`.
