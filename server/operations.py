@@ -80,8 +80,11 @@ def permissions(principal, role):
 
 
 class Operations:
-    def __init__(self, store):
+    def __init__(self, store, separate_approver=False):
         self.store = store
+        # Separation of duties (ADR 2026-11-06-separate-approver): when on,
+        # whoever drafted a work order cannot authorize it.
+        self.separate_approver = bool(separate_approver)
 
     def _bound(self, table, org_id):
         n = self.store._exec(f"SELECT COUNT(*) AS n FROM {table} WHERE org_id = ?", (org_id,))[0]["n"]
@@ -393,6 +396,9 @@ class Operations:
                     updates.update(status="draft", authorized_by=None)
                     status = "draft"
             if status == "authorized" and row["status"] == "draft":
+                if self.separate_approver and row["created_by"] == principal.subject:
+                    fail(403, "self_authorization",
+                         "You cannot authorize work you drafted; another owner or manager must.")
                 updates["authorized_by"] = principal.subject
             if status == "completed":
                 updates["completion_json"] = canonical(self._completion(payload.get("completion")))

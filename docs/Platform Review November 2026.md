@@ -108,13 +108,28 @@ no real outcomes are recorded).
 ## Phase 3: agent harness
 
 Separation of duties: with `AGENTIC_OS_SEPARATE_APPROVER` on, the person who started an
-analysis cannot approve its report or exports; it is off by default and the operator decides
+analysis cannot approve its report or exports, and whoever drafted a work order cannot
+authorize it; it is off by default and the operator decides
 ([decision](adr/2026-11-06-separate-approver.md)). AI already holds no approval: specialist
 tool grants refuse publish, approve, delete and shell. Not started: request-bound revocable
 tool capabilities, stale-worker and cancellation tests, and a workspace reviewer role.
 
-## Phases 5 and 6
+## Phase 5: the maintenance loop
 
-Not started in this session: the end-to-end authenticated slice, and the read-only
-enterprise integration proposal. They depend on Phase 2's separation and on a reachable,
+Already in the code and tested (`tests/test_operations.py`):
+- A work-order draft is bound to a finished analysis the drafter owns. Only a digest and a
+  count of the matching records are stored, never the data.
+- Authorization is a separate permission, held by an organisation's owner or manager.
+- Publishing a report never authorizes work.
+- Changing the schedule after authorization sends the order back to draft.
+- An order is completed only with a recorded outcome, labour hours and parts.
+
+Not done:
+- the bilingual question and verified brief run through this path on a signed-in hosted
+  deployment, which is blocked while production sign-in is down;
+- natural voice or cinematic review, which needs a person to listen.
+
+## Phase 6
+
+Not started: the read-only enterprise integration proposal. They depend on Phase 2's separation and on a reachable,
 signed-in hosted deployment for the authenticated journey.

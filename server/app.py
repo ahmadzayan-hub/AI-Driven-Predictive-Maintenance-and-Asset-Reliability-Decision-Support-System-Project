@@ -839,7 +839,8 @@ def create_app(config_path=None, env=None, dist_dir=None):
         """Objects belong to their creator; admins may act across owners."""
         return owner == principal.subject or principal.can("admin")
 
-    install_operations_api(app, store, current_principal)
+    install_operations_api(app, store, current_principal,
+                           separate_approver=engine.separate_approver)
     install_reliability_api(app, store, current_principal)
     install_pilot_api(app, store, engine, current_principal, identity.mode)
     rmd = install_rmd_api(app, store, current_principal, identity.mode, env=env, engine=engine)
