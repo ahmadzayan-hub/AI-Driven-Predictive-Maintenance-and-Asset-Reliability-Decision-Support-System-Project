@@ -2458,3 +2458,9 @@ regressions passed. The full failure and skipped later steps remain in README.
 - Done: `crosstab` in the executive brief (same pair as the rule planner, counted over the brief's scope, cited as `executive.crosstab.records`, inside the snapshot digest); a "Records across two breakdowns" section in the HTML report and Word file, at most 8 columns.
 - Verified: `python scripts/verify.py`: 8 of 8 steps; Python 2662 tests (296 skipped), frontend 602; budget unchanged (js 285.3 of 286 KB). Shade contrast at least 8.75:1 light and 6.94:1 dark, calculated from tokens.
 - Not done: slides and video; picking columns on the page. Production still down pending the owner's Vercel sign-in variables (checked 10:55 UTC, still 500).
+
+## 2026-11-06 (later): Matrix on slides, video and a column picker (session d9e3f889)
+
+- Done: compact matrix on the priorities slide (deck stays six slides), a `matrix` video scene (grid of up to six rows, narration says only the cited total), row and column pickers on the page with a refusal over 120 cells.
+- Verified: `python scripts/verify.py`: 8 of 8; Python 2664 (296 skipped), frontend 603; js total 285.6 of 286 KB. Films rendered in both languages from the synthetic survey; the first showed only one row, the second hid the grid behind the background (class clash `.grid`); both fixed and re-checked by eye. A race in my own page test (cells read before the data arrived) failed once under load; fixed to wait for the data.
+- Not done: the reader's picked pair is not saved, and documents use the planner's pair. 0.4 KB of script budget left.

@@ -35,6 +35,14 @@ time but could not cross two. The query engine already groups by two columns.
    file add a section "Records across two breakdowns" with every cell; the narrower
    breakdown becomes the columns, and a matrix wider than 8 columns either way is left out.
 
+6. **Slides, video and picking** (completed the same day). The deck stays six slides: the
+   "Biggest risks or opportunities" slide adds the matrix when it has at most 6 rows and 6
+   columns, and otherwise one line pointing to the report. The video adds a `matrix` scene
+   after the priorities: a grid of at most six rows, with no numbering because a row is not a
+   rank, and narration that says only the cited total. On the page the reader can change the
+   two columns (text columns with 2 to 50 groups; one column twice is ignored), and a pair
+   with more than 120 cells says so instead of drawing a cut-off table.
+
 ## Consequences
 
 - Tests: 4 server cases (proposed on crossed data, not on a nested pair, cells add up to
@@ -46,5 +54,10 @@ time but could not cross two. The query engine already groups by two columns.
   cell in English and Arabic).
 - Contrast: cell text against the strongest shade is at least 8.75:1 in the light theme
   and 6.94:1 in the dark theme, calculated from the theme tokens (not an axe run).
-- Not done: the slides and the video do not show the matrix; columns cannot be picked
-  from the page.
+- Slides and video: 2 cases (six slides with every cell in both languages; the scene cites
+  the total and is absent without a matrix). Films rendered in English and Arabic from the
+  synthetic survey and the grid checked by eye; the first render showed only the first row
+  and the second placed the grid in the background layer (a class-name clash), both fixed.
+- Page: 1 more case (changing a column re-queries; the same column twice is refused).
+- Not done: a picked pair is not saved with the layout; the HTML, Word, slides and video
+  use the planner's pair, not the reader's pick.

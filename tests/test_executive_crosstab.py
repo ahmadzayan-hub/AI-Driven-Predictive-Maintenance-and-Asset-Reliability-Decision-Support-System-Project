@@ -5,7 +5,8 @@ import unittest
 
 from server import query
 from server.executive import ExecutiveDashboardAgent
-from server.executive_export import render_docx, render_html
+from server.executive_export import render_docx, render_html, render_slides_html
+from server.executive_video import storyboard
 from tests.test_executive_exports import HtmlDocument, docx_document, docx_tables
 
 COLUMNS = ["Line_ID", "Station", "Criticality", "Condition_Score"]
@@ -56,6 +57,25 @@ class CrossTabTests(unittest.TestCase):
             word = docx_tables(docx_document(render_docx(brief)))
             for tables in (html, word):
                 self.assertIn(expected, tables, language)
+
+    def test_the_slides_stay_six_and_show_a_small_matrix(self):
+        for language in ("en", "ar"):
+            brief = self.brief(language=language)
+            slides = render_slides_html(brief).decode("utf-8")
+            self.assertEqual(slides.count('class="slide"'), 6)
+            self.assertEqual(slides.count('<table class="cross">'), 1)
+            self.assertEqual(slides.count("<td><bdi>"), sum(len(r) for r in brief["crosstab"]["cells"]))
+
+    def test_the_video_says_only_the_cited_total(self):
+        brief = self.brief()
+        scene = next(s for s in storyboard(brief) if s["id"] == "matrix")
+        self.assertEqual(scene["figures"][0]["source"], "executive.crosstab.records")
+        self.assertIn("72 records", scene["narration"])
+        self.assertLessEqual(len(scene["lines"]), 7)
+        rows = [{"Line_ID": f"L{i}", "Station": f"ST{i % 6:02d}", "Criticality": ["High", "Low"][i % 6 // 3],
+                 "Condition_Score": 5.0} for i in range(36)]
+        plain = self.brief(table=query.table_from(COLUMNS, {"Condition_Score"}, rows))
+        self.assertNotIn("matrix", [s["id"] for s in storyboard(plain)])
 
 
 if __name__ == "__main__":

@@ -110,13 +110,15 @@ function Section({ runId, section, filters, state, roles, setState, pinned, onPi
 }) {
   const { t, formatNumber } = usePack(layoutMessages)
   const { locale } = useI18n()
-  const b = section.binding
+  // A matrix's two columns may be changed here; the server's query checks them.
+  const [pair, setPair] = useState(section.binding.group_by)
+  const b = section.component === 'matrix' ? { ...section.binding, group_by: pair } : section.binding
   // A priority list is the selector: it keeps its own choices visible.
   const own = section.component === 'priorities' && typeof b.group_by?.[0] === 'string' ? b.group_by[0] : undefined
   const scoped = [...(b.filters ?? []), ...filters.filter((f) => f.column !== own)]
   const isTable = section.component === 'table'
   const spec = section.component === 'gap' || section.component === 'brief' ? null : isTable ? { filters: scoped, limit: Math.min(b.limit ?? 20, 50) }
-    : { group_by: b.group_by, measures: b.measures, sort: b.sort, limit: b.limit ?? 100, filters: scoped }
+    : { group_by: b.group_by, measures: b.measures, sort: b.sort, limit: b.limit ?? (section.component === 'matrix' ? 120 : 100), filters: scoped }
   const answer = useAnswer<QueryAnswer | RecordsPage>(spec ? `ly:${runId}:${locale}:${section.id}:${JSON.stringify(spec)}` : null,
     (): Promise<QueryAnswer | RecordsPage> => isTable ? api.tableRecords(runId, spec!, locale) : api.queryTable(runId, spec as never, locale))
   const title = section.title[locale]
@@ -169,8 +171,11 @@ function Section({ runId, section, filters, state, roles, setState, pinned, onPi
       {held ? <Focus runId={runId} name={held} drivers={b.drivers} measures={b.measures} filters={filters}
         maintenance={result.domain?.name === 'maintenance'} onClear={() => setState(pick(state, column, held, roles.date))} /> : null}</>
     } else if (section.component === 'matrix') {
-      body = <Matrix groups={groups} title={title} counted={b.measures?.[0]?.agg === 'count'}
-        {...('onPick' in pickable ? pickable : {})} />
+      const axis = (i: number) => <label>{t(i ? 'columnsBy' : 'rowsBy')} <select value={String(pair?.[i])} onChange={(e) => {
+        const next = [...(pair ?? [])]; next[i] = e.target.value; if (next[0] !== next[1]) setPair(next) }}>
+        {roles.texts.filter((f) => (f.distinct ?? 0) > 1 && (f.distinct ?? 0) <= 50).map((f) => <option key={f.name}>{f.name}</option>)}</select></label>
+      body = <><div className="layout__views">{axis(0)}{axis(1)}</div>{answer.data.truncated ? <p className="card__meta">{t('tooMany')}</p>
+        : <Matrix groups={groups} title={title} counted={b.measures?.[0]?.agg === 'count'} {...('onPick' in pickable ? pickable : {})} />}</>
     } else if (view === 'table') {
       // The same groups as a table; a pickable group stays one press away.
       const onPick = 'onPick' in pickable ? pickable.onPick : undefined

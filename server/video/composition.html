@@ -45,6 +45,10 @@ h2 { font-size:40px; font-weight:600; margin-top:22px; }
 [dir=rtl] .card .value { text-align:right; }
 .card .none { color:var(--muted); font-size:30px; }
 .ring { width:118px; height:118px; flex:none; }
+.cells { margin-top:30px; border-collapse:separate; border-spacing:8px; font-size:26px; font-variant-numeric:tabular-nums; }
+.cells th { color:var(--muted); font-weight:600; padding:6px 18px; text-align:start; }
+.cells td { background:var(--panel); border:1px solid var(--edge); border-radius:12px; padding:10px 22px; text-align:center; min-width:120px; }
+.more { color:var(--muted); font-size:20px; margin-top:10px; }
 .list { margin-top:30px; display:flex; flex-direction:column; gap:18px; }
 .item { display:flex; gap:22px; align-items:flex-start; background:var(--panel); border:1px solid var(--edge); border-radius:18px; padding:20px 24px; }
 .num { flex:none; width:54px; height:54px; border-radius:16px; display:grid; place-items:center; font-size:26px; font-weight:600;
@@ -121,6 +125,19 @@ const RENDER = {
     return `<span class="chip">${esc(STORY.labels.draft)}</span><h2>${words(s.heading, t, .1)}</h2>
       <div class="rule" style="width:${ease((t - .4) / .8) * 160}px"></div>
       <p class="quote" style="opacity:${ease((t - .5) / .7)};transform:translateY(${(1 - ease((t - .5) / .7)) * 20}px)"><mark style="background-size:${sweep}% 100%;background-position:${rtl ? 'right' : 'left'}">${text}</mark></p>`
+  },
+  matrix(s, t) {
+    // Counts in a grid, row by row; no numbering, because a row is not a rank.
+    const g = s.grid || { columns: [], rows: [] }
+    const top = Math.max(1, ...g.rows.flatMap((r) => r.slice(1)))
+    const extra = s.lines.length > g.rows.length ? s.lines[s.lines.length - 1] : ''
+    return `<span class="chip">${esc(STORY.labels.draft)}</span><h2>${words(s.heading, t, .1)}</h2>
+      <table class="cells"><tr><th></th>${g.columns.map((c) => `<th>${esc(c)}</th>`).join('')}</tr>
+      ${g.rows.map((r, i) => {
+        const e = ease((t - .5 - i * .3) / .6)
+        return `<tr style="opacity:${e}"><th>${esc(r[0])}</th>${r.slice(1).map((n) =>
+          `<td style="background:rgba(34,211,238,${(.08 + .32 * n / top) * e})"><bdi>${esc(String(n))}</bdi></td>`).join('')}</tr>`
+      }).join('')}</table>${extra ? `<p class="more" style="opacity:${ease((t - 2.4) / .6)}">${esc(extra)}</p>` : ''}`
   },
   kpis(s, t) {
     return `<span class="chip">${esc(STORY.labels.draft)}</span><h2>${words(s.heading, t, .1)}</h2>

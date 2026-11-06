@@ -288,8 +288,24 @@ it('crosses two breakdowns in a matrix: every pair, an empty pair as zero, a row
   const setState = vi.fn()
   render(<DesignedPage runId="r1" roles={roles} state={EMPTY} filters={[]} setState={setState} />)
   const region = await screen.findByRole('region', { name: 'Station by criticality' })
+  await screen.findByRole('button', { name: 'ST02' })   // the counts have arrived
   const cells = [...region.querySelectorAll('tbody tr')].map((tr) => [...tr.children].map((c) => c.textContent))
   expect(cells).toEqual([['ST01', '4', '2'], ['ST02', '3', '0']])
   fireEvent.click(screen.getByRole('button', { name: 'ST02' }))
   expect(setState).toHaveBeenCalledWith(expect.objectContaining({ filters: { Class: ['ST02'] } }))
+})
+
+it('lets the reader change the matrix columns, and refuses one column twice', async () => {
+  const matrix: LayoutSection = { id: 'matrix', component: 'matrix', title: t('Pairs'), purpose: t('A count.'),
+    span: 3, interactions: [], binding: { group_by: ['Class', 'Site'], measures: [{ agg: 'count' }] } }
+  vi.spyOn(api, 'planLayout').mockResolvedValue(result([matrix]))
+  const query = vi.spyOn(api, 'queryTable').mockResolvedValue({ group_by: [], measures: [], group_count: 1, truncated: false,
+    matched_records: 1, records: 1, groups: [{ keys: ['Pumps', 'North'], records: 1, values: [1] }] })
+  const texts = ['Class', 'Site', 'Shift'].map((name) => ({ name, type: 'text' as const, role: null, filled: 9, records: 9, distinct: 3 }))
+  render(<DesignedPage runId="r1" roles={{ ...roles, texts }} state={EMPTY} filters={[]} setState={vi.fn()} />)
+  const columns = await screen.findByLabelText('Columns')
+  fireEvent.change(columns, { target: { value: 'Shift' } })
+  await waitFor(() => expect(query.mock.calls.at(-1)![1].group_by).toEqual(['Class', 'Shift']))
+  fireEvent.change(columns, { target: { value: 'Class' } })
+  expect(query.mock.calls.at(-1)![1].group_by).toEqual(['Class', 'Shift'])
 })
