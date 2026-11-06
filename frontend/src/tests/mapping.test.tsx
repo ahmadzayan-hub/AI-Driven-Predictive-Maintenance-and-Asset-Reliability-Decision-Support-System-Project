@@ -131,6 +131,26 @@ describe('MappingPanel', () => {
     expect(screen.getByRole('button', { name: 'Analyse with this mapping' })).toBeInTheDocument()
   })
 
+  it('fills the form from a proposal, says who proposed it and why, and saves only when asked', async () => {
+    const user = userEvent.setup()
+    const proposed: ColumnMapping = { ...SUGGESTION, dimension: 'region', better: { amount: 'higher' }, decimal: 'comma', cross: ['region', 'order_date'] }
+    const fetchMock = serve([
+      { status: 200, body: DETAIL },
+      { status: 200, body: { source: 'model', provider: 'recorded-fake fixture', mapping: proposed,
+        reasons: { amount: 'Revenue is what an executive reads first.' }, cross: ['region', 'order_date'], notes: [] } },
+      { status: 200, body: { ...DETAIL, mapping: proposed } },
+    ])
+    renderPanel()
+    await screen.findByRole('heading', { name: 'Columns of shop.csv' })
+    await user.click(screen.getByRole('button', { name: 'Propose with AI' }))
+    expect(await screen.findByText(/Proposed by recorded-fake fixture from the column names and counts only/)).toBeInTheDocument()
+    expect(screen.getByText('Revenue is what an executive reads first.')).toBeInTheDocument()
+    expect(fetchMock.mock.calls[1][0]).toBe('/api/datasets/ds1/mapping/proposal?language=en')
+    expect(fetchMock).toHaveBeenCalledTimes(2)                     // nothing saved yet
+    await user.click(screen.getByRole('button', { name: 'Save mapping' }))
+    expect(JSON.parse(String(fetchMock.mock.calls[2][1]?.body))).toMatchObject({ better: { amount: 'higher' }, decimal: 'comma', cross: ['region', 'order_date'] })
+  })
+
   it('shows a refusal as an error summary that links to each field', async () => {
     const user = userEvent.setup()
     serve([

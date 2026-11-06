@@ -348,6 +348,23 @@ class RunEngine:
             "suggestion": suggestion,
         }
 
+    def propose_mapping(self, dataset_id, owner, gateway=None, language="en"):
+        """The executive mapping a model proposes from the schema alone, or the
+        rules' suggestion when no model may or can (ADR 2026-11-06-ai-proposed-mapping)."""
+        from server import mapping_advisor
+        dataset = self._owned_dataset(dataset_id, owner)
+        columns, rows = colmap.table(dataset["content"])
+        sampled = colmap.sample(rows)
+        profiles = colmap.profile(columns, sampled)
+        rules = colmap.suggest(columns, sampled, self._metrics(), profiles)
+        personal = any(r.get("code") == "personal" for r in rules["reasons"].values())
+        proposal = mapping_advisor.propose(columns, rows, profiles, rules, gateway,
+                                           model_allowed=not personal, language=language)
+        proposal["reasons"] = {name: (r["ar"] if language == "ar" else r["en"])
+                               for name, r in proposal["reasons"].items()}
+        proposal["notes"] = [n["ar"] if language == "ar" else n["en"] for n in proposal["notes"]]
+        return proposal
+
     def save_mapping(self, dataset_id, owner, mapping, language="en"):
         """Validate a mapping against every row and keep it with the
         dataset. Raises mapping.MappingError with every problem."""

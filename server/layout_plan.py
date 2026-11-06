@@ -312,7 +312,7 @@ def _section(sid, component, span, title, purpose, binding, interactions=()):
             "binding": binding, "interactions": list(interactions)}
 
 
-def rule_plan(prof, caps, objective="", better=None, crossed=None):
+def rule_plan(prof, caps, objective="", better=None, crossed=None, cross=None):
     """A deterministic plan derived from this table's own schema and the kind
     of records it holds. It is labelled `rules`, never a model's design.
     `crossed(a, b)` says whether two breakdowns are worth a matrix; without
@@ -465,14 +465,17 @@ def rule_plan(prof, caps, objective="", better=None, crossed=None):
                                      _t("A missing prerequisite, stated plainly.", "متطلب ناقص، مذكور بوضوح."),
                                      {"capability": cap}))
     distinct = {f["name"]: f.get("distinct") or 0 for f in prof["fields"]}
-    if (group and drivers and distinct[group] * distinct[drivers] <= MAX_CELLS
-            and crossed is not None and crossed(group, drivers)):
+    # A pair the mapping declared (by the owner or the proposing model) comes first.
+    rows_by, cols_by = (cross if cross and all(c in groups and c not in dates for c in cross)
+                        else (group, drivers))
+    if (rows_by and cols_by and distinct[rows_by] * distinct[cols_by] <= MAX_CELLS
+            and crossed is not None and crossed(rows_by, cols_by)):
         # Counts of records, not a ranking: where the records sit across two breakdowns.
         sections.append(_section("matrix", "matrix", 3,
-                                 _t(f"{group} by {drivers}"[:MAX_TITLE], f"{group} حسب {drivers}"[:MAX_TITLE]),
+                                 _t(f"{rows_by} by {cols_by}"[:MAX_TITLE], f"{rows_by} حسب {cols_by}"[:MAX_TITLE]),
                                  _t("Records in each pair of groups. A count, not a risk ranking.",
                                     "عدد السجلات في كل زوج من المجموعات. عدد لا ترتيب للمخاطر."),
-                                 {"group_by": [group, drivers], "measures": [{"agg": "count"}]},
+                                 {"group_by": [rows_by, cols_by], "measures": [{"agg": "count"}]},
                                  ("filter", "drill_down")))
     sections = sections[:MAX_SECTIONS - 1]
     columns = [f["name"] for f in prof["fields"]][:6]
@@ -533,7 +536,8 @@ def crossed(table, a, b):
     return len(pairs) > max(len(firsts), len(seconds))
 
 
-def plan_for(table, gateway=None, objective="", stages=(), model_allowed=True, language="en", better=None):
+def plan_for(table, gateway=None, objective="", stages=(), model_allowed=True, language="en", better=None,
+             cross=None):
     """The whole pipeline. Always returns a validated plan and says how."""
     prof = profile(table)
     caps = capabilities(prof, stages)
@@ -556,7 +560,7 @@ def plan_for(table, gateway=None, objective="", stages=(), model_allowed=True, l
                         "لا يجوز إرسال بيانات هذا التحليل إلى نموذج، فاستُخدم التصميم بالقواعد."))
     if plan is None:
         plan, rule_problems = validate(rule_plan(prof, caps, objective, better,
-                                                 lambda a, b: crossed(table, a, b)), table, prof, caps)
+                                                 lambda a, b: crossed(table, a, b), cross), table, prof, caps)
         if plan is None:  # a rule plan that fails its own contract is a bug
             raise ValueError("; ".join(rule_problems))
     return {"plan": plan, "source": source, "provider": provider, "notes": notes,

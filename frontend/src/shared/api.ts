@@ -1,5 +1,5 @@
 import { translate } from '../i18n'
-import type { AuthConfig, ColumnMapping, DataContextChoices, DatasetDetail, DatasetSummary, ExportPayload, IdentityInfo, JoinPreview, JoinSpec,
+import type { AuthConfig, ColumnMapping, MappingProposal, DataContextChoices, DatasetDetail, DatasetSummary, ExportPayload, IdentityInfo, JoinPreview, JoinSpec,
   KpiPolicy, LayoutResult, MappingProblem, Pipelines, QueryAnswer, QuerySpec, RecordsPage, RecordsSpec, RunAssumptions, RunDetail, RunExecutive, RunKpis, RunSummary, SavedView, SessionState, TableField, TableFilter, TranscriptEntry, UploadResult, Usage } from './types'
 
 export const API_BASE = import.meta.env.VITE_API_BASE ?? ''
@@ -307,6 +307,9 @@ export const api = {
   getDataset: (id: string, language: 'en' | 'ar' = 'en') =>
     request<DatasetDetail>(`/api/datasets/${encodeURIComponent(id)}?language=${language}`, {}, UPLOAD_TIMEOUT_MS),
   /** Checked against every row; a refusal carries `problems` by field. */
+  proposeMapping: (id: string, language: 'en' | 'ar' = 'en') =>
+    request<MappingProposal>(`/api/datasets/${encodeURIComponent(id)}/mapping/proposal?language=${language}`,
+      { method: 'POST' }, UPLOAD_TIMEOUT_MS),
   saveMapping: (id: string, mapping: ColumnMapping, language: 'en' | 'ar' = 'en') =>
     request<DatasetDetail>(
       `/api/datasets/${encodeURIComponent(id)}/mapping?language=${language}`,
@@ -322,6 +325,10 @@ export const api = {
           derived: mapping.derived ?? [],
           fiscal_start: mapping.fiscal_start ?? 1,
           limits: mapping.limits,
+          // Which way is better, the decimal mark (5 November) and the pair to cross (6 November).
+          ...(mapping.better ? { better: mapping.better } : {}),
+          ...(mapping.decimal ? { decimal: mapping.decimal } : {}),
+          ...(mapping.cross ? { cross: mapping.cross } : {}),
         }),
       },
       UPLOAD_TIMEOUT_MS,

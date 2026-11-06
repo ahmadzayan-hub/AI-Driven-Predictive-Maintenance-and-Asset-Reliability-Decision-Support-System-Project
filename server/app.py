@@ -399,6 +399,8 @@ class MappingIn(BaseModel):
     # measure (5 November 2026). Absent means a point and not stated.
     decimal: str = Field(default="point", max_length=8)
     better: dict[str, str] | None = Field(default=None, max_length=500)
+    # Two dimensions to cross in the matrix (6 November 2026).
+    cross: list[str] | None = Field(default=None, max_length=2)
 
 
 class QueryIn(BaseModel):
@@ -1448,6 +1450,17 @@ def create_app(config_path=None, env=None, dist_dir=None):
             except KeyError:
                 raise HTTPException(status_code=404, detail="Dataset not found.")
 
+    @app.post("/api/datasets/{dataset_id}/mapping/proposal")
+    async def propose_mapping(dataset_id: str,
+                              language: str = Query(default="en", pattern="^(en|ar)$"),
+                              principal=Depends(requires("read"))):
+        """A proposed mapping, model-made from the schema alone when one may be
+        used, the rules' otherwise; nothing is saved."""
+        try:
+            return await run_in_threadpool(engine.propose_mapping, dataset_id, principal.subject, gateway, language)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="Dataset not found.")
+
     @app.put("/api/datasets/{dataset_id}/mapping")
     def save_mapping(dataset_id: str, mapping: MappingIn,
                      language: str = Query(default="en", pattern="^(en|ar)$"),
@@ -2180,7 +2193,7 @@ def create_app(config_path=None, env=None, dist_dir=None):
         mapping = json.loads(run_row["mapping_json"]) if run_row.get("mapping_json") else None
         result = await run_in_threadpool(
             layout_plan.plan_for, table, gateway if body.use_model else None,
-            body.objective, stages, not blocked, language, colmap.better_of(mapping))
+            body.objective, stages, not blocked, language, colmap.better_of(mapping), colmap.cross_of(mapping))
         result.pop("profile", None)
         return result
 

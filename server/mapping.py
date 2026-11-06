@@ -731,6 +731,15 @@ def validate(mapping, columns, rows):
             problems.append(Problem("better", column,
                                     f"“{column}”: say higher or lower is better, for a measure column.",
                                     f"«{column}»: حدّد هل الأعلى أم الأدنى أفضل، لعمود مقياس."))
+    # Two breakdowns worth crossing in the matrix (6 November 2026), as the
+    # owner or the proposing model chose them; absent means the planner chooses.
+    cross = mapping.get("cross")
+    if cross is not None and not (isinstance(cross, list) and len(cross) == 2 and cross[0] != cross[1]
+                                  and all(roles.get(c) == "dimension" for c in cross)):
+        problems.append(Problem("cross", None,
+                                "The pair to cross must be two different columns mapped as dimensions.",
+                                "يجب أن يكون الزوج المتقاطع عمودين مختلفين معيّنين بُعدين."))
+        cross = None
     for column in measures:
         filled = [c for c in _cells(rows, column) if c]
         readable = sum(1 for c in filled if parse_number(c, decimal) is not None)
@@ -780,7 +789,15 @@ def validate(mapping, columns, rows):
         saved["decimal"] = decimal
     if better:
         saved["better"] = {c: better[c] for c in measures if c in better}
+    if cross:
+        saved["cross"] = list(cross)
     return saved
+
+
+def cross_of(mapping):
+    """The two breakdowns the mapping asks to cross, or None."""
+    cross = (mapping or {}).get("cross")
+    return list(cross) if isinstance(cross, list) and len(cross) == 2 else None
 
 
 # ---------------------------------------------------------------------------

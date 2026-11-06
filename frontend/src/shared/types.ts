@@ -321,6 +321,8 @@ export interface ColumnMapping {
   decimal?: 'point' | 'comma'
   /** Which way is better per measure, as the owner states it; never guessed. */
   better?: Record<string, 'higher' | 'lower'>
+  /** Two dimensions to cross in the matrix, chosen by the owner or a proposing model. */
+  cross?: string[]
 }
 
 export interface DerivedColumn {
@@ -718,4 +720,14 @@ export interface LayoutResult {
   problems: string[]
   capabilities: Record<string, { available: boolean; reason: { en: string; ar: string } | null }>
   fingerprint: string
+}
+
+/** POST /api/datasets/{id}/mapping/proposal: a model's proposal from the schema alone, or the rules'. */
+export interface MappingProposal {
+  source: 'model' | 'rules'
+  provider: string | null
+  mapping: ColumnMapping
+  reasons: Record<string, string>
+  cross: string[] | null
+  notes: string[]
 }

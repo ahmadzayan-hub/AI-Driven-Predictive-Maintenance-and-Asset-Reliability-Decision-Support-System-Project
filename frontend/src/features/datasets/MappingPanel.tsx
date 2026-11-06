@@ -11,6 +11,7 @@ import { CURRENCY_CODE } from '../../shared/format'
 import { Icon } from '../../shared/components/Icon'
 import type {
   ColumnMapping,
+  MappingProposal,
   DerivedColumn,
   ColumnRole,
   DatasetDetail,
@@ -86,6 +87,9 @@ export function MappingPanel({ datasetId, focusOnOpen, onClose, onChanged, onAna
   const [problems, setProblems] = useState<MappingProblem[]>([])
   const [summary, setSummary] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  // A proposal (6 November 2026): fills the form; saving stays the owner's step.
+  const [proposal, setProposal] = useState<MappingProposal | null>(null)
+  const [proposing, setProposing] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -157,6 +161,20 @@ export function MappingPanel({ datasetId, focusOnOpen, onClose, onChanged, onAna
   const currencyProblem: MappingProblem = { field: 'currency', column: null, message: t('mapping.currencyInvalid') }
   const errorsFor = (target: string) =>
     [...problems, ...(currencyInvalid ? [currencyProblem] : [])].filter((p) => fieldId(p) === target)
+
+  async function propose() {
+    setProposing(true)
+    setNotice(null)
+    try {
+      const result = await api.proposeMapping(datasetId, locale)
+      setProposal(result)
+      setDraft(result.mapping)
+    } catch (error) {
+      setNotice(error instanceof ApiError ? error.message : t('mapping.proposeFailed'))
+    } finally {
+      setProposing(false)
+    }
+  }
 
   async function save() {
     if (!draft) return
@@ -358,7 +376,7 @@ export function MappingPanel({ datasetId, focusOnOpen, onClose, onChanged, onAna
                       {column.name}
                     </label>
                     <span className="mapping__meta" id={`${id}-reason`}>
-                      {t(`coltype.${column.type}` as MessageKey)} · <span dir="auto">{column.reason}</span>
+                      {t(`coltype.${column.type}` as MessageKey)} · <span dir="auto">{proposal?.reasons[column.name] ?? column.reason}</span>
                       {column.examples.length ? (
                         <>
                           {' · '}
@@ -616,6 +634,13 @@ export function MappingPanel({ datasetId, focusOnOpen, onClose, onChanged, onAna
           </div>
 
           {readOnly ? null : <div className="mapping__actions">
+            <button type="button" className="btn btn--ghost" disabled={busy !== null || proposing} onClick={() => void propose()}>
+              {proposing ? <span className="spinner" aria-hidden="true" /> : null}{t('mapping.propose')}
+            </button>
+            {proposal ? <p className="field__help" role="status" dir="auto">
+              {proposal.source === 'model' ? t('mapping.proposedBy', { provider: proposal.provider ?? '' }) : t('mapping.proposedByRules')}
+              {proposal.cross ? ` · ${t('mapping.proposedCross', { a: proposal.cross[0], b: proposal.cross[1] })}` : ''}
+              {proposal.notes.length ? ` · ${proposal.notes.join(' ')}` : ''}</p> : null}
             <button type="button" className="btn btn--primary" disabled={busy !== null} onClick={() => void save()}>
               {busy === 'save' ? <span className="spinner" aria-hidden="true" /> : <Icon name="check" size={16} />}
               {busy === 'save' ? t('mapping.saving') : t('mapping.save')}

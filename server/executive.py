@@ -90,7 +90,7 @@ def currency_of(run):
 MAX_CROSSTAB_COLUMNS = 8
 
 
-def cross_tabulate(table, selected, language, add_evidence):
+def cross_tabulate(table, selected, language, add_evidence, cross=None):
     """The page's two-way matrix, counted over the brief's own scope
     (ADR 2026-11-06-two-way-matrix). The pair comes from the rule planner on
     the whole run, so a filter never changes which columns are crossed; the
@@ -98,7 +98,7 @@ def cross_tabulate(table, selected, language, add_evidence):
     from server import layout_plan
     prof = layout_plan.profile(table)
     plan = layout_plan.rule_plan(prof, layout_plan.capabilities(prof),
-                                 crossed=lambda a, b: layout_plan.crossed(table, a, b))
+                                 crossed=lambda a, b: layout_plan.crossed(table, a, b), cross=cross)
     section = next((s for s in plan["sections"] if s["component"] == "matrix"), None)
     if section is None or not selected:
         return None
@@ -363,7 +363,11 @@ class ExecutiveDashboardAgent:
                                     "لم يكتمل التشغيل بنجاح؛ وهذا ملخص للأدلة الجزئية."))
         limitations.append(_say(language, "Observed maintenance records do not establish future asset failure, remaining useful life, physical asset identity, or causal savings. Actions require qualified human review.",
                                 "لا تثبت سجلات الصيانة المرصودة الأعطال المستقبلية أو العمر المتبقي أو هوية الأصل الفعلية أو الوفورات السببية. تتطلب الإجراءات مراجعة بشرية مؤهلة."))
-        crosstab = cross_tabulate(table, selected, language, add_evidence)
+        try:
+            declared = json.loads(run.get("mapping_json") or "null")
+        except ValueError:
+            declared = None
+        crosstab = cross_tabulate(table, selected, language, add_evidence, colmap.cross_of(declared))
         decision_advisory = advisory(table, selected, measures, priorities, models, language, add_evidence)
         status = "empty" if not selected else "limited" if len(limitations) > 1 else "ready"
         headline = (_say(language, "No cleaned records match the selected scope.", "لا توجد سجلات منظفة تطابق النطاق المحدد.")
