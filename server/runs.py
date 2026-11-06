@@ -172,6 +172,24 @@ class PublicationDestinationChanged(ValueError):
     """A pending review names a different destination from current settings."""
 
 
+class SelfApprovalRefused(PermissionError):
+    """Separation of duties (6 November 2026 review, Phase 3): with
+    AGENTIC_OS_SEPARATE_APPROVER on, the person who started an analysis
+    cannot approve its report or its exports; someone else with the
+    approve permission must."""
+
+    def __init__(self, language="en"):
+        self.message = ("لا يمكنك اعتماد تحليل بدأته بنفسك؛ يجب أن يعتمده شخص آخر لديه صلاحية الاعتماد."
+                        if language == "ar" else
+                        "You cannot approve an analysis you started; another person with the "
+                        "approve permission must decide.")
+        super().__init__(self.message)
+
+
+def separate_approver_from_env():
+    return os.environ.get("AGENTIC_OS_SEPARATE_APPROVER", "").strip().lower() in ("1", "true", "yes", "on")
+
+
 class DatasetInUse(ValueError):
     """A dataset an analysis still reads stays: runs cannot be deleted, and
     a run whose table vanished could not be reopened or re-read."""
@@ -207,10 +225,14 @@ class RunEngine:
     def __init__(self, store, vault_dir, gateway, limits=None, glossary=None,
                  stages=None, profiles=None, execution_mode="client", roles=None,
                  stage_timeout=None, publish_target=None, specialist_driver=None,
-                 specialist_limits=None):
+                 specialist_limits=None, separate_approver=None):
         if execution_mode not in ("client", "worker"):
             raise ValueError("AGENTIC_OS_RUN_EXECUTION must be client or worker.")
         self.execution_mode = execution_mode
+        # Separation of duties (Phase 3): off unless the operator sets
+        # AGENTIC_OS_SEPARATE_APPROVER, so a one-person workspace still works.
+        self.separate_approver = (separate_approver_from_env() if separate_approver is None
+                                  else bool(separate_approver))
         self.store = store
         # The last reasons an orchestration note is missing (G12), shown
         # by /api/health to a signed-in reader.
@@ -1055,10 +1077,21 @@ class RunEngine:
                 raise ValueError("Specialist verification is unavailable; publication is blocked.")
             self.specialists.ensure_verified(run_id)
 
+    def check_approver(self, run_id, approver):
+        """Refuse an approval by the run's own starter when duties are separated.
+        Rejecting is not refused: anyone may stop their own report."""
+        if not self.separate_approver:
+            return
+        run = self._row(run_id)
+        if approver is None or approver == run.get("owner"):
+            raise SelfApprovalRefused(run.get("report_language") or "en")
+
     def _decide_approval_atomic(self, run_id, approval_id, decision, approver=None):
         approval = self.store.get_approval(approval_id, run_id)
         if approval is None:
             raise KeyError(approval_id)
+        if decision == "approve":
+            self.check_approver(run_id, approver)
         if approval["state"] != "pending":
             raise ValueError(f"Approval already {approval['state']}.")
         tasks = self.store.get_tasks(run_id)

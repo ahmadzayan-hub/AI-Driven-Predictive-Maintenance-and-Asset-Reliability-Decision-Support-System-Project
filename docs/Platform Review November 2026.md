@@ -105,9 +105,16 @@ baseline, calibration bands, top-ten hits and false alerts per asset-month
 feature availability timestamps, and prospective shadow-ledger outcomes (the ledger exists;
 no real outcomes are recorded).
 
-## Phases 3, 5 and 6
+## Phase 3: agent harness
 
-Not started in this session: the harness hardening (request-bound revocable tool capabilities,
-stale-worker and cancellation tests), the end-to-end authenticated slice, and the read-only
+Separation of duties: with `AGENTIC_OS_SEPARATE_APPROVER` on, the person who started an
+analysis cannot approve its report or exports; it is off by default and the operator decides
+([decision](adr/2026-11-06-separate-approver.md)). AI already holds no approval: specialist
+tool grants refuse publish, approve, delete and shell. Not started: request-bound revocable
+tool capabilities, stale-worker and cancellation tests, and a workspace reviewer role.
+
+## Phases 5 and 6
+
+Not started in this session: the end-to-end authenticated slice, and the read-only
 enterprise integration proposal. They depend on Phase 2's separation and on a reachable,
 signed-in hosted deployment for the authenticated journey.
