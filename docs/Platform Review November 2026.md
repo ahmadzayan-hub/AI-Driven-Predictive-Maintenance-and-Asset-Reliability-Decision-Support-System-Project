@@ -97,9 +97,13 @@ whether the `rta-style` skill should be renamed to a neutral house style.
 ## Phase 4: model validity
 
 All four static-review leads were reproduced and corrected; see
-[the decision record](adr/2026-11-06-model-validity-corrections.md). Remaining, not started:
-a defined future-failure target and horizon, feature availability timestamps, asset and site
-holdouts, calibration and false alerts per asset-month, and prospective shadow-ledger outcomes.
+[the decision record](adr/2026-11-06-model-validity-corrections.md). The risk ranking now
+backtests itself on the window after a cutoff one horizon back: a stated future-failure target
+and horizon, refits on records up to the cutoff only, Brier score against a constant-rate
+baseline, calibration bands, top-ten hits and false alerts per asset-month
+([decision](adr/2026-11-06-risk-ranking-backtest.md)). Remaining: asset and site holdouts,
+feature availability timestamps, and prospective shadow-ledger outcomes (the ledger exists;
+no real outcomes are recorded).
 
 ## Phases 3, 5 and 6
 

@@ -2499,3 +2499,9 @@ regressions passed. The full failure and skipped later steps remain in README.
 - Phase 2: inventory and safe plan only (`docs/Platform Review November 2026.md`); the RMD binding is an authorization boundary and is not removed.
 - Verified: verify 8 of 8 on b3f4700; Python 2766 (303 skipped), frontend 613.
 - Not started: Phases 3, 5, 6. Decisions needed: production deploy approval for #96, CI push trigger, RMD knowledge packs, rta-style skill name.
+
+### 2026-11-06 (continued): risk ranking backtest
+
+- Done: PR #96's CI failure was two end-to-end specs I had not updated for `.xls` reading and readable download names; fixed (`ab5423b`). Phase 4: the risk ranking backtests its chances on the window after a cutoff one horizon back, against a constant-rate baseline, with calibration bands, top-ten hits and false alerts per asset-month ([decision](docs/adr/2026-11-06-risk-ranking-backtest.md)).
+- Verified: `scripts/verify.py --quick` 6 of 6; Python 2,771 tests, 303 skipped; frontend 613. Five new backtest tests, including one showing records after the cutoff never change the chances.
+- Next: owner decisions on the #96 production merge and the Phase 2 RMD retirement; asset and site holdouts.

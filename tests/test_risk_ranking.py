@@ -244,3 +244,63 @@ class GovernedRunTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BacktestTests(unittest.TestCase):
+    """Phase 4 review, 6 November 2026: do the chances come true after a cutoff?"""
+
+    def records(self, rows):
+        out = {}
+        for row in rows:
+            out.setdefault(row["Asset_Class"], []).append(
+                (row["Asset_ID"], datetime.date.fromisoformat(row["Record_Date"]),
+                 int(row["Failure_Count"])))
+        return out
+
+    def test_wear_out_chances_beat_a_constant_rate_and_say_so(self):
+        result = RiskRanking().run(context(fleet()))
+        stages.validate_result(RiskRanking.role, result)
+        checked = result["output"]["backtest"]
+        self.assertTrue(checked["applicable"])
+        self.assertEqual(checked["cutoff"], "2025-10-02")
+        self.assertTrue(checked["better_than_baseline"])
+        self.assertGreater(checked["top_hits"], checked["top_hits_at_base_rate"])
+        self.assertEqual(sum(b["assets"] for b in checked["calibration"]), checked["assets_scored"])
+        claim = next(c for c in result["claims"] if c["id"] == "risk_ranking.cl_backtest")
+        self.assertIn("not a prospective validation", claim["text"])
+        self.assertIn(f"{checked['brier']:.3f}", claim["text"])
+
+    def test_records_after_the_cutoff_never_change_the_chances(self):
+        rows = fleet()
+        before = K.backtest(self.records(rows), 90)
+        cutoff = datetime.date.fromisoformat(before["cutoff"])
+        # Every record after the cutoff becomes a failure: the outcomes change,
+        # the fitted chances (and so their sum) must not.
+        changed = [dict(r, Failure_Count="1")
+                   if datetime.date.fromisoformat(r["Record_Date"]) > cutoff else r for r in rows]
+        after = K.backtest(self.records(changed), 90)
+        self.assertEqual(before["expected_failures"], after["expected_failures"])
+        self.assertGreater(after["failures"], before["failures"])
+
+    def test_an_asset_not_seen_to_the_end_is_left_out_not_counted_as_surviving(self):
+        rows = fleet()
+        cutoff = datetime.date(2025, 10, 2)
+        gone = "Pum-0"
+        trimmed = [r for r in rows if not (r["Asset_ID"] == gone
+                   and datetime.date.fromisoformat(r["Record_Date"]) > cutoff)]
+        checked = K.backtest(self.records(trimmed), 90)
+        self.assertEqual(checked["assets_unobserved"], 1)
+        self.assertEqual(checked["assets_scored"], 79)
+
+    def test_a_history_shorter_than_the_horizon_is_not_backtested(self):
+        result = RiskRanking(horizon_days=3000).run(context(fleet()))
+        stages.validate_result(RiskRanking.role, result)
+        self.assertFalse(result["output"]["backtest"]["applicable"])
+        claim = next(c for c in result["claims"] if c["id"] == "risk_ranking.cl_backtest")
+        self.assertEqual(claim["type"], "limitation")
+        self.assertIn("not backtested", claim["text"])
+
+    def test_the_arabic_report_carries_the_backtest(self):
+        result = RiskRanking().run(context(fleet(), language="ar"))
+        claim = next(c for c in result["claims"] if c["id"] == "risk_ranking.cl_backtest")
+        self.assertIn("لا تحقق مستقبلي", claim["text_ar"])
