@@ -269,7 +269,7 @@ jobs:
         run: python -m unittest tests.test_frameworks tests.test_mcp -v
 
   pr93-isolated-300mb:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/test/pr93-verified-acceptance-20261106'
+    if: github.head_ref == 'test/pr93-verified-acceptance-20261106' || github.ref == 'refs/heads/test/pr93-verified-acceptance-20261106'
     runs-on: ubuntu-latest
     timeout-minutes: 65
     permissions:
