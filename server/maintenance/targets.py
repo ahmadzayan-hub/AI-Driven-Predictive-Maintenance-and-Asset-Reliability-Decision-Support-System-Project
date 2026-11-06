@@ -86,10 +86,17 @@ def _model_table(ctx):
     retained = analytics._rows(ctx)
     source_available = (isinstance(indices, list) and len(indices) == len(retained)
                         and all(isinstance(i, int) and 0 <= i < len(raw) for i in indices))
+    # A numeric value the cleaner removed (outside the declared limits, a
+    # missing-value marker, not a number) stays removed: the raw value is read
+    # only to keep day-level dates and original text (6 November 2026 review).
+    measured = {c for c, field in fields.items()
+                if field.scale in (contract.COUNT, contract.HOURS, contract.MONEY,
+                                   contract.FRACTION, contract.PERCENT, contract.SCORE)}
     rows = []
     for position, row in enumerate(retained):
         source = raw[indices[position]] if source_available else {}
-        rows.append({c: (source.get(c) if source_available and c in primary else row.get(c))
+        rows.append({c: (None if c in measured and c in row and row.get(c) is None
+                         else source.get(c) if source_available and c in primary else row.get(c))
                      for c in columns})
     ignored = {c for c, role in (ctx.get("mapping") or {}).get("roles", {}).items()
                if role == "ignore"}

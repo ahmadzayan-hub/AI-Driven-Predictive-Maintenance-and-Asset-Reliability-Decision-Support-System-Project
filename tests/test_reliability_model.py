@@ -89,10 +89,22 @@ class FitTests(unittest.TestCase):
                    ("B", d(2025, 1, 1), 1), ("B", d(2025, 3, 1), 0)]
         failed, running, notes = R.intervals(records)
         self.assertEqual(sorted(failed), [10, 20])
-        self.assertEqual(sorted(running), [29, 59])
+        # A's last record is its failure on 31 January, so it has no observed
+        # running time after it; B ran 59 days to its own last record. Before
+        # 6 November A was credited with 29 days to the class's latest date.
+        self.assertEqual(sorted(running), [59])
         self.assertEqual(notes["no_interval"], 2)  # same day; first seen at a failure
         self.assertEqual(notes["several_on_one_record"], 1)
         self.assertEqual(notes["as_of"], "2025-03-01")
+        self.assertEqual(notes["censoring"], "each asset's own last record")
+
+    def test_an_asset_that_leaves_observation_is_not_credited_with_more_time(self):
+        """6 November 2026 review: censoring follows each asset's own follow-up."""
+        d = datetime.date
+        records = [("A", d(2025, 1, 1), 0), ("A", d(2025, 2, 1), 1), ("A", d(2025, 3, 1), 0),   # left in March
+                   ("B", d(2025, 1, 1), 0), ("B", d(2025, 12, 31), 0)]                           # observed all year
+        _, running, _ = R.intervals(records)
+        self.assertEqual(sorted(running), [28, 364])     # not 333 for A
 
 
 class StageTests(unittest.TestCase):

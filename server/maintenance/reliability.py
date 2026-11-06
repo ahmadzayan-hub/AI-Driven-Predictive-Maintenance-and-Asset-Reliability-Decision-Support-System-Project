@@ -2,8 +2,9 @@
 
 Owner slice R1 (31 October 2026). For each asset the stage reads the days
 between records that carry a failure, and counts the time since the last
-failure (or since the asset was first seen) as still running at the latest
-date in the data. A two-parameter Weibull model is fitted to those times by
+failure (or since the asset was first seen) as still running at that
+asset's own last record (6 November 2026; before, at the latest date of the
+whole class, which overstated how long assets that left observation ran). A two-parameter Weibull model is fitted to those times by
 maximum likelihood with the running times treated as censored, separately
 for each asset class. The fitted shape says whether failures come early in
 life, at random, or with wear; its likely range comes from the profile
@@ -65,7 +66,7 @@ def intervals(records):
     as_of = max(day for _, day, _ in records)
     failure_times, running_times = [], []
     notes = {"no_interval": 0, "several_on_one_record": 0, "as_of": as_of.isoformat(),
-             "assets": len(by_asset)}
+             "assets": len(by_asset), "censoring": "each asset's own last record"}
     for history in by_asset.values():
         history.sort()
         start = history[0][0]
@@ -79,7 +80,11 @@ def intervals(records):
             else:
                 notes["no_interval"] += 1
             start = day
-        tail = (as_of - start).days
+        # Censored at the asset's own last record, not the class's latest date
+        # (6 November 2026 review): an asset is known to be running only while
+        # it is observed, and one whose records stop early has not survived
+        # to the end of everyone else's observation.
+        tail = (history[-1][0] - start).days
         if tail > 0:
             running_times.append(tail)
     return failure_times, running_times, notes

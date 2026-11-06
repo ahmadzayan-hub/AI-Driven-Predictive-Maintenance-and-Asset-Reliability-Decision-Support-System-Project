@@ -157,6 +157,29 @@ class TreeTests(unittest.TestCase):
         noise = checked(m.ClassificationModel(), context(noise_rows(), ["a", "b", "sales"], ["a", "b", "sales"], "sales"))
         self.assertLess(noise["output"]["model_card"]["details"]["trees"]["improvement"], 0.2)
 
+    def test_blank_classes_are_left_out_not_learned(self):
+        """6 November 2026 review: a missing outcome is not a class."""
+        rng = random.Random(9)
+        rows = [{"kind": ("A", "B")[i % 2] if i % 7 else "", "x": (i % 2) * 5 + rng.gauss(0, 1), "sales": rng.random()}
+                for i in range(300)]
+        result = checked(m.ClassificationModel(target="kind"), context(rows, ["kind", "x", "sales"], ["x", "sales"], "sales"))
+        card = result["output"]["model_card"]
+        self.assertEqual(sorted(card["details"]["classes"]), ["A", "B"])
+        unlabelled = next(c for c in result["calculations"] if c["id"].endswith("c_unlabelled"))
+        self.assertEqual(unlabelled["value"], sum(1 for r in rows if not r["kind"]))
+
+    def test_input_choices_never_read_the_held_out_rows(self):
+        """6 November 2026 review: a level seen only in held-out rows is not an input,
+        and a column copying the outcome only in held-out rows is not screened by it."""
+        rng = random.Random(5)
+        rows = []
+        for i in range(300):
+            held_out = i % 5 == 0                       # the fallback split holds out rows 0, 5, 10, ...
+            rows.append({"site": "Z" if held_out and i % 2 else ("North", "South")[i % 2],
+                         "x": rng.random(), "sales": rng.random()})
+        result = checked(m.RegressionModel(), context(rows, ["site", "x", "sales"], ["x", "sales"], "sales"))
+        self.assertNotIn("site = Z", result["output"]["model_card"]["inputs"])
+
     def test_noise_is_reported_as_weak(self):
         result = checked(m.TreeModel(), context(noise_rows(), ["a", "b", "sales"],
                                                 ["a", "b", "sales"], "sales"))
@@ -196,9 +219,12 @@ class RegressionTests(unittest.TestCase):
         self.assertGreater(card["improvement"], 0.5)
         self.assertEqual(card["metric"]["baseline_name"], "training_average")
         self.assertEqual(card["details"]["weights"][0]["input"], "price")
-        # Each channel is compared with the most common one, which is web here.
-        self.assertEqual([n for n in card["inputs"] if n.startswith("channel")],
-                         ["channel = store", "channel = phone"])
+        # Each channel is compared with the one most common among the training
+        # records, never among all of them (6 November 2026 review): two of the
+        # three channels are inputs, and the third is that baseline.
+        channels = [n for n in card["inputs"] if n.startswith("channel")]
+        self.assertEqual(len(channels), 2)
+        self.assertEqual(len({"channel = web", "channel = store", "channel = phone"} - set(channels)), 1)
         self.assertEqual(card["test_records"], 80)  # every fifth, no date
         ids = {c["id"] for c in result["claims"]}
         self.assertIn("regression_model.cl_strongest", ids)

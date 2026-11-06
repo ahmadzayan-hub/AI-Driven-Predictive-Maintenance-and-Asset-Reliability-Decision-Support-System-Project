@@ -161,6 +161,21 @@ def _inputs(rows, columns, numeric, exclude):
     return numbers, texts
 
 
+def _train_inputs(ctx, train_rows, columns, numeric, target, base, numbers):
+    """Inputs re-chosen from the training rows alone (6 November 2026 review).
+
+    The first pass over every row only decides which rows are usable. Which
+    columns are screened out (a near-copy of the target) and which levels a
+    text column has, and which is the baseline, must not read the held-out
+    rows, or the held-out score flatters the model."""
+    screened = _screen(ctx, train_rows, columns, numeric, target)
+    exclude = set(base) | set(screened)
+    kept = [c for c in numbers if c not in exclude]
+    _, texts = _inputs(train_rows, columns, numeric, exclude)
+    names, vector = _vectoriser(kept, texts)
+    return screened, names, vector
+
+
 def _vectoriser(numbers, texts):
     names = list(numbers) + [f"{column} = {level}" for column, levels in texts
                              for level in levels[1:]]
@@ -291,7 +306,9 @@ def _section(ctx, title, headline, calculations, lines=()):
 
 # The model card's version (assessment A14): bumped when the fitting or
 # the evaluation changes, so a stored card says which code scored it.
-CARD_VERSION = "2026-10-23"
+# 2026-11-06: inputs and levels chosen from training rows only; blank classes
+# left out. Cards of an earlier version were made before these corrections.
+CARD_VERSION = "2026-11-06"
 
 
 def _window(rows, date):
@@ -690,6 +707,10 @@ class TreeModel:
         train, test, split = _split(subset, date)
         if len(train) < MIN_ROWS - 10 or len(test) < 5:
             train, test, split = _split(subset, None, "the chronological split left too few records on one side")
+        screened, names, vector = _train_inputs(ctx, [subset[i] for i in train], columns, numeric, measure,
+                                                {measure, date}, numbers)
+        if not names:
+            return _thin(ctx, role, title, 1, 0, "inputs", "المدخلات")
         train_rows = _even([subset[i] for i in train], TREE_CAP)
         test_rows = [subset[i] for i in test]
         vectors = [vector(r) for r in train_rows]
@@ -840,6 +861,10 @@ class RegressionModel:
         train, test, split = _split(subset, date)
         if len(train) < MIN_ROWS - 10 or len(test) < 5:
             train, test, split = _split(subset, None, "the chronological split left too few records on one side")
+        screened, names, vector = _train_inputs(ctx, [subset[i] for i in train], columns, numeric, measure,
+                                                {measure, date}, numbers)
+        if not names:
+            return _thin(ctx, role, title, 1, 0, "inputs", "المدخلات")
         train_rows = _even([subset[i] for i in train], TRAIN_CAP)
         test_rows = [subset[i] for i in test]
         raw = [vector(r) for r in train_rows]
@@ -970,18 +995,27 @@ class ClassificationModel:
             exclude = {measure, date}
             derived = measure
             labels_of, target_name = None, None
+        base_exclude = set(exclude)
         screened = _screen(ctx, rows, columns, numeric, derived or target_name)
         exclude = exclude | set(screened)
         numbers, texts = _inputs(rows, columns, numeric, exclude)
         names, vector = _vectoriser(numbers, texts)
         if not names:
             return _thin(ctx, role, title, 1, 0, "inputs", "المدخلات")
-        usable = [r for r in rows if vector(r) is not None]
+        # A record whose named class is blank has no known outcome: it is left
+        # out and counted, never made a class of its own (6 November 2026 review).
+        unlabelled = 0 if derived else sum(1 for r in rows if not str(r.get(target) or "").strip())
+        usable = [r for r in rows if vector(r) is not None
+                  and (derived or str(r.get(target) or "").strip())]
         if len(usable) < MIN_ROWS:
             return _thin(ctx, role, title, MIN_ROWS, len(usable), "records", "السجلات")
         train, test, split = _split(usable, date)
         if len(train) < MIN_ROWS - 10 or len(test) < 5:
             train, test, split = _split(usable, None, "the chronological split left too few records on one side")
+        screened, names, vector = _train_inputs(ctx, [usable[i] for i in train], columns, numeric,
+                                                derived or target_name, base_exclude, numbers)
+        if not names:
+            return _thin(ctx, role, title, 1, 0, "inputs", "المدخلات")
         if derived:
             train_values = sorted(v for v in (usable[i].get(derived) for i in train)
                                   if isinstance(v, (int, float)))
@@ -1047,6 +1081,8 @@ class ClassificationModel:
             _calc(role, "c_train", "training_records", len(train_rows),
                   f"records before the held-out ones, at most {TRAIN_CAP} evenly spaced"),
             _calc(role, "c_test", "held_out_records", len(test_rows), split["kind"]),
+            _calc(role, "c_unlabelled", "records_without_a_class", unlabelled,
+                  "records whose class is blank, left out of training and testing"),
             _calc(role, "c_model_score", "model_balanced_accuracy", round(model_score, 4),
                   "average over classes of the share of held-out records of that class "
                   "classified correctly (naive Bayes on standardised inputs)"),
